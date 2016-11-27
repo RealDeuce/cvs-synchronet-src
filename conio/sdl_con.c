@@ -48,6 +48,8 @@ SDL_mutex	*win_mutex;
 SDL_Surface	*sdl_icon=NULL;
 SDL_Surface	*new_rect=NULL;
 SDL_mutex	*newrect_mutex;
+SDL_mutex	*bitmap_init_mutex;
+static int bitmap_initialized = 0;
 
 /* *nix copy/paste stuff */
 SDL_sem	*sdl_pastebuf_set;
@@ -675,6 +677,9 @@ int sdl_init(int mode)
 	}
 
 	bitmap_init(sdl_drawrect, sdl_flush);
+	sdl.mutexP(bitmap_init_mutex);
+	bitmap_initialized=1;
+	sdl.mutexV(bitmap_init_mutex);
 
 	if(mode==CIOLIB_MODE_SDL_FULLSCREEN)
 		fullscreen=1;
@@ -892,6 +897,7 @@ void setup_surfaces(void)
 	int		flags=SDL_HWSURFACE|SDL_ANYFORMAT;
 	SDL_Surface	*tmp_rect;
 	SDL_Event	ev;
+	int charwidth, charheight, cols, scaling, rows, vmultiplier;
 
 	if(fullscreen)
 		flags |= SDL_FULLSCREEN;
@@ -900,14 +906,22 @@ void setup_surfaces(void)
 
 	sdl.mutexP(win_mutex);
 	pthread_mutex_lock(&vstatlock);
-	char_width=vstat.charwidth*vstat.cols*vstat.scaling;
-	char_height=vstat.charheight*vstat.rows*vstat.scaling*vstat.vmultiplier;
+	charwidth = vstat.charwidth;
+	charheight = vstat.charheight;
+	cols = vstat.cols;
+	scaling = vstat.scaling;
+	rows = vstat.rows;
+	vmultiplier = vstat.vmultiplier;
+	pthread_mutex_unlock(&vstatlock);
+	
+	char_width=charwidth*cols*scaling;
+	char_height=charheight*rows*scaling*vmultiplier;
 
 	if(yuv.enabled) {
 		if(!yuv.win_width)
-			yuv.win_width=vstat.charwidth*vstat.cols;
+			yuv.win_width=charwidth*cols;
 		if(!yuv.win_height)
-			yuv.win_height=vstat.charheight*vstat.rows;
+			yuv.win_height=charheight*rows;
 		if(fullscreen && yuv.screen_width && yuv.screen_height)
 			win=sdl.SetVideoMode(yuv.screen_width,yuv.screen_height,0,flags);
 		else
@@ -915,7 +929,6 @@ void setup_surfaces(void)
 	}
 	else
 		win=sdl.SetVideoMode(char_width,char_height,8,flags);
-	pthread_mutex_unlock(&vstatlock);
 
 #if !defined(NO_X) && defined(__unix__)
 	if(sdl_x11available && sdl_using_x11) {
@@ -1367,53 +1380,60 @@ unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned i
 				}
 
 				/*
-				 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
-				 * So, do that here. *sigh*
-				 */
-
-				/*
 				 * If the keysym is a keypad one
 				 * AND numlock is locked
 				 * AND none of Control, Shift, ALT, or Meta are pressed
 				 */
-				if(keysym >= SDLK_KP0 && keysym <= SDLK_KP_EQUALS 
-						&& (mod & KMOD_NUM)
-						&& (!(mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META) ))) {
-					switch(keysym) {
-						case SDLK_KP0:
-							return('0');
-						case SDLK_KP1:
-							return('1');
-						case SDLK_KP2:
-							return('2');
-						case SDLK_KP3:
-							return('3');
-						case SDLK_KP4:
-							return('4');
-						case SDLK_KP5:
-							return('5');
-						case SDLK_KP6:
-							return('6');
-						case SDLK_KP7:
-							return('7');
-						case SDLK_KP8:
-							return('8');
-						case SDLK_KP9:
-							return('9');
-						case SDLK_KP_PERIOD:
-							return('.');
-						case SDLK_KP_DIVIDE:
-							return('/');
-						case SDLK_KP_MULTIPLY:
-							return('*');
-						case SDLK_KP_MINUS:
-							return('-');
-						case SDLK_KP_PLUS:
-							return('+');
-						case SDLK_KP_ENTER:
-							return('\r');
-						case SDLK_KP_EQUALS:
-							return('=');
+				if(keysym >= SDLK_KP0 && keysym <= SDLK_KP_EQUALS && 
+						(!(mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_META) ))) {
+#if defined(_WIN32)
+					/*
+					 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
+					 * and doesn't know the state of numlock either...
+					 * So, do that here. *sigh*
+					 */
+
+					mod &= ~KMOD_NUM;	// Ignore "current" mod state
+					if (GetKeyState(VK_NUMLOCK) & 1)
+						mod |= KMOD_NUM;
+#endif
+					if (mod & KMOD_NUM) {
+						switch(keysym) {
+							case SDLK_KP0:
+								return('0');
+							case SDLK_KP1:
+								return('1');
+							case SDLK_KP2:
+								return('2');
+							case SDLK_KP3:
+								return('3');
+							case SDLK_KP4:
+								return('4');
+							case SDLK_KP5:
+								return('5');
+							case SDLK_KP6:
+								return('6');
+							case SDLK_KP7:
+								return('7');
+							case SDLK_KP8:
+								return('8');
+							case SDLK_KP9:
+								return('9');
+							case SDLK_KP_PERIOD:
+								return('.');
+							case SDLK_KP_DIVIDE:
+								return('/');
+							case SDLK_KP_MULTIPLY:
+								return('*');
+							case SDLK_KP_MINUS:
+								return('-');
+							case SDLK_KP_PLUS:
+								return('+');
+							case SDLK_KP_ENTER:
+								return('\r');
+							case SDLK_KP_EQUALS:
+								return('=');
+						}
 					}
 				}
 
@@ -1525,6 +1545,15 @@ int sdl_video_event_thread(void *data)
 	int			rectspace=0;
 	int			rectsused=0;
 
+	while(1) {
+		sdl.mutexP(bitmap_init_mutex);
+		if(bitmap_initialized) {
+			sdl.mutexV(bitmap_init_mutex);
+			break;
+		}
+		sdl.mutexV(bitmap_init_mutex);
+		SLEEP(1);
+	}
 	pthread_mutex_lock(&vstatlock);
 	old_scaling = vstat.scaling;
 	pthread_mutex_unlock(&vstatlock);
@@ -1668,6 +1697,7 @@ int sdl_video_event_thread(void *data)
 									struct update_rect *rect=(struct update_rect *)ev.user.data1;
 									SDL_Rect r;
 									int x,y,offset;
+									int scaling, vmultiplier;
 
 									sdl.mutexP(win_mutex);
 									if(!win) {
@@ -1678,13 +1708,16 @@ int sdl_video_event_thread(void *data)
 									}
 									sdl.mutexP(newrect_mutex);
 									pthread_mutex_lock(&vstatlock);
+									scaling = vstat.scaling;
+									vmultiplier = vstat.vmultiplier;
+									pthread_mutex_unlock(&vstatlock);
 									for(y=0; y<rect->height; y++) {
 										offset=y*rect->width;
 										for(x=0; x<rect->width; x++) {
-											r.w=vstat.scaling;
-											r.h=vstat.scaling*vstat.vmultiplier;
-											r.x=(rect->x+x)*vstat.scaling;
-											r.y=(rect->y+y)*vstat.scaling*vstat.vmultiplier;
+											r.w=scaling;
+											r.h=scaling*vmultiplier;
+											r.x=(rect->x+x)*scaling;
+											r.y=(rect->y+y)*scaling*vmultiplier;
 											if(yuv.enabled)
 												yuv_fillrect(yuv.overlay, &r, rect->data[offset++]);
 											else
@@ -1700,10 +1733,10 @@ int sdl_video_event_thread(void *data)
 											pthread_mutex_unlock(&vstatlock);
 											break;
 										}
-										upd_rects[rectsused].x=rect->x*vstat.scaling;
-										upd_rects[rectsused].y=rect->y*vstat.scaling*vstat.vmultiplier;
-										upd_rects[rectsused].w=rect->width*vstat.scaling;
-										upd_rects[rectsused].h=rect->height*vstat.scaling*vstat.vmultiplier;
+										upd_rects[rectsused].x=rect->x*scaling;
+										upd_rects[rectsused].y=rect->y*scaling*vmultiplier;
+										upd_rects[rectsused].w=rect->width*scaling;
+										upd_rects[rectsused].h=rect->height*scaling*vmultiplier;
 										sdl.BlitSurface(new_rect, &(upd_rects[rectsused]), win, &(upd_rects[rectsused]));
 										rectsused++;
 										if(rectsused==rectspace) {
@@ -1711,7 +1744,6 @@ int sdl_video_event_thread(void *data)
 											rectsused=0;
 										}
 									}
-									pthread_mutex_unlock(&vstatlock);
 									sdl.mutexV(newrect_mutex);
 									sdl.mutexV(win_mutex);
 									free(rect->data);
@@ -1977,6 +2009,7 @@ int sdl_initciolib(int mode)
 	newrect_mutex=sdl.SDL_CreateMutex();
 	win_mutex=sdl.SDL_CreateMutex();
 	sdl_keylock=sdl.SDL_CreateMutex();
+	bitmap_init_mutex=sdl.SDL_CreateMutex();
 #if !defined(NO_X) && defined(__unix__)
 	sdl_pastebuf_set=sdl.SDL_CreateSemaphore(0);
 	sdl_pastebuf_copied=sdl.SDL_CreateSemaphore(0);

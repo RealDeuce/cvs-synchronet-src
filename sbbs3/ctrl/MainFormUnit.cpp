@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.186 2014/10/30 08:56:21 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.191 2016/11/19 10:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -818,7 +818,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     global.js.time_limit=JAVASCRIPT_TIME_LIMIT;
     global.js.gc_interval=JAVASCRIPT_GC_INTERVAL;
     global.js.yield_interval=JAVASCRIPT_YIELD_INTERVAL;
-    global.sem_chk_freq=5;		/* seconds */
+    global.sem_chk_freq=DEFAULT_SEM_CHK_FREQ;		/* seconds */
 
     /* These are SBBSCTRL-specific */
     LoginCommand="telnet://127.0.0.1";
@@ -845,9 +845,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.last_node=4;
 	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE;
 	bbs_startup.telnet_port=IPPORT_TELNET;
-    bbs_startup.telnet_interface=INADDR_ANY;
     bbs_startup.rlogin_port=513;
-    bbs_startup.rlogin_interface=INADDR_ANY;
 	bbs_startup.lputs=lputs;
     bbs_startup.event_lputs=lputs;
     bbs_startup.errormsg=errormsg;
@@ -867,7 +865,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     mail_startup.smtp_port=IPPORT_SMTP;
     mail_startup.relay_port=IPPORT_SMTP;
     mail_startup.pop3_port=110;
-    mail_startup.interface_addr=INADDR_ANY;
 	mail_startup.lputs=lputs;
     mail_startup.errormsg=errormsg;
     mail_startup.status=mail_status;
@@ -890,7 +887,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     ftp_startup.size=sizeof(ftp_startup);
     ftp_startup.cbdata=&ftp_log_list;
     ftp_startup.port=IPPORT_FTP;
-    ftp_startup.interface_addr=INADDR_ANY;
 	ftp_startup.lputs=lputs;
     ftp_startup.errormsg=errormsg;
     ftp_startup.status=ftp_status;
@@ -927,7 +923,6 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     memset(&services_startup,0,sizeof(services_startup));
     services_startup.size=sizeof(services_startup);
     services_startup.cbdata=&services_log_list;
-    services_startup.interface_addr=INADDR_ANY;
     services_startup.lputs=lputs;
     services_startup.errormsg=errormsg;
     services_startup.status=services_status;
@@ -1151,7 +1146,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(TelnetStop->Enabled && !bbsServiceEnabled()) {
      	if(!terminating && TelnetForm->ProgressBar->Position
 	        && Application->MessageBox("Shut down the Terminal Server?"
-        	,"Terminal Server In Use", MB_OKCANCEL)!=IDOK)
+        	,"Synchronet Terminal Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         TelnetStopExecute(Sender);
 	}
@@ -1159,7 +1154,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(MailStop->Enabled && !mailServiceEnabled()) {
     	if(!terminating && MailForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Mail Server?"
-        	,"Mail Server In Use", MB_OKCANCEL)!=IDOK)
+        	,"Synchronet Mail Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         MailStopExecute(Sender);
     }
@@ -1167,7 +1162,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(FtpStop->Enabled && !ftpServiceEnabled()) {
     	if(!terminating && FtpForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the FTP Server?"
-	       	,"FTP Server In Use", MB_OKCANCEL)!=IDOK)
+	       	,"Synchronet FTP Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         FtpStopExecute(Sender);
     }
@@ -1175,7 +1170,7 @@ void __fastcall TMainForm::FormCloseQuery(TObject *Sender, bool &CanClose)
     if(WebStop->Enabled && !webServiceEnabled()) {
     	if(!terminating && WebForm->ProgressBar->Position
     		&& Application->MessageBox("Shut down the Web Server?"
-	       	,"Web Server In Use", MB_OKCANCEL)!=IDOK)
+	       	,"Synchronet Web Server In Use", MB_OKCANCEL)!=IDOK)
             return;
         WebStopExecute(Sender);
     }
@@ -2018,10 +2013,12 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("JS_YieldInterval"))
             global.js.yield_interval=Registry->ReadInteger("JS_YieldInterval");
 
+/*
         if(Registry->ValueExists("TelnetInterface"))
             bbs_startup.telnet_interface=Registry->ReadInteger("TelnetInterface");
         if(Registry->ValueExists("RLoginInterface"))
             bbs_startup.rlogin_interface=Registry->ReadInteger("RLoginInterface");
+*/
 
         if(Registry->ValueExists("TelnetPort"))
             bbs_startup.telnet_port=Registry->ReadInteger("TelnetPort");
@@ -2060,8 +2057,10 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("MailMaxInactivity"))
             mail_startup.max_inactivity=Registry->ReadInteger("MailMaxInactivity");
 
+/*
         if(Registry->ValueExists("MailInterface"))
             mail_startup.interface_addr=Registry->ReadInteger("MailInterface");
+*/
 
         if(Registry->ValueExists("MailMaxDeliveryAttempts"))
             mail_startup.max_delivery_attempts
@@ -2140,8 +2139,10 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("FtpQwkTimeout"))
             ftp_startup.qwk_timeout=Registry->ReadInteger("FtpQwkTimeout");
 
+/*
         if(Registry->ValueExists("FtpInterface"))
             ftp_startup.interface_addr=Registry->ReadInteger("FtpInterface");
+*/
 
         if(Registry->ValueExists("FtpPort"))
             ftp_startup.port=Registry->ReadInteger("FtpPort");
@@ -2173,9 +2174,11 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
         if(Registry->ValueExists("FtpOptions"))
             ftp_startup.options=Registry->ReadInteger("FtpOptions");
 
+/*
         if(Registry->ValueExists("ServicesInterface"))
             services_startup.interface_addr
                 =Registry->ReadInteger("ServicesInterface");
+*/
 
         if(Registry->ValueExists("ServicesAnswerSound"))
             SAFECOPY(services_startup.answer_sound
@@ -3164,6 +3167,7 @@ void __fastcall TMainForm::TrayIconRestore(TObject *Sender)
 
 void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
 {
+    char str[128];
     static inside;
     if(inside) return;
     inside=true;
@@ -3181,19 +3185,24 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
     PropertiesDlg->UndockableCheckBox->Checked=UndockableForms;
     PropertiesDlg->FileAssociationsCheckBox->Checked=UseFileAssociations;
     PropertiesDlg->PasswordEdit->Text=Password;
-    PropertiesDlg->JS_MaxBytesEdit->Text=IntToStr(global.js.max_bytes);
-    PropertiesDlg->JS_ContextStackEdit->Text=IntToStr(global.js.cx_stack);
+    PropertiesDlg->JS_MaxBytesEdit->Text=byte_count_to_str(global.js.max_bytes, str, sizeof(str));
+    PropertiesDlg->JS_ContextStackEdit->Text=byte_count_to_str(global.js.cx_stack, str, sizeof(str));
     PropertiesDlg->JS_TimeLimitEdit->Text=IntToStr(global.js.time_limit);
     PropertiesDlg->JS_GcIntervalEdit->Text=IntToStr(global.js.gc_interval);
     PropertiesDlg->JS_YieldIntervalEdit->Text=IntToStr(global.js.yield_interval);
     PropertiesDlg->JS_LoadPathEdit->Text=global.js.load_path;
     PropertiesDlg->ErrorSoundEdit->Text=ErrorSoundFile;
-    PropertiesDlg->LoginAttemptDelayEdit->Text=IntToStr(global.login_attempt_delay);
-    PropertiesDlg->LoginAttemptThrottleEdit->Text=IntToStr(global.login_attempt_throttle);
+    PropertiesDlg->LoginAttemptDelayEdit->Text=IntToStr(global.login_attempt.delay);
+    PropertiesDlg->LoginAttemptThrottleEdit->Text=IntToStr(global.login_attempt.throttle);
     PropertiesDlg->LoginAttemptHackThresholdEdit->Text
-        =global.login_attempt_hack_threshold ? IntToStr(global.login_attempt_hack_threshold) : AnsiString("<disabled>");
+        =global.login_attempt.hack_threshold ? IntToStr(global.login_attempt.hack_threshold) : AnsiString("<disabled>");
     PropertiesDlg->LoginAttemptFilterThresholdEdit->Text
-        =global.login_attempt_filter_threshold ? IntToStr(global.login_attempt_filter_threshold) : AnsiString("<disabled>");
+        =global.login_attempt.filter_threshold ? IntToStr(global.login_attempt.filter_threshold) : AnsiString("<disabled>");
+    PropertiesDlg->LoginAttemptTempBanThresholdEdit->Text
+        =global.login_attempt.tempban_threshold ? IntToStr(global.login_attempt.tempban_threshold) : AnsiString("<disabled>");
+    PropertiesDlg->LoginAttemptTempBanDurationEdit->Text
+        =global.login_attempt.tempban_duration ? AnsiString(duration_to_str(global.login_attempt.tempban_duration, str, sizeof(str)))
+            : AnsiString("<disabled>");
 
     if(MaxLogLen==0)
 		PropertiesDlg->MaxLogLenEdit->Text="<unlimited>";
@@ -3246,9 +3255,9 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         /* JavaScript operating parameters */
         js_startup_t js=global.js; // save for later comparison
         global.js.max_bytes
-        	=PropertiesDlg->JS_MaxBytesEdit->Text.ToIntDef(JAVASCRIPT_MAX_BYTES);
+        	=parse_byte_count(PropertiesDlg->JS_MaxBytesEdit->Text.c_str(), 1);
         global.js.cx_stack
-        	=PropertiesDlg->JS_ContextStackEdit->Text.ToIntDef(JAVASCRIPT_CONTEXT_STACK);
+        	=parse_byte_count(PropertiesDlg->JS_ContextStackEdit->Text.c_str(), 1);
         global.js.time_limit
         	=PropertiesDlg->JS_TimeLimitEdit->Text.ToIntDef(JAVASCRIPT_TIME_LIMIT);
         global.js.gc_interval
@@ -3265,10 +3274,12 @@ void __fastcall TMainForm::PropertiesExecute(TObject *Sender)
         if(memcmp(&services_startup.js,&js,sizeof(js))==0)  services_startup.js=global.js;
 
         /* Security parameters */
-        global.login_attempt_delay = PropertiesDlg->LoginAttemptDelayEdit->Text.ToIntDef(0);
-        global.login_attempt_throttle = PropertiesDlg->LoginAttemptThrottleEdit->Text.ToIntDef(0);
-        global.login_attempt_hack_threshold = PropertiesDlg->LoginAttemptHackThresholdEdit->Text.ToIntDef(0);
-        global.login_attempt_filter_threshold = PropertiesDlg->LoginAttemptFilterThresholdEdit->Text.ToIntDef(0);
+        global.login_attempt.delay = PropertiesDlg->LoginAttemptDelayEdit->Text.ToIntDef(0);
+        global.login_attempt.throttle = PropertiesDlg->LoginAttemptThrottleEdit->Text.ToIntDef(0);
+        global.login_attempt.hack_threshold = PropertiesDlg->LoginAttemptHackThresholdEdit->Text.ToIntDef(0);
+        global.login_attempt.filter_threshold = PropertiesDlg->LoginAttemptFilterThresholdEdit->Text.ToIntDef(0);
+        global.login_attempt.tempban_threshold = PropertiesDlg->LoginAttemptTempBanThresholdEdit->Text.ToIntDef(0);
+        global.login_attempt.tempban_duration = parse_duration(PropertiesDlg->LoginAttemptTempBanDurationEdit->Text.c_str());
 
         MaxLogLen
         	=PropertiesDlg->MaxLogLenEdit->Text.ToIntDef(0);
@@ -3879,6 +3890,30 @@ void __fastcall TMainForm::ViewErrorLogExecute(TObject *Sender)
 void __fastcall TMainForm::ViewLoginAttemptsMenuItemClick(TObject *Sender)
 {
     LoginAttemptsForm->Show();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::LogPopupPauseClick(TObject *Sender)
+{
+    if(/*(TRichEdit*)*/Sender == TelnetForm->Log) {
+        TelnetPause->Execute();
+    }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::LogPopupCopyAllClick(TObject *Sender)
+{
+    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
+    Log->SelectAll();
+    Log->CopyToClipboard();
+    Log->SelLength=0;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::LogPopupCopyClick(TObject *Sender)
+{
+    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
+    Log->CopyToClipboard();
 }
 //---------------------------------------------------------------------------
 
