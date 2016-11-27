@@ -1,8 +1,6 @@
-/* userdat.c */
-
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.172 2016/11/08 19:49:54 rswindell Exp $ */
+/* $Id: userdat.c,v 1.175 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -135,8 +133,7 @@ uint DLLCALL total_users(scfg_t* cfg)
 	if(!VALID_CFG(cfg))
 		return(0);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
-	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1)
+	if((file=openuserdat(cfg, /* for_modify: */FALSE)) < 0)
 		return(0);
 	length=(long)filelength(file);
 	for(l=0;l<length;l+=U_LEN) {
@@ -171,19 +168,17 @@ uint DLLCALL lastuser(scfg_t* cfg)
 }
 
 /****************************************************************************/
-/* Deletes last user record in user.dat										*/
+/* Deletes (completely removes) last user record in user.dat				*/
 /****************************************************************************/
 BOOL DLLCALL del_lastuser(scfg_t* cfg)
 {
-	char	str[256];
 	int		file;
 	long	length;
 
 	if(!VALID_CFG(cfg))
 		return(FALSE);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
-	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
+	if((file=openuserdat(cfg, /* for_modify: */TRUE)) < 0)
 		return(FALSE);
 	length=(long)filelength(file);
 	if(length<U_LEN) {
@@ -198,7 +193,7 @@ BOOL DLLCALL del_lastuser(scfg_t* cfg)
 /****************************************************************************/
 /* Opens the user database returning the file descriptor or -1 on error		*/
 /****************************************************************************/
-int DLLCALL openuserdat(scfg_t* cfg)
+int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
 {
 	char path[MAX_PATH+1];
 
@@ -206,7 +201,7 @@ int DLLCALL openuserdat(scfg_t* cfg)
 		return(-1); 
 
 	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
-	return nopen(path,O_RDONLY|O_DENYNONE); 
+	return nopen(path, for_modify ? (O_RDWR|O_CREAT|O_DENYNONE) : (O_RDONLY|O_DENYNONE)); 
 }
 
 /****************************************************************************/
@@ -224,7 +219,7 @@ int DLLCALL readuserdat(scfg_t* cfg, unsigned user_number, char* userdat, int in
 	if(infile >= 0)
 		file = infile;
 	else {
-		if((file = openuserdat(cfg)) < 0)
+		if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0)
 			return file;
 	}
 
@@ -417,17 +412,35 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
 		return(-1); 
 
-	if((file = openuserdat(cfg)) < 0)
+	if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0)
 		return file;
 
 	memset(userdat, 0, sizeof(userdat));
 	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
 		close(file);
+		user->number = 0;
 		return retval;
 	}
 	retval = parseuserdat(cfg, userdat, user);
 	close(file);
 	return retval;
+}
+
+/* Fast getuserdat() (leaves user.dat file open) */
+int DLLCALL fgetuserdat(scfg_t* cfg, user_t *user, int file)
+{
+	int		retval;
+	char	userdat[U_LEN+1];
+
+	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
+		return(-1); 
+
+	memset(userdat, 0, sizeof(userdat));
+	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
+		user->number = 0;
+		return retval;
+	}
+	return parseuserdat(cfg, userdat, user);
 }
 
 /****************************************************************************/
@@ -580,10 +593,8 @@ int DLLCALL putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_UNUSED,U_LEN-(U_UNUSED)-2,crlf);
 	putrec(userdat,U_UNUSED+(U_LEN-(U_UNUSED)-2),2,crlf);
 
-	SAFEPRINTF(str,"%suser/user.dat", cfg->data_dir);
-	if((file=nopen(str,O_RDWR|O_CREAT|O_DENYNONE))==-1) {
+	if((file=openuserdat(cfg, /* for_modify: */TRUE)) < 0)
 		return(errno);
-	}
 
 	if(filelength(file)<((long)user->number-1)*U_LEN) {
 		close(file);
@@ -2980,7 +2991,7 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
 /****************************************************************************/
-BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
+BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*progress)(void*, int, int), void* cbdata)
 {
 	char		path[MAX_PATH+1];
 	uint		i;
@@ -3004,17 +3015,19 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 		return 0;
 
 	if(user->rest&FLAG('G'))
-		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init);
+		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init, progress, cbdata);
 	
 	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
 	if((stream=fnopen(&file,path,O_RDONLY))==NULL) {
 		if(fexist(path))
 			return(FALSE);	/* file exists, but couldn't be opened? */
-		return initmsgptrs(cfg, subscan, cfg->new_msgscan_init);
+		return initmsgptrs(cfg, subscan, cfg->new_msgscan_init, progress, cbdata);
 	}
 
 	length=(long)filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
+		if(progress != NULL)
+			progress(cbdata, i, cfg->total_subs);
 		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
 			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
 			fread(&subscan[i].ptr,sizeof(subscan[i].ptr),1,stream);
@@ -3091,7 +3104,7 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 /* Initialize new-msg-scan pointers (e.g. for new users)					*/
 /* If 'days' is specified as 0, just set pointer to last message (faster)	*/
 /****************************************************************************/
-BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
+BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*progress)(void*, int, int), void* cbdata)
 {
 	uint		i;
 	smb_t		smb;
@@ -3099,6 +3112,8 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
 	time_t		t = time(NULL) - (days * 24 * 60 * 60);
 
 	for(i=0;i<cfg->total_subs;i++) {
+		if(progress != NULL)
+			progress(cbdata, i, cfg->total_subs);
 		if(days == 0) {
 			/* This value will be "fixed" (changed to the last msg) when saving */
 			subscan[i].ptr = ~0;
