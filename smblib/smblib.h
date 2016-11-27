@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.82 2016/12/06 07:17:17 rswindell Exp $ */
+/* $Id: smblib.h,v 1.80 2016/11/24 02:56:34 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -186,10 +186,6 @@ SMBEXPORT BOOL		SMBCALL smb_valid_hdr_offset(smb_t* smb, ulong offset);
 SMBEXPORT int		SMBCALL smb_init_idx(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT uint16_t	SMBCALL	smb_voted_already(smb_t*, uint32_t msgnum, const char* name, enum smb_net_type, void* net_addr);
 SMBEXPORT BOOL		SMBCALL smb_msg_is_from(smbmsg_t* msg, const char* name, enum smb_net_type net_type, const void* net_addr);
-SMBEXPORT uint32_t	SMBCALL smb_first_in_thread(smb_t*, smbmsg_t*, msghdr_t*);
-SMBEXPORT uint32_t	SMBCALL smb_next_in_thread(smb_t*, smbmsg_t*, msghdr_t*);
-SMBEXPORT uint32_t	SMBCALL smb_last_in_branch(smb_t*, smbmsg_t*);
-SMBEXPORT uint32_t	SMBCALL smb_last_in_thread(smb_t*, smbmsg_t*);
 
 /* smbadd.c */
 SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
