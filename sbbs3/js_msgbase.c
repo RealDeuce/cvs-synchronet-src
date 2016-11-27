@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.206 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.205 2016/11/22 06:41:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ typedef struct
 
 } privatemsg_t;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 /* Destructor */
 
