@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.62 2016/11/16 09:05:39 rswindell Exp $ */
+/* $Id: userdat.h,v 1.63 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,10 +125,10 @@ DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t*, const char* prot, const char* reason, 
 								  ,const char* ip_addr, const char* username, const char* fname);
 
 /* New-message-scan pointer functions: */
-DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*);
+DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*, void (*progress)(void*, int, int), void* cbdata);
 DLLEXPORT BOOL	DLLCALL putmsgptrs(scfg_t*, user_t*, subscan_t*);
 DLLEXPORT BOOL	DLLCALL fixmsgptrs(scfg_t*, subscan_t*);
-DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days);
+DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days, void (*progress)(void*, int, int), void* cbdata);
 
 
 /* New atomic numeric user field adjustment functions: */

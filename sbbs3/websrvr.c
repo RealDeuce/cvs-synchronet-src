@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.641 2016/11/21 05:44:00 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.642 2016/11/27 23:13:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1524,7 +1524,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,&session->user,session->subscan);
+		getmsgptrs(&scfg,&session->user,session->subscan,NULL,NULL);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -6482,7 +6482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.641 $", "%*s %s", revision);
+	sscanf("$Revision: 1.642 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

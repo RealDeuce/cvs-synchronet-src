@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.442 2016/11/21 10:03:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.443 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -673,7 +673,8 @@ public:
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
 	long	term_supports(long cmp_flags=0);
-	int		backfill(const char* str, float pct);
+	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
+	void	progress(const char* str, int count, int total);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;

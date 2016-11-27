@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.297 2016/11/21 05:44:00 rswindell Exp $ */
+/* $Id: services.c,v 1.298 2016/11/27 23:13:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -429,7 +429,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 	}
 	if(client->subscan!=NULL) {
-		getmsgptrs(&scfg,&client->user,client->subscan);
+		getmsgptrs(&scfg,&client->user,client->subscan,NULL,NULL);
 	}
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.297 $", "%*s %s", revision);
+	sscanf("$Revision: 1.298 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
