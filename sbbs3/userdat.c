@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.180 2016/12/10 21:29:04 rswindell Exp $ */
+/* $Id: userdat.c,v 1.175 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1144,7 +1144,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 
 /****************************************************************************/
 uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
-						 ,char *dat, BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata)
+						 ,char *dat, BOOL del, BOOL next)
 {
     char	str[MAX_PATH+1];
     uint	i;
@@ -1163,11 +1163,7 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		l=((long)usernumber) * U_LEN;
 	else
 		l=0;
-	if(progress != NULL)
-		progress(cbdata, l, length);
 	for(;l<length;l+=U_LEN) {
-		if(progress != NULL)
-			progress(cbdata, l, length);
 		if(usernumber && l/U_LEN==(long)usernumber-1) 
 			continue;
 		lseek(file,l+offset,SEEK_SET);
@@ -1205,8 +1201,6 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 			unlock(file,l,U_LEN); 
 	}
 	close(file);
-	if(progress != NULL)
-		progress(cbdata, l, length);
 	return(0);
 }
 
@@ -2717,14 +2711,6 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user,client));
 }
 
-BOOL DLLCALL is_host_exempt(scfg_t* cfg, const char* ip_addr, const char* host_name)
-{
-	char	exempt[MAX_PATH+1];
-
-	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
-	return findstr(ip_addr, exempt) || findstr(host_name, exempt);
-}
-
 /****************************************************************************/
 /* Add an IP address (with comment) to the IP filter/trashcan file			*/
 /* ToDo: Move somewhere more appropriate (filter.c?)						*/
@@ -3052,8 +3038,6 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 		subscan[i].sav_last=subscan[i].last;
 		subscan[i].sav_cfg=subscan[i].cfg; 
 	}
-	if(progress != NULL)
-		progress(cbdata, i, cfg->total_subs);
 	fclose(stream);
 	return(TRUE);
 }
@@ -3147,8 +3131,6 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*
 			subscan[i].ptr = idx.number;
 		smb_close(&smb);
 	}
-	if(progress != NULL)
-		progress(cbdata, i, cfg->total_subs);
 	return TRUE;
 }
 
