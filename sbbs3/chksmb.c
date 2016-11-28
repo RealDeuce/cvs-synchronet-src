@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.57 2016/12/01 21:22:12 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.56 2016/11/24 02:58:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -103,18 +103,6 @@ char* DLLCALL strip_ctrl(char *str)
 	return(str);
 }
 
-BOOL contains_ctrl_chars(char* str)
-{
-	uchar* p;
-
-	if(str==NULL)
-		return FALSE;
-	for(p = (uchar *)str; *p; p++)
-		if(*p < ' ')
-			return TRUE;
-	return FALSE;
-}
-
 char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 			"\n"
 			" opts:\n"
@@ -151,8 +139,7 @@ int main(int argc, char **argv)
 				,intransit,unvalidated
 				,zeronum,idxzeronum,idxnumerr,packable=0L,totallzhsaved=0L
 				,totalmsgs=0,totallzhmsgs=0,totaldelmsgs=0,totalmsgbytes=0L
-				,lzhblocks,lzhsaved
-				,ctrl_chars;
+				,lzhblocks,lzhsaved;
 	ulong		msgids = 0;
 	smb_t		smb;
 	idxrec_t	idx;
@@ -161,7 +148,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.57 $", "%*s %s", revision);
+	sscanf("$Revision: 1.56 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -289,7 +276,6 @@ int main(int argc, char **argv)
 	acthdrblocks=actdatblocks=0;
 	dfieldlength=dfieldoffset=0;
 	msgids = 0;
-	ctrl_chars = 0;
 
 	for(l=smb.status.header_offset;l<length;l+=size) {
 		size=SHD_BLOCK_LEN;
@@ -331,16 +317,6 @@ int main(int argc, char **argv)
 		strip_ctrl(from);
 		fprintf(stderr,"#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,from);
 
-		if(contains_ctrl_chars(msg.to) 
-			|| (msg.to_net.type != NET_FIDO && contains_ctrl_chars(msg.to_net.addr))
-			|| contains_ctrl_chars(msg.from)
-			|| (msg.from_net.type != NET_FIDO && contains_ctrl_chars(msg.from_net.addr))
-			|| contains_ctrl_chars(msg.subj)) {
-			fprintf(stderr,"%sHeader field contains control characters\n", beep);
-			msgerr=TRUE;
-			ctrl_chars++;
-		}
-	
 		if(msg.hdr.length!=smb_getmsghdrlen(&msg)) {
 			fprintf(stderr,"%sHeader length mismatch\n",beep);
 			msgerr=TRUE;
@@ -989,11 +965,6 @@ int main(int argc, char **argv)
 			,"Invalid Hash Entries"
 			,badhash);
 
-	if(ctrl_chars)
-		printf("%-35.35s (!): %lu\n"
-			,"Control Characters in Header Fields"
-			,ctrl_chars);
-
 	printf("\n%s Message Base ",smb.file);
 	if(/* (headers-deleted)!=smb.status.total_msgs || */
 		total!=smb.status.total_msgs
@@ -1004,7 +975,7 @@ int main(int argc, char **argv)
 		|| orphan || dupenumhdr || dupenum || dupeoff || attr
 		|| lockerr || hdrerr || hdrnumerr || idxnumerr || idxofferr
 		|| actalloc || datactalloc || misnumbered || timeerr 
-		|| intransit || unvalidated || ctrl_chars
+		|| intransit || unvalidated
 		|| subjcrc || fromcrc || tocrc
 		|| dfieldoffset || dfieldlength || xlaterr || idxerr) {
 		printf("%shas Errors!\n",beep);
