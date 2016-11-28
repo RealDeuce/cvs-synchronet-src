@@ -1,6 +1,6 @@
 /* Synchronet file database scanning routines */
 
-/* $Id: scandirs.cpp,v 1.7 2016/12/10 08:02:25 rswindell Exp $ */
+/* $Id: scandirs.cpp,v 1.6 2016/11/28 00:15:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,7 +89,7 @@ void sbbs_t::scandirs(long mode)
 	if(ch=='L') {
 		k=0;
 		for(i=0;i<usrdirs[curlib] && !msgabort();i++) {
-			progress("Scanning", i, usrdirs[curlib], 10);
+			progress("Scanning", i, usrdirs[curlib]);
 			if(mode&FL_ULTIME	/* New-scan */
 				&& (cfg.lib[usrlib[curlib]]->offline_dir==usrdir[curlib][i]
 				|| cfg.dir[usrdir[curlib][i]]->misc&DIR_NOSCAN))
@@ -149,7 +149,7 @@ void sbbs_t::scanalldirs(long mode)
 		total_dirs += usrdirs[i];
 	for(i=d=0;i<usrlibs;i++) {
 		for(j=0;j<usrdirs[i] && !msgabort();j++,d++) {
-			progress("Scanning", d, total_dirs, 10);
+			progress("Scanning", d, total_dirs);
 			if(mode&FL_ULTIME /* New-scan */
 				&& (cfg.lib[usrlib[i]]->offline_dir==usrdir[i][j]
 				|| cfg.dir[usrdir[i][j]]->misc&DIR_NOSCAN))
