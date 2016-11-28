@@ -1,10 +1,10 @@
-/* $Id: ciolib.h,v 1.93 2018/02/08 21:37:17 deuce Exp $ */
+/* $Id: ciolib.h,v 1.72 2015/02/27 10:42:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,7 +35,6 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
-#include "gen_defs.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -68,16 +67,6 @@
         #define CIOLIBEXPORT
         #define CIOLIBEXPORTVAR	extern
 #endif
-
-enum {
-	 CIOLIB_SETFONT_SUCCESS						= 0
-	,CIOLIB_SETFONT_NOT_SUPPORTED				= 1
-	,CIOLIB_SETFONT_NOT_INITIALIZED				= 2
-	,CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED	= 3
-	,CIOLIB_SETFONT_INVALID_FONT				= 4
-	,CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE		= 5
-	,CIOLIB_SETFONT_MALLOC_FAILURE				= 6
-};
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -156,7 +145,6 @@ enum text_modes
     C80X14,
     C80X21,
     C80X28,
-    C80X30,
     C80X43,
     C80X50,
     C80X60,
@@ -184,16 +172,9 @@ enum text_modes
     MONO28,
     MONO43,
     MONO50,
-    MONO60,		// 38
+    MONO60,
 
-	/* New modes we've added 'cause they're cool */
-
-	ST132X37_16_9,
-	ST132X52_5_4,
-
-	/* Cruft... */
-
-	C4350    = C80X50,	/* this is actually "64" in the "real" conio */
+    C4350    = C80X50,	/* this is actually "64" in the "real" conio */
 
     _ORIGMODE = 65,      /* original mode at program startup */
 
@@ -239,8 +220,6 @@ struct text_info {
 };
 
 CIOLIBEXPORTVAR struct text_info cio_textinfo;
-CIOLIBEXPORTVAR uint32_t ciolib_fg;
-CIOLIBEXPORTVAR uint32_t ciolib_bg;
 
 struct mouse_event {
 	int event;
@@ -262,52 +241,20 @@ struct conio_font_data_struct {
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
 
-struct ciolib_pixels {
-	uint32_t	*pixels;
-	uint32_t	width;
-	uint32_t	height;
-};
-
-struct ciolib_screen {
-	uint32_t		fg_colour;
-	uint32_t		bg_colour;
-	struct ciolib_pixels	*pixels;
-	void			*vmem;
-	uint32_t		*foreground;
-	uint32_t		*background;
-	struct text_info	text_info;
-};
-
 #define CONIO_FIRST_FREE_FONT	43
 
 typedef struct {
 	int		mode;
 	int		mouse;
-	uint64_t	options;
-#define	CONIO_OPT_LOADABLE_FONTS	1
-#define CONIO_OPT_BLINK_ALT_FONT	2
-#define CONIO_OPT_BOLD_ALT_FONT		4
-#define CONIO_OPT_BRIGHT_BACKGROUND	8
-#define CONIO_OPT_PALETTE_SETTING	16
-#define CONIO_OPT_SET_PIXEL			32
-#define CONIO_OPT_CUSTOM_CURSOR		64
-#define CONIO_OPT_FONT_SELECT		128
-#define CONIO_OPT_SET_TITLE			256
-#define CONIO_OPT_SET_NAME			512
-#define CONIO_OPT_SET_ICON			1024
-#define CONIO_OPT_EXTENDED_PALETTE	2048
 	void	(*clreol)		(void);
 	int		(*puttext)		(int,int,int,int,void *);
-	int		(*pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	int		(*gettext)		(int,int,int,int,void *);
-	int		(*pgettext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*textattr)		(int);
 	int		(*kbhit)		(void);
 	void	(*delay)		(long);
 	int		(*wherex)		(void);
 	int		(*wherey)		(void);
 	int		(*putch)		(int);
-	int		(*cputch)		(uint32_t, uint32_t, int);
 	void	(*gotoxy)		(int,int);
 	void	(*clrscr)		(void);
 	void	(*gettextinfo)	(struct text_info *);
@@ -330,7 +277,6 @@ typedef struct {
 	void	(*insline)		(void);
 	int		(*cprintf)		(const char *,...);
 	int		(*cputs)		(char *);
-	int		(*ccputs)		(uint32_t, uint32_t, const char *);
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
 	int		(*getmouse)		(struct mouse_event *mevent);
@@ -355,13 +301,6 @@ typedef struct {
 	void	(*setscaling)	(int new_value);
 	int		(*getscaling)	(void);
 	int		*ESCDELAY;
-	int		(*setpalette)	(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
-	int		(*attr2palette)	(uint8_t attr, uint32_t *fg, uint32_t *bg);
-	int		(*setpixel)	(uint32_t x, uint32_t y, uint32_t colour);
-	struct ciolib_pixels *(*getpixels)(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey);
-	int		(*setpixels)(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t x_off, uint32_t y_off, struct ciolib_pixels *pixels, void *mask);
-	uint32_t 	*(*get_modepalette)(uint32_t[16]);
-	int	(*set_modepalette)(uint32_t[16]);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -370,11 +309,6 @@ CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
 CIOLIBEXPORTVAR int ciolib_xlat;
-#define CIOLIB_XLAT_NONE	0
-#define CIOLIB_XLAT_CHARS	1
-#define CIOLIB_XLAT_ATTR	2
-#define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
-
 CIOLIBEXPORTVAR int ciolib_reaper;
 
 #define _conio_kbhit()		kbhit()
@@ -400,7 +334,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_cputs(char *str);
-CIOLIBEXPORT int CIOLIBCALL ciolib_ccputs(uint32_t fg_palette, uint32_t bg_palette, const char *str);
 CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(const char *fmat, ...);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textbackground(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
@@ -408,13 +341,10 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e);
-CIOLIBEXPORT int CIOLIBCALL ciolib_pputtext(int a,int b,int c,int d,void *e,uint32_t *f, uint32_t *g);
 CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
-CIOLIBEXPORT int CIOLIBCALL ciolib_pgettext(int a,int b,int c,int d,void *e,uint32_t *f, uint32_t *g);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);
-CIOLIBEXPORT int CIOLIBCALL ciolib_cputch(uint32_t, uint32_t, int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcursortype(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode);
 CIOLIBEXPORT void CIOLIBCALL ciolib_window(int sx, int sy, int ex, int ey);
@@ -439,18 +369,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
-CIOLIBEXPORT int CIOLIBCALL ciolib_attr2palette(uint8_t attr, uint32_t *fg, uint32_t *bg);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setpixel(uint32_t x, uint32_t y, uint32_t colour);
-CIOLIBEXPORT struct ciolib_pixels * CIOLIBCALL ciolib_getpixels(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setpixels(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t x_off, uint32_t y_off, struct ciolib_pixels *pixels, void *mask);
-CIOLIBEXPORT void CIOLIBCALL ciolib_freepixels(struct ciolib_pixels *pixels);
-CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void);
-CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *);
-CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
-CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(uint32_t[16]);
-CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t[16]);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -476,20 +394,16 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define clreol()				ciolib_clreol()
 	#define clrscr()				ciolib_clrscr()
 	#define cputs(a)				ciolib_cputs(a)
-	#define ccputs(a,b,c)				ciolib_ccputs(a,b,c)
 	#define textbackground(a)		ciolib_textbackground(a)
 	#define textcolor(a)			ciolib_textcolor(a)
 	#define highvideo()				ciolib_highvideo()
 	#define lowvideo()				ciolib_lowvideo()
 	#define normvideo()				ciolib_normvideo()
 	#define puttext(a,b,c,d,e)		ciolib_puttext(a,b,c,d,e)
-	#define pputtext(a,b,c,d,e,f,g)		ciolib_pputtext(a,b,c,d,e,f,g)
 	#define gettext(a,b,c,d,e)		ciolib_gettext(a,b,c,d,e)
-	#define pgettext(a,b,c,d,e,f,g)		ciolib_pgettext(a,b,c,d,e,f,g)
 	#define textattr(a)				ciolib_textattr(a)
 	#define delay(a)				ciolib_delay(a)
 	#define putch(a)				ciolib_putch(a)
-	#define cputch(a,b,c)				ciolib_cputch(a,b,c)
 	#define _setcursortype(a)		ciolib_setcursortype(a)
 	#define textmode(a)				ciolib_textmode(a)
 	#define window(a,b,c,d)			ciolib_window(a,b,c,d)
@@ -516,18 +430,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define getvideoflags()			ciolib_getvideoflags()
 	#define setscaling(a)			ciolib_setscaling(a)
 	#define getscaling()			ciolib_getscaling()
-	#define setpalette(e,r,g,b)		ciolib_setpalette(e,r,g,b)
-	#define attr2palette(a,b,c)		ciolib_attr2palette(a,b,c)
-	#define setpixel(a,b,c)			ciolib_setpixel(a,b,c)
-	#define getpixels(a,b,c,d)		ciolib_getpixels(a,b,c,d)
-	#define setpixels(a,b,c,d,e,f,g,h)	ciolib_setpixels(a,b,c,d,e,f,g,h)
-	#define freepixles(a)			ciolib_freepixels(a)
-	#define savescreen()			ciolib_savescreen()
-	#define freescreen(a)			ciolib_freescreen(a)
-	#define restorescreen(a)		ciolib_restorescreen(a)
-	#define setcolour(a,b)			ciolib_setcolour(a,b)
-	#define get_modepalette(a)		ciolib_get_modepalette(a)
-	#define set_modepalette(a)		ciolib_set_modepalette(a)
 #endif
 
 #ifdef WITH_SDL
@@ -602,7 +504,7 @@ CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
 CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
 CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void ciolib_mouse_thread(void *data);
+CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
@@ -619,10 +521,6 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_F(x)      ((x<11)?((0x3a+x) << 8):((0x7a+x) << 8))
 #define CIO_KEY_IC        (0x52 << 8)
 #define CIO_KEY_DC        (0x53 << 8)
-#define CIO_KEY_SHIFT_IC  (0x30 << 8)	/* Shift-Insert */
-#define CIO_KEY_SHIFT_DC  (0x2e << 8)	/* Shift-Delete */
-#define CIO_KEY_CTRL_IC   (0x92 << 8)	/* Ctrl-Insert */
-#define CIO_KEY_CTRL_DC   (0x93 << 8)	/* Ctrl-Delete */
 #define CIO_KEY_LEFT      (0x4b << 8)
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)

@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.81 2018/02/10 00:22:39 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.74 2016/11/27 23:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,17 +179,6 @@ void sbbs_t::outchar(char ch)
 {
 	int		i;
 
-	/*
-	 * outchar_esc values:
-	 * 0: No sequence
-	 * 1: ESC
-	 * 2: CSI
-	 * 3: Final byte
-     * 4: APS, DCS, PM, or OSC
-     * 5: SOS
-     * 6: ESC inside of SOS
-     */
-
 	if(console&CON_ECHO_OFF)
 		return;
 	if(ch==ESC)
@@ -197,34 +186,12 @@ void sbbs_t::outchar(char ch)
 	else if(outchar_esc==1) {
 		if(ch=='[')
 			outchar_esc++;
-		else if(ch=='_' || ch=='P' || ch == '^' || ch == ']')
-			outchar_esc=4;
-		else if(ch=='X')
-			outchar_esc=5;
 		else
 			outchar_esc=0;
 	}
 	else if(outchar_esc==2) {
 		if(ch>='@' && ch<='~')
 			outchar_esc++;
-	}
-	else if(outchar_esc==4) {	// APS, DCS, PM, or OSC
-		if (ch == ESC)
-			outchar_esc = 1;
-		if (!((ch >= 0x08 && ch <= 0x0d) || (ch >= 0x20 && ch <= 0x7e)))
-			outchar_esc = 0;
-	}
-	else if(outchar_esc==5) {	// SOS
-		if (ch == ESC)
-			outchar_esc++;
-	}
-	else if(outchar_esc==6) {	// ESC inside SOS
-		if (ch == '\\')
-			outchar_esc = 1;
-		else if (ch == 'X')
-			outchar_esc = 0;
-		else
-			outchar_esc = 5;
 	}
 	else
 		outchar_esc=0;
@@ -251,37 +218,36 @@ void sbbs_t::outchar(char ch)
 		else {
 			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			outcom(ch);
+			i=0;
+			while(outcom(ch)&TXBOF && i<1440) { /* 3 minute pause delay */
+				if(!online)
+					break;
+				i++;
+				if(sys_status&SS_SYSPAGE)
+					sbbs_beep(i,80);
+				else
+					mswait(80); 
+			}
+			if(i==1440) {							/* timeout - beep flush outbuf */
+				i=rioctl(TXBC);
+				lprintf(LOG_NOTICE,"timeout(outchar) %04X %04X\r\n",i,rioctl(IOFO));
+				outcom(BEL);
+				rioctl(IOCS|PAUSE); 
+			} 
 		} 
 	}
 	if(!outchar_esc) {
-		if((uchar)ch>=' ') {
+		if((uchar)ch>=' ')
 			column++;
-			if(column >= cols) {	// assume terminal has/will auto-line-wrap
-				lncntr++;
-				lbuflen = 0;
-				tos = 0;
-				lastlinelen = column;
-				column = 0;
-			}
-		}
-		else if(ch=='\r') {
-			lastlinelen = column;
+		else if(ch=='\r')
 			column=0;
-		}
 		else if(ch=='\b') {
 			if(column)
 				column--;
 		}
-		else if(ch=='\t') {
-			column++;
-			while(column%8)
-				column++;
-		}
 	}
-	if(ch==LF) {
-		if(lncntr || lastlinelen)
-			lncntr++;
+	if(ch==LF || column>=cols) {
+		lncntr++;
 		lbuflen=0;
 		tos=0;
 		column=0;
@@ -411,12 +377,6 @@ void sbbs_t::cleartoeol(void)
 	}
 }
 
-void sbbs_t::cleartoeos(void)
-{
-	if(term_supports(ANSI))
-		rputs("\x1b[J");
-}
-
 /****************************************************************************/
 /* performs the correct attribute modifications for the Ctrl-A code			*/
 /****************************************************************************/
@@ -523,30 +483,14 @@ void sbbs_t::ctrl_a(char x)
 		case 'S':   /* Synchronize */
 			ASYNC;
 			break;
-		case 'J':	/* clear to end-of-screen */
-			cleartoeos();
-			break;
 		case 'L':	/* CLS (form feed) */
 			CLS;
-			break;
-		case '`':	/* Home cursor */
-			cursor_home();
 			break;
 		case '>':   /* CLREOL */
 			cleartoeol();
 			break;
 		case '<':   /* Non-destructive backspace */
 			outchar(BS);
-			break;
-		case '/':	/* Conditional new-line */
-			if(column > 0)
-				CRLF;
-			break;
-		case '?':	/* Conditional blank-line */
-			if(column > 0)
-				CRLF;
-			if(lastlinelen)
-				CRLF;
 			break;
 		case '[':   /* Carriage return */
 			outchar(CR);
@@ -564,12 +508,6 @@ void sbbs_t::ctrl_a(char x)
 		case 'I':	/* Blink */
 			atr|=BLINK;
 			attr(atr);
-			break;
-		case 'F':	/* Blink, only if alt Blink Font is loaded */
-			if(((atr&HIGH) && (console&CON_HBLINK_FONT)) || (!(atr&HIGH) && (console&CON_BLINK_FONT)))
-				attr(atr|BLINK);
-			else if(x == 'F' && !(atr&HIGH))	/* otherwise, set HIGH attribute (only if capital 'F') */
-				attr(atr|HIGH);
 			break;
 		case 'N': 	/* Normal */
 			attr(LIGHTGRAY);
@@ -706,12 +644,10 @@ int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr
 	return len;
 }
 
-void sbbs_t::progress(const char* text, int count, int total, int interval)
+void sbbs_t::progress(const char* text, int count, int total)
 {
 	char str[128];
 
-	if((count%interval) != 0)
-		return;
 	if(text == NULL) text = "";
 	float pct = ((float)count/total)*100.0F;
 	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);
