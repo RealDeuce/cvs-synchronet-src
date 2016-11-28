@@ -1,8 +1,6 @@
-/* sbbsdefs.h */
-
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.198 2016/01/07 01:30:12 deuce Exp $ */
+/* $Id: sbbsdefs.h,v 1.206 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +224,7 @@ typedef struct js_callback {
 									/* (bits 8-15 default to off)				*/
 
 									/* Bit values for sub[x].misc */
+#define SUB_NOVOTING	(1L<<0)		/* No voting allowed in this sub-board */
 #define SUB_QNET		(1L<<3) 	/* Sub-board is netted via QWK network */
 #define SUB_PNET		(1L<<4) 	/* Sub-board is netted via PostLink */
 #define SUB_FIDO		(1L<<5) 	/* Sub-board is netted via FidoNet */
@@ -244,9 +243,9 @@ typedef struct js_callback {
 #define SUB_NSDEF		(1L<<18)	/* New-Scan on by default */
 #define SUB_INET		(1L<<19)	/* Sub-board is netted via Internet */
 #define SUB_FAST		(1L<<20)	/* Fast storage mode */
-#define SUB_KILL		(1L<<21)	/* Kill read messages automatically */
-#define SUB_KILLP		(1L<<22)	/* Kill read pvt messages automatically */
-#define SUB_SYSPERM		(1L<<23)	/* Sysop messages are permament */
+#define SUB_KILL		(1L<<21)	/* Kill read messages automatically (NOT IMPLEMENTED) */
+#define SUB_KILLP		(1L<<22)	/* Kill read pvt messages automatically (NOT IMPLEMENTED) */
+#define SUB_SYSPERM		(1L<<23)	/* Sysop messages are permanent */
 #define SUB_GATE		(1L<<24)	/* Gateway between Network types */
 #define SUB_LZH 		(1L<<25)	/* Use LZH compression for msgs */
 #define SUB_SSDEF		(1L<<26)	/* Default ON for Scan for Your msgs */
@@ -257,7 +256,7 @@ typedef struct js_callback {
 #define SUB_HDRMOD		(1L<<31)	/* Modified sub-board header info (SCFG) */
 
                                     /* Bit values for dir[x].misc */
-#define DIR_FCHK	(1<<0) 			/* Check for file existance */
+#define DIR_FCHK	(1<<0) 			/* Check for file existence */
 #define DIR_RATE	(1<<1) 			/* Force uploads to be rated G,R, or X */
 #define DIR_MULT	(1<<2) 			/* Ask for multi-disk numbering */
 #define DIR_DUPES	(1<<3) 			/* Search this dir for upload dupes */
@@ -333,6 +332,10 @@ enum {
 	,clr_chatremote
 	,clr_multichat
 	,clr_external
+	,clr_votes_full
+	,clr_votes_empty
+	,clr_progress_full
+	,clr_progress_empty
 	,MIN_COLORS 
 };
 
@@ -369,12 +372,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_FORCE		(1<<1) 		/* Force users off-line for event		*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
-																			
-									/* Mode bits for QWK stuff */			
-#define A_EXPAND		(1<<0)		/* Expand to ANSI sequences */			
-#define A_LEAVE 		(1<<1)		/* Leave in */							
-#define A_STRIP 		(1<<2)		/* Strip out */							
-																			
+
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
 #define XTRN_ANSI		(1<<1)		/* LEGACY (not used)                    */
@@ -426,8 +424,18 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_EXT		(1L<<13)		/* QWK Extended (QWKE) format			*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 #define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
+#define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
+
+#define QHUB_EXPCTLA	(1<<0)		/* Same as QM_EXPCTLA */
+#define QHUB_RETCTLA	(1<<1)		/* Same as QM_RETCTLA */
+#define QHUB_CTRL_A		(QHUB_EXPCTLA|QHUB_RETCTLA)
+#define QHUB_STRIP		0
+#define QHUB_EXT		(1<<13)		/* Use QWKE format */
+#define QHUB_NOKLUDGES	(1<<14)		/* Don't include @-kludges */
+#define QHUB_NOHEADERS	(1<<16)		/* Don't include HEADERS.DAT */
+#define QHUB_NOVOTING	(1<<17)		/* Don't include VOTING.DAT */
 																			
 							/* Bits in user.chat							*/
 #define CHAT_ECHO	(1<<0)	/* Multinode chat echo							*/
@@ -738,6 +746,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LP_UNREAD	(1<<2)		/* Un-read messages only					*/
 #define LP_PRIVATE	(1<<3)		/* Include all private messages 			*/
 #define LP_REP		(1<<4)		/* Packing REP packet						*/
+#define LP_POLLS	(1<<5)		/* Include polls							*/
+#define LP_VOTES	(1<<6)		/* Include votes							*/
+#define LP_NOMSGS	(1<<7)		/* Don't include regular messages			*/
 								
 								/* Bits in the mode of loadmail()			*/
 #define LM_UNREAD	(1<<0)		/* Include un-read mail only				*/
@@ -809,14 +820,15 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define LOL_SIZE    81			/* Length of each logon list entry          */
 								
 								/* Bits in mode of scanposts() function 	*/
-#define SCAN_CONST	(1<<0)		/* Continuous message scanning				*/
-#define SCAN_NEW	(1<<1)		/* New scanning								*/
-#define SCAN_BACK	(1<<2)		/* Scan the last message if no new			*/
-#define SCAN_TOYOU	(1<<3)		/* Scan for messages to you 				*/
-#define SCAN_FIND	(1<<4)		/* Scan for text in messages				*/
-#define SCAN_UNREAD	(1<<5)		/* Display un-read messages only			*/
+#define SCAN_CONST		(1<<0)	/* Continuous message scanning				*/
+#define SCAN_NEW		(1<<1)	/* New scanning								*/
+#define SCAN_BACK		(1<<2)	/* Scan the last message if no new			*/
+#define SCAN_TOYOU		(1<<3)	/* Scan for messages to you 				*/
+#define SCAN_FIND		(1<<4)	/* Scan for text in messages				*/
+#define SCAN_UNREAD		(1<<5)	/* Display un-read messages only			*/
 #define SCAN_MSGSONLY	(1<<6)	/* Do not do a new file scan even if the    
 								 * user enabled Automatic New File Scan		*/
+#define SCAN_POLLS		(1<<7)	/* Scan for polls (only)					*/
 
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
@@ -997,6 +1009,14 @@ typedef struct {						/* File (transfers) Data */
 typedef struct {
 	idxrec_t	idx;					/* defined in smbdefs.h */
 	uint32_t	num;					/* 1-based offset */
+	union {
+		struct {
+			uint32_t	upvotes;
+			uint32_t	downvotes;
+		};
+		uint32_t	votes[MSG_POLL_MAX_ANSWERS];
+	};
+	uint32_t	total_votes;
 } post_t;
 typedef idxrec_t mail_t;				/* defined in smbdefs.h */
 typedef fidoaddr_t faddr_t;				/* defined in smbdefs.h */
