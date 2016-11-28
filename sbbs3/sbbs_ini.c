@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.154 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.155 2016/11/28 10:17:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -403,6 +403,7 @@ void sbbs_read_ini(
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
 
 		bbs->login_attempt = get_login_attempt_settings(list, section, global);
+		bbs->max_concurrent_connections = iniGetInteger(list, section, "MaxConcurrentConnections", 0);
 	}
 
 	/***********************************************************************/
