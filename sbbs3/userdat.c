@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.176 2016/11/28 00:16:00 rswindell Exp $ */
+/* $Id: userdat.c,v 1.177 2016/11/28 10:11:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2709,6 +2709,14 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 		return(FALSE);
 
 	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user,client));
+}
+
+BOOL DLLCALL is_host_exempt(scfg_t* cfg, const char* ip_addr, const char* host_name)
+{
+	char	exempt[MAX_PATH+1];
+
+	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
+	return findstr(ip_addr, exempt) || findstr(host_name, exempt);
 }
 
 /****************************************************************************/
