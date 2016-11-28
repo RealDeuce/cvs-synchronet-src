@@ -1,14 +1,13 @@
-/* fixsmb.c */
-
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.37 2015/03/24 03:35:38 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.40 2016/11/24 03:03:58 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +47,7 @@
 smb_t	smb;
 BOOL	renumber=FALSE;
 BOOL	smb_undelete=FALSE;
-char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]\n";
+char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -106,6 +105,9 @@ int fixsmb(char* sub)
 	int 		i,w;
 	ulong		l,length,size,n;
 	smbmsg_t	msg;
+	uint32_t*	numbers = NULL;
+	uint32_t	total = 0;
+	BOOL		dupe_msgnum;
 
 	memset(&smb,0,sizeof(smb));
 
@@ -204,7 +206,23 @@ int fixsmb(char* sub)
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
 		printf("#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
 
-		if(smb_undelete)
+		dupe_msgnum = FALSE;
+		for(i=0; i<total && !dupe_msgnum; i++)
+			if(msg.hdr.number == numbers[i])
+				dupe_msgnum = TRUE;
+
+		if(!dupe_msgnum) {
+			total++;
+			if((numbers = realloc(numbers, total * sizeof(*numbers))) == NULL) {
+				fprintf(stderr, "realloc failure: %lu\n", total * sizeof(*numbers));
+				return EXIT_FAILURE;
+			}
+			numbers[total-1] = msg.hdr.number;
+		}
+		
+		if(dupe_msgnum)
+			msg.hdr.attr|=MSG_DELETE;
+		else if(smb_undelete)
 			msg.hdr.attr&=~MSG_DELETE;
 
 		/* Create hash record */
@@ -219,7 +237,9 @@ int fixsmb(char* sub)
 			free(text);
 
 		/* Index the header */
-		if(msg.hdr.attr&MSG_DELETE)
+		if(dupe_msgnum)
+			printf("Not indexing duplicate message number (%u)\n", msg.hdr.number);
+		else if(msg.hdr.attr&MSG_DELETE)
 			printf("Not indexing deleted message\n");
 		else if(msg.hdr.number==0)
 			printf("Not indexing invalid message number (0)!\n");
@@ -273,6 +293,7 @@ int fixsmb(char* sub)
 	smb_close(&smb);
 	unlock_msgbase();
 	printf("Done.\n");
+	FREE_AND_NULL(numbers);
 	return(0);
 }
 
@@ -281,8 +302,9 @@ int main(int argc, char **argv)
 	char		revision[16];
 	int 		i;
 	str_list_t	list;
+	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.37 $", "%*s %s", revision);
+	sscanf("$Revision: 1.40 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -300,14 +322,14 @@ int main(int argc, char **argv)
 	}
 
 	if(!strListCount(list)) {
-		printf(usage);
+		puts(usage);
 		exit(1); 
 	}
 
 	atexit(unlock_msgbase);
 
-	for(i=0;list[i]!=NULL;i++)
-		fixsmb(list[i]);
+	for(i=0;list[i]!=NULL && retval == EXIT_SUCCESS;i++)
+		retval = fixsmb(list[i]);
 
-	return(0);
+	return retval;
 }
