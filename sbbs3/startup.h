@@ -1,6 +1,6 @@
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.79 2016/11/28 10:17:14 rswindell Exp $ */
+/* $Id: startup.h,v 1.78 2016/11/28 02:59:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -146,7 +146,6 @@ typedef struct {
 
 	struct login_attempt_settings login_attempt;
 	link_list_t* login_attempt_list;
-	uint	max_concurrent_connections;
 
 } bbs_startup_t;
 
