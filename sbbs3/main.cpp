@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.650 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: main.cpp,v 1.645 2016/11/28 10:17:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -97,8 +97,7 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
-static	link_list_t current_logins;
-static	link_list_t current_connections;
+static	link_list_t connections;
 #ifdef _THREAD_SUID_BROKEN
 int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 #endif
@@ -122,15 +121,14 @@ static void update_clients()
 
 void client_on(SOCKET sock, client_t* client, BOOL update)
 {
-	if(!update)
-		listAddNodeData(&current_connections, client->addr, strlen(client->addr)+1, sock, LAST_NODE);
+	listAddNodeData(&connections, client->addr, strlen(client->addr)+1, sock, LAST_NODE);
 	if(startup!=NULL && startup->client_on!=NULL)
 		startup->client_on(startup->cbdata,TRUE,sock,client,update);
 }
 
 static void client_off(SOCKET sock)
 {
-	listRemoveTaggedNode(&current_connections, sock, /* free_data */TRUE);
+	listRemoveTaggedNode(&connections, sock, /* free_data */TRUE);
 	if(startup!=NULL && startup->client_on!=NULL)
 		startup->client_on(startup->cbdata,FALSE,sock,NULL,FALSE);
 }
@@ -2724,10 +2722,10 @@ void event_thread(void* arg)
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
-					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr=0;
+					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 					}
 				}
 				if(file!=-1)
@@ -2741,14 +2739,14 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*4L) {
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
 								l32=l;
 								write(file,&l32,4);		/* initialize ptrs to null */
 							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 						}
 						close(file); 
 					} 
@@ -4162,7 +4160,6 @@ void node_thread(void* arg)
 
 	if(sbbs->answer()) {
 
-		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
 		if(sbbs->qwklogon) {
 			sbbs->getsmsg(sbbs->useron.number);
 			sbbs->qwk_sec();
@@ -4213,7 +4210,6 @@ void node_thread(void* arg)
 			if(sbbs->exec(&sbbs->main_csi))
 				break;
 		}
-		listRemoveTaggedNode(&current_logins, sbbs->cfg.node_num, /* free_data */TRUE);
 	}
 
 #ifdef _WIN32
@@ -4540,8 +4536,7 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 	
-	listFree(&current_logins);
-	listFree(&current_connections);
+	listFree(&connections);
 
 	protected_uint32_destroy(node_threads_running);
 
@@ -4901,7 +4896,7 @@ NO_SSH:
 		_beginthread(event_thread, 0, events);
 	}
 
-	/* Save these values in case they're changed dynamically */
+	/* Save these values incase they're changed dynamically */
 	first_node=startup->first_node;
 	last_node=startup->last_node;
 
@@ -4961,8 +4956,7 @@ NO_SSH:
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
 
-	listInit(&current_logins, LINK_LIST_MUTEX);
-	listInit(&current_connections, LINK_LIST_MUTEX);
+	listInit(&connections, LINK_LIST_MUTEX);
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
@@ -5139,25 +5133,17 @@ NO_SSH:
 #endif
 			, host_ip, inet_addrport(&client_addr));
 
-		if(startup->max_concurrent_connections > 0) {
-			int ip_len = strlen(host_ip)+1;
-			int connections = listCountMatches(&current_connections, host_ip, ip_len);
-			int logins = listCountMatches(&current_logins, host_ip, ip_len);
-			
-			if(connections - logins >= (int)startup->max_concurrent_connections
-				&& !is_host_exempt(&scfg, host_ip, /* host_name */NULL)) {
-				lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections without login (%u) reached from host: %s"
- 					,client_socket, startup->max_concurrent_connections, host_ip);
-				SSH_END();
-				close_socket(client_socket);
-				SAFEPRINTF(logstr, "Too many concurrent connections without login from host: %s",host_ip);
-				sbbs->syslog("@!",logstr);
-				continue;
-			}
+		if(startup->max_concurrent_connections > 0 
+			&& listCountMatches(&connections, host_ip, strlen(host_ip)+1) >= startup->max_concurrent_connections
+			&& !is_host_exempt(&scfg, host_ip, /* host_name */NULL)) {
+			lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections (%u) reached from host: %s"
+				,client_socket, startup->max_concurrent_connections, host_ip);
+			SSH_END();
+			close_socket(client_socket);
+			SAFEPRINTF(logstr, "Too many concurrent connections from host: %s",host_ip);
+			sbbs->syslog("@!",logstr);
+			continue;
 		}
-
-		sbbs->client_socket=client_socket;	// required for output to the user
-		sbbs->online=ON_REMOTE;
 
 		login_attempt_t attempted;
 		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
@@ -5253,6 +5239,8 @@ NO_SSH:
 			}
 		}
 #endif
+   		sbbs->client_socket=client_socket;	// required for output to the user
+        sbbs->online=ON_REMOTE;
 
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
@@ -5308,7 +5296,7 @@ NO_SSH:
 #else
 		client.protocol=rlogin ? "RLogin":"Telnet";
 #endif
-		client.user=STR_UNKNOWN_USER;
+		client.user="<unknown>";
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
