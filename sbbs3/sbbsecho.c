@@ -1,8 +1,7 @@
-/* sbbsecho.c */
-
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.21 2016/10/06 06:57:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.26 2016/11/23 00:58:43 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +45,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#if defined(__unix__)
+	#include <signal.h>
+#endif
 
 #include "conwrap.h"		/* getch() */
 #include "sbbs.h"			/* load_cfg() */
@@ -939,7 +941,7 @@ enum arealist_type {
 void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 {
 	char str[256],title[128],match,*p,*tp;
-	unsigned k,x,y;
+	unsigned k,x;
 	unsigned u;
 	str_list_t	area_list;
 
@@ -2228,6 +2230,9 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if(idx.number==0)	/* invalid message number, ignore */
 			continue;
 
+		if(idx.attr&MSG_POLL_VOTE_MASK)
+			continue;
+
 		if(idx.number<=ptr || (idx.attr&MSG_DELETE))
 			continue;
 
@@ -2623,7 +2628,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		return IMPORT_FAILURE; 
 	}
 
-	for(col=l=esc=done=bodylen=taillen=0,cr=1;l<length;l++) {
+	for(col=0,l=0,esc=0,done=0,bodylen=0,taillen=0,cr=1;l<length;l++) {
 
 		if(!l && !strncmp((char *)fbuf,"AREA:",5)) {
 			save=l;
@@ -3936,6 +3941,9 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				continue; 
 			}
 
+			if(msg.hdr.type != SMB_MSG_TYPE_NORMAL)
+				continue;
+
 			memset(&hdr,0,sizeof(fmsghdr_t));	 /* Zero the header */
 			hdr.origzone=scfg.sub[i]->faddr.zone;
 			hdr.orignet=scfg.sub[i]->faddr.net;
@@ -4943,7 +4951,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.21 $", "%*s %s", revision);
+	sscanf("$Revision: 3.26 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5051,13 +5059,6 @@ int main(int argc, char **argv)
 	SAFECOPY(scfg.ctrl_dir,p);
 
 	backslash(scfg.ctrl_dir);
-	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
-	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
-		lprintf(LOG_WARNING, "Mutex file exists (%s): SBBSecho appears to be already running", path);
-		bail(1);
-	}
-	mtxfile_locked = true;
-	atexit(cleanup);
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
@@ -5127,6 +5128,14 @@ int main(int argc, char **argv)
 
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
+
+	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
+	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
+		lprintf(LOG_WARNING, "Mutex file exists (%s): SBBSecho appears to be already running", path);
+		bail(1);
+	}
+	mtxfile_locked = true;
+	atexit(cleanup);
 
 	/******* READ IN AREAS.BBS FILE *********/
 
@@ -5257,19 +5266,19 @@ int main(int argc, char **argv)
 		for(i=0; i<cfg.nodecfgs && !terminated; i++) {
 			if(cfg.nodecfg[i].inbox[0] == 0)
 				continue;
-			printf("Scanning %s\n", cfg.nodecfg[i].inbox);
+			printf("Scanning %s inbox: %s\n", faddrtoa(&cfg.nodecfg[i].addr), cfg.nodecfg[i].inbox);
 			do {
 				import_packets(cfg.nodecfg[i].inbox, &cfg.nodecfg[i], /* secure: */true);
 			} while(unpack_bundle(cfg.nodecfg[i].inbox));
 		}
 		if(cfg.secure_inbound[0] && !terminated) {
-			printf("Scanning %s\n", cfg.secure_inbound);
+			printf("Scanning secure inbound: %s\n", cfg.secure_inbound);
 			do { 
 				import_packets(cfg.secure_inbound, NULL, /* secure: */true);
 			} while(unpack_bundle(cfg.secure_inbound));
 		}
 		if(cfg.inbound[0] && !terminated) {
-			printf("Scanning %s\n", cfg.inbound);
+			printf("Scanning non-secure inbound: %s\n", cfg.inbound);
 			do {
 				import_packets(cfg.inbound, NULL, /* secure: */false);
 			} while(unpack_bundle(cfg.inbound));

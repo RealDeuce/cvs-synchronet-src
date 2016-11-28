@@ -1,8 +1,7 @@
-/* smbhash.c */
-
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.31 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.33 2016/11/24 02:56:33 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,8 +129,10 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 	size_t	h;
 
 	COUNT_LIST_ITEMS(hashes, h);
-	if(!h)	/* nothing to add */
+	if(!h) { /* nothing to add */
+		smb_close_hash(smb);
 		return(SMB_SUCCESS);
+	}
 
 	if((retval=smb_open_hash(smb))!=SMB_SUCCESS)
 		return(retval);
