@@ -1,6 +1,6 @@
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.80 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: startup.h,v 1.78 2016/11/28 02:59:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -92,7 +92,6 @@ typedef struct {
 	WORD	telnet_port;
 	WORD	rlogin_port;
 	WORD	ssh_port;
-	WORD	ssh_connect_timeout;
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
@@ -147,7 +146,6 @@ typedef struct {
 
 	struct login_attempt_settings login_attempt;
 	link_list_t* login_attempt_list;
-	uint	max_concurrent_connections;
 
 } bbs_startup_t;
 
