@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.76 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.74 2016/11/27 23:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,12 +377,6 @@ void sbbs_t::cleartoeol(void)
 	}
 }
 
-void sbbs_t::cleartoeos(void)
-{
-	if(term_supports(ANSI))
-		rputs("\x1b[J");
-}
-
 /****************************************************************************/
 /* performs the correct attribute modifications for the Ctrl-A code			*/
 /****************************************************************************/
@@ -489,14 +483,8 @@ void sbbs_t::ctrl_a(char x)
 		case 'S':   /* Synchronize */
 			ASYNC;
 			break;
-		case 'J':	/* clear to end-of-screen */
-			cleartoeos();
-			break;
 		case 'L':	/* CLS (form feed) */
 			CLS;
-			break;
-		case '`':	/* Home cursor */
-			cursor_home();
 			break;
 		case '>':   /* CLREOL */
 			cleartoeol();
@@ -656,12 +644,10 @@ int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr
 	return len;
 }
 
-void sbbs_t::progress(const char* text, int count, int total, int interval)
+void sbbs_t::progress(const char* text, int count, int total)
 {
 	char str[128];
 
-	if((count%interval) != 0)
-		return;
 	if(text == NULL) text = "";
 	float pct = ((float)count/total)*100.0F;
 	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);

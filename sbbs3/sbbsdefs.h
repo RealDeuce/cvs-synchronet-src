@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.209 2016/12/08 07:38:52 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.206 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,8 +56,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
-#define COPYRIGHT_CRC		0x5891b729
+#define COPYRIGHT_NOTICE	"Copyright 2015 Rob Swindell"
+#define COPYRIGHT_CRC		0x24F092F2
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -186,7 +186,18 @@ typedef struct js_callback {
 #define NM_7BITONLY		(1L<<16)	/* Except 7-bit input only (E71 terminals)	*/
 #define NM_NOPAUSESPIN	(1L<<18)	/* No spinning cursor at pause prompt		*/
 #define NM_CLOSENODEDAB	(1L<<19)	/* Keep node.dab file closed (for Samba)	*/
-					
+
+									/* Miscellaneous Modem Settings (mdm_misc)  */
+#define MDM_CTS 		(1<<0)		/* Use hardware send flow control			*/
+#define MDM_RTS 		(1<<1)		/* Use hardware recv flow control			*/
+#define MDM_STAYHIGH	(1<<2)		/* Stay at highest DTE rate 				*/
+#define MDM_CALLERID	(1<<3)		/* Supports Caller ID						*/
+#define MDM_DUMB		(1<<4)		/* Just watch DCD for answer - dumb modem	*/
+#define MDM_NODTR		(1<<5)		/* Don't drop DTR for hang-up               */
+#define MDM_KNOWNRES	(1<<6)		/* Allow known result codes only			*/
+#define MDM_VERBAL		(1<<7)		/* Use verbal result codes					*/
+
+						
 									/* Bit values for level_misc[x] 	*/
 #define LEVEL_EXPTOLVL	(1<<0)		/* Expire to level_expireto[x]		*/
 #define LEVEL_EXPTOVAL	(1<<1)		/* Expire to val[level_expireto[x]] */
@@ -443,7 +454,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 																			
 																			
 #define EDIT_TABSIZE 4		/* Tab size for internal message/line editor	*/
-																		
+																			
+#define SWAP_NONE	0x80	/* Allow no swapping for executables			*/
+																			
 #define DSTSDABLEN	50		/* Length of dsts.dab file						*/
 																			
 								/* Console I/O Bits	(console)				*/
@@ -629,17 +642,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 
 #define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML)
-
-									/* Special terminal key mappings */
-#define TERM_KEY_HOME	CTRL_B
-#define TERM_KEY_END	CTRL_E
-#define TERM_KEY_UP		CTRL_CARET
-#define TERM_KEY_DOWN	CTRL_J
-#define TERM_KEY_LEFT	CTRL_CLOSE_BRACKET
-#define TERM_KEY_RIGHT	CTRL_F
-#define TERM_KEY_INSERT	CTRL_V
-#define TERM_KEY_DELETE	DEL
-#define TERM_KEY_ABORT	CTRL_C
+																			
+#define CLREOL      256     /* Character to erase to end of line 			*/
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
@@ -713,7 +717,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_HTML		(1<<5)		/* Message is HTML							*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
 #define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
-#define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -852,7 +855,7 @@ enum {							/* Values of mode for userlist function     */
 #define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
-#define WHERE       	__LINE__,__FUNCTION__,getfname(__FILE__)
+#define WHERE       	__LINE__,getfname(__FILE__)
 #define SAVELINE		{ if(slcnt<SAVE_LINES) { \
 							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \

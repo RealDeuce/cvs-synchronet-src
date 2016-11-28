@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.15 2017/03/07 18:37:42 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.12 2016/08/03 07:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,10 +221,9 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->use_ftn_domains			= false;
 	cfg->strict_packet_passwords	= true;
 	cfg->relay_filtered_msgs		= false;
-	cfg->umask						= 077;
 }
 
-char* pktTypeStringList[] = {"2+", "2e", "2.2", "2", NULL};		// Must match enum pkt_type
+char* pktTypeStringList[] = {"2+", "2.2", "2", NULL};
 char* mailStatusStringList[] = {"Normal", "Hold", "Crash", NULL};
 
 bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
@@ -261,7 +260,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->use_ftn_domains		= iniGetBool(ini, ROOT_SECTION, "UseFTNDomains", cfg->use_ftn_domains);
 	cfg->strict_packet_passwords= iniGetBool(ini, ROOT_SECTION, "StrictPacketPasswords", cfg->strict_packet_passwords);
 	cfg->relay_filtered_msgs	= iniGetBool(ini, ROOT_SECTION, "RelayFilteredMsgs", cfg->relay_filtered_msgs);
-	cfg->umask					= iniGetInteger(ini, ROOT_SECTION, "umask", cfg->umask);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -282,7 +280,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->sysop_alias_list			= iniGetStringList(ini, ROOT_SECTION, "SysopAliasList", ",", "SYSOP");
 	cfg->fuzzy_zone					= iniGetBool(ini, ROOT_SECTION, "FuzzyNetmailZones", cfg->fuzzy_zone);
 	cfg->ignore_netmail_dest_addr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailDestAddr", cfg->ignore_netmail_dest_addr);
-	cfg->ignore_netmail_sent_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailSentAttr", cfg->ignore_netmail_sent_attr);
 	cfg->ignore_netmail_recv_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailRecvAttr", cfg->ignore_netmail_recv_attr);
 	cfg->ignore_netmail_local_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailLocalAttr", cfg->ignore_netmail_local_attr);
 	cfg->kill_empty_netmail			= iniGetBool(ini, ROOT_SECTION, "KillEmptyNetmail", cfg->kill_empty_netmail);
@@ -480,7 +477,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetBool(&ini,		ROOT_SECTION, "RelayFilteredMsgs"		,cfg->relay_filtered_msgs		,NULL);
 
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,NULL);
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailSentAttr"	,cfg->ignore_netmail_sent_attr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailRecvAttr"	,cfg->ignore_netmail_recv_attr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailLocalAttr"	,cfg->ignore_netmail_local_attr	,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "DefaultRecipient"		,cfg->default_recipient			,NULL);
@@ -495,8 +491,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniRemoveSections(&ini, "archive:");
 	for(uint i=0; i<cfg->arcdefs; i++) {
 		arcdef_t* arc = &cfg->arcdef[i];
-		if(arc->name[0] == 0)
-			continue;
 		SAFEPRINTF(section,"archive:%s", arc->name);
 		iniSetString(&ini,	section,	"Sig"			,arc->hexid		,&style);
 		iniSetInteger(&ini,	section,	"SigOffset"		,arc->byteloc	,&style);
@@ -535,8 +529,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniRemoveSections(&ini, "echolist:");
 	for(uint i=0; i<cfg->listcfgs; i++) {
 		echolist_t* elist = &cfg->listcfg[i];
-		if(elist->listpath[0] == 0)
-			continue;
 		SAFEPRINTF(section,"echolist:%s", elist->listpath);
 		iniSetString(&ini	,section,	"Hub"		,faddrtoa(&elist->hub)				,&style);
 		iniSetString(&ini	,section,	"Pwd"		,elist->password					,&style);

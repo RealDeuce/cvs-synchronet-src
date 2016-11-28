@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.643 2016/11/28 02:59:08 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.642 2016/11/27 23:13:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6482,7 +6482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.643 $", "%*s %s", revision);
+	sscanf("$Revision: 1.642 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6819,7 +6819,6 @@ void DLLCALL web_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","web");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
-		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mime_types_ini);
