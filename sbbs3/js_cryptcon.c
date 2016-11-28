@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.10 2018/02/20 06:08:19 rswindell Exp $ */
+/* $Id: js_cryptcon.c,v 1.6 2015/10/06 00:11:07 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -11,7 +11,7 @@ struct private_data {
 	CRYPT_CONTEXT	ctx;
 };
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 // Helpers
 static void
@@ -88,7 +88,7 @@ js_set_key(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv;
 	size_t len;
-	char* key = NULL;
+	char* key;
 	int status;
 	jsrefcount rc;
 
@@ -98,9 +98,7 @@ js_set_key(JSContext *cx, uintN argc, jsval *arglist)
 	argv = JS_ARGV(cx, arglist);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], key, &len);
-	HANDLE_PENDING(cx, key);
-	if (key == NULL)
-		return JS_FALSE;
+	HANDLE_PENDING(cx);
 
 	obj = JS_THIS_OBJECT(cx, arglist);
 	if ((p=(struct private_data *)JS_GetPrivate(cx,obj))==NULL) {
@@ -129,7 +127,7 @@ js_derive_key(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv;
 	size_t len;
-	char* key = NULL;
+	char* key;
 	int status;
 	jsrefcount rc;
 
@@ -139,9 +137,7 @@ js_derive_key(JSContext *cx, uintN argc, jsval *arglist)
 	argv = JS_ARGV(cx, arglist);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], key, &len);
-	HANDLE_PENDING(cx, key);
-	if (key == NULL)
-		return JS_FALSE;
+	HANDLE_PENDING(cx);
 
 	if (len < 8 || len > CRYPT_MAX_HASHSIZE) {
 		free(key);
@@ -176,7 +172,7 @@ js_do_encrption(JSContext *cx, uintN argc, jsval *arglist, int encrypt)
 	JSObject *obj;
 	jsval *argv;
 	size_t len;
-	char *cipherText = NULL;
+	char *cipherText;
 	int status;
 	jsrefcount rc;
 	JSString* str;
@@ -193,9 +189,7 @@ js_do_encrption(JSContext *cx, uintN argc, jsval *arglist, int encrypt)
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cipherText, &len);
-	HANDLE_PENDING(cx, cipherText);
-	if (cipherText == NULL)
-		return JS_FALSE;
+	HANDLE_PENDING(cx);
 
 	rc = JS_SUSPENDREQUEST(cx);
 	if (encrypt)
@@ -257,7 +251,9 @@ static char* cryptcon_prop_desc[] = {
 	 "<li>CryptContext.ALGO.CAST</li>\n"
 	 "<li>CryptContext.ALGO.RC2</li>\n"
 	 "<li>CryptContext.ALGO.RC4</li>\n"
+	 "<li>CryptContext.ALGO.RC5</li>\n"
 	 "<li>CryptContext.ALGO.AES</li>\n"
+	 "<li>CryptContext.ALGO.Blowfish</li>\n"
 	 "<li>CryptContext.ALGO.DH</li>\n"
 	 "<li>CryptContext.ALGO.RSA</li>\n"
 	 "<li>CryptContext.ALGO.DSA</li>\n"
@@ -267,9 +263,12 @@ static char* cryptcon_prop_desc[] = {
 	 "<li>CryptContext.ALGO.MD5</li>\n"
 	 "<li>CryptContext.ALGO.SHA1</li>\n"
 	 "<li>CryptContext.ALGO.SHA2</li>\n"
+	 "<li>CryptContext.ALGO.RIPEMD160</li>\n"
 	 "<li>CryptContext.ALGO.SHAng</li>\n"
+	 "<li>CryptContext.ALGO.HMAC-MD5</li>\n"
 	 "<li>CryptContext.ALGO.HMAC-SHA1</li>\n"
 	 "<li>CryptContext.ALGO.HMAC-SHA2</li>\n"
+	 "<li>CryptContext.ALGO.HMAC-RIPEMD160</li>\n"
 	 "<li>CryptContext.ALGO.HMAC-SHAng</li></ul>"
 	,"Cipher block size in bytes"
 	,"Output of hasing algorithms (ie: MD5, SHA1, etc)"
@@ -285,6 +284,7 @@ static char* cryptcon_prop_desc[] = {
 	 "<li>CryptContext.MODE.ECB</li>\n"
 	 "<li>CryptContext.MODE.CBC</li>\n"
 	 "<li>CryptContext.MODE.CFB</li>\n"
+	 "<li>CryptContext.MODE.OFB</li>\n"
 	 "<li>CryptContext.MODE.GCM</li></ul>"
 	,"Algorithm name"
 	,"Mode name"
@@ -312,13 +312,11 @@ static JSBool
 js_cryptcon_attrstr_set(JSContext *cx, jsval *vp, CRYPT_CONTEXT ctx, CRYPT_ATTRIBUTE_TYPE type)
 {
 	int status;
-	char *val = NULL;
+	char *val;
 	size_t len;
 
 	JSVALUE_TO_MSTRING(cx, *vp, val, &len);
-	HANDLE_PENDING(cx, val);
-	if (val == NULL)
-		return JS_FALSE;
+	HANDLE_PENDING(cx);
 
 	status = cryptSetAttributeString(ctx, type, val, len);
 	if (cryptStatusError(status)) {
@@ -526,7 +524,7 @@ static JSBool js_cryptcon_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -641,10 +639,12 @@ JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent)
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "RC4", INT_TO_JSVAL(CRYPT_ALGO_RC4), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-			/* CRYPT_ALGO_RC5 no longer supported. */
+			JS_DefineProperty(cx, algo, "RC5", INT_TO_JSVAL(CRYPT_ALGO_RC5), NULL, NULL
+				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "AES", INT_TO_JSVAL(CRYPT_ALGO_AES), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-			/* CRYPT_ALGO_BLOWFISH no longer supported */
+			JS_DefineProperty(cx, algo, "Blowfish", INT_TO_JSVAL(CRYPT_ALGO_BLOWFISH), NULL, NULL
+				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "DH", INT_TO_JSVAL(CRYPT_ALGO_DH), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "RSA", INT_TO_JSVAL(CRYPT_ALGO_RSA), NULL, NULL
@@ -663,15 +663,18 @@ JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent)
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "SHA2", INT_TO_JSVAL(CRYPT_ALGO_SHA2), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-			/* CRYPT_ALGO_RIPEMD160 no longer supported */
+			JS_DefineProperty(cx, algo, "RIPEMD160", INT_TO_JSVAL(CRYPT_ALGO_RIPEMD160), NULL, NULL
+				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "SHAng", INT_TO_JSVAL(CRYPT_ALGO_SHAng), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-			/* CRYPT_ALGO_HMAC_MD5 no longer supported */
+			JS_DefineProperty(cx, algo, "HMAC-MD5", INT_TO_JSVAL(CRYPT_ALGO_HMAC_MD5), NULL, NULL
+				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "HMAC-SHA1", INT_TO_JSVAL(CRYPT_ALGO_HMAC_SHA1), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "HMAC-SHA2", INT_TO_JSVAL(CRYPT_ALGO_HMAC_SHA2), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-			/* CRYPT_ALGO_HMAC_RIPEMD160 no longer supported */
+			JS_DefineProperty(cx, algo, "HMAC-RIPEMD160", INT_TO_JSVAL(CRYPT_ALGO_HMAC_RIPEMD160), NULL, NULL
+				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, algo, "HMAC-SHAng", INT_TO_JSVAL(CRYPT_ALGO_HMAC_SHAng), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DeepFreezeObject(cx, algo);
@@ -686,7 +689,8 @@ JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent)
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, mode, "CFB", INT_TO_JSVAL(CRYPT_MODE_CFB), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-			/* CRYPT_MODE_OFB no longer supported */
+			JS_DefineProperty(cx, mode, "OFB", INT_TO_JSVAL(CRYPT_MODE_OFB), NULL, NULL
+				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DefineProperty(cx, mode, "GCM", INT_TO_JSVAL(CRYPT_MODE_GCM), NULL, NULL
 				, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
 			JS_DeepFreezeObject(cx, mode);
