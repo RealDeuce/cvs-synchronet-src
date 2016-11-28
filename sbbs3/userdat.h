@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.66 2017/10/12 09:11:57 rswindell Exp $ */
+/* $Id: userdat.h,v 1.63 2016/11/27 23:13:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,6 @@ extern char* crlf;
 extern char* nulstr;
 
 DLLEXPORT int	DLLCALL openuserdat(scfg_t*, BOOL for_modify);
-DLLEXPORT int	DLLCALL closeuserdat(int);
 DLLEXPORT int	DLLCALL readuserdat(scfg_t*, unsigned user_number, char* userdat, int infile);
 DLLEXPORT int	DLLCALL parseuserdat(scfg_t*, char* userdat, user_t*);
 DLLEXPORT int	DLLCALL getuserdat(scfg_t*, user_t*); 	/* Fill userdat struct with user data   */
@@ -105,7 +104,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t*, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t*, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t*, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata);
+							,BOOL del, BOOL next);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t*, uchar* str, user_t*, client_t*); /* checks access requirements */
 
@@ -122,7 +121,6 @@ DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t*, uint subnum, user_t*, client_t* cl
 DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t*, enum smb_net_type, uint usernumber, user_t*, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t*, uint subnum, user_t*, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t*, uint dirnum, user_t*, client_t* client);
-DLLEXPORT BOOL	DLLCALL is_host_exempt(scfg_t*, const char* ip_addr, const char* host_name);
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t*, const char* prot, const char* reason, const char* host
 								  ,const char* ip_addr, const char* username, const char* fname);
 
