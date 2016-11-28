@@ -2,13 +2,13 @@
 
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.48 2015/02/21 02:32:57 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.50 2016/10/06 06:47:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -236,7 +236,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			attr(LIGHTGRAY);
 			now=time(NULL);
 			bprintf(text[TiLogon],timestr(logontime));
-			bprintf(text[TiNow],timestr(now));
+			bprintf(text[TiNow],timestr(now),smb_zonestr(sys_timezone(&cfg),NULL));
 			bprintf(text[TiTimeon]
 				,sectostr((uint)(now-logontime),tmp));
 			bprintf(text[TiTimeLeft]
@@ -290,7 +290,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					j++;
 					continue;
 				}
-				if(ch!=';' && !isdigit(ch) && ch!='R') {    /* other ANSI */
+				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
 					switch(ch) {
 						case 'A':
 							return(0x1e);	/* ctrl-^ (up arrow) */
