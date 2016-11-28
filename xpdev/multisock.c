@@ -24,7 +24,7 @@ struct xpms_set* DLLCALL xpms_create(unsigned int retries, unsigned int wait_sec
 
 void DLLCALL xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
 {
-	int		i;
+	size_t		i;
 
 	if(!xpms_set)
 		return;
@@ -189,8 +189,6 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 		host=strdup(*iface);
 
 		host_str=host;
-		if(xpms_set->lprintf)
-			xpms_set->lprintf(LOG_INFO, "Adding %s listening socket on %s", prot, host);
 		p = strrchr(host, ':');
 		/*
 		 * If there isn't a [, and the first and last colons aren't the same
@@ -210,6 +208,8 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 			*(p++)=0;
 			sscanf(p, "%hu", &port);
 		}
+		if(xpms_set->lprintf)
+			xpms_set->lprintf(LOG_INFO, "Adding %s listening socket on %s port %hu", prot, host_str, port);
 		if(xpms_add(xpms_set, domain, type, protocol, host_str, port, prot, sock_init, bind_init, cbdata))
 			one_good=TRUE;
 		free(host);
@@ -237,7 +237,7 @@ SOCKET DLLCALL xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr,
 	socklen_t * addrlen, unsigned int timeout, void **cb_data)
 {
 	fd_set			read_fs;
-	int				i;
+	size_t			i;
 	struct timeval	tv;
 	struct timeval	*tvp;
 	SOCKET			max_sock=0;
