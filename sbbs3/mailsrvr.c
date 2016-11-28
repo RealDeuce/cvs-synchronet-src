@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.602 2016/11/27 23:01:07 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.603 2016/11/28 02:59:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5138,7 +5138,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.602 $", "%*s %s", revision);
+	sscanf("$Revision: 1.603 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5395,6 +5395,7 @@ void DLLCALL mail_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","mail");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","mail");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mailproc_ini);

@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.643 2016/11/21 05:44:00 rswindell Exp $ */
+/* $Id: main.cpp,v 1.644 2016/11/28 02:59:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4940,6 +4940,7 @@ NO_SSH:
 	/* Setup recycle/shutdown semaphore file lists */
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
+	semfile_list_add(&recycle_semfiles,startup->ini_fname);
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
