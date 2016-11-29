@@ -1,10 +1,10 @@
-/* $Id: scfgsub.c,v 1.37 2017/10/10 18:03:19 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.35 2016/11/10 10:08:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright ob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,8 +53,7 @@ while(1) {
 			else
 				sprintf(opt[j],"%s"
 					,cfg.sub[i]->lname);
-			j++; 
-		}
+			j++; }
 	subnum[j]=cfg.total_subs;
 	opt[j][0]=0;
 	sprintf(str,"%s Sub-boards",cfg.grp[grpnum]->sname);
@@ -140,16 +139,14 @@ while(1) {
             errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_subs+1);
 			cfg.total_subs=0;
 			bail(1);
-            continue; 
-		}
+            continue; }
 
 		for(ptridx=0;ptridx<USHRT_MAX;ptridx++) { /* Search for unused pointer indx */
             for(n=0;n<cfg.total_subs;n++)
 				if(cfg.sub[n]->ptridx==ptridx)
                     break;
             if(n==cfg.total_subs)
-                break; 
-		}
+                break; }
 
 		if(j) {
 			for(u=cfg.total_subs;u>subnum[i];u--)
@@ -157,13 +154,11 @@ while(1) {
 			for(q=0;q<cfg.total_qhubs;q++)
 				for(s=0;s<cfg.qhub[q]->subs;s++)
 					if(cfg.qhub[q]->sub[s]>=subnum[i])
-						cfg.qhub[q]->sub[s]++; 
-		}
+						cfg.qhub[q]->sub[s]++; }
 
 		if((cfg.sub[subnum[i]]=(sub_t *)malloc(sizeof(sub_t)))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(sub_t));
-			continue; 
-		}
+			continue; }
 		memset((sub_t *)cfg.sub[subnum[i]],0,sizeof(sub_t));
 		cfg.sub[subnum[i]]->grp=grpnum;
 		if(cfg.total_faddrs)
@@ -182,8 +177,7 @@ while(1) {
 		cfg.sub[subnum[i]]->ptridx=ptridx;
 		cfg.total_subs++;
 		uifc.changes=1;
-		continue; 
-}
+		continue; }
 	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
 		uifc.helpbuf=
@@ -222,16 +216,13 @@ while(1) {
 				if(cfg.qhub[q]->sub[s]==subnum[i])
 					cfg.qhub[q]->sub[s]=INVALID_SUB;
 				else if(cfg.qhub[q]->sub[s]>subnum[i])
-					cfg.qhub[q]->sub[s]--; 
-			}
+					cfg.qhub[q]->sub[s]--; }
 		uifc.changes=1;
-		continue; 
-	}
+		continue; }
 	if((i&MSK_ON)==MSK_GET) {
 		i&=MSK_OFF;
 		savsub=*cfg.sub[subnum[i]];
-		continue; 
-	}
+		continue; }
 	if((i&MSK_ON)==MSK_PUT) {
 		i&=MSK_OFF;
 		ptridx=cfg.sub[subnum[i]]->ptridx;
@@ -239,8 +230,7 @@ while(1) {
 		cfg.sub[subnum[i]]->ptridx=ptridx;
 		cfg.sub[subnum[i]]->grp=grpnum;
 		uifc.changes=1;
-        continue; 
-	}
+        continue; }
 	i=subnum[i];
 	j=0;
 	done=0;
@@ -262,11 +252,8 @@ while(1) {
 			,cfg.sub[i]->op_arstr);
 		sprintf(opt[n++],"%-27.27s%.40s","Moderated Posting User"
 			,cfg.sub[i]->mod_arstr);
-		if(cfg.sub[i]->maxmsgs)
-			sprintf(str, "%"PRIu32, cfg.sub[i]->maxmsgs);
-		else
-			strcpy(str, "Unlimited");
-		sprintf(opt[n++],"%-27.27s%s","Maximum Messages", str);
+		sprintf(opt[n++],"%-27.27s%"PRIu32,"Maximum Messages"
+            ,cfg.sub[i]->maxmsgs);
 		if(cfg.sub[i]->maxage)
             sprintf(str,"Enabled (%u days old)",cfg.sub[i]->maxage);
         else
@@ -385,14 +372,9 @@ while(1) {
 	                "`Maximum Number of Messages:`\n"
 	                "\n"
 	                "This value is the maximum number of messages that will be kept in the\n"
-	                "sub-board. It is possible for newly-posted or imported messages to\n"
-					"exceed this maximum (it is `not` an immediately imposed limit).\n"
-					"\n"
-					"Older messages that exceed this maximum count are purged using `smbutil`,\n"
-					"typically run as a timed event (e.g. `MSGMAINT`).\n"
-					"\n"
-					"A value of `0` means no maximum number of stored messages will be\n"
-					"imposed during message-base maintenance."
+	                "sub-board. Once this maximum number of messages is reached, the oldest\n"
+	                "messages will be automatically purged. Usually, 100 messages is a\n"
+	                "sufficient maximum.\n"
                 ;
                 uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of Messages"
                     ,str,9,K_EDIT|K_NUMBER);
@@ -406,15 +388,6 @@ while(1) {
 	                "\n"
 	                "This value is the maximum number of days that messages will be kept in\n"
 	                "the sub-board.\n"
-					"\n"
-					"Message age is calculated from the date and time of message import/post\n"
-					"and not necessarily the date/time the message was originally written.\n"
-					"\n"
-					"Old messages are purged using `smbutil`, typically run as a timed\n"
-					"event (e.g. `MSGMAINT`).\n"
-					"\n"
-					"A value of `0` means no maximum age of stored messages will be\n"
-					"imposed during message-base maintenance."
                 ;
                 uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of Messages (in days)"
                     ,str,5,K_EDIT|K_NUMBER);
@@ -429,10 +402,6 @@ while(1) {
 					"This value is the maximum number of CRCs that will be kept in the\n"
 					"sub-board for duplicate message checking. Once this maximum number of\n"
 					"CRCs is reached, the oldest CRCs will be automatically purged.\n"
-					"\n"
-					"A value of `0` means no CRCs (or other hashes) of message body text\n"
-					"or meta-data will be saved (i.e. for purposes of duplicate message\n"
-					"detection and rejection)."
 				;
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of CRCs"
 					,str,9,K_EDIT|K_NUMBER);
@@ -518,18 +487,15 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_PONLY;
 								cfg.sub[i]->misc|=SUB_PRIV;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_PRIV) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_PRIV;
-								break; 
-							}
+								break; }
 							if(n==2 && (cfg.sub[i]->misc&(SUB_PRIV|SUB_PONLY))
 								!=(SUB_PRIV|SUB_PONLY)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=(SUB_PRIV|SUB_PONLY); 
-							}
+								cfg.sub[i]->misc|=(SUB_PRIV|SUB_PONLY); }
 							break;
 						case 1:
 							if(cfg.sub[i]->misc&SUB_AONLY)
@@ -557,18 +523,15 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_AONLY;
 								cfg.sub[i]->misc|=SUB_ANON;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&(SUB_ANON|SUB_AONLY)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~(SUB_ANON|SUB_AONLY);
-								break; 
-							}
+								break; }
 							if(n==2 && (cfg.sub[i]->misc&(SUB_ANON|SUB_AONLY))
 								!=(SUB_ANON|SUB_AONLY)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=(SUB_ANON|SUB_AONLY); 
-							}
+								cfg.sub[i]->misc|=(SUB_ANON|SUB_AONLY); }
                             break;
 						case 2:
 							n=(cfg.sub[i]->misc&SUB_NAME) ? 0:1;
@@ -586,12 +549,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_NAME)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_NAME;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_NAME) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_NAME; 
-							}
+								cfg.sub[i]->misc&=~SUB_NAME; }
 							break;
 						case 3:
 							if(cfg.sub[i]->misc&SUB_EDITLAST)
@@ -694,12 +655,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_NSDEF)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_NSDEF;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_NSDEF) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_NSDEF; 
-							}
+								cfg.sub[i]->misc&=~SUB_NSDEF; }
                             break;
 						case 6:
 							n=(cfg.sub[i]->misc&SUB_FORCED) ? 0:1;
@@ -717,12 +676,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_FORCED)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_FORCED;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_FORCED) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_FORCED; 
-							}
+								cfg.sub[i]->misc&=~SUB_FORCED; }
                             break;
 						case 7:
 							n=(cfg.sub[i]->misc&SUB_SSDEF) ? 0:1;
@@ -739,12 +696,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_SSDEF)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_SSDEF;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_SSDEF) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_SSDEF; 
-							}
+								cfg.sub[i]->misc&=~SUB_SSDEF; }
                             break;
 						case 8:
 							n=(cfg.sub[i]->misc&SUB_TOUSER) ? 0:1;
@@ -762,12 +717,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_TOUSER)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_TOUSER;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_TOUSER) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_TOUSER; 
-							}
+								cfg.sub[i]->misc&=~SUB_TOUSER; }
 							break;
 						case 9:
 							n=(cfg.sub[i]->misc&SUB_NOVOTING) ? 1:0;
@@ -806,12 +759,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_QUOTE)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_QUOTE;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_QUOTE) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_QUOTE; 
-							}
+								cfg.sub[i]->misc&=~SUB_QUOTE; }
                             break;
 						case 11:
 							n=(cfg.sub[i]->misc&SUB_NOUSERSIG) ? 0:1;
@@ -828,12 +779,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_NOUSERSIG)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_NOUSERSIG;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_NOUSERSIG) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_NOUSERSIG; 
-							}
+								cfg.sub[i]->misc&=~SUB_NOUSERSIG; }
                             break;
 						case 12:
 							n=(cfg.sub[i]->misc&SUB_SYSPERM) ? 0:1;
@@ -851,12 +800,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_SYSPERM)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_SYSPERM;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_SYSPERM) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_SYSPERM; 
-							}
+								cfg.sub[i]->misc&=~SUB_SYSPERM; }
                             break;
 #if 0 /* This is not actually imlemented (yet?) */
 						case 12:
@@ -883,18 +830,15 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_KILL;
 								cfg.sub[i]->misc&=~SUB_KILLP;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&(SUB_KILL|SUB_KILLP)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~(SUB_KILL|SUB_KILLP); 
-							}
+								cfg.sub[i]->misc&=~(SUB_KILL|SUB_KILLP); }
 							if(n==2 && !(cfg.sub[i]->misc&SUB_KILLP)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_KILLP;
 								cfg.sub[i]->misc&=~SUB_KILL;
-                                break; 
-							}
+                                break; }
                             break;
 #endif
 						case 13:
@@ -919,15 +863,13 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_LZH)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_LZH;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_LZH) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_LZH; 
-							}
+								cfg.sub[i]->misc&=~SUB_LZH; }
                             break;
-						} 
-					}
+
+							} }
 				break;
 			case 14:
 				while(1) {
@@ -978,12 +920,10 @@ while(1) {
 							if(!n && cfg.sub[i]->misc&SUB_NOTAG) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_NOTAG;
-								break; 
-							}
+								break; }
 							if(n==1 && !(cfg.sub[i]->misc&SUB_NOTAG)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=SUB_NOTAG; 
-							}
+								cfg.sub[i]->misc|=SUB_NOTAG; }
                             break;
 						case 1:
 							n=0;
@@ -1001,12 +941,10 @@ while(1) {
 							if(n && cfg.sub[i]->misc&SUB_ASCII) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_ASCII;
-								break; 
-							}
+								break; }
 							if(!n && !(cfg.sub[i]->misc&SUB_ASCII)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=SUB_ASCII; 
-							}
+								cfg.sub[i]->misc|=SUB_ASCII; }
                             break;
 						case 2:
 							n=1;
@@ -1033,12 +971,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_GATE)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_GATE;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_GATE) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_GATE; 
-							}
+								cfg.sub[i]->misc&=~SUB_GATE; }
                             break;
 						case 3:
 							n=1;
@@ -1058,12 +994,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_QNET)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_QNET;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_QNET) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_QNET; 
-							}
+								cfg.sub[i]->misc&=~SUB_QNET; }
                             break;
 						case 4:
 							uifc.helpbuf=
@@ -1093,12 +1027,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_INET)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_INET;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_INET) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_INET; 
-							}
+								cfg.sub[i]->misc&=~SUB_INET; }
                             break;
 						case 6:
                             n=1;
@@ -1118,12 +1050,10 @@ while(1) {
                             if(!n && !(cfg.sub[i]->misc&SUB_PNET)) {
                                 uifc.changes=1;
                                 cfg.sub[i]->misc|=SUB_PNET;
-                                break; 
-							}
+                                break; }
                             if(n==1 && cfg.sub[i]->misc&SUB_PNET) {
                                 uifc.changes=1;
-                                cfg.sub[i]->misc&=~SUB_PNET; 
-							}
+                                cfg.sub[i]->misc&=~SUB_PNET; }
                             break;
 						case 7:
 							n=1;
@@ -1140,12 +1070,10 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_FIDO)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_FIDO;
-								break; 
-							}
+								break; }
 							if(n==1 && cfg.sub[i]->misc&SUB_FIDO) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_FIDO; 
-							}
+								cfg.sub[i]->misc&=~SUB_FIDO; }
                             break;
 						case 8:
 							smb_faddrtoa(&cfg.sub[i]->faddr,str);
@@ -1262,8 +1190,7 @@ while(1) {
 								cfg.sub[i]->misc|=SUB_HYPER;
 								cfg.sub[i]->misc&=~SUB_FAST;
 								cfg.sub[i]->misc|=SUB_HDRMOD;
-								break; 
-							}
+								break; }
 							if(!n)
 								break;
 							if(cfg.sub[i]->misc&SUB_HYPER) {	/* Switching from hyper */

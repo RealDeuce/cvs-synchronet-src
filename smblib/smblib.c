@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.170 2017/07/08 04:48:16 rswindell Exp $ */
+/* $Id: smblib.c,v 1.166 2016/11/29 10:09:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1942,11 +1942,9 @@ int SMBCALL smb_tzutc(int16_t zone)
 	tz=zone&0xfff;
 	if(zone&(WESTERN_ZONE|US_ZONE)) {	/* West of UTC? */
 		if(zone&DAYLIGHT)
-			tz-=SMB_DST_OFFSET;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
+			tz-=60;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 		return(-tz);
 	}
-	if(zone&DAYLIGHT)
-		tz+=SMB_DST_OFFSET;				/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 	return(tz);
 }
 
@@ -2004,96 +2002,6 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 	}
 
 	return(retval);
-}
-
-/* Find oldest *existing* message in the thread referenced by the passed msg */
-uint32_t SMBCALL smb_first_in_thread(smb_t* smb, smbmsg_t* remsg, msghdr_t* hdr)
-{
-	smbmsg_t msg;
-
-	if(!remsg->hdr.thread_back) {
-		if(hdr != NULL)
-			*hdr = remsg->hdr;
-		return remsg->hdr.number;
-	}
-
-	memset(&msg, 0, sizeof(msg));
-	if(remsg->hdr.thread_id != 0) {
-		msg.hdr.number = remsg->hdr.thread_id;
-		if(smb_getmsgidx(smb, &msg) == SMB_SUCCESS 
-			&& smb_getmsghdr(smb, &msg) == SMB_SUCCESS) {
-			smb_freemsgmem(&msg);
-			if(hdr != NULL)
-				*hdr = msg.hdr;
-			return msg.hdr.number;
-		}
-	}
-	/* Walk the thread backwards to find the oldest msg in thread */
-	uint32_t msgnum = msg.hdr.number = remsg->hdr.number;
-	msg.hdr.thread_back = remsg->hdr.thread_back;
-	while(msg.hdr.thread_back != 0 && msg.hdr.thread_back < msg.hdr.number) {
-		msg.hdr.number = msg.hdr.thread_back;
-		if(smb_getmsgidx(smb, &msg) != SMB_SUCCESS)
-			break;
-		if(smb_getmsghdr(smb, &msg) != SMB_SUCCESS)
-			break;
-		smb_freemsgmem(&msg);
-		msgnum = msg.hdr.number;
-		if(hdr != NULL)
-			*hdr = msg.hdr;
-	}
-
-	return msgnum;
-}
-
-uint32_t SMBCALL smb_next_in_thread(smb_t* smb, smbmsg_t* remsg, msghdr_t* hdr)
-{
-	smbmsg_t msg;
-
-	memset(&msg, 0, sizeof(msg));
-	msg.hdr.number = remsg->hdr.number;
-	if(smb_getmsgidx(smb, &msg) != SMB_SUCCESS)
-		return 0;
-	if(smb_getmsghdr(smb, &msg) != SMB_SUCCESS)
-		return 0;
-	smb_freemsgmem(&msg);
-	if(hdr != NULL)
-		*hdr = msg.hdr;
-	if(msg.hdr.thread_next <= msg.hdr.number)	/* Prevent circular thread */
-		return 0;
-	return msg.hdr.thread_next;
-}
-
-/* Last in this context does not mean newest */
-uint32_t SMBCALL smb_last_in_branch(smb_t* smb, smbmsg_t* remsg)
-{
-	smbmsg_t msg;
-
-	if(remsg->hdr.thread_first == 0)
-		return remsg->hdr.number;
-	memset(&msg, 0, sizeof(msg));
-	msg.hdr.number = remsg->hdr.thread_first;
-
-	uint32_t next;
-	while((next = smb_next_in_thread(smb, &msg, &msg.hdr)) != 0)
-		msg.hdr.number = next;
-
-	return smb_last_in_branch(smb, &msg);
-}
-
-
-/* Last in this context does not mean newest */
-uint32_t SMBCALL smb_last_in_thread(smb_t* smb, smbmsg_t* remsg)
-{
-	smbmsg_t msg;
-	memset(&msg, 0, sizeof(msg));
-
-	uint32_t first = smb_first_in_thread(smb, remsg, &msg.hdr);
-
-	if(first <= 0)
-		return remsg->hdr.number;
-
-	return smb_last_in_branch(smb, &msg);
 }
 
 /* End of SMBLIB.C */
