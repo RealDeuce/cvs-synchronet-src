@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.39 2016/12/01 06:19:53 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.38 2016/11/29 10:09:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,11 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	hash_t		found;
 	hash_t**	hashes=NULL;	/* This is a NULL-terminated list of hashes */
 	smbmsg_t	remsg;
+
+	if(msg->subj == NULL) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s subject field missing", __FUNCTION__);
+		return SMB_ERR_HDR_FIELD;
+	}
 
 	if(!SMB_IS_OPEN(smb)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
