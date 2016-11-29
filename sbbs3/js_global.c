@@ -1,8 +1,7 @@
-/* js_global.c */
-
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.362 2016/04/24 00:41:34 deuce Exp $ */
+/* $Id: js_global.c,v 1.365 2016/11/29 20:24:23 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,7 +123,7 @@ static void background_thread(void* arg)
 	jsval result=JSVAL_VOID;
 	jsval exit_code;
 
-	SetThreadName("JS Background");
+	SetThreadName("sbbs/jsBackgrnd");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
 	JS_BEGINREQUEST(bg->cx);
@@ -2416,6 +2415,11 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 
 		if(strcmp(token,"hellip")==0) {	/* horizontal ellipsis  */
 			j+=sprintf(outbuf+j,"...");
+			continue;
+		}
+
+		if(strcmp(token,"bull")==0) {	/* bullet  */
+			outbuf[j++] = 249;
 			continue;
 		}
 
