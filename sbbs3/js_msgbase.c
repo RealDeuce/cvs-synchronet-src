@@ -1,7 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.208 2017/11/01 22:41:05 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: js_msgbase.c,v 1.205 2016/11/22 06:41:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,17 +55,7 @@ typedef struct
 
 } privatemsg_t;
 
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
-
-JSBool JS_ValueToUint32(JSContext *cx, jsval v, uint32 *ip)
-{
-	jsdouble d;
-
-	if(!JS_ValueToNumber(cx, v, &d))
-		return JS_FALSE;
-	*ip = (uint32)d;
-	return JS_TRUE;
-}
+static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
 
 /* Destructor */
 
@@ -757,7 +746,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToUint32(cx,val,&i32))
+		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		msg->hdr.auxattr=i32;
 	}
@@ -2504,47 +2493,6 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 	return JS_TRUE;
 }
 
-static JSBool
-js_close_poll(JSContext *cx, uintN argc, jsval *arglist)
-{
-	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
-	jsval*		argv=JS_ARGV(cx, arglist);
-	int32		msgnum;
-	private_t*	p;
-	char*		name;
-	int			result;
-	jsrefcount	rc;
-	scfg_t*		scfg;
-
-	scfg = JS_GetRuntimePrivate(JS_GetRuntime(cx));
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-	
-	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
-		return JS_FALSE;
-	}
-
-	if(!SMB_IS_OPEN(&(p->smb)))
-		return JS_TRUE;
-
-	if(!JS_ValueToInt32(cx, argv[0], &msgnum))
-		return JS_FALSE;
-
-	JSVALUE_TO_MSTRING(cx, argv[1], name, NULL)
-	HANDLE_PENDING(cx);
-	if(name==NULL)
-		return JS_TRUE;
-
-	rc=JS_SUSPENDREQUEST(cx);
-	result = closepoll(scfg, &(p->smb), msgnum, name);
-	JS_RESUMEREQUEST(cx, rc);
-
-	JS_SET_RVAL(cx, arglist, result == SMB_SUCCESS ? JSVAL_TRUE : JSVAL_FALSE);
-
-	return JS_TRUE;
-}
-
 /* MsgBase Object Properties */
 enum {
 	 SMB_PROP_LAST_ERROR
@@ -2881,10 +2829,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>from_net_addr</tt><td>Sender's network address"
 	"</table>"
 	)
-	,317
-	},
-	{"close_poll",		js_close_poll,		2, JSTYPE_BOOLEAN,	JSDOCSTR("message number, user name or alias")
-	,JSDOCSTR("close an existing poll")
 	,317
 	},
 	{"how_user_voted",		js_how_user_voted,		2, JSTYPE_NUMBER,	JSDOCSTR("message number, user name or alias")
