@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.443 2016/11/27 23:13:06 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.444 2016/12/01 21:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -872,8 +872,8 @@ public:
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
-	void	errormsg(int line, const char *file, const char* action, const char *object
-				,ulong access, const char *extinfo=NULL);
+	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
+				,long access, const char *extinfo=NULL);
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */

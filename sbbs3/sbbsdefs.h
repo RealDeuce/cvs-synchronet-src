@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.206 2016/11/27 23:13:06 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.207 2016/12/01 21:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -855,7 +855,7 @@ enum {							/* Values of mode for userlist function     */
 #define REALSYSOP		(useron.level>=SYSOP_LEVEL)
 #define FLAG(x) 		(ulong)(1UL<<(x-'A'))
 #define CLS         	outchar(FF)
-#define WHERE       	__LINE__,getfname(__FILE__)
+#define WHERE       	__LINE__,__FUNCTION__,getfname(__FILE__)
 #define SAVELINE		{ if(slcnt<SAVE_LINES) { \
 							slatr[slcnt]=latr; \
 							slcuratr[slcnt]=curatr; \
