@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.22 2018/02/12 06:38:17 deuce Exp $ */
+/* $Id: x_cio.h,v 1.18 2008/01/21 07:37:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,6 @@
 #endif
 
 #include "ciolib.h"
-#include "bitmap_con.h"
 #include "x_events.h"
 
 #ifdef __cplusplus
@@ -70,12 +69,9 @@ char *x_getcliptext(void);
 int x_setfont(int font, int force);
 int x_getfont(void);
 int x_loadfont(char *filename);
-int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 int x_get_window_info(int *width, int *height, int *xpos, int *ypos);
-void x11_drawrect(struct rectlist *data);
+void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *data);
 void x11_flush(void);
-void x_setscaling(int newval);
-int x_getscaling(void);
 #ifdef __cplusplus
 }
 #endif
