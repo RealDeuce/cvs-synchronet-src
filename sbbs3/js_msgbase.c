@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.202 2016/11/21 05:49:59 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.205 2016/11/22 06:41:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -956,7 +956,7 @@ js_get_msg_index(JSContext *cx, uintN argc, jsval *arglist)
 	JS_DefineProperty(cx, idxobj, "number"	,val
 		,NULL,NULL,JSPROP_ENUMERATE);
 
-	if(msg.idx.attr&MSG_VOTE) {
+	if(msg.idx.attr&MSG_VOTE && !(msg.idx.attr&MSG_POLL)) {
 		val=UINT_TO_JSVAL(msg.idx.votes);
 		JS_DefineProperty(cx, idxobj, "votes"	,val
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -1609,12 +1609,13 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_TRUE;
 		}
 		post[off].idx = msg.idx;
-		if(msg.idx.attr&MSG_VOTE) {
+		if(msg.idx.attr&MSG_VOTE && !(msg.idx.attr&MSG_POLL)) {
 			ulong u;
 			for(u = 0; u < off; u++)
 				if(post[u].idx.number == msg.idx.remsg)
 					break;
 			if(u < off) {
+				post[u].total_votes++;
 				switch(msg.idx.attr&MSG_VOTE) {
 				case MSG_UPVOTE:
 					post[u].upvotes++;
@@ -1623,7 +1624,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 					post[u].downvotes++;
 					break;
 				default:
-					for(int b=0; b < 16; b++) {
+					for(int b=0; b < MSG_POLL_MAX_ANSWERS; b++) {
 						if(msg.idx.votes&(1<<b))
 							post[u].votes[b]++;
 					}
@@ -1669,13 +1670,24 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_TRUE;
 		}
 
+		JS_DefineProperty(cx, hdrobj, "total_votes", UINT_TO_JSVAL(post[off].total_votes)
+			,NULL, NULL, JSPROP_ENUMERATE);
 		if(post[off].upvotes)
 			JS_DefineProperty(cx, hdrobj, "upvotes", UINT_TO_JSVAL(post[off].upvotes)
-				,NULL,NULL,JSPROP_ENUMERATE);
+				,NULL, NULL, JSPROP_ENUMERATE);
 		if(post[off].downvotes)
 			JS_DefineProperty(cx, hdrobj, "downvotes", UINT_TO_JSVAL(post[off].downvotes)
-				,NULL,NULL,JSPROP_ENUMERATE);
-		/* ToDo: Handle votes[] array conversion to property/object/array */
+				,NULL, NULL, JSPROP_ENUMERATE);
+		if(post[off].total_votes) {
+			JSObject*		array;
+			if((array=JS_NewArrayObject(cx,0,NULL)) != NULL) {
+				JS_DefineProperty(cx, hdrobj, "tally", OBJECT_TO_JSVAL(array)
+					,NULL, NULL, JSPROP_ENUMERATE);
+				for(int i=0; i < MSG_POLL_MAX_ANSWERS;i++)
+					JS_DefineElement(cx, array, i, UINT_TO_JSVAL(post[off].votes[i])
+						,NULL, NULL, JSPROP_ENUMERATE);
+			}
+		}
 
 		if(!JS_SetPrivate(cx, hdrobj, p)) {
 			JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2443,6 +2455,43 @@ js_add_poll(JSContext *cx, uintN argc, jsval *arglist)
 	return ret;
 }
 
+static JSBool
+js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
+	jsval*		argv=JS_ARGV(cx, arglist);
+	int32		msgnum;
+	private_t*	p;
+	char*		name;
+	uint16_t	votes;
+	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return JS_FALSE;
+	}
+
+	if(!SMB_IS_OPEN(&(p->smb)))
+		return JS_TRUE;
+
+	if(!JS_ValueToInt32(cx, argv[0], &msgnum))
+		return JS_FALSE;
+
+	JSVALUE_TO_MSTRING(cx, argv[1], name, NULL)
+	HANDLE_PENDING(cx);
+	if(name==NULL)
+		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	votes = smb_voted_already(&(p->smb), msgnum, name, NET_NONE, NULL);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(votes));
+
+	return JS_TRUE;
+}
 
 /* MsgBase Object Properties */
 enum {
@@ -2780,6 +2829,10 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>from_net_addr</tt><td>Sender's network address"
 	"</table>"
 	)
+	,317
+	},
+	{"how_user_voted",		js_how_user_voted,		2, JSTYPE_NUMBER,	JSDOCSTR("message number, user name or alias")
+	,JSDOCSTR("Returns 0 for no votes, 1 for an up-vote, 2 for a down-vote, or in the case of a poll-response: a bit-field of votes.")
 	,317
 	},
 
