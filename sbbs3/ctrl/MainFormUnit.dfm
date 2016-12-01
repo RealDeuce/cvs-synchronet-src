@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 290
-  Top = 545
+  Left = 594
+  Top = 347
   Width = 640
   Height = 400
   Caption = 'Synchronet Control Panel'
@@ -52,7 +52,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 164
     Width = 624
-    Height = 1
+    Height = 10
     Cursor = crVSplit
     Align = alTop
     Beveled = True
@@ -61,9 +61,9 @@ object MainForm: TMainForm
   end
   object Logo: TImage
     Left = 0
-    Top = 165
+    Top = 174
     Width = 624
-    Height = 152
+    Height = 142
     Align = alClient
     AutoSize = True
     Center = True
@@ -13539,9 +13539,9 @@ object MainForm: TMainForm
   end
   object BottomPanel: TPanel
     Left = 0
-    Top = 165
+    Top = 174
     Width = 624
-    Height = 152
+    Height = 142
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
@@ -13550,7 +13550,7 @@ object MainForm: TMainForm
       Left = 235
       Top = 0
       Width = 2
-      Height = 152
+      Height = 142
       Cursor = crHSplit
       MinSize = 1
     end
@@ -13558,7 +13558,7 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 235
-      Height = 152
+      Height = 142
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -13569,7 +13569,7 @@ object MainForm: TMainForm
       Left = 237
       Top = 0
       Width = 387
-      Height = 152
+      Height = 142
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -13579,7 +13579,7 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 317
+    Top = 316
     Width = 624
     Height = 25
     Panels = <
@@ -13838,6 +13838,11 @@ object MainForm: TMainForm
           Caption = 'IP Address Filter Message'
           Hint = 'badip.msg'
           OnClick = TextMenuItemEditClick
+        end
+        object BBSEditHostExemptions: TMenuItem
+          Caption = 'Host/IP Exemptions'
+          Hint = 'ipfilter_exempt.cfg'
+          OnClick = CtrlMenuItemEditClick
         end
         object BBSEditHostFilter: TMenuItem
           Caption = 'Host Name Filter'
@@ -14298,6 +14303,12 @@ object MainForm: TMainForm
         ImageIndex = 31
         OnClick = ViewLogClick
       end
+      object ViewGuruChatLogMenuItem: TMenuItem
+        Caption = 'Guru Chat Log...'
+        Hint = 'GURU.LOG'
+        ImageIndex = 33
+        OnClick = ViewLogClick
+      end
     end
     object HelpMenuItem: TMenuItem
       Caption = '&Help'
@@ -14316,14 +14327,14 @@ object MainForm: TMainForm
         Hint = 'http://wiki.synchro.net/faq:'
         OnClick = WebPageMenuItemClick
       end
-      object HelpSysopMenuItem: TMenuItem
-        Caption = 'Sysop Manual (old)'
-        Hint = 'http://www.synchro.net/docs/sysop.html'
-        OnClick = WebPageMenuItemClick
-      end
       object HelpTechnicalSupportMenuItem: TMenuItem
         Caption = 'Technical Support'
         Hint = 'http://wiki.synchro.net/howto:support'
+        OnClick = WebPageMenuItemClick
+      end
+      object HelpDonateMenuItem: TMenuItem
+        Caption = 'Donate'
+        Hint = 'http://wiki.synchro.net/donate/'
         OnClick = WebPageMenuItemClick
       end
       object N7: TMenuItem
@@ -17255,6 +17266,18 @@ object MainForm: TMainForm
     end
     object ClearErrorCounter: TMenuItem
       Action = ClearErrors
+    end
+  end
+  object LogPopupMenu: TPopupMenu
+    Left = 336
+    Top = 40
+    object LogPopupCopy: TMenuItem
+      Caption = '&Copy Selected'
+      OnClick = LogPopupCopyClick
+    end
+    object LogPopupCopyAll: TMenuItem
+      Caption = 'Copy &All'
+      OnClick = LogPopupCopyAllClick
     end
   end
 end
