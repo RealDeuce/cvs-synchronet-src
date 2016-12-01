@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "SyncTERM"
-#define MyAppVersion "1.00"
+#define MyAppVersion "1.1b"
 #define MyAppPublisher "SyncTERM"
 #define MyAppURL "http://www.syncterm.net/"
 #define MyAppExeName "syncterm.exe"
@@ -31,14 +31,15 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "systemlist"; Description: "Use the Official Synchronet BBS List as your System BBS List"; GroupDescription: "Options:";
 
 [Files]
-Source: "e:\Users\Rob\Downloads\syncterm.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "c:\bin\syncterm.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\bin\SDL.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "c:\bin\fonts\*"; DestDir: "{app}\fonts"; Flags: ignoreversion
-Source: "e:\src\syncterm\syncterm.ini"; DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion
+Source: "e:\src\syncterm\syncterm.ini"; DestDir: "{userappdata}\{#MyAppName}"; Flags: ignoreversion confirmoverwrite
 Source: "e:\src\syncterm\getlist.ftp"; DestDir: "{app}"; Flags: ignoreversion
-Source: "s:\xfer\sbbs\syncterm.lst"; DestDir: "{commonappdata}\{#MyAppName}"; Flags: ignoreversion
+Source: "s:\xfer\sbbs\syncterm.lst"; DestDir: "{commonappdata}\{#MyAppName}"; Tasks: systemlist; Flags: ignoreversion confirmoverwrite
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [INI]
@@ -82,6 +83,7 @@ Filename: "{userappdata}\{#MyAppName}\syncterm.ini"; Section: "Font:Swiss (8x16)
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Get Synchronet BBS List"; Filename: "ftp"; Parameters: "-A ""-s:{app}\getlist.ftp"""; WorkingDir: "{commonappdata}\{#MyAppName}";  IconFilename: "{app}\{#MyAppExeName}"; Comment: "Get the latest Synchronet BBS List from Vertrauen";
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\Check for updates"; Filename: "http://sourceforge.net/projects/syncterm/"; Comment: "Check for new SyncTERM versions";
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
