@@ -1,10 +1,12 @@
-/* $Id: scfgchat.c,v 1.16 2017/10/10 23:07:52 rswindell Exp $ */
+/* scfgchat.c */
+
+/* $Id: scfgchat.c,v 1.15 2015/08/22 10:33:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -98,11 +100,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savpage = *cfg.page[i];
 		free(cfg.page[i]);
 		cfg.total_pages--;
 		for(j=i;j<cfg.total_pages;j++)
@@ -284,11 +283,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savchan = *cfg.chan[i];
 		free(cfg.chan[i]);
 		cfg.total_chans--;
 		for(j=i;j<cfg.total_chans;j++)
@@ -549,11 +545,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savchatact = *cfg.chatact[chatnum[i]];
 		free(cfg.chatact[chatnum[i]]);
 		cfg.total_chatacts--;
 		for(j=chatnum[i];j<cfg.total_chatacts && j<MAX_OPTS;j++)
@@ -678,11 +671,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savguru = *cfg.guru[i];
 		free(cfg.guru[i]);
 		cfg.total_gurus--;
 		for(j=i;j<cfg.total_gurus;j++)
@@ -822,11 +812,8 @@ while(1) {
         uifc.changes=1;
         continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
-		int msk = i&MSK_ON;
+	if((i&MSK_ON)==MSK_DEL) {
 		i&=MSK_OFF;
-		if(msk == MSK_CUT)
-			savactset = *cfg.actset[i];
         free(cfg.actset[i]);
         cfg.total_actsets--;
         for(j=i;j<cfg.total_actsets;j++)
