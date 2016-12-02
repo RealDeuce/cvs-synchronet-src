@@ -1,8 +1,6 @@
-/* con_out.cpp */
-
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.71 2015/10/07 04:00:12 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.74 2016/11/27 23:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -621,4 +619,37 @@ bool sbbs_t::msgabort()
 	return(false);
 }
 
+int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr)
+{
+	int	atr;
+	int save_atr = curatr;
+	int len;
+	char* str = strip_ctrl(instr, NULL);
 
+	len = strlen(str);
+	if(!term_supports(ANSI))
+		bputs(str);
+	else {
+		for(int i=0; i<len; i++) {
+			if(((float)(i+1) / len)*100.0 <= pct)
+				atr = full_attr;
+			else
+				atr = empty_attr;
+			if(curatr != atr) attr(atr);
+			outchar(str[i]);
+		}
+		attr(save_atr);
+	}
+	free(str);
+	return len;
+}
+
+void sbbs_t::progress(const char* text, int count, int total)
+{
+	char str[128];
+
+	if(text == NULL) text = "";
+	float pct = ((float)count/total)*100.0F;
+	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);
+	cursor_left(backfill(str, pct, cfg.color[clr_progress_full], cfg.color[clr_progress_empty]));
+}
