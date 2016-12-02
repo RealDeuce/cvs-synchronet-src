@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.43 2016/11/16 11:11:16 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.45 2016/11/23 10:28:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,17 +93,18 @@ bool sbbs_t::pack_rep(uint hubnum)
 	}
 	fseek(rep,0L,SEEK_END);
 
-	/* Always includes HEADERS.DAT in .REP packets which are only for QWKnet hubs */
-	/* And *usually* a Synchronet system */
-	SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
-	fexistcase(str);
-	if((hdrs=fopen(str,"a"))==NULL)
-		errormsg(WHERE,ERR_CREATE,str,0);
-	SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
-	fexistcase(str);
-	if((voting=fopen(str,"a"))==NULL)
-		errormsg(WHERE,ERR_CREATE,str,0);
-
+	if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) {
+		SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
+		fexistcase(str);
+		if((hdrs=fopen(str,"a"))==NULL)
+			errormsg(WHERE,ERR_CREATE,str,0);
+	}
+	if(!(cfg.qhub[hubnum]->misc&QHUB_NOVOTING)) {
+		SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
+		fexistcase(str);
+		if((voting=fopen(str,"a"))==NULL)
+			errormsg(WHERE,ERR_CREATE,str,0);
+	}
 	/*********************/
 	/* Pack new messages */
 	/*********************/
@@ -147,7 +148,11 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; 
 			}
 
-			msgtoqwk(&msg,rep,QM_TO_QNET|QM_REP|A_LEAVE,INVALID_SUB,0,hdrs);
+			mode = QM_TO_QNET|QM_REP;
+			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
+			/* For an unclear reason, kludge lines (including @VIA and @TZ) were not included in NetMail previously */
+			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
+			msgtoqwk(&msg, rep, mode, INVALID_SUB, 0, hdrs);
 			packedmail++;
 			smb_unlockmsghdr(&smb,&msg);
 			smb_freemsgmem(&msg); 
@@ -217,8 +222,9 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; 
 			}
 
-			mode=cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
-			if(mode&A_LEAVE) mode|=(QM_VIA|QM_TZ|QM_MSGID);
+			mode = cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
+			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
+			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
 			if(msg.from_net.type!=NET_QWK)
 				mode|=QM_TAGLINE;
 
@@ -237,10 +243,13 @@ bool sbbs_t::pack_rep(uint hubnum)
 		YIELD();	/* yield */
 	}
 
+	BOOL voting_data = FALSE;
 	if(hdrs!=NULL)
 		fclose(hdrs);
-	if(voting!=NULL)
+	if(voting!=NULL) {
+		voting_data = ftell(voting);
 		fclose(voting);
+	}
 	fclose(rep);			/* close HUB_ID.MSG */
 	CRLF;
 							/* Look for extra files to send out */
@@ -260,7 +269,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	if(netfiles)
 		CRLF;
 
-	if(!msgcnt && !netfiles && !packedmail) {
+	if(!msgcnt && !netfiles && !packedmail && !voting_data) {
 		eprintf(LOG_INFO,remove_ctrl_a(text[QWKNoNewMessages],tmp));
 		return(true);	// Changed from false Mar-11-2005 (needs to be true to save updated ptrs)
 	}
