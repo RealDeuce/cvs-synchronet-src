@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.95 2016/12/05 12:11:00 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.96 2016/12/05 12:15:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -457,12 +457,12 @@ void sbbs_t::show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thr
 		else
 			bprintf("  %c", 192);
 	}
-	if(i == curmsg)
+	if((unsigned)i == curmsg)
 		attr(WHITE);
 	bprintf("%u%c "
 		,post[i].num
 //		,msg.hdr.number
-		,i == curmsg ? '>':':');
+		,(unsigned)i == curmsg ? '>':':');
 	bprintf("%-*.*s %c %s\r\n"
 		,cols-column-13
 		,cols-column-13
@@ -601,7 +601,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			bprintf(text[NScanStatusFmt]
 			   ,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,smb.msgs,msgs);
 		if(!smb.msgs) {
-			if(!(mode&SCAN_TOYOU|SCAN_POLLS))
+			if(!(mode&(SCAN_TOYOU|SCAN_POLLS)))
 				bprintf(text[NoMsgsOnSub]
 					,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname);
 			smb_close(&smb);
