@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.442 2016/11/21 10:03:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.444 2016/12/01 21:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -673,7 +673,8 @@ public:
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
 	long	term_supports(long cmp_flags=0);
-	int		backfill(const char* str, float pct);
+	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
+	void	progress(const char* str, int count, int total);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -871,8 +872,8 @@ public:
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
-	void	errormsg(int line, const char *file, const char* action, const char *object
-				,ulong access, const char *extinfo=NULL);
+	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
+				,long access, const char *extinfo=NULL);
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
