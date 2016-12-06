@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.96 2016/12/05 12:15:40 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.97 2016/12/06 17:05:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -731,7 +731,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		mismatches=0;
 
 		if(thread_mode) {
-			long first = smb_first_in_thread(&smb, &msg);
+			long first = smb_first_in_thread(&smb, &msg, NULL);
 			if(first < 0) {
 				bputs(text[NoMessagesFound]);
 				break;
