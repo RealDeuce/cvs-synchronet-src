@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.158 2017/08/26 01:57:24 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.156 2016/11/28 11:12:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -562,11 +562,6 @@ void sbbs_read_ini(
 		SAFECOPY(mail->outbound_sound
 			,iniGetString(list,section,"OutboundSound",nulstr,value));
 
-		SAFECOPY(mail->newmail_notice
-			,iniGetString(list,section,"NewMailNotice","%.0s\1n\1mNew e-mail from \1h%s \1n<\1h%s\1n>\r\n", value));
-		SAFECOPY(mail->forward_notice
-			,iniGetString(list,section,"ForwardNotice","\1n\1mand it was automatically forwarded to: \1h%s\1n\r\n", value));
-	
 		/* JavaScript Operating Parameters */
 		sbbs_get_js_settings(list, section, &mail->js, &global->js);
 
@@ -809,9 +804,6 @@ BOOL sbbs_write_ini(
 			break;
 		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",bbs->outbuf_drain_timeout,&style))
 			break;
-		if(!iniSetInteger(lp,section,"MaxConcurrentConnections",bbs->max_concurrent_connections,&style))
-			break;
-
 
 		if(bbs->sem_chk_freq==global->sem_chk_freq)
 			iniRemoveValue(lp,section,strSemFileCheckFrequency);
@@ -1055,11 +1047,6 @@ BOOL sbbs_write_ini(
 		if(!iniSetString(lp,section,"InboundSound",mail->inbound_sound,&style))
 			break;
 		if(!iniSetString(lp,section,"OutboundSound",mail->outbound_sound,&style))
-			break;
-
-		if(!iniSetStringLiteral(lp,section,"NewMailNotice",mail->newmail_notice,&style))
-			break;
-		if(!iniSetStringLiteral(lp,section,"ForwardNotice",mail->forward_notice,&style))
 			break;
 
 		/* JavaScript Operating Parameters */
