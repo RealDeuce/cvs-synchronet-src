@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.445 2016/12/05 12:11:00 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.446 2016/12/06 07:06:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -667,6 +667,7 @@ public:
 	void	center(char *str);
 	void	clearline(void);
 	void	cleartoeol(void);
+	void	cleartoeos(void);
 	void	cursor_home(void);
 	void	cursor_up(int count=1);
 	void	cursor_down(int count=1);
