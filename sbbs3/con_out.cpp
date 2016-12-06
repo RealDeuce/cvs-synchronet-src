@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.73 2016/11/16 11:05:33 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.75 2016/12/06 07:06:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,6 +377,12 @@ void sbbs_t::cleartoeol(void)
 	}
 }
 
+void sbbs_t::cleartoeos(void)
+{
+	if(term_supports(ANSI))
+		rputs("\x1b[J");
+}
+
 /****************************************************************************/
 /* performs the correct attribute modifications for the Ctrl-A code			*/
 /****************************************************************************/
@@ -483,8 +489,14 @@ void sbbs_t::ctrl_a(char x)
 		case 'S':   /* Synchronize */
 			ASYNC;
 			break;
+		case 'J':	/* clear to end-of-screen */
+			cleartoeos();
+			break;
 		case 'L':	/* CLS (form feed) */
 			CLS;
+			break;
+		case '`':	/* Home cursor */
+			cursor_home();
 			break;
 		case '>':   /* CLREOL */
 			cleartoeol();
@@ -619,23 +631,37 @@ bool sbbs_t::msgabort()
 	return(false);
 }
 
-int sbbs_t::backfill(const char* str, float pct)
+int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr)
 {
-	uint8_t	atr;
+	int	atr;
+	int save_atr = curatr;
 	int len;
-
-	if(!term_supports(ANSI))
-		return bputs(str);
+	char* str = strip_ctrl(instr, NULL);
 
 	len = strlen(str);
-	for(int i=0; i<len; i++) {
-		if(((float)(i+1) / len)*100.0 <= pct)
-			atr = cfg.color[clr_backfill];
-		else
-			atr = cfg.color[clr_unfill];
-		if(curatr != atr) attr(atr);
-		outchar(str[i]);
+	if(!term_supports(ANSI))
+		bputs(str);
+	else {
+		for(int i=0; i<len; i++) {
+			if(((float)(i+1) / len)*100.0 <= pct)
+				atr = full_attr;
+			else
+				atr = empty_attr;
+			if(curatr != atr) attr(atr);
+			outchar(str[i]);
+		}
+		attr(save_atr);
 	}
-	attr(LIGHTGRAY);
+	free(str);
 	return len;
+}
+
+void sbbs_t::progress(const char* text, int count, int total)
+{
+	char str[128];
+
+	if(text == NULL) text = "";
+	float pct = ((float)count/total)*100.0F;
+	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);
+	cursor_left(backfill(str, pct, cfg.color[clr_progress_full], cfg.color[clr_progress_empty]));
 }

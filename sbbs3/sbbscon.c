@@ -1,13 +1,13 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.260 2016/11/19 09:44:04 sbbs Exp $ */
+/* $Id: sbbscon.c,v 1.262 2016/11/28 02:59:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -998,6 +998,7 @@ static void read_startup_ini(BOOL recycle
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
+		ini_file,
 		NULL,			/* global_startup */
 		&run_bbs,		bbs,
 		&run_ftp,		ftp, 
@@ -1101,7 +1102,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
-	SetThreadName("sbbs/Signal Handler");
+	SetThreadName("sbbs/sigHandler");
 	thread_up(NULL,TRUE,TRUE);
 
 	/* Write the standard .pid file if created/open */

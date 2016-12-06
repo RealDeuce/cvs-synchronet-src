@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.640 2016/11/19 10:21:15 rswindell Exp $ */
+/* $Id: main.cpp,v 1.646 2016/11/29 08:37:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -56,6 +56,7 @@
 
 #define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
 #define IO_THREAD_BUF_SIZE	   	20000		// Bytes
+#define TIMEOUT_MUTEX_FILE		12*60*60
 
 // Globals
 #ifdef _WIN32
@@ -96,6 +97,8 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
+static	link_list_t current_logins;
+static	link_list_t current_connections;
 #ifdef _THREAD_SUID_BROKEN
 int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 #endif
@@ -119,12 +122,15 @@ static void update_clients()
 
 void client_on(SOCKET sock, client_t* client, BOOL update)
 {
+	if(!update)
+		listAddNodeData(&current_connections, client->addr, strlen(client->addr)+1, sock, LAST_NODE);
 	if(startup!=NULL && startup->client_on!=NULL)
 		startup->client_on(startup->cbdata,TRUE,sock,client,update);
 }
 
 static void client_off(SOCKET sock)
 {
+	listRemoveTaggedNode(&current_connections, sock, /* free_data */TRUE);
 	if(startup!=NULL && startup->client_on!=NULL)
 		startup->client_on(startup->cbdata,FALSE,sock,NULL,FALSE);
 }
@@ -1663,7 +1669,7 @@ void input_thread(void *arg)
 	SOCKET		high_socket;
 	SOCKET		sock;
 
-	SetThreadName("sbbs/Terminal Input");
+	SetThreadName("sbbs/termInput");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -1934,7 +1940,7 @@ void passthru_output_thread(void* arg)
 	int		rd;
 	int		wr;
 
-	SetThreadName("sbbs/Passthrough Output");
+	SetThreadName("sbbs/ptOutput");
 	thread_up(FALSE /* setuid */);
 
 	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
@@ -2048,7 +2054,7 @@ void passthru_input_thread(void* arg)
 	BYTE	ch;
 	int		i;
 
-	SetThreadName("sbbs/Passthrough Input");
+	SetThreadName("sbbs/ptInput");
 	thread_up(FALSE /* setuid */);
 
 	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
@@ -2139,7 +2145,7 @@ void output_thread(void* arg)
 	struct timeval tv;
 	ulong		mss=IO_THREAD_BUF_SIZE;
 
-	SetThreadName("sbbs/Terminal Output");
+	SetThreadName("sbbs/termOutput");
 	thread_up(TRUE /* setuid */);
 
     if(sbbs->cfg.node_num)
@@ -2379,7 +2385,7 @@ void event_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	SetThreadName("sbbs/Events");
+	SetThreadName("sbbs/events");
 	thread_up(TRUE /* setuid */);
 
 #ifdef JAVASCRIPT
@@ -2477,7 +2483,7 @@ void event_thread(void* arg)
 				getuserdat(&sbbs->cfg,&sbbs->useron);
 				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
-					if(!fmutex(semfile,startup->host_name,24*60*60)) {
+					if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
 						eprintf(LOG_INFO,"%s exists (unpack in progress?)", semfile);
 						continue;
 					}
@@ -2504,7 +2510,7 @@ void event_thread(void* arg)
 				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
 				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
-				if(!fmutex(semfile,startup->host_name,24*60*60)) {
+				if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
 					eprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
 					continue;
 				}
@@ -4131,7 +4137,7 @@ void node_thread(void* arg)
 	sbbs_t*			sbbs = (sbbs_t*) arg;
 
 	update_clients();
-	SetThreadName("sbbs/Terminal Node");
+	SetThreadName("sbbs/termNode");
 	thread_up(TRUE /* setuid */);
 
 #ifdef _DEBUG
@@ -4156,6 +4162,7 @@ void node_thread(void* arg)
 
 	if(sbbs->answer()) {
 
+		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
 		if(sbbs->qwklogon) {
 			sbbs->getsmsg(sbbs->useron.number);
 			sbbs->qwk_sec();
@@ -4206,6 +4213,7 @@ void node_thread(void* arg)
 			if(sbbs->exec(&sbbs->main_csi))
 				break;
 		}
+		listRemoveTaggedNode(&current_logins, sbbs->cfg.node_num, /* free_data */TRUE);
 	}
 
 #ifdef _WIN32
@@ -4531,6 +4539,9 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
+	
+	listFree(&current_logins);
+	listFree(&current_connections);
 
 	protected_uint32_destroy(node_threads_running);
 
@@ -4632,7 +4643,7 @@ void DLLCALL bbs_thread(void* arg)
 	startup->shutdown_now=FALSE;
 	terminate_server=false;
 
-	SetThreadName("sbbs/Terminal Server");
+	SetThreadName("sbbs/termServer");
 
 	do {
 	/* Setup intelligent defaults */
@@ -4939,6 +4950,7 @@ NO_SSH:
 	/* Setup recycle/shutdown semaphore file lists */
 	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
 	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
+	semfile_list_add(&recycle_semfiles,startup->ini_fname);
 	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
@@ -4948,6 +4960,9 @@ NO_SSH:
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
+
+	listInit(&current_logins, LINK_LIST_MUTEX);
+	listInit(&current_connections, LINK_LIST_MUTEX);
 
 #ifdef __unix__	//	unix-domain spy sockets
 	for(i=first_node;i<=last_node && !(startup->options&BBS_OPT_NO_SPY_SOCKETS);i++)  {
@@ -5124,13 +5139,30 @@ NO_SSH:
 #endif
 			, host_ip, inet_addrport(&client_addr));
 
+		if(startup->max_concurrent_connections > 0) {
+			int ip_len = strlen(host_ip)+1;
+			int connections = listCountMatches(&current_connections, host_ip, ip_len);
+			int logins = listCountMatches(&current_logins, host_ip, ip_len);
+			
+			if(connections - logins >= (int)startup->max_concurrent_connections
+				&& !is_host_exempt(&scfg, host_ip, /* host_name */NULL)) {
+				lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections (%u) reached from host: %s"
+ 					,client_socket, startup->max_concurrent_connections, host_ip);
+				SSH_END();
+				close_socket(client_socket);
+				SAFEPRINTF(logstr, "Too many concurrent connections from host: %s",host_ip);
+				sbbs->syslog("@!",logstr);
+				continue;
+			}
+		}
+
 		login_attempt_t attempted;
 		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
 			if(banned) {
 				char ban_duration[128];
 				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-					,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+					,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 			} else
 				lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", client_socket, host_ip);
 			SSH_END();
