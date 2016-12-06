@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.26 2016/11/23 00:58:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.27 2016/12/06 18:50:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4951,7 +4951,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.26 $", "%*s %s", revision);
+	sscanf("$Revision: 3.27 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5139,6 +5139,7 @@ int main(int argc, char **argv)
 
 	/******* READ IN AREAS.BBS FILE *********/
 
+	fexistcase(cfg.areafile);
 	printf("Reading %s",cfg.areafile);
 	if((stream=fopen(cfg.areafile,"r"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
