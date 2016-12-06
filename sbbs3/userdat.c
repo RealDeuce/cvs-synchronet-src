@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.182 2017/10/12 09:11:57 rswindell Exp $ */
+/* $Id: userdat.c,v 1.178 2016/12/02 06:01:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +48,8 @@ static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
 /****************************************************************************/
-/* Looks for a perfect match among all usernames (not deleted users)		*/
-/* Makes dots and underscores synonymous with spaces for comparisons		*/
+/* Looks for a perfect match amoung all usernames (not deleted users)		*/
+/* Makes dots and underscores synomynous with spaces for comparisions		*/
 /* Returns the number of the perfect matched username or 0 if no match		*/
 /****************************************************************************/
 uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
@@ -202,11 +202,6 @@ int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
 
 	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
 	return nopen(path, for_modify ? (O_RDWR|O_CREAT|O_DENYNONE) : (O_RDONLY|O_DENYNONE)); 
-}
-
-int DLLCALL closeuserdat(int file)
-{
-	return close(file);
 }
 
 /****************************************************************************/
@@ -1168,8 +1163,6 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		l=((long)usernumber) * U_LEN;
 	else
 		l=0;
-	if(progress != NULL)
-		progress(cbdata, l, length);
 	for(;l<length;l+=U_LEN) {
 		if(progress != NULL)
 			progress(cbdata, l, length);
@@ -2692,7 +2685,7 @@ BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 	if(user->level>=SYSOP_LEVEL)
 		return TRUE;
 
-	return cfg->sub[subnum]->op_ar!=NULL && cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
+	return cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
 }
 
 /****************************************************************************/
