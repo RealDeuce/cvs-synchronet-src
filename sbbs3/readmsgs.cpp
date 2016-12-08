@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.100 2017/08/14 10:18:04 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.98 2016/12/06 18:48:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -875,16 +875,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			lncntr--;
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
-		sprintf(str,"ABCDEFHILMNPQRTUVY?*<>[]{}-+()\b");
-		if(thread_mode)
-			sprintf(str+strlen(str),"%c%c%c%c%c%c"
-				,TERM_KEY_LEFT
-				,TERM_KEY_RIGHT
-				,TERM_KEY_UP
-				,TERM_KEY_DOWN
-				,TERM_KEY_HOME
-				,TERM_KEY_END
-				);
+		sprintf(str,"ABCDEFHILMNPQRTUVY?*<>[]{}-+()\x0a\x1d\x1e\05\06\02\b");
 		if(sub_op(subnum))
 			strcat(str,"O");
 		do_find=true;
@@ -1218,20 +1209,18 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 				ZERO_VAR(vote);
 				if(msg.hdr.type == SMB_MSG_TYPE_POLL) {
-					str_list_t answers = NULL;
+					unsigned answers=0;
 					for(i=0; i<msg.total_hfields; i++) {
-						if(msg.hfield[i].type == SMB_POLL_ANSWER)
-							strListPush(&answers, (char*)msg.hfield_dat[i]);
+						if(msg.hfield[i].type != SMB_POLL_ANSWER)
+							continue;
+						uselect(1, answers++, msg.subj, (char*)msg.hfield_dat[i], NULL);
 					}
-					SAFEPRINTF(str, text[BallotHdr], msg.subj);
-					i = mselect(str, answers, msg.hdr.votes ? msg.hdr.votes : 1, text[BallotAnswerFmt]
-						,text[PollAnswerChecked], nulstr, text[BallotVoteWhich]);
-					strListFree(&answers);
-					if(i <= 0) {
+					i = uselect(0, 0, NULL, NULL, NULL);
+					if(i < 0) {
 						domsg = false;
 						break;
 					}
-					vote.hdr.votes = i;
+					vote.hdr.votes = (1<<i);
 					vote.hdr.attr = MSG_VOTE;
 					notice = text[PollVoteNotice];
 				} else {
@@ -1403,7 +1392,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					break; 
 				}
 				break;
-			case TERM_KEY_HOME:	/* Home */
+			case '\x02':	/* Home */
 			{
 				uint32_t first = smb_first_in_thread(&smb, &msg, NULL);
 				if(first <= 0) {
@@ -1416,7 +1405,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				do_find=false;
 				break;
 			}
-			case TERM_KEY_END:	/* End */
+			case '\x05':	/* End */
 			{
 				uint32_t last = smb_last_in_thread(&smb, &msg);
 				if(last <= 0) {
@@ -1430,7 +1419,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			}
 			case ')':   /* Thread forward */
-			case TERM_KEY_DOWN:	/* down-arrow */
+			case LF:	/* down-arrow */
                 l=msg.hdr.thread_next;
                 if(!l) l=msg.hdr.thread_first;
                 if(!l) {
@@ -1452,7 +1441,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				do_find=false;
 				break;
-			case TERM_KEY_RIGHT:	/* Right-arrow */
+			case CTRL_F:	/* Right-arrow */
                 l=msg.hdr.thread_first;
                 if(!l) l=msg.hdr.thread_next;
                 if(!l) {
@@ -1472,7 +1461,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				do_find=false;
 				break;
 			case '(':   /* Thread backwards */
-			case TERM_KEY_LEFT:	/* left arrow */
+			case '\x1d':	/* left arrow */
 				if(!msg.hdr.thread_back) {
 					domsg=0;
 					outchar('\a');
@@ -1492,7 +1481,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				do_find=false;
 				break;
-			case TERM_KEY_UP:	/* up arrow */
+			case '\x1e':	/* up arrow */
 				if(!msg.hdr.thread_id) {
 					domsg=0;
 					bputs(text[NoMessagesFound]);
