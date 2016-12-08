@@ -22,17 +22,12 @@ __fastcall TServicesCfgDlg::TServicesCfgDlg(TComponent* Owner)
 //---------------------------------------------------------------------------
 void __fastcall TServicesCfgDlg::FormShow(TObject *Sender)
 {
-    char str[128];
+    char str[256];
 
-    if(MainForm->services_startup.interface_addr==0)
+    if(MainForm->services_startup.interfaces==NULL)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
-        sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->services_startup.interface_addr>>24)&0xff
-            ,(MainForm->services_startup.interface_addr>>16)&0xff
-            ,(MainForm->services_startup.interface_addr>>8)&0xff
-            ,MainForm->services_startup.interface_addr&0xff
-        );
+        strListCombine(MainForm->services_startup.interfaces, str, sizeof(str)-1, ",");
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
     AutoStartCheckBox->Checked=MainForm->ServicesAutoStart;
@@ -72,7 +67,7 @@ void __fastcall TServicesCfgDlg::FormShow(TObject *Sender)
     for(unsigned u=0; keys!=NULL && keys[u]!=NULL; u++) {
         if(keys[u][0])
             GlobalValueListEditor->InsertRow(AnsiString(keys[u])
-                ,AnsiString(iniGetString(ini,ROOT_SECTION,keys[u],"error",NULL))
+                ,AnsiString(iniGetString(ini,ROOT_SECTION,keys[u],"",NULL))
                 ,/* append: */true);
     }
     iniFreeStringList(keys);
@@ -82,28 +77,10 @@ void __fastcall TServicesCfgDlg::FormShow(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TServicesCfgDlg::OKButtonClick(TObject *Sender)
 {
-    char    str[128],*p;
-    DWORD   addr;
+    iniFreeStringList(MainForm->services_startup.interfaces);
+    MainForm->services_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
 
-    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
-    p=str;
-    while(*p && *p<=' ') p++;
-    if(*p && isdigit(*p)) {
-        addr=atoi(p)<<24;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p)<<16;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p)<<8;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p);
-        MainForm->services_startup.interface_addr=addr;
-    } else
-        MainForm->services_startup.interface_addr=0;
     MainForm->ServicesAutoStart=AutoStartCheckBox->Checked;
-
 
     SAFECOPY(MainForm->services_startup.answer_sound
         ,AnswerSoundEdit->Text.c_str());
@@ -175,7 +152,7 @@ void __fastcall TServicesCfgDlg::CheckListBoxClick(TObject *Sender)
     for(unsigned u=0; keys!=NULL && keys[u]!=NULL; u++) {
         if(keys[u][0])
             ValueListEditor->InsertRow(AnsiString(keys[u]),
-                AnsiString(iniGetString(section,NULL,keys[u],"error",NULL)), /* append: */true);
+                AnsiString(iniGetString(section,NULL,keys[u],"",NULL)), /* append: */true);
     }
     iniFreeStringList(keys);
     iniFreeStringList(section);
@@ -241,4 +218,6 @@ void __fastcall TServicesCfgDlg::GlobalValueListEditorValidate(
         ,KeyName.c_str(), KeyValue.c_str(), /* style: */NULL);
 }
 //---------------------------------------------------------------------------
+
+
 

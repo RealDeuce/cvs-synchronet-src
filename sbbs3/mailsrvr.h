@@ -1,14 +1,12 @@
-/* mailsrvr.h */
-
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.72 2014/11/20 05:13:38 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.78 2016/11/28 02:59:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -61,7 +59,10 @@ typedef struct {
 	WORD	max_recipients;
 #define MAIL_DEFAULT_MAX_RECIPIENTS			100
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-    DWORD   interface_addr;
+	struct in_addr outgoing4;
+	struct in6_addr	outgoing6;
+    str_list_t   interfaces;
+    str_list_t   pop3_interfaces;
     DWORD	options;			/* See MAIL_OPT definitions */
     DWORD	max_msg_size;		/* Max msg size in bytes (0=unlimited) */
 #define MAIL_DEFAULT_MAX_MSG_SIZE			(20*1024*1024)	/* 20MB */
@@ -88,6 +89,7 @@ typedef struct {
 	/* Paths */
     char    ctrl_dir[128];
 	char    temp_dir[128];
+	char	ini_fname[128];
 
 	/* Strings */
     char	dns_server[128];
@@ -117,10 +119,7 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	ulong	login_attempt_delay;
-	ulong	login_attempt_throttle;
-	ulong	login_attempt_hack_threshold;
-	ulong	login_attempt_filter_threshold;
+	struct login_attempt_settings login_attempt;
 	link_list_t* login_attempt_list;
 
 } mail_startup_t;
@@ -130,7 +129,7 @@ typedef struct {
 static struct init_field mail_init_fields[] = { 
 	 OFFSET_AND_SIZE(mail_startup_t,smtp_port)
 	,OFFSET_AND_SIZE(mail_startup_t,pop3_port)
-	,OFFSET_AND_SIZE(mail_startup_t,interface_addr)
+	,OFFSET_AND_SIZE(mail_startup_t,interfaces)
 	,OFFSET_AND_SIZE(mail_startup_t,ctrl_dir)
 	,{ 0,0 }	/* terminator */
 };
@@ -238,6 +237,10 @@ extern "C" {
 DLLEXPORT void			DLLCALL mail_server(void* arg);
 DLLEXPORT void			DLLCALL mail_terminate(void);
 DLLEXPORT const	char*	DLLCALL mail_ver(void);
+
+/* for mxlookup.c: */
+void mail_open_socket(SOCKET sock, void* cb_protocol);
+int mail_close_socket(SOCKET sock);
 #ifdef __cplusplus
 }
 #endif
