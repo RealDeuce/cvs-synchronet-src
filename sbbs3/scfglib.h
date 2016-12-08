@@ -1,6 +1,6 @@
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.20 2016/11/08 19:59:59 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.21 2016/11/15 21:38:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,6 +87,7 @@ char*	ltoaf(long l, char *str);     /* Converts long to flag string */
 uchar	attrstr(char *str);		/* Convert ATTR string into attribute int */
 
 int		smb_storage_mode(scfg_t*, smb_t*);
+int		smb_open_sub(scfg_t*, smb_t*, unsigned int subnum);
 
 #ifdef __cplusplus
 }
