@@ -1,7 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.82 2017/08/17 19:41:09 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfg.c,v 1.80 2016/12/02 15:44:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -89,7 +88,6 @@ int main(int argc, char **argv)
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright %s "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION,__DATE__+7);
 
-	xp_randomize();
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
@@ -1883,7 +1881,7 @@ void bail(int code)
 /* information, function, action, object and access and then attempts to    */
 /* write the error information into the file ERROR.LOG in the text dir.     */
 /****************************************************************************/
-void errormsg(int line, const char* function, const char *source, const char* action, const char *object, ulong access)
+void errormsg(int line, char* function, char* source,  char* action, char* object, ulong access)
 {
 	char scrn_buf[MAX_BFLN];
     gettext(1,1,80,uifc.scrn_len,scrn_buf);
