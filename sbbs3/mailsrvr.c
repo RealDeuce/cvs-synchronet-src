@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.605 2016/12/02 06:01:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.606 2016/12/08 06:58:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3432,7 +3432,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			/* RFC822 Header parsing */
-			strip_ctrl(buf, buf);	/* There should be no control characters in header fields */
+			strip_char(buf, '\r');	/* There should be no bare carriage returns in header fields */
 			if(startup->options&MAIL_OPT_DEBUG_RX_HEADER)
 				lprintf(LOG_DEBUG,"%04d SMTP %s",socket, buf);
 
@@ -5139,7 +5139,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.605 $", "%*s %s", revision);
+	sscanf("$Revision: 1.606 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
