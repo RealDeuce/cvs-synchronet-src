@@ -1,7 +1,6 @@
 /* Synchronet user data-related routines (exported) */
-// vi: tabstop=4
 
-/* $Id: userdat.c,v 1.183 2017/11/24 23:35:21 rswindell Exp $ */
+/* $Id: userdat.c,v 1.179 2016/12/10 08:02:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +48,8 @@ static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
 /****************************************************************************/
-/* Looks for a perfect match among all usernames (not deleted users)		*/
-/* Makes dots and underscores synonymous with spaces for comparisons		*/
+/* Looks for a perfect match amoung all usernames (not deleted users)		*/
+/* Makes dots and underscores synomynous with spaces for comparisions		*/
 /* Returns the number of the perfect matched username or 0 if no match		*/
 /****************************************************************************/
 uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
@@ -203,11 +202,6 @@ int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
 
 	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
 	return nopen(path, for_modify ? (O_RDWR|O_CREAT|O_DENYNONE) : (O_RDONLY|O_DENYNONE)); 
-}
-
-int DLLCALL closeuserdat(int file)
-{
-	return close(file);
 }
 
 /****************************************************************************/
@@ -1129,8 +1123,8 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             strcat(str,"C");
         strcat(str,"]"); 
 	}
-	if(node->errors)
-		sprintf(str+strlen(str)
+    if(node->errors)
+        sprintf(str+strlen(str)
 			," %d error%c",node->errors, node->errors>1 ? 's' : '\0' );
 
 	strncpy(buf,str,buflen);
@@ -1173,7 +1167,7 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		progress(cbdata, l, length);
 	for(;l<length;l+=U_LEN) {
 		if(progress != NULL)
-			progress(cbdata, l, length);
+			progress(cbdata, l, length, U_LEN*10);
 		if(usernumber && l/U_LEN==(long)usernumber-1) 
 			continue;
 		lseek(file,l+offset,SEEK_SET);
@@ -2693,7 +2687,7 @@ BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 	if(user->level>=SYSOP_LEVEL)
 		return TRUE;
 
-	return cfg->sub[subnum]->op_ar!=NULL && cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
+	return cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
 }
 
 /****************************************************************************/
@@ -3047,7 +3041,7 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 	length=(long)filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
 		if(progress != NULL)
-			progress(cbdata, i, cfg->total_subs);
+			progress(cbdata, i, cfg->total_subs, 10);
 		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
 			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
 			fread(&subscan[i].ptr,sizeof(subscan[i].ptr),1,stream);
@@ -3135,7 +3129,7 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*
 
 	for(i=0;i<cfg->total_subs;i++) {
 		if(progress != NULL)
-			progress(cbdata, i, cfg->total_subs);
+			progress(cbdata, i, cfg->total_subs, 10);
 		if(days == 0) {
 			/* This value will be "fixed" (changed to the last msg) when saving */
 			subscan[i].ptr = ~0;
