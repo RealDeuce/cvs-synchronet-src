@@ -1,14 +1,12 @@
-/* services.h */
-
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: services.h,v 1.39 2011/09/01 02:50:16 rswindell Exp $ */
+/* $Id: services.h,v 1.44 2016/11/28 02:59:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,7 +41,9 @@
 typedef struct {
 
 	DWORD	size;				/* sizeof(bbs_struct_t) */
-    DWORD   interface_addr;
+	struct in_addr outgoing4;
+	struct in6_addr	outgoing6;
+	str_list_t		interfaces;
     DWORD	options;			/* See BBS_OPT definitions */
 	WORD	sem_chk_freq;			/* semaphore file checking frequency (in seconds) */
 
@@ -68,6 +68,7 @@ typedef struct {
 	char    temp_dir[128];
 	char	answer_sound[128];
 	char	hangup_sound[128];
+	char	ini_fname[128];
 
 	/* Misc */
     char	host_name[128];
@@ -81,10 +82,7 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	ulong	login_attempt_delay;
-	ulong	login_attempt_throttle;
-	ulong	login_attempt_hack_threshold;
-	ulong	login_attempt_filter_threshold;
+	struct login_attempt_settings login_attempt;
 	link_list_t* login_attempt_list;
 
 } services_startup_t;
@@ -92,7 +90,8 @@ typedef struct {
 #if 0
 /* startup options that requires re-initialization/recycle when changed */
 static struct init_field services_init_fields[] = { 
-	 OFFSET_AND_SIZE(services_startup_t,interface_addr)
+	 OFFSET_AND_SIZE(services_startup_t,outgoing4)
+	 OFFSET_AND_SIZE(services_startup_t,outgoing6)
 	,OFFSET_AND_SIZE(services_startup_t,ctrl_dir)
 	,{ 0,0 }	/* terminator */
 };
@@ -104,6 +103,7 @@ static struct init_field services_init_fields[] = {
 #define SERVICE_OPT_STATIC_LOOP (1<<2)	/* Loop static service until terminated */
 #define SERVICE_OPT_NATIVE		(1<<3)	/* non-JavaScript service */
 #define SERVICE_OPT_FULL_ACCEPT	(1<<4)	/* Accept/close connections when server is full */
+#define SERVICE_OPT_TLS			(1<<5)	/* Use TLS */
 
 /* services_startup_t.options bits that require re-init/recycle when changed */
 #define SERVICE_INIT_OPTS	(0)
@@ -120,6 +120,7 @@ static ini_bitdesc_t service_options[] = {
 	{ SERVICE_OPT_STATIC_LOOP		,"LOOP"					},
 	{ SERVICE_OPT_NATIVE			,"NATIVE"				},
 	{ SERVICE_OPT_FULL_ACCEPT		,"FULL_ACCEPT"			},
+	{ SERVICE_OPT_TLS				,"TLS"					},
 	/* terminator */				
 	{ 0 							,NULL					}
 };
