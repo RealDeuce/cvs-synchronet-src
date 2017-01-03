@@ -1,14 +1,12 @@
-/* telgate.cpp */
-
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.40 2014/03/07 22:51:34 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.43 2016/12/08 07:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -77,7 +75,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 	}
 
 	memset(&addr,0,sizeof(addr));
-	addr.sin_addr.s_addr = htonl(startup->telnet_interface);
+	addr.sin_addr.s_addr = htonl(startup->outgoing4.s_addr);
 	addr.sin_family = AF_INET;
 
 	if((i=bind(remote_socket, (struct sockaddr *) &addr, sizeof (addr)))!=0) {
@@ -128,7 +126,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 		if(term_type!=NULL)
 			p+=sprintf(p,"%s",term_type);
 		else
-			p+=sprintf(p,"%s/%u",terminal, cur_rate);
+			p+=sprintf(p,"%s/%lu",terminal, cur_rate);
 		p++;	// Add NULL
 		l=p-(char*)buf;
 		sendsocket(remote_socket,(char*)buf,l);
@@ -161,7 +159,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 			}
 #endif
 			if(telnet_remote_option[TELNET_BINARY_TX]!=TELNET_WILL) {
-				if(*buf==0x1d) { // ^]
+				if(*buf==CTRL_CLOSE_BRACKET) {
 					save_console=console;
 					console&=~CON_RAW_IN;	// Allow Ctrl-U/Ctrl-P
 					CRLF;
@@ -273,4 +271,3 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 
 	lprintf(LOG_INFO,"Node %d Telnet gate to %s finished",cfg.node_num,destaddr);
 }
-
