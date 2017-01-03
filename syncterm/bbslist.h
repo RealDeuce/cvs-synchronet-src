@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.48 2018/02/05 23:50:34 rswindell Exp $ */
+/* $Id: bbslist.h,v 1.47 2014/01/23 08:31:40 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -35,7 +35,6 @@ enum {
 	 SCREEN_MODE_CURRENT
 	,SCREEN_MODE_80X25
 	,SCREEN_MODE_80X28
-	,SCREEN_MODE_80X30
 	,SCREEN_MODE_80X43
 	,SCREEN_MODE_80X50
 	,SCREEN_MODE_80X60
