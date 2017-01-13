@@ -1,8 +1,7 @@
-/* services.c */
-
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.293 2016/10/17 21:54:27 rswindell Exp $ */
+/* $Id: services.c,v 1.299 2016/11/28 02:59:08 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -430,7 +429,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 	}
 	if(client->subscan!=NULL) {
-		getmsgptrs(&scfg,&client->user,client->subscan);
+		getmsgptrs(&scfg,&client->user,client->subscan,NULL,NULL);
 	}
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -980,7 +979,7 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("JS Service");
+	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1183,7 +1182,7 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%s static JavaScript service thread started", service->protocol);
 
-	SetThreadName("JS Static Service");
+	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1282,7 +1281,7 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", inst.socket, inst.service->protocol);
 
-	SetThreadName("Static Service");
+	SetThreadName("sbbs/static");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1345,7 +1344,7 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("Native Service");
+	SetThreadName("sbbs/native");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1637,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.293 $", "%*s %s", revision);
+	sscanf("$Revision: 1.299 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1730,19 +1729,18 @@ void DLLCALL services_thread(void* arg)
 		startup->seteuid(TRUE);
 #endif
 
-	/* Setup intelligent defaults */
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
-	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 
-	SetThreadName("Services");
+	SetThreadName("sbbs/services");
 
 	do {
+		/* Setup intelligent defaults */
+		if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ;
+		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
 		thread_up(FALSE /* setuid */);
 
@@ -1895,6 +1893,7 @@ void DLLCALL services_thread(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","services");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","services");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,services_ini);
@@ -1913,7 +1912,7 @@ void DLLCALL services_thread(void* arg)
 
 		/* Main Server Loop */
 		while(!terminated) {
-
+			YIELD();
 			if(active_clients()==0 && protected_uint32_value(threads_pending_start)==0) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
 					if((p=semfile_list_check(&initialized,recycle_semfiles))!=NULL) {
@@ -1953,10 +1952,8 @@ void DLLCALL services_thread(void* arg)
 						high_socket=service[i].set->socks[j].sock;
 				}
 			}
-			if(high_socket==0) {	/* No dynamic services? */
-				YIELD();
+			if(high_socket==0) 	/* No dynamic services? */
 				continue;
-			}
 			tv.tv_sec=startup->sem_chk_freq;
 			tv.tv_usec=0;
 			if((result=select(high_socket+1,&socket_set,NULL,NULL,&tv))<1) {
@@ -2110,7 +2107,7 @@ void DLLCALL services_thread(void* arg)
 						if(banned) {
 							char ban_duration[128];
 							lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-								,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+								,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 						} else
 							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);

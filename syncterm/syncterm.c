@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.199 2015/10/28 02:01:20 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.200 2017/01/13 01:25:02 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1330,10 +1330,12 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+#if !defined(WITHOUT_CRYPTLIB)
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
 		init_crypt();
 	atexit(exit_crypt);
+#endif
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
