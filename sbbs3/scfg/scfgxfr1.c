@@ -1,10 +1,12 @@
-/* $Id: scfgxfr1.c,v 1.23 2017/10/16 21:22:51 rswindell Exp $ */
+/* scfgxfr1.c */
+
+/* $Id: scfgxfr1.c,v 1.19 2014/02/16 06:28:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -90,7 +92,7 @@ while(1) {
 	strcpy(opt[i++],"Alternate File Paths...");
 	opt[i][0]=0;
 	uifc.helpbuf=
-		"`File Transfer Configuration:`\n"
+		"File Transfer Configuration:\n"
 		"\n"
 		"This menu has options and sub-menus that pertain specifically to the\n"
 		"file transfer section of the BBS.\n"
@@ -108,7 +110,7 @@ while(1) {
             return;
 		case 0:
 			uifc.helpbuf=
-				"`Minimum Kilobytes Free Disk Space to Allow Uploads:`\n"
+				"Minimum Kilobytes Free Disk Space to Allow Uploads:\n"
 				"\n"
 				"This is the minimum free space in a file directory to allow user\n"
 				"uploads.\n"
@@ -120,7 +122,7 @@ while(1) {
 			break;
 		case 1:
 			uifc.helpbuf=
-				"`Maximum Files in Batch Upload Queue:`\n"
+				"Maximum Files in Batch Upload Queue:\n"
 				"\n"
 				"This is the maximum number of files that can be placed in the batch\n"
 				"upload queue.\n"
@@ -131,7 +133,7 @@ while(1) {
             break;
 		case 2:
 			uifc.helpbuf=
-				"`Maximum Files in Batch Download Queue:`\n"
+				"Maximum Files in Batch Download Queue:\n"
 				"\n"
 				"This is the maximum number of files that can be placed in the batch\n"
 				"download queue.\n"
@@ -142,7 +144,7 @@ while(1) {
             break;
 		case 3:
 			uifc.helpbuf=
-				"`Maximum Destination Users in User to User Transfer:`\n"
+				"Maximum Destination Users in User to User Transfer:\n"
 				"\n"
 				"This is the maximum number of users allowed in the destination user list\n"
 				"of a user to user upload.\n"
@@ -154,7 +156,7 @@ while(1) {
 			break;
 		case 4:
 uifc.helpbuf=
-	"`Default Percentage of Credits to Credit Uploader on Upload:`\n"
+	"Default Percentage of Credits to Credit Uploader on Upload:\n"
 	"\n"
 	"This is the default setting that will be used when new file\n"
 	"directories are created.\n"
@@ -166,7 +168,7 @@ uifc.helpbuf=
 			break;
 		case 5:
 uifc.helpbuf=
-	"`Default Percentage of Credits to Credit Uploader on Download:`\n"
+	"Default Percentage of Credits to Credit Uploader on Download:\n"
 	"\n"
 	"This is the default setting that will be used when new file\n"
 	"directories are created.\n"
@@ -182,10 +184,10 @@ uifc.helpbuf=
             opt[2][0]=0;
             i=0;
             uifc.helpbuf=
-	            "`Long Filenames in File Listings:`\n"
+	            "Long Filenames in File Listings:\n"
 	            "\n"
 	            "If you want long filenames to be displayed in the BBS file listings, set\n"
-	            "this option to `Yes`. Note: This feature requires Windows 98, Windows 2000\n"
+	            "this option to Yes. Note: This feature requires Windows 98, Windows 2000\n"
 	            "or later.\n"
             ;
             i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
@@ -201,14 +203,14 @@ uifc.helpbuf=
 
 		case 7:
 			uifc.helpbuf=
-				"`Leech Protocol Detection Percentage:`\n"
+				"Leech Protocol Detection Percentage:\n"
 				"\n"
 				"This value is the sensitivity of the leech protocol detection feature of\n"
 				"Synchronet. If the transfer is apparently unsuccessful, but the transfer\n"
 				"time was at least this percentage of the estimated transfer time (based\n"
 				"on the estimated CPS of the connection result code), then a leech\n"
 				"protocol error is issued and the user's leech download counter is\n"
-				"incremented. Setting this value to `0` disables leech protocol detection.\n"
+				"incremented. Setting this value to 0 disables leech protocol detection.\n"
 			;
 			uifc.input(WIN_MID|WIN_SAV,0,0
 				,"Leech Protocol Detection Percentage (0=Disabled)"
@@ -217,7 +219,7 @@ uifc.helpbuf=
 			if(!cfg.leech_pct)
 				break;
 			uifc.helpbuf=
-				"`Leech Protocol Minimum Time (in Seconds):`\n"
+				"Leech Protocol Minimum Time (in Seconds):\n"
 				"\n"
 				"This option allows you to adjust the sensitivity of the leech protocol\n"
 				"detection feature. This value is the minimum length of transfer time\n"
@@ -238,11 +240,11 @@ uifc.helpbuf=
 				if(cfg.total_fviews<MAX_OPTS)
 					i|=WIN_INS|WIN_XTR;
 				if(cfg.total_fviews)
-					i|=WIN_DEL|WIN_COPY;
+					i|=WIN_DEL|WIN_GET;
 				if(savfview.cmd[0])
-					i|=WIN_PASTE;
+					i|=WIN_PUT;
 				uifc.helpbuf=
-					"`Viewable File Types:`\n"
+					"Viewable File Types:\n"
 					"\n"
 					"This is a list of file types that have content information that can be\n"
 					"viewed through the execution of an external program. Here are a couple of\n"
@@ -251,67 +253,55 @@ uifc.helpbuf=
 				i=uifc.list(i,0,0,50,&fview_dflt,NULL,"Viewable File Types",opt);
 				if(i==-1)
 					break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						savfview = *cfg.fview[i];
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
 					free(cfg.fview[i]);
 					cfg.total_fviews--;
 					while(i<cfg.total_fviews) {
 						cfg.fview[i]=cfg.fview[i+1];
-						i++; 
-					}
+						i++; }
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_INS) {
+					continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.fview=(fview_t **)realloc(cfg.fview
 						,sizeof(fview_t *)*(cfg.total_fviews+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_fviews+1);
 						cfg.total_fviews=0;
 						bail(1);
-						continue; 
-					}
+						continue; }
 					if(!cfg.total_fviews) {
 						if((cfg.fview[0]=(fview_t *)malloc(
 							sizeof(fview_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(fview_t));
-							continue; 
-						}
+							continue; }
 						memset(cfg.fview[0],0,sizeof(fview_t));
 						strcpy(cfg.fview[0]->ext,"ZIP");
-						strcpy(cfg.fview[0]->cmd,"%@unzip -vq %s"); 
-					}
+						strcpy(cfg.fview[0]->cmd,"%@unzip -vq %s"); }
 					else {
 						for(j=cfg.total_fviews;j>i;j--)
 							cfg.fview[j]=cfg.fview[j-1];
 						if((cfg.fview[i]=(fview_t *)malloc(
 							sizeof(fview_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(fview_t));
-							continue; 
-						}
+							continue; }
 						if(i>=cfg.total_fviews)
 							j=i-1;
 						else
 							j=i+1;
-						*cfg.fview[i]=*cfg.fview[j]; 
-					}
+						*cfg.fview[i]=*cfg.fview[j]; }
 					cfg.total_fviews++;
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_COPY) {
+					continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
 					savfview=*cfg.fview[i];
-					continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+					continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
 					*cfg.fview[i]=savfview;
 					uifc.changes=1;
-					continue; 
-				}
-				if (msk != 0)
-					continue;
+					continue; }
 				done=0;
 				while(!done) {
 					j=0;
@@ -341,10 +331,7 @@ uifc.helpbuf=
 							sprintf(str,"Viewable File Type %s"
 								,cfg.fview[i]->ext);
 							getar(str,cfg.fview[i]->arstr);
-                            break; 
-					} 
-				} 
-			}
+                            break; } } }
             break;
 		case 9:    /* Testable file types */
 			while(1) {
@@ -355,15 +342,15 @@ uifc.helpbuf=
 				if(cfg.total_ftests<MAX_OPTS)
 					i|=WIN_INS|WIN_XTR;
 				if(cfg.total_ftests)
-					i|=WIN_DEL|WIN_COPY;
+					i|=WIN_DEL|WIN_GET;
 				if(savftest.cmd[0])
-					i|=WIN_PASTE;
+					i|=WIN_PUT;
 				uifc.helpbuf=
-					"`Testable File Types:`\n"
+					"Testable File Types:\n"
 					"\n"
 					"This is a list of file types that will have a command line executed to\n"
 					"test the file integrity upon their upload. The file types are specified\n"
-					"by `extension` and if one file extension is listed more than once, each\n"
+					"by extension and if one file extension is listed more than once, each\n"
 					"command line will be executed. The command lines must return a DOS error\n"
 					"code of 0 (no error) in order for the file to pass the test. This method\n"
 					"of file testing upon upload is also known as an upload event. This test\n"
@@ -371,45 +358,38 @@ uifc.helpbuf=
 					"function that the sysop wishes. Such as adding comments to an archived\n"
 					"file, or extracting an archive and performing a virus scan. While the\n"
 					"external program is executing, a text string is displayed to the user.\n"
-					"This `working string` can be set for each file type and command line\n"
+					"This working string can be set for each file type and command line\n"
 					"listed.\n"
 				;
 				i=uifc.list(i,0,0,50,&ftest_dflt,NULL,"Testable File Types",opt);
 				if(i==-1)
 					break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						savftest = *cfg.ftest[i];
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
 					free(cfg.ftest[i]);
 					cfg.total_ftests--;
 					while(i<cfg.total_ftests) {
 						cfg.ftest[i]=cfg.ftest[i+1];
-						i++; 
-					}
+						i++; }
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_INS) {
+					continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.ftest=(ftest_t **)realloc(cfg.ftest
 						,sizeof(ftest_t *)*(cfg.total_ftests+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_ftests+1);
 						cfg.total_ftests=0;
 						bail(1);
-						continue; 
-					}
+						continue; }
 					if(!cfg.total_ftests) {
 						if((cfg.ftest[0]=(ftest_t *)malloc(
 							sizeof(ftest_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(ftest_t));
-							continue; 
-						}
+							continue; }
 						memset(cfg.ftest[0],0,sizeof(ftest_t));
 						strcpy(cfg.ftest[0]->ext,"ZIP");
 						strcpy(cfg.ftest[0]->cmd,"%@unzip -tqq %f");
-						strcpy(cfg.ftest[0]->workstr,"Testing ZIP Integrity..."); 
-					}
+						strcpy(cfg.ftest[0]->workstr,"Testing ZIP Integrity..."); }
 					else {
 
 						for(j=cfg.total_ftests;j>i;j--)
@@ -417,29 +397,24 @@ uifc.helpbuf=
 						if((cfg.ftest[i]=(ftest_t *)malloc(
 							sizeof(ftest_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(ftest_t));
-							continue; 
-						}
+							continue; }
 						if(i>=cfg.total_ftests)
 							j=i-1;
 						else
 							j=i+1;
-						*cfg.ftest[i]=*cfg.ftest[j]; 
-					}
+						*cfg.ftest[i]=*cfg.ftest[j]; }
 					cfg.total_ftests++;
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_COPY) {
+					continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
 					savftest=*cfg.ftest[i];
-					continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+					continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
 					*cfg.ftest[i]=savftest;
 					uifc.changes=1;
-					continue; 
-				}
-				if (msk != 0)
-					continue;
+					continue; }
 				done=0;
 				while(!done) {
 					j=0;
@@ -475,10 +450,7 @@ uifc.helpbuf=
 						case 3:
 							sprintf(str,"Testable File Type %s",cfg.ftest[i]->ext);
 							getar(str,cfg.ftest[i]->arstr);
-							break; 
-					} 
-				} 
-			}
+							break; } } }
 			break;
 		case 10:    /* Download Events */
 			while(1) {
@@ -489,60 +461,53 @@ uifc.helpbuf=
 				if(cfg.total_dlevents<MAX_OPTS)
 					i|=WIN_INS|WIN_XTR;
 				if(cfg.total_dlevents)
-					i|=WIN_DEL|WIN_COPY;
+					i|=WIN_DEL|WIN_GET;
 				if(savdlevent.cmd[0])
-					i|=WIN_PASTE;
+					i|=WIN_PUT;
 				uifc.helpbuf=
-					"`Download Events:`\n"
+					"Download Events:\n"
 					"\n"
 					"This is a list of file types that will have a command line executed to\n"
 					"perform an event upon their download (e.g. trigger a download event).\n"
-					"The file types are specified by `extension` and if one file extension\n"
+					"The file types are specified by extension and if one file extension\n"
 					"is listed more than once, each command line will be executed. The\n"
 					"command lines must return a DOS error code of 0 (no error) in order\n"
 					"for the file to pass the test. This test or event, can do more than\n"
 					"just test the file, it can perform any function that the sysop wishes.\n"
 					"Such as adding comments to an archived file, or extracting an archive\n"
 					"and performing a virus scan. While the external program is executing,\n"
-					"a text string is displayed to the user. This `working string` can be set\n"
+					"a text string is displayed to the user. This working string can be set\n"
 					"for each file type and command line listed.\n"
 				;
 				i=uifc.list(i,0,0,50,&dlevent_dflt,NULL,"Download Events",opt);
 				if(i==-1)
 					break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						savdlevent = *cfg.dlevent[i];
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
 					free(cfg.dlevent[i]);
 					cfg.total_dlevents--;
 					while(i<cfg.total_dlevents) {
 						cfg.dlevent[i]=cfg.dlevent[i+1];
-						i++; 
-					}
+						i++; }
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_INS) {
+					continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.dlevent=(dlevent_t **)realloc(cfg.dlevent
 						,sizeof(dlevent_t *)*(cfg.total_dlevents+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_dlevents+1);
 						cfg.total_dlevents=0;
 						bail(1);
-						continue; 
-					}
+						continue; }
 					if(!cfg.total_dlevents) {
 						if((cfg.dlevent[0]=(dlevent_t *)malloc(
 							sizeof(dlevent_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(dlevent_t));
-							continue; 
-						}
+							continue; }
 						memset(cfg.dlevent[0],0,sizeof(dlevent_t));
 						strcpy(cfg.dlevent[0]->ext,"ZIP");
 						strcpy(cfg.dlevent[0]->cmd,"%@zip -z %f < %zzipmsg.txt");
-						strcpy(cfg.dlevent[0]->workstr,"Adding ZIP Comment..."); 
-					}
+						strcpy(cfg.dlevent[0]->workstr,"Adding ZIP Comment..."); }
 					else {
 
 						for(j=cfg.total_dlevents;j>i;j--)
@@ -550,29 +515,24 @@ uifc.helpbuf=
 						if((cfg.dlevent[i]=(dlevent_t *)malloc(
 							sizeof(dlevent_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(dlevent_t));
-							continue; 
-						}
+							continue; }
 						if(i>=cfg.total_dlevents)
 							j=i-1;
 						else
 							j=i+1;
-						*cfg.dlevent[i]=*cfg.dlevent[j]; 
-					}
+						*cfg.dlevent[i]=*cfg.dlevent[j]; }
 					cfg.total_dlevents++;
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_COPY) {
+					continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
 					savdlevent=*cfg.dlevent[i];
-					continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+					continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
 					*cfg.dlevent[i]=savdlevent;
 					uifc.changes=1;
-					continue; 
-				}
-				if (msk != 0)
-					continue;
+					continue; }
 				done=0;
 				while(!done) {
 					j=0;
@@ -608,10 +568,7 @@ uifc.helpbuf=
 						case 3:
 							sprintf(str,"Download Event %s",cfg.dlevent[i]->ext);
 							getar(str,cfg.dlevent[i]->arstr);
-							break; 
-					} 
-				} 
-			}
+							break; } } }
             break;
 		case 11:	 /* Extractable file types */
             while(1) {
@@ -623,11 +580,11 @@ uifc.helpbuf=
 				if(cfg.total_fextrs<MAX_OPTS)
                     i|=WIN_INS|WIN_XTR;
                 if(cfg.total_fextrs)
-                    i|=WIN_DEL|WIN_COPY;
+                    i|=WIN_DEL|WIN_GET;
 				if(savfextr.cmd[0])
-                    i|=WIN_PASTE;
+                    i|=WIN_PUT;
                 uifc.helpbuf=
-	                "`Extractable File Types:`\n"
+	                "Extractable File Types:\n"
 	                "\n"
 	                "This is a list of archive file types that can be extracted to the temp\n"
 	                "directory by an external program. The file types are specified by their\n"
@@ -637,38 +594,31 @@ uifc.helpbuf=
 				i=uifc.list(i,0,0,50,&fextr_dflt,NULL,"Extractable File Types",opt);
                 if(i==-1)
                     break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						savfextr = *cfg.fextr[i];
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
                     free(cfg.fextr[i]);
                     cfg.total_fextrs--;
                     while(i<cfg.total_fextrs) {
                         cfg.fextr[i]=cfg.fextr[i+1];
-                        i++; 
-					}
+                        i++; }
                     uifc.changes=1;
-                    continue; 
-				}
-				if(msk == MSK_INS) {
+                    continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.fextr=(fextr_t **)realloc(cfg.fextr
 						,sizeof(fextr_t *)*(cfg.total_fextrs+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_fextrs+1);
 						cfg.total_fextrs=0;
 						bail(1);
-						continue; 
-					}
+						continue; }
                     if(!cfg.total_fextrs) {
                         if((cfg.fextr[0]=(fextr_t *)malloc(
                             sizeof(fextr_t)))==NULL) {
                             errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(fextr_t));
-                            continue; 
-						}
+                            continue; }
 						memset(cfg.fextr[0],0,sizeof(fextr_t));
                         strcpy(cfg.fextr[0]->ext,"ZIP");
-                        strcpy(cfg.fextr[0]->cmd,"%@unzip -Cojqq %f %s -d %g"); 
-					}
+                        strcpy(cfg.fextr[0]->cmd,"%@unzip -Cojqq %f %s -d %g"); }
                     else {
 
                         for(j=cfg.total_fextrs;j>i;j--)
@@ -676,29 +626,24 @@ uifc.helpbuf=
                         if((cfg.fextr[i]=(fextr_t *)malloc(
                             sizeof(fextr_t)))==NULL) {
                             errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(fextr_t));
-                            continue; 
-						}
+                            continue; }
 						if(i>=cfg.total_fextrs)
 							j=i-1;
 						else
 							j=i+1;
-                        *cfg.fextr[i]=*cfg.fextr[j]; 
-					}
+                        *cfg.fextr[i]=*cfg.fextr[j]; }
                     cfg.total_fextrs++;
                     uifc.changes=1;
-                    continue; 
-				}
-				if(msk == MSK_COPY) {
+                    continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
                     savfextr=*cfg.fextr[i];
-                    continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+                    continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
                     *cfg.fextr[i]=savfextr;
                     uifc.changes=1;
-                    continue; 
-				}
-				if (msk != 0)
-					continue;
+                    continue; }
 				done=0;
 				while(!done) {
 					j=0;
@@ -728,10 +673,7 @@ uifc.helpbuf=
 							sprintf(str,"Extractable File Type %s"
 								,cfg.fextr[i]->ext);
 							getar(str,cfg.fextr[i]->arstr);
-                            break; 
-					} 
-				} 
-			}
+                            break; } } }
             break;
 		case 12:	 /* Compressable file types */
 			while(1) {
@@ -742,11 +684,11 @@ uifc.helpbuf=
 				if(cfg.total_fcomps<MAX_OPTS)
 					i|=WIN_INS|WIN_XTR;
 				if(cfg.total_fcomps)
-					i|=WIN_DEL|WIN_COPY;
+					i|=WIN_DEL|WIN_GET;
 				if(savfcomp.cmd[0])
-					i|=WIN_PASTE;
+					i|=WIN_PUT;
 				uifc.helpbuf=
-					"`Compressable File Types:`\n"
+					"Compressable File Types:\n"
 					"\n"
 					"This is a list of compression methods available for different file types.\n"
 					"These will be used for items such as creating QWK packets, temporary\n"
@@ -755,67 +697,55 @@ uifc.helpbuf=
 				i=uifc.list(i,0,0,50,&fcomp_dflt,NULL,"Compressable File Types",opt);
 				if(i==-1)
 					break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						savfcomp = *cfg.fcomp[i];
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
 					free(cfg.fcomp[i]);
 					cfg.total_fcomps--;
 					while(i<cfg.total_fcomps) {
 						cfg.fcomp[i]=cfg.fcomp[i+1];
-						i++; 
-					}
+						i++; }
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_INS) {
+					continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.fcomp=(fcomp_t **)realloc(cfg.fcomp
 						,sizeof(fcomp_t *)*(cfg.total_fcomps+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_fcomps+1);
 						cfg.total_fcomps=0;
 						bail(1);
-						continue; 
-					}
+						continue; }
 					if(!cfg.total_fcomps) {
 						if((cfg.fcomp[0]=(fcomp_t *)malloc(
 							sizeof(fcomp_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(fcomp_t));
-							continue; 
-						}
+							continue; }
 						memset(cfg.fcomp[0],0,sizeof(fcomp_t));
 						strcpy(cfg.fcomp[0]->ext,"ZIP");
-						strcpy(cfg.fcomp[0]->cmd,"%@zip -jD %f %s"); 
-					}
+						strcpy(cfg.fcomp[0]->cmd,"%@zip -jD %f %s"); }
 					else {
 						for(j=cfg.total_fcomps;j>i;j--)
 							cfg.fcomp[j]=cfg.fcomp[j-1];
 						if((cfg.fcomp[i]=(fcomp_t *)malloc(
 							sizeof(fcomp_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(fcomp_t));
-							continue; 
-						}
+							continue; }
 						if(i>=cfg.total_fcomps)
 							j=i-1;
 						else
 							j=i+1;
-						*cfg.fcomp[i]=*cfg.fcomp[j]; 
-					}
+						*cfg.fcomp[i]=*cfg.fcomp[j]; }
 					cfg.total_fcomps++;
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_COPY) {
+					continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
 					savfcomp=*cfg.fcomp[i];
-					continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+					continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
 					*cfg.fcomp[i]=savfcomp;
 					uifc.changes=1;
-					continue; 
-				}
-				if (msk != 0)
-					continue;
+					continue; }
 				done=0;
 				while(!done) {
 					j=0;
@@ -845,10 +775,7 @@ uifc.helpbuf=
 							sprintf(str,"Compressable File Type %s"
 								,cfg.fcomp[i]->ext);
 							getar(str,cfg.fcomp[i]->arstr);
-                            break; 
-					} 
-				} 
-			}
+                            break; } } }
             break;
 		case 13:	/* Transfer protocols */
 			while(1) {
@@ -860,11 +787,11 @@ uifc.helpbuf=
 				if(cfg.total_prots<MAX_OPTS)
 					i|=WIN_INS|WIN_XTR;
 				if(cfg.total_prots)
-					i|=WIN_DEL|WIN_COPY;
+					i|=WIN_DEL|WIN_GET;
 				if(savprot.mnemonic)
-					i|=WIN_PASTE;
+					i|=WIN_PUT;
 				uifc.helpbuf=
-					"`File Transfer Protocols:`\n"
+					"File Transfer Protocols:\n"
 					"\n"
 					"This is a list of file transfer protocols that can be used to transfer\n"
 					"files either to or from a remote user. For each protocol, you can\n"
@@ -880,34 +807,28 @@ uifc.helpbuf=
 				i=uifc.list(i,0,0,50,&prot_dflt,NULL,"File Transfer Protocols",opt);
 				if(i==-1)
 					break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						savprot = *cfg.prot[i];
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
 					free(cfg.prot[i]);
 					cfg.total_prots--;
 					while(i<cfg.total_prots) {
 						cfg.prot[i]=cfg.prot[i+1];
-						i++; 
-					}
+						i++; }
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_INS) {
+					continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.prot=(prot_t **)realloc(cfg.prot
 						,sizeof(prot_t *)*(cfg.total_prots+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_prots+1);
 						cfg.total_prots=0;
 						bail(1);
-						continue; 
-					}
+						continue; }
 					if(!cfg.total_prots) {
 						if((cfg.prot[0]=(prot_t *)malloc(
 							sizeof(prot_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(prot_t));
-							continue; 
-						}
+							continue; }
 						memset(cfg.prot[0],0,sizeof(prot_t));
 						cfg.prot[0]->mnemonic='?';
 					} else {
@@ -916,29 +837,24 @@ uifc.helpbuf=
 						if((cfg.prot[i]=(prot_t *)malloc(
 							sizeof(prot_t)))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(prot_t));
-							continue; 
-						}
+							continue; }
 						if(i>=cfg.total_prots)
 							j=i-1;
 						else
 							j=i+1;
-						*cfg.prot[i]=*cfg.prot[j]; 
-					}
+						*cfg.prot[i]=*cfg.prot[j]; }
 					cfg.total_prots++;
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_COPY) {
+					continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
 					savprot=*cfg.prot[i];
-					continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+					continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
 					*cfg.prot[i]=savprot;
 					uifc.changes=1;
-					continue; 
-				}
-				if (msk != 0)
-					continue;
+					continue; }
 				done=0;
 				while(!done) {
 					j=0;
@@ -1065,11 +981,11 @@ uifc.helpbuf=
 				if((int)cfg.altpaths<MAX_OPTS)
 					i|=WIN_INS|WIN_XTR;
 				if(cfg.altpaths)
-					i|=WIN_DEL|WIN_COPY;
+					i|=WIN_DEL|WIN_GET;
 				if(savaltpath[0])
-					i|=WIN_PASTE;
+					i|=WIN_PUT;
 				uifc.helpbuf=
-					"`Alternate File Paths:`\n"
+					"Alternate File Paths:\n"
 					"\n"
 					"This option allows the sysop to add and configure alternate file paths\n"
 					"for files stored on drives and directories other than the configured\n"
@@ -1080,63 +996,51 @@ uifc.helpbuf=
 				i=uifc.list(i,0,0,50,&altpath_dflt,NULL,"Alternate File Paths",opt);
 				if(i==-1)
 					break;
-				int msk = i & MSK_ON;
-				i &= MSK_OFF;
-				if(msk == MSK_DEL || msk == MSK_CUT) {
-					if(msk == MSK_CUT)
-						SAFECOPY(savaltpath, cfg.altpath[i]);
+				if((i&MSK_ON)==MSK_DEL) {
+					i&=MSK_OFF;
 					free(cfg.altpath[i]);
 					cfg.altpaths--;
 					while(i<cfg.altpaths) {
 						cfg.altpath[i]=cfg.altpath[i+1];
-						i++; 
-					}
+						i++; }
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_INS) {
+					continue; }
+				if((i&MSK_ON)==MSK_INS) {
+					i&=MSK_OFF;
 					if((cfg.altpath=(char **)realloc(cfg.altpath
 						,sizeof(char *)*(cfg.altpaths+1)))==NULL) {
 						errormsg(WHERE,ERR_ALLOC,nulstr,cfg.altpaths+1);
 						cfg.altpaths=0;
 						bail(1);
-                        continue; 
-					}
+                        continue; }
 					if(!cfg.altpaths) {
 						if((cfg.altpath[0]=(char *)malloc(LEN_DIR+1))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,LEN_DIR+1);
-							continue; 
-						}
-						memset(cfg.altpath[0],0,LEN_DIR+1); 
-					}
+							continue; }
+						memset(cfg.altpath[0],0,LEN_DIR+1); }
 					else {
 						for(j=cfg.altpaths;j>i;j--)
 							cfg.altpath[j]=cfg.altpath[j-1];
 						if((cfg.altpath[i]=(char *)malloc(LEN_DIR+1))==NULL) {
 							errormsg(WHERE,ERR_ALLOC,nulstr,LEN_DIR+1);
-							continue; 
-						}
+							continue; }
 						if(i>=cfg.altpaths)
 							j=i-1;
 						else
 							j=i+1;
-						memcpy(cfg.altpath[i],cfg.altpath[j],LEN_DIR+1); 
-					}
+						memcpy(cfg.altpath[i],cfg.altpath[j],LEN_DIR+1); }
 					cfg.altpaths++;
 					uifc.changes=1;
-					continue; 
-				}
-				if(msk == MSK_COPY) {
-					SAFECOPY(savaltpath,cfg.altpath[i]);
-					continue; 
-				}
-				if(msk == MSK_PASTE_OVER) {
+					continue; }
+				if((i&MSK_ON)==MSK_GET) {
+					i&=MSK_OFF;
+					memcpy(savaltpath,cfg.altpath[i],LEN_DIR+1);
+					continue; }
+				if((i&MSK_ON)==MSK_PUT) {
+					i&=MSK_OFF;
 					memcpy(cfg.altpath[i],savaltpath,LEN_DIR+1);
 					uifc.changes=1;
-					continue; 
-				}
-				if (msk != 0)
-					continue;
+					continue; }
 				sprintf(str,"Path %d",i+1);
 				uifc.input(WIN_MID|WIN_SAV,0,0,str,cfg.altpath[i],LEN_DIR,K_EDIT); 
 			}

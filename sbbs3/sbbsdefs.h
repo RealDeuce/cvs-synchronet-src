@@ -1,7 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.213 2017/09/27 00:50:46 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: sbbsdefs.h,v 1.209 2016/12/08 07:38:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,8 +68,6 @@
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
-#define STR_UNKNOWN_USER	"<unknown user>"
-
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
 #define JAVASCRIPT_TIME_LIMIT		(24*60*600)			/* in 100ms ticks */
@@ -100,9 +97,6 @@ typedef struct js_callback {
 /************/
 
 #define MAX_NODES		250
-#define MAX_SUBS		65534
-#define MAX_DIRS		65534
-#define MAX_XTRNS		65534
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
@@ -271,7 +265,6 @@ typedef struct js_callback {
 #define DIR_MOVENEW (1<<17)			/* Files marked as new when moved */
 #define DIR_QUIET	(1<<18)			/* Do not notify uploader of downloads */
 #define DIR_NOSTAT	(1<<19)			/* Do not include transfers in system stats */
-#define DIR_FILES	(1<<20)			/* List/access files not in database */
 
                                     /* Bit values for file_t.misc */
 #define FM_EXTDESC  (1<<0)          /* Extended description exists */
@@ -800,7 +793,6 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
 #define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
 #define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
-#define TG_RLOGINSWAP	(1<<11)	/* Swap the RLogin alias/real-names			*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */

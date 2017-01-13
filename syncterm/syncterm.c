@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.202 2017/01/25 08:11:30 deuce Exp $ */
+/* $Id: syncterm.c,v 1.200 2017/01/13 01:25:02 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -951,7 +951,6 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 {
 	char	oldlst[MAX_PATH+1];
 
-	memset(fn, 0, fnlen);
 #ifdef _WIN32
 	char	*home;
 	static	dll_handle	shell32=NULL;
@@ -1022,15 +1021,11 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 			}
 			if(we_got_this) {
-				// Convert unicode to string using snprintf()
-				if (type == SYNCTERM_DEFAULT_TRANSFER_PATH) {
-					if(snprintf(fn, fnlen, "%S", path) >= fnlen)
-						we_got_this=FALSE;
-				}
-				else {
+				if (type != SYNCTERM_DEFAULT_TRANSFER_PATH) {
 					if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen)
 						we_got_this=FALSE;
 				}
+				// Convert unicode to string.
 				CTMF(path);
 			}
 		}
@@ -1070,7 +1065,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	}
 
 	/* Create if it doesn't exist */
-	if(*fn && !isdir(fn)) {
+	if(!isdir(fn)) {
 		if(MKDIR(fn))
 			fn[0]=0;
 	}
