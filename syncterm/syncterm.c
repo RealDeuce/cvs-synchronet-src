@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.198 2015/08/05 09:49:32 deuce Exp $ */
+/* $Id: syncterm.c,v 1.200 2017/01/13 01:25:02 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1214,6 +1214,8 @@ void load_settings(struct syncterm_settings *set)
 	set->startup_mode=iniReadEnum(inifile,"SyncTERM","ScreenMode",screen_modes,set->startup_mode);
 	set->output_mode=iniReadEnum(inifile,"SyncTERM","OutputMode",output_enum,CIOLIB_MODE_AUTO);
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
+	set->xfer_success_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferSuccessKeypressTimeout", /* seconds: */0);
+	set->xfer_failure_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferFailureKeypressTimeout", /* seconds: */60);
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
@@ -1328,10 +1330,12 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+#if !defined(WITHOUT_CRYPTLIB)
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
 		init_crypt();
 	atexit(exit_crypt);
+#endif
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
