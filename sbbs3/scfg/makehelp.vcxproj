@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{ACFB0944-5DD4-4E24-87E3-1F1EF8B26A0A}</ProjectGuid>
+    <ProjectGuid>{F582BB30-E4B2-4303-9852-8279DAE7213E}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -32,57 +32,51 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
-    <Import Project="..\xpdev\xpdev.props" />
-    <Import Project="..\smblib\smblib.props" />
-    <Import Project="..\uifc\uifc.props" />
-    <Import Project="..\conio\conio.props" />
-    <Import Project="..\build\undeprecate.props" />
-    <Import Project="..\..\3rdp\win32.release\mozjs\mozjs.props" />
-    <Import Project="..\comio\comio.props" />
-    <Import Project="..\build\target_ia32.props" />
-    <Import Project="..\xpdev\xpdev_mt.props" />
+    <Import Project="..\..\xpdev\xpdev.props" />
+    <Import Project="..\..\build\undeprecate.props" />
+    <Import Project="..\..\build\target_ia32.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
-    <Import Project="..\xpdev\xpdev.props" />
-    <Import Project="..\smblib\smblib.props" />
-    <Import Project="..\uifc\uifc.props" />
-    <Import Project="..\conio\conio.props" />
-    <Import Project="..\build\undeprecate.props" />
-    <Import Project="..\..\3rdp\win32.release\mozjs\mozjs.props" />
-    <Import Project="..\comio\comio.props" />
-    <Import Project="..\build\target_ia32.props" />
-    <Import Project="..\xpdev\xpdev_mt.props" />
+    <Import Project="..\..\xpdev\xpdev.props" />
+    <Import Project="..\..\build\undeprecate.props" />
+    <Import Project="..\..\build\target_ia32.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.exe.release\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.release\jsexec\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.exe.debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.debug\jsexec\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkIncremental>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <CustomBuildStep>
+      <Message>Building help files...</Message>
+      <Command>$(TargetPath) $(OutDir)
+</Command>
+      <Outputs>$(OutDir)scfghelp.dat;$(OutDir)scfghelp.ixb;%(Outputs)</Outputs>
+    </CustomBuildStep>
     <Midl>
-      <TypeLibraryName>.\msvc.win32.exe.release/jsexec.tlb</TypeLibraryName>
+      <TypeLibraryName>.\msvc.win32.exe.release/makehelp.tlb</TypeLibraryName>
       <HeaderFileName>
       </HeaderFileName>
     </Midl>
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeaderOutputFile>.\msvc.win32.release\jsexec/jsexec.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\msvc.win32.release\jsexec/</AssemblerListingLocation>
-      <ObjectFileName>.\msvc.win32.release\jsexec/</ObjectFileName>
-      <ProgramDataBaseFileName>.\msvc.win32.release\jsexec/</ProgramDataBaseFileName>
+      <PrecompiledHeaderOutputFile>.\msvc.win32.release/makehelp.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\msvc.win32.release/</AssemblerListingLocation>
+      <ObjectFileName>.\msvc.win32.release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\msvc.win32.release/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
@@ -91,10 +85,9 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>wsock32.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>.\msvc.win32.exe.release/jsexec.exe</OutputFile>
+      <OutputFile>.\msvc.win32.exe.release/makehelp.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ProgramDatabaseFile>.\msvc.win32.exe.release/jsexec.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>.\msvc.win32.exe.release/makehelp.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -103,26 +96,32 @@
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\msvc.win32.exe.release/jsexec.bsc</OutputFile>
+      <OutputFile>.\msvc.win32.exe.release/makehelp.bsc</OutputFile>
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <CustomBuildStep>
+      <Message>Building help files...</Message>
+      <Command>$(TargetPath) $(OutDir)
+</Command>
+      <Outputs>$(OutDir)scfghelp.dat;$(OutDir)scfghelp.ixb;%(Outputs)</Outputs>
+    </CustomBuildStep>
     <Midl>
-      <TypeLibraryName>.\msvc.win32.exe.debug/jsexec.tlb</TypeLibraryName>
+      <TypeLibraryName>.\msvc.win32.exe.debug/makehelp.tlb</TypeLibraryName>
       <HeaderFileName>
       </HeaderFileName>
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeaderOutputFile>.\msvc.win32.debug\jsexec/jsexec.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\msvc.win32.debug\jsexec/</AssemblerListingLocation>
-      <ObjectFileName>.\msvc.win32.debug\jsexec/</ObjectFileName>
-      <ProgramDataBaseFileName>.\msvc.win32.debug\jsexec/</ProgramDataBaseFileName>
+      <PrecompiledHeaderOutputFile>.\msvc.win32.debug/makehelp.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\msvc.win32.debug/</AssemblerListingLocation>
+      <ObjectFileName>.\msvc.win32.debug/</ObjectFileName>
+      <ProgramDataBaseFileName>.\msvc.win32.debug/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -132,64 +131,28 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>wsock32.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>.\msvc.win32.exe.debug/jsexec.exe</OutputFile>
+      <OutputFile>.\msvc.win32.exe.debug/makehelp.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>.\msvc.win32.exe.debug\jsexec.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>.\msvc.win32.exe.debug/makehelp.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <GenerateMapFile>true</GenerateMapFile>
-      <ShowProgress>NotSet</ShowProgress>
-      <LinkStatus>
-      </LinkStatus>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\msvc.win32.exe.debug/jsexec.bsc</OutputFile>
+      <OutputFile>.\msvc.win32.exe.debug/makehelp.bsc</OutputFile>
     </Bscmake>
-    <ProjectReference>
-      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
-    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="jsdebug.c" />
-    <ClCompile Include="js_conio.c">
+    <ClCompile Include="makehelp.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClCompile Include="js_uifc.c">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <ClCompile Include="jsexec.c">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\conio\conio.vcxproj">
-      <Project>{84592e48-27ca-48a6-b9c6-243d2347a578}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\uifc\uifc.vcxproj">
-      <Project>{7bfb9820-0e57-4be4-9be9-e0a687874e19}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\xpdev\xpdev_mt.vcxproj">
-      <Project>{aeed3a81-3a47-4953-be51-fd5e08283890}</Project>
-    </ProjectReference>
-    <ProjectReference Include="sbbs.vcxproj">
-      <Project>{48637a68-3478-4bed-a924-07d59d474bbe}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
