@@ -1,6 +1,7 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.110 2016/11/16 05:33:34 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.113 2016/11/24 03:05:26 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,8 +69,6 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 #include "conwrap.h"	/* getch */
 #include "filewrap.h"
 #include "smblib.h"
-#include "crc16.h"
-#include "crc32.h"
 #include "gen_defs.h"	/* MAX_PATH */
 
 #ifdef __WATCOMC__
@@ -531,12 +530,11 @@ void dumpindex(ulong start, ulong count)
 		if(!fread(&idx,1,sizeof(idx),smb.sid_fp))
 			break;
 		printf("%10"PRIu32"  ", idx.number);
-		if(idx.attr&MSG_VOTE)
-			printf("V  %04hX  %-10"PRIu32
-				,idx.votes,idx.remsg,idx.attr
-				,idx.offset,my_timestr(idx.time));
+		if(idx.attr&MSG_VOTE && !(idx.attr&MSG_POLL))
+			printf("V  %04hX  %-10"PRIu32, idx.votes,idx.remsg);
 		else
-			printf("M  %04hX  %04hX  %04X"
+			printf("%c  %04hX  %04hX  %04X"
+				,(idx.attr&MSG_POLL_VOTE_MASK) == MSG_POLL_CLOSURE ? 'C' : (idx.attr&MSG_POLL ? 'P':'M')
 				,idx.from, idx.to, idx.subj);
 		printf("  %04X  %06X  %s\n", idx.attr, idx.offset, my_timestr(idx.time));
 		l++; 
@@ -855,7 +853,7 @@ typedef struct {
 void packmsgs(ulong packable)
 {
 	uchar	buf[SDT_BLOCK_LEN],ch;
-	char	str[128],fname[128],tmpfname[128];
+	char	fname[MAX_PATH+1],tmpfname[MAX_PATH+1];
 	int i,size;
 	ulong l,m,n,datoffsets=0,length,total;
 	FILE *tmp_sdt,*tmp_shd,*tmp_sid;
@@ -1148,28 +1146,7 @@ void packmsgs(ulong packable)
 			msg.idx.offset=ftell(tmp_shd);
 		else
 			msg.idx.offset=smb_fallochdr(&smb,length)+smb.status.header_offset;
-		msg.idx.number=msg.hdr.number;
-		msg.idx.attr=msg.hdr.attr;
-		msg.idx.time=msg.hdr.when_imported.time;
-		msg.idx.subj=smb_subject_crc(msg.subj);
-		if(smb.status.attr&SMB_EMAIL) {
-			if(msg.to_ext)
-				msg.idx.to=atoi(msg.to_ext);
-			else
-				msg.idx.to=0;
-			if(msg.from_ext)
-				msg.idx.from=atoi(msg.from_ext);
-			else
-				msg.idx.from=0; 
-		}
-		else {
-			SAFECOPY(str,msg.to);
-			strlwr(str);
-			msg.idx.to=crc16(str,0);
-			SAFECOPY(str,msg.from);
-			strlwr(str);
-			msg.idx.from=crc16(str,0); 
-		}
+		smb_init_idx(&smb, &msg);
 		fwrite(&msg.idx,1,sizeof(idxrec_t),tmp_sid);
 
 		/* Write the new header entry */
@@ -1494,7 +1471,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.110 $", "%*s %s", revision);
+	sscanf("$Revision: 1.113 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
