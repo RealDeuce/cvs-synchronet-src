@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.26 2016/11/23 00:58:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.28 2017/01/03 01:07:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -557,6 +557,35 @@ const char* fmsghdr_destaddr_str(const fmsghdr_t* hdr)
 	fidoaddr_t addr = fmsghdr_destaddr(hdr);
 
 	return smb_faddrtoa(&addr, buf);
+}
+
+bool parse_origin(const char* fmsgbuf, fmsghdr_t* hdr)
+{
+	char* p;
+	fidoaddr_t origaddr;
+	
+	if((p = strstr(fmsgbuf, FIDO_ORIGIN_PREFIX_FORM_1)) == NULL)
+		p = strstr(fmsgbuf, FIDO_ORIGIN_PREFIX_FORM_2);
+	if(p == NULL)
+		return false;
+
+	p += FIDO_ORIGIN_PREFIX_LEN;
+	p = strrchr(p, '(');
+	if(p == NULL)
+		return false;
+	p++;
+	origaddr = atofaddr(p);
+	if(origaddr.zone == 0 
+		|| origaddr.zone == 0xffff
+		|| origaddr.net == 0xffff
+		|| origaddr.node == 0xffff
+		|| origaddr.point == 0xffff)
+		return false;
+	hdr->origzone	= origaddr.zone;
+	hdr->orignet	= origaddr.net;
+	hdr->orignode	= origaddr.node;
+	hdr->origpoint	= origaddr.point;
+	return true;
 }
 
 bool parse_pkthdr(const fpkthdr_t* hdr, fidoaddr_t* orig_addr, fidoaddr_t* dest_addr, enum pkt_type* pkt_type)
@@ -3198,9 +3227,9 @@ void gen_psb(addrlist_t *seenbys, addrlist_t *paths, const char *inbuf, uint16_t
 
 	if(!inbuf)
 		return;
-	fbuf=strstr((char *)inbuf,"\r * Origin: ");
+	fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_1);
 	if(!fbuf)
-		fbuf=strstr((char *)inbuf,"\n * Origin: ");
+		fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_2);
 	if(!fbuf)
 		fbuf=inbuf;
 	FREE_AND_NULL(seenbys->addr);
@@ -3357,7 +3386,9 @@ void strip_psb(char *inbuf)
 
 	if(!inbuf)
 		return;
-	fbuf=strstr((char *)inbuf,"\r * Origin: ");
+	fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_1);
+	if(!fbuf)
+		fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_2);
 	if(!fbuf)
 		fbuf=inbuf;
 	if((p=strstr((char *)fbuf,"\rSEEN-BY:"))!=NULL)
@@ -3465,6 +3496,11 @@ void pkt_to_pkt(const char *fbuf, area_t area, const fidoaddr_t* faddr
 			continue;
 		if(check_psb(&seenbys, area.link[u]))
 			continue;
+		if(fmsghdr.origzone == area.link[u].zone
+			&& fmsghdr.orignet == area.link[u].net
+			&& fmsghdr.orignode == area.link[u].node
+			&& fmsghdr.origpoint == area.link[u].point)
+			continue;	/* Don't loop messages back to originator */
 		nodecfg_t* nodecfg = findnodecfg(&cfg, area.link[u],0);
 		if(nodecfg != NULL && nodecfg->passive)
 			continue;
@@ -4750,6 +4786,10 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 				} 
 			}
 
+			if(!parse_origin(fmsgbuf, &hdr))
+				lprintf(LOG_WARNING, "%s: Failed to parse Origin Line in message from %s (%s) in packet from %s: %s"
+					,areatag, hdr.from, fmsghdr_srcaddr_str(&hdr), smb_faddrtoa(&pkt_orig,NULL), packet);
+
 			if(cfg.secure_echomail && cfg.area[i].sub!=INVALID_SUB) {
 				if(!area_is_linked(i,&pkt_orig)) {
 					lprintf(LOG_WARNING, "%s: Security violation - %s not in AREAS.BBS"
@@ -4951,7 +4991,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.26 $", "%*s %s", revision);
+	sscanf("$Revision: 3.28 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5139,6 +5179,7 @@ int main(int argc, char **argv)
 
 	/******* READ IN AREAS.BBS FILE *********/
 
+	fexistcase(cfg.areafile);
 	printf("Reading %s",cfg.areafile);
 	if((stream=fopen(cfg.areafile,"r"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
