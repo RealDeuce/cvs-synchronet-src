@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.62 2016/11/16 09:05:39 rswindell Exp $ */
+/* $Id: userdat.h,v 1.65 2016/12/02 06:01:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,7 +104,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t*, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t*, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t*, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del, BOOL next);
+							,BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t*, uchar* str, user_t*, client_t*); /* checks access requirements */
 
@@ -121,14 +121,15 @@ DLLEXPORT BOOL	DLLCALL can_user_post(scfg_t*, uint subnum, user_t*, client_t* cl
 DLLEXPORT BOOL	DLLCALL can_user_send_mail(scfg_t*, enum smb_net_type, uint usernumber, user_t*, uint* reason);
 DLLEXPORT BOOL	DLLCALL is_user_subop(scfg_t*, uint subnum, user_t*, client_t* client);
 DLLEXPORT BOOL	DLLCALL is_download_free(scfg_t*, uint dirnum, user_t*, client_t* client);
+DLLEXPORT BOOL	DLLCALL is_host_exempt(scfg_t*, const char* ip_addr, const char* host_name);
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t*, const char* prot, const char* reason, const char* host
 								  ,const char* ip_addr, const char* username, const char* fname);
 
 /* New-message-scan pointer functions: */
-DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*);
+DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*, void (*progress)(void*, int, int), void* cbdata);
 DLLEXPORT BOOL	DLLCALL putmsgptrs(scfg_t*, user_t*, subscan_t*);
 DLLEXPORT BOOL	DLLCALL fixmsgptrs(scfg_t*, subscan_t*);
-DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days);
+DLLEXPORT BOOL	DLLCALL initmsgptrs(scfg_t*, subscan_t*, unsigned days, void (*progress)(void*, int, int), void* cbdata);
 
 
 /* New atomic numeric user field adjustment functions: */
