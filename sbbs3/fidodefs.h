@@ -1,8 +1,6 @@
-/* fidodefs.h */
-
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.15 2016/04/11 10:03:35 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.16 2017/01/03 01:07:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,12 +39,15 @@
 #include "gen_defs.h"
 
 #define FIDO_TLD		".fidonet"	/* Fake TLD for gating netmail through SMTP  */
+#define FIDO_ORIGIN_PREFIX_FORM_1	"\r * Origin: "
+#define FIDO_ORIGIN_PREFIX_FORM_2	"\n * Origin: "
 
-#define FIDO_NAME_LEN	36			/* Includes '\0' terminator				*/
-#define FIDO_SUBJ_LEN	72			/* Includes '\0' terminator				*/
-#define FIDO_TIME_LEN	20			/* Includes '\0' terminator				*/
-#define FIDO_PASS_LEN	8			/* Does NOT include '\0' terminator		*/
-#define FIDO_AREATAG_LEN	35		/* Echo "areatag" (NOT including '\0')	*/
+#define FIDO_NAME_LEN			36	/* Includes '\0' terminator				*/
+#define FIDO_SUBJ_LEN			72	/* Includes '\0' terminator				*/
+#define FIDO_TIME_LEN			20	/* Includes '\0' terminator				*/
+#define FIDO_PASS_LEN			8	/* Does NOT include '\0' terminator		*/
+#define FIDO_AREATAG_LEN		35	/* Echo "areatag" (NOT including '\0')	*/
+#define FIDO_ORIGIN_PREFIX_LEN	12	/* Includes new-line character			*/
 
 									/* Attribute bits for fmsghdr_t.attr	*/
 #define FIDO_PRIVATE	(1<<0)		/* Private message						*/

@@ -1,8 +1,7 @@
-/* sbbsecho.c */
-
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.23 2016/11/10 10:19:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.29 2017/02/24 21:25:40 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +45,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#if defined(__unix__)
+	#include <signal.h>
+#endif
 
 #include "conwrap.h"		/* getch() */
 #include "sbbs.h"			/* load_cfg() */
@@ -557,6 +559,35 @@ const char* fmsghdr_destaddr_str(const fmsghdr_t* hdr)
 	return smb_faddrtoa(&addr, buf);
 }
 
+bool parse_origin(const char* fmsgbuf, fmsghdr_t* hdr)
+{
+	char* p;
+	fidoaddr_t origaddr;
+	
+	if((p = strstr(fmsgbuf, FIDO_ORIGIN_PREFIX_FORM_1)) == NULL)
+		p = strstr(fmsgbuf, FIDO_ORIGIN_PREFIX_FORM_2);
+	if(p == NULL)
+		return false;
+
+	p += FIDO_ORIGIN_PREFIX_LEN;
+	p = strrchr(p, '(');
+	if(p == NULL)
+		return false;
+	p++;
+	origaddr = atofaddr(p);
+	if(origaddr.zone == 0 
+		|| origaddr.zone == 0xffff
+		|| origaddr.net == 0xffff
+		|| origaddr.node == 0xffff
+		|| origaddr.point == 0xffff)
+		return false;
+	hdr->origzone	= origaddr.zone;
+	hdr->orignet	= origaddr.net;
+	hdr->orignode	= origaddr.node;
+	hdr->origpoint	= origaddr.point;
+	return true;
+}
+
 bool parse_pkthdr(const fpkthdr_t* hdr, fidoaddr_t* orig_addr, fidoaddr_t* dest_addr, enum pkt_type* pkt_type)
 {
 	fidoaddr_t	orig;
@@ -868,15 +899,16 @@ bool area_is_valid(uint areanum)
 	return areanum < cfg.areas;
 }
 
-/* Returns subnum */
+/* Returns subnum (INVALID_SUB if pass-through) or SUB_NOT_FOUND */
+#define SUB_NOT_FOUND ((uint)-2)
 uint find_linked_area(const char* echotag, fidoaddr_t addr)
 {
 	unsigned area;
 
 	if(area_is_valid(area = find_area(echotag)) && area_is_linked(area, &addr))
-			return cfg.area[area].sub;
+		return cfg.area[area].sub;
 
-	return INVALID_SUB;
+	return SUB_NOT_FOUND;
 }
 
 /******************************************************************************
@@ -993,7 +1025,7 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 								tp=p;
 								FIND_WHITESPACE(tp);
 								*tp=0;
-								if(find_linked_area(p, addr) == INVALID_SUB) {
+								if(find_linked_area(p, addr) == SUB_NOT_FOUND) {
 									if(strListFind(area_list, p, /* case_sensitive */false) < 0)
 										strListPush(&area_list, p);
 								}
@@ -1489,8 +1521,10 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		char* p = instr + 7;
 		SKIP_WHITESPACE(p);
 		int subnum = find_linked_area(p, addr);
-		if(subnum == INVALID_SUB)
+		if(subnum == SUB_NOT_FOUND)
 			SAFEPRINTF(str, "Echo-tag '%s' not linked or not found.", p);
+		else if(subnum == INVALID_SUB)
+			SAFEPRINTF(str, "Connected area '%s' is pass-through: cannot be rescanned", p);
 		else {
 			export_echomail(scfg.sub[subnum]->code, nodecfg, true);
 			SAFEPRINTF(str, "Connected area '%s' has been rescanned.", p);
@@ -2228,7 +2262,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 		if(idx.number==0)	/* invalid message number, ignore */
 			continue;
 
-		if(idx.attr&(MSG_VOTE|MSG_POLL))
+		if(idx.attr&MSG_POLL_VOTE_MASK)
 			continue;
 
 		if(idx.number<=ptr || (idx.attr&MSG_DELETE))
@@ -2626,7 +2660,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		return IMPORT_FAILURE; 
 	}
 
-	for(col=l=esc=done=bodylen=taillen=0,cr=1;l<length;l++) {
+	for(col=0,l=0,esc=0,done=0,bodylen=0,taillen=0,cr=1;l<length;l++) {
 
 		if(!l && !strncmp((char *)fbuf,"AREA:",5)) {
 			save=l;
@@ -3196,9 +3230,9 @@ void gen_psb(addrlist_t *seenbys, addrlist_t *paths, const char *inbuf, uint16_t
 
 	if(!inbuf)
 		return;
-	fbuf=strstr((char *)inbuf,"\r * Origin: ");
+	fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_1);
 	if(!fbuf)
-		fbuf=strstr((char *)inbuf,"\n * Origin: ");
+		fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_2);
 	if(!fbuf)
 		fbuf=inbuf;
 	FREE_AND_NULL(seenbys->addr);
@@ -3355,7 +3389,9 @@ void strip_psb(char *inbuf)
 
 	if(!inbuf)
 		return;
-	fbuf=strstr((char *)inbuf,"\r * Origin: ");
+	fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_1);
+	if(!fbuf)
+		fbuf=strstr(inbuf, FIDO_ORIGIN_PREFIX_FORM_2);
 	if(!fbuf)
 		fbuf=inbuf;
 	if((p=strstr((char *)fbuf,"\rSEEN-BY:"))!=NULL)
@@ -3463,6 +3499,11 @@ void pkt_to_pkt(const char *fbuf, area_t area, const fidoaddr_t* faddr
 			continue;
 		if(check_psb(&seenbys, area.link[u]))
 			continue;
+		if(fmsghdr.origzone == area.link[u].zone
+			&& fmsghdr.orignet == area.link[u].net
+			&& fmsghdr.orignode == area.link[u].node
+			&& fmsghdr.origpoint == area.link[u].point)
+			continue;	/* Don't loop messages back to originator */
 		nodecfg_t* nodecfg = findnodecfg(&cfg, area.link[u],0);
 		if(nodecfg != NULL && nodecfg->passive)
 			continue;
@@ -4748,6 +4789,10 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 				} 
 			}
 
+			if(!parse_origin(fmsgbuf, &hdr))
+				lprintf(LOG_WARNING, "%s: Failed to parse Origin Line in message from %s (%s) in packet from %s: %s"
+					,areatag, hdr.from, fmsghdr_srcaddr_str(&hdr), smb_faddrtoa(&pkt_orig,NULL), packet);
+
 			if(cfg.secure_echomail && cfg.area[i].sub!=INVALID_SUB) {
 				if(!area_is_linked(i,&pkt_orig)) {
 					lprintf(LOG_WARNING, "%s: Security violation - %s not in AREAS.BBS"
@@ -4949,7 +4994,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.23 $", "%*s %s", revision);
+	sscanf("$Revision: 3.29 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5057,13 +5102,6 @@ int main(int argc, char **argv)
 	SAFECOPY(scfg.ctrl_dir,p);
 
 	backslash(scfg.ctrl_dir);
-	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
-	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
-		lprintf(LOG_WARNING, "Mutex file exists (%s): SBBSecho appears to be already running", path);
-		bail(1);
-	}
-	mtxfile_locked = true;
-	atexit(cleanup);
 
 	/* Install Ctrl-C/Break signal handler here */
 #if defined(_WIN32)
@@ -5134,8 +5172,17 @@ int main(int argc, char **argv)
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
 
+	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
+	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {
+		lprintf(LOG_WARNING, "Mutex file exists (%s): SBBSecho appears to be already running", path);
+		bail(1);
+	}
+	mtxfile_locked = true;
+	atexit(cleanup);
+
 	/******* READ IN AREAS.BBS FILE *********/
 
+	fexistcase(cfg.areafile);
 	printf("Reading %s",cfg.areafile);
 	if((stream=fopen(cfg.areafile,"r"))==NULL) {
 		lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,cfg.areafile);
