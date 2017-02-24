@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.54 2018/02/20 11:24:15 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.51 2016/12/08 07:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -289,7 +289,6 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					continue;
 				}
 				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
-					str[i]=0;
 					switch(ch) {
 						case 'A':
 							return(TERM_KEY_UP);
@@ -301,10 +300,6 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 							return(TERM_KEY_LEFT);
 						case 'H':	/* ANSI:  home cursor */
 							return(TERM_KEY_HOME);
-						case 'V':
-							return TERM_KEY_PAGEUP;
-						case 'U':
-							return TERM_KEY_PAGEDN;
 						case 'F':	/* Xterm: cursor preceding line */
 						case 'K':	/* ANSI:  clear-to-end-of-line */
 							return(TERM_KEY_END);
@@ -320,10 +315,6 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 									return(TERM_KEY_DELETE);
 								case 4:
 									return(TERM_KEY_END);
-								case 5:
-									return TERM_KEY_PAGEUP;
-								case 6:
-									return TERM_KEY_PAGEDN;
 							}
 							break;
 					}

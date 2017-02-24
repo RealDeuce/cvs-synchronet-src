@@ -1,12 +1,14 @@
-/* Synchronet MIME functions, originally written/submitted by Marc Lanctot */
+/* mime.c */
 
-/* $Id: mime.c,v 1.9 2017/11/26 01:08:13 rswindell Exp $ */
+/* Synchronet MIME functions */
+
+/* $Id: mime.c,v 1.8 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,7 +42,6 @@
 #include <time.h>
 
 #include "sbbs.h"
-#include "mime.h"
 #include "mailsrvr.h"
 #include "base64.h"
 
@@ -81,13 +82,11 @@ void mimeblurb(SOCKET socket, char* boundary)
     sockprintf(socket,"");
 }
 
-void mimetextpartheader(SOCKET socket, char* boundary, const char* charset)
+void mimetextpartheader(SOCKET socket, char* boundary)
 {
-	if(charset == NULL || *charset == 0)
-		charset = "iso-8859-1";
     sockprintf(socket,"--%s",boundary);
     sockprintf(socket,"Content-Type: text/plain;");
-    sockprintf(socket," charset=\"%s\"", charset);
+    sockprintf(socket," charset=\"iso-8859-1\"");
     sockprintf(socket,"Content-Transfer-Encoding: 7bit");
 }
 
