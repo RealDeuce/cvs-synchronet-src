@@ -1,6 +1,8 @@
+/* rechocfg.C */
+
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.18 2017/10/10 23:41:38 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.13 2017/03/01 05:25:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,11 +144,6 @@ const char *faddrtoa(const faddr_t* addr)
 	return(str);
 }
 
-bool faddr_contains_wildcard(const faddr_t* addr)
-{
-	return addr->zone==0xffff || addr->net==0xffff || addr->node==0xffff || addr->point==0xffff;
-}
-
 /******************************************************************************
  This function returns the number of the node in the SBBSECHO.CFG file which
  matches the address passed to it (or cfg.nodecfgs if no match).
@@ -225,7 +222,6 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->strict_packet_passwords	= true;
 	cfg->relay_filtered_msgs		= false;
 	cfg->umask						= 077;
-	cfg->areafile_backups			= 100;
 }
 
 char* pktTypeStringList[] = {"2+", "2e", "2.2", "2", NULL};		// Must match enum pkt_type
@@ -252,7 +248,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	SAFECOPY(cfg->secure_inbound, iniGetString(ini, ROOT_SECTION, "SecureInbound", "../fido/inbound", value));
 	SAFECOPY(cfg->outbound		, iniGetString(ini, ROOT_SECTION, "Outbound",		"../fido/outbound", value));
 	SAFECOPY(cfg->areafile		, iniGetString(ini, ROOT_SECTION, "AreaFile",		"../data/areas.bbs", value));
-	SAFECOPY(cfg->badareafile	, iniGetString(ini, ROOT_SECTION, "BadAreaFile",	"../data/badareas.lst", value));
 	SAFECOPY(cfg->logfile		, iniGetString(ini, ROOT_SECTION, "LogFile",		"../data/sbbsecho.log", value));
 	SAFECOPY(cfg->logtime		, iniGetString(ini, ROOT_SECTION, "LogTimeFormat",	"%Y-%m-%d %H:%M:%S", value));
 	SAFECOPY(cfg->temp_dir		, iniGetString(ini, ROOT_SECTION, "TempDirectory",	"../temp/sbbsecho", value));
@@ -267,7 +262,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->strict_packet_passwords= iniGetBool(ini, ROOT_SECTION, "StrictPacketPasswords", cfg->strict_packet_passwords);
 	cfg->relay_filtered_msgs	= iniGetBool(ini, ROOT_SECTION, "RelayFilteredMsgs", cfg->relay_filtered_msgs);
 	cfg->umask					= iniGetInteger(ini, ROOT_SECTION, "umask", cfg->umask);
-	cfg->areafile_backups		= iniGetInteger(ini, ROOT_SECTION, "AreaFileBackups", cfg->areafile_backups);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -288,7 +282,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->sysop_alias_list			= iniGetStringList(ini, ROOT_SECTION, "SysopAliasList", ",", "SYSOP");
 	cfg->fuzzy_zone					= iniGetBool(ini, ROOT_SECTION, "FuzzyNetmailZones", cfg->fuzzy_zone);
 	cfg->ignore_netmail_dest_addr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailDestAddr", cfg->ignore_netmail_dest_addr);
-	cfg->ignore_netmail_sent_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailSentAttr", cfg->ignore_netmail_sent_attr);
 	cfg->ignore_netmail_recv_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailRecvAttr", cfg->ignore_netmail_recv_attr);
 	cfg->ignore_netmail_local_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailLocalAttr", cfg->ignore_netmail_local_attr);
 	cfg->kill_empty_netmail			= iniGetBool(ini, ROOT_SECTION, "KillEmptyNetmail", cfg->kill_empty_netmail);
@@ -334,24 +327,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreafixPwd", "", value));
 		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
 		SAFECOPY(ncfg->comment	, iniGetString(ini, node, "Comment", "", value));
-		if(!faddr_contains_wildcard(&ncfg->addr)) {
-			SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
-			SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
-			char		inbox[MAX_PATH + 1];
-			char		insec[MAX_PATH + 1];
-			char		inbound[MAX_PATH + 1];
-			char		outbox[MAX_PATH + 1];
-			char		outbound[MAX_PATH + 1];
-			FULLPATH(inbox, ncfg->inbox, sizeof(inbox))			, backslash(inbox);
-			FULLPATH(outbox, ncfg->outbox, sizeof(outbox))		, backslash(outbox);
-			FULLPATH(insec, cfg->secure_inbound, sizeof(insec))	, backslash(insec);
-			FULLPATH(inbound, cfg->inbound, sizeof(inbound))	, backslash(inbound);
-			FULLPATH(outbound, cfg->outbound, sizeof(outbound))	, backslash(outbound);
-			if (stricmp(inbound, inbox) == 0 || stricmp(insec, inbox) == 0)
-				ncfg->inbox[0] = 0;
-			if (stricmp(outbound, outbox) == 0)
-				ncfg->outbox[0] = 0;
-		}
+		SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
+		SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
 		ncfg->keys				= iniGetStringList(ini, node, "keys", ",", "");
 		ncfg->pkt_type			= iniGetEnum(ini, node, "PacketType", pktTypeStringList, ncfg->pkt_type);
 		ncfg->send_notify		= iniGetBool(ini, node, "notify", ncfg->send_notify);
@@ -472,8 +449,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetString(&ini,		ROOT_SECTION, "SecureInbound"			,cfg->secure_inbound			,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "Outbound"				,cfg->outbound					,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "AreaFile"				,cfg->areafile					,NULL);
-	iniSetInteger(&ini,		ROOT_SECTION, "AreaFileBackups"			,cfg->areafile_backups			,NULL);
-	iniSetString(&ini,		ROOT_SECTION, "BadAreaFile"				,cfg->badareafile				,NULL);
 	if(cfg->logfile[0])
 	iniSetString(&ini,		ROOT_SECTION, "LogFile"					,cfg->logfile					,NULL);
 	if(cfg->logtime[0])
@@ -504,7 +479,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetBool(&ini,		ROOT_SECTION, "RelayFilteredMsgs"		,cfg->relay_filtered_msgs		,NULL);
 
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,NULL);
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailSentAttr"	,cfg->ignore_netmail_sent_attr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailRecvAttr"	,cfg->ignore_netmail_recv_attr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailLocalAttr"	,cfg->ignore_netmail_local_attr	,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "DefaultRecipient"		,cfg->default_recipient			,NULL);
@@ -519,8 +493,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniRemoveSections(&ini, "archive:");
 	for(uint i=0; i<cfg->arcdefs; i++) {
 		arcdef_t* arc = &cfg->arcdef[i];
-		if(arc->name[0] == 0)
-			continue;
 		SAFEPRINTF(section,"archive:%s", arc->name);
 		iniSetString(&ini,	section,	"Sig"			,arc->hexid		,&style);
 		iniSetInteger(&ini,	section,	"SigOffset"		,arc->byteloc	,&style);
@@ -559,8 +531,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniRemoveSections(&ini, "echolist:");
 	for(uint i=0; i<cfg->listcfgs; i++) {
 		echolist_t* elist = &cfg->listcfg[i];
-		if(elist->listpath[0] == 0)
-			continue;
 		SAFEPRINTF(section,"echolist:%s", elist->listpath);
 		iniSetString(&ini	,section,	"Hub"		,faddrtoa(&elist->hub)				,&style);
 		iniSetString(&ini	,section,	"Pwd"		,elist->password					,&style);

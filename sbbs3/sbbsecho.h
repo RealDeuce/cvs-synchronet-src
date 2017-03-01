@@ -1,6 +1,8 @@
+/* sbbsecho.h */
+
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.15 2017/09/19 03:12:04 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.10 2017/03/01 05:25:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +44,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		1
+#define SBBSECHO_VERSION_MINOR		00
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -57,7 +59,6 @@ enum pkt_type {
 	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
 	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
 	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
-	,PKT_TYPES_SUPPORTED
 };
 
 #define DFLT_PKT_SIZE   (250*1024L)
@@ -131,9 +132,7 @@ typedef struct {
 	char		inbound[MAX_PATH+1]; 	/* Inbound directory */
 	char		secure_inbound[MAX_PATH+1];		/* Secure Inbound directory */
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
-	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
-	uint		areafile_backups;		/* Number of backups to keep of area file */
-	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
+	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
@@ -172,7 +171,6 @@ typedef struct {
 	bool		delete_packets;
 	bool		echomail_notify;
 	bool		ignore_netmail_dest_addr;
-	bool		ignore_netmail_sent_attr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
@@ -185,7 +183,7 @@ typedef struct {
 	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
-char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
+char* pktTypeStringList[];
 char* mailStatusStringList[4];
 
 /***********************/
@@ -197,7 +195,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
 fidoaddr_t atofaddr(const char *str);
 const char *faddrtoa(const fidoaddr_t*);
-bool faddr_contains_wildcard(const fidoaddr_t*);
 int  matchnode(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 nodecfg_t* findnodecfg(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 

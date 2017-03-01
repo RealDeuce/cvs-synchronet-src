@@ -1,5 +1,4 @@
-/* $Id: scfg.h,v 1.21 2017/08/17 19:41:09 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfg.h,v 1.20 2016/12/02 15:44:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +74,7 @@ extern BOOL new_install;
 /***********************/
 
 void bail(int code);
-void errormsg(int line, const char* function, const char *source, const char* action, const char *object, ulong access);
+void errormsg(int line, char* function, char *source,  char* action, char *object, ulong access);
 void clearptrs(int subnum);
 int  save_changes(int mode);
 void node_menu(void);
