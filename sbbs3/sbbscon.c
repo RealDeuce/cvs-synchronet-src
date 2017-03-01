@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.265 2018/01/14 19:49:40 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.262 2016/11/28 02:59:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,7 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#if defined USE_LINUX_CAPS && !defined _GNU_SOURCE
+#ifdef USE_LINUX_CAPS
 #define _GNU_SOURCE
 #endif
 
@@ -228,14 +228,15 @@ static int lputs(int level, char *str)
 
 #ifdef __unix__
 
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str!=NULL) {
 			if (std_facilities)
 				syslog(level|LOG_AUTH,"%s",str);
 			else
 				syslog(level,"%s",str);
 		}
-		return(0);
+		if(is_daemon)
+			return(0);
 	}
 #endif
 	if(!mutex_initialized) {
@@ -557,7 +558,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
 	if(up)
 	    thread_count++;
     else if(thread_count>0)
-		thread_count--;
+    	thread_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
@@ -575,7 +576,7 @@ static void socket_open(void* p, BOOL open)
 	pthread_mutex_lock(&mutex);
 	if(open)
 	    socket_count++;
-	else if(socket_count>0)
+    else if(socket_count>0)
     	socket_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
@@ -945,7 +946,6 @@ static void terminate(void)
 {
 	ulong count=0;
 
-	prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu  Errors: %lu] Terminating... ";
 	if(bbs_running)
 		bbs_terminate();
 	if(ftp_running)
@@ -966,11 +966,11 @@ static void terminate(void)
 			if(bbs_running)
 				lputs(LOG_INFO,"Terminal Server thread still running");
 			if(ftp_running)
-				lprintf(LOG_INFO,"FTP Server thread still running (inactivity timeout: %u seconds)", ftp_startup.max_inactivity);
+				lputs(LOG_INFO,"FTP Server thread still running");
 			if(web_running)
-				lprintf(LOG_INFO,"Web Server thread still running (inactivity timeout: %u seconds)", web_startup.max_inactivity);
+				lputs(LOG_INFO,"Web Server thread still running");
 			if(mail_running)
-				lprintf(LOG_INFO,"Mail Server thread still running (inactivity timeout: %u seconds)", mail_startup.max_inactivity);
+				lputs(LOG_INFO,"Mail Server thread still running");
 			if(services_running)
 				lputs(LOG_INFO,"Services thread still running");
 		}
@@ -2120,7 +2120,7 @@ int main(int argc, char** argv)
 						for(node=client_list.first; node!=NULL; node=node->next) {
 							client=node->data;
 							localtime32(&client->time,&tm);
-							printf("%04ld %s %s [%s] %s port %u since %u/%u %02u:%02u:%02u\n"
+							printf("%04ld %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
 								,node->tag
 								,client->protocol
 								,client->user

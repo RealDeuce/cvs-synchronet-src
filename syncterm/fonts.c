@@ -144,7 +144,7 @@ void load_font_files(void)
 			FREE_AND_NULL(conio_fontdata[nextfont].eight_by_sixteen);
 		if(conio_fontdata[nextfont].eight_by_fourteen)
 			FREE_AND_NULL(conio_fontdata[nextfont].eight_by_fourteen);
-		if(conio_fontdata[nextfont].eight_by_eight)
+		if(conio_fontdata[nextfont].eight_by_sixteen)
 			FREE_AND_NULL(conio_fontdata[nextfont].eight_by_eight);
 		if(conio_fontdata[nextfont].desc)
 			FREE_AND_NULL(conio_fontdata[nextfont].desc);
@@ -351,18 +351,18 @@ void font_management(void)
 			if(show_filepick && !safe_mode) {
 				int result;
 				struct file_pick fpick;
-				struct vmem_cell	*savbuf;
+				char	*savbuf;
 				struct text_info	ti;
 
 				gettextinfo(&ti);
-				savbuf=alloca((ti.screenheight-2)*ti.screenwidth*sizeof(*savbuf));
+				savbuf=(char *)alloca((ti.screenheight-2)*ti.screenwidth*2);
 				if(savbuf==NULL) {
 					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
 					uifc.msg("malloc() failure.");
 					check_exit(FALSE);
 					continue;
 				}
-				vmem_gettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
+				gettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 				result=filepick(&uifc, str, &fpick, ".", fontmask, UIFC_FP_ALLOWENTRY);
 				if(result!=-1 && fpick.files>0) {
 					FREE_AND_NULL(*path);
@@ -371,7 +371,7 @@ void font_management(void)
 				else
 					check_exit(FALSE);
 				filepick_free(&fpick);
-				vmem_puttext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
+				puttext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 			}
 		}
 	}
