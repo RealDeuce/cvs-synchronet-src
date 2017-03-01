@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.11 2017/03/01 05:30:19 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.12 2017/03/01 05:32:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,7 +184,7 @@ typedef struct {
 	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
-char* pktTypeStringList[PKT_TYPES_SUPPORTED];
+char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
 char* mailStatusStringList[4];
 
 /***********************/
