@@ -1,14 +1,12 @@
-/* con_out.cpp */
-
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.70 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.76 2016/12/10 08:02:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -301,6 +299,8 @@ void sbbs_t::cursor_home(void)
 		rputs("\x1b[H");
 	else
 		outchar(FF);	/* this will clear some terminals, do nothing with others */
+	tos=1;
+	column=0;
 }
 
 void sbbs_t::cursor_up(int count)
@@ -375,6 +375,12 @@ void sbbs_t::cleartoeol(void)
 		while(++j<cols)
 			outcom(BS); 
 	}
+}
+
+void sbbs_t::cleartoeos(void)
+{
+	if(term_supports(ANSI))
+		rputs("\x1b[J");
 }
 
 /****************************************************************************/
@@ -483,8 +489,14 @@ void sbbs_t::ctrl_a(char x)
 		case 'S':   /* Synchronize */
 			ASYNC;
 			break;
+		case 'J':	/* clear to end-of-screen */
+			cleartoeos();
+			break;
 		case 'L':	/* CLS (form feed) */
 			CLS;
+			break;
+		case '`':	/* Home cursor */
+			cursor_home();
 			break;
 		case '>':   /* CLREOL */
 			cleartoeol();
@@ -619,4 +631,39 @@ bool sbbs_t::msgabort()
 	return(false);
 }
 
+int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr)
+{
+	int	atr;
+	int save_atr = curatr;
+	int len;
+	char* str = strip_ctrl(instr, NULL);
 
+	len = strlen(str);
+	if(!term_supports(ANSI))
+		bputs(str);
+	else {
+		for(int i=0; i<len; i++) {
+			if(((float)(i+1) / len)*100.0 <= pct)
+				atr = full_attr;
+			else
+				atr = empty_attr;
+			if(curatr != atr) attr(atr);
+			outchar(str[i]);
+		}
+		attr(save_atr);
+	}
+	free(str);
+	return len;
+}
+
+void sbbs_t::progress(const char* text, int count, int total, int interval)
+{
+	char str[128];
+
+	if((count%interval) != 0)
+		return;
+	if(text == NULL) text = "";
+	float pct = ((float)count/total)*100.0F;
+	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);
+	cursor_left(backfill(str, pct, cfg.color[clr_progress_full], cfg.color[clr_progress_empty]));
+}
