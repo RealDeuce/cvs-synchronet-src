@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.31 2017/03/06 20:48:02 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.32 2017/03/06 22:58:09 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4218,7 +4218,7 @@ int export_netmail(void)
 
 		printf("NetMail msg #%u from %s to %s (%s): "
 			,msg.hdr.number, msg.from, msg.to, smb_faddrtoa(msg.to_net.addr,NULL));
-		if(msg.hdr.netattr&MSG_SENT) {
+		if((msg.hdr.netattr&MSG_SENT) && !cfg.ignore_netmail_sent_attr) {
 			printf("already sent\n");
 			continue;
 		}
@@ -4370,7 +4370,7 @@ void pack_netmail(void)
 		}
 		printf("NetMail msg %s from %s (%s) to %s (%s): "
 			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
-		if(hdr.attr&FIDO_SENT) {
+		if((hdr.attr&FIDO_SENT) && !cfg.ignore_netmail_recv_attr) {
 			printf("already sent\n");
 			fclose(fidomsg);
 			continue;
@@ -4999,7 +4999,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.31 $", "%*s %s", revision);
+	sscanf("$Revision: 3.32 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5182,6 +5182,8 @@ int main(int argc, char **argv)
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
 	lprintf(LOG_DEBUG, "%u packers, %u linked-nodes, %u echolists configured", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
+	if(cfg.ignore_netmail_sent_attr && !cfg.delete_netmail)
+		lprintf(LOG_WARNING, "Ignore NetMail 'Sent' Attribute is enabled with Delete NetMail disabled: Duplicate NetMail msgs may be sent!");
 
 	SAFEPRINTF(path,"%ssbbsecho.bsy", scfg.ctrl_dir);
 	if(!fmutex(path, program_id(), cfg.bsy_timeout)) {

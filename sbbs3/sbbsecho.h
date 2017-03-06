@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.12 2017/03/01 05:32:16 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.13 2017/03/06 22:58:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,6 +172,7 @@ typedef struct {
 	bool		delete_packets;
 	bool		echomail_notify;
 	bool		ignore_netmail_dest_addr;
+	bool		ignore_netmail_sent_attr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
