@@ -1,12 +1,14 @@
+/* uifcx.c */
+
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.33 2018/02/20 18:49:16 deuce Exp $ */
+/* $Id: uifcx.c,v 1.29 2014/04/24 07:32:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -61,22 +63,6 @@ static void upop(char *str);
 static void sethelp(int line, char* file);
 
 /****************************************************************************/
-/****************************************************************************/
-static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
-{
-	va_list argptr;
-	char str[MAX_COLS + 1];
-	int i;
-
-	va_start(argptr, fmat);
-	vsprintf(str, fmat, argptr);
-	va_end(argptr);
-	i = printf("%s", str);
-	return(i);
-}
-
-
-/****************************************************************************/
 /* Initialization function, see uifc.h for details.							*/
 /* Returns 0 on success.													*/
 /****************************************************************************/
@@ -99,7 +85,6 @@ int UIFCCALL uifcinix(uifcapi_t* uifcapi)
     api->showhelp=help;
 	api->showbuf=NULL;
 	api->timedisplay=NULL;
-	api->printf = uprintf;
 
     setvbuf(stdin,NULL,_IONBF,0);
     setvbuf(stdout,NULL,_IONBF,0);
@@ -254,11 +239,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 }
             }
             str[0]=0;
-            if(mode&WIN_COPY)
+            if(mode&WIN_GET)
                 strcat(str,", Copy");
-			if(mode&WIN_CUT)
-				strcat(str,", X-Cut");
-            if(mode&WIN_PASTE)
+            if(mode&WIN_PUT)
                 strcat(str,", Paste");
             if(mode&WIN_INS)
                 strcat(str,", Add");
@@ -315,39 +298,30 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 if(opts==1)
                     return(MSK_DEL);
                 return(which("Delete",opts)|MSK_DEL);
-            case 'C':   /* Copy */
-				if(!(mode&WIN_COPY))
+            case 'C':   /* Copy/Get */
+				if(!(mode&WIN_GET))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
-        			return((i-1)|MSK_COPY);
+        			return((i-1)|MSK_GET);
                 if(opts==1)
-                    return(MSK_COPY);
-                return(which("Copy",opts)|MSK_COPY);
-            case 'X':   /* Cut */
-				if(!(mode&WIN_CUT))
+                    return(MSK_GET);
+                return(which("Copy",opts)|MSK_GET);
+            case 'P':   /* Paste/Put */
+				if(!(mode&WIN_PUT))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
-        			return((i-1)|MSK_CUT);
+        			return((i-1)|MSK_PUT);
                 if(opts==1)
-                    return(MSK_CUT);
-                return(which("Cut",opts)|MSK_CUT);
-            case 'P':   /* Paste */
-				if(!(mode&WIN_PASTE))
-					break;
-				if(!opts)
-    				break;
-                if(i>0 && i<=opts+1)
-        			return((i-1)|MSK_PASTE);
-                if(opts==1)
-                    return(MSK_PASTE);
-                return(which("Insert pasted item before",opts+1)|MSK_PASTE);
+                    return(MSK_PUT);
+                return(which("Paste",opts)|MSK_PUT);
         }
     }
 }
+
 
 /*************************************************************************/
 /* This function is a windowed input string input routine.               */
@@ -470,8 +444,6 @@ void help()
 							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
 								,p,helpline,l,api->helpixbfile);
 						}
-						else
-							hbuf[HELPBUF_SIZE-1] = 0;
 					}
 					fclose(fp); 
 				}
