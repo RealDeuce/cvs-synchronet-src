@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.609 2017/10/23 03:23:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.606 2016/12/08 06:58:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -887,7 +887,7 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.protocol="POP3";
-	client.user=STR_UNKNOWN_USER;
+	client.user="<unknown>";
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"POP3: %s", host_ip);
@@ -2676,7 +2676,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.protocol="SMTP";
-	client.user=STR_UNKNOWN_USER;
+	client.user="<unknown>";
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -3139,7 +3139,7 @@ static void smtp_thread(void* arg)
 					if(!can_user_post(&scfg,subnum,&relay_user,&client,&reason)) {
 						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
-							,scfg.sub[subnum]->sname, reason + 1);
+							,scfg.sub[subnum]->sname, reason);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						stats.msgs_refused++;
@@ -3362,11 +3362,15 @@ static void smtp_thread(void* arg)
 									p++;
 							}
 							safe_snprintf(str,sizeof(str)
-								,startup->newmail_notice
+								,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you \1h\1we-mail\1n\1m from: "
+								"\1h%s\1n\r\n"
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
-							if(!newmsg.idx.to) 	/* Forwarding */
-								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
+							if(!newmsg.idx.to) {	/* Forwarding */
+								strcat(str,"\1mand it was automatically forwarded to: \1h");
+								strcat(str,rcpt_addr);
+								strcat(str,"\1n\r\n");
+							}
 							putsmsg(&scfg, usernum, str);
 						}
 					}
@@ -5135,7 +5139,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.609 $", "%*s %s", revision);
+	sscanf("$Revision: 1.606 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

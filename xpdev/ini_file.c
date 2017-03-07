@@ -1,7 +1,8 @@
+/* ini_file.c */
+
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.151 2017/10/11 19:55:35 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: ini_file.c,v 1.148 2016/05/26 08:36:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +99,7 @@ static char* section_name(char* p)
 	return(p);
 }
 
-static BOOL section_match(const char* name, const char* compare, BOOL case_sensitive)
+static BOOL section_match(const char* name, const char* compare)
 {
 	BOOL found=FALSE;
 	str_list_t names=strListSplitCopy(NULL,name,INI_SECTION_NAME_SEP);
@@ -107,7 +108,7 @@ static BOOL section_match(const char* name, const char* compare, BOOL case_sensi
 	char*	n;
 	char*	c;
 
-	/* Ignore trailing whitespace */
+	/* Ignore trailing whitepsace */
 	for(i=0; names[i]!=NULL; i++)
 		truncsp(names[i]);
 	for(i=0; comps[i]!=NULL; i++)
@@ -120,10 +121,8 @@ static BOOL section_match(const char* name, const char* compare, BOOL case_sensi
 			SKIP_WHITESPACE(n);
 			c=comps[j];
 			SKIP_WHITESPACE(c);
-			if (case_sensitive)
-				found = strcmp(n, c) == 0;
-			else
-				found = stricmp(n, c) == 0;
+			if(stricmp(n,c)==0)
+				found=TRUE;
 		}
 
 	strListFree(&names);
@@ -142,7 +141,6 @@ static BOOL seek_section(FILE* fp, const char* section)
 	if(section==ROOT_SECTION)
 		return(TRUE);
 
-	/* Perform case-sensitive search first */
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
@@ -150,23 +148,9 @@ static BOOL seek_section(FILE* fp, const char* section)
 			break;
 		if((p=section_name(str))==NULL)
 			continue;
-		if(section_match(p, section, /* case-sensitive */TRUE))
+		if(section_match(p,section))
 			return(TRUE);
 	}
-
-	/* Then perform case-insensitive search */
-	rewind(fp);
-	while (!feof(fp)) {
-		if (fgets(str, sizeof(str), fp) == NULL)
-			break;
-		if (is_eof(str))
-			break;
-		if ((p = section_name(str)) == NULL)
-			continue;
-		if (section_match(p, section, /* case-sensitive */FALSE))
-			return(TRUE);
-	}
-
 	return(FALSE);
 }
 
@@ -176,21 +160,11 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	/* Perform case-sensitive search first */
-	for (i = 0; list[i] != NULL; i++) {
-		SAFECOPY(str, list[i]);
+	for(i=0; list[i]!=NULL; i++) {
+		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			return(strListCount(list));
-		if((p=section_name(str))!=NULL && section_match(p, section, /* case-sensitive */TRUE))
-			return(i);
-	}
-
-	/* Then perform case-insensitive search */
-	for (i = 0; list[i] != NULL; i++) {
-		SAFECOPY(str, list[i]);
-		if (is_eof(str))
-			return(strListCount(list));
-		if ((p = section_name(str)) != NULL && section_match(p, section, /* case-sensitive */FALSE))
+		if((p=section_name(str))!=NULL && section_match(p,section))
 			return(i);
 	}
 
@@ -214,7 +188,6 @@ static char* key_name(char* p, char** vp)
 {
 	char* equal;
 	char* colon;
-	char* tp;
 
     *vp=NULL;
 
@@ -244,17 +217,9 @@ static char* key_name(char* p, char** vp)
 	/* Parse value */
 	(*vp)++;
 	SKIP_WHITESPACE(*vp);
-	if(colon!=NULL) {		/* string literal value */
+	if(colon!=NULL)
 		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
-		if(*(*vp) == '"') {	/* handled quoted-strings here */
-			(*vp)++;
-			tp = strrchr(*vp, '"');
-			if(tp != NULL) {
-				*tp = 0;
-			}
-		}
-		c_unescape_str(*vp);
-	} else
+	else
 		truncsp(*vp);		/* "key = value" - truncate all white-space chars */
 
 	return(p);
@@ -501,23 +466,11 @@ size_t DLLCALL iniAppendSection(str_list_t* list, const char* section, ini_style
 	return ini_add_section(list,section,style,strListCount(*list));
 }
 
-static BOOL str_contains_ctrl_char(const char* str)
-{
-	while(*str) {
-		if(*(unsigned char*)str < ' ')
-			return TRUE;
-		str++;
-	}
-	return FALSE;
-}
-
-static char* ini_set_string(str_list_t* list, const char* section, const char* key, const char* value, BOOL literal
+char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
 				 ,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
-	char	litstr[INI_MAX_VALUE_LEN];
 	char	curval[INI_MAX_VALUE_LEN];
-	const char*	value_separator;
 	size_t	i;
 
 	if(style==NULL)
@@ -531,19 +484,10 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
-	if(style->literal_separator==NULL)
-		style->literal_separator=":";
 	if(value==NULL)
 		value="";
-	if(literal) {
-		char cstr[INI_MAX_VALUE_LEN];
-		SAFEPRINTF(litstr, "\"%s\"", c_escape_str(value, cstr, sizeof(cstr)-1, /* ctrl_only: */FALSE));
-		value = litstr;
-		value_separator = style->literal_separator;
-	} else
-		value_separator = style->value_separator;
 	safe_snprintf(str, sizeof(str), "%s%-*s%s%s"
-		,style->key_prefix, style->key_len, key, value_separator, value);
+		, style->key_prefix, style->key_len, key, style->value_separator, value);
 	i=get_value(*list, section, key, curval, NULL);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
         while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
@@ -554,19 +498,6 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 		return((*list)[i]);	/* no change */
 
 	return strListReplace(*list, i, str);
-}
-char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	BOOL literal = value != NULL && (str_contains_ctrl_char(value) || *value==' ' || *lastchar(value)==' ');
-		
-	return ini_set_string(list, section, key, value, literal, style);
-}
-
-char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
