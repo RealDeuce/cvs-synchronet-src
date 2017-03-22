@@ -2,7 +2,7 @@
 
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.7 2016/10/19 03:55:52 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.10 2017/03/06 22:58:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -399,8 +399,8 @@ int main(int argc, char **argv)
 	"\r\n"
 	"`Packet Type` is the type of outbound packet generated for this node.\r\n"
 	"Incoming packet types are automatically detected from among the list\r\n"
-	"of supported packet types (2, 2.2, and 2+).\r\n"
-	"The default outbound packet type is type `2+`.\r\n"
+	"of supported packet types (`2`, `2.2`, `2e`, and `2+`).\r\n"
+	"The default outbound packet type is `Type-2+`.\r\n"
 	"\r\n"
 	"`Packet Password` is an optional password that may be added to outbound\r\n"
 	"packets for this node.  Incoming packets from this node must also have\r\n"
@@ -525,7 +525,13 @@ int main(int argc, char **argv)
 	uifc.helpbuf=
 	"~ Packet Type ~\r\n\r\n"
 	"This is the packet header type that will be used in mail packets\r\n"
-	"created for this node.  SBBSecho defaults to using packet type `2+`.\r\n";
+	"created for this node.  SBBSecho defaults to creating `Type-2+` packets.\r\n"
+	"\r\n"
+	"`Type-2  ` packets are defined in FTS-0001.16 (Stone Age)\r\n"
+	"`Type-2e ` packets are defined in FSC-0039.04 (Sometimes called 2+)\r\n"
+	"`Type-2+ ` packets are defined in FSC-0048.02 (4D address support)\r\n"
+	"`Type-2.2` packets are defined in FSC-0045.01 (5D address support)\r\n"
+	;
 								j=cfg.nodecfg[i].pkt_type;
 								k=uifc.list(WIN_RHT|WIN_SAV,0,0,0,&j,0,"Packet Type"
 									,pktTypeStringList);
@@ -681,6 +687,9 @@ int main(int argc, char **argv)
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Log File"
 						,cfg.logfile[0] ? cfg.logfile
 						: "SCFG->data/sbbsecho.log");
+					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Temporary File Directory"
+						,cfg.temp_dir[0] ? cfg.temp_dir
+						: "../temp/sbbsecho");
 					opt[i][0]=0;
 					uifc.helpbuf=
 						"~ Paths and Filenames ~\r\n\r\n"
@@ -751,6 +760,17 @@ int main(int argc, char **argv)
 								,cfg.logfile,sizeof(cfg.logfile)-1
 								,K_EDIT);
 							break; 
+						case 5:
+	uifc.helpbuf=
+	"~ Temporary File Directory ~\r\n\r\n"
+	"This is the directory where SBBSecho will store temporary files that\r\n"
+	"it creates and uses during its run-time.\r\n"
+	"(default is `../temp/sbbsecho`)."
+	;
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Temp Dir"
+								,cfg.temp_dir,sizeof(cfg.temp_dir)-1
+								,K_EDIT);
+							break; 
 					} 
 				}
 				break;
@@ -790,6 +810,12 @@ int main(int argc, char **argv)
 	"    addresses (AKAs) and potentially import it.\r\n"
 	"    This setting defaults to `No`.\r\n"
 	"\r\n"
+	"`Ignore Netmail 'Sent' Attribute` will instruct SBBSecho to export\r\n"
+	"    NetMail messages even when their 'Sent' attribute flag is set.\r\n"
+	"    This setting `should not` be set to `Yes` when `Delete NetMail` is\r\n"
+	"    disabled.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
 	"`Ignore Netmail 'Received' Attribute` will instruct SBBSecho to import\r\n"
 	"    NetMail messages even when their 'Received' attribute flag is set.\r\n"
 	"    This setting defaults to `No`.\r\n"
@@ -815,6 +841,8 @@ int main(int argc, char **argv)
 						,cfg.delete_netmail ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail Destination Address"
 						,cfg.ignore_netmail_dest_addr ? "Yes" : "No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'Sent' Attribute"
+						,cfg.ignore_netmail_sent_attr ? "Yes" : "No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'Received' Attribute"
 						,cfg.ignore_netmail_recv_attr ? "Yes" : "No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'Local' Attribute"
@@ -881,6 +909,14 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 6:
+							k = !cfg.ignore_netmail_sent_attr;
+							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+								,"Ignore NetMail 'Sent' Attribute",uifcYesNoOpts)) {
+								case 0:	cfg.ignore_netmail_sent_attr = true;	break;
+								case 1:	cfg.ignore_netmail_sent_attr = false;	break;
+							}
+							break;
+						case 7:
 							k = !cfg.ignore_netmail_recv_attr;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Ignore NetMail 'Received' Attribute",uifcYesNoOpts)) {
@@ -888,7 +924,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.ignore_netmail_recv_attr = false;	break;
 							}
 							break;
-						case 7:
+						case 8:
 							k = !cfg.ignore_netmail_local_attr;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Ignore NetMail 'Local' Attribute",uifcYesNoOpts)) {
@@ -896,7 +932,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.ignore_netmail_local_attr = false;	break;
 							}
 							break;
-						case 8:
+						case 9:
 							uifc.helpbuf=
 							"~ Maximum Age of Imported NetMail ~\r\n\r\n"
 							"Maximum age (in days) of NetMail that may be imported. The age is based\r\n"
