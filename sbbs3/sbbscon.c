@@ -1,14 +1,13 @@
-/* sbbscon.c */
-
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.257 2015/08/31 03:03:27 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.262 2016/11/28 02:59:08 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -265,7 +264,7 @@ static int lputs(int level, char *str)
     return(prompt_len);
 }
 
-static void errormsg(void* cbdata, int level, const char* fmt)
+static void errormsg(void* cbdata, int level, const char* msg)
 {
 	error_count++;
 }
@@ -999,6 +998,7 @@ static void read_startup_ini(BOOL recycle
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
+		ini_file,
 		NULL,			/* global_startup */
 		&run_bbs,		bbs,
 		&run_ftp,		ftp, 
@@ -1102,7 +1102,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
-	SetThreadName("Signal Handler");
+	SetThreadName("sbbs/sigHandler");
 	thread_up(NULL,TRUE,TRUE);
 
 	/* Write the standard .pid file if created/open */
@@ -1208,7 +1208,7 @@ int main(int argc, char** argv)
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
-	SetThreadName("Main");
+	SetThreadName("sbbs");
 	listInit(&client_list, LINK_LIST_MUTEX);
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
