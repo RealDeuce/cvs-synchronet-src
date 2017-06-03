@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.114 2017/11/16 06:13:21 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.113 2016/11/24 03:05:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -651,7 +651,7 @@ void maint(void)
 			,beep,i,smb.last_error);
 		return; 
 	}
-	if((smb.status.max_msgs || smb.status.max_crcs) && smb_open_hash(&smb) == SMB_SUCCESS)
+	if(smb_open_hash(&smb) == SMB_SUCCESS)
 	{
 		ulong max_hashes=0;
 
@@ -1067,7 +1067,7 @@ void packmsgs(ulong packable)
 		if(!fread(&msg.idx,1,sizeof(idxrec_t),smb.sid_fp))
 			break;
 		if(msg.idx.attr&MSG_DELETE) {
-			printf("\nDeleted index %lu: msg number %lu\n", l,(ulong) msg.idx.number);
+			printf("\nDeleted index.\n");
 			continue; 
 		}
 		i=smb_lockmsghdr(&smb,&msg);
@@ -1292,33 +1292,6 @@ void delmsgs(void)
 	printf("\nDone.\n\n");
 }
 
-int setmsgattr(smb_t* smb, ulong number, uint16_t attr)
-{
-	int i;
-	smbmsg_t msg;
-	ZERO_VAR(msg);
-
-	if((i = smb_locksmbhdr(smb) != SMB_SUCCESS))
-		return i;
-
-	msg.hdr.number=number;
-	do {
-		if((i=smb_getmsgidx(smb, &msg))!=SMB_SUCCESS)				 /* Message is deleted */
-			break;
-		if((i=smb_lockmsghdr(smb, &msg))!=SMB_SUCCESS)
-			break;
-		if((i=smb_getmsghdr(smb, &msg))!=SMB_SUCCESS)
-			break;
-		msg.hdr.attr = attr;
-		i=smb_putmsg(smb, &msg);
-	} while(0);
-
-	smb_freemsgmem(&msg);
-	smb_unlockmsghdr(smb, &msg);
-	smb_unlocksmbhdr(smb);
-
-	return i;
-}
 /****************************************************************************/
 /* Read messages in message base											*/
 /****************************************************************************/
@@ -1347,13 +1320,11 @@ void readmsgs(ulong start)
 			if(i) {
 				fprintf(errfp,"\n%s!smb_getmsghdr returned %d: %s\n"
 					,beep,i,smb.last_error);
-				smb_unlockmsghdr(&smb, &msg);
 				break; 
 			}
 
 			printf("\n%"PRIu32" (%d)\n",msg.hdr.number,msg.offset+1);
 			printf("Subj : %s\n",msg.subj);
-			printf("Attr : %04hX\n", msg.hdr.attr);
 			printf("To   : %s",msg.to);
 			if(msg.to_net.type)
 				printf(" (%s)",smb_netaddr(&msg.to_net));
@@ -1389,7 +1360,6 @@ void readmsgs(ulong start)
 					   "(L)ist messages\n"
 					   "(T)en more titles\n"
 					   "(V)iew message headers\n"
-					   "(D)elete message\n"
 					   "(Q)uit\n"
 					   "(+/-) Forward/Backward\n"
 					   "\n");
@@ -1422,10 +1392,6 @@ void readmsgs(ulong start)
 				printf("View message headers\n");
 				viewmsgs(1,-1, FALSE);
 				domsg=0;
-				break;
-			case 'D':
-				printf("Deleting message\n");
-				setmsgattr(&smb, msg.hdr.number, msg.hdr.attr^MSG_DELETE);
 				break;
 			case CR:
 			case '+':
@@ -1505,7 +1471,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.114 $", "%*s %s", revision);
+	sscanf("$Revision: 1.113 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

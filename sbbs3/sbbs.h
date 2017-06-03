@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.453 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.447 2016/12/10 08:02:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -637,7 +637,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which, bool permanent=true, long lm_mode = 0);
+	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
@@ -650,9 +650,8 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which);
+	void	readmail(uint usernumber, int sent);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -707,8 +706,6 @@ public:
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
 
-	long	mselect(const char *title, str_list_t list, unsigned max_selections, const char* item_fmt, const char* selected_str, const char* unselected_str, const char* prompt_fmt);
-
 	void	redrwstr(char *strin, int i, int l, long mode);
 	void	attr(int atr);				/* Change local and remote text attributes */
 	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
@@ -733,7 +730,7 @@ public:
 	int		putnodeext(uint number, char * str);
 
 	/* login.ccp */
-	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
+	int		login(char *str, char *pw);
 	void	badlogin(char* user, char* passwd);
 
 	/* answer.cpp */
@@ -763,7 +760,6 @@ public:
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
 	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
-	int64_t get_start_msgnum(smb_t*, int next=0);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -784,13 +780,12 @@ public:
 	int		getnodetopage(int all, int telegram);
 
 	/* main.cpp */
-	int		lputs(int level, const char* str);
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
-	bool	chksyspass(const char* sys_pw = NULL);
+	bool	chksyspass(void);
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
@@ -1007,7 +1002,7 @@ extern "C" {
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* getmail.c */
-	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
+	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
@@ -1086,7 +1081,6 @@ extern "C" {
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
 	DLLEXPORT ushort	DLLCALL sys_timezone(scfg_t* cfg);
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);
@@ -1096,8 +1090,14 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_file_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
+	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
+	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
+	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 
+
+	/* scfglib1.c */
+	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1314,7 +1314,6 @@ int		strsame(const char *str1, const char *str2);	/* Compares number of same cha
 
 /* load_cfg.c */
 BOOL 	md(char *path);
-char*	prep_code(char *str, const char* prefix);
 
 #ifdef SBBS /* These aren't exported */
 
