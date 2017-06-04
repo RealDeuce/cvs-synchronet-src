@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.173 2016/11/16 09:05:39 rswindell Exp $ */
+/* $Id: userdat.c,v 1.180 2016/12/10 21:29:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -418,6 +418,7 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	memset(userdat, 0, sizeof(userdat));
 	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
 		close(file);
+		user->number = 0;
 		return retval;
 	}
 	retval = parseuserdat(cfg, userdat, user);
@@ -431,9 +432,14 @@ int DLLCALL fgetuserdat(scfg_t* cfg, user_t *user, int file)
 	int		retval;
 	char	userdat[U_LEN+1];
 
+	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
+		return(-1); 
+
 	memset(userdat, 0, sizeof(userdat));
-	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0)
+	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
+		user->number = 0;
 		return retval;
+	}
 	return parseuserdat(cfg, userdat, user);
 }
 
@@ -1138,7 +1144,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 
 /****************************************************************************/
 uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
-						 ,char *dat, BOOL del, BOOL next)
+						 ,char *dat, BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata)
 {
     char	str[MAX_PATH+1];
     uint	i;
@@ -1157,7 +1163,11 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		l=((long)usernumber) * U_LEN;
 	else
 		l=0;
+	if(progress != NULL)
+		progress(cbdata, l, length);
 	for(;l<length;l+=U_LEN) {
+		if(progress != NULL)
+			progress(cbdata, l, length);
 		if(usernumber && l/U_LEN==(long)usernumber-1) 
 			continue;
 		lseek(file,l+offset,SEEK_SET);
@@ -1195,6 +1205,8 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 			unlock(file,l,U_LEN); 
 	}
 	close(file);
+	if(progress != NULL)
+		progress(cbdata, l, length);
 	return(0);
 }
 
@@ -2705,6 +2717,14 @@ BOOL DLLCALL is_download_free(scfg_t* cfg, uint dirnum, user_t* user, client_t* 
 	return(chk_ar(cfg,cfg->dir[dirnum]->ex_ar,user,client));
 }
 
+BOOL DLLCALL is_host_exempt(scfg_t* cfg, const char* ip_addr, const char* host_name)
+{
+	char	exempt[MAX_PATH+1];
+
+	SAFEPRINTF2(exempt, "%s%s", cfg->ctrl_dir, strIpFilterExemptConfigFile);
+	return findstr(ip_addr, exempt) || findstr(host_name, exempt);
+}
+
 /****************************************************************************/
 /* Add an IP address (with comment) to the IP filter/trashcan file			*/
 /* ToDo: Move somewhere more appropriate (filter.c?)						*/
@@ -2985,7 +3005,7 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
 /****************************************************************************/
-BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
+BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*progress)(void*, int, int), void* cbdata)
 {
 	char		path[MAX_PATH+1];
 	uint		i;
@@ -3009,17 +3029,19 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 		return 0;
 
 	if(user->rest&FLAG('G'))
-		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init);
+		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init, progress, cbdata);
 	
 	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
 	if((stream=fnopen(&file,path,O_RDONLY))==NULL) {
 		if(fexist(path))
 			return(FALSE);	/* file exists, but couldn't be opened? */
-		return initmsgptrs(cfg, subscan, cfg->new_msgscan_init);
+		return initmsgptrs(cfg, subscan, cfg->new_msgscan_init, progress, cbdata);
 	}
 
 	length=(long)filelength(file);
 	for(i=0;i<cfg->total_subs;i++) {
+		if(progress != NULL)
+			progress(cbdata, i, cfg->total_subs);
 		if(length>=(cfg->sub[i]->ptridx+1)*10L) {
 			fseek(stream,(long)cfg->sub[i]->ptridx*10L,SEEK_SET);
 			fread(&subscan[i].ptr,sizeof(subscan[i].ptr),1,stream);
@@ -3030,6 +3052,8 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 		subscan[i].sav_last=subscan[i].last;
 		subscan[i].sav_cfg=subscan[i].cfg; 
 	}
+	if(progress != NULL)
+		progress(cbdata, i, cfg->total_subs);
 	fclose(stream);
 	return(TRUE);
 }
@@ -3096,7 +3120,7 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 /* Initialize new-msg-scan pointers (e.g. for new users)					*/
 /* If 'days' is specified as 0, just set pointer to last message (faster)	*/
 /****************************************************************************/
-BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
+BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*progress)(void*, int, int), void* cbdata)
 {
 	uint		i;
 	smb_t		smb;
@@ -3104,6 +3128,8 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
 	time_t		t = time(NULL) - (days * 24 * 60 * 60);
 
 	for(i=0;i<cfg->total_subs;i++) {
+		if(progress != NULL)
+			progress(cbdata, i, cfg->total_subs);
 		if(days == 0) {
 			/* This value will be "fixed" (changed to the last msg) when saving */
 			subscan[i].ptr = ~0;
@@ -3121,6 +3147,8 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days)
 			subscan[i].ptr = idx.number;
 		smb_close(&smb);
 	}
+	if(progress != NULL)
+		progress(cbdata, i, cfg->total_subs);
 	return TRUE;
 }
 
