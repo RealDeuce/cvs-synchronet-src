@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.646 2016/11/29 08:37:58 rswindell Exp $ */
+/* $Id: main.cpp,v 1.647 2017/06/04 00:57:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5307,7 +5307,7 @@ NO_SSH:
 #else
 		client.protocol=rlogin ? "RLogin":"Telnet";
 #endif
-		client.user="<unknown>";
+		client.user=STR_UNKNOWN_USER;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
