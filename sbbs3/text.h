@@ -801,9 +801,6 @@ enum {
 	,PollAnswerNumber
 	,PollAnswerFmt
 	,PollAnswerChecked
-	,BallotHdr
-	,BallotAnswerFmt
-	,BallotVoteWhich
 
 	,TOTAL_TEXT
 };
