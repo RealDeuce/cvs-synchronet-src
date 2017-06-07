@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.80 2016/12/02 15:44:55 rswindell Exp $ */
+/* $Id: scfg.c,v 1.81 2017/06/07 02:42:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ int main(int argc, char **argv)
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright %s "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION,__DATE__+7);
 
+	xp_randomize();
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
