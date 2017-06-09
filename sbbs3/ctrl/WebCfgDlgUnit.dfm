@@ -62,14 +62,6 @@ object WebCfgDlg: TWebCfgDlg
         AutoSize = False
         Caption = 'Interfaces (IPs)'
       end
-      object AuthTypesLabel: TLabel
-        Left = 7
-        Top = 140
-        Width = 78
-        Height = 19
-        AutoSize = False
-        Caption = 'Auth Types'
-      end
       object AutoStartCheckBox: TCheckBox
         Left = 7
         Top = 10
@@ -136,70 +128,6 @@ object WebCfgDlg: TWebCfgDlg
         ShowHint = True
         TabOrder = 1
       end
-      object AuthTypesEdit: TEdit
-        Left = 85
-        Top = 140
-        Width = 156
-        Height = 21
-        Hint = 'Comma-separated list of default authentication types allowed'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 6
-      end
-    end
-    object TlsTabSheet: TTabSheet
-      Caption = 'TLS'
-      ImageIndex = 5
-      object TlsInterfaceLabel: TLabel
-        Left = 7
-        Top = 36
-        Width = 78
-        Height = 19
-        AutoSize = False
-        Caption = 'Interfaces (IPs)'
-      end
-      object TlsPortLabel: TLabel
-        Left = 7
-        Top = 62
-        Width = 78
-        Height = 19
-        AutoSize = False
-        Caption = 'Listening Port'
-      end
-      object TlsEnableCheckBox: TCheckBox
-        Left = 7
-        Top = 10
-        Width = 117
-        Height = 20
-        Hint = 'Enables HTTPS (HTTP over TLS/SSL)'
-        Caption = 'Enabled'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 0
-        OnClick = TlsEnableCheckBoxClick
-      end
-      object TlsInterfaceEdit: TEdit
-        Left = 85
-        Top = 36
-        Width = 156
-        Height = 21
-        Hint = 
-          'Comma-separated list of IP addresses to accept incoming connecti' +
-          'ons'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 1
-      end
-      object TlsPortEdit: TEdit
-        Left = 85
-        Top = 62
-        Width = 39
-        Height = 21
-        Hint = 'TCP port to use for HTTPS connections (default=443)'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 2
-      end
     end
     object HttpTabSheet: TTabSheet
       Caption = 'HTTP'
@@ -250,7 +178,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 10
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Root directory for HTML files (off of CTRL directory)'
         ParentShowHint = False
         ShowHint = True
@@ -260,7 +188,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 36
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Error sub-directory (off of HTML root)'
         ParentShowHint = False
         ShowHint = True
@@ -270,7 +198,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 156
         Top = 114
         Width = 85
-        Height = 21
+        Height = 24
         Hint = 
           'File extension that denotes server-side JavaScript files (e.g. "' +
           '.ssjs")'
@@ -282,7 +210,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 156
         Top = 88
         Width = 85
-        Height = 21
+        Height = 24
         Hint = 
           'File extension that denotes embedded JavaScript files (e.g. ".bb' +
           's")'
@@ -307,7 +235,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 62
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 
           'List of filenames that will be automatically sent to client (e.g' +
           '. index.html)'
@@ -353,7 +281,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 36
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'CGI sub-directory (off of HTML root)'
         ParentShowHint = False
         ShowHint = True
@@ -375,7 +303,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 62
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'File extensions that denote CGI executable files'
         ParentShowHint = False
         ShowHint = True
@@ -385,7 +313,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 114
         Width = 39
-        Height = 21
+        Height = 24
         Hint = 
           'Maximum number of seconds of inactivity before disconnect (defau' +
           'lt=120)'
@@ -397,7 +325,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 88
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Default Content-Type for CGI output'
         ParentShowHint = False
         ShowHint = True
@@ -471,7 +399,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 88
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Base directory and filename for HTTP access log files'
         ParentShowHint = False
         ShowHint = True
@@ -509,7 +437,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 10
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Sound file to play when users connect'
         ParentShowHint = False
         ShowHint = True
@@ -528,7 +456,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 36
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Sound file to play when users disconnect'
         ParentShowHint = False
         ShowHint = True
@@ -547,7 +475,7 @@ object WebCfgDlg: TWebCfgDlg
         Left = 85
         Top = 62
         Width = 156
-        Height = 21
+        Height = 24
         Hint = 'Sound file to play when hack attempts are detected'
         ParentShowHint = False
         ShowHint = True
