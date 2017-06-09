@@ -1,6 +1,6 @@
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.20 2016/11/27 23:13:05 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.22 2016/12/10 21:29:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 static void ProgressLoadingMsgPtrs(void* cbdata, int count, int total)
 {
 	sbbs_t* sbbs = ((sbbs_t*)cbdata);
-	sbbs->progress(sbbs->text[LoadingMsgPtrs], count, total);
+	sbbs->progress(sbbs->text[LoadingMsgPtrs], count, total, 10);
 }
 
 /****************************************************************************/
@@ -59,6 +59,12 @@ void sbbs_t::putmsgptrs()
 	::putmsgptrs(&cfg,&useron,subscan);
 }
 
+static void ProgressSearchingUsers(void* cbdata, int count, int total)
+{
+	sbbs_t* sbbs = ((sbbs_t*)cbdata);
+	sbbs->progress(sbbs->text[SearchingForDupes], count, total, U_LEN*10);
+}
+
 /****************************************************************************/
 /* Checks for a duplicate user field starting at user record offset         */
 /* 'offset', reading in 'datlen' chars, comparing to 'str' for each user    */
@@ -70,8 +76,7 @@ void sbbs_t::putmsgptrs()
 uint sbbs_t::userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
     ,bool del, bool next)
 {
-	bputs(text[SearchingForDupes]);
-	uint i=::userdatdupe(&cfg, usernumber, offset, datlen, dat, del, next);
+	uint i=::userdatdupe(&cfg, usernumber, offset, datlen, dat, del, next, ProgressSearchingUsers, this);
 	bputs(text[SearchedForDupes]);
 	return(i);
 }

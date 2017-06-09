@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.95 2016/11/24 02:56:33 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.96 2016/12/05 12:01:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -657,7 +657,7 @@ typedef struct {				/* Message base */
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
 	uint32_t	msgs;			/* Number of messages loaded (for user) */
-	uint32_t	curmsg;			/* Current message number (for user) */
+	uint32_t	curmsg;			/* Current message number (for user, 0-based) */
 
 } smb_t;
 
