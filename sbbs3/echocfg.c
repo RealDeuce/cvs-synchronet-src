@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.11 2017/06/09 04:32:45 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.12 2017/06/09 04:52:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -781,10 +781,10 @@ int main(int argc, char **argv)
 	"echo tags can be located in one of your configured `Additional EchoLists`.\r\n"
 	"\r\n"
 	"The format of the file is the same as `BACKBONE.NA` and suitable for\r\n"
-	"importing into a Synchronet Message Group using `SCFG`.";
+	"importing into a Synchronet Message Group using `SCFG`.\r\n"
 	"\r\n"
 	"SBBSecho will automatically remove areas from this list when they\r\n"
-	"are added to your configuration (local message areas and Area File).\r\n"
+	"are added to your configuration (SCFG->Message Areas and Area File).\r\n"
 	;
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Bad Area File"
 								,cfg.badareafile,sizeof(cfg.badareafile)-1
