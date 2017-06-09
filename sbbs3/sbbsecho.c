@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.35 2017/06/09 04:32:46 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.36 2017/06/09 05:57:13 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2334,10 +2334,11 @@ void cleanup(void)
 		if(fp == NULL) {
 			lprintf(LOG_ERR, "ERROR %d (%s) opening %s", errno, strerror(errno), cfg.badareafile);
 		} else {
-			while((p=strListPop(&bad_areas)) != NULL) {
+			strListSortAlpha(bad_areas);
+			for(int i=0; bad_areas[i] != NULL; i++) {
+				p = bad_areas[i];
 				lprintf(LOG_DEBUG, "Writing '%s' (%p) to %s", p, p, cfg.badareafile);
 				fprintf(fp, "%-*s %s\n", FIDO_AREATAG_LEN, p, area_desc(p));
-				free(p);
 			}
 			fclose(fp);
 		}
@@ -5065,7 +5066,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.35 $", "%*s %s", revision);
+	sscanf("$Revision: 3.36 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
