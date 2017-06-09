@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.645 2017/06/15 19:12:50 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.644 2017/06/04 00:57:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -910,8 +910,7 @@ static void open_socket(SOCKET sock, void *cbdata)
 	struct accept_filter_arg afa;
 #endif
 
-	if(startup!=NULL && startup->socket_open!=NULL)
-		startup->socket_open(startup->cbdata,TRUE);
+	startup->socket_open(startup->cbdata,TRUE);
 	if (cbdata != NULL && !strcmp(cbdata, "TLS")) {
 		if(set_socket_options(&scfg, sock, "web|http|tls", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
@@ -931,8 +930,7 @@ static void open_socket(SOCKET sock, void *cbdata)
 
 static void close_socket_cb(SOCKET sock, void *cbdata)
 {
-	if(startup!=NULL && startup->socket_open!=NULL)
-		startup->socket_open(startup->cbdata,FALSE);
+	startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 }
 
@@ -6484,7 +6482,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.645 $", "%*s %s", revision);
+	sscanf("$Revision: 1.644 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
