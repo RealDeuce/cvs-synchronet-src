@@ -1,8 +1,6 @@
-/* sbbsecho.h */
-
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.13 2017/03/06 22:58:09 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.14 2017/06/09 04:32:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		00
+#define SBBSECHO_VERSION_MINOR		1
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -133,7 +131,9 @@ typedef struct {
 	char		inbound[MAX_PATH+1]; 	/* Inbound directory */
 	char		secure_inbound[MAX_PATH+1];		/* Secure Inbound directory */
 	char		outbound[MAX_PATH+1];	/* Outbound directory */
-	char		areafile[MAX_PATH+1];	/* AREAS.BBS path/filename */
+	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
+	uint		areafile_backups;		/* Number of backups to keep of area file */
+	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
