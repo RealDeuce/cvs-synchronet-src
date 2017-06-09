@@ -1,7 +1,8 @@
+/* jsexec.c */
+
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.186 2017/11/13 19:50:14 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: jsexec.c,v 1.184 2016/11/15 22:03:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1107,7 +1108,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.186 $", "%*s %s", revision);
+	sscanf("$Revision: 1.184 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
