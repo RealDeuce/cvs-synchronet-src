@@ -2,13 +2,13 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.65 2014/03/19 04:10:56 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.68 2016/10/06 06:42:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -430,7 +430,7 @@ void sbbs_t::multinodechat(int channel)
 							? text[AnonUserChatHandle]
 							: useron.handle
 							,cfg.node_num,':',nulstr);
-						sprintf(tmp,"%*s",bstrlen(str),nulstr);
+						sprintf(tmp,"%*s",(int)bstrlen(str),nulstr);
 						strcat(pgraph,tmp); 
 					}
 					strcat(pgraph,line);
@@ -1552,7 +1552,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	j=strlen(line);
 	k=0;
 	for(i=0;i<j;i++) {
-		if(line[i]<0 || !isalnum(line[i])) {
+		if(line[i]<0 || !isalnum((uchar)line[i])) {
 			if(!k)	/* beginning non-alphanumeric */
 				continue;
 			if(line[i]==line[i+1])	/* redundant non-alnum */
@@ -1565,7 +1565,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	cstr[k]=0;
 	while(k) {
 		k--;
-		if(!isalnum(cstr[k]))
+		if(!isalnum((uchar)cstr[k]))
 			continue;
 		break; 
 	}
@@ -1754,8 +1754,8 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if(action!=NODE_MCHT) {
 				for(i=0;i<k;i++) {
 					if(i && mistakes && theanswer[i]!=theanswer[i-1] &&
-						((!isalnum(theanswer[i]) && !sbbs_random(100))
-						|| (isalnum(theanswer[i]) && !sbbs_random(30)))) {
+						((!isalnum((uchar)theanswer[i]) && !sbbs_random(100))
+						|| (isalnum((uchar)theanswer[i]) && !sbbs_random(30)))) {
 						c=j=((uint)sbbs_random(3)+1);	/* 1 to 3 chars */
 						if(c<strcspn(theanswer+(i+1),"\0., "))
 							c=j=1;
@@ -1792,6 +1792,9 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1)
 				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 			else {
+				xpDateTime_to_isoDateTimeStr(xpDateTime_now(), "-", " ", ":", 0, str, sizeof(str)-3);
+				strcat(str,"\r\n");
+				write(file,str,strlen(str));
 				if(action==NODE_MCHT) {
 					sprintf(str,"[Multi] ");
 					write(file,str,strlen(str)); 
@@ -1914,13 +1917,13 @@ bool sbbs_t::guruexp(char **ptrptr, char *line)
 		else {
 			cp=strstr(line,str);
 			if(cp && c) {
-				if(cp!=line || isalnum(*(cp+strlen(str))))
+				if(cp!=line || isalnum((uchar)*(cp+strlen(str))))
 					cp=0; 
 			}
 			else {	/* must be isolated word */
 				while(cp)
-					if((cp!=line && isalnum(*(cp-1)))
-						|| isalnum(*(cp+strlen(str))))
+					if((cp!=line && isalnum((uchar)*(cp-1)))
+						|| isalnum((uchar)*(cp+strlen(str))))
 						cp=strstr(cp+strlen(str),str);
 					else
 						break; 
