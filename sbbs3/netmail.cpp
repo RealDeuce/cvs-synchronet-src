@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.45 2015/04/28 10:55:12 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.48 2015/12/03 10:40:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,8 +96,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,&editor)) {
+	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -334,7 +334,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	addr++;
 	strupr(addr);
 	truncsp(addr);
-	touser=qwk_route(addr,fulladdr);
+	touser=qwk_route(&cfg,addr,fulladdr,sizeof(fulladdr)-1);
 	if(!fulladdr[0]) {
 		bputs(text[InvalidNetMailAddr]);
 		return(false); 
@@ -350,8 +350,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	action=NODE_SMAL;
 	nodesync();
 
-	sprintf(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,&editor)) {
+	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
+	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
