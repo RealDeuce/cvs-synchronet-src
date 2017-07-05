@@ -1,8 +1,6 @@
-/* mail.cpp */
-
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.26 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: mail.cpp,v 1.27 2016/11/16 11:11:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +197,7 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 		msg.idx.offset=0;						/* search by number */
 		if((mail[u].attr&MSG_PERMANENT) && !permanent)
 			continue;
-		if(loadmsg(&msg,mail[u].number)) {	   /* message still there */
+		if(loadmsg(&msg,mail[u].number) >= 0) {	   /* message still there */
 			msg.hdr.attr|=MSG_DELETE;
 			msg.hdr.attr&=~MSG_PERMANENT;
 			msg.idx.attr=msg.hdr.attr;

@@ -1,14 +1,12 @@
-/* scfg.c */
-
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.78 2014/02/16 06:36:29 deuce Exp $ */
+/* $Id: scfg.c,v 1.81 2017/06/07 02:42:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -90,6 +88,7 @@ int main(int argc, char **argv)
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright %s "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION,__DATE__+7);
 
+	xp_randomize();
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
@@ -604,7 +603,7 @@ void txt_cfg()
 	static int txt_dflt,bar;
 	char str[128],code[128],done=0;
 	int j,k;
-	uint i;
+	uint i,u;
 	static txtsec_t savtxtsec;
 
 	while(1) {
@@ -680,8 +679,8 @@ void txt_cfg()
 				bail(1);
 				continue; }
 			if(cfg.total_txtsecs)
-				for(j=cfg.total_txtsecs;j>i;j--)
-					cfg.txtsec[j]=cfg.txtsec[j-1];
+				for(u=cfg.total_txtsecs;u>i;u--)
+					cfg.txtsec[u]=cfg.txtsec[u-1];
 			if((cfg.txtsec[i]=(txtsec_t *)malloc(sizeof(txtsec_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(txtsec_t));
 				continue; }
@@ -767,7 +766,7 @@ void shell_cfg()
 	static int shell_dflt,shell_bar;
 	char str[128],code[128],done=0;
 	int j,k;
-	uint i;
+	uint i,u;
 	static shell_t savshell;
 
 	while(1) {
@@ -846,8 +845,8 @@ void shell_cfg()
 				bail(1);
 				continue; }
 			if(cfg.total_shells)
-				for(j=cfg.total_shells;j>i;j--)
-					cfg.shell[j]=cfg.shell[j-1];
+				for(u=cfg.total_shells;u>i;u--)
+					cfg.shell[u]=cfg.shell[u-1];
 			if((cfg.shell[i]=(shell_t *)malloc(sizeof(shell_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(shell_t));
 				continue; }
@@ -1883,12 +1882,13 @@ void bail(int code)
 /* information, function, action, object and access and then attempts to    */
 /* write the error information into the file ERROR.LOG in the text dir.     */
 /****************************************************************************/
-void errormsg(int line, char* source,  char* action, char* object, ulong access)
+void errormsg(int line, char* function, char* source,  char* action, char* object, ulong access)
 {
 	char scrn_buf[MAX_BFLN];
     gettext(1,1,80,uifc.scrn_len,scrn_buf);
     clrscr();
     printf("ERROR -     line: %d\n",line);
+	printf("        function: %s\n",function);
     printf("            file: %s\n",source);
     printf("          action: %s\n",action);
     printf("          object: %s\n",object);
