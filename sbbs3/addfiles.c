@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.54 2017/07/09 01:32:54 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.51 2017/07/05 06:12:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,6 @@ char lib[LEN_GSNAME+1];
 #define SEARCH_DIR	(1L<<12)
 #define SYNC_LIST	(1L<<13)
 #define KEEP_SPACE	(1L<<14)
-#define CHECK_DATE	(1L<<15)
 
 /****************************************************************************/
 /* This is needed by load_cfg.c												*/
@@ -220,7 +219,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	DIRENT*	dirent;
 
 	if(mode&SEARCH_DIR) {
-		SAFECOPY(str,cur_altpath ? scfg.altpath[cur_altpath-1] : scfg.dir[f.dir]->path);
+		strcpy(str,cur_altpath ? scfg.altpath[cur_altpath-1] : scfg.dir[f.dir]->path);
 		printf("Searching %s\n\n",str);
 		dir=opendir(str);
 
@@ -233,25 +232,19 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 #ifdef _WIN32
 			GetShortPathName(tmp, filepath, sizeof(filepath));
 #else
-			SAFECOPY(filepath,tmp);
+			strcpy(filepath,tmp);
 #endif
 			f.misc=0;
 			f.desc[0]=0;
 			f.cdt=flength(filepath);
-			time_t file_timestamp = fdate(filepath);
 			padfname(getfname(filepath),f.name);
 			printf("%s  %10"PRIu32"  %s\n"
-				,f.name,f.cdt,unixtodstr(&scfg,(time32_t)file_timestamp,str));
+				,f.name,f.cdt,unixtodstr(&scfg,(time32_t)fdate(filepath),str));
 			exist=findfile(&scfg,f.dir,f.name);
 			if(exist) {
 				if(mode&NO_UPDATE)
 					continue;
-				if(!getfileixb(&scfg,&f)) {
-					fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-					continue;
-				}
-				if((mode&CHECK_DATE) && file_timestamp <= f.dateuled)
-					continue;
+				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
 					f.dateuled=time32(NULL);
 					update_uldate(&scfg, &f);
@@ -260,7 +253,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			}
 
 			if(mode&FILE_DATE) {		/* get the file date and put into desc */
-				unixtodstr(&scfg,(time32_t)file_timestamp,f.desc);
+				unixtodstr(&scfg,(time32_t)fdate(filepath),f.desc);
 				strcat(f.desc,"  "); 
 			}
 
@@ -334,7 +327,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	}
 
 
-	SAFECOPY(listpath,inpath);
+	strcpy(listpath,inpath);
 	fexistcase(listpath);
 	if((stream=fopen(listpath,"r"))==NULL) {
 		fprintf(stderr,"Error %d (%s) opening %s\n"
@@ -356,14 +349,14 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	do {
 		f.misc=0;
 		f.desc[0]=0;
-		SAFECOPY(curline,nextline);
+		strcpy(curline,nextline);
 		nextline[0]=0;
 		fgets(nextline,255,stream);
 		truncsp(curline);
 		if(curline[0]<=' ' || (mode&ASCII_ONLY && (uchar)curline[0]>=0x7e))
 			continue;
 		printf("%s\n",curline);
-		SAFECOPY(fname,curline);
+		strcpy(fname,curline);
 
 #if 0	/* Files without dots are valid on modern systems */
 		p=strchr(fname,'.');
@@ -377,7 +370,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 #if 0
 		strupr(fname);
 #endif
-		SAFECOPY(fname,unpadfname(fname,tmp));
+		strcpy(fname,unpadfname(fname,tmp));
 
 		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 			: scfg.dir[f.dir]->path,fname);
@@ -400,17 +393,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 		if(i<12)					/* Ctrl chars or EX-ASCII in filename? */
 			continue;
-		time_t file_timestamp = fdate(filepath);
 		exist=findfile(&scfg,f.dir,f.name);
 		if(exist) {
 			if(mode&NO_UPDATE)
 				continue;
-			if(!getfileixb(&scfg,&f)) {
-				fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-				continue;
-			}
-			if((mode&CHECK_DATE) && file_timestamp <= f.dateuled)
-				continue;
+			getfileixb(&scfg,&f);
 			if(mode&ULDATE_ONLY) {
 				f.dateuled=time32(NULL);
 				update_uldate(&scfg, &f);
@@ -419,7 +406,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		}
 
 		if(mode&FILE_DATE) {		/* get the file date and put into desc */
-			unixtodstr(&scfg,(time32_t)file_timestamp,f.desc);
+			l=(time32_t)fdate(filepath);
+			unixtodstr(&scfg,l,f.desc);
 			strcat(f.desc,"  "); 
 		}
 
@@ -431,9 +419,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 		if(dskip && strlen(curline)>=dskip) p=curline+dskip;
 		else {
-			p = curline;
-			FIND_WHITESPACE(p);
-			SKIP_WHITESPACE(p); 
+			p++;
+			while(*p==' ') p++; 
 		}
 		SAFECOPY(tmp,p);
 		prep_desc(tmp);
@@ -447,7 +434,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			}
 
 			if(nextline[0]==' ') {
-				SAFECOPY(str,nextline);				   /* tack on to end of desc */
+				strcpy(str,nextline);				   /* tack on to end of desc */
 				p=str+dskip;
 				while(*p>0 && *p<=' ') p++;
 				i=LEN_FDESC-strlen(f.desc);
@@ -598,7 +585,7 @@ void synclist(char *inpath, int dirnum)
 	}
 	close(file);
 
-	SAFECOPY(listpath,inpath);
+	strcpy(listpath,inpath);
 	if((stream=fopen(listpath,"r"))==NULL) {
 		sprintf(listpath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 				: scfg.dir[dirnum]->path,inpath);
@@ -638,10 +625,7 @@ void synclist(char *inpath, int dirnum)
 		printf("%s not found in list - ",f.name);
 		f.dir=dirnum;
 		f.datoffset=ixbbuf[m]|((long)ixbbuf[m+1]<<8)|((long)ixbbuf[m+2]<<16);
-		if(!getfiledat(&scfg,&f)) {
-			fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-			continue;
-		}
+		getfiledat(&scfg,&f);
 		if(f.opencount) {
 			printf("currently OPEN by %u users\n",f.opencount);
 			continue; 
@@ -674,7 +658,6 @@ char *usage="\nusage: addfiles code [.alt_path] [-opts] +list "
 	"\n      -i         include added files in upload statistics"
 	"\n      -n         do not update information for existing files"
 	"\n      -o         update upload date only for existing files"
-	"\n      -p         compare file date with upload date for existing files"
 	"\n      -u         do not update upload date for existing files"
 	"\n      -z         check for and import FILE_ID.DIZ and DESC.SDI"
 	"\n      -k         keep original short description (not DIZ)"
@@ -704,7 +687,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.51 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -767,7 +750,7 @@ int main(int argc, char **argv)
 
 	memset(&f,0,sizeof(file_t));
 	f.dir=i;
-	SAFECOPY(f.uler,"-> ADDFILES <-");
+	strcpy(f.uler,"-> ADDFILES <-");
 
 	for(j=2;j<argc;j++) {
 		if(argv[j][0]=='*')     /* set the uploader name (legacy) */
@@ -825,9 +808,6 @@ int main(int argc, char **argv)
 						break;
 					case 'O':
 						mode|=ULDATE_ONLY;
-						break;
-					case 'P':
-						mode|=CHECK_DATE;
 						break;
 					case 'U':
 						mode|=NO_NEWDATE;
@@ -897,7 +877,7 @@ int main(int argc, char **argv)
 			if(mode&TODAYS_DATE)
 				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time32(NULL),tmp));
 			sprintf(tmp,"%.*s",(int)(LEN_FDESC-strlen(f.desc)),argv[++j]);
-			SAFECOPY(f.desc,tmp);
+			strcpy(f.desc,tmp);
 			l=flength(str);
 			if(l==-1) {
 				printf("%s not found.\n",str);
@@ -907,12 +887,7 @@ int main(int argc, char **argv)
 			if(exist) {
 				if(mode&NO_UPDATE)
 					continue;
-				if(!getfileixb(&scfg,&f)) {
-					fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-					continue;
-				}
-				if((mode&CHECK_DATE) && fdate(str) <= f.dateuled)
-					continue;
+				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
 					f.dateuled=time32(NULL);
 					update_uldate(&scfg, &f);

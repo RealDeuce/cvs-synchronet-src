@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.72 2017/08/26 01:29:02 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.71 2016/12/08 07:16:45 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -408,13 +408,6 @@ typedef struct {
 #define FIND_DIGIT(p)                   while(*(p) && !isdigit((unsigned char)*(p)))            (p)++;
 #define SKIP_HEXDIGIT(p)                while(*(p) && isxdigit((unsigned char)*(p)))            (p)++;
 #define FIND_HEXDIGIT(p)                while(*(p) && !isxdigit((unsigned char)*(p)))           (p)++;
-
-#define HEX_CHAR_TO_INT(ch) 			(((ch)&0xf)+(((ch)>>6)&1)*9)
-#define DEC_CHAR_TO_INT(ch)				((ch)&0xf)
-#define OCT_CHAR_TO_INT(ch)				((ch)&0x7)
-#ifndef isodigit
-#define isodigit(ch)					((ch) >= '0' && (ch) <= '7')
-#endif
 
 /* Variable/buffer initialization (with zeros) */
 #define ZERO_VAR(var)                           memset(&(var),0,sizeof(var))
