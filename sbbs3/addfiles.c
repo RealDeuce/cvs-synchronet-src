@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.54 2017/07/09 01:32:54 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.53 2017/07/07 07:43:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -244,14 +244,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				,f.name,f.cdt,unixtodstr(&scfg,(time32_t)file_timestamp,str));
 			exist=findfile(&scfg,f.dir,f.name);
 			if(exist) {
-				if(mode&NO_UPDATE)
-					continue;
-				if(!getfileixb(&scfg,&f)) {
-					fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-					continue;
-				}
 				if((mode&CHECK_DATE) && file_timestamp <= f.dateuled)
 					continue;
+				if(mode&NO_UPDATE)
+					continue;
+				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
 					f.dateuled=time32(NULL);
 					update_uldate(&scfg, &f);
@@ -403,14 +400,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		time_t file_timestamp = fdate(filepath);
 		exist=findfile(&scfg,f.dir,f.name);
 		if(exist) {
-			if(mode&NO_UPDATE)
-				continue;
-			if(!getfileixb(&scfg,&f)) {
-				fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-				continue;
-			}
 			if((mode&CHECK_DATE) && file_timestamp <= f.dateuled)
 				continue;
+			if(mode&NO_UPDATE)
+				continue;
+			getfileixb(&scfg,&f);
 			if(mode&ULDATE_ONLY) {
 				f.dateuled=time32(NULL);
 				update_uldate(&scfg, &f);
@@ -638,10 +632,7 @@ void synclist(char *inpath, int dirnum)
 		printf("%s not found in list - ",f.name);
 		f.dir=dirnum;
 		f.datoffset=ixbbuf[m]|((long)ixbbuf[m+1]<<8)|((long)ixbbuf[m+2]<<16);
-		if(!getfiledat(&scfg,&f)) {
-			fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-			continue;
-		}
+		getfiledat(&scfg,&f);
 		if(f.opencount) {
 			printf("currently OPEN by %u users\n",f.opencount);
 			continue; 
@@ -704,7 +695,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.54 $", "%*s %s", revision);
+	sscanf("$Revision: 1.53 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -907,12 +898,7 @@ int main(int argc, char **argv)
 			if(exist) {
 				if(mode&NO_UPDATE)
 					continue;
-				if(!getfileixb(&scfg,&f)) {
-					fprintf(stderr, "!ERROR reading index of directory %u\n", f.dir);
-					continue;
-				}
-				if((mode&CHECK_DATE) && fdate(str) <= f.dateuled)
-					continue;
+				getfileixb(&scfg,&f);
 				if(mode&ULDATE_ONLY) {
 					f.dateuled=time32(NULL);
 					update_uldate(&scfg, &f);
