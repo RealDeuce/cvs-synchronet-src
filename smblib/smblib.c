@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.172 2017/11/25 01:24:23 rswindell Exp $ */
+/* $Id: smblib.c,v 1.169 2017/07/08 02:38:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -116,14 +116,14 @@ int SMBCALL smb_open(smb_t* smb)
 			smb_close(smb);
 			return(SMB_ERR_READ);
 		}
-		if(memcmp(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID) && !smb->continue_on_error) {
+		if(memcmp(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s corrupt SMB header ID: %.*s", __FUNCTION__
 				,LEN_HEADER_ID,hdr.id);
 			smb_close(smb);
 			return(SMB_ERR_HDR_ID); 
 		}
-		if(hdr.version<0x110 && !smb->continue_on_error) {         /* Compatibility check */
+		if(hdr.version<0x110) {         /* Compatibility check */
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s insufficient header version: %X", __FUNCTION__
 				,hdr.version);
@@ -1858,10 +1858,12 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 }
 
 /****************************************************************************/
-/* Initializes a message base's header (SMBHDR) record 						*/
+/* Creates a sub-board's initial header file                                */
+/* Truncates and deletes other associated SMB files 						*/
 /****************************************************************************/
-int SMBCALL smb_initsmbhdr(smb_t* smb)
+int SMBCALL smb_create(smb_t* smb)
 {
+    char        str[MAX_PATH+1];
 	smbhdr_t	hdr;
 
 	if(smb->shd_fp==NULL || smb->sdt_fp==NULL || smb->sid_fp==NULL) {
@@ -1872,33 +1874,14 @@ int SMBCALL smb_initsmbhdr(smb_t* smb)
 		&& smb_locksmbhdr(smb)!=SMB_SUCCESS)  /* header exists, so lock it */
 		return(SMB_ERR_LOCK);
 	memset(&hdr,0,sizeof(smbhdr_t));
-	memcpy(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID);
+	memcpy(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID);     
 	hdr.version=SMB_VERSION;
 	hdr.length=sizeof(smbhdr_t)+sizeof(smbstatus_t);
 	smb->status.last_msg=smb->status.total_msgs=0;
 	smb->status.header_offset=sizeof(smbhdr_t)+sizeof(smbstatus_t);
 	rewind(smb->shd_fp);
-	if(!fwrite(&hdr,sizeof(smbhdr_t),1,smb->shd_fp))
-		return SMB_ERR_WRITE;
-	if(!fwrite(&(smb->status),1,sizeof(smbstatus_t),smb->shd_fp))
-		return SMB_ERR_WRITE;
-
-	return SMB_SUCCESS;
-}
-
-/****************************************************************************/
-/* Creates a sub-board's initial header file                                */
-/* Truncates and deletes other associated SMB files 						*/
-/****************************************************************************/
-int SMBCALL smb_create(smb_t* smb)
-{
-    char        str[MAX_PATH+1];
-	FILE*		fp;
-	int			retval;
-
-	if((retval = smb_initsmbhdr(smb)) != SMB_SUCCESS)
-		return retval;
-
+	fwrite(&hdr,1,sizeof(smbhdr_t),smb->shd_fp);
+	fwrite(&(smb->status),1,sizeof(smbstatus_t),smb->shd_fp);
 	rewind(smb->shd_fp);
 	chsize(fileno(smb->shd_fp),sizeof(smbhdr_t)+sizeof(smbstatus_t));
 	fflush(smb->shd_fp);
@@ -1908,11 +1891,6 @@ int SMBCALL smb_create(smb_t* smb)
 	rewind(smb->sid_fp);
 	chsize(fileno(smb->sid_fp),0L);
 
-	SAFEPRINTF(str,"%s.ini",smb->file);
-	if((fp = fopen(str, "w")) != NULL) {
-		fprintf(fp, "Created = 0x%lx\n", (long)time(NULL));
-		fclose(fp);
-	}
 	SAFEPRINTF(str,"%s.sda",smb->file);
 	remove(str);						/* if it exists, delete it */
 	SAFEPRINTF(str,"%s.sha",smb->file);
@@ -1964,11 +1942,11 @@ int SMBCALL smb_tzutc(int16_t zone)
 	tz=zone&0xfff;
 	if(zone&(WESTERN_ZONE|US_ZONE)) {	/* West of UTC? */
 		if(zone&DAYLIGHT)
-			tz-=SMB_DST_OFFSET;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
+			tz-=60;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 		return(-tz);
 	}
 	if(zone&DAYLIGHT)
-		tz+=SMB_DST_OFFSET;				/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
+		tz+=60;				/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 	return(tz);
 }
 
