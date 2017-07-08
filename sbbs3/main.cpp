@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.646 2016/11/29 08:37:58 rswindell Exp $ */
+/* $Id: main.cpp,v 1.648 2017/06/09 02:20:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5146,11 +5146,11 @@ NO_SSH:
 			
 			if(connections - logins >= (int)startup->max_concurrent_connections
 				&& !is_host_exempt(&scfg, host_ip, /* host_name */NULL)) {
-				lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections (%u) reached from host: %s"
+				lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections without login (%u) reached from host: %s"
  					,client_socket, startup->max_concurrent_connections, host_ip);
 				SSH_END();
 				close_socket(client_socket);
-				SAFEPRINTF(logstr, "Too many concurrent connections from host: %s",host_ip);
+				SAFEPRINTF(logstr, "Too many concurrent connections without login from host: %s",host_ip);
 				sbbs->syslog("@!",logstr);
 				continue;
 			}
@@ -5307,7 +5307,7 @@ NO_SSH:
 #else
 		client.protocol=rlogin ? "RLogin":"Telnet";
 #endif
-		client.user="<unknown>";
+		client.user=STR_UNKNOWN_USER;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
