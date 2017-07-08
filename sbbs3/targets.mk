@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.38 2015/10/28 01:38:41 deuce Exp $
+# $Id: targets.mk,v 1.40 2015/10/28 02:00:58 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -51,7 +51,7 @@ all:	dlls utils console
 console:	$(JS_DEPS) xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
 		dlls \
-		$(SBBSCON) $(JSEXEC) ${JSDOOR}
+		$(SBBSCON) $(JSEXEC)
 
 utils:	smblib xpdev-mt xpdev ciolib-mt uifc-mt \
 		$(LIBODIR) $(OBJODIR) $(MTOBJODIR) $(EXEODIR) \
@@ -68,6 +68,8 @@ mono:	xpdev-mt smblib \
 .PHONY: sexyz
 sexyz:	$(SEXYZ)
 
+.PHONY: jsdoor
+jsdoor: $(JSDOOR)
 
 # Library dependencies
 $(SBBS): 
