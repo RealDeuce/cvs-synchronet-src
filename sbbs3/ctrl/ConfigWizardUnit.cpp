@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id$ */
+/* $Id: ConfigWizardUnit.cpp,v 1.24 2017/07/08 02:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -70,7 +70,7 @@ short tz_val[]= {
     ,FER
     ,AZO
     ,LON
-    ,BER
+    ,CET
     ,ATH
     ,MOS
     ,DUB
@@ -107,7 +107,7 @@ char* tz_str[]={
     ,"Fernando de Noronha"
     ,"Azores"
     ,"London"
-    ,"Berlin"
+    ,"Central Europe (CET)"
     ,"Athens"
     ,"Moscow"
     ,"Dubai"
@@ -187,6 +187,8 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
                     break;
             }
 			scfg.sys_timezone=(-tz.Bias)|EASTERN_ZONE;
+			if(tzRet==TIME_ZONE_ID_DAYLIGHT)
+			   	scfg.sys_timezone|=DAYLIGHT;
         }
 #if 0
         /* Get DNS Server Address */

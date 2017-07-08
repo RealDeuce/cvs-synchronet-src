@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.168 2016/12/06 07:17:17 rswindell Exp $ */
+/* $Id: smblib.c,v 1.169 2017/07/08 02:38:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1945,6 +1945,8 @@ int SMBCALL smb_tzutc(int16_t zone)
 			tz-=60;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 		return(-tz);
 	}
+	if(zone&DAYLIGHT)
+		tz+=60;				/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 	return(tz);
 }
 
