@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.24 2017/07/08 02:43:08 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.25 2017/07/08 04:49:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,9 +69,9 @@ short tz_val[]= {
     ,RIO
     ,FER
     ,AZO
-    ,LON
+    ,WET
     ,CET
-    ,ATH
+    ,EET
     ,MOS
     ,DUB
     ,KAB
@@ -106,9 +106,9 @@ char* tz_str[]={
     ,"Rio de Janeiro"
     ,"Fernando de Noronha"
     ,"Azores"
-    ,"London"
+    ,"Western Europe (WET)"
     ,"Central Europe (CET)"
-    ,"Athens"
+    ,"Eastern Europe (EET)"
     ,"Moscow"
     ,"Dubai"
     ,"Kabul"
