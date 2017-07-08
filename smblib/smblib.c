@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.171 2017/11/16 09:05:57 rswindell Exp $ */
+/* $Id: smblib.c,v 1.169 2017/07/08 02:38:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1865,7 +1865,6 @@ int SMBCALL smb_create(smb_t* smb)
 {
     char        str[MAX_PATH+1];
 	smbhdr_t	hdr;
-	FILE*		fp;
 
 	if(smb->shd_fp==NULL || smb->sdt_fp==NULL || smb->sid_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
@@ -1892,11 +1891,6 @@ int SMBCALL smb_create(smb_t* smb)
 	rewind(smb->sid_fp);
 	chsize(fileno(smb->sid_fp),0L);
 
-	SAFEPRINTF(str,"%s.ini",smb->file);
-	if((fp = fopen(str, "w")) != NULL) {
-		fprintf(fp, "Created = 0x%lx\n", (long)time(NULL));
-		fclose(fp);
-	}
 	SAFEPRINTF(str,"%s.sda",smb->file);
 	remove(str);						/* if it exists, delete it */
 	SAFEPRINTF(str,"%s.sha",smb->file);
@@ -1948,11 +1942,11 @@ int SMBCALL smb_tzutc(int16_t zone)
 	tz=zone&0xfff;
 	if(zone&(WESTERN_ZONE|US_ZONE)) {	/* West of UTC? */
 		if(zone&DAYLIGHT)
-			tz-=SMB_DST_OFFSET;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
+			tz-=60;			/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 		return(-tz);
 	}
 	if(zone&DAYLIGHT)
-		tz+=SMB_DST_OFFSET;				/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
+		tz+=60;				/* ToDo: Daylight Saving Time adjustment is *not* always +60 minutes */
 	return(tz);
 }
 
