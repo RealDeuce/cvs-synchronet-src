@@ -1,6 +1,7 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.92 2016/11/18 09:52:33 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.97 2017/07/08 02:38:39 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,7 +133,8 @@
 #define FER 				0x2078		/* Fernando de Noronha	(-02:00) */
 #define AZO 				0x203C		/* Azores				(-01:00) */
 #define LON 				0x1000		/* London				(+00:00) */
-#define BER 				0x103C		/* Berlin				(+01:00) */
+#define CET 				0x103C		/* Central European		(+01:00) */
+#define CEST 				0x903C		/* CE Summer Time		(+02:00) */
 #define ATH 				0x1078		/* Athens				(+02:00) */
 #define MOS 				0x10B4		/* Moscow				(+03:00) */
 #define DUB 				0x10F0		/* Dubai				(+04:00) */
@@ -149,6 +151,8 @@
 #define WEL 				0x12D0		/* Wellington			(+12:00) */
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
+
+#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==CET))
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
@@ -331,11 +335,11 @@
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
 #define MSG_NODISP			(1<<6)		/* Msg may not be displayed to user */
 #define POLL_CLOSED			(1<<24)		/* Closed to voting */
-#define POLL_RESULTS_MASK	(3<<30)		/* 4 possible values: */
-#define POLL_RESULTS_SECRET	(3<<30)		/* No one but pollster can see results */
-#define POLL_RESULTS_CLOSED	(2<<30)		/* No one but pollster can see results until poll is closed */
-#define POLL_RESULTS_OPEN	(1<<30)		/* Results are visible to everyone always */
-#define POLL_RESULTS_VOTERS	(0<<30)		/* Voters can see results right away, everyone else when closed */
+#define POLL_RESULTS_MASK	(3U<<30)	/* 4 possible values: */
+#define POLL_RESULTS_SECRET	(3U<<30)	/* No one but pollster can see results */
+#define POLL_RESULTS_CLOSED	(2U<<30)	/* No one but pollster can see results until poll is closed */
+#define POLL_RESULTS_OPEN	(1U<<30)	/* Results are visible to everyone always */
+#define POLL_RESULTS_VOTERS	(0U<<30)	/* Voters can see results right away, everyone else when closed */
 #define POLL_RESULTS_SHIFT	30
 
 										/* Message network attributes */
@@ -440,7 +444,7 @@ typedef struct _PACK {		/* Index record */
 		};
 	};
 	uint16_t	attr;			/* attributes (read, permanent, etc.) */
-	uint32_t	offset; 		/* offset into header file */
+	uint32_t	offset; 		/* byte-offset of msghdr in header file */
 	uint32_t	number; 		/* number of message (1 based) */
 	uint32_t	time;			/* time/date message was imported/posted */
 
@@ -631,6 +635,7 @@ typedef struct {				/* Message */
 	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
+	uint16_t	user_voted;		/* How the current user viewing this message, voted on it */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
@@ -655,7 +660,7 @@ typedef struct {				/* Message base */
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
 	uint32_t	msgs;			/* Number of messages loaded (for user) */
-	uint32_t	curmsg;			/* Current message number (for user) */
+	uint32_t	curmsg;			/* Current message number (for user, 0-based) */
 
 } smb_t;
 
