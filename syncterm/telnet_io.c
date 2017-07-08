@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.28 2013/08/17 01:25:47 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.29 2017/01/13 01:33:22 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -9,7 +9,9 @@
 
 #include "genwrap.h"
 #include "sockwrap.h"
+#ifndef TELNET_NO_DLL
 #define TELNET_NO_DLL
+#endif
 #include "telnet.h"
 #include "gen_defs.h"
 #include "bbslist.h"
