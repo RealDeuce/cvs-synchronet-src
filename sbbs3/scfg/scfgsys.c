@@ -1,4 +1,6 @@
-/* $Id: scfgsys.c,v 1.44 2017/10/16 21:28:48 rswindell Exp $ */
+/* scfgsys.c */
+
+/* $Id: scfgsys.c,v 1.42 2017/07/08 04:52:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -487,7 +489,7 @@ while(1) {
 					,cfg.sys_misc&SM_NOCDTCVT ? "No" : "Yes");
 				sprintf(opt[i++],"%-33.33s%s","Allow Sysop Logins"
 					,cfg.sys_misc&SM_R_SYSOP ? "Yes" : "No");
-				sprintf(opt[i++],"%-33.33s%s","Display/Log Passwords Locally"
+				sprintf(opt[i++],"%-33.33s%s","Echo Passwords Locally"
 					,cfg.sys_misc&SM_ECHO_PW ? "Yes" : "No");
 				sprintf(opt[i++],"%-33.33s%s","Short Sysop Page"
 					,cfg.sys_misc&SM_SHRTPAGE ? "Yes" : "No");
@@ -618,15 +620,13 @@ while(1) {
 						opt[2][0]=0;
 						i=cfg.sys_misc&SM_ECHO_PW ? 0:1;
 						uifc.helpbuf=
-							"`Display/Log Passwords Locally:`\n"
+							"`Echo Passwords Locally:`\n"
 							"\n"
-							"If you want to passwords to be displayed locally and/or logged to disk\n"
-							"(e.g. when there's a failed login attempt), set this option to `Yes`.\n"
-							"\n"
-							"For elevated security, set this option to `No`.\n"
+							"If you want to passwords to be displayed locally, set this option to\n"
+							"`Yes`.\n"
 						;
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-							,"Display/Log Passwords Locally",opt);
+							,"Echo Passwords Locally",opt);
 						if(!i && !(cfg.sys_misc&SM_ECHO_PW)) {
 							cfg.sys_misc|=SM_ECHO_PW;
 							uifc.changes=1; 
@@ -1411,8 +1411,8 @@ while(1) {
 							"The Synchronet exec directory contains executable files that your BBS\n"
 							"executes. This directory does `not` need to be in your DOS search path.\n"
 							"If you place programs in this directory for the BBS to execute, you\n"
-							"should place the `%!` abbreviation for the exec directory at the\n"
-							"beginning of the configured command-lines.\n"
+							"should place the `%!` abreviation for this exec directory at the\n"
+							"beginning of the command line.\n"
 							"\n"
 							"This option allows you to change the location of your exec directory.\n"
 						;

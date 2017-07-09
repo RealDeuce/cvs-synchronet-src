@@ -1,6 +1,8 @@
+/* uifc32.c */
+
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.226 2017/10/23 03:04:38 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.219 2016/04/15 05:06:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,7 +405,7 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
     cursor=_NOCURSOR;
     _setcursortype(cursor);
 
-	if(cio_api.mouse && !(api->mode&UIFC_NOMOUSE)) {
+	if(cio_api.mouse) {
 		api->mode|=UIFC_MOUSE;
 		uifc_mouse_enable();
 	}
@@ -618,7 +620,8 @@ static void truncspctrl(char *str)
 int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
-	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr,*win;
+	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr
+		,bline=0,*win;
     char search[MAX_OPLN];
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
@@ -677,29 +680,23 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		tbrdrwidth=0;
 		bbrdrwidth=0;
 	}
-	/* Count the options */
-	while (option != NULL && opts < MAX_OPTS) {
-		if (option[opts] == NULL || option[opts][0] == 0)
-			break;
-		else opts++;
-	}
-	if (mode&WIN_XTR && opts<MAX_OPTS)
-		opts++;
 
-	/* Sanity-check the savnum */
 	if(mode&WIN_SAV && api->savnum>=MAX_BUFS-1)
 		putch(7);
-
-	api->help_available = (api->helpbuf!=NULL || api->helpixbfile[0]!=0);
-
-	/* Create the status bar/bottom-line */
-	int bline = mode;
-	if (api->bottomline != NULL) {
-		if ((mode&(WIN_XTR | WIN_PASTEXTR)) == WIN_XTR && (*cur) == opts - 1)
-			api->bottomline(bline & ~WIN_PASTE);
-		else
-			api->bottomline(bline);
-	}
+	if(api->helpbuf!=NULL || api->helpixbfile[0]!=0) bline|=BL_HELP;
+	if(mode&WIN_INS) bline|=BL_INS;
+	if(mode&WIN_DEL) bline|=BL_DEL;
+	if(mode&WIN_GET) bline|=BL_GET;
+	if(mode&WIN_PUT) bline|=BL_PUT;
+	if(mode&WIN_EDIT) bline|=BL_EDIT;
+	if(api->bottomline != NULL)
+		api->bottomline(bline);
+	while(option!=NULL && opts<MAX_OPTS)
+		if(option[opts]==NULL || option[opts][0]==0)
+			break;
+		else opts++;
+	if(mode&WIN_XTR && opts<MAX_OPTS)
+		opts++;
 	optheight=opts+vbrdrsize;
 	height=optheight;
 	if(mode&WIN_FIXEDHEIGHT) {
@@ -719,9 +716,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			}
 		}
 	}
-	/* Determine minimum widths here to accommodate mouse "icons" in border */
+	/* Determine minimum widths here to accomodate mouse "icons" in border */
 	if(!(mode&WIN_NOBRDR) && api->mode&UIFC_MOUSE) {
-		if(api->help_available && width<8)
+		if(bline&BL_HELP && width<8)
 			width=8;
 		else if(width<5)
 			width=5;
@@ -779,7 +776,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				if(cur==sav[i].cur && bar==sav[i].bar) {
 					/* Yes, it is... */
 					for(j=api->savnum-1; j>i; j--) {
-						/* Restore old screens */
+						/* Retore old screens */
 						puttext(sav[j].left,sav[j].top,sav[j].right,sav[j].bot
 							,sav[j].buf);	/* put original window back */
 						FREE_AND_NULL(sav[j].buf);
@@ -871,7 +868,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				*(ptr++)=api->chars->button_right;
 				*(ptr++)=hclr|(bclr<<4);
 				i=3;
-				if(api->help_available) {
+				if(bline&BL_HELP) {
 					*(ptr++)=api->chars->button_left;
 					*(ptr++)=hclr|(bclr<<4);
 					*(ptr++)=api->chars->help_char;
@@ -1006,7 +1003,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				*(ptr++)=hclr|(bclr<<4); 
 			}
 			*(ptr++)=api->chars->list_bottom_right;
-			*(ptr)=hclr|(bclr<<4);	/* Not incremented to shut up BCC */
+			*(ptr)=hclr|(bclr<<4);	/* Not incremented to shut ot BCC */
 		}
 		puttext(s_left+left,s_top+top,s_left+left+width-1
 			,s_top+top+height-1,tmp_buffer);
@@ -1104,11 +1101,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 
 	while(1) {
 	#if 0					/* debug */
-		struct text_info txtinfo;
-		gettextinfo(&txtinfo);
 		gotoxy(30,1);
-		cprintf("y=%2d h=%2d c=%2d b=%2d s=%2d o=%2d w=%d/%d h=%d/%d"
-			,y,height,*cur,bar ? *bar :0xff,api->savnum,opts,txtinfo.screenwidth, api->scrn_width, txtinfo.screenheight, api->scrn_len);
+		cprintf("y=%2d h=%2d c=%2d b=%2d s=%2d o=%2d"
+			,y,height,*cur,bar ? *bar :0xff,api->savnum,opts);
 	#endif
 		if(api->timedisplay != NULL)
 			api->timedisplay(/* force? */FALSE);
@@ -1168,10 +1163,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							api->savnum--;
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if(sav[api->savnum].buf != NULL)
-								puttext(sav[api->savnum].left,sav[api->savnum].top
-									,sav[api->savnum].right,sav[api->savnum].bot
-									,sav[api->savnum].buf);
+							puttext(sav[api->savnum].left,sav[api->savnum].top
+								,sav[api->savnum].right,sav[api->savnum].bot
+								,sav[api->savnum].buf);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 							FREE_AND_NULL(sav[api->savnum].buf);
@@ -1244,10 +1238,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 				case CTRL_C:
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_F(5);	/* copy */
-					break;
-				case CTRL_X:
-					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_SHIFT_DC;	/* cut */
 					break;
 				case CTRL_V:
 					if(!(api->mode&UIFC_NOCTRL))
@@ -1580,28 +1570,21 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if(sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_EDIT); 
 						}
 						break;
-					case CIO_KEY_F(5):		/* F5 - Copy */
-					case CIO_KEY_CTRL_IC:	/* Ctrl-Insert */
-						if(mode&WIN_COPY && !(mode&WIN_XTR && (*cur)==opts-1))
-							return((*cur) | MSK_COPY);
+					case CIO_KEY_F(5):	/* F5 - Copy */
+						if(mode&WIN_GET && !(mode&WIN_XTR && (*cur)==opts-1))
+							return((*cur)|MSK_GET);
 						break;
-					case CIO_KEY_SHIFT_DC:	/* Shift-Del: Cut */
-						if(mode&WIN_CUT && !(mode&WIN_XTR && (*cur) == opts - 1))
-							return((*cur) | MSK_CUT);
-						break;
-					case CIO_KEY_SHIFT_IC:	/* Shift-Insert: Paste */
-					case CIO_KEY_F(6):		/* F6 - Paste */
-						if(mode&WIN_PASTE && (mode&WIN_PASTEXTR || !(mode&WIN_XTR && (*cur)==opts-1)))
-							return((*cur)|MSK_PASTE);
+					case CIO_KEY_F(6):	/* F6 - Paste */
+						if(mode&WIN_PUT && !(mode&WIN_XTR && (*cur)==opts-1))
+							return((*cur)|MSK_PUT);
 						break;
 					case CIO_KEY_IC:	/* insert */
 						if(mode&WIN_INS) {
@@ -1621,10 +1604,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if(sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(!opts) {
@@ -1653,10 +1635,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if (sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return((*cur)|MSK_DEL); 
@@ -1784,10 +1765,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if (sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(mode&WIN_XTR && (*cur)==opts-1)
@@ -1807,10 +1787,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							}
 							else if(mode&WIN_SAV) {
 								api->savnum--;
-								if (sav[api->savnum].buf != NULL)
-									puttext(sav[api->savnum].left,sav[api->savnum].top
-										,sav[api->savnum].right,sav[api->savnum].bot
-										,sav[api->savnum].buf);
+								puttext(sav[api->savnum].left,sav[api->savnum].top
+									,sav[api->savnum].right,sav[api->savnum].bot
+									,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return(-1);
@@ -1818,13 +1797,6 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if(mode&WIN_EXTKEYS)
 								return(-2-gotkey);
 				}
-			}
-			/* Update the status bar to reflect the Put/Paste option applicability */
-			if (bline&WIN_PASTE && api->bottomline != NULL) {
-				if ((mode&(WIN_XTR | WIN_PASTEXTR)) == WIN_XTR && (*cur) == opts - 1)
-					api->bottomline(bline & ~WIN_PASTE);
-				else
-					api->bottomline(bline);
 			}
 		}
 		else
@@ -2405,52 +2377,52 @@ static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 /****************************************************************************/
 /* Display bottom line of screen in inverse                                 */
 /****************************************************************************/
-void bottomline(int mode)
+void bottomline(int line)
 {
 	int i=1;
 
-	i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"    ");
-	if(api->help_available) {
-		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F1 ");
-		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
+	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"    ");
+	i+=4;
+	if(line&BL_HELP) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F1 ");
+		i+=3;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Help  ");
+		i+=6;
 	}
-	if(mode&WIN_EDIT) {
-		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F2 ");
-		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Edit Item  ");
+	if(line&BL_EDIT) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F2 ");
+		i+=3;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Edit Item  ");
+		i+=11; 
 	}
-	if(mode&WIN_COPY) {
-		if(api->mode&UIFC_NOCTRL) {
-			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F5 ");
-			i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Copy  ");
-		} else {
-			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"^C");
-			i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"opy  ");
-		}
+	if(line&BL_GET) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F5 ");
+		i+=3;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Copy Item  ");
+		i+=11; 
 	}
-	if(mode&WIN_CUT) {
-		if(api->mode&UIFC_NOCTRL)
-			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"Shift-DEL ");
-		else
-			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"^X ");
-		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Cut  ");
+	if(line&BL_PUT) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F6 ");
+		i+=3;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Paste  ");
+		i+=7; 
 	}
-	if(mode&WIN_PASTE) {
-		if(api->mode&UIFC_NOCTRL)
-			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F6 ");
-		else 
-			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"^V ");
-		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Paste  ");
+	if(line&BL_INS) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"INS ");
+		i+=4;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Add Item  ");
+		i+=10; 
 	}
-	if(mode&WIN_INS) {
-		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"INS");
-		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"ert Item  ");
+	if(line&BL_DEL) {
+		uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"DEL ");
+		i+=4;
+		uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Delete Item  ");
+		i+=13; 
 	}
-	if(mode&WIN_DEL) {
-		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"DEL");
-		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"ete Item  ");
-	}
-	i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"ESC ");	/* Backspace is no good no way to abort editing */
-	i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Exit");
+	uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"ESC ");	/* Backspace is no good no way to abort editing */
+	i+=4;
+	uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Exit");
+	i+=4;
 	gotoxy(i,api->scrn_len+1);
 	textattr(BLACK|(api->cclr<<4));
 	clreol();
