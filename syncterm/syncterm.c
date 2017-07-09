@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.215 2018/02/20 20:54:58 deuce Exp $ */
+/* $Id: syncterm.c,v 1.202 2017/01/25 08:11:30 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -93,7 +93,7 @@ char *inpath=NULL;
 int default_font=0;
 struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
-struct vmem_cell *scrollback_buf=NULL;
+unsigned char *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
 unsigned int  scrollback_mode=C80;
 unsigned int  scrollback_cols=80;
@@ -1104,49 +1104,44 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	}
 #else
 	/* UNIX */
-	char	*home=getenv("HOME");
+	char	*home=NULL;
 
-	home=getenv("HOME");
-	if (!shared) {
-		if((home==NULL || strlen(home) > MAX_PATH-32)) {	/* $HOME just too damn big */
-			if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
-				getcwd(fn, fnlen);
-				backslash(fn);
-				if(type==SYNCTERM_PATH_CACHE) {
-					strcat(fn,"cache");
-					backslash(fn);
-				}
-				return(fn);
-			}
-			SAFECOPY(oldlst,"syncterm.lst");
-			strcpy(fn,"./");
-		}
-		else {
-			if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
-				strcpy(fn, home);
-				backslash(fn);
-#if defined(__APPLE__) && defined(__MACH__)
-				if(get_new_OSX_filename(oldlst, sizeof(oldlst), type, shared)!=NULL)
-					strcpy(fn, oldlst);
-#endif
-				if(!isdir(fn))
-					if(MKDIR(fn))
-						fn[0]=0;
-				if(type==SYNCTERM_PATH_CACHE) {
-					strcat(fn,"cache");
-					backslash(fn);
-				}
-				return(fn);
-			}
-			SAFECOPY(oldlst,home);
-			backslash(oldlst);
-			strcat(oldlst,"syncterm.lst");
-			sprintf(fn,"%.*s",fnlen,home);
-			strncat(fn, "/.syncterm", fnlen-strlen(fn)-1);
+	if(inpath==NULL)
+		home=getenv("HOME");
+	if(!shared && (home==NULL || strlen(home) > MAX_PATH-32)) {	/* $HOME just too damn big */
+		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
+			getcwd(fn, fnlen);
 			backslash(fn);
+			if(type==SYNCTERM_PATH_CACHE) {
+				strcat(fn,"cache");
+				backslash(fn);
+			}
+			return(fn);
 		}
+		SAFECOPY(oldlst,"syncterm.lst");
+		strcpy(fn,"./");
 	}
 	else {
+		if(type==SYNCTERM_DEFAULT_TRANSFER_PATH) {
+			strcpy(fn, home);
+			backslash(fn);
+#if defined(__APPLE__) && defined(__MACH__)
+			if(get_new_OSX_filename(oldlst, sizeof(oldlst), type, shared)!=NULL)
+				strcpy(fn, oldlst);
+#endif
+			if(!isdir(fn))
+				MKDIR(fn);
+			return(fn);
+		}
+		SAFECOPY(oldlst,home);
+		backslash(oldlst);
+		strcat(oldlst,"syncterm.lst");
+		sprintf(fn,"%.*s",fnlen,home);
+		strncat(fn, "/.syncterm", fnlen-strlen(fn)-1);
+		backslash(fn);
+	}
+
+	if(shared) {
 #ifdef SYSTEM_LIST_DIR
 		strcpy(fn,SYSTEM_LIST_DIR);
 		backslash(fn);
@@ -1253,7 +1248,6 @@ void load_settings(struct syncterm_settings *set)
 int main(int argc, char **argv)
 {
 	struct bbslist *bbs=NULL;
-	BOOL bbs_alloc=FALSE;
 	struct	text_info txtinfo;
 	char	str[MAX_PATH+1];
 	char	drive[MAX_PATH+1];
@@ -1267,6 +1261,7 @@ int main(int argc, char **argv)
 	str_list_t	inifile;
 	FILE *listfile;
 	char	*inpath=NULL;
+	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
@@ -1274,15 +1269,15 @@ int main(int argc, char **argv)
 	char	*last_bbs=NULL;
 	char	*p, *lp;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
-				"syncterm|SyncTERM,\n"
-				"	am,bce,ccc,da,mir,msgr,ndscr,\n"	// sam?
-				"	it#8,colors#256,\n"
+				"syncterm|SyncTERM 80x25,\n"
+				"	am,bce,mir,msgr,\n"
+				"	cols#80,it#8,lines#24,colors#8,pairs#64,\n"
 				"	acsc=l\\332m\\300k\\277j\\331u\\264t\\303v\\301w\\302q\\304x\\263n\\305`\\004a\\260f\\370g\\361~\\371.\\031-\\030h\\261i^U0\\333y\\363z\\362,\n"
-				"	cbt=\\E[Z,bel=^G,cr=^M,csr=\\E[%i%p1%d;%p2%dr,clear=\\E[2J,el1=\\E[1K,el=\\E[K,ed=\\E[J,\n"
-				"	hpa=\\E[%i%p1%dG,cup=\\E[%i%p1%d;%p2%dH,cud1=^J,home=\\E[H,civis=\\E[?25l,cub1=\\E[D,cnorm=\\E[?25h,\n"
-				"	cuf1=\\E[C,ll=\\E[255H,cuu1=\\E[A,dch1=\\E[P,dl1=\\E[M,smam=\\E[?7h,blink=\\E[5m,bold=\\E[1m,\n"
-				"	ech=\\E[%p1%dX,rmam=\\E[7l,sgr0=\\E[m,\n"
-				"	is1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[m\\E[?s,\n"
+				"	cbt=\\E[Z,bel=^G,cr=^M,clear=\\E[2J,el1=\\E[1K,el=\\E[K,ed=\\E[J,\n"
+				"	cup=\\E[%i%p1%d;%p2%dH,cud1=^J,home=\\E[H,civis=\\E[?25l,cub1=\\E[D,cnorm=\\E[?25h,\n"
+				"	cuf1=\\E[C,cuu1=\\E[A,dch1=\\E[P,dl1=\\E[M,smam=\\E[?7h,blink=\\E[5m,bold=\\E[1m,\n"
+				"	ech=\\E[%p1%dX,rmam=\\E[7l,sgr0=\\E[0m,\n"
+				"	is2=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[0m\\E[?s,\n"
 				"	ich1=\\E[@,il1=\\E[L,\n"
 				"	kbs=^H,kdch1=\\177,kcud1=\\E[B,kend=\\E[K,\n"
 				"	kf1=\\EOP,kf2=\\EOQ,kf3=\\EOR,kf4=\\EOS,kf5=\\EOt,kf6=\\E[17~,\n"
@@ -1292,13 +1287,9 @@ int main(int argc, char **argv)
 				"	nel=^M^J,\n"
 				"	dch=\\E[%p1%dP,dl=\\E[%p1%dM,cud=\\E[%p1%dB,ich=\\E[%p1%d@,indn=\\E[%p1%dS,\n"
 				"	il=\\E[%p1%dL,cub=\\E[%p1%dD,cuf=\\E[%p1%dC,rin=\\E[%p1%dT,cuu=\\E[%p1%dA,\n"
-				"	rs1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[m\\E[?s,\n"
-				"	rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,\n"
-				"	ht=\t,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
+				"	rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
 				"	sgr=\\E[0%?%p1%p6%|%t;1%;%?%p4%|%t;5%;%?%p1%p3%|%t;7%;%?%p7%|%t;8%;m,\n"
-				"	smso=\\E[0;1;7m,rmso=\\E[m,\n"
-				"syncterm-24|SyncTERM 80x25,\n"
-				"	lines#24,use=syncterm,\n"
+				"	smso=\\E[0;1;7m,csr=\\E[%i%p1%d;%p2%dr\n"
 				"syncterm-25|SyncTERM No Status Line,\n"
 				"	lines#25,use=syncterm,\n"
 				"syncterm-27|SyncTERM 80x28 With Status,\n"
@@ -1325,10 +1316,6 @@ int main(int argc, char **argv)
 				"	cols#132,lines#27,use=syncterm,\n"
 				"syncterm-28-w|SyncTERM 132x28 No Status Line,\n"
 				"	cols#132,lines#28,use=syncterm,\n"
-				"syncterm-36-w|SyncTERM 132x37,\n"
-				"	cols#132,lines#36,use=syncterm,\n"
-				"syncterm-37-w|SyncTERM 132x37 No Status Line,\n"
-				"	cols#132,lines#37,use=syncterm,\n"
 				"syncterm-42-w|SyncTERM 132x23,\n"
 				"	cols#132,lines#42,use=syncterm,\n"
 				"syncterm-43-w|SyncTERM 132x23 No Status Line,\n"
@@ -1337,10 +1324,6 @@ int main(int argc, char **argv)
 				"	cols#132,lines#49,use=syncterm,\n"
 				"syncterm-50-w|SyncTERM 132x50 No Status Line,\n"
 				"	cols#132,lines#50,use=syncterm,\n"
-				"syncterm-51-w|SyncTERM 132x52,\n"
-				"	cols#132,lines#51,use=syncterm,\n"
-				"syncterm-52-w|SyncTERM 132x52 No Status Line,\n"
-				"	cols#132,lines#52,use=syncterm,\n"
 				"syncterm-59-w|SyncTERM 132x60,\n"
 				"	cols#132,lines#59,use=syncterm,\n"
 				"syncterm-60-w|SyncTERM 132x60 No Status Line,\n"
@@ -1400,7 +1383,6 @@ int main(int argc, char **argv)
 						case 0:
 							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
 							SLEEP(2000);
-							/* Fall-through */
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
 							break;
@@ -1455,9 +1437,6 @@ int main(int argc, char **argv)
             			case 28:
                 			text_mode=C80X28;
                 			break;
-				case 30:
-					text_mode=C80X30;
-					break;
             			case 43:
                 			text_mode=C80X43;
                 			break;
@@ -1525,7 +1504,6 @@ int main(int argc, char **argv)
 			uifcmsg("Unable to allocate memory","The system was unable to allocate memory.");
 			return(1);
 		}
-		bbs_alloc=TRUE;
 		memset(bbs, 0, sizeof(struct bbslist));
 		if((listfile=fopen(settings.list_path,"r"))==NULL)
 			parse_url(url, bbs, conn_type, TRUE);
@@ -1634,9 +1612,6 @@ int main(int argc, char **argv)
 						}
 					}
 				}
-			}
-			if (bbs_alloc) {
-				bbs_alloc=FALSE;
 				free(bbs);
 			}
 			bbs=NULL;
@@ -1644,15 +1619,7 @@ int main(int argc, char **argv)
 		}
 		else
 			last_bbs=strdup(bbs->name);
-		if (bbs_alloc) {
-			bbs_alloc=FALSE;
-			free(bbs);
-		}
 		bbs=NULL;
-	}
-	if (bbs_alloc) {
-		bbs_alloc=FALSE;
-		free(bbs);
 	}
 	if (last_bbs)
 		free(last_bbs);
@@ -1684,10 +1651,6 @@ int main(int argc, char **argv)
 	return(0);
 
 	USAGE:
-	if (bbs_alloc) {
-		bbs_alloc=FALSE;
-		free(bbs);
-	}
 	uifcbail();
 	clrscr();
     gettextinfo(&txtinfo);
@@ -1704,11 +1667,7 @@ int main(int argc, char **argv)
 		if(i >= txtinfo.screenheight-1) {
 			textattr(WHITE);
 			cputs("<Press A Key>");
-			switch(getch()) {
-				case 0:
-				case 0xe0:
-					getch();
-			}
+			getch();
 			textattr(LIGHTGRAY);
 			gotoxy(1, txtinfo.screenheight);
 			delline();
@@ -1717,11 +1676,7 @@ int main(int argc, char **argv)
 	}
 	textattr(WHITE);
 	cputs("<Press A Key to Exit>");
-	switch(getch()) {
-		case 0:
-		case 0xe0:
-			getch();
-	}
+	getch();
 	textattr(LIGHTGRAY);
 	return(0);
 }
@@ -1738,18 +1693,12 @@ int screen_to_ciolib(int screen)
 			return(C80);
 		case SCREEN_MODE_80X28:
 			return(C80X28);
-		case SCREEN_MODE_80X30:
-			return(C80X30);
 		case SCREEN_MODE_80X43:
 			return(C80X43);
 		case SCREEN_MODE_80X50:
 			return(C80X50);
 		case SCREEN_MODE_80X60:
 			return(C80X60);
-		case SCREEN_MODE_132X37:
-			return ST132X37_16_9;
-		case SCREEN_MODE_132x52:
-			return ST132X52_5_4;
 		case SCREEN_MODE_132X25:
 			return(VESA_132X25);
 		case SCREEN_MODE_132X28:
