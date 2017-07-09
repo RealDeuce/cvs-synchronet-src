@@ -1,14 +1,13 @@
-/* sbbscon.c */
-
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.255 2015/08/20 05:19:43 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.263 2017/06/04 00:54:14 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -129,6 +128,7 @@ BOOL				std_facilities=FALSE;
 FILE *				pidf;
 char				pid_fname[MAX_PATH+1];
 BOOL                capabilities_set=FALSE;
+BOOL				syslog_always=FALSE;
 
 #ifdef USE_LINUX_CAPS
 /*
@@ -166,6 +166,7 @@ static const char* usage  = "\nusage: %s [[setting] [...]] [path/ini_file]\n"
 							"\t           x is the optional LOCALx facility to use\n"
 							"\t           if none is specified, uses USER\n"
 							"\t           if 'S' is specified, uses standard facilities\n"
+							"\tsyslog     log to syslog (even when not daemonized)\n"
 #endif
 							"\tgi         get user identity (using IDENT protocol)\n"
 							"\tnh         disable hostname lookups\n"
@@ -189,14 +190,12 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\ttc         enable sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
 							"\tt-         disable Terminal server\n"
-							"\n"
 							;
 static const char* ftp_usage  = "FTP server settings:\n"
 							"\n"
 							"\tfp<port>   set FTP server port\n"
 							"\tfo<value>  set FTP server options value (advanced)\n"
 							"\tf-         disable FTP server\n"
-							"\n"
 							;
 static const char* mail_usage  = "Mail server settings:\n"
 							"\n"
@@ -209,20 +208,17 @@ static const char* mail_usage  = "Mail server settings:\n"
 							"\tm-         disable Mail server (entirely)\n"
 							"\tmp-        disable POP3 server\n"
 							"\tms-        disable SendMail thread\n"
-							"\n"
 							;
 static const char* services_usage  = "Services settings:\n"
 							"\n"
 							"\tso<value>  set Services option value (advanced)\n"
 							"\ts-         disable Services (no services module)\n"
-							"\n"
 							;
 static const char* web_usage  = "Web server settings:\n"
 							"\n"
 							"\twp<port>   set HTTP server port\n"
 							"\two<value>  set Web server option value (advanced)\n"
 							"\tw-         disable Web server (no services module)\n"
-							"\n"
 							;
 static int lputs(int level, char *str)
 {
@@ -267,7 +263,7 @@ static int lputs(int level, char *str)
     return(prompt_len);
 }
 
-static void errormsg(void* cbdata, int level, const char* fmt)
+static void errormsg(void* cbdata, int level, const char* msg)
 {
 	error_count++;
 }
@@ -619,14 +615,15 @@ static int bbs_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_AUTH,"%s",str);
 		else
 			syslog(level,"term %s",str);
-		return(strlen(str));
+		if(is_daemon)
+			return(strlen(str));
 	}
 #endif
 
@@ -677,7 +674,7 @@ static int ftp_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
@@ -688,7 +685,8 @@ static int ftp_lputs(void* p, int level, const char *str)
 #endif
 		else
 			syslog(level,"ftp  %s",str);
-		return(strlen(str));
+		if(is_daemon)
+			return(strlen(str));
 	}
 #endif
 
@@ -739,14 +737,15 @@ static int mail_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_MAIL,"%s",str);
 		else
 			syslog(level,"mail %s",str);
-		return(strlen(str));
+		if(is_daemon)
+			return(strlen(str));
 	}
 #endif
 
@@ -797,14 +796,15 @@ static int services_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_DAEMON,"%s",str);
 		else
 			syslog(level,"srvc %s",str);
-		return(strlen(str));
+		if(is_daemon)
+			return(strlen(str));
 	}
 #endif
 
@@ -855,14 +855,15 @@ static int event_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_CRON,"%s",str);
 		else
 			syslog(level,"evnt %s",str);
-		return(strlen(str));
+		if(is_daemon)
+			return(strlen(str));
 	}
 #endif
 
@@ -895,14 +896,15 @@ static int web_lputs(void* p, int level, const char *str)
 		return(0);
 
 #ifdef __unix__
-	if (is_daemon)  {
+	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
 		if (std_facilities)
 			syslog(level|LOG_DAEMON,"%s",str);
 		else
 			syslog(level,"web  %s",str);
-		return(strlen(str));
+		if(is_daemon)
+			return(strlen(str));
 	}
 #endif
 
@@ -943,6 +945,7 @@ static void terminate(void)
 {
 	ulong count=0;
 
+	prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu  Errors: %lu] Terminating... ";
 	if(bbs_running)
 		bbs_terminate();
 	if(ftp_running)
@@ -963,11 +966,11 @@ static void terminate(void)
 			if(bbs_running)
 				lputs(LOG_INFO,"Terminal Server thread still running");
 			if(ftp_running)
-				lputs(LOG_INFO,"FTP Server thread still running");
+				lprintf(LOG_INFO,"FTP Server thread still running (inactivity timeout: %u seconds)", ftp_startup.max_inactivity);
 			if(web_running)
-				lputs(LOG_INFO,"Web Server thread still running");
+				lprintf(LOG_INFO,"Web Server thread still running (inactivity timeout: %u seconds)", web_startup.max_inactivity);
 			if(mail_running)
-				lputs(LOG_INFO,"Mail Server thread still running");
+				lprintf(LOG_INFO,"Mail Server thread still running (inactivity timeout: %u seconds)", mail_startup.max_inactivity);
 			if(services_running)
 				lputs(LOG_INFO,"Services thread still running");
 		}
@@ -995,6 +998,7 @@ static void read_startup_ini(BOOL recycle
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
+		ini_file,
 		NULL,			/* global_startup */
 		&run_bbs,		bbs,
 		&run_ftp,		ftp, 
@@ -1098,7 +1102,7 @@ static void handle_sigs(void)
 	int			sig=0;
 	sigset_t	sigs;
 
-	SetThreadName("Signal Handler");
+	SetThreadName("sbbs/sigHandler");
 	thread_up(NULL,TRUE,TRUE);
 
 	/* Write the standard .pid file if created/open */
@@ -1151,15 +1155,15 @@ static void show_usage(char *cmd)
 {
 	printf(usage,cmd);
 	if(has_bbs)
-		printf(telnet_usage);
+		puts(telnet_usage);
 	if(has_ftp)
-		printf(ftp_usage);
+		puts(ftp_usage);
 	if(has_mail)
-		printf(mail_usage);
+		puts(mail_usage);
 	if(has_services)
-		printf(services_usage);
+		puts(services_usage);
 	if(has_web)
-		printf(web_usage);
+		puts(web_usage);
 }
 
 /****************************************************************************/
@@ -1204,7 +1208,7 @@ int main(int argc, char** argv)
 	printf("\nSynchronet Console for %s  Version %s%c  %s\n\n"
 		,PLATFORM_DESC,VERSION,REVISION,COPYRIGHT_NOTICE);
 
-	SetThreadName("Main");
+	SetThreadName("sbbs");
 	listInit(&client_list, LINK_LIST_MUTEX);
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
@@ -1376,6 +1380,12 @@ int main(int argc, char** argv)
 			printf("Web server options:\t0x%08"PRIX32"\n",web_startup.options);
 			return(0);
 		}
+#ifdef __unix__
+		if(!stricmp(arg,"syslog")) {
+			syslog_always=TRUE;
+			continue;
+		}
+#endif
 		switch(toupper(*(arg++))) {
 #ifdef __unix__
 				case 'D': /* Run as daemon */
@@ -2110,7 +2120,7 @@ int main(int argc, char** argv)
 						for(node=client_list.first; node!=NULL; node=node->next) {
 							client=node->data;
 							localtime32(&client->time,&tm);
-							printf("%04ld %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
+							printf("%04ld %s %s [%s] %s port %u since %u/%u %02u:%02u:%02u\n"
 								,node->tag
 								,client->protocol
 								,client->user

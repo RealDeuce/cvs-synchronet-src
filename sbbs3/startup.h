@@ -1,14 +1,13 @@
-/* startup.h */
-
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.73 2015/08/20 05:19:44 deuce Exp $ */
+/* $Id: startup.h,v 1.79 2016/11/28 10:17:14 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,6 +57,16 @@ typedef struct {
 	char	load_path[INI_MAX_VALUE_LEN];	/* additional (comma-separated) directories to search for load()ed scripts */
 } js_startup_t;
 
+/* Login Attempt parameters */
+struct login_attempt_settings {
+	ulong	delay;				/* in milliseconds */
+	ulong	throttle;			/* in milliseconds */
+	ulong	hack_threshold;
+	ulong	tempban_threshold;
+	ulong	tempban_duration;	/* in seconds */
+	ulong	filter_threshold;
+};
+
 typedef struct {
 
 	char	ctrl_dir[INI_MAX_VALUE_LEN];
@@ -71,10 +80,7 @@ typedef struct {
 	js_startup_t js;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
-	ulong	login_attempt_delay;
-	ulong	login_attempt_throttle;
-	ulong	login_attempt_hack_threshold;
-	ulong	login_attempt_filter_threshold;
+	struct login_attempt_settings login_attempt;
 
 } global_startup_t;
 
@@ -123,6 +129,7 @@ typedef struct {
     char	temp_dir[128];
 	char	answer_sound[128];
 	char	hangup_sound[128];
+	char	ini_fname[128];
 
 	/* Miscellaneous */
 	char	xtrn_term_ansi[32];		/* external ANSI terminal type (e.g. "ansi-bbs") */
@@ -137,14 +144,13 @@ typedef struct {
 	/* JavaScript operating parameters */
 	js_startup_t js;
 
-	/* Login Attempt parameters */
-	ulong	login_attempt_delay;
-	ulong	login_attempt_throttle;
-	ulong	login_attempt_hack_threshold;
-	ulong	login_attempt_filter_threshold;
+	struct login_attempt_settings login_attempt;
 	link_list_t* login_attempt_list;
+	uint	max_concurrent_connections;
 
 } bbs_startup_t;
+
+#define DEFAULT_SEM_CHK_FREQ	2
 
 /* startup options that requires re-initialization/recycle when changed */
 #define OFFSET_AND_SIZE(s, f)	{ offsetof(s,f), sizeof(((s *)0)->f) }
