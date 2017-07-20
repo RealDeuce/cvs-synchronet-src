@@ -1,14 +1,12 @@
-/* sbbs.h */
-
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.417 2015/10/28 01:38:41 deuce Exp $ */
+/* $Id: sbbs.h,v 1.447 2016/12/10 08:02:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -398,6 +396,7 @@ public:
 			*logfile_fp;
 
 	int 	nodefile;		/* File handle for node.dab */
+	pthread_mutex_t	nodefile_mutex;
 	int		node_ext;		/* File handle for node.exb */
 	int 	inputfile;		/* File handle to use for input */
 
@@ -589,6 +588,7 @@ public:
 	/* str.cpp */
 	char*	timestr(time_t intime);
     char	timestr_output[60];
+	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
 	void	sif(char *fname, char *answers, long len);	/* Synchronet Interface File */
@@ -610,8 +610,8 @@ public:
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(const char *str, const char *top, char *title, long mode, uint subnum
-				,const char *dest, char** editor=NULL);
+	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
+				,const char *to, const char* from, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
@@ -621,10 +621,10 @@ public:
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
-	ushort	chmsgattr(ushort attr);
+	ushort	chmsgattr(smbmsg_t);
 	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
-	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
+	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
 				,uint subnum, const char* tagfile);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
@@ -641,10 +641,10 @@ public:
 
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
-	void	show_msgattr(ushort attr);
+	void	show_msgattr(smbmsg_t*);
 	void	show_msghdr(smbmsg_t* msg);
-	void	show_msg(smbmsg_t* msg, long mode);
-	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
+	void	show_msg(smbmsg_t* msg, long mode, post_t* post = NULL);
+	void	msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
@@ -667,12 +667,15 @@ public:
 	void	center(char *str);
 	void	clearline(void);
 	void	cleartoeol(void);
+	void	cleartoeos(void);
 	void	cursor_home(void);
 	void	cursor_up(int count=1);
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
 	long	term_supports(long cmp_flags=0);
+	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
+	void	progress(const char* str, int count, int total, int interval=1);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -753,8 +756,10 @@ public:
 	long	listsub(uint subnum, long mode, long start, const char* search);
 	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
-	long	showposts_toyou(post_t* post, ulong start, long posts, long mode=0);
+	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
+	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
 	void	msghdr(smbmsg_t* msg);
+	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -853,7 +858,7 @@ public:
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
-	void	xtrndat(char* name, char* dropdir, uchar type, ulong tleft
+	void	xtrndat(const char* name, const char* dropdir, uchar type, ulong tleft
 				,ulong misc);
 	bool	exec_xtrn(uint xtrnnum);			/* Executes online external program */
 	bool	user_event(user_event_t);			/* Executes user event(s) */
@@ -869,15 +874,14 @@ public:
 	void	logofflist(void);              /* List of users logon activity */
 	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
-	void	errormsg(int line, const char *file, const char* action, const char *object
-				,ulong access, const char *extinfo=NULL);
+	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
+				,long access, const char *extinfo=NULL);
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
 	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
-	int		qwk_route(char *inaddr, char *fulladdr);
 	uint	total_qwknodes;
 	struct qwknode {
 		char	id[LEN_QWKID+1];
@@ -889,6 +893,10 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
+	uint	resolve_qwkconf(uint n, int hubnum=-1);
+	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, int hubnum);
+	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, int hubnum = -1);
+	void	qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t, const char* qnet_id, int hubnum = -1);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
@@ -901,13 +909,12 @@ public:
 
 	/* un_rep.cpp */
 	bool	unpack_rep(char* repfile=NULL);
-	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
-	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
+	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, uint subnum
 				,uint touser, smbmsg_t* msg);
 
@@ -1003,6 +1010,9 @@ extern "C" {
 
 	/* postmsg.cpp */
 	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
+	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt);
+	DLLEXPORT int		DLLCALL postpoll(scfg_t*, smb_t*, smbmsg_t*);
+	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
 	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
@@ -1052,13 +1062,15 @@ extern "C" {
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
 	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t);
-
+	DLLEXPORT char *	DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen);
+	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t* smb);
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
 	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, const char *str);
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
+	DLLEXPORT char *	DLLCALL seconds_to_str(uint, char*);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
@@ -1098,10 +1110,6 @@ extern "C" {
 	/* data.cpp */
 	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
 
-	/* data_ovl.cpp */
-	DLLEXPORT BOOL		DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
-	DLLEXPORT BOOL		DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
-
 	/* sockopt.c */
 	DLLEXPORT int		DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* section
 		,char* error, size_t errlen);
@@ -1109,6 +1117,9 @@ extern "C" {
 	/* xtrn.cpp */
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
+
+	/* qwk.cpp */
+	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
 
 #ifdef JAVASCRIPT
 
@@ -1166,6 +1177,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1177,9 +1189,11 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+													,CRYPT_CONTEXT session		/* client */
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
+#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1211,8 +1225,10 @@ extern "C" {
 													,char* socklib_desc);
 
 	/* js_client.c */
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-													,const char* name, client_t* client, SOCKET sock);
+													,const char* name, client_t* client, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
@@ -1240,8 +1256,10 @@ extern "C" {
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent
-													,char *name, SOCKET sock);
+													,char *name, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent
 													,char *name, struct xpms_set *set);
 
@@ -1258,6 +1276,7 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
