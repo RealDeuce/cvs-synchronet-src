@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.211 2017/06/07 00:51:55 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.212 2017/08/03 01:20:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -271,6 +271,7 @@ typedef struct js_callback {
 #define DIR_MOVENEW (1<<17)			/* Files marked as new when moved */
 #define DIR_QUIET	(1<<18)			/* Do not notify uploader of downloads */
 #define DIR_NOSTAT	(1<<19)			/* Do not include transfers in system stats */
+#define DIR_FILES	(1<<20)			/* List/access files not in database */
 
                                     /* Bit values for file_t.misc */
 #define FM_EXTDESC  (1<<0)          /* Extended description exists */
