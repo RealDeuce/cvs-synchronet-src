@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.156 2016/11/28 11:12:35 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.157 2017/07/20 22:13:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -804,6 +804,9 @@ BOOL sbbs_write_ini(
 			break;
 		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",bbs->outbuf_drain_timeout,&style))
 			break;
+		if(!iniSetInteger(lp,section,"MaxConcurrentConnections",bbs->max_concurrent_connections,&style))
+			break;
+
 
 		if(bbs->sem_chk_freq==global->sem_chk_freq)
 			iniRemoveValue(lp,section,strSemFileCheckFrequency);

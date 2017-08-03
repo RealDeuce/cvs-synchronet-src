@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.430 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.431 2017/06/04 00:57:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2463,7 +2463,7 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&ftp.client_addr);
 	client.protocol="FTP";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(sock,&client,FALSE /* update */);
 
 	if(startup->login_attempt.throttle
@@ -4740,7 +4740,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.430 $", "%*s %s", revision);
+	sscanf("$Revision: 1.431 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
