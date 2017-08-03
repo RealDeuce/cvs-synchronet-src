@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.61 2015/10/28 01:38:41 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.64 2017/06/09 04:32:46 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -129,6 +129,7 @@ FTP_OBJS	= $(MTOBJODIR)$(DIRSEP)ftpsrvr$(OFILE) \
 MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)mxlookup$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)mime$(OFILE) \
+ 		  	$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)base64$(OFILE)
 
@@ -181,12 +182,14 @@ SBBSECHO_OBJS = \
 			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfgsave$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
 			$(OBJODIR)$(DIRSEP)rechocfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)msg_id$(OFILE) \
+			$(OBJODIR)$(DIRSEP)getmail$(OFILE) \
 			$(SMB_OBJS)
 
 ECHOCFG_OBJS = \
