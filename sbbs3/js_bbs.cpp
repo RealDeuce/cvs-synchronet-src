@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.156 2017/08/09 20:18:41 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.154 2017/08/09 19:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1195,9 +1195,7 @@ js_user_event(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 {
-	jsval *argv = JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
-	char*		sys_pw = NULL;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -1205,13 +1203,8 @@ js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
-	if (argc) {
-		JSString* str = JS_ValueToString(cx, argv[0]);
-		JSSTRING_TO_ASTRING(cx, str, sys_pw, sizeof(sbbs->cfg.sys_pass)+2, NULL);
-	}
-
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chksyspass(sys_pw)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chksyspass()));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1690,9 +1683,9 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	char*		user_pw = NULL;
 	char*		sys_pw = NULL;
 	JSString*	js_name;
-	JSString*	js_pw_prompt = NULL;
-	JSString*	js_user_pw = NULL;
-	JSString*	js_sys_pw = NULL;
+	JSString*	js_pw_prompt;
+	JSString*	js_user_pw;
+	JSString*	js_sys_pw;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1707,12 +1700,9 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_name=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if(argc > 1)
-		js_pw_prompt = JS_ValueToString(cx, argv[1]);
-	if(argc > 2)
-		js_user_pw = JS_ValueToString(cx, argv[2]);
-	if(argc > 3)
-		js_sys_pw = JS_ValueToString(cx, argv[3]);
+	js_pw_prompt = JS_ValueToString(cx, argv[1]);
+	js_user_pw = JS_ValueToString(cx, argv[2]);
+	js_sys_pw = JS_ValueToString(cx, argv[3]);
 
 	JSSTRING_TO_ASTRING(cx, js_name, name, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
 	if(name==NULL) 
@@ -3792,8 +3782,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,316
 	},		
 	/* security */
-	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[sys_pw]")
-	,JSDOCSTR("verify system password, prompting for the password if not passed as an argument")
+	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
+	,JSDOCSTR("prompt for and verify system password")
 	,310
 	},
 	{"good_password",	js_chkpass,			1,	JSTYPE_STRING,	JSDOCSTR("password")
