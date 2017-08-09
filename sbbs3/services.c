@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.298 2016/11/27 23:13:06 rswindell Exp $ */
+/* $Id: services.c,v 1.300 2017/06/04 00:57:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -615,7 +615,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
 	client.time=time32(NULL);
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -668,7 +668,7 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	memset(&client,0,sizeof(client));
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -1064,7 +1064,7 @@ static void js_service_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	service_client.client=&client;
 
 	/* Initialize client display */
@@ -1401,7 +1401,7 @@ static void native_service_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.298 $", "%*s %s", revision);
+	sscanf("$Revision: 1.300 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1893,6 +1893,7 @@ void DLLCALL services_thread(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","services");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","services");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,services_ini);
