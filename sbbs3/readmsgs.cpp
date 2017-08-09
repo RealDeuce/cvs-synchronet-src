@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.101 2017/11/07 03:35:18 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.99 2016/12/08 07:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1218,20 +1218,18 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 				ZERO_VAR(vote);
 				if(msg.hdr.type == SMB_MSG_TYPE_POLL) {
-					str_list_t answers = NULL;
+					unsigned answers=0;
 					for(i=0; i<msg.total_hfields; i++) {
-						if(msg.hfield[i].type == SMB_POLL_ANSWER)
-							strListPush(&answers, (char*)msg.hfield_dat[i]);
+						if(msg.hfield[i].type != SMB_POLL_ANSWER)
+							continue;
+						uselect(1, answers++, msg.subj, (char*)msg.hfield_dat[i], NULL);
 					}
-					SAFEPRINTF(str, text[BallotHdr], msg.subj);
-					i = mselect(str, answers, msg.hdr.votes ? msg.hdr.votes : 1, text[BallotAnswerFmt]
-						,text[PollAnswerChecked], nulstr, text[BallotVoteWhich]);
-					strListFree(&answers);
-					if(i <= 0) {
+					i = uselect(0, 0, NULL, NULL, NULL);
+					if(i < 0) {
 						domsg = false;
 						break;
 					}
-					vote.hdr.votes = i;
+					vote.hdr.votes = (1<<i);
 					vote.hdr.attr = MSG_VOTE;
 					notice = text[PollVoteNotice];
 				} else {
@@ -1674,8 +1672,6 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		lp_mode = 0;
 	if(mode&SCAN_UNREAD)
 		lp_mode |= LP_UNREAD;
-	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
-		lp_mode |= LP_POLLS;
 	post=loadposts(&posts,subnum,0,lp_mode,NULL,&total);
 	bprintf(text[SearchSubFmt]
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,total);
