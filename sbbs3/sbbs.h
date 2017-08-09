@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.447 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.448 2017/08/09 19:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -730,7 +730,7 @@ public:
 	int		putnodeext(uint number, char * str);
 
 	/* login.ccp */
-	int		login(char *str, char *pw);
+	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd);
 
 	/* answer.cpp */
@@ -785,7 +785,7 @@ public:
 	void	logoffstats(void);
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
-	bool	chksyspass(void);
+	bool	chksyspass(const char* sys_pw = NULL);
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
