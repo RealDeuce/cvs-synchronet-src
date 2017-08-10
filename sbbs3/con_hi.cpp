@@ -2,7 +2,7 @@
 
 /* Synchronet hi-level console routines */
 
-/* $Id: con_hi.cpp,v 1.22 2017/08/09 19:53:03 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.23 2017/08/10 17:44:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,7 +116,7 @@ bool sbbs_t::chksyspass(const char* sys_pw)
 		getstr(str, 40, K_UPPER | K_NOECHO);
 		CRLF;
 	}
-	if(strcmp(cfg.sys_pass,str)) {
+	if(stricmp(cfg.sys_pass,str)) {
 		if(cfg.sys_misc&SM_ECHO_PW) 
 			SAFEPRINTF3(str2,"%s #%u System password attempt: '%s'"
 				,useron.alias,useron.number,str);
