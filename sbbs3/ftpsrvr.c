@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.437 2018/02/20 11:23:18 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.432 2017/08/03 01:23:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -125,7 +125,7 @@ BOOL direxist(char *dir)
 BOOL dir_op(scfg_t* cfg, user_t* user, client_t* client, uint dirnum)
 {
 	return(user->level>=SYSOP_LEVEL
-		|| (cfg->dir[dirnum]->op_ar!=NULL && cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
+		|| (cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
 }
 
 static int lprintf(int level, const char *fmt, ...)
@@ -400,7 +400,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	FILE*	fp;
 	jsrefcount	rc;
-	char		*p = NULL;
+	char		*p;
 	size_t		len;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -413,7 +413,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		if (!str)
 		    return JS_FALSE;
 		JSSTRING_TO_MSTRING(cx, str, p, &len);
-		HANDLE_PENDING(cx, p);
+		HANDLE_PENDING(cx);
 		rc=JS_SUSPENDREQUEST(cx);
 		if(p) {
 			fwrite(p, len, 1, fp);
@@ -1193,10 +1193,8 @@ int ftp_remove(SOCKET sock, int line, const char* fname)
 {
 	int ret=0;
 
-	if(fexist(fname) && (ret=remove(fname))!=0) {
-		if(fexist(fname))	// In case there was a race condition (other host deleted file first)
-			lprintf(LOG_ERR,"%04d !ERROR %d (%s) (line %d) removing file: %s", sock, errno, STRERROR(errno), line, fname);
-	}
+	if(fexist(fname) && (ret=remove(fname))!=0)
+		lprintf(LOG_ERR,"%04d !ERROR %d (line %d) removing file: %s", sock, ret, line, fname);
 	return ret;
 }
 
@@ -2577,7 +2575,7 @@ static void ctrl_thread(void* arg)
 			truncsp(p);
 			SAFECOPY(user.alias,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
-			if(!user.number && (stricmp(user.alias,"anonymous") == 0 || stricmp(user.alias, "ftp") == 0))
+			if(!user.number && !stricmp(user.alias,"anonymous"))	
 				user.number=matchuser(&scfg,"guest",FALSE);
 			if(user.number && getuserdat(&scfg, &user)==0 && user.pass[0]==0) 
 				sockprintf(sock,"331 User name okay, give your full e-mail address as password.");
@@ -2975,7 +2973,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
-			|| stricmp(cmd, "EPSV")==0 || strnicmp(cmd, "EPSV ", 5)==0 || stricmp(cmd, "LPSV")==0) {
+			|| stricmp(cmd, "EPSV")==0 || stricmp(cmd, "LPSV")==0) {	
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -3038,7 +3036,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			port=inet_addrport(&addr);
-			if(strnicmp(cmd, "EPSV", 4)==0)
+			if(stricmp(cmd, "EPSV")==0)
 				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
 			else if (stricmp(cmd,"LPSV")==0) {
 				switch(addr.addr.sa_family) {
@@ -4743,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.437 $", "%*s %s", revision);
+	sscanf("$Revision: 1.432 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4891,11 +4889,7 @@ void DLLCALL ftp_server(void* arg)
 		else
 			SAFECOPY(scfg.temp_dir,"../temp");
 	   	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-		if(!isdir(scfg.temp_dir) && MKDIR(scfg.temp_dir) != 0) {
-			lprintf(LOG_ERR, "Error %d creating temp directory: %s", errno, scfg.temp_dir);
-			cleanup(1,__LINE__);
-			break;
-		}
+		MKDIR(scfg.temp_dir);
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
 		if(!isdir(scfg.temp_dir)) {
 			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);

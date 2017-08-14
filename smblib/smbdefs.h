@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.100 2017/11/25 01:24:23 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.98 2017/07/08 04:48:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -322,7 +322,6 @@
 #define MSG_UPVOTE			(1<<11)		/* This message is an upvote */
 #define MSG_DOWNVOTE		(1<<12)		/* This message is a downvote */
 #define MSG_POLL			(1<<13)		/* This message is a poll */
-#define MSG_SPAM			(1<<14)		/* This message has been flagged as SPAM */
 
 #define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* This message is a poll-vote */
 #define MSG_POLL_CLOSURE	(MSG_POLL|MSG_VOTE)			/* This message is a poll-closure */
@@ -659,7 +658,6 @@ typedef struct {				/* Message base */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 		/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
-	BOOL		continue_on_error;			/* Attempt recovery after some normaly fatal errors */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
