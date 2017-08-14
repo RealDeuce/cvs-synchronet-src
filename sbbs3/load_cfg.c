@@ -2,13 +2,13 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.65 2015/08/22 05:45:23 deuce Exp $ */
+/* $Id: load_cfg.c,v 1.69 2017/07/08 02:41:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -281,7 +281,6 @@ void DLLCALL free_text(char* text[])
 /****************************************************************************/
 BOOL md(char *inpath)
 {
-	DIR*	dir;
 	char	path[MAX_PATH+1];
 
 	if(inpath[0]==0)
@@ -297,16 +296,13 @@ BOOL md(char *inpath)
 	if(path[strlen(path)-1]=='\\' || path[strlen(path)-1]=='/')
 		path[strlen(path)-1]=0;
 
-	dir=opendir(path);
-	if(dir==NULL) {
+	if(!isdir(path)) {
 		/* lprintf("Creating directory: %s",path); */
-		if(MKDIR(path)) {
+		if(mkpath(path)) {
 			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
-	else
-		closedir(dir);
 	
 	return(TRUE);
 }
@@ -333,7 +329,10 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 			,MIN_COLORS);
 		return(FALSE);
 	}
-	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);	
+	/* Setup default colors here: */
+	memset(cfg->color,LIGHTGRAY|HIGH,MIN_COLORS);
+	cfg->color[clr_votes_full] = WHITE|BG_MAGENTA;
+	cfg->color[clr_progress_full] = CYAN|HIGH|BG_BLUE;
 	for(cfg->total_colors=0;!feof(instream) && !ferror(instream);cfg->total_colors++) {
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
@@ -413,7 +412,7 @@ ushort DLLCALL sys_timezone(scfg_t* cfg)
 	time_t	now;
 	struct tm tm;
 
-	if(cfg->sys_misc&SM_AUTO_DST && !OTHER_ZONE(cfg->sys_timezone) && cfg->sys_timezone&US_ZONE) {
+	if(cfg->sys_misc&SM_AUTO_DST && SMB_TZ_HAS_DST(cfg->sys_timezone)) {
 		now=time(NULL);
 		if(localtime_r(&now,&tm)!=NULL) {
 			if(tm.tm_isdst>0)
