@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
-// vi: tabstop=4
-/* $Id: sbbs.h,v 1.457 2017/11/24 23:39:24 rswindell Exp $ */
+
+/* $Id: sbbs.h,v 1.449 2017/08/14 10:17:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,16 +105,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
-#if defined(__GNUC__)
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
-	#pragma GCC diagnostic ignored "-Wignored-attributes"
-#endif
 #include <jsversion.h>
 #include <jsapi.h>
-#if defined(__GNUC_)
-	#pragma GCC diagnostic pop
-#endif
 #define JS_DestroyScript(cx,script)
 
 #define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
@@ -387,7 +379,6 @@ public:
 
 #endif
 
-	char	syspage_semfile[MAX_PATH+1];	/* Sysop page semaphore file */
 	char 	menu_dir[128];	/* Over-ride default menu dir */
 	char 	menu_file[128]; /* Over-ride menu file */
 
@@ -646,7 +637,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which, bool permanent=true, long lm_mode = 0);
+	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
@@ -659,9 +650,8 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which);
+	void	readmail(uint usernumber, int sent);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -772,7 +762,6 @@ public:
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
 	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
-	int64_t get_start_msgnum(smb_t*, int next=0);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -793,8 +782,6 @@ public:
 	int		getnodetopage(int all, int telegram);
 
 	/* main.cpp */
-	int		lputs(int level, const char* str);
-	int		lprintf(int level, const char *fmt, ...);
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
@@ -804,7 +791,6 @@ public:
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
-	bool	backup(const char* fname, int backup_level, bool rename);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
@@ -1018,7 +1004,7 @@ extern "C" {
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* getmail.c */
-	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
+	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
@@ -1097,7 +1083,6 @@ extern "C" {
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
 	DLLEXPORT ushort	DLLCALL sys_timezone(scfg_t* cfg);
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);
@@ -1107,9 +1092,14 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_file_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
+	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
+	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
+	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
-	DLLEXPORT int		DLLCALL smb_storage_mode(scfg_t*, smb_t*);
-	DLLEXPORT int		DLLCALL smb_open_sub(scfg_t*, smb_t*, unsigned int subnum);
+
+
+	/* scfglib1.c */
+	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1326,7 +1316,6 @@ int		strsame(const char *str1, const char *str2);	/* Compares number of same cha
 
 /* load_cfg.c */
 BOOL 	md(char *path);
-char*	prep_code(char *str, const char* prefix);
 
 #ifdef SBBS /* These aren't exported */
 
