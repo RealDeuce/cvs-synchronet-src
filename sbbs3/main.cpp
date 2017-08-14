@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.648 2017/06/09 02:20:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.649 2017/08/14 07:41:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4901,7 +4901,7 @@ NO_SSH:
 		_beginthread(event_thread, 0, events);
 	}
 
-	/* Save these values incase they're changed dynamically */
+	/* Save these values in case they're changed dynamically */
 	first_node=startup->first_node;
 	last_node=startup->last_node;
 
@@ -5156,6 +5156,9 @@ NO_SSH:
 			}
 		}
 
+		sbbs->client_socket=client_socket;	// required for output to the user
+		sbbs->online=ON_REMOTE;
+
 		login_attempt_t attempted;
 		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
@@ -5250,8 +5253,6 @@ NO_SSH:
 			}
 		}
 #endif
-   		sbbs->client_socket=client_socket;	// required for output to the user
-        sbbs->online=ON_REMOTE;
 
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
