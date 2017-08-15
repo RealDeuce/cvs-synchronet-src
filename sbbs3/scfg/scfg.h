@@ -1,5 +1,4 @@
-/* $Id: scfg.h,v 1.25 2017/11/11 08:38:59 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfg.h,v 1.20 2016/12/02 15:44:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +33,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <limits.h>	/* USHRT_MAX */
 
 #include "gen_defs.h"
@@ -53,16 +51,6 @@
 
 #define SUB_HDRMOD	(1L<<31)		/* Modified sub-board header info */
 
-#define MAX_UNIQUE_CODE_ATTEMPTS (36*36*36)
-
-enum import_list_type {
-	IMPORT_LIST_TYPE_SUBS_TXT,
-	IMPORT_LIST_TYPE_QWK_CONTROL_DAT,
-	IMPORT_LIST_TYPE_GENERIC_AREAS_BBS,
-	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
-	IMPORT_LIST_TYPE_BACKBONE_NA,
-};
-
 /************/
 /* Typedefs */
 /************/
@@ -80,14 +68,13 @@ extern char *nulstr;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
 extern BOOL new_install;
-char* area_sort_desc[AREA_SORT_TYPES+1];
 
 /***********************/
 /* Function Prototypes */
 /***********************/
 
 void bail(int code);
-void errormsg(int line, const char* function, const char *source, const char* action, const char *object, ulong access);
+void errormsg(int line, char* function, char *source,  char* action, char *object, ulong access);
 void clearptrs(int subnum);
 int  save_changes(int mode);
 void node_menu(void);
@@ -122,15 +109,6 @@ int export_mdm(char *fname);
 int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
-bool new_sub(unsigned new_subnum, unsigned group_num);
-bool new_qhub_sub(qhub_t*, unsigned qsubnum, sub_t*, unsigned confnum);
-void sort_subs(int grpnum);
-void sort_dirs(int libnum);
-unsigned subs_in_group(unsigned grpnum);
-char random_code_char(void);
-
-	
-long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum, qhub_t*, long* added);
 
 /* Prepare a string to be used as an internal code; Note: use the return value, Luke */
 char* prep_code(char *str, const char* prefix);
