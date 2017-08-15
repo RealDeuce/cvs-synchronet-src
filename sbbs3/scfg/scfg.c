@@ -1,7 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.92 2017/11/26 00:08:16 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfg.c,v 1.81 2017/06/07 02:42:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +54,6 @@ char **opt;
 char tmp[256];
 char error[256];
 int  backup_level=5;
-char* area_sort_desc[] = { "Index Position", "Long Name", "Short Name", "Internal Code", NULL };
 
 char *invalid_code=
 	"`Invalid Internal Code:`\n\n"
@@ -76,85 +74,6 @@ void allocfail(uint size)
     printf("\7Error allocating %u bytes of memory.\r\n",size);
     bail(1);
 }
-
-enum import_list_type determine_msg_list_type(const char* path)
-{
-	const char* fname = getfname(path);
-
-	if(stricmp(fname, "subs.txt") == 0)
-		return IMPORT_LIST_TYPE_SUBS_TXT;
-	if(stricmp(fname, "areas.bbs") == 0)
-		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
-	if(stricmp(fname, "control.dat") == 0)
-		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
-	return IMPORT_LIST_TYPE_BACKBONE_NA;
-}
-
-uint group_num_from_name(const char* name)
-{
-	uint u;
-
-	for(u=0; u<cfg.total_grps; u++)
-		if(stricmp(cfg.grp[u]->sname, name) == 0)
-			return u;
-
-	return u;
-}
-
-static int sort_group = 0;
-
-int sub_compare(const void* c1, const void* c2)
-{
-	sub_t* sub1 = *(sub_t**)c1;
-	sub_t* sub2 = *(sub_t**)c2;
-
-	if(sub1->grp != sort_group && sub2->grp != sort_group)
-		return 0;
-
-	if(sub1->grp != sort_group || sub2->grp != sort_group)
-		return sub1->grp - sub2->grp;
-	if(cfg.grp[sort_group]->sort == AREA_SORT_LNAME)
-		return stricmp(sub1->lname, sub2->lname);
-	if(cfg.grp[sort_group]->sort == AREA_SORT_SNAME)
-		return stricmp(sub1->sname, sub2->sname);
-	if(cfg.grp[sort_group]->sort == AREA_SORT_CODE)
-		return stricmp(sub1->code_suffix, sub2->code_suffix);
-	return sub1->subnum - sub2->subnum;
-}
-
-void sort_subs(int grpnum)
-{
-	sort_group = grpnum;
-	qsort(cfg.sub, cfg.total_subs, sizeof(sub_t*), sub_compare);
-}
-
-static int sort_lib = 0;
-
-int dir_compare(const void* c1, const void* c2)
-{
-	dir_t* dir1 = *(dir_t**)c1;
-	dir_t* dir2 = *(dir_t**)c2;
-
-	if(dir1->lib != sort_lib && dir2->lib != sort_lib)
-		return 0;
-
-	if(dir1->lib != sort_lib || dir2->lib != sort_lib)
-		return dir1->lib - dir2->lib;
-	if(cfg.lib[sort_lib]->sort == AREA_SORT_LNAME)
-		return stricmp(dir1->lname, dir2->lname);
-	if(cfg.lib[sort_lib]->sort == AREA_SORT_SNAME)
-		return stricmp(dir1->sname, dir2->sname);
-	if(cfg.lib[sort_lib]->sort == AREA_SORT_CODE)
-		return stricmp(dir1->code_suffix, dir2->code_suffix);
-	return dir1->dirnum - dir2->dirnum;
-}
-
-void sort_dirs(int libnum)
-{
-	sort_lib = libnum;
-	qsort(cfg.dir, cfg.total_dirs, sizeof(dir_t*), dir_compare);
-}
-
 
 int main(int argc, char **argv)
 {
@@ -177,35 +96,21 @@ int main(int argc, char **argv)
     if(p!=NULL)
         SAFECOPY(cfg.ctrl_dir,p);
     else
-		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+        getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 	uifc.esc_delay=25;
 
-	const char* import = NULL;
-	const char* grpname = NULL;
-	unsigned int grpnum = 0;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
 #ifndef __unix__
             || argv[i][0]=='/'
 #endif
-            ) {
-			if(strncmp(argv[i]+1, "import=", 7) == 0) {
-				import = argv[i] + 8;
-				continue;
-			}
-			if(strcmp(argv[i]+1, "insert") == 0) {
-				uifc.insert_mode = TRUE;
-				continue;
-			}
+            )
             switch(toupper(argv[i][1])) {
                 case 'N':   /* Set "New Installation" flag */
 					new_install=TRUE;
 					forcesave=TRUE;
                     continue;
-				case 'K':	/* Keyboard only (no mouse) */
-					uifc.mode |= UIFC_NOMOUSE;
-					break;
 		        case 'M':   /* Monochrome mode */
         			uifc.mode|=UIFC_MONO;
                     break;
@@ -226,12 +131,6 @@ int main(int argc, char **argv)
                 case 'S':
         			no_dirchk=!no_dirchk;
                     break;
-				case 'G':
-					if(isalpha(argv[i][2]))
-						grpname = argv[i]+2;
-					else
-						grpnum = atoi(argv[i]+2);
-					break;
                 case 'H':
         			no_msghdr=!no_msghdr;
                     break;
@@ -288,16 +187,13 @@ int main(int argc, char **argv)
                     printf("\nusage: scfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
                         "-s  =  don't check directories\r\n"
-                        "-f  =  force save of configuration files\r\n"
+                        "-f  =  force save of config files\r\n"
                         "-a  =  update all message base status headers\r\n"
                         "-h  =  don't update message base status headers\r\n"
 						"-u# =  set file creation permissions mask (in octal)\n"
-						"-k  =  keyboard mode only (no mouse support)\r\n"
-						"-c  =  force color mode\r\n"
+                        "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
                         "-e# =  set escape delay to #msec\r\n"
-						"-import=<filename> = import a message area list file\r\n"
-						"-g# =  set group number to import into\r\n"
 						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
 #ifdef __unix__
 						"       X = X11 mode\r\n"
@@ -315,10 +211,9 @@ int main(int argc, char **argv)
 						,backup_level
                         );
         			exit(0);
-			}
-		}
-		else
-			SAFECOPY(cfg.ctrl_dir,argv[i]);
+           }
+        else
+            SAFECOPY(cfg.ctrl_dir,argv[i]);
     }
 
 #ifdef _WIN32
@@ -335,68 +230,6 @@ int main(int argc, char **argv)
 	FULLPATH(cfg.ctrl_dir,".",sizeof(cfg.ctrl_dir));
 	backslashcolon(cfg.ctrl_dir);
 
-	if(import != NULL && *import != 0) {
-		enum { msgbase = 'M', filebase = 'F' } base = msgbase;
-		char fname[MAX_PATH+1];
-		SAFECOPY(fname, import);
-		p = strchr(fname, ',');
-		if(p != NULL) {
-			*p = 0;
-			p++;
-			base = toupper(*p);
-		}
-		FILE* fp = fopen(fname, "r");
-		if(fp == NULL) {
-			perror(fname);
-			return EXIT_FAILURE;
-		}
-
-		printf("Reading MAIN.CNF...\n");
-		if(!read_main_cfg(&cfg,error)) {
-			printf("ERROR: %s",error);
-			return EXIT_FAILURE;
-		}
-		printf("Reading MSGS.CNF...");
-		if(!read_msgs_cfg(&cfg,error)) {
-			printf("ERROR: %s",error);
-			return EXIT_FAILURE;
-		}
-
-		if(grpname != NULL)
-			grpnum = group_num_from_name(grpname);
-
-		if(grpnum >= cfg.total_grps) {
-			printf("!Invalid group specified!\n");
-			return EXIT_FAILURE;
-		}
-		printf("Importing %s from %s\n", "Areas", fname);
-		long ported = 0;
-		long added = 0;
-		switch(base) {
-			case msgbase:
-			{
-				enum import_list_type list_type = determine_msg_list_type(fname);
-				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, &added);
-				break;
-			}
-			case filebase:
-			{
-				fprintf(stderr, "!Not yet supported\n");
-				break;
-			}
-		}
-		fclose(fp);
-		if(ported < 0)
-			printf("!ERROR %ld importing areas from %s\n", ported, fname);
-		else {
-			printf("Imported %ld areas (%ld added) from %s\n", ported, added, fname);
-			write_msgs_cfg(&cfg,backup_level);
-			refresh_cfg(&cfg);
-		}
-		free_msgs_cfg(&cfg);
-		free_main_cfg(&cfg);
-		return EXIT_SUCCESS;
-	}
 	uifc.size=sizeof(uifc);
 	if(!door_mode) {
 		i=initciolib(ciolib_mode);
@@ -470,16 +303,16 @@ int main(int argc, char **argv)
 			"This is the main menu of the Synchronet configuration utility (SCFG).\n"
 			"From this menu, you have the following choices:\n"
 			"\n"
-			"    Nodes                : Add, delete, or configure nodes\n"
-			"    System               : System-wide configuration options\n"
-			"    Networks             : Message networking configuration\n"
-			"    File Areas           : File area configuration\n"
-			"    File Options         : File area options\n"
-			"    Chat Features        : Chat actions, sections, pagers, and gurus\n"
-			"    Message Areas        : Message area configuration\n"
+			"    Node                 : Add, delete, or configure nodes\n"
+			"    Syste                : System-wide configuration options\n"
+			"    Network              : Message networking configuration\n"
+			"    File Area            : File area configuration\n"
+			"    File Option          : File area options\n"
+			"    Chat Feature         : Chat actions, sections, pagers, and gurus\n"
+			"    Message Area         : Message area configuration\n"
 			"    Message Options      : Message and email options\n"
-			"    External Programs    : Events, editors, and online programs\n"
-			"    Text File Sections   : General text file area\n"
+			"    External Program     : Events, editors, and online programs\n"
+			"    Text File Section    : General text file area\n"
 			"\n"
 			"Use the arrow keys and ~ ENTER ~ to select an option, or ~ ESC ~ to exit.\n"
 		;
@@ -779,11 +612,11 @@ void txt_cfg()
 		opt[i][0]=0;
 		j=WIN_ORG|WIN_ACT|WIN_CHE;
 		if(cfg.total_txtsecs)
-			j|=WIN_DEL | WIN_COPY | WIN_CUT;
+			j|=WIN_DEL|WIN_GET;
 		if(cfg.total_txtsecs<MAX_OPTS)
 			j|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savtxtsec.name[0])
-			j|=WIN_PASTE;
+			j|=WIN_PUT;
 		uifc.helpbuf=
 			"`Text File Sections:`\n"
 			"\n"
@@ -811,9 +644,8 @@ void txt_cfg()
 			}
 			return;
 		}
-		int msk = i & MSK_ON;
-		i &= MSK_OFF;
-		if (msk == MSK_INS) {
+		if((i&MSK_ON)==MSK_INS) {
+			i&=MSK_OFF;
 			strcpy(str,"ANSI Artwork");
 			uifc.helpbuf=
 				"`Text Section Name:`\n"
@@ -830,7 +662,7 @@ void txt_cfg()
 				"\n"
 				"Every text file section must have its own unique internal code for\n"
 				"Synchronet to reference it by. It is helpful if this code is an\n"
-				"abbreviation of the name.\n"
+				"abreviation of the name.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Text Section Internal Code",code,LEN_CODE
 				,K_EDIT)<1)
@@ -839,50 +671,42 @@ void txt_cfg()
 				uifc.helpbuf=invalid_code;
 				uifc.msg("Invalid Code");
 				uifc.helpbuf=0;
-				continue; 
-			}
+				continue; }
 			if((cfg.txtsec=(txtsec_t **)realloc(cfg.txtsec
 				,sizeof(txtsec_t *)*(cfg.total_txtsecs+1)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_txtsecs+1);
 				cfg.total_txtsecs=0;
 				bail(1);
-				continue; 
-			}
+				continue; }
 			if(cfg.total_txtsecs)
 				for(u=cfg.total_txtsecs;u>i;u--)
 					cfg.txtsec[u]=cfg.txtsec[u-1];
 			if((cfg.txtsec[i]=(txtsec_t *)malloc(sizeof(txtsec_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(txtsec_t));
-				continue; 
-			}
+				continue; }
 			memset((txtsec_t *)cfg.txtsec[i],0,sizeof(txtsec_t));
 			strcpy(cfg.txtsec[i]->name,str);
 			strcpy(cfg.txtsec[i]->code,code);
 			cfg.total_txtsecs++;
 			uifc.changes=1;
-			continue; 
-		}
-		if (msk == MSK_DEL || msk == MSK_CUT) {
-			if(msk == MSK_CUT)
-				savtxtsec = *cfg.txtsec[i];
+			continue; }
+		if((i&MSK_ON)==MSK_DEL) {
+			i&=MSK_OFF;
 			free(cfg.txtsec[i]);
 			cfg.total_txtsecs--;
 			for(j=i;j<cfg.total_txtsecs;j++)
 				cfg.txtsec[j]=cfg.txtsec[j+1];
 			uifc.changes=1;
-			continue; 
-		}
-		if (msk == MSK_COPY) {
+			continue; }
+		if((i&MSK_ON)==MSK_GET) {
+			i&=MSK_OFF;
 			savtxtsec=*cfg.txtsec[i];
-			continue; 
-		}
-		if (msk == MSK_PASTE) {
+			continue; }
+		if((i&MSK_ON)==MSK_PUT) {
+			i&=MSK_OFF;
 			*cfg.txtsec[i]=savtxtsec;
 			uifc.changes=1;
-			continue; 
-		}
-		if (msk != 0)
-			continue;
+			continue; }
 		i=txt_dflt;
 		j=0;
 		done=0;
@@ -921,7 +745,7 @@ void txt_cfg()
 						"\n"
 						"Every text file section must have its own unique internal code for\n"
 						"Synchronet to reference it by. It is helpful if this code is an\n"
-						"abbreviation of the name.\n"
+						"abreviation of the name.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
 						,str,LEN_CODE,K_EDIT);
@@ -930,8 +754,7 @@ void txt_cfg()
 					else {
 						uifc.helpbuf=invalid_code;
 						uifc.msg("Invalid Code");
-						uifc.helpbuf=0; 
-					}
+						uifc.helpbuf=0; }
 					break; 
 			} 
 		} 
@@ -952,11 +775,11 @@ void shell_cfg()
 		opt[i][0]=0;
 		j=WIN_ORG|WIN_ACT|WIN_CHE;
 		if(cfg.total_shells)
-			j |= WIN_DEL | WIN_COPY | WIN_CUT;
+			j|=WIN_DEL|WIN_GET;
 		if(cfg.total_shells<MAX_OPTS)
 			j|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savshell.name[0])
-			j|=WIN_PASTE;
+			j|=WIN_PUT;
 		uifc.helpbuf=
 			"`Command Shells:`\n"
 			"\n"
@@ -983,9 +806,8 @@ void shell_cfg()
 			}
 			return;
 		}
-		int msk = i & MSK_ON;
-		i &= MSK_OFF;
-		if (msk == MSK_INS) {
+		if((i&MSK_ON)==MSK_INS) {
+			i&=MSK_OFF;
 			strcpy(str,"Menu Shell");
 			uifc.helpbuf=
 				"`Command Shell Name:`\n"
@@ -1002,11 +824,11 @@ void shell_cfg()
 				"\n"
 				"Every command shell must have its own unique internal code for\n"
 				"Synchronet to reference it by. It is helpful if this code is an\n"
-				"abbreviation of the name.\n"
+				"abreviation of the name.\n"
 				"\n"
 				"This code will be the base filename used to load the shell from your\n"
-				"`exec` directory. e.g. A shell with an internal code of `MYBBS` would\n"
-				"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
+				"EXEC directory. e.g. A shell with an internal code of `MYBBS` would\n"
+				"indicate a Baja shell file named `MYBBS.BIN` in your EXEC directory.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Command Shell Internal Code",code,LEN_CODE
 				,K_EDIT)<1)
@@ -1015,50 +837,42 @@ void shell_cfg()
 				uifc.helpbuf=invalid_code;
 				uifc.msg("Invalid Code");
 				uifc.helpbuf=0;
-				continue; 
-			}
+				continue; }
 			if((cfg.shell=(shell_t **)realloc(cfg.shell
 				,sizeof(shell_t *)*(cfg.total_shells+1)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_shells+1);
 				cfg.total_shells=0;
 				bail(1);
-				continue; 
-			}
+				continue; }
 			if(cfg.total_shells)
 				for(u=cfg.total_shells;u>i;u--)
 					cfg.shell[u]=cfg.shell[u-1];
 			if((cfg.shell[i]=(shell_t *)malloc(sizeof(shell_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(shell_t));
-				continue; 
-			}
+				continue; }
 			memset((shell_t *)cfg.shell[i],0,sizeof(shell_t));
 			strcpy(cfg.shell[i]->name,str);
 			strcpy(cfg.shell[i]->code,code);
 			cfg.total_shells++;
 			uifc.changes=1;
-			continue; 
-		}
-		if (msk == MSK_DEL || msk == MSK_CUT) {
-			if(msk == MSK_CUT)
-				savshell = *cfg.shell[i];
+			continue; }
+		if((i&MSK_ON)==MSK_DEL) {
+			i&=MSK_OFF;
 			free(cfg.shell[i]);
 			cfg.total_shells--;
 			for(j=i;j<cfg.total_shells;j++)
 				cfg.shell[j]=cfg.shell[j+1];
 			uifc.changes=1;
-			continue; 
-		}
-		if (msk == MSK_COPY) {
+			continue; }
+		if((i&MSK_ON)==MSK_GET) {
+			i&=MSK_OFF;
 			savshell=*cfg.shell[i];
-			continue; 
-		}
-		if (msk == MSK_PASTE) {
+			continue; }
+		if((i&MSK_ON)==MSK_PUT) {
+			i&=MSK_OFF;
 			*cfg.shell[i]=savshell;
 			uifc.changes=1;
-			continue; 
-		}
-		if (msk != 0)
-			continue;
+			continue; }
 		i=shell_dflt;
 		j=0;
 		done=0;
@@ -1074,12 +888,12 @@ void shell_cfg()
 				"\n"
 				"A command shell is a programmed command and menu structure that you or\n"
 				"your users can use to navigate the BBS. For every command shell\n"
-				"configured here, there must be an associated `.bin` file in your `exec`\n"
+				"configured here, there must be an associated .BIN file in your EXEC\n"
 				"directory for Synchronet to execute.\n"
 				"\n"
 				"Command shell files are created by using the Baja command shell compiler\n"
-				"to turn Baja source code (`.src`) files into binary files (`.bin`) for\n"
-				"Synchronet to interpret. See the example `.src` files in the `exec`\n"
+				"to turn Baja source code (.SRC) files into binary files (.BIN) for\n"
+				"Synchronet to interpret. See the example .SRC files in the TEXT\n"
 				"directory and the documentation for the Baja compiler for more details.\n"
 			;
 			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,0,cfg.shell[i]->name
@@ -1110,11 +924,11 @@ void shell_cfg()
 						"\n"
 						"Every command shell must have its own unique internal code for\n"
 						"Synchronet to reference it by. It is helpful if this code is an\n"
-						"abbreviation of the name.\n"
+						"abreviation of the name.\n"
 						"\n"
 						"This code will be the base filename used to load the shell from your\n"
-						"`exec` directory. e.g. A shell with an internal code of `MYBBS` would\n"
-						"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
+						"EXEC directory. e.g. A shell with an internal code of `MYBBS` would\n"
+						"indicate a Baja shell file named `MYBBS.BIN` in your EXEC directory.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
 						,str,LEN_CODE,K_EDIT);
@@ -1123,8 +937,7 @@ void shell_cfg()
 					else {
 						uifc.helpbuf=invalid_code;
 						uifc.msg("Invalid Code");
-						uifc.helpbuf=0; 
-					}
+						uifc.helpbuf=0; }
 					break; 
 			} 
 		} 
@@ -1171,7 +984,7 @@ int whichcond(void)
 		"\n"
 		"If you wish this new parameter to be required along with the other\n"
 		"parameters, select `AND` to specify that `both` or `all` of the\n"
-		"parameter requirements must be met.\n"
+		"parameter requirments must be met.\n"
 		"\n"
 		"If you wish this new parameter to only be required if the other\n"
 		"parameter requirements aren't met, select `OR` to specify that `either`\n"
@@ -1197,34 +1010,26 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {					/* Shorten operators */
 			if(!strncmp(ar+i,"AND",3)) {
 				strcat(str,"&");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"NOT",3)) {
 				strcat(str,"!");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"EQUAL",5)) {
 				strcat(str,"=");
-				i+=4; 
-			}
+				i+=4; }
 			else if(!strncmp(ar+i,"EQUALS",6)) {
 				strcat(str,"=");
-				i+=5; 
-			}
+				i+=5; }
 			else if(!strncmp(ar+i,"EQUAL TO",8)) {
 				strcat(str,"=");
-				i+=7; 
-			}
+				i+=7; }
 			else if(!strncmp(ar+i,"OR",2)) {
 				strcat(str,"|");
-				i+=1; 
-			}
+				i+=1; }
 			else
-				strncat(str,ar+i,1); 
-		}
+				strncat(str,ar+i,1); }
 		strcpy(ar,str);
-		len=strlen(ar); 
-	}
+		len=strlen(ar); }
 
 	if(len>=30) {
 		str[0]=0;
@@ -1232,22 +1037,17 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {					/* Remove spaces from ! and = */
 			if(!strncmp(ar+i," ! ",3)) {
 				strcat(str,"!");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"= ",2)) {
 				strcat(str,"=");
-                i++; 
-			}
+                i++; }
 			else if(!strncmp(ar+i," = ",3)) {
 				strcat(str,"=");
-				i+=2; 
-			}
+				i+=2; }
 			else
-				strncat(str,ar+i,1); 
-		}
+				strncat(str,ar+i,1); }
 		strcpy(ar,str);
-        len=strlen(ar); 
-	}
+        len=strlen(ar); }
 
 	if(len>=30) {
 		str[0]=0;
@@ -1255,18 +1055,14 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {					/* Remove spaces from & and | */
 			if(!strncmp(ar+i," & ",3)) {
 				strcat(str," ");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i," | ",3)) {
 				strcat(str,"|");
-				i+=2; 
-			}
+				i+=2; }
 			else
-				strncat(str,ar+i,1); 
-		}
+				strncat(str,ar+i,1); }
 		strcpy(ar,str);
-        len=strlen(ar); 
-	}
+        len=strlen(ar); }
 
 	if(len>=30) {					/* change week days to numbers */
         str[0]=0;
@@ -1276,14 +1072,11 @@ void getar(char *desc, char *inar)
                 if(!strnicmp(ar+i,wday[j],3)) {
                     strcat(str,ultoa(j,tmp,10));
 					i+=2;
-					break; 
-				}
+					break; }
 			if(j==7)
-				strncat(str,ar+i,1); 
-		}
+				strncat(str,ar+i,1); }
         strcpy(ar,str);
-        len=strlen(ar); 
-	}
+        len=strlen(ar); }
 
 	if(len>=30) {				  /* Shorten parameters */
 		str[0]=0;
@@ -1291,113 +1084,85 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {
 			if(!strncmp(ar+i,"AGE",3)) {
 				strcat(str,"$A");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"BPS",3)) {
 				strcat(str,"$B");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"PCR",3)) {
 				strcat(str,"$P");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"RIP",3)) {
 				strcat(str,"$*");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"SEX",3)) {
 				strcat(str,"$S");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"UDR",3)) {
 				strcat(str,"$K");
-				i+=2; 
-			}
+				i+=2; }
 			else if(!strncmp(ar+i,"DAY",3)) {
 				strcat(str,"$W");
-                i+=2; 
-			}
+                i+=2; }
 			else if(!strncmp(ar+i,"ANSI",4)) {
 				strcat(str,"$[");
-                i+=3; 
-			}
+                i+=3; }
 			else if(!strncmp(ar+i,"UDFR",4)) {
 				strcat(str,"$D");
-				i+=3; 
-			}
+				i+=3; }
 			else if(!strncmp(ar+i,"FLAG",4)) {
 				strcat(str,"$F");
-				i+=3; 
-			}
+				i+=3; }
 			else if(!strncmp(ar+i,"NODE",4)) {
 				strcat(str,"$N");
-				i+=3; 
-			}
+				i+=3; }
 			else if(!strncmp(ar+i,"NULL",4)) {
 				strcat(str,"$0");
-                i+=3; 
-			}
+                i+=3; }
 			else if(!strncmp(ar+i,"TIME",4)) {
 				strcat(str,"$T");
-				i+=3; 
-			}
+				i+=3; }
 			else if(!strncmp(ar+i,"USER",4)) {
 				strcat(str,"$U");
-				i+=3; 
-			}
+				i+=3; }
 			else if(!strncmp(ar+i,"REST",4)) {
 				strcat(str,"$Z");
-                i+=3; 
-			}
+                i+=3; }
 			else if(!strncmp(ar+i,"LOCAL",5)) {
 				strcat(str,"$G");
-				i+=4; 
-			}
+				i+=4; }
 			else if(!strncmp(ar+i,"LEVEL",5)) {
 				strcat(str,"$L");
-                i+=4; 
-			}
+                i+=4; }
 			else if(!strncmp(ar+i,"TLEFT",5)) {
 				strcat(str,"$R");
-				i+=4; 
-			}
+				i+=4; }
 			else if(!strncmp(ar+i,"TUSED",5)) {
 				strcat(str,"$O");
-				i+=4; 
-			}
+				i+=4; }
 			else if(!strncmp(ar+i,"EXPIRE",6)) {
 				strcat(str,"$E");
-				i+=5; 
-			}
+				i+=5; }
 			else if(!strncmp(ar+i,"CREDIT",6)) {
 				strcat(str,"$C");
-                i+=5; 
-			}
+                i+=5; }
 			else if(!strncmp(ar+i,"EXEMPT",6)) {
 				strcat(str,"$X");
-                i+=5; 
-			}
+                i+=5; }
 			else if(!strncmp(ar+i,"RANDOM",6)) {
 				strcat(str,"$Q");
-                i+=5; 
-			}
+                i+=5; }
 			else if(!strncmp(ar+i,"LASTON",6)) {
 				strcat(str,"$Y");
-                i+=5; 
-			}
+                i+=5; }
 			else if(!strncmp(ar+i,"LOGONS",6)) {
 				strcat(str,"$V");
-                i+=5; 
-			}
+                i+=5; }
 			else if(!strncmp(ar+i,":00",3)) {
-				i+=2; 
-			}
+				i+=2; }
 			else
-				strncat(str,ar+i,1); 
-}
+				strncat(str,ar+i,1); }
 		strcpy(ar,str);
-		len=strlen(ar); 
-}
+		len=strlen(ar); }
 	if(len>=30) {				  /* Remove all spaces and &s */
 		str[0]=0;
 		n=strlen(ar);
@@ -1405,8 +1170,7 @@ void getar(char *desc, char *inar)
 			if(ar[i]!=' ' && ar[i]!='&')
 				strncat(str,ar+i,1);
 		strcpy(ar,str);
-		len=strlen(ar); 
-	}
+		len=strlen(ar); }
 	i=0;
 	sprintf(opt[i++],"Requirement String (%s)",ar);
 	strcpy(opt[i++],"Clear Requirements");
@@ -1441,23 +1205,23 @@ void getar(char *desc, char *inar)
 			break;
 		case 0:
 			uifc.helpbuf=
-				"Key word   Symbol      Description\n"
+				"Key wor    Symbo       Description\n"
 				"컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴\n"
 				"AND          &         More than one requirement (optional)\n"
 				"NOT          !         Logical negation (i.e. NOT EQUAL)\n"
-				"EQUAL        =         Equality required\n"
-				"OR           |         Either of two or more parameters is required\n"
-				"AGE          $         User's age (years since birth date, 0-255)\n"
+				"EQUA         =         Equality required\n"
+				"O            |         Either of two or more parameters is required\n"
+				"AGE          $         User's age (years since birthdate, 0-255)\n"
 				"BPS          $         User's current connect rate (bps)\n"
-				"FLAG         $         User's flag (A-Z)\n"
-				"LEVEL        $         User's level (0-99)\n"
-				"NODE         $         Current node (1-250)\n"
+				"FLA          $         User's flag (A-Z)\n"
+				"LEVE         $         User's level (0-99)\n"
+				"NOD          $         Current node (1-250)\n"
 				"PCR          $         User's post/call ratio (0-100)\n"
 				"SEX          $         User's sex/gender (M or F)\n"
-				"TIME         $         Time of day (HH:MM, 00:00-23:59)\n"
-				"TLEFT        $         User's time left online (minutes, 0-255)\n"
-				"TUSED        $         User's time online this call (minutes, 0-255)\n"
-				"USER         $         User's number (1-xxxx)\n"
+				"TIM          $         Time of day (HH:MM, 00:00-23:59)\n"
+				"TLEF         $         User's time left online (minutes, 0-255)\n"
+				"TUSE         $         User's time online this call (minutes, 0-255)\n"
+				"USE          $         User's number (1-xxxx)\n"
 			;
 			uifc.input(WIN_MID|WIN_SAV,0,0,"Requirement String",ar,LEN_ARSTR
                 ,K_EDIT|K_UPPER);
@@ -1476,14 +1240,12 @@ void getar(char *desc, char *inar)
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Are You Sure",opt);
 			if(!i) {
 				ar[0]=0;
-				uifc.changes=1; 
-			}
+				uifc.changes=1; }
 			break;
 		case 2:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1504,8 +1266,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-					strcat(ar," OR "); 
-			}
+					strcat(ar," OR "); }
 			strcat(ar,"LEVEL ");
 			switch(i) {
 				case 1:
@@ -1516,15 +1277,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
 			break;
 		case 3:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 
 			for(i=0;i<4;i++)
 				sprintf(opt[i],"Flag Set #%d",i+1);
@@ -1551,8 +1310,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"FLAG ");
 			if(i)
 				strcat(ar,ultoa(i+1,tmp,10));
@@ -1561,8 +1319,7 @@ void getar(char *desc, char *inar)
 		case 4:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1583,8 +1340,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"AGE ");
 			switch(i) {
 				case 1:
@@ -1595,15 +1351,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 5:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			str[0]=0;
 			uifc.helpbuf=
 				"`Required Sex:`\n"
@@ -1623,16 +1377,14 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-					strcat(ar," OR "); 
-			}
+					strcat(ar," OR "); }
 			strcat(ar,"SEX ");
 			strcat(ar,str);
 			break;
 		case 6:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1649,8 +1401,7 @@ void getar(char *desc, char *inar)
 			j=atoi(str);
 			if(j>=300 && j<30000) {
 				j/=100;
-				sprintf(str,"%d",j); 
-			}
+				sprintf(str,"%d",j); }
 			if(ar[0]) {
 				j=whichcond();
 				if(j==-1)
@@ -1658,8 +1409,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"BPS ");
 			switch(i) {
 				case 1:
@@ -1670,15 +1420,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 7:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1700,8 +1448,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"PCR ");
 			switch(i) {
 				case 1:
@@ -1712,15 +1459,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 8:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1742,8 +1487,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"CREDIT ");
 			switch(i) {
 				case 1:
@@ -1754,15 +1498,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 9:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1786,8 +1528,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"UDR ");
 			switch(i) {
 				case 1:
@@ -1798,15 +1539,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 10:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1831,8 +1570,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"UDFR ");
 			switch(i) {
 				case 1:
@@ -1843,15 +1581,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 11:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=0;
 			strcpy(opt[0],"Before");
 			strcpy(opt[1],"After");
@@ -1877,8 +1613,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"TIME ");
 			if(!i)
 				strcat(ar,"NOT ");
@@ -1887,8 +1622,7 @@ void getar(char *desc, char *inar)
 		case 12:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1914,8 +1648,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"DAY ");
 			switch(i) {
 				case 1:
@@ -1926,15 +1659,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 13:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1955,8 +1686,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"NODE ");
 			switch(i) {
 				case 1:
@@ -1967,15 +1697,13 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 		case 14:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1996,8 +1724,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"USER ");
 			switch(i) {
 				case 1:
@@ -2008,16 +1735,14 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 
 		case 15:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -2039,8 +1764,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"TLEFT ");
 			switch(i) {
 				case 1:
@@ -2051,16 +1775,14 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
 			break;
 
 		case 16:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; 
-			}
+                break; }
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -2082,8 +1804,7 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); 
-			}
+                    strcat(ar," OR "); }
 			strcat(ar,"EXPIRE ");
 			switch(i) {
 				case 1:
@@ -2094,8 +1815,7 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; 
-			}
+					break; }
 			strcat(ar,str);
             break;
 			
@@ -2104,24 +1824,14 @@ void getar(char *desc, char *inar)
 	sprintf(inar,"%.*s",LEN_ARSTR,ar);
 }
 
-BOOL code_ok(char *str)
+int code_ok(char *str)
 {
 
-	if(*str == 0)
-		return FALSE;
+	if(!strlen(str))
+		return(0);
 	if(strcspn(str," \\/|<>*?+[]:=\";,")!=strlen(str))
-		return FALSE;
-	return TRUE;
-}
-
-char random_code_char(void)
-{
-	char ch = (char)xp_random(36);
-
-	if(ch < 10)
-		return '0' + ch;
-	else
-		return 'A' + (ch - 10);
+		return(0);
+	return(1);
 }
 
 #ifdef __BORLANDC__
@@ -2160,8 +1870,7 @@ void bail(int code)
         write_msgs_cfg(&cfg,backup_level);
         write_file_cfg(&cfg,backup_level);
         write_chat_cfg(&cfg,backup_level);
-        write_xtrn_cfg(&cfg,backup_level); 
-	}
+        write_xtrn_cfg(&cfg,backup_level); }
 
     uifc.bail();
 
@@ -2173,7 +1882,7 @@ void bail(int code)
 /* information, function, action, object and access and then attempts to    */
 /* write the error information into the file ERROR.LOG in the text dir.     */
 /****************************************************************************/
-void errormsg(int line, const char* function, const char *source, const char* action, const char *object, ulong access)
+void errormsg(int line, char* function, char* source,  char* action, char* object, ulong access)
 {
 	char scrn_buf[MAX_BFLN];
     gettext(1,1,80,uifc.scrn_len,scrn_buf);
@@ -2187,6 +1896,35 @@ void errormsg(int line, const char* function, const char *source, const char* ac
     printf("\nHit enter to continue...");
     getchar();
     puttext(1,1,80,uifc.scrn_len,scrn_buf);
+}
+
+/* Prepare a string to be used as an internal code */
+/* Return the usable code */
+char* prep_code(char *str, const char* prefix)
+{
+	char tmp[1024];
+	int i,j;
+
+	if(prefix!=NULL) {	/* skip the grp/lib prefix, if specified */
+		i=strlen(prefix);
+		if(i && strnicmp(str,prefix,i)==0 && strlen(str)!=i)
+			str+=i;
+	}
+	for(i=j=0;str[i] && i<sizeof(tmp);i++)
+		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?'
+			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
+			tmp[j++]=toupper(str[i]);
+	tmp[j]=0;
+	strcpy(str,tmp);
+	if(j>LEN_CODE) {	/* Extra chars? Strip symbolic chars */
+		for(i=j=0;str[i];i++)
+			if(isalnum(str[i]))
+				tmp[j++]=str[i];
+		tmp[j]=0;
+		strcpy(str,tmp);
+	}
+	str[LEN_CODE]=0;
+	return(str);
 }
 
 /* End of SCFG.C */
