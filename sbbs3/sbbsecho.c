@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.36 2017/06/09 05:57:13 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.37 2017/08/17 03:54:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2290,7 +2290,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 const char* area_desc(const char* areatag)
 {
 	char tag[FIDO_AREATAG_LEN+1];
-	static char desc[LEN_GLNAME+1];
+	static char desc[128];
 
 	for(int i=0; i<cfg.listcfgs; i++) {
 		FILE* fp = fopen(cfg.listcfg[i].listpath, "r");
@@ -5066,7 +5066,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.36 $", "%*s %s", revision);
+	sscanf("$Revision: 3.37 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5247,7 +5247,11 @@ int main(int argc, char **argv)
 	backslash(cfg.inbound);
 	if(cfg.secure_inbound[0])
 		backslash(cfg.secure_inbound);
-
+	for(i=0; i<cfg.nodecfgs; i++) {
+		if(cfg.nodecfg[i].inbox[0])
+			backslash(cfg.nodecfg[i].inbox);
+	}
+	
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
 	lprintf(LOG_DEBUG, "%u packers, %u linked-nodes, %u echolists configured", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
