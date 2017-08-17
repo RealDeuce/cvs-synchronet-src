@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.67 2018/02/20 11:56:27 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.65 2015/11/04 03:57:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -553,7 +553,7 @@ JSBool DLLCALL js_msg_area_resolve(JSContext* cx, JSObject* areaobj, jsid id)
 				if(!JS_SetProperty(cx, subobj, "is_operator", &val))
 					return JS_FALSE;
 
-				if(p->cfg->sub[d]->mod_ar!=NULL && p->cfg->sub[d]->mod_ar[0]!=0 && p->user!=NULL 
+				if(p->cfg->sub[d]->mod_ar[0]!=0 && p->user!=NULL 
 					&& chk_ar(p->cfg,p->cfg->sub[d]->mod_ar,p->user,p->client))
 					val=BOOLEAN_TO_JSVAL(JS_TRUE);
 				else
