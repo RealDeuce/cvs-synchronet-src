@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.640 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: websrvr.c,v 1.645 2017/06/15 19:12:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -91,7 +91,7 @@ static const char*	error_404="404 Not Found";
 static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
-static const char*	unknown="<unknown>";
+static const char*	unknown=STR_UNKNOWN_USER;
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -910,7 +910,8 @@ static void open_socket(SOCKET sock, void *cbdata)
 	struct accept_filter_arg afa;
 #endif
 
-	startup->socket_open(startup->cbdata,TRUE);
+	if(startup!=NULL && startup->socket_open!=NULL)
+		startup->socket_open(startup->cbdata,TRUE);
 	if (cbdata != NULL && !strcmp(cbdata, "TLS")) {
 		if(set_socket_options(&scfg, sock, "web|http|tls", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
@@ -930,7 +931,8 @@ static void open_socket(SOCKET sock, void *cbdata)
 
 static void close_socket_cb(SOCKET sock, void *cbdata)
 {
-	startup->socket_open(startup->cbdata,FALSE);
+	if(startup!=NULL && startup->socket_open!=NULL)
+		startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 }
 
@@ -1524,7 +1526,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,&session->user,session->subscan);
+		getmsgptrs(&scfg,&session->user,session->subscan,NULL,NULL);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -6253,7 +6255,7 @@ void http_session_thread(void* arg)
 		if(banned) {
 			char ban_duration[128];
 			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-				,session.socket, session.host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+				,session.socket, session.host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE, "%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		close_session_socket(&session);
@@ -6482,7 +6484,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.640 $", "%*s %s", revision);
+	sscanf("$Revision: 1.645 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6819,6 +6821,7 @@ void DLLCALL web_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","web");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mime_types_ini);
