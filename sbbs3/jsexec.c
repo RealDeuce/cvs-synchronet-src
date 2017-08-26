@@ -2,13 +2,13 @@
 
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.169 2015/04/25 06:10:16 deuce Exp $ */
+/* $Id: jsexec.c,v 1.184 2016/11/15 22:03:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,6 +42,7 @@
 #ifdef __unix__
 #define _WITH_GETLINE
 #include <signal.h>
+#include <termios.h>
 #endif
 
 #include "sbbs.h"
@@ -83,10 +84,16 @@ BOOL		daemonize=FALSE;
 #endif
 char		orig_cwd[MAX_PATH+1];
 BOOL		debugger=FALSE;
+#ifndef PROG_NAME
+#define PROG_NAME "JSexec"
+#endif
+#ifndef PROG_NAME_LC
+#define PROG_NAME_LC "jsexec"
+#endif
 
 void banner(FILE* fp)
 {
-	fprintf(fp,"\nJSexec v%s%c-%s (rev %s)%s - "
+	fprintf(fp,"\n" PROG_NAME " v%s%c-%s (rev %s)%s - "
 		"Execute Synchronet JavaScript Module\n"
 		,VERSION,REVISION
 		,PLATFORM_DESC
@@ -106,9 +113,13 @@ void usage(FILE* fp)
 {
 	banner(fp);
 
-	fprintf(fp,"\nusage: jsexec [-opts] [path]module[.js] [args]\n"
+	fprintf(fp,"\nusage: " PROG_NAME_LC " [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
+#ifdef JSDOOR
+		"\t-c<ctrl_dir>   specify path to CTRL directory\n"
+#else
 		"\t-c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
+#endif
 #if defined(__unix__)
 		"\t-d             run in background (daemonize)\n"
 #endif
@@ -117,7 +128,11 @@ void usage(FILE* fp)
 		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
 		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
 		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
+#ifdef JSDOOR
+		"\t-h[hostname]   use local or specified host name\n"
+#else
 		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
+#endif
 		"\t-u<mask>       set file creation permissions mask (in octal)\n"
 		"\t-L<level>      set log level (default=%u)\n"
 		"\t-E<level>      set error log level threshold (default=%u)\n"
@@ -193,11 +208,11 @@ int lprintf(int level, const char *fmt, ...)
 
 	if(level<=err_level) {
 		ret=fprintf(errfp,"%s\n",sbuf);
-		if(errfp!=stderr && confp!=stdout)
+		if(errfp!=stderr)
 			ret=fprintf(statfp,"%s\n",sbuf);
 	}
-	if(level>err_level || errfp!=stderr)
-		ret=fprintf(confp,"%s\n",sbuf);
+	if(level>err_level)
+		ret=fprintf(statfp,"%s\n",sbuf);
 
 	pthread_mutex_unlock(&output_mutex);
     return(ret);
@@ -265,6 +280,10 @@ static BOOL winsock_startup(void)
 
 #endif
 
+#ifdef __unix__
+struct termios orig_term;
+#endif
+
 static int do_bail(int code)
 {
 #if defined(_WINSOCKAPI_)
@@ -279,6 +298,10 @@ static int do_bail(int code)
 
 	if(code)
 		fprintf(statfp,"\nReturning error code: %d\n",code);
+#ifdef __unix__
+	if(isatty(fileno(stdin)))
+		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
+#endif
 	return(code);
 }
 
@@ -314,13 +337,13 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%s",logstr);
 		JS_RESUMEREQUEST(cx, rc);
+		FREE_AND_NULL(logstr);
 	}
 
-	if(logstr==NULL)
+	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
-	free(logstr);
 
     return(JS_TRUE);
 }
@@ -397,13 +420,14 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[0]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 		    return(JS_FALSE);
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s",line);
+		FREE_AND_NULL(line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -411,8 +435,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
-	if(line)
-		free(line);
     return(JS_TRUE);
 }
 
@@ -760,7 +782,7 @@ static BOOL js_init(char** environ)
 	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
-		,NULL,INVALID_SOCKET					/* client */
+		,NULL,INVALID_SOCKET,-1					/* client */
 		,NULL									/* server */
 		,&js_glob
 		)) {
@@ -784,6 +806,22 @@ static BOOL js_init(char** environ)
 		return(FALSE);
 	}
 
+	/* STDIO objects */
+	if(!js_CreateFileObject(js_cx, js_glob, "stdout", stdout)) {
+		JS_ENDREQUEST(js_cx);
+		return(FALSE);
+	}
+
+	if(!js_CreateFileObject(js_cx, js_glob, "stdin", stdin)) {
+		JS_ENDREQUEST(js_cx);
+		return(FALSE);
+	}
+
+	if(!js_CreateFileObject(js_cx, js_glob, "stderr", stderr)) {
+		JS_ENDREQUEST(js_cx);
+		return(FALSE);
+	}
+
 	return(TRUE);
 }
 
@@ -796,7 +834,7 @@ static const char* js_ext(const char* fname)
 
 void dbg_puts(const char *msg)
 {
-	fprintf(stderr, msg);
+	fputs(msg, stderr);
 }
 
 char *dbg_getline(void)
@@ -880,11 +918,11 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "argc", INT_TO_JSVAL(argc)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
+	JS_DefineProperty(js_cx, js_glob, PROG_NAME_LC "_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	sprintf(rev_detail,"JSexec %s%s  "
+	sprintf(rev_detail,PROG_NAME " %s%s  "
 		"Compiled %s %s with %s"
 		,revision
 #ifdef _DEBUG
@@ -895,7 +933,7 @@ long js_exec(const char *fname, char** args)
 		,__DATE__, __TIME__, compiler
 		);
 
-	JS_DefineProperty(js_cx, js_glob, "jsexec_revision_detail"
+	JS_DefineProperty(js_cx, js_glob, PROG_NAME_LC "_revision_detail"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
@@ -1012,12 +1050,27 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
+#ifdef __unix__
+void raw_input(struct termios *t)
+{
+#ifdef JSDOOR
+	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+#else
+	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
+#endif
+}
+#endif
+
 /*********************/
 /* Entry point (duh) */
 /*********************/
 int main(int argc, char **argv, char** environ)
 {
+#ifndef JSDOOR
 	char	error[512];
+#endif
 	char*	module=NULL;
 	char*	p;
 	char*	omode="w";
@@ -1033,8 +1086,20 @@ int main(int argc, char **argv, char** environ)
 		perror(_PATH_DEVNULL);
 		return(do_bail(-1));
 	}
-	if(isatty(fileno(stderr)))
+	if(isatty(fileno(stdin))) {
+#ifdef __unix__
+		struct termios term;
+
+		tcgetattr(fileno(stdin), &orig_term);
+		term = orig_term;
+		raw_input(&term);
+		tcsetattr(fileno(stdin), TCSANOW, &term);
+#else
+	//	This completely disabled console input on Windows:
+	//	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+#endif
 		statfp=stderr;
+	}
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
@@ -1043,7 +1108,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.169 $", "%*s %s", revision);
+	sscanf("$Revision: 1.184 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1054,6 +1119,24 @@ int main(int argc, char **argv, char** environ)
 
 	getcwd(orig_cwd, sizeof(orig_cwd));
 	backslash(orig_cwd);
+#ifdef JSDOOR
+ 	SAFECOPY(scfg.ctrl_dir, orig_cwd);
+	prep_dir("", scfg.ctrl_dir, sizeof(scfg.ctrl_dir));
+ 	SAFECOPY(scfg.exec_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.exec_dir, sizeof(scfg.exec_dir));
+ 	SAFECOPY(scfg.mods_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.mods_dir, sizeof(scfg.mods_dir));
+ 	SAFECOPY(scfg.data_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.data_dir, sizeof(scfg.data_dir));
+ 	SAFECOPY(scfg.text_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
+ 	SAFECOPY(scfg.logs_dir, orig_cwd);
+	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
+ 	scfg.sys_misc = 0; /* SM_EURODATE and SM_MILITARY are used */
+	gethostname(host_name=host_name_buf,sizeof(host_name_buf));
+	statfp = nulfp;
+	errfp = fopen("error.log", "a");
+#endif
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
@@ -1080,6 +1163,8 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'e':
 					if(*p==0) p=argv[++argn];
+					if (errfp != stderr)
+						fclose(errfp);
 					if((errfp=fopen(p,omode))==NULL) {
 						perror(p);
 						return(do_bail(1));
@@ -1111,7 +1196,7 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 'm':
 					if(*p==0) p=argv[++argn];
-					js_max_bytes=strtoul(p,NULL,0);
+					js_max_bytes=(ulong)parse_byte_count(p, /* units: */1);
 					break;
 				case 'n':
 					statfp=nulfp;
@@ -1131,7 +1216,7 @@ int main(int argc, char **argv, char** environ)
 					break;
 				case 's':
 					if(*p==0) p=argv[++argn];
-					js_cx_stack=strtoul(p,NULL,0);
+					js_cx_stack=(ulong)parse_byte_count(p, /* units: */1);
 					break;
 				case 't':
 					if(*p==0) p=argv[++argn];
@@ -1166,6 +1251,7 @@ int main(int argc, char **argv, char** environ)
 		module=argv[argn];
 	}
 
+#ifndef JSDOOR
 	if(scfg.ctrl_dir[0]==0) {
 		if((p=getenv("SBBSCTRL"))==NULL) {
 			fprintf(errfp,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
@@ -1175,6 +1261,7 @@ int main(int argc, char **argv, char** environ)
 		}
 		SAFECOPY(scfg.ctrl_dir,p);
 	}	
+#endif
 
 	if(module==NULL && isatty(fileno(stdin))) {
 		fprintf(errfp,"\n!Module name not specified\n");
@@ -1184,6 +1271,9 @@ int main(int argc, char **argv, char** environ)
 
 	banner(statfp);
 
+#ifdef JSDOOR
+	SAFECOPY(scfg.temp_dir,"./temp");
+#else
 	if(chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
 
@@ -1193,6 +1283,7 @@ int main(int argc, char **argv, char** environ)
 		return(do_bail(1));
 	}
 	SAFECOPY(scfg.temp_dir,"../temp");
+#endif
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 	if(host_name==NULL)
