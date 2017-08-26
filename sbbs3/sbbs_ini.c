@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.154 2016/11/28 02:59:07 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.157 2017/07/20 22:13:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -403,6 +403,7 @@ void sbbs_read_ini(
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
 
 		bbs->login_attempt = get_login_attempt_settings(list, section, global);
+		bbs->max_concurrent_connections = iniGetInteger(list, section, "MaxConcurrentConnections", 0);
 	}
 
 	/***********************************************************************/
@@ -490,7 +491,7 @@ void sbbs_read_ini(
 
 		iniFreeStringList(mail->interfaces);
 		mail->interfaces
-			=iniGetStringList(list,section,"SMTPInterface",",",global_interfaces);
+			=iniGetStringList(list,section,strInterfaces,",",global_interfaces);
 		mail->outgoing4.s_addr
 			=iniGetIpAddress(list,section,strOutgoing4,global->outgoing4.s_addr);
 		mail->outgoing6
@@ -633,10 +634,6 @@ void sbbs_read_ini(
 		iniFreeStringList(web->tls_interfaces);
 		web->tls_interfaces
 			=iniGetStringList(list,section,"TLSInterface",",",global_interfaces);
-		web->outgoing4.s_addr
-			=iniGetIpAddress(list,section,strOutgoing4,global->outgoing4.s_addr);
-		web->outgoing6
-			=iniGetIp6Address(list,section,strOutgoing6,global->outgoing6);
 		web->port
 			=iniGetShortInt(list,section,strPort,IPPORT_HTTP);
 		web->tls_port
@@ -697,14 +694,6 @@ void sbbs_read_ini(
 		web->options
 			=iniGetBitField(list,section,strOptions,web_options
 				,BBS_OPT_NO_HOST_LOOKUP | WEB_OPT_HTTP_LOGGING);
-		web->outbuf_highwater_mark
-			=iniGetShortInt(list,section,"OutbufHighwaterMark"
-#ifdef TCP_MAXSEG	/* Auto-tune if possible.  Would this be defined here? */
-			,0
-#else
-			,1024
-#endif
-			);
 		web->outbuf_drain_timeout
 			=iniGetShortInt(list,section,"OutbufDrainTimeout",10);
 
@@ -815,6 +804,9 @@ BOOL sbbs_write_ini(
 			break;
 		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",bbs->outbuf_drain_timeout,&style))
 			break;
+		if(!iniSetInteger(lp,section,"MaxConcurrentConnections",bbs->max_concurrent_connections,&style))
+			break;
+
 
 		if(bbs->sem_chk_freq==global->sem_chk_freq)
 			iniRemoveValue(lp,section,strSemFileCheckFrequency);
@@ -1161,16 +1153,6 @@ BOOL sbbs_write_ini(
 		else if(!iniSetStringList(lp,section,"TLSInterface",",",web->tls_interfaces,&style))
 			break;
 
-		if(web->outgoing4.s_addr == global->outgoing4.s_addr)
-			iniRemoveValue(lp,section,strOutgoing4);
-		else if(!iniSetIpAddress(lp, section, strOutgoing4, web->outgoing4.s_addr, &style))
-			break;
-
-		if(memcmp(&web->outgoing6, &global->outgoing6, sizeof(ftp->outgoing6)))
-			iniRemoveValue(lp,section,strOutgoing6);
-		else if(!iniSetIp6Address(lp, section, strOutgoing6, web->outgoing6, &style))
-			break;
-
 		if(!iniSetShortInt(lp,section,strPort,web->port,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"TLSPort",web->tls_port,&style))
@@ -1249,8 +1231,6 @@ BOOL sbbs_write_ini(
 		if(web->bind_retry_delay==global->bind_retry_delay)
 			iniRemoveValue(lp,section,strBindRetryDelay);
 		else if(!iniSetInteger(lp,section,strBindRetryDelay,web->bind_retry_delay,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"OutbufHighwaterMark",web->outbuf_highwater_mark,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"OutbufDrainTimeout",web->outbuf_drain_timeout,&style))
 			break;
