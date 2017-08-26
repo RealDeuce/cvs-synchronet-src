@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.67 2018/02/25 23:01:08 rswindell Exp $ */
+/* $Id: userdat.h,v 1.65 2016/12/02 06:01:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,6 @@ extern char* crlf;
 extern char* nulstr;
 
 DLLEXPORT int	DLLCALL openuserdat(scfg_t*, BOOL for_modify);
-DLLEXPORT int	DLLCALL closeuserdat(int);
 DLLEXPORT int	DLLCALL readuserdat(scfg_t*, unsigned user_number, char* userdat, int infile);
 DLLEXPORT int	DLLCALL parseuserdat(scfg_t*, char* userdat, user_t*);
 DLLEXPORT int	DLLCALL getuserdat(scfg_t*, user_t*); 	/* Fill userdat struct with user data   */
@@ -144,8 +143,6 @@ DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t*, user_t*, long amount);
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t*, user_t*, time_t starttime);
 
 DLLEXPORT BOOL	DLLCALL check_name(scfg_t*, const char* name);
-DLLEXPORT BOOL	DLLCALL sysop_available(scfg_t*);
-DLLEXPORT BOOL	DLLCALL set_sysop_availability(scfg_t*, BOOL available);
 
 /* Login attempt/hack tracking */
 typedef struct {
