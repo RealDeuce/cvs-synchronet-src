@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.152 2017/11/16 07:15:45 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.149 2017/08/26 01:37:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -98,7 +98,7 @@ static char* section_name(char* p)
 	return(p);
 }
 
-static BOOL section_match(const char* name, const char* compare, BOOL case_sensitive)
+static BOOL section_match(const char* name, const char* compare)
 {
 	BOOL found=FALSE;
 	str_list_t names=strListSplitCopy(NULL,name,INI_SECTION_NAME_SEP);
@@ -107,7 +107,7 @@ static BOOL section_match(const char* name, const char* compare, BOOL case_sensi
 	char*	n;
 	char*	c;
 
-	/* Ignore trailing whitespace */
+	/* Ignore trailing whitepsace */
 	for(i=0; names[i]!=NULL; i++)
 		truncsp(names[i]);
 	for(i=0; comps[i]!=NULL; i++)
@@ -120,10 +120,8 @@ static BOOL section_match(const char* name, const char* compare, BOOL case_sensi
 			SKIP_WHITESPACE(n);
 			c=comps[j];
 			SKIP_WHITESPACE(c);
-			if (case_sensitive)
-				found = strcmp(n, c) == 0;
-			else
-				found = stricmp(n, c) == 0;
+			if(stricmp(n,c)==0)
+				found=TRUE;
 		}
 
 	strListFree(&names);
@@ -142,7 +140,6 @@ static BOOL seek_section(FILE* fp, const char* section)
 	if(section==ROOT_SECTION)
 		return(TRUE);
 
-	/* Perform case-sensitive search first */
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
@@ -150,23 +147,9 @@ static BOOL seek_section(FILE* fp, const char* section)
 			break;
 		if((p=section_name(str))==NULL)
 			continue;
-		if(section_match(p, section, /* case-sensitive */TRUE))
+		if(section_match(p,section))
 			return(TRUE);
 	}
-
-	/* Then perform case-insensitive search */
-	rewind(fp);
-	while (!feof(fp)) {
-		if (fgets(str, sizeof(str), fp) == NULL)
-			break;
-		if (is_eof(str))
-			break;
-		if ((p = section_name(str)) == NULL)
-			continue;
-		if (section_match(p, section, /* case-sensitive */FALSE))
-			return(TRUE);
-	}
-
 	return(FALSE);
 }
 
@@ -176,21 +159,11 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	/* Perform case-sensitive search first */
-	for (i = 0; list[i] != NULL; i++) {
-		SAFECOPY(str, list[i]);
+	for(i=0; list[i]!=NULL; i++) {
+		SAFECOPY(str,list[i]);
 		if(is_eof(str))
 			return(strListCount(list));
-		if((p=section_name(str))!=NULL && section_match(p, section, /* case-sensitive */TRUE))
-			return(i);
-	}
-
-	/* Then perform case-insensitive search */
-	for (i = 0; list[i] != NULL; i++) {
-		SAFECOPY(str, list[i]);
-		if (is_eof(str))
-			return(strListCount(list));
-		if ((p = section_name(str)) != NULL && section_match(p, section, /* case-sensitive */FALSE))
+		if((p=section_name(str))!=NULL && section_match(p,section))
 			return(i);
 	}
 
@@ -214,7 +187,6 @@ static char* key_name(char* p, char** vp)
 {
 	char* equal;
 	char* colon;
-	char* tp;
 
     *vp=NULL;
 
@@ -248,7 +220,7 @@ static char* key_name(char* p, char** vp)
 		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
 		if(*(*vp) == '"') {	/* handled quoted-strings here */
 			(*vp)++;
-			tp = strrchr(*vp, '"');
+			char* tp = strrchr(*vp, '"');
 			if(tp != NULL) {
 				*tp = 0;
 			}
@@ -663,7 +635,7 @@ char* DLLCALL iniSetIp6Address(str_list_t* list, const char* section, const char
 					,ini_style_t* style)
 {
 	char				addrstr[INET6_ADDRSTRLEN];
-	union xp_sockaddr	addr = {{0}};
+	union xp_sockaddr	addr = {0};
 
 	addr.in6.sin6_addr = value;
 	addr.in6.sin6_family = AF_INET6;
@@ -1487,7 +1459,7 @@ static struct in6_addr parseIp6Address(const char* value)
 {
 	struct addrinfo hints = {0};
 	struct addrinfo *res, *cur;
-	struct in6_addr ret = {{{0}}};
+	struct in6_addr ret = {0};
 
 	hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
 	if(getaddrinfo(value, NULL, &hints, &res))
