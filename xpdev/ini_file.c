@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.149 2017/08/26 01:37:45 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.150 2017/08/26 19:11:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -187,6 +187,7 @@ static char* key_name(char* p, char** vp)
 {
 	char* equal;
 	char* colon;
+	char* tp;
 
     *vp=NULL;
 
@@ -220,7 +221,7 @@ static char* key_name(char* p, char** vp)
 		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
 		if(*(*vp) == '"') {	/* handled quoted-strings here */
 			(*vp)++;
-			char* tp = strrchr(*vp, '"');
+			tp = strrchr(*vp, '"');
 			if(tp != NULL) {
 				*tp = 0;
 			}
