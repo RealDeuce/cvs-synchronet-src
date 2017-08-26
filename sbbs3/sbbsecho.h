@@ -1,6 +1,6 @@
-/* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
+/* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.17 2017/10/26 20:44:41 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.14 2017/06/09 04:32:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ enum pkt_type {
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
-    char*		tag;						/* AreaTag, a.k.a. 'EchoTag' */
+    char*		name;						/* Area tag name */
 	uint		imported; 					/* Total messages imported this run */
 	uint		exported; 					/* Total messages exported this run */
 	uint		circular; 					/* Total circular paths detected */
@@ -95,7 +95,6 @@ typedef struct {
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
-	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
 	char		inbox[MAX_PATH+1];
 	char		outbox[MAX_PATH+1];
@@ -198,7 +197,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
 fidoaddr_t atofaddr(const char *str);
 const char *faddrtoa(const fidoaddr_t*);
-bool faddr_contains_wildcard(const fidoaddr_t*);
 int  matchnode(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 nodecfg_t* findnodecfg(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 
