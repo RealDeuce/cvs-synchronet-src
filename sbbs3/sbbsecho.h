@@ -1,6 +1,6 @@
 /* Synchronet FidoNet Echomail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.14 2017/06/09 04:32:46 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.15 2017/09/19 03:12:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,6 +197,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
 fidoaddr_t atofaddr(const char *str);
 const char *faddrtoa(const fidoaddr_t*);
+bool faddr_contains_wildcard(const fidoaddr_t*);
 int  matchnode(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 nodecfg_t* findnodecfg(sbbsecho_cfg_t*, fidoaddr_t, int exact);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.16 2017/06/09 04:32:46 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.17 2017/09/19 03:12:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,6 +142,11 @@ const char *faddrtoa(const faddr_t* addr)
 		} 
 	}
 	return(str);
+}
+
+bool faddr_contains_wildcard(const faddr_t* addr)
+{
+	return addr->zone==0xffff || addr->net==0xffff || addr->node==0xffff || addr->point==0xffff;
 }
 
 /******************************************************************************
@@ -331,8 +336,10 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreafixPwd", "", value));
 		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
 		SAFECOPY(ncfg->comment	, iniGetString(ini, node, "Comment", "", value));
-		SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
-		SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
+		if(!faddr_contains_wildcard(&ncfg->addr)) {
+			SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
+			SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
+		}
 		ncfg->keys				= iniGetStringList(ini, node, "keys", ",", "");
 		ncfg->pkt_type			= iniGetEnum(ini, node, "PacketType", pktTypeStringList, ncfg->pkt_type);
 		ncfg->send_notify		= iniGetBool(ini, node, "notify", ncfg->send_notify);

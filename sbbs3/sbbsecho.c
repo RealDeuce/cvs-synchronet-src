@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.37 2017/08/17 03:54:26 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.38 2017/09/19 03:12:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -577,11 +577,7 @@ bool parse_origin(const char* fmsgbuf, fmsghdr_t* hdr)
 		return false;
 	p++;
 	origaddr = atofaddr(p);
-	if(origaddr.zone == 0 
-		|| origaddr.zone == 0xffff
-		|| origaddr.net == 0xffff
-		|| origaddr.node == 0xffff
-		|| origaddr.point == 0xffff)
+	if(origaddr.zone == 0 || faddr_contains_wildcard(&origaddr.zone))
 		return false;
 	hdr->origzone	= origaddr.zone;
 	hdr->orignet	= origaddr.net;
@@ -5066,7 +5062,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.37 $", "%*s %s", revision);
+	sscanf("$Revision: 3.38 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
