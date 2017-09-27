@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.212 2017/08/03 01:20:03 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.213 2017/09/27 00:50:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -800,6 +800,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
 #define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
 #define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
+#define TG_RLOGINSWAP	(1<<11)	/* Swap the RLogin alias/real-names			*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
