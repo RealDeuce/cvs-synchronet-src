@@ -2,7 +2,7 @@
 
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.68 2016/11/27 23:13:06 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.69 2017/07/08 02:41:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -412,7 +412,7 @@ ushort DLLCALL sys_timezone(scfg_t* cfg)
 	time_t	now;
 	struct tm tm;
 
-	if(cfg->sys_misc&SM_AUTO_DST && !OTHER_ZONE(cfg->sys_timezone) && cfg->sys_timezone&US_ZONE) {
+	if(cfg->sys_misc&SM_AUTO_DST && SMB_TZ_HAS_DST(cfg->sys_timezone)) {
 		now=time(NULL);
 		if(localtime_r(&now,&tm)!=NULL) {
 			if(tm.tm_isdst>0)
