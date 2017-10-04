@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.67 2017/11/28 02:22:46 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.64 2016/11/27 23:13:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -79,7 +79,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 		return i;
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
-		SAFEPRINTF4(str,"(%06" PRIX32 ") #%" PRIu32 "/%lu %s",msg->idx.offset,msg->idx.number
+		SAFEPRINTF4(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
@@ -97,7 +97,6 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 
 	bprintf(text[MsgAttr]
 		,attr&MSG_PRIVATE	? "Private  "   :nulstr
-		,attr&MSG_SPAM		? "SPAM  "      :nulstr
 		,attr&MSG_READ		? "Read  "      :nulstr
 		,attr&MSG_DELETE	? "Deleted  "   :nulstr
 		,attr&MSG_KILLREAD	? "Kill  "      :nulstr
@@ -110,6 +109,7 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		,attr&MSG_NOREPLY	? "NoReply  "	:nulstr
 		,poll == MSG_POLL	? "Poll  "		:nulstr
 		,poll == MSG_POLL && auxattr&POLL_CLOSED ? "(Closed)  "	:nulstr
+		,nulstr
 		,nulstr
 		,nulstr
 		,nulstr
@@ -254,13 +254,8 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 	if((txt=smb_getmsgtxt(&smb,msg,(console&CON_RAW_IN) ? 0:GETMSGTXT_PLAIN)) != NULL) {
 		if(!(console&CON_RAW_IN))
 			mode|=P_WORDWRAP;
-		char* p = txt;
-		truncsp(p);
-		SKIP_WHITESPACE(p);
-		putmsg(p, mode);
+		putmsg(txt, mode);
 		smb_freemsgtxt(txt);
-		if(column)
-			CRLF;
 	}
 	if((txt=smb_getmsgtxt(&smb,msg,GETMSGTXT_TAIL_ONLY))!=NULL) {
 		putmsg(txt, mode&(~P_WORDWRAP));
