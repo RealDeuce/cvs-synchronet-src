@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.432 2017/08/03 01:23:53 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.433 2017/10/10 22:11:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2575,7 +2575,7 @@ static void ctrl_thread(void* arg)
 			truncsp(p);
 			SAFECOPY(user.alias,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
-			if(!user.number && !stricmp(user.alias,"anonymous"))	
+			if(!user.number && (stricmp(user.alias,"anonymous") == 0 || stricmp(user.alias, "ftp") == 0))
 				user.number=matchuser(&scfg,"guest",FALSE);
 			if(user.number && getuserdat(&scfg, &user)==0 && user.pass[0]==0) 
 				sockprintf(sock,"331 User name okay, give your full e-mail address as password.");
@@ -4741,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.432 $", "%*s %s", revision);
+	sscanf("$Revision: 1.433 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
