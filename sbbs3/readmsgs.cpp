@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.101 2017/11/07 03:35:18 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.100 2017/08/14 10:18:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1674,8 +1674,6 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		lp_mode = 0;
 	if(mode&SCAN_UNREAD)
 		lp_mode |= LP_UNREAD;
-	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
-		lp_mode |= LP_POLLS;
 	post=loadposts(&posts,subnum,0,lp_mode,NULL,&total);
 	bprintf(text[SearchSubFmt]
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,total);
