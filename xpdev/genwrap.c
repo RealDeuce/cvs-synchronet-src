@@ -1,14 +1,13 @@
-/* genwrap.c */
-
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.96 2014/04/28 05:19:11 deuce Exp $ */
+/* $Id: genwrap.c,v 1.102 2017/08/26 01:46:57 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -43,6 +42,7 @@
 #include <errno.h>		/* errno */
 #include <ctype.h>		/* toupper/tolower */
 #include <limits.h>		/* CHAR_BIT */
+#include <math.h>		/* fmod */
 
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
@@ -111,25 +111,51 @@ char DLLCALL c_unescape_char(char ch)
 }
 
 /****************************************************************************/
-/* Return character value of C-escaped (\) character sequence				*/
-/* (supports \Xhh and \0ooo escape sequences)								*/
-/* This code currently has problems with sequences like: "\x01blue"			*/
+/* Return character value of C-escaped (\) character literal sequence		*/
+/* supports \x## (hex) and \### sequences (for octal or decimal)
 /****************************************************************************/
 char DLLCALL c_unescape_char_ptr(const char* str, char** endptr)
 {
 	char	ch;
 
-	if(toupper(*str)=='X')
-		ch=(char)strtol(++str,endptr,16);
-	else if(isdigit(*str))
-		ch=(char)strtol(++str,endptr,8);
-	else {
+	if(*str == 'x') {
+		int digits = 0;		// \x## for hexadecimal character literals (only 2 digits supported)
+		++str;
+		ch = 0;
+		while(digits < 2 && isxdigit(*str)) {
+			ch *= 0x10;	
+			ch += HEX_CHAR_TO_INT(*str);
+			str++;
+			digits++;
+		}
+#ifdef C_UNESCAPE_OCTAL_SUPPORT
+	} else if(isodigit(*str)) {
+		int digits = 0;		// \### for octal character literals (only 3 digits supported)
+		ch = 0;
+		while(digits < 3 && isodigit(*str)) {
+			ch *= 8;
+			ch += OCT_CHAR_TO_INT(*str);
+			str++;
+			digits++;
+		}
+#else
+	} else if(isdigit(*str)) {
+		int digits = 0;		// \### for decimal charater literals (only 3 digits supported)
+		ch = 0;
+		while(digits < 3 && isdigit(*str)) {
+			ch *= 10;
+			ch += DEC_CHAR_TO_INT(*str);
+			str++;
+			digits++;
+		}
+#endif
+	 } else
 		ch=c_unescape_char(*(str++));
-		if(endptr!=NULL)
-			*endptr=(char*)str;
-	}
 
-	return(ch);
+	if(endptr!=NULL)
+		*endptr=(char*)str;
+
+	return ch;
 }
 
 /****************************************************************************/
@@ -187,11 +213,114 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 		if((!ctrl_only || (uchar)*s < ' ') && (e=c_escape_char(*s))!=NULL) {
 			strncpy(d,e,maxlen-(d-dst));
 			d+=strlen(d);
+		} else if((uchar)*s < ' ') {
+			d += snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
 		} else *d++=*s;
 	}
 	*d=0;
 
 	return(dst);
+}
+
+/* Returns a byte count parsed from the 'str' argument, supporting power-of-2
+ * short-hands (e.g. 'K' for kibibytes).
+ * If 'unit' is specified (greater than 1), result is divided by this amount.
+ * 
+ * Moved from ini_file.c/parseBytes()
+ */
+int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
+{
+	char*	p=NULL;
+	double	bytes;
+
+	bytes=strtod(str,&p);
+	if(p!=NULL) {
+		switch(toupper(*p)) {
+			case 'E':
+				bytes*=1024;
+				/* fall-through */
+			case 'P':
+				bytes*=1024;
+				/* fall-through */
+			case 'T':
+				bytes*=1024;
+				/* fall-through */
+			case 'G':
+				bytes*=1024;
+				/* fall-through */
+			case 'M':
+				bytes*=1024;
+				/* fall-through */
+			case 'K':
+				bytes*=1024;
+				break;
+		}
+	}
+	return((int64_t)(unit>1 ? (bytes/unit):bytes));
+}
+
+/* Convert a byte count to a string with a floating point value
+   and a single letter multiplier/suffix.
+   For values evenly divisible by 1024, no suffix otherwise.
+*/
+char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
+{
+	if(fmod((double)bytes,1024.0*1024.0*1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+	else if(fmod((double)bytes,1024.0*1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gG",bytes/(1024.0*1024.0*1024.0));
+	else if(fmod((double)bytes,1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gM",bytes/(1024.0*1024.0));
+	else if(fmod((double)bytes,1024.0)==0)
+		safe_snprintf(str, size, "%gK",bytes/1024.0);
+	else
+		safe_snprintf(str, size, "%"PRIi64, bytes);
+
+	return str;
+}
+
+/* Parse a duration string, default unit is in seconds */
+/* (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes */
+/* suffixes/multipliers are supported. */
+/* Return value is in seconds */
+double DLLCALL parse_duration(const char* str)
+{
+	char*	p=NULL;
+	double	t;
+
+	t=strtod(str,&p);
+	if(p!=NULL) {
+		switch(toupper(*p)) {
+			case 'Y':	t*=365.0*24.0*60.0*60.0; break;
+			case 'W':	t*=  7.0*24.0*60.0*60.0; break;
+			case 'D':	t*=		 24.0*60.0*60.0; break;
+			case 'H':	t*=			  60.0*60.0; break;
+			case 'M':	t*=				   60.0; break;
+		}
+	}
+	return t;
+}
+
+/* Convert a duration (in seconds) to a string
+ * with a single letter multiplier/suffix: 
+ * (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes
+ */
+char* DLLCALL duration_to_str(double value, char* str, size_t size)
+{
+	if(fmod(value,365.0*24.0*60.0*60.0)==0)
+		safe_snprintf(str, size, "%gY",value/(365.0*24.0*60.0*60.0));
+	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
+		safe_snprintf(str, size, "%gW",value/(7.0*24.0*60.0*60.0));
+	else if(fmod(value,24.0*60.0*60.0)==0)
+		safe_snprintf(str, size, "%gD",value/(24.0*60.0*60.0));
+	else if(fmod(value,60.0*60.0)==0)
+		safe_snprintf(str, size, "%gH",value/(60.0*60.0));
+	else if(fmod(value,60.0)==0)
+		safe_snprintf(str, size, "%gM",value/60.0);
+	else
+		safe_snprintf(str, size, "%gS",value);
+
+	return str;
 }
 
 /****************************************************************************/
