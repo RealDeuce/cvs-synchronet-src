@@ -1,10 +1,10 @@
-/* $Id: scfgsub.c,v 1.35 2016/11/10 10:08:38 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.38 2017/10/10 23:10:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright ob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -32,6 +32,56 @@
  ****************************************************************************/
 
 #include "scfg.h"
+#include <stdbool.h>
+
+static bool new_sub(unsigned new_subnum, unsigned group_num)
+{
+	sub_t* new_subboard;
+	if ((new_subboard = (sub_t *)malloc(sizeof(*new_subboard))) == NULL) {
+		errormsg(WHERE, ERR_ALLOC, "sub-board", sizeof(*new_subboard));
+		return false;
+	}
+	memset(new_subboard, 0, sizeof(*new_subboard));
+	new_subboard->grp = group_num;
+	if (cfg.total_faddrs)
+		new_subboard->faddr = cfg.faddr[0];
+	/* ToDo: Define these defaults somewhere else: */
+	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_HDRMOD | SUB_FAST);
+	new_subboard->maxmsgs = 500;
+
+	/* Allocate a new (unused) pointer index */
+	for (; new_subboard->ptridx < USHRT_MAX; new_subboard->ptridx++) {
+		int n;
+		for (n = 0; n < cfg.total_subs; n++)
+			if (cfg.sub[n]->ptridx == new_subboard->ptridx)
+				break;
+		if (n == cfg.total_subs)
+			break;
+	}
+
+	sub_t **new_sub_list;
+	if ((new_sub_list = (sub_t **)realloc(cfg.sub, sizeof(sub_t *)*(cfg.total_subs + 1))) == NULL) {
+		errormsg(WHERE, ERR_ALLOC, "sub list", cfg.total_subs + 1);
+		free(new_subboard);
+		return false;
+	}
+	cfg.sub = new_sub_list;
+
+	/* Move higher numbered subs (for inserting) */
+	for (unsigned u = cfg.total_subs; u > new_subnum; u--)
+		cfg.sub[u] = cfg.sub[u - 1];
+
+	/* Subs are re-numbered, so adjust QWKnet hub sub lists */
+	for (unsigned q = 0; q < cfg.total_qhubs; q++)
+		for (unsigned s = 0; s < cfg.qhub[q]->subs; s++)
+			if (cfg.qhub[q]->sub[s] >= new_subnum)
+				cfg.qhub[q]->sub[s]++;
+
+	cfg.sub[new_subnum] = new_subboard;
+	cfg.total_subs++;
+	return true;
+}
+
 
 void sub_cfg(uint grpnum)
 {
@@ -40,7 +90,7 @@ void sub_cfg(uint grpnum)
 	char path[MAX_PATH+1];
 	char data_dir[MAX_PATH+1];
 	int j,m,n,ptridx,q,s;
-	uint i,u,subnum[MAX_OPTS+1];
+	uint i,subnum[MAX_OPTS+1];
 	static sub_t savsub;
 
 while(1) {
@@ -53,7 +103,8 @@ while(1) {
 			else
 				sprintf(opt[j],"%s"
 					,cfg.sub[i]->lname);
-			j++; }
+			j++; 
+		}
 	subnum[j]=cfg.total_subs;
 	opt[j][0]=0;
 	sprintf(str,"%s Sub-boards",cfg.grp[grpnum]->sname);
@@ -61,7 +112,7 @@ while(1) {
 	if(j)
 		i|=WIN_DEL|WIN_GET|WIN_DELACT;
 	if(j<MAX_OPTS)
-		i|=WIN_INS|WIN_XTR|WIN_INSACT;
+		i|=WIN_INS|WIN_XTR|WIN_PUTXTR|WIN_INSACT;
 	if(savsub.sname[0])
 		i|=WIN_PUT;
 	uifc.helpbuf=
@@ -120,7 +171,7 @@ while(1) {
 			"\n"
 			"Every sub-board must have its own unique code for Synchronet to refer to\n"
 			"it internally. This code should be descriptive of the sub-board's topic,\n"
-			"usually an abreviation of the sub-board's name.\n"
+			"usually an abbreviation of the sub-board's name.\n"
 			"\n"
 			"`Note:` The internal code is constructed from the message group's code\n"
 			"prefix (if present) and the sub-board's code suffix.\n"
@@ -135,50 +186,20 @@ while(1) {
 			continue; 
 		}
 
-		if((cfg.sub=(sub_t **)realloc(cfg.sub,sizeof(sub_t *)*(cfg.total_subs+1)))==NULL) {
-            errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_subs+1);
-			cfg.total_subs=0;
-			bail(1);
-            continue; }
+		if (!new_sub(subnum[i], grpnum))
+			continue;
 
-		for(ptridx=0;ptridx<USHRT_MAX;ptridx++) { /* Search for unused pointer indx */
-            for(n=0;n<cfg.total_subs;n++)
-				if(cfg.sub[n]->ptridx==ptridx)
-                    break;
-            if(n==cfg.total_subs)
-                break; }
-
-		if(j) {
-			for(u=cfg.total_subs;u>subnum[i];u--)
-                cfg.sub[u]=cfg.sub[u-1];
-			for(q=0;q<cfg.total_qhubs;q++)
-				for(s=0;s<cfg.qhub[q]->subs;s++)
-					if(cfg.qhub[q]->sub[s]>=subnum[i])
-						cfg.qhub[q]->sub[s]++; }
-
-		if((cfg.sub[subnum[i]]=(sub_t *)malloc(sizeof(sub_t)))==NULL) {
-			errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(sub_t));
-			continue; }
-		memset((sub_t *)cfg.sub[subnum[i]],0,sizeof(sub_t));
-		cfg.sub[subnum[i]]->grp=grpnum;
-		if(cfg.total_faddrs)
-			cfg.sub[subnum[i]]->faddr=cfg.faddr[0];
-		else
-			memset(&cfg.sub[subnum[i]]->faddr,0,sizeof(faddr_t));
-		cfg.sub[subnum[i]]->maxmsgs=500;
 		strcpy(cfg.sub[subnum[i]]->code_suffix,code);
 		strcpy(cfg.sub[subnum[i]]->lname,str);
 		strcpy(cfg.sub[subnum[i]]->sname,str2);
 		strcpy(cfg.sub[subnum[i]]->qwkname,code);
 		if(strchr(str,'.') && strchr(str,' ')==NULL)
 			strcpy(cfg.sub[subnum[i]]->newsgroup,str);
-		cfg.sub[subnum[i]]->misc=(SUB_NSDEF|SUB_SSDEF|SUB_QUOTE|SUB_TOUSER
-			|SUB_HDRMOD|SUB_FAST);
-		cfg.sub[subnum[i]]->ptridx=ptridx;
-		cfg.total_subs++;
 		uifc.changes=1;
-		continue; }
-	if((i&MSK_ON)==MSK_DEL) {
+		continue; 
+	}
+	if((i&MSK_ON) == MSK_DEL || (i&MSK_ON) == MSK_CUT) {
+		int msk = (i&MSK_ON);
 		i&=MSK_OFF;
 		uifc.helpbuf=
 			"`Delete Data in Sub-board:`\n"
@@ -207,6 +228,8 @@ while(1) {
 					clearptrs(subnum[i]); 
 			}
 		}
+		if(msk == MSK_CUT)
+			savsub = *cfg.sub[subnum[i]];
 		free(cfg.sub[subnum[i]]);
 		cfg.total_subs--;
 		for(j=subnum[i];j<cfg.total_subs;j++)
@@ -216,21 +239,29 @@ while(1) {
 				if(cfg.qhub[q]->sub[s]==subnum[i])
 					cfg.qhub[q]->sub[s]=INVALID_SUB;
 				else if(cfg.qhub[q]->sub[s]>subnum[i])
-					cfg.qhub[q]->sub[s]--; }
+					cfg.qhub[q]->sub[s]--; 
+			}
 		uifc.changes=1;
-		continue; }
+		continue; 
+	}
 	if((i&MSK_ON)==MSK_GET) {
 		i&=MSK_OFF;
 		savsub=*cfg.sub[subnum[i]];
-		continue; }
+		continue; 
+	}
 	if((i&MSK_ON)==MSK_PUT) {
 		i&=MSK_OFF;
+		if (opt[i][0] == 0) {	/* Paste-over extra/blank item */
+			if (!new_sub(subnum[i], grpnum))
+				continue;
+		}
 		ptridx=cfg.sub[subnum[i]]->ptridx;
 		*cfg.sub[subnum[i]]=savsub;
 		cfg.sub[subnum[i]]->ptridx=ptridx;
 		cfg.sub[subnum[i]]->grp=grpnum;
 		uifc.changes=1;
-        continue; }
+        continue; 
+	}
 	i=subnum[i];
 	j=0;
 	done=0;
@@ -252,8 +283,11 @@ while(1) {
 			,cfg.sub[i]->op_arstr);
 		sprintf(opt[n++],"%-27.27s%.40s","Moderated Posting User"
 			,cfg.sub[i]->mod_arstr);
-		sprintf(opt[n++],"%-27.27s%"PRIu32,"Maximum Messages"
-            ,cfg.sub[i]->maxmsgs);
+		if(cfg.sub[i]->maxmsgs)
+			sprintf(str, "%"PRIu32, cfg.sub[i]->maxmsgs);
+		else
+			strcpy(str, "Unlimited");
+		sprintf(opt[n++],"%-27.27s%s","Maximum Messages", str);
 		if(cfg.sub[i]->maxage)
             sprintf(str,"Enabled (%u days old)",cfg.sub[i]->maxage);
         else
@@ -318,7 +352,7 @@ while(1) {
 	                "\n"
 	                "Every sub-board must have its own unique code for Synchronet to refer\n"
 	                "to it internally. This code should be descriptive of the sub-board's\n"
-	                "topic, usually an abreviation of the sub-board's name.\n"
+	                "topic, usually an abbreviation of the sub-board's name.\n"
 	                "\n"
 	                "`Note:` The internal code displayed is the complete internal code\n"
 	                "constructed from the message group's code prefix and the sub-board's\n"
@@ -372,9 +406,14 @@ while(1) {
 	                "`Maximum Number of Messages:`\n"
 	                "\n"
 	                "This value is the maximum number of messages that will be kept in the\n"
-	                "sub-board. Once this maximum number of messages is reached, the oldest\n"
-	                "messages will be automatically purged. Usually, 100 messages is a\n"
-	                "sufficient maximum.\n"
+	                "sub-board. It is possible for newly-posted or imported messages to\n"
+					"exceed this maximum (it is `not` an immediately imposed limit).\n"
+					"\n"
+					"Older messages that exceed this maximum count are purged using `smbutil`,\n"
+					"typically run as a timed event (e.g. `MSGMAINT`).\n"
+					"\n"
+					"A value of `0` means no maximum number of stored messages will be\n"
+					"imposed during message-base maintenance."
                 ;
                 uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of Messages"
                     ,str,9,K_EDIT|K_NUMBER);
@@ -388,6 +427,15 @@ while(1) {
 	                "\n"
 	                "This value is the maximum number of days that messages will be kept in\n"
 	                "the sub-board.\n"
+					"\n"
+					"Message age is calculated from the date and time of message import/post\n"
+					"and not necessarily the date/time the message was originally written.\n"
+					"\n"
+					"Old messages are purged using `smbutil`, typically run as a timed\n"
+					"event (e.g. `MSGMAINT`).\n"
+					"\n"
+					"A value of `0` means no maximum age of stored messages will be\n"
+					"imposed during message-base maintenance."
                 ;
                 uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of Messages (in days)"
                     ,str,5,K_EDIT|K_NUMBER);
@@ -402,6 +450,10 @@ while(1) {
 					"This value is the maximum number of CRCs that will be kept in the\n"
 					"sub-board for duplicate message checking. Once this maximum number of\n"
 					"CRCs is reached, the oldest CRCs will be automatically purged.\n"
+					"\n"
+					"A value of `0` means no CRCs (or other hashes) of message body text\n"
+					"or meta-data will be saved (i.e. for purposes of duplicate message\n"
+					"detection and rejection)."
 				;
 				uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of CRCs"
 					,str,9,K_EDIT|K_NUMBER);
@@ -487,15 +539,18 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_PONLY;
 								cfg.sub[i]->misc|=SUB_PRIV;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_PRIV) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_PRIV;
-								break; }
+								break; 
+							}
 							if(n==2 && (cfg.sub[i]->misc&(SUB_PRIV|SUB_PONLY))
 								!=(SUB_PRIV|SUB_PONLY)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=(SUB_PRIV|SUB_PONLY); }
+								cfg.sub[i]->misc|=(SUB_PRIV|SUB_PONLY); 
+							}
 							break;
 						case 1:
 							if(cfg.sub[i]->misc&SUB_AONLY)
@@ -523,15 +578,18 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_AONLY;
 								cfg.sub[i]->misc|=SUB_ANON;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&(SUB_ANON|SUB_AONLY)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~(SUB_ANON|SUB_AONLY);
-								break; }
+								break; 
+							}
 							if(n==2 && (cfg.sub[i]->misc&(SUB_ANON|SUB_AONLY))
 								!=(SUB_ANON|SUB_AONLY)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=(SUB_ANON|SUB_AONLY); }
+								cfg.sub[i]->misc|=(SUB_ANON|SUB_AONLY); 
+							}
                             break;
 						case 2:
 							n=(cfg.sub[i]->misc&SUB_NAME) ? 0:1;
@@ -549,10 +607,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_NAME)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_NAME;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_NAME) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_NAME; }
+								cfg.sub[i]->misc&=~SUB_NAME; 
+							}
 							break;
 						case 3:
 							if(cfg.sub[i]->misc&SUB_EDITLAST)
@@ -655,10 +715,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_NSDEF)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_NSDEF;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_NSDEF) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_NSDEF; }
+								cfg.sub[i]->misc&=~SUB_NSDEF; 
+							}
                             break;
 						case 6:
 							n=(cfg.sub[i]->misc&SUB_FORCED) ? 0:1;
@@ -676,10 +738,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_FORCED)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_FORCED;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_FORCED) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_FORCED; }
+								cfg.sub[i]->misc&=~SUB_FORCED; 
+							}
                             break;
 						case 7:
 							n=(cfg.sub[i]->misc&SUB_SSDEF) ? 0:1;
@@ -696,10 +760,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_SSDEF)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_SSDEF;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_SSDEF) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_SSDEF; }
+								cfg.sub[i]->misc&=~SUB_SSDEF; 
+							}
                             break;
 						case 8:
 							n=(cfg.sub[i]->misc&SUB_TOUSER) ? 0:1;
@@ -717,10 +783,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_TOUSER)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_TOUSER;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_TOUSER) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_TOUSER; }
+								cfg.sub[i]->misc&=~SUB_TOUSER; 
+							}
 							break;
 						case 9:
 							n=(cfg.sub[i]->misc&SUB_NOVOTING) ? 1:0;
@@ -759,10 +827,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_QUOTE)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_QUOTE;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_QUOTE) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_QUOTE; }
+								cfg.sub[i]->misc&=~SUB_QUOTE; 
+							}
                             break;
 						case 11:
 							n=(cfg.sub[i]->misc&SUB_NOUSERSIG) ? 0:1;
@@ -779,10 +849,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_NOUSERSIG)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_NOUSERSIG;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_NOUSERSIG) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_NOUSERSIG; }
+								cfg.sub[i]->misc&=~SUB_NOUSERSIG; 
+							}
                             break;
 						case 12:
 							n=(cfg.sub[i]->misc&SUB_SYSPERM) ? 0:1;
@@ -790,7 +862,7 @@ while(1) {
 								"`Operator Messages Automatically Permanent:`\n"
 								"\n"
 								"If you want messages posted by `System` and `Sub-board Operators` to be\n"
-								"automatically permanent (non-purgable) for this sub-board, set this\n"
+								"automatically permanent (non-purgeable) for this sub-board, set this\n"
 								"option to `Yes`.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
@@ -800,12 +872,14 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_SYSPERM)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_SYSPERM;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_SYSPERM) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_SYSPERM; }
+								cfg.sub[i]->misc&=~SUB_SYSPERM; 
+							}
                             break;
-#if 0 /* This is not actually imlemented (yet?) */
+#if 0 /* This is not actually implemented (yet?) */
 						case 12:
 							if(cfg.sub[i]->misc&SUB_KILLP)
 								n=2;
@@ -830,15 +904,18 @@ while(1) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_KILL;
 								cfg.sub[i]->misc&=~SUB_KILLP;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&(SUB_KILL|SUB_KILLP)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~(SUB_KILL|SUB_KILLP); }
+								cfg.sub[i]->misc&=~(SUB_KILL|SUB_KILLP); 
+							}
 							if(n==2 && !(cfg.sub[i]->misc&SUB_KILLP)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_KILLP;
 								cfg.sub[i]->misc&=~SUB_KILL;
-                                break; }
+                                break; 
+							}
                             break;
 #endif
 						case 13:
@@ -863,13 +940,15 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_LZH)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_LZH;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_LZH) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_LZH; }
+								cfg.sub[i]->misc&=~SUB_LZH; 
+							}
                             break;
-
-							} }
+						} 
+					}
 				break;
 			case 14:
 				while(1) {
@@ -920,10 +999,12 @@ while(1) {
 							if(!n && cfg.sub[i]->misc&SUB_NOTAG) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_NOTAG;
-								break; }
+								break; 
+							}
 							if(n==1 && !(cfg.sub[i]->misc&SUB_NOTAG)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=SUB_NOTAG; }
+								cfg.sub[i]->misc|=SUB_NOTAG; 
+							}
                             break;
 						case 1:
 							n=0;
@@ -941,10 +1022,12 @@ while(1) {
 							if(n && cfg.sub[i]->misc&SUB_ASCII) {
 								uifc.changes=1;
 								cfg.sub[i]->misc&=~SUB_ASCII;
-								break; }
+								break; 
+							}
 							if(!n && !(cfg.sub[i]->misc&SUB_ASCII)) {
 								uifc.changes=1;
-								cfg.sub[i]->misc|=SUB_ASCII; }
+								cfg.sub[i]->misc|=SUB_ASCII; 
+							}
                             break;
 						case 2:
 							n=1;
@@ -971,10 +1054,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_GATE)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_GATE;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_GATE) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_GATE; }
+								cfg.sub[i]->misc&=~SUB_GATE; 
+							}
                             break;
 						case 3:
 							n=1;
@@ -994,10 +1079,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_QNET)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_QNET;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_QNET) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_QNET; }
+								cfg.sub[i]->misc&=~SUB_QNET; 
+							}
                             break;
 						case 4:
 							uifc.helpbuf=
@@ -1027,10 +1114,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_INET)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_INET;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_INET) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_INET; }
+								cfg.sub[i]->misc&=~SUB_INET; 
+							}
                             break;
 						case 6:
                             n=1;
@@ -1050,10 +1139,12 @@ while(1) {
                             if(!n && !(cfg.sub[i]->misc&SUB_PNET)) {
                                 uifc.changes=1;
                                 cfg.sub[i]->misc|=SUB_PNET;
-                                break; }
+                                break; 
+							}
                             if(n==1 && cfg.sub[i]->misc&SUB_PNET) {
                                 uifc.changes=1;
-                                cfg.sub[i]->misc&=~SUB_PNET; }
+                                cfg.sub[i]->misc&=~SUB_PNET; 
+							}
                             break;
 						case 7:
 							n=1;
@@ -1070,10 +1161,12 @@ while(1) {
 							if(!n && !(cfg.sub[i]->misc&SUB_FIDO)) {
 								uifc.changes=1;
 								cfg.sub[i]->misc|=SUB_FIDO;
-								break; }
+								break; 
+							}
 							if(n==1 && cfg.sub[i]->misc&SUB_FIDO) {
 								uifc.changes=1;
-								cfg.sub[i]->misc&=~SUB_FIDO; }
+								cfg.sub[i]->misc&=~SUB_FIDO; 
+							}
                             break;
 						case 8:
 							smb_faddrtoa(&cfg.sub[i]->faddr,str);
@@ -1166,20 +1259,20 @@ while(1) {
 								"`Self-Packing` is the slowest storage method because it conserves disk\n"
 								"  space as it imports messages by using deleted message header and data\n"
 								"  blocks for new messages automatically. If you use this storage method,\n"
-								"  you will not need to run `SMBUTIL P` on this message base unless you\n"
+								"  you will not need to run `smbutil p` on this message base unless you\n"
 								"  accumilate a large number of deleted message blocks and wish to free\n"
 								"  that disk space. You can switch from self-packing to fast allocation\n"
 								"  storage method and back again as you wish.\n"
 								"`Fast Allocation` is faster than self-packing because it does not search\n"
 								"  for deleted message blocks for new messages. It automatically places\n"
 								"  all new message blocks at the end of the header and data files. If you\n"
-								"  use this storage method, you will need to run `SMBUTIL P` on this\n"
+								"  use this storage method, you will need to run `smbutil p` on this\n"
 								"  message base periodically or it will continually use up disk space.\n"
 								"`Hyper Allocation` is the fastest storage method because it does not\n"
 								"  maintain allocation files at all. Once a message base is setup to use\n"
 								"  this storage method, it should not be changed without first deleting\n"
-								"  the message base data files in your `DATA\\DIRS\\SUBS` directory for this\n"
-								"  sub-board. You must use `SMBUTIL P` as with the fast allocation method.\n"
+								"  the message base data files in your `data/subs` directory for this\n"
+								"  sub-board. You must use `smbutil p` as with the fast allocation method.\n"
 							;
 							n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
 								,"Storage Method",opt);
@@ -1190,7 +1283,8 @@ while(1) {
 								cfg.sub[i]->misc|=SUB_HYPER;
 								cfg.sub[i]->misc&=~SUB_FAST;
 								cfg.sub[i]->misc|=SUB_HDRMOD;
-								break; }
+								break; 
+							}
 							if(!n)
 								break;
 							if(cfg.sub[i]->misc&SUB_HYPER) {	/* Switching from hyper */
