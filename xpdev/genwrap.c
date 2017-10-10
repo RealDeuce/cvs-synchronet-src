@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.104 2017/11/06 06:57:09 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.102 2017/08/26 01:46:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -112,7 +112,7 @@ char DLLCALL c_unescape_char(char ch)
 
 /****************************************************************************/
 /* Return character value of C-escaped (\) character literal sequence		*/
-/* supports \x## (hex) and \### sequences (for octal or decimal)			*/
+/* supports \x## (hex) and \### sequences (for octal or decimal)
 /****************************************************************************/
 char DLLCALL c_unescape_char_ptr(const char* str, char** endptr)
 {
@@ -235,7 +235,6 @@ int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
 
 	bytes=strtod(str,&p);
 	if(p!=NULL) {
-		SKIP_WHITESPACE(p);
 		switch(toupper(*p)) {
 			case 'E':
 				bytes*=1024;
@@ -266,13 +265,13 @@ int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
 */
 char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
 {
-	if(bytes && fmod((double)bytes,1024.0*1024.0*1024.0*1024.0)==0)
+	if(fmod((double)bytes,1024.0*1024.0*1024.0*1024.0)==0)
 		safe_snprintf(str, size, "%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
-	else if(bytes && fmod((double)bytes,1024.0*1024.0*1024.0)==0)
+	else if(fmod((double)bytes,1024.0*1024.0*1024.0)==0)
 		safe_snprintf(str, size, "%gG",bytes/(1024.0*1024.0*1024.0));
-	else if(bytes && fmod((double)bytes,1024.0*1024.0)==0)
+	else if(fmod((double)bytes,1024.0*1024.0)==0)
 		safe_snprintf(str, size, "%gM",bytes/(1024.0*1024.0));
-	else if(bytes && fmod((double)bytes,1024.0)==0)
+	else if(fmod((double)bytes,1024.0)==0)
 		safe_snprintf(str, size, "%gK",bytes/1024.0);
 	else
 		safe_snprintf(str, size, "%"PRIi64, bytes);
@@ -291,7 +290,6 @@ double DLLCALL parse_duration(const char* str)
 
 	t=strtod(str,&p);
 	if(p!=NULL) {
-		SKIP_WHITESPACE(p);
 		switch(toupper(*p)) {
 			case 'Y':	t*=365.0*24.0*60.0*60.0; break;
 			case 'W':	t*=  7.0*24.0*60.0*60.0; break;
@@ -305,58 +303,25 @@ double DLLCALL parse_duration(const char* str)
 
 /* Convert a duration (in seconds) to a string
  * with a single letter multiplier/suffix: 
- * (Y)ears, (W)eeks, (D)ays, (H)ours, (M)inutes, or (S)econds
+ * (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes
  */
 char* DLLCALL duration_to_str(double value, char* str, size_t size)
 {
-	if(value && fmod(value,365.0*24.0*60.0*60.0)==0)
+	if(fmod(value,365.0*24.0*60.0*60.0)==0)
 		safe_snprintf(str, size, "%gY",value/(365.0*24.0*60.0*60.0));
-	else if(value && fmod(value,7.0*24.0*60.0*60.0)==0)
+	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
 		safe_snprintf(str, size, "%gW",value/(7.0*24.0*60.0*60.0));
-	else if(value && fmod(value,24.0*60.0*60.0)==0)
+	else if(fmod(value,24.0*60.0*60.0)==0)
 		safe_snprintf(str, size, "%gD",value/(24.0*60.0*60.0));
-	else if(value && fmod(value,60.0*60.0)==0)
+	else if(fmod(value,60.0*60.0)==0)
 		safe_snprintf(str, size, "%gH",value/(60.0*60.0));
-	else if(value && fmod(value,60.0)==0)
+	else if(fmod(value,60.0)==0)
 		safe_snprintf(str, size, "%gM",value/60.0);
 	else
 		safe_snprintf(str, size, "%gS",value);
 
 	return str;
 }
-
-/* Convert a duration (in seconds) to a verbose string
- * with a word clarifier / modifier: 
- * year[s], week[s], day[s], hour[s], minute[s] or second[s]
- */
-char* DLLCALL duration_to_vstr(double value, char* str, size_t size)
-{
-	if(value && fmod(value,365.0*24.0*60.0*60.0)==0) {
-		value /= (365.0*24.0*60.0*60.0);
-		safe_snprintf(str, size, "%g year%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,7.0*24.0*60.0*60.0)==0) {
-		value /= (7.0*24.0*60.0*60.0);
-		safe_snprintf(str, size, "%g week%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,24.0*60.0*60.0)==0) {
-		value /= (24.0*60.0*60.0);
-		safe_snprintf(str, size, "%g day%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,60.0*60.0)==0) {
-		value /= (60.0*60.0);
-		safe_snprintf(str, size, "%g hour%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,60.0)==0) {
-		value /= 60.0;
-		safe_snprintf(str, size, "%g minute%s", value, value == 1 ? "":"s");
-	}
-	else
-		safe_snprintf(str, size, "%g second%s", value, value == 1 ? "":"s");
-
-	return str;
-}
-
 
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/

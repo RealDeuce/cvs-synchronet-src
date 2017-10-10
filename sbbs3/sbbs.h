@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.452 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.449 2017/08/14 10:17:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -637,7 +637,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which, bool permanent=true, long lm_mode = 0);
+	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
@@ -650,9 +650,8 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which);
+	void	readmail(uint usernumber, int sent);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -763,7 +762,6 @@ public:
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
 	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
-	int64_t get_start_msgnum(smb_t*, int next=0);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -1006,7 +1004,7 @@ extern "C" {
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* getmail.c */
-	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, BOOL spam_only);
+	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
@@ -1085,7 +1083,6 @@ extern "C" {
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
 	DLLEXPORT ushort	DLLCALL sys_timezone(scfg_t* cfg);
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);
@@ -1095,8 +1092,14 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_file_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
+	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
+	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
+	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 
+
+	/* scfglib1.c */
+	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1313,7 +1316,6 @@ int		strsame(const char *str1, const char *str2);	/* Compares number of same cha
 
 /* load_cfg.c */
 BOOL 	md(char *path);
-char*	prep_code(char *str, const char* prefix);
 
 #ifdef SBBS /* These aren't exported */
 
