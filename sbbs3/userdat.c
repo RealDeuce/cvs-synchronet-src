@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.178 2016/12/02 06:01:59 rswindell Exp $ */
+/* $Id: userdat.c,v 1.180 2016/12/10 21:29:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1163,6 +1163,8 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		l=((long)usernumber) * U_LEN;
 	else
 		l=0;
+	if(progress != NULL)
+		progress(cbdata, l, length);
 	for(;l<length;l+=U_LEN) {
 		if(progress != NULL)
 			progress(cbdata, l, length);
