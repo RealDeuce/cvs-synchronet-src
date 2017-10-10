@@ -2,7 +2,7 @@
 
 /* Cross-platform (and eXtra Precision) date/time functions */
 
-/* $Id: xpdatetime.c,v 1.9 2015/08/29 10:46:05 rswindell Exp $ */
+/* $Id: xpdatetime.c,v 1.13 2015/11/25 07:27:07 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,11 +84,12 @@ xpDateTime_t DLLCALL xpDateTime_now(void)
 #endif
 }
 
+/* Return local timezone offset (in minutes) */
 xpTimeZone_t DLLCALL xpTimeZone_local(void)
 {
-#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__)
+#if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__DARWIN__) || defined(__linux__)
 	struct tm tm;
-	time_t t;
+	time_t t=time(NULL);
 
 	localtime_r(&t, &tm);
 	return(tm.tm_gmtoff/60);
@@ -146,6 +147,13 @@ time_t DLLCALL xpDateTime_to_time(xpDateTime_t xpDateTime)
 	if(xpDateTime.zone == xpTimeZone_LOCAL || xpDateTime.zone == xpTimeZone_local())
 		return sane_mktime(&tm);
 	return INVALID_TIME;
+}
+
+/* This version ignores the timezone in xpDateTime and always uses mktime() */
+time_t DLLCALL xpDateTime_to_localtime(xpDateTime_t xpDateTime)
+{
+	xpDateTime.zone = xpTimeZone_LOCAL;
+	return xpDateTime_to_time(xpDateTime);
 }
 
 xpDateTime_t DLLCALL time_to_xpDateTime(time_t ti, xpTimeZone_t zone)
