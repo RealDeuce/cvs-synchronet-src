@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.27 2017/11/06 07:05:13 rswindell Exp $ */
+/* $Id: link_list.h,v 1.26 2016/11/28 09:48:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,9 @@ typedef struct link_list {
 	long				refs;			/* reference counter (attached clients) */
 	long				locks;			/* recursive lock counter */
 #if defined(LINK_LIST_THREADSAFE)
+	pthread_mutex_t		mmutex;
 	pthread_mutex_t		mutex;
+	pthread_t			tid;
 	sem_t				sem;
 #endif
 } link_list_t;
