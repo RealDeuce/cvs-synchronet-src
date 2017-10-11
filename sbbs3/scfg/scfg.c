@@ -1,6 +1,7 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.80 2016/12/02 15:44:55 rswindell Exp $ */
+/* $Id: scfg.c,v 1.84 2017/10/10 23:07:52 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +89,7 @@ int main(int argc, char **argv)
     printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright %s "
         "Rob Swindell\r\n",PLATFORM_DESC,VERSION,__DATE__+7);
 
+	xp_randomize();
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
@@ -670,42 +672,52 @@ void txt_cfg()
 				uifc.helpbuf=invalid_code;
 				uifc.msg("Invalid Code");
 				uifc.helpbuf=0;
-				continue; }
+				continue; 
+			}
 			if((cfg.txtsec=(txtsec_t **)realloc(cfg.txtsec
 				,sizeof(txtsec_t *)*(cfg.total_txtsecs+1)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_txtsecs+1);
 				cfg.total_txtsecs=0;
 				bail(1);
-				continue; }
+				continue; 
+			}
 			if(cfg.total_txtsecs)
 				for(u=cfg.total_txtsecs;u>i;u--)
 					cfg.txtsec[u]=cfg.txtsec[u-1];
 			if((cfg.txtsec[i]=(txtsec_t *)malloc(sizeof(txtsec_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(txtsec_t));
-				continue; }
+				continue; 
+			}
 			memset((txtsec_t *)cfg.txtsec[i],0,sizeof(txtsec_t));
 			strcpy(cfg.txtsec[i]->name,str);
 			strcpy(cfg.txtsec[i]->code,code);
 			cfg.total_txtsecs++;
 			uifc.changes=1;
-			continue; }
-		if((i&MSK_ON)==MSK_DEL) {
+			continue; 
+		}
+		if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
+			int msk = i&MSK_ON;
 			i&=MSK_OFF;
+			if(msk == MSK_CUT)
+				savtxtsec = *cfg.txtsec[i];
 			free(cfg.txtsec[i]);
 			cfg.total_txtsecs--;
 			for(j=i;j<cfg.total_txtsecs;j++)
 				cfg.txtsec[j]=cfg.txtsec[j+1];
 			uifc.changes=1;
-			continue; }
+			continue; 
+		}
 		if((i&MSK_ON)==MSK_GET) {
 			i&=MSK_OFF;
 			savtxtsec=*cfg.txtsec[i];
-			continue; }
+			continue; 
+		}
 		if((i&MSK_ON)==MSK_PUT) {
 			i&=MSK_OFF;
 			*cfg.txtsec[i]=savtxtsec;
 			uifc.changes=1;
-			continue; }
+			continue; 
+		}
 		i=txt_dflt;
 		j=0;
 		done=0;
@@ -753,7 +765,8 @@ void txt_cfg()
 					else {
 						uifc.helpbuf=invalid_code;
 						uifc.msg("Invalid Code");
-						uifc.helpbuf=0; }
+						uifc.helpbuf=0; 
+					}
 					break; 
 			} 
 		} 
@@ -836,42 +849,52 @@ void shell_cfg()
 				uifc.helpbuf=invalid_code;
 				uifc.msg("Invalid Code");
 				uifc.helpbuf=0;
-				continue; }
+				continue; 
+			}
 			if((cfg.shell=(shell_t **)realloc(cfg.shell
 				,sizeof(shell_t *)*(cfg.total_shells+1)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,cfg.total_shells+1);
 				cfg.total_shells=0;
 				bail(1);
-				continue; }
+				continue; 
+			}
 			if(cfg.total_shells)
 				for(u=cfg.total_shells;u>i;u--)
 					cfg.shell[u]=cfg.shell[u-1];
 			if((cfg.shell[i]=(shell_t *)malloc(sizeof(shell_t)))==NULL) {
 				errormsg(WHERE,ERR_ALLOC,nulstr,sizeof(shell_t));
-				continue; }
+				continue; 
+			}
 			memset((shell_t *)cfg.shell[i],0,sizeof(shell_t));
 			strcpy(cfg.shell[i]->name,str);
 			strcpy(cfg.shell[i]->code,code);
 			cfg.total_shells++;
 			uifc.changes=1;
-			continue; }
-		if((i&MSK_ON)==MSK_DEL) {
+			continue; 
+		}
+		if((i&MSK_ON)==MSK_DEL || (i&MSK_ON) == MSK_CUT) {
+			int msk = i&MSK_ON;
 			i&=MSK_OFF;
+			if(msk == MSK_CUT)
+				savshell = *cfg.shell[i];
 			free(cfg.shell[i]);
 			cfg.total_shells--;
 			for(j=i;j<cfg.total_shells;j++)
 				cfg.shell[j]=cfg.shell[j+1];
 			uifc.changes=1;
-			continue; }
+			continue; 
+		}
 		if((i&MSK_ON)==MSK_GET) {
 			i&=MSK_OFF;
 			savshell=*cfg.shell[i];
-			continue; }
+			continue; 
+		}
 		if((i&MSK_ON)==MSK_PUT) {
 			i&=MSK_OFF;
 			*cfg.shell[i]=savshell;
 			uifc.changes=1;
-			continue; }
+			continue; 
+		}
 		i=shell_dflt;
 		j=0;
 		done=0;
@@ -936,7 +959,8 @@ void shell_cfg()
 					else {
 						uifc.helpbuf=invalid_code;
 						uifc.msg("Invalid Code");
-						uifc.helpbuf=0; }
+						uifc.helpbuf=0; 
+					}
 					break; 
 			} 
 		} 
@@ -1009,26 +1033,34 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {					/* Shorten operators */
 			if(!strncmp(ar+i,"AND",3)) {
 				strcat(str,"&");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"NOT",3)) {
 				strcat(str,"!");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"EQUAL",5)) {
 				strcat(str,"=");
-				i+=4; }
+				i+=4; 
+			}
 			else if(!strncmp(ar+i,"EQUALS",6)) {
 				strcat(str,"=");
-				i+=5; }
+				i+=5; 
+			}
 			else if(!strncmp(ar+i,"EQUAL TO",8)) {
 				strcat(str,"=");
-				i+=7; }
+				i+=7; 
+			}
 			else if(!strncmp(ar+i,"OR",2)) {
 				strcat(str,"|");
-				i+=1; }
+				i+=1; 
+			}
 			else
-				strncat(str,ar+i,1); }
+				strncat(str,ar+i,1); 
+		}
 		strcpy(ar,str);
-		len=strlen(ar); }
+		len=strlen(ar); 
+	}
 
 	if(len>=30) {
 		str[0]=0;
@@ -1036,17 +1068,22 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {					/* Remove spaces from ! and = */
 			if(!strncmp(ar+i," ! ",3)) {
 				strcat(str,"!");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"= ",2)) {
 				strcat(str,"=");
-                i++; }
+                i++; 
+			}
 			else if(!strncmp(ar+i," = ",3)) {
 				strcat(str,"=");
-				i+=2; }
+				i+=2; 
+			}
 			else
-				strncat(str,ar+i,1); }
+				strncat(str,ar+i,1); 
+		}
 		strcpy(ar,str);
-        len=strlen(ar); }
+        len=strlen(ar); 
+	}
 
 	if(len>=30) {
 		str[0]=0;
@@ -1054,14 +1091,18 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {					/* Remove spaces from & and | */
 			if(!strncmp(ar+i," & ",3)) {
 				strcat(str," ");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i," | ",3)) {
 				strcat(str,"|");
-				i+=2; }
+				i+=2; 
+			}
 			else
-				strncat(str,ar+i,1); }
+				strncat(str,ar+i,1); 
+		}
 		strcpy(ar,str);
-        len=strlen(ar); }
+        len=strlen(ar); 
+	}
 
 	if(len>=30) {					/* change week days to numbers */
         str[0]=0;
@@ -1071,11 +1112,14 @@ void getar(char *desc, char *inar)
                 if(!strnicmp(ar+i,wday[j],3)) {
                     strcat(str,ultoa(j,tmp,10));
 					i+=2;
-					break; }
+					break; 
+				}
 			if(j==7)
-				strncat(str,ar+i,1); }
+				strncat(str,ar+i,1); 
+		}
         strcpy(ar,str);
-        len=strlen(ar); }
+        len=strlen(ar); 
+	}
 
 	if(len>=30) {				  /* Shorten parameters */
 		str[0]=0;
@@ -1083,85 +1127,113 @@ void getar(char *desc, char *inar)
 		for(i=0;i<n;i++) {
 			if(!strncmp(ar+i,"AGE",3)) {
 				strcat(str,"$A");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"BPS",3)) {
 				strcat(str,"$B");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"PCR",3)) {
 				strcat(str,"$P");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"RIP",3)) {
 				strcat(str,"$*");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"SEX",3)) {
 				strcat(str,"$S");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"UDR",3)) {
 				strcat(str,"$K");
-				i+=2; }
+				i+=2; 
+			}
 			else if(!strncmp(ar+i,"DAY",3)) {
 				strcat(str,"$W");
-                i+=2; }
+                i+=2; 
+			}
 			else if(!strncmp(ar+i,"ANSI",4)) {
 				strcat(str,"$[");
-                i+=3; }
+                i+=3; 
+			}
 			else if(!strncmp(ar+i,"UDFR",4)) {
 				strcat(str,"$D");
-				i+=3; }
+				i+=3; 
+			}
 			else if(!strncmp(ar+i,"FLAG",4)) {
 				strcat(str,"$F");
-				i+=3; }
+				i+=3; 
+			}
 			else if(!strncmp(ar+i,"NODE",4)) {
 				strcat(str,"$N");
-				i+=3; }
+				i+=3; 
+			}
 			else if(!strncmp(ar+i,"NULL",4)) {
 				strcat(str,"$0");
-                i+=3; }
+                i+=3; 
+			}
 			else if(!strncmp(ar+i,"TIME",4)) {
 				strcat(str,"$T");
-				i+=3; }
+				i+=3; 
+			}
 			else if(!strncmp(ar+i,"USER",4)) {
 				strcat(str,"$U");
-				i+=3; }
+				i+=3; 
+			}
 			else if(!strncmp(ar+i,"REST",4)) {
 				strcat(str,"$Z");
-                i+=3; }
+                i+=3; 
+			}
 			else if(!strncmp(ar+i,"LOCAL",5)) {
 				strcat(str,"$G");
-				i+=4; }
+				i+=4; 
+			}
 			else if(!strncmp(ar+i,"LEVEL",5)) {
 				strcat(str,"$L");
-                i+=4; }
+                i+=4; 
+			}
 			else if(!strncmp(ar+i,"TLEFT",5)) {
 				strcat(str,"$R");
-				i+=4; }
+				i+=4; 
+			}
 			else if(!strncmp(ar+i,"TUSED",5)) {
 				strcat(str,"$O");
-				i+=4; }
+				i+=4; 
+			}
 			else if(!strncmp(ar+i,"EXPIRE",6)) {
 				strcat(str,"$E");
-				i+=5; }
+				i+=5; 
+			}
 			else if(!strncmp(ar+i,"CREDIT",6)) {
 				strcat(str,"$C");
-                i+=5; }
+                i+=5; 
+			}
 			else if(!strncmp(ar+i,"EXEMPT",6)) {
 				strcat(str,"$X");
-                i+=5; }
+                i+=5; 
+			}
 			else if(!strncmp(ar+i,"RANDOM",6)) {
 				strcat(str,"$Q");
-                i+=5; }
+                i+=5; 
+			}
 			else if(!strncmp(ar+i,"LASTON",6)) {
 				strcat(str,"$Y");
-                i+=5; }
+                i+=5; 
+			}
 			else if(!strncmp(ar+i,"LOGONS",6)) {
 				strcat(str,"$V");
-                i+=5; }
+                i+=5; 
+			}
 			else if(!strncmp(ar+i,":00",3)) {
-				i+=2; }
+				i+=2; 
+			}
 			else
-				strncat(str,ar+i,1); }
+				strncat(str,ar+i,1); 
+}
 		strcpy(ar,str);
-		len=strlen(ar); }
+		len=strlen(ar); 
+}
 	if(len>=30) {				  /* Remove all spaces and &s */
 		str[0]=0;
 		n=strlen(ar);
@@ -1169,7 +1241,8 @@ void getar(char *desc, char *inar)
 			if(ar[i]!=' ' && ar[i]!='&')
 				strncat(str,ar+i,1);
 		strcpy(ar,str);
-		len=strlen(ar); }
+		len=strlen(ar); 
+	}
 	i=0;
 	sprintf(opt[i++],"Requirement String (%s)",ar);
 	strcpy(opt[i++],"Clear Requirements");
@@ -1239,12 +1312,14 @@ void getar(char *desc, char *inar)
 			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Are You Sure",opt);
 			if(!i) {
 				ar[0]=0;
-				uifc.changes=1; }
+				uifc.changes=1; 
+			}
 			break;
 		case 2:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1265,7 +1340,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-					strcat(ar," OR "); }
+					strcat(ar," OR "); 
+			}
 			strcat(ar,"LEVEL ");
 			switch(i) {
 				case 1:
@@ -1276,13 +1352,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
 			break;
 		case 3:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 
 			for(i=0;i<4;i++)
 				sprintf(opt[i],"Flag Set #%d",i+1);
@@ -1309,7 +1387,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"FLAG ");
 			if(i)
 				strcat(ar,ultoa(i+1,tmp,10));
@@ -1318,7 +1397,8 @@ void getar(char *desc, char *inar)
 		case 4:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1339,7 +1419,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"AGE ");
 			switch(i) {
 				case 1:
@@ -1350,13 +1431,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 5:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			str[0]=0;
 			uifc.helpbuf=
 				"`Required Sex:`\n"
@@ -1376,14 +1459,16 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-					strcat(ar," OR "); }
+					strcat(ar," OR "); 
+			}
 			strcat(ar,"SEX ");
 			strcat(ar,str);
 			break;
 		case 6:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1400,7 +1485,8 @@ void getar(char *desc, char *inar)
 			j=atoi(str);
 			if(j>=300 && j<30000) {
 				j/=100;
-				sprintf(str,"%d",j); }
+				sprintf(str,"%d",j); 
+			}
 			if(ar[0]) {
 				j=whichcond();
 				if(j==-1)
@@ -1408,7 +1494,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"BPS ");
 			switch(i) {
 				case 1:
@@ -1419,13 +1506,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 7:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1447,7 +1536,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"PCR ");
 			switch(i) {
 				case 1:
@@ -1458,13 +1548,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 8:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1486,7 +1578,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"CREDIT ");
 			switch(i) {
 				case 1:
@@ -1497,13 +1590,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 9:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1527,7 +1622,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"UDR ");
 			switch(i) {
 				case 1:
@@ -1538,13 +1634,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 10:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1569,7 +1667,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"UDFR ");
 			switch(i) {
 				case 1:
@@ -1580,13 +1679,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 11:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=0;
 			strcpy(opt[0],"Before");
 			strcpy(opt[1],"After");
@@ -1612,7 +1713,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"TIME ");
 			if(!i)
 				strcat(ar,"NOT ");
@@ -1621,7 +1723,8 @@ void getar(char *desc, char *inar)
 		case 12:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1647,7 +1750,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"DAY ");
 			switch(i) {
 				case 1:
@@ -1658,13 +1762,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 13:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1685,7 +1791,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"NODE ");
 			switch(i) {
 				case 1:
@@ -1696,13 +1803,15 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 		case 14:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1723,7 +1832,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"USER ");
 			switch(i) {
 				case 1:
@@ -1734,14 +1844,16 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 
 		case 15:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1763,7 +1875,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"TLEFT ");
 			switch(i) {
 				case 1:
@@ -1774,14 +1887,16 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
 			break;
 
 		case 16:
 			if(strlen(ar)>=30) {
 				uifc.msg("Maximum string length reached");
-                break; }
+                break; 
+			}
 			i=whichlogic();
 			if(i==-1)
 				break;
@@ -1803,7 +1918,8 @@ void getar(char *desc, char *inar)
 				if(!j)
 					strcat(ar," AND ");
 				else
-                    strcat(ar," OR "); }
+                    strcat(ar," OR "); 
+			}
 			strcat(ar,"EXPIRE ");
 			switch(i) {
 				case 1:
@@ -1814,7 +1930,8 @@ void getar(char *desc, char *inar)
 					break;
 				case 3:
 					strcat(ar,"NOT ");
-					break; }
+					break; 
+			}
 			strcat(ar,str);
             break;
 			
@@ -1869,7 +1986,8 @@ void bail(int code)
         write_msgs_cfg(&cfg,backup_level);
         write_file_cfg(&cfg,backup_level);
         write_chat_cfg(&cfg,backup_level);
-        write_xtrn_cfg(&cfg,backup_level); }
+        write_xtrn_cfg(&cfg,backup_level); 
+	}
 
     uifc.bail();
 
@@ -1881,7 +1999,7 @@ void bail(int code)
 /* information, function, action, object and access and then attempts to    */
 /* write the error information into the file ERROR.LOG in the text dir.     */
 /****************************************************************************/
-void errormsg(int line, char* function, char* source,  char* action, char* object, ulong access)
+void errormsg(int line, const char* function, const char *source, const char* action, const char *object, ulong access)
 {
 	char scrn_buf[MAX_BFLN];
     gettext(1,1,80,uifc.scrn_len,scrn_buf);
