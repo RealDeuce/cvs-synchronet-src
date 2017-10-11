@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.87 2017/10/11 00:12:37 rswindell Exp $ */
+/* $Id: uifc.h,v 1.88 2017/10/11 19:30:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -123,17 +123,18 @@
 #define uint unsigned int
 #endif
 
-							/**************************/
-                            /* Bits in uifcapi_t.mode */
-							/**************************/
-#define UIFC_INMSG	(1<<0)	/* Currently in Message Routine non-recursive */
-#define UIFC_MOUSE	(1<<1)	/* Mouse installed and available */
-#define UIFC_MONO	(1<<2)	/* Force monochrome mode */
-#define UIFC_COLOR	(1<<3)	/* Force color mode */
-#define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
-#define UIFC_NOCTRL	(1<<5)	/* Don't allow usage of CTRL keys for movement 
-							 * etc in menus (Still available in text boxes) */
-#define UIFC_NHM	(1<<6)	/* Don't hide the mouse pointer */
+								/**************************/
+						        /* Bits in uifcapi_t.mode */
+								/**************************/
+#define UIFC_INMSG		(1<<0)	/* Currently in Message Routine non-recursive */
+#define UIFC_MOUSE		(1<<1)	/* Mouse installed and available */
+#define UIFC_MONO		(1<<2)	/* Force monochrome mode */
+#define UIFC_COLOR		(1<<3)	/* Force color mode */
+#define UIFC_IBM		(1<<4)	/* Force use of IBM charset	*/
+#define UIFC_NOCTRL		(1<<5)	/* Don't allow usage of CTRL keys for movement 
+								 * etc in menus (Still available in text boxes) */
+#define UIFC_NHM		(1<<6)	/* Don't hide the mouse pointer */
+#define UIFC_NOMOUSE	(1<<7)	/* Don't enable/use the mouse */
 
 							/*******************************/
                             /* Bits in uifcapi_t.list mode */

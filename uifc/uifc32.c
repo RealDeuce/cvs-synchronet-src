@@ -1,6 +1,6 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.222 2017/10/11 00:12:37 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.223 2017/10/11 19:30:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,7 +403,7 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
     cursor=_NOCURSOR;
     _setcursortype(cursor);
 
-	if(cio_api.mouse) {
+	if(cio_api.mouse && !(api->mode&UIFC_NOMOUSE)) {
 		api->mode|=UIFC_MOUSE;
 		uifc_mouse_enable();
 	}
