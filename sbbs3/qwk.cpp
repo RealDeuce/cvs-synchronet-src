@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.81 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.80 2017/08/14 10:03:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1016,7 +1016,7 @@ uint sbbs_t::resolve_qwkconf(uint n, int hubnum)
 	if(hubnum >= 0 && hubnum < cfg.total_qhubs) {
 		for(j=0;j<cfg.qhub[hubnum]->subs;j++)
 			if(cfg.qhub[hubnum]->conf[j] == n)
-				return cfg.qhub[hubnum]->sub[j]->subnum;
+				return cfg.qhub[hubnum]->sub[j];
 		return INVALID_SUB;
 	}
 
