@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.162 2018/03/04 21:20:53 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.158 2017/08/26 01:57:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -215,7 +215,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	const char* section = "Global";
 	char		value[INI_MAX_VALUE_LEN];
 	char*		p;
-	struct in6_addr	wildcard6 = {{{0}}};
+	struct in6_addr	wildcard6 = {0};
 
 	p=iniGetString(list,section,strCtrlDirectory,nulstr,value);
 	if(*p) {
@@ -278,7 +278,7 @@ void sbbs_read_ini(
 	char		value[INI_MAX_VALUE_LEN];
 	str_list_t	list;
 	global_startup_t global_buf;
-	struct in6_addr	wildcard6 = {{{0}}};
+	struct in6_addr	wildcard6 = {0};
 	char		*global_interfaces;
 
 	if(global==NULL) {
@@ -335,8 +335,6 @@ void sbbs_read_ini(
 
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
-		bbs->ssh_connect_timeout
-			=iniGetShortInt(list,section,"SSHConnectTimeout",10);
 		iniFreeStringList(bbs->ssh_interfaces);
 		bbs->ssh_interfaces
 			=iniGetStringList(list,section,"SSHInterface",",",global_interfaces);
@@ -502,15 +500,11 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
 		mail->submission_port
 			=iniGetShortInt(list,section,"SubmissionPort",IPPORT_SUBMISSION);
-		mail->submissions_port
-			=iniGetShortInt(list,section,"TLSSubmissionPort",IPPORT_SUBMISSIONS);
 		iniFreeStringList(mail->pop3_interfaces);
 		mail->pop3_interfaces
 			=iniGetStringList(list,section,"POP3Interface",",",global_interfaces);
 		mail->pop3_port
 			=iniGetShortInt(list,section,"POP3Port",IPPORT_POP3);
-		mail->pop3s_port
-			=iniGetShortInt(list,section,"TLSPOP3Port",IPPORT_POP3S);
 		mail->relay_port
 			=iniGetShortInt(list,section,"RelayPort",IPPORT_SMTP);
 		mail->max_clients
@@ -806,8 +800,6 @@ BOOL sbbs_write_ini(
 			break;
 		if(!iniSetShortInt(lp,section,"SSHPort",bbs->ssh_port,&style))
 			break;
-		if(!iniSetShortInt(lp,section,"SSHConnectTimeout",bbs->ssh_connect_timeout,&style))
-			break;
 
 		if(!iniSetShortInt(lp,section,"FirstNode",bbs->first_node,&style))
 			break;
@@ -1003,13 +995,7 @@ BOOL sbbs_write_ini(
 
 		if(!iniSetShortInt(lp,section,"SMTPPort",mail->smtp_port,&style))
 			break;
-		if(!iniSetShortInt(lp,section,"SubmissionPort",mail->submission_port,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"TLSSubmissionPort",mail->submissions_port,&style))
-			break;
 		if(!iniSetShortInt(lp,section,"POP3Port",mail->pop3_port,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"TLSPOP3Port",mail->pop3s_port,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"RelayPort",mail->relay_port,&style))
 			break;
@@ -1070,12 +1056,12 @@ BOOL sbbs_write_ini(
 			break;
 		if(!iniSetString(lp,section,"OutboundSound",mail->outbound_sound,&style))
 			break;
-#if 0
+
 		if(!iniSetStringLiteral(lp,section,"NewMailNotice",mail->newmail_notice,&style))
 			break;
 		if(!iniSetStringLiteral(lp,section,"ForwardNotice",mail->forward_notice,&style))
 			break;
-#endif
+
 		/* JavaScript Operating Parameters */
 		if(!sbbs_set_js_settings(lp,section,&mail->js,&global->js,&style))
 			break;
