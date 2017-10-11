@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.652 2017/11/15 04:27:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.649 2017/08/14 07:41:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2724,10 +2724,10 @@ void event_thread(void* arg)
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
-					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr=0;
+					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 					}
 				}
 				if(file!=-1)
@@ -2741,14 +2741,14 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*4L) {
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
 								l32=l;
 								write(file,&l32,4);		/* initialize ptrs to null */
 							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
 						}
 						close(file); 
 					} 
@@ -3541,7 +3541,7 @@ sbbs_t::~sbbs_t()
 		node_inbuf[cfg.node_num-1]=NULL;
 	if(!input_thread_running)
 		RingBufDispose(&inbuf);
-	if(!output_thread_running && !passthru_input_thread_running)
+	if(!output_thread_running)
 		RingBufDispose(&outbuf);
 
 	if(telnet_ack_event!=NULL)
@@ -5496,7 +5496,6 @@ NO_PASSTHRU:
 				i=0;
 			}
 			sbbs->ssh_mode=false;
-			sbbs->ssh_session=0; // Don't allow subsequent SSH connections to affect this one (!)
 		}
 #endif
 
@@ -5581,21 +5580,6 @@ NO_PASSTHRU:
 		}
 	}
 
-    // Wait for BBS passthru input thread to terminate
-	if(sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running) {
-		lprintf(LOG_INFO,"Waiting for passthru I/O threads to terminate...");
-		start=time(NULL);
-		while(sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running) {
-			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-				lprintf(LOG_ERR,"!TIMEOUT waiting for passthru %s thread to terminate"
-					,sbbs->passthru_input_thread_running && sbbs->passthru_output_thread_running ? "I/O"
-						: sbbs->passthru_input_thread_running ? "input" : "output");
-				break;
-			}
-			mswait(100);
-		}
-	}
-
     // Set all nodes' status to OFFLINE
     for(i=first_node;i<=last_node;i++) {
         sbbs->getnodedat(i,&node,1);
@@ -5610,8 +5594,8 @@ NO_PASSTHRU:
 		    delete events; 
 	}
 
-    if(sbbs->passthru_input_thread_running || sbbs->output_thread_running)
-		lprintf(LOG_ERR,"!System I/O thread still running, can't delete");
+    if(sbbs->output_thread_running)
+		lprintf(LOG_ERR,"!Output thread still running, can't delete");
 	else
 	    delete sbbs;
 
