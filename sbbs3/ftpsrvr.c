@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.433 2017/10/10 22:11:33 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.434 2017/10/11 03:00:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2973,7 +2973,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
-			|| stricmp(cmd, "EPSV")==0 || stricmp(cmd, "LPSV")==0) {	
+			|| stricmp(cmd, "EPSV")==0 || strnicmp(cmd, "EPSV ", 5)==0 || stricmp(cmd, "LPSV")==0) {
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -3036,7 +3036,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			port=inet_addrport(&addr);
-			if(stricmp(cmd, "EPSV")==0)
+			if(strnicmp(cmd, "EPSV", 4)==0)
 				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
 			else if (stricmp(cmd,"LPSV")==0) {
 				switch(addr.addr.sa_family) {
@@ -4741,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.433 $", "%*s %s", revision);
+	sscanf("$Revision: 1.434 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
