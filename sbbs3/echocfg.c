@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.16 2017/10/10 23:04:34 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.17 2017/10/11 19:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,6 +128,9 @@ int main(int argc, char **argv)
 							goto USAGE;
 					}
 					break;
+				case 'K':	/* Keyboard-only mode (no mouse support) */
+					uifc.mode |= UIFC_NOMOUSE;
+					break;
 		        case 'M':   /* Monochrome mode */
         			uifc.mode|=UIFC_MONO;
                     break;
@@ -141,6 +144,7 @@ int main(int argc, char **argv)
 					USAGE:
                     printf("\nusage: echocfg [path/to/sbbsecho.ini] [options]"
                         "\n\noptions:\n\n"
+						"-k  =  keyboard mode only (no mouse support)\r\n"
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
                         "-e# =  set escape delay to #msec\r\n"
