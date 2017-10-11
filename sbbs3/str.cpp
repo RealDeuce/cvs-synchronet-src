@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.75 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: str.cpp,v 1.73 2016/11/16 09:05:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,9 +71,8 @@ void sbbs_t::userlist(long mode)
 			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user,/* client: */NULL))
 				continue;
 			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user,/* client: */NULL)
-				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar!=NULL 
-					&& cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
-					&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
+				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
+				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
 				continue; 
 		}
 		else if(mode==UL_DIR) {
@@ -915,7 +914,7 @@ void sbbs_t::user_info()
 		,useron.ptoday);
 	bprintf(text[UserEmails]
 		,useron.emails,useron.fbacks
-		,getmail(&cfg,useron.number,/* Sent: */FALSE, /* SPAM: */FALSE),useron.etoday);
+		,getmail(&cfg,useron.number,0),useron.etoday);
 	CRLF;
 	bprintf(text[UserUploads]
 		,ultoac(useron.ulb,tmp),useron.uls);
