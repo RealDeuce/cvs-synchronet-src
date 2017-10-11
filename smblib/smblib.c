@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.174 2018/03/04 22:59:40 rswindell Exp $ */
+/* $Id: smblib.c,v 1.170 2017/07/08 04:48:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,7 +87,6 @@ int SMBCALL smb_open(smb_t* smb)
 	smb->shd_fp=smb->sdt_fp=smb->sid_fp=NULL;
 	smb->sha_fp=smb->sda_fp=smb->hash_fp=NULL;
 	smb->last_error[0]=0;
-	smb->locked = FALSE;
 
 	/* Check for message-base lock semaphore file (under maintenance?) */
 	while(smb_islocked(smb)) {
@@ -117,18 +116,14 @@ int SMBCALL smb_open(smb_t* smb)
 			smb_close(smb);
 			return(SMB_ERR_READ);
 		}
-		if(memcmp(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID) && !smb->continue_on_error) {
+		if(memcmp(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%s corrupt SMB header ID: %02X %02X %02X %02X", __FUNCTION__
-				,hdr.id[0]
-				,hdr.id[1]
-				,hdr.id[2]
-				,hdr.id[3]
-				);
+				,"%s corrupt SMB header ID: %.*s", __FUNCTION__
+				,LEN_HEADER_ID,hdr.id);
 			smb_close(smb);
 			return(SMB_ERR_HDR_ID); 
 		}
-		if(hdr.version<0x110 && !smb->continue_on_error) {         /* Compatibility check */
+		if(hdr.version<0x110) {         /* Compatibility check */
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s insufficient header version: %X", __FUNCTION__
 				,hdr.version);
@@ -969,12 +964,8 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	}
 	if(memcmp(msg->hdr.id,SHD_HEADER_ID,LEN_HEADER_ID)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s corrupt message header ID (%02X %02X %02X %02X) at offset %lu", __FUNCTION__
-			,msg->hdr.id[0]
-			,msg->hdr.id[1]
-			,msg->hdr.id[2]
-			,msg->hdr.id[3]
-			,msg->idx.offset);
+			,"%s corrupt message header ID: %.*s at offset %lu", __FUNCTION__
+			,LEN_HEADER_ID,msg->hdr.id,msg->idx.offset);
 		return(SMB_ERR_HDR_ID);
 	}
 	if(msg->hdr.version<0x110) {
@@ -1867,10 +1858,12 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 }
 
 /****************************************************************************/
-/* Initializes a message base's header (SMBHDR) record 						*/
+/* Creates a sub-board's initial header file                                */
+/* Truncates and deletes other associated SMB files 						*/
 /****************************************************************************/
-int SMBCALL smb_initsmbhdr(smb_t* smb)
+int SMBCALL smb_create(smb_t* smb)
 {
+    char        str[MAX_PATH+1];
 	smbhdr_t	hdr;
 
 	if(smb->shd_fp==NULL || smb->sdt_fp==NULL || smb->sid_fp==NULL) {
@@ -1881,33 +1874,14 @@ int SMBCALL smb_initsmbhdr(smb_t* smb)
 		&& smb_locksmbhdr(smb)!=SMB_SUCCESS)  /* header exists, so lock it */
 		return(SMB_ERR_LOCK);
 	memset(&hdr,0,sizeof(smbhdr_t));
-	memcpy(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID);
+	memcpy(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID);     
 	hdr.version=SMB_VERSION;
 	hdr.length=sizeof(smbhdr_t)+sizeof(smbstatus_t);
 	smb->status.last_msg=smb->status.total_msgs=0;
 	smb->status.header_offset=sizeof(smbhdr_t)+sizeof(smbstatus_t);
 	rewind(smb->shd_fp);
-	if(!fwrite(&hdr,sizeof(smbhdr_t),1,smb->shd_fp))
-		return SMB_ERR_WRITE;
-	if(!fwrite(&(smb->status),1,sizeof(smbstatus_t),smb->shd_fp))
-		return SMB_ERR_WRITE;
-
-	return SMB_SUCCESS;
-}
-
-/****************************************************************************/
-/* Creates a sub-board's initial header file                                */
-/* Truncates and deletes other associated SMB files 						*/
-/****************************************************************************/
-int SMBCALL smb_create(smb_t* smb)
-{
-    char        str[MAX_PATH+1];
-	FILE*		fp;
-	int			retval;
-
-	if((retval = smb_initsmbhdr(smb)) != SMB_SUCCESS)
-		return retval;
-
+	fwrite(&hdr,1,sizeof(smbhdr_t),smb->shd_fp);
+	fwrite(&(smb->status),1,sizeof(smbstatus_t),smb->shd_fp);
 	rewind(smb->shd_fp);
 	chsize(fileno(smb->shd_fp),sizeof(smbhdr_t)+sizeof(smbstatus_t));
 	fflush(smb->shd_fp);
@@ -1917,11 +1891,6 @@ int SMBCALL smb_create(smb_t* smb)
 	rewind(smb->sid_fp);
 	chsize(fileno(smb->sid_fp),0L);
 
-	SAFEPRINTF(str,"%s.ini",smb->file);
-	if((fp = fopen(str, "w")) != NULL) {
-		fprintf(fp, "Created = 0x%lx\n", (long)time(NULL));
-		fclose(fp);
-	}
 	SAFEPRINTF(str,"%s.sda",smb->file);
 	remove(str);						/* if it exists, delete it */
 	SAFEPRINTF(str,"%s.sha",smb->file);
