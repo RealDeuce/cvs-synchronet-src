@@ -1,6 +1,6 @@
 /* scfgmsg.c */
 
-/* $Id: scfgmsg.c,v 1.45 2016/06/30 22:43:00 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.46 2017/10/10 23:07:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,8 @@ while(1) {
 		uifc.changes=1;
 		continue; 
 	}
-	if((i&MSK_ON)==MSK_DEL) {
+	if((i&MSK_ON)==MSK_DEL || (i&MSK_ON)==MSK_CUT) {
+		int msk = i&MSK_ON;
 		i&=MSK_OFF;
 		uifc.helpbuf=
 			"`Delete All Data in Group:`\n"
@@ -250,6 +251,8 @@ while(1) {
 					delfiles(tmp,str);
 					clearptrs(j); 
 				}
+		if(msk == MSK_CUT)
+			savgrp = *cfg.grp[i];
 		free(cfg.grp[i]);
 		for(j=0;j<cfg.total_subs;) {
 			if(cfg.sub[j]->grp==i) {	/* delete subs of this group */
