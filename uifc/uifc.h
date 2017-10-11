@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.92 2017/11/11 10:17:39 rswindell Exp $ */
+/* $Id: uifc.h,v 1.87 2017/10/11 00:12:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,12 +103,13 @@
 #define MSK_DEL 			0x20000000
 #define MSK_COPY 			0x30000000
 #define MSK_CUT 			0x40000000
-#define MSK_PASTE			0x50000000	/* Overwrite selected item with previously copied item */
-#define MSK_EDIT			0x60000000
+#define MSK_PASTE_OVER		0x50000000	/* Overwrite selected item with previously copied item */
+#define MSK_PASTE_INSERT 	0x60000000	/* Insert new item (above) current item with previously copied item */
+#define MSK_EDIT			0x70000000
 
 /* Legacy terms (get/put instead of copy/paste) */
 #define MSK_GET		MSK_COPY
-#define MSK_PUT		MSK_PASTE
+#define MSK_PUT		MSK_PASTE_OVER
 
 /* Don't forget, negative return values are used for extended keys (if WIN_EXTKEYS used)! */
 #define MAX_OPLN	75		/* Maximum length of each option per menu call */
@@ -122,18 +123,17 @@
 #define uint unsigned int
 #endif
 
-								/**************************/
-						        /* Bits in uifcapi_t.mode */
-								/**************************/
-#define UIFC_INMSG		(1<<0)	/* Currently in Message Routine non-recursive */
-#define UIFC_MOUSE		(1<<1)	/* Mouse installed and available */
-#define UIFC_MONO		(1<<2)	/* Force monochrome mode */
-#define UIFC_COLOR		(1<<3)	/* Force color mode */
-#define UIFC_IBM		(1<<4)	/* Force use of IBM charset	*/
-#define UIFC_NOCTRL		(1<<5)	/* Don't allow usage of CTRL keys for movement 
-								 * etc in menus (Still available in text boxes) */
-#define UIFC_NHM		(1<<6)	/* Don't hide the mouse pointer */
-#define UIFC_NOMOUSE	(1<<7)	/* Don't enable/use the mouse */
+							/**************************/
+                            /* Bits in uifcapi_t.mode */
+							/**************************/
+#define UIFC_INMSG	(1<<0)	/* Currently in Message Routine non-recursive */
+#define UIFC_MOUSE	(1<<1)	/* Mouse installed and available */
+#define UIFC_MONO	(1<<2)	/* Force monochrome mode */
+#define UIFC_COLOR	(1<<3)	/* Force color mode */
+#define UIFC_IBM	(1<<4)	/* Force use of IBM charset	*/
+#define UIFC_NOCTRL	(1<<5)	/* Don't allow usage of CTRL keys for movement 
+							 * etc in menus (Still available in text boxes) */
+#define UIFC_NHM	(1<<6)	/* Don't hide the mouse pointer */
 
 							/*******************************/
                             /* Bits in uifcapi_t.list mode */
@@ -143,7 +143,7 @@
 #define WIN_ACT 	(1<<2)	/* Menu remains active after a selection */
 #define WIN_L2R 	(1<<3)	/* Center the window based on 'width'   */
 #define WIN_T2B 	(1<<4)	/* Center the window based on 'height'  */
-#define WIN_INS 	(1<<5)	/* Allows user to use insert key */
+#define WIN_INS 	(1<<5)	/* Allows user to user insert key */
 #define WIN_INSACT	(1<<6)	/* Remains active after insert key */
 #define WIN_DEL 	(1<<7)	/* Allows user to use delete key */
 #define WIN_DELACT	(1<<8)	/* Remains active after delete key */
@@ -155,9 +155,8 @@
 #define WIN_CHE 	(1<<14) /* Stay active after escape if changes */
 #define WIN_XTR 	(1<<15) /* Add extra line at end for inserting at end */
 #define WIN_DYN 	(1<<16) /* Dynamic window - return at least every second */
-#define WIN_CUT		(1<<17)	/* Allow ^X (cut) a menu item */
-#define WIN_HLP 	(1<<17) /* Parse 'Help codes' - showbuf() */
-#define WIN_PACK 	(1<<18) /* Pack text in window (No padding) - showbuf() */
+#define WIN_HLP 	(1<<17) /* Parse 'Help codes' */
+#define WIN_PACK 	(1<<18) /* Pack text in window (No padding) */
 #define WIN_IMM 	(1<<19) /* Draw window and return immediately */
 #define WIN_FAT		(1<<20)	/* Do not pad outside borders */
 #define WIN_REDRAW	(1<<21) /* Force redraw on dynamic window */
@@ -206,6 +205,13 @@
 								/* And ungets the mouse event.				*/
 #define K_PASSWORD	(1L<<16)	/* Does not display text while editing		*/
 
+						/* Bottom line elements */
+#define BL_INS      (1<<0)  /* INS key */
+#define BL_DEL      (1<<1)  /* DEL key */
+#define BL_GET      (1<<2)  /* Get key */
+#define BL_PUT      (1<<3)  /* Put key */
+#define BL_EDIT     (1<<4)  /* Edit key */
+#define BL_HELP     (1<<5)  /* Help key */
 
 						/* Extra exit flags */
 #define UIFC_XF_QUIT	(1<<0)	/* Returned -1 due to CIO_KEY_QUIT */
@@ -349,10 +355,6 @@ typedef struct {
 /****************************************************************************/
     BOOL    changes;
 /****************************************************************************/
-/* Set to TRUE to enable insert mode by default (not overwrite)				*/
-/****************************************************************************/
-	BOOL	insert_mode;
-/****************************************************************************/
 /* The overlapped-window save buffer number.								*/
 /****************************************************************************/
     uint    savnum;
@@ -381,7 +383,6 @@ typedef struct {
 /****************************************************************************/
     char    helpdatfile[MAX_PATH+1];
     char    helpixbfile[MAX_PATH+1];
-	BOOL	help_available;
 /****************************************************************************/
 /* Help and exit button locations for current/last window					*/
 /****************************************************************************/
@@ -487,9 +488,9 @@ typedef struct {
 	void	(*timedisplay)(BOOL force);
 
 /****************************************************************************/
-/* Displays the bottom line using the WIN_* mode flags						*/
+/* Displays the bottom line using the BL_* macros							*/
 /****************************************************************************/
-    void	(*bottomline)(int mode);
+    void	(*bottomline)(int line);
 
 /****************************************************************************/
 /* String input/exit box at a specified position							*/
