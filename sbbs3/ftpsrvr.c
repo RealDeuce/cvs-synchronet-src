@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.429 2016/11/21 05:43:59 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.434 2017/10/11 03:00:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2463,7 +2463,7 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&ftp.client_addr);
 	client.protocol="FTP";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(sock,&client,FALSE /* update */);
 
 	if(startup->login_attempt.throttle
@@ -2575,7 +2575,7 @@ static void ctrl_thread(void* arg)
 			truncsp(p);
 			SAFECOPY(user.alias,p);
 			user.number=matchuser(&scfg,user.alias,FALSE /*sysop_alias*/);
-			if(!user.number && !stricmp(user.alias,"anonymous"))	
+			if(!user.number && (stricmp(user.alias,"anonymous") == 0 || stricmp(user.alias, "ftp") == 0))
 				user.number=matchuser(&scfg,"guest",FALSE);
 			if(user.number && getuserdat(&scfg, &user)==0 && user.pass[0]==0) 
 				sockprintf(sock,"331 User name okay, give your full e-mail address as password.");
@@ -2973,7 +2973,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
-			|| stricmp(cmd, "EPSV")==0 || stricmp(cmd, "LPSV")==0) {	
+			|| stricmp(cmd, "EPSV")==0 || strnicmp(cmd, "EPSV ", 5)==0 || stricmp(cmd, "LPSV")==0) {
 
 			if(pasv_sock!=INVALID_SOCKET) 
 				ftp_close_socket(&pasv_sock,__LINE__);
@@ -3036,7 +3036,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			port=inet_addrport(&addr);
-			if(stricmp(cmd, "EPSV")==0)
+			if(strnicmp(cmd, "EPSV", 4)==0)
 				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
 			else if (stricmp(cmd,"LPSV")==0) {
 				switch(addr.addr.sa_family) {
@@ -3732,7 +3732,8 @@ static void ctrl_thread(void* arg)
 					padfname(getfname(str),f.name);
 					f.dir=dir;
 					if((filedat=getfileixb(&scfg,&f))==FALSE
-						&& !(startup->options&FTP_OPT_DIR_FILES))
+						&& !(startup->options&FTP_OPT_DIR_FILES)
+						&& !(scfg.dir[dir]->misc&DIR_FILES))
 						continue;
 					if(detail) {
 						f.size=flength(g.gl_pathv[i]);
@@ -4183,7 +4184,7 @@ static void ctrl_thread(void* arg)
 				f.cdt=0;
 				f.size=-1;
 				filedat=getfileixb(&scfg,&f);
-				if(!filedat && !(startup->options&FTP_OPT_DIR_FILES)) {
+				if(!filedat && !(startup->options&FTP_OPT_DIR_FILES) && !(scfg.dir[dir]->misc&DIR_FILES)) {
 					sockprintf(sock,"550 File not found: %s",p);
 					lprintf(LOG_WARNING,"%04d !%s file (%s%s) not in database for %.4s command"
 						,sock,user.alias,genvpath(lib,dir,str),p,cmd);
@@ -4740,7 +4741,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.429 $", "%*s %s", revision);
+	sscanf("$Revision: 1.434 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4950,6 +4951,7 @@ void DLLCALL ftp_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","ftp");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","ftp");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sftpsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		if(!initialized) {
