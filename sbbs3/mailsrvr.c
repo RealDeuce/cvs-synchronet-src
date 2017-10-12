@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.605 2016/12/02 06:01:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.608 2017/08/26 01:57:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -887,7 +887,7 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.protocol="POP3";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"POP3: %s", host_ip);
@@ -2676,7 +2676,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.protocol="SMTP";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -3362,15 +3362,11 @@ static void smtp_thread(void* arg)
 									p++;
 							}
 							safe_snprintf(str,sizeof(str)
-								,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you \1h\1we-mail\1n\1m from: "
-								"\1h%s\1n\r\n"
+								,startup->newmail_notice
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
-							if(!newmsg.idx.to) {	/* Forwarding */
-								strcat(str,"\1mand it was automatically forwarded to: \1h");
-								strcat(str,rcpt_addr);
-								strcat(str,"\1n\r\n");
-							}
+							if(!newmsg.idx.to) 	/* Forwarding */
+								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
 						}
 					}
@@ -3432,7 +3428,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			/* RFC822 Header parsing */
-			strip_ctrl(buf, buf);	/* There should be no control characters in header fields */
+			strip_char(buf, '\r');	/* There should be no bare carriage returns in header fields */
 			if(startup->options&MAIL_OPT_DEBUG_RX_HEADER)
 				lprintf(LOG_DEBUG,"%04d SMTP %s",socket, buf);
 
@@ -5139,7 +5135,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.605 $", "%*s %s", revision);
+	sscanf("$Revision: 1.608 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
