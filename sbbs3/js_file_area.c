@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.54 2018/02/20 11:25:55 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.52 2016/01/11 05:23:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -171,8 +171,6 @@ JSBool DLLCALL js_file_area_resolve(JSContext* cx, JSObject* areaobj, jsid id)
 			if(!JS_SetElement(cx, alt_list, l, &val))
 				return JS_FALSE;
 		}
-		if(name)
-			return(JS_TRUE);
 	}
 
 #ifdef BUILD_JSDOCS
@@ -451,7 +449,7 @@ JSBool DLLCALL js_file_area_resolve(JSContext* cx, JSObject* areaobj, jsid id)
 
 				if(p->user!=NULL 
 					&& (p->user->level>=SYSOP_LEVEL 
-						|| (p->cfg->dir[d]->op_ar!=NULL && p->cfg->dir[d]->op_ar[0]!=0 
+						|| (p->cfg->dir[d]->op_ar[0]!=0 
 							&& chk_ar(p->cfg,p->cfg->dir[d]->op_ar,p->user,p->client))))
 					is_op=TRUE;
 				else
