@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.21 2017/08/17 19:41:09 rswindell Exp $ */
+/* $Id: scfg.h,v 1.22 2017/10/12 07:06:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <limits.h>	/* USHRT_MAX */
 
 #include "gen_defs.h"
