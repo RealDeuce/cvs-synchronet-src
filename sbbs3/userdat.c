@@ -1,6 +1,6 @@
 /* Synchronet user data-related routines (exported) */
 
-/* $Id: userdat.c,v 1.181 2017/10/10 23:05:22 rswindell Exp $ */
+/* $Id: userdat.c,v 1.182 2017/10/12 09:11:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,6 +202,11 @@ int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
 
 	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
 	return nopen(path, for_modify ? (O_RDWR|O_CREAT|O_DENYNONE) : (O_RDONLY|O_DENYNONE)); 
+}
+
+int DLLCALL closeuserdat(int file)
+{
+	return close(file);
 }
 
 /****************************************************************************/
@@ -2687,7 +2692,7 @@ BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 	if(user->level>=SYSOP_LEVEL)
 		return TRUE;
 
-	return cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
+	return cfg->sub[subnum]->op_ar!=NULL && cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
 }
 
 /****************************************************************************/
