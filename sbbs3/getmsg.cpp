@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.65 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.64 2016/11/27 23:13:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -97,7 +97,6 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 
 	bprintf(text[MsgAttr]
 		,attr&MSG_PRIVATE	? "Private  "   :nulstr
-		,attr&MSG_SPAM		? "SPAM  "      :nulstr
 		,attr&MSG_READ		? "Read  "      :nulstr
 		,attr&MSG_DELETE	? "Deleted  "   :nulstr
 		,attr&MSG_KILLREAD	? "Kill  "      :nulstr
@@ -110,6 +109,7 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		,attr&MSG_NOREPLY	? "NoReply  "	:nulstr
 		,poll == MSG_POLL	? "Poll  "		:nulstr
 		,poll == MSG_POLL && auxattr&POLL_CLOSED ? "(Closed)  "	:nulstr
+		,nulstr
 		,nulstr
 		,nulstr
 		,nulstr
