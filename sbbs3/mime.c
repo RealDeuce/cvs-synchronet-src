@@ -1,12 +1,14 @@
-/* Synchronet MIME functions, originally written/submitted by Marc Lanctot */
+/* mime.c */
 
-/* $Id: mime.c,v 1.10 2018/03/04 07:11:56 deuce Exp $ */
+/* Synchronet MIME functions */
+
+/* $Id: mime.c,v 1.8 2011/10/19 07:08:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,7 +42,6 @@
 #include <time.h>
 
 #include "sbbs.h"
-#include "mime.h"
 #include "mailsrvr.h"
 #include "base64.h"
 
@@ -68,30 +69,28 @@ char* mimegetboundary()
     return boundaryString;
 }
 
-void mimeheaders(SOCKET socket, int sess, char* boundary)
+void mimeheaders(SOCKET socket, char* boundary)
 {
-    sockprintf(socket,sess,"MIME-Version: 1.0");
-    sockprintf(socket,sess,"Content-Type: multipart/mixed;");
-    sockprintf(socket,sess," boundary=\"%s\"",boundary);
+    sockprintf(socket,"MIME-Version: 1.0");
+    sockprintf(socket,"Content-Type: multipart/mixed;");
+    sockprintf(socket," boundary=\"%s\"",boundary);
 }
 
-void mimeblurb(SOCKET socket, int sess, char* boundary)
+void mimeblurb(SOCKET socket, char* boundary)
 {
-    sockprintf(socket,sess,"This is a multi-part message in MIME format.");
-    sockprintf(socket,sess,"");
+    sockprintf(socket,"This is a multi-part message in MIME format.");
+    sockprintf(socket,"");
 }
 
-void mimetextpartheader(SOCKET socket, int sess, char* boundary, const char* charset)
+void mimetextpartheader(SOCKET socket, char* boundary)
 {
-	if(charset == NULL || *charset == 0)
-		charset = "iso-8859-1";
-    sockprintf(socket,sess,"--%s",boundary);
-    sockprintf(socket,sess,"Content-Type: text/plain;");
-    sockprintf(socket,sess," charset=\"%s\"", charset);
-    sockprintf(socket,sess,"Content-Transfer-Encoding: 7bit");
+    sockprintf(socket,"--%s",boundary);
+    sockprintf(socket,"Content-Type: text/plain;");
+    sockprintf(socket," charset=\"iso-8859-1\"");
+    sockprintf(socket,"Content-Transfer-Encoding: 7bit");
 }
 
-BOOL base64out(SOCKET socket, int sess, char* pathfile)
+BOOL base64out(SOCKET socket, char* pathfile)
 {
     FILE *  fp;
     char    in[57];
@@ -103,7 +102,7 @@ BOOL base64out(SOCKET socket, int sess, char* pathfile)
     while(1) {
         bytesread=fread(in,1,sizeof(in),fp);
 		if((b64_encode(out,sizeof(out),in,bytesread)==-1)
-				|| !sockprintf(socket,sess,out))  {
+				|| !sockprintf(socket,out))  {
 			fclose(fp);
 			return(FALSE);
 		}
@@ -111,30 +110,30 @@ BOOL base64out(SOCKET socket, int sess, char* pathfile)
             break;
     }
 	fclose(fp);
-    sockprintf(socket,sess,"");
+    sockprintf(socket,"");
 	return(TRUE);
 }
 
-BOOL mimeattach(SOCKET socket, int sess, char* boundary, char* pathfile)
+BOOL mimeattach(SOCKET socket, char* boundary, char* pathfile)
 {
     char* fname = getfname(pathfile);
 
-    sockprintf(socket,sess,"--%s",boundary);
-    sockprintf(socket,sess,"Content-Type: application/octet-stream;");
-    sockprintf(socket,sess," name=\"%s\"",fname);
-    sockprintf(socket,sess,"Content-Transfer-Encoding: base64");
-    sockprintf(socket,sess,"Content-Disposition: attachment;");
-    sockprintf(socket,sess," filename=\"%s\"",fname);
-    sockprintf(socket,sess,"");
-    if(!base64out(socket,sess,pathfile))
+    sockprintf(socket,"--%s",boundary);
+    sockprintf(socket,"Content-Type: application/octet-stream;");
+    sockprintf(socket," name=\"%s\"",fname);
+    sockprintf(socket,"Content-Transfer-Encoding: base64");
+    sockprintf(socket,"Content-Disposition: attachment;");
+    sockprintf(socket," filename=\"%s\"",fname);
+    sockprintf(socket,"");
+    if(!base64out(socket,pathfile))
 		return(FALSE);
-    sockprintf(socket,sess,"");
+    sockprintf(socket,"");
 	return(TRUE);
 }
 
-void endmime(SOCKET socket, int sess, char* boundary)
+void endmime(SOCKET socket, char* boundary)
 {
 	/* last boundary */
-    sockprintf(socket,sess,"--%s--",boundary);
-    sockprintf(socket,sess,"");
+    sockprintf(socket,"--%s--",boundary);
+    sockprintf(socket,"");
 }
