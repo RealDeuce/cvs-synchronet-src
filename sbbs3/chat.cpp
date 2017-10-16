@@ -1,7 +1,8 @@
-/* Synchronet real-time chat functions */
-// vi: tabstop=4
+/* chat.cpp */
 
-/* $Id: chat.cpp,v 1.70 2017/11/16 20:40:18 rswindell Exp $ */
+/* Synchronet real-time chat functions */
+
+/* $Id: chat.cpp,v 1.69 2017/10/12 08:41:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -713,7 +714,6 @@ bool sbbs_t::sysop_page(void)
 		sprintf(str,"%s paged sysop for chat",useron.alias);
 		logline("C",str);
 
-		ftouch(syspage_semfile);
 		for(i=0;i<cfg.total_pages;i++)
 			if(chk_ar(cfg.page[i]->ar,&useron,&client))
 				break;
@@ -737,8 +737,6 @@ bool sbbs_t::sysop_page(void)
 				,sys_status&SS_SYSPAGE ? text[ON] : text[OFF]);
 			nosound();	
 		}
-		if(!(sys_status&SS_SYSPAGE))
-			remove(syspage_semfile);
 
 		return(true);
 	}
