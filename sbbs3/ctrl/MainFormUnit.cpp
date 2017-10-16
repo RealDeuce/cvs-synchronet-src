@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.193 2017/11/13 19:55:04 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.192 2016/11/28 10:18:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1509,9 +1509,9 @@ void __fastcall TMainForm::StatsTimerTick(TObject *Sender)
     StatsForm->LogonsToday->Caption=AnsiString(stats.ltoday);
     StatsForm->TotalTimeOn->Caption=AnsiString(stats.timeon);
     StatsForm->TimeToday->Caption=AnsiString(stats.ttoday);
-    StatsForm->TotalEMail->Caption=AnsiString(getmail(&cfg,0,0,0));
+    StatsForm->TotalEMail->Caption=AnsiString(getmail(&cfg,0,0));
 	StatsForm->EMailToday->Caption=AnsiString(stats.etoday);
-	StatsForm->TotalFeedback->Caption=AnsiString(getmail(&cfg,1,0,0));
+	StatsForm->TotalFeedback->Caption=AnsiString(getmail(&cfg,1,0));
 	StatsForm->FeedbackToday->Caption=AnsiString(stats.ftoday);
 	/* Don't scan a large user database more often than necessary */
 	if(!counter || users<100 || (counter%(users/100))==0 || stats.nusers!=newusers)
