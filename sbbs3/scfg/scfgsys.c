@@ -1,6 +1,4 @@
-/* scfgsys.c */
-
-/* $Id: scfgsys.c,v 1.43 2017/07/09 08:03:09 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.44 2017/10/16 21:28:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1413,8 +1411,8 @@ while(1) {
 							"The Synchronet exec directory contains executable files that your BBS\n"
 							"executes. This directory does `not` need to be in your DOS search path.\n"
 							"If you place programs in this directory for the BBS to execute, you\n"
-							"should place the `%!` abreviation for this exec directory at the\n"
-							"beginning of the command line.\n"
+							"should place the `%!` abbreviation for the exec directory at the\n"
+							"beginning of the configured command-lines.\n"
 							"\n"
 							"This option allows you to change the location of your exec directory.\n"
 						;
