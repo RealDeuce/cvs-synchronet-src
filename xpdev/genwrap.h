@@ -1,8 +1,7 @@
-/* genwrap.h */
-
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.105 2015/09/28 06:58:12 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.109 2016/11/19 09:21:37 sbbs Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,9 +293,9 @@ DLLEXPORT int DLLCALL	get_errno(void);
 								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
 								pth_nap(tv); })
 	#else
-		#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
-								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
-								select(0,NULL,NULL,NULL,&tv); })
+		#define SLEEP(x)		({	int sleep_msecs=x; struct timespec ts={0}; \
+								ts.tv_sec=(sleep_msecs/1000); ts.tv_nsec=((sleep_msecs%1000)*1000000); \
+								nanosleep(&ts, NULL); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
@@ -369,6 +368,9 @@ DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 
 /* Power-of-2 byte count string parser (e.g. "100K" returns 102400 if unit is 1) */
 DLLEXPORT int64_t	DLLCALL	parse_byte_count(const char*, ulong unit);
+DLLEXPORT double	DLLCALL parse_duration(const char*);
+DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
+DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;

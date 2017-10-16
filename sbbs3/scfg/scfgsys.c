@@ -1,6 +1,6 @@
 /* scfgsys.c */
 
-/* $Id: scfgsys.c,v 1.40 2015/11/25 02:34:56 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.43 2017/07/09 08:03:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,43 @@
 
 #include "scfg.h"
 
+static void configure_dst(void)
+{
+	strcpy(opt[0],"Yes");
+	strcpy(opt[1],"No");
+	strcpy(opt[2],"Automatic");
+	opt[3][0]=0;
+	int i=1;
+	uifc.helpbuf=
+		"`Daylight Saving Time (DST):`\n"
+		"\n"
+		"If your system is using a U.S. standard time zone, and you would like\n"
+		"to have the daylight saving time `flag` automatically toggled for you,\n"
+		"set this option to ~Automatic~ (recommended).\n"
+		"\n"			
+		"The ~DST~ `flag` is used for display purposes only (e.g. to display \"PDT\"\n"
+		"instead of \"PST\" and calculate the correct offset from UTC), it does not\n"
+		"actually change the time on your computer system(s) for you.\n"
+	;
+	i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
+		,"Daylight Saving Time (DST)",opt);
+	if(i==-1)
+        return;
+	cfg.sys_misc&=~SM_AUTO_DST;
+	switch(i) {
+		case 0:
+			cfg.sys_timezone|=DAYLIGHT;
+			break;
+		case 1:
+			cfg.sys_timezone&=~DAYLIGHT;
+			break;
+		case 2:
+			cfg.sys_misc|=SM_AUTO_DST;
+			sys_timezone(&cfg);
+			break;
+	}
+}
+
 void sys_cfg(void)
 {
 	static int sys_dflt,adv_dflt,tog_dflt,new_dflt;
@@ -47,7 +84,7 @@ while(1) {
 	sprintf(opt[i++],"%-33.33s%s","Location",cfg.sys_location);
 	sprintf(opt[i++],"%-33.33s%s %s","Local Time Zone"
 		,smb_zonestr(cfg.sys_timezone,NULL)
-		,!OTHER_ZONE(cfg.sys_timezone) && cfg.sys_timezone&US_ZONE && cfg.sys_misc&SM_AUTO_DST ? "(Auto-DST)" : "");
+		,SMB_TZ_HAS_DST(cfg.sys_timezone) && cfg.sys_misc&SM_AUTO_DST ? "(Auto-DST)" : "");
 	sprintf(opt[i++],"%-33.33s%s","Operator",cfg.sys_op);
 	sprintf(opt[i++],"%-33.33s%s","Password","**********");
 
@@ -173,39 +210,7 @@ while(1) {
 						cfg.sys_timezone=BST;
 						break; 
 				}
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				strcpy(opt[2],"Automatic");
-				opt[3][0]=0;
-				i=1;
-				uifc.helpbuf=
-					"`Daylight Saving Time (DST):`\n"
-					"\n"
-					"If your system is using a U.S. standard time zone, and you would like\n"
-					"to have the daylight saving time `flag` automatically toggled for you,\n"
-					"set this option to ~Automatic~ (recommended).\n"
-					"\n"			
-					"The ~DST~ `flag` is used for display purposes only (e.g. to display \"PDT\"\n"
-					"instead of \"PST\" and calculate the correct offset from UTC), it does not\n"
-					"actually change the time on your computer system(s) for you.\n"
-				;
-				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Daylight Saving Time (DST)",opt);
-				if(i==-1)
-                    break;
-				cfg.sys_misc&=~SM_AUTO_DST;
-				switch(i) {
-					case 0:
-						cfg.sys_timezone|=DAYLIGHT;
-						break;
-					case 1:
-						cfg.sys_timezone&=~DAYLIGHT;
-						break;
-					case 2:
-						cfg.sys_misc|=SM_AUTO_DST;
-						sys_timezone(&cfg);
-						break;
-				}
+				configure_dst();
 				break; 
 			}
 			i=0;
@@ -218,9 +223,9 @@ while(1) {
 			strcpy(opt[i++],"Rio de Janeiro");
 			strcpy(opt[i++],"Fernando de Noronha");
 			strcpy(opt[i++],"Azores");
-			strcpy(opt[i++],"London");
-			strcpy(opt[i++],"Berlin");
-			strcpy(opt[i++],"Athens");
+			strcpy(opt[i++],"Western Europe (WET)");
+			strcpy(opt[i++],"Central Europe (CET)");
+			strcpy(opt[i++],"Eastern Europe (EET)");
 			strcpy(opt[i++],"Moscow");
 			strcpy(opt[i++],"Dubai");
 			strcpy(opt[i++],"Kabul");
@@ -279,13 +284,16 @@ while(1) {
 					cfg.sys_timezone=AZO;
                     break;
 				case 9:
-					cfg.sys_timezone=LON;
+					cfg.sys_timezone=WET;
+					configure_dst();
                     break;
 				case 10:
-					cfg.sys_timezone=BER;
+					cfg.sys_timezone=CET;
+					configure_dst();
                     break;
 				case 11:
-					cfg.sys_timezone=ATH;
+					cfg.sys_timezone=EET;
+					configure_dst();
                     break;
 				case 12:
 					cfg.sys_timezone=MOS;
@@ -354,7 +362,7 @@ while(1) {
 							cfg.sys_timezone+=atoi(p+1); 
 					}
                     break;
-					}
+			}
             break;
 		case 3:
 			uifc.helpbuf=
@@ -481,7 +489,7 @@ while(1) {
 					,cfg.sys_misc&SM_NOCDTCVT ? "No" : "Yes");
 				sprintf(opt[i++],"%-33.33s%s","Allow Sysop Logins"
 					,cfg.sys_misc&SM_R_SYSOP ? "Yes" : "No");
-				sprintf(opt[i++],"%-33.33s%s","Echo Passwords Locally"
+				sprintf(opt[i++],"%-33.33s%s","Display/Log Passwords Locally"
 					,cfg.sys_misc&SM_ECHO_PW ? "Yes" : "No");
 				sprintf(opt[i++],"%-33.33s%s","Short Sysop Page"
 					,cfg.sys_misc&SM_SHRTPAGE ? "Yes" : "No");
@@ -612,13 +620,15 @@ while(1) {
 						opt[2][0]=0;
 						i=cfg.sys_misc&SM_ECHO_PW ? 0:1;
 						uifc.helpbuf=
-							"`Echo Passwords Locally:`\n"
+							"`Display/Log Passwords Locally:`\n"
 							"\n"
-							"If you want to passwords to be displayed locally, set this option to\n"
-							"`Yes`.\n"
+							"If you want to passwords to be displayed locally and/or logged to disk\n"
+							"(e.g. when there's a failed login attempt), set this option to `Yes`.\n"
+							"\n"
+							"For elevated security, set this option to `No`.\n"
 						;
 						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-							,"Echo Passwords Locally",opt);
+							,"Display/Log Passwords Locally",opt);
 						if(!i && !(cfg.sys_misc&SM_ECHO_PW)) {
 							cfg.sys_misc|=SM_ECHO_PW;
 							uifc.changes=1; 
@@ -866,6 +876,7 @@ while(1) {
                 else
                     strcpy(str,"None");
 				sprintf(opt[i++],"%-27.27s%s","Download Protocol",str);
+				sprintf(opt[i++],"%-27.27s%hu","Days of New Messages", cfg.new_msgscan_init);
 				strcpy(opt[i++],"Default Toggles...");
 				strcpy(opt[i++],"Question Toggles...");
 				opt[i][0]=0;
@@ -1050,6 +1061,21 @@ while(1) {
                         break;
 					case 13:
 						uifc.helpbuf=
+							"`New User Days of New Messages:`\n"
+							"\n"
+							"This option allows you to set the number of days worth of messages\n"
+							"which will be included in the new user's first `new message scan`.\n"
+							"\n"
+							"The value `0` means there will be `no` new messages for the new user.\n"
+						;
+						sprintf(str,"%hu",cfg.new_msgscan_init);
+						uifc.input(WIN_SAV|WIN_MID,0,0
+							,"Days of New Messages for New User's first new message scan"
+							,str,4,K_EDIT|K_NUMBER);
+						cfg.new_msgscan_init=atoi(str);
+                        break;
+					case 14:
+						uifc.helpbuf=
 							"`New User Default Toggle Options:`\n"
 							"\n"
 							"This menu contains the default state of new user toggle options. All new\n"
@@ -1147,7 +1173,7 @@ while(1) {
 							} 
 						}
 						break;
-					case 14:
+					case 15:
 						uifc.helpbuf=
 							"`New User Question Toggle Options:`\n"
 							"\n"
