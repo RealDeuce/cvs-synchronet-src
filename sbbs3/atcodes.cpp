@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.73 2016/11/21 09:30:15 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.74 2016/12/06 07:09:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -657,6 +657,26 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strcmp(sp,"POPXY")) {
 		ansi_restore();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"HOME")) {
+		cursor_home();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLRLINE")) {
+		clearline();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLR2EOL")) {
+		cleartoeol();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLR2EOS")) {
+		cleartoeos();
 		return(nulstr);
 	}
 

@@ -1,14 +1,12 @@
-/* uifcx.c */
-
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.29 2014/04/24 07:32:18 deuce Exp $ */
+/* $Id: uifcx.c,v 1.31 2017/10/12 08:32:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -63,6 +61,22 @@ static void upop(char *str);
 static void sethelp(int line, char* file);
 
 /****************************************************************************/
+/****************************************************************************/
+static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
+{
+	va_list argptr;
+	char str[MAX_COLS + 1];
+	int i;
+
+	va_start(argptr, fmat);
+	vsprintf(str, fmat, argptr);
+	va_end(argptr);
+	i = printf("%s", str);
+	return(i);
+}
+
+
+/****************************************************************************/
 /* Initialization function, see uifc.h for details.							*/
 /* Returns 0 on success.													*/
 /****************************************************************************/
@@ -85,6 +99,7 @@ int UIFCCALL uifcinix(uifcapi_t* uifcapi)
     api->showhelp=help;
 	api->showbuf=NULL;
 	api->timedisplay=NULL;
+	api->printf = uprintf;
 
     setvbuf(stdin,NULL,_IONBF,0);
     setvbuf(stdout,NULL,_IONBF,0);
@@ -239,10 +254,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 }
             }
             str[0]=0;
-            if(mode&WIN_GET)
-                strcat(str,", Copy");
-            if(mode&WIN_PUT)
-                strcat(str,", Paste");
+            if(mode&WIN_COPY)
+                strcat(str,", Copy, X-Cut");
+            if(mode&WIN_PASTE)
+                strcat(str,", Paste, Insert");
             if(mode&WIN_INS)
                 strcat(str,", Add");
             if(mode&WIN_DEL)
@@ -298,30 +313,49 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 if(opts==1)
                     return(MSK_DEL);
                 return(which("Delete",opts)|MSK_DEL);
-            case 'C':   /* Copy/Get */
-				if(!(mode&WIN_GET))
+            case 'C':   /* Copy */
+				if(!(mode&WIN_COPY))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
-        			return((i-1)|MSK_GET);
+        			return((i-1)|MSK_COPY);
                 if(opts==1)
-                    return(MSK_GET);
-                return(which("Copy",opts)|MSK_GET);
-            case 'P':   /* Paste/Put */
-				if(!(mode&WIN_PUT))
+                    return(MSK_COPY);
+                return(which("Copy",opts)|MSK_COPY);
+            case 'X':   /* Cut */
+				if(!(mode&WIN_COPY))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
-        			return((i-1)|MSK_PUT);
+        			return((i-1)|MSK_CUT);
                 if(opts==1)
-                    return(MSK_PUT);
-                return(which("Paste",opts)|MSK_PUT);
+                    return(MSK_CUT);
+                return(which("Cut",opts)|MSK_CUT);
+            case 'P':   /* Paste-Over */
+				if(!(mode&WIN_PASTE))
+					break;
+				if(!opts)
+    				break;
+                if(i>0 && i<=opts)
+        			return((i-1)|MSK_PASTE_OVER);
+                if(opts==1)
+                    return(MSK_PASTE_OVER);
+                return(which("Paste over",opts)|MSK_PASTE_OVER);
+            case 'I':   /* Paste-Insert */
+				if(!(mode&WIN_PASTE))
+					break;
+				if(!opts)
+    				break;
+                if(i>0 && i<=opts+1)
+        			return((i-1)|MSK_PASTE_INSERT);
+                if(opts==1)
+                    return(MSK_PASTE_INSERT);
+                return(which("Insert pasted item before",opts+1)|MSK_PASTE_INSERT);
         }
     }
 }
-
 
 /*************************************************************************/
 /* This function is a windowed input string input routine.               */
