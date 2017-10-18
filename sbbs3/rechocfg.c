@@ -1,8 +1,6 @@
-/* rechocfg.C */
-
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.16 2017/06/09 04:32:46 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.20 2017/10/13 06:44:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,6 +140,11 @@ const char *faddrtoa(const faddr_t* addr)
 		} 
 	}
 	return(str);
+}
+
+bool faddr_contains_wildcard(const faddr_t* addr)
+{
+	return addr->zone==0xffff || addr->net==0xffff || addr->node==0xffff || addr->point==0xffff;
 }
 
 /******************************************************************************
@@ -302,7 +305,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		return false;
 	cfg->arcdefs = 0;
 	char* archive;
-	while((archive=strListPop(&archivelist)) != NULL) {
+	while((archive=strListRemove(&archivelist, 0)) != NULL) {
 		arcdef_t* arc = &cfg->arcdef[cfg->arcdefs++];
 		memset(arc, 0, sizeof(arcdef_t));
 		SAFECOPY(arc->name, truncsp(archive+8));
@@ -322,7 +325,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		return false;
 	cfg->nodecfgs = 0;
 	char* node;
-	while((node=strListPop(&nodelist)) != NULL) {
+	while((node=strListRemove(&nodelist, 0)) != NULL) {
 		nodecfg_t* ncfg = &cfg->nodecfg[cfg->nodecfgs++];
 		memset(ncfg, 0, sizeof(nodecfg_t));
 		ncfg->addr = atofaddr(node+5);
@@ -331,8 +334,24 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreafixPwd", "", value));
 		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
 		SAFECOPY(ncfg->comment	, iniGetString(ini, node, "Comment", "", value));
-		SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
-		SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
+		if(!faddr_contains_wildcard(&ncfg->addr)) {
+			SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
+			SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
+			char		inbox[MAX_PATH + 1];
+			char		insec[MAX_PATH + 1];
+			char		inbound[MAX_PATH + 1];
+			char		outbox[MAX_PATH + 1];
+			char		outbound[MAX_PATH + 1];
+			FULLPATH(inbox, ncfg->inbox, sizeof(inbox))			, backslash(inbox);
+			FULLPATH(outbox, ncfg->outbox, sizeof(outbox))		, backslash(outbox);
+			FULLPATH(insec, cfg->secure_inbound, sizeof(insec))	, backslash(insec);
+			FULLPATH(inbound, cfg->inbound, sizeof(inbound))	, backslash(inbound);
+			FULLPATH(outbound, cfg->outbound, sizeof(outbound))	, backslash(outbound);
+			if (stricmp(inbound, inbox) == 0 || stricmp(insec, inbox) == 0)
+				ncfg->inbox[0] = 0;
+			if (stricmp(outbound, outbox) == 0)
+				ncfg->outbox[0] = 0;
+		}
 		ncfg->keys				= iniGetStringList(ini, node, "keys", ",", "");
 		ncfg->pkt_type			= iniGetEnum(ini, node, "PacketType", pktTypeStringList, ncfg->pkt_type);
 		ncfg->send_notify		= iniGetBool(ini, node, "notify", ncfg->send_notify);
@@ -358,7 +377,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		return false;
 	cfg->listcfgs = 0;
 	char* echolist;
-	while((echolist=strListPop(&echolists)) != NULL) {
+	while((echolist=strListRemove(&echolists, 0)) != NULL) {
 		echolist_t* elist = &cfg->listcfg[cfg->listcfgs++];
 		memset(elist, 0, sizeof(echolist_t));
 		SAFECOPY(elist->listpath, echolist + 9);
@@ -409,9 +428,9 @@ bool sbbsecho_read_ftn_domains(sbbsecho_cfg_t* cfg, const char * ctrl_dir)
 		ini = iniReadFile(fp);
 		iniCloseFile(fp);
 		domains = iniGetSectionList(ini, NULL);
-		while((domain = strListPop(&domains)) != NULL) {
+		while((domain = strListRemove(&domains, 0)) != NULL) {
 			zones = iniGetStringList(ini, domain, "Zones", ",", NULL);
-			while((zone = strListPop(&zones)) != NULL) {
+			while((zone = strListRemove(&zones, 0)) != NULL) {
 				mapping = (struct zone_mapping *)malloc(sizeof(struct zone_mapping));
 
 				if (mapping == NULL) {
@@ -483,6 +502,9 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetDuration(&ini,	ROOT_SECTION, "MaxEchomailAge"			,cfg->max_echomail_age			,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "MaxNetmailAge"			,cfg->max_netmail_age			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "RelayFilteredMsgs"		,cfg->relay_filtered_msgs		,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "KillEmptyNetmail",		cfg->kill_empty_netmail			,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "DeleteNetmail",			cfg->delete_netmail				,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "DeletePackets",			cfg->delete_packets				,NULL);
 
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailSentAttr"	,cfg->ignore_netmail_sent_attr	,NULL);
