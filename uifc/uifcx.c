@@ -1,6 +1,6 @@
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.33 2018/02/20 18:49:16 deuce Exp $ */
+/* $Id: uifcx.c,v 1.31 2017/10/12 08:32:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,11 +255,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
             }
             str[0]=0;
             if(mode&WIN_COPY)
-                strcat(str,", Copy");
-			if(mode&WIN_CUT)
-				strcat(str,", X-Cut");
+                strcat(str,", Copy, X-Cut");
             if(mode&WIN_PASTE)
-                strcat(str,", Paste");
+                strcat(str,", Paste, Insert");
             if(mode&WIN_INS)
                 strcat(str,", Add");
             if(mode&WIN_DEL)
@@ -326,7 +324,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                     return(MSK_COPY);
                 return(which("Copy",opts)|MSK_COPY);
             case 'X':   /* Cut */
-				if(!(mode&WIN_CUT))
+				if(!(mode&WIN_COPY))
 					break;
 				if(!opts)
     				break;
@@ -335,16 +333,26 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 if(opts==1)
                     return(MSK_CUT);
                 return(which("Cut",opts)|MSK_CUT);
-            case 'P':   /* Paste */
+            case 'P':   /* Paste-Over */
+				if(!(mode&WIN_PASTE))
+					break;
+				if(!opts)
+    				break;
+                if(i>0 && i<=opts)
+        			return((i-1)|MSK_PASTE_OVER);
+                if(opts==1)
+                    return(MSK_PASTE_OVER);
+                return(which("Paste over",opts)|MSK_PASTE_OVER);
+            case 'I':   /* Paste-Insert */
 				if(!(mode&WIN_PASTE))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts+1)
-        			return((i-1)|MSK_PASTE);
+        			return((i-1)|MSK_PASTE_INSERT);
                 if(opts==1)
-                    return(MSK_PASTE);
-                return(which("Insert pasted item before",opts+1)|MSK_PASTE);
+                    return(MSK_PASTE_INSERT);
+                return(which("Insert pasted item before",opts+1)|MSK_PASTE_INSERT);
         }
     }
 }
@@ -470,8 +478,6 @@ void help()
 							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
 								,p,helpline,l,api->helpixbfile);
 						}
-						else
-							hbuf[HELPBUF_SIZE-1] = 0;
 					}
 					fclose(fp); 
 				}
