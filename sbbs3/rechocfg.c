@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.20 2017/10/13 06:44:19 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.21 2017/10/19 05:56:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,8 +331,9 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		ncfg->addr = atofaddr(node+5);
 		if(iniGetString(ini, node, "route", NULL, value) != NULL)
 			ncfg->route = atofaddr(value);
-		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreafixPwd", "", value));
+		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreaFixPwd", "", value));
 		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
+		SAFECOPY(ncfg->ticpwd	, iniGetString(ini, node, "TicFilePwd", "", value));
 		SAFECOPY(ncfg->comment	, iniGetString(ini, node, "Comment", "", value));
 		if(!faddr_contains_wildcard(&ncfg->addr)) {
 			SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
@@ -539,10 +540,11 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 		nodecfg_t*	node = &cfg->nodecfg[i];
 		SAFEPRINTF(section,"node:%s", faddrtoa(&node->addr));
 		iniSetString(&ini	,section,	"Comment"		,node->comment		,&style);
-		iniSetString(&ini	,section,	"AreafixPwd"	,node->password		,&style);
-		iniSetString(&ini	,section,	"PacketPwd"		,node->pktpwd		,&style);
-		iniSetEnum(&ini		,section,	"PacketType"	,pktTypeStringList, node->pkt_type, &style);
 		iniSetString(&ini	,section,	"Archive"		,node->archive == SBBSECHO_ARCHIVE_NONE ? "None" : node->archive->name, &style);
+		iniSetEnum(&ini		,section,	"PacketType"	,pktTypeStringList, node->pkt_type, &style);
+		iniSetString(&ini	,section,	"PacketPwd"		,node->pktpwd		,&style);
+		iniSetString(&ini	,section,	"AreaFixPwd"	,node->password		,&style);
+		iniSetString(&ini	,section,	"TicFilePwd"	,node->ticpwd		,&style);
 		iniSetString(&ini	,section,	"Inbox"			,node->inbox		,&style);
 		iniSetString(&ini	,section,	"Outbox"		,node->outbox		,&style);
 		iniSetBool(&ini		,section,	"Passive"		,node->passive		,&style);

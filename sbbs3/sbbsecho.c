@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.40 2017/10/18 20:16:23 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.41 2017/10/19 05:56:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1541,6 +1541,30 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		create_netmail(to,/* msg: */NULL,"Packet Password Change Request",str,addr,/* attachment: */false);
 		return; 
 	}
+
+	if(strnicmp(instr, "TICPWD ", 7) == 0) {
+		char ticpwd[FIDO_PASS_LEN + 1];	/* TIC File password for this node */
+		char* p = instr;
+		FIND_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
+		SAFECOPY(ticpwd, p);
+		if(!stricmp(ticpwd, nodecfg->ticpwd)) {
+			sprintf(str,"Your TIC File password was already set to '%s'."
+				,nodecfg->ticpwd);
+			create_netmail(to,/* msg: */NULL,"TIC File Password Change Request",str,addr,/* attachment: */false);
+			return; 
+		}
+		if(alter_config(addr,"TicFilePwd", ticpwd)) {
+			SAFEPRINTF2(str,"Your TIC File password has been changed from '%s' to '%s'."
+				,nodecfg->ticpwd, ticpwd);
+			SAFECOPY(nodecfg->ticpwd, ticpwd);
+		} else {
+			SAFECOPY(str,"Error changing TIC File password");
+		}
+		create_netmail(to,/* msg: */NULL,"TIC File Password Change Request",str,addr,/* attachment: */false);
+		return; 
+	}
+
 
 	if(stricmp(instr, "RESCAN") == 0) {
 		export_echomail(NULL, nodecfg, true);
@@ -5114,7 +5138,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.40 $", "%*s %s", revision);
+	sscanf("$Revision: 3.41 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
