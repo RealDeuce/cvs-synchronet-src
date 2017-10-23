@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.53 2017/10/28 20:16:19 rswindell Exp $ */
+/* $Id: str_util.c,v 1.52 2017/02/10 06:09:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,7 +382,7 @@ char* DLLCALL ultoac(ulong l, char *string)
 }
 
 /****************************************************************************/
-/* Truncate string at first occurrence of char in specified character set	*/
+/* Truncate string at first occurance of char in specified character set	*/
 /****************************************************************************/
 char* DLLCALL truncstr(char* str, const char* set)
 {
@@ -431,7 +431,7 @@ char* backslashcolon(char *str)
 }
 
 /****************************************************************************/
-/* Compares pointers to pointers to char. Used in conjunction with qsort()  */
+/* Compares pointers to pointers to char. Used in conjuction with qsort()   */
 /****************************************************************************/
 int pstrcmp(const char **str1, const char **str2)
 {
@@ -818,7 +818,7 @@ char* quoted_string(const char* str, char* buf, size_t maxlen)
 
 #endif
 
-#if 0 /* I think it is a misguided idea :-(  */
+#if 0 /* I think is is a misguided idea :-(  */
 
 char* sbbs_cmdstr(const char* src
 					,char* buf
