@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.104 2017/11/05 02:22:03 rswindell Exp $ */
+/* $Id: win32cio.c,v 1.102 2017/10/10 22:29:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -548,17 +548,8 @@ int win32_initciolib(long inmode)
 	}
 	else {
 		/* Switch to closest mode to current screen size */
-		unsigned screenwidth = sbuff.srWindow.Right - sbuff.srWindow.Left + 1;
-		unsigned screenheight = sbuff.srWindow.Bottom - sbuff.srWindow.Top + 1;
-		if (screenwidth > 0xff)
-			cio_textinfo.screenwidth = 0xff;
-		else
-			cio_textinfo.screenwidth = screenwidth;
-		if (screenheight > 0xff)
-			cio_textinfo.screenheight = 0xff;
-		else
-			cio_textinfo.screenheight = screenheight;
-
+		cio_textinfo.screenwidth=sbuff.srWindow.Right-sbuff.srWindow.Left+1;
+		cio_textinfo.screenheight=sbuff.srWindow.Bottom-sbuff.srWindow.Top+1;
 		if(cio_textinfo.screenwidth>=132) {
 			if(cio_textinfo.screenheight<25)
 				win32_textmode(VESA_132X21);
@@ -653,7 +644,7 @@ void win32_textmode(int mode)
 	if ((h=GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE)
 		return;
 	if (!SetConsoleScreenBufferSize(h,sz))
-		return;	// Note: This fails and returns here with large windows (e.g. width > 255)
+		return;
 	if (!SetConsoleWindowInfo(h,TRUE,&rc))
 		return;
 	sz.X=vparams[modeidx].cols;
@@ -813,7 +804,7 @@ char *win32_getcliptext(void)
 {
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
-	char *ret = NULL;
+	char *ret;
 
 	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
 		return(NULL);
