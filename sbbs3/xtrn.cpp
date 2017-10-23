@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.226 2017/12/05 04:26:52 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.225 2015/11/24 11:05:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -528,7 +528,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "SBBSDATA=%s\n", data_dir);
 		fprintf(fp, "SBBSEXEC=%s\n", exec_dir);
         fprintf(fp, "SBBSNNUM=%d\n", cfg.node_num);
-		fprintf(fp, "PCBNODE=%d\n", cfg.node_num);
 		/* date/time env vars */
 		fprintf(fp, "DAY=%02u\n", tm.tm_mday);
 		fprintf(fp, "WEEKDAY=%s\n",wday[tm.tm_wday]);
@@ -1410,7 +1409,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(doscmdrc,"SBBSDATA=E:\\data\\\n");
 		fprintf(doscmdrc,"SBBSEXEC=E:\\exec\\\n");
 		fprintf(doscmdrc,"SBBSNNUM=%d\n",cfg.node_num);
-		fprintf(doscmdrc,"PCBNODE=%d\n",cfg.node_num);
 
 		fclose(doscmdrc);
 		SAFECOPY(str,fullcmdline);
@@ -1544,7 +1542,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"set SBBSCTRL=%s\r\n",ctrldrive);
 		fprintf(dosemubat,"set SBBSDATA=%s\r\n",datadrive);
 		fprintf(dosemubat,"set SBBSEXEC=%s\r\n",execdrive);
-		fprintf(dosemubat,"set PCBNODE=%d\r\n",cfg.node_num);
 
 		/* clear existing redirections on dos side */
 		fprintf(dosemubat,"lredir del %s\r\nlredir del %s\r\nlredir del %s\r\nlredir del %s\r\n",xtrndrive,ctrldrive,datadrive,execdrive);
