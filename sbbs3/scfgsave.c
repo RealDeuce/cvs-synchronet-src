@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.75 2018/03/07 02:48:29 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.68 2017/10/23 03:39:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,6 +72,105 @@ BOOL DLLCALL save_cfg(scfg_t* cfg, int backup_level)
 		return(FALSE);
 	if(!write_xtrn_cfg(cfg,backup_level))
 		return(FALSE);
+
+	return(TRUE);
+}
+
+BOOL DLLCALL fcopy(char* src, char* dest)
+{
+	int		ch;
+	ulong	count=0;
+	FILE*	in;
+	FILE*	out;
+	BOOL	success=TRUE;
+
+	if((in=fopen(src,"rb"))==NULL)
+		return(FALSE);
+	if((out=fopen(dest,"wb"))==NULL) {
+		fclose(in);
+		return(FALSE);
+	}
+
+	while(!feof(in)) {
+		if((ch=fgetc(in))==EOF)
+			break;
+		if(fputc(ch,out)==EOF) {
+			success=FALSE;
+			break;
+		}
+		if(((count++)%(32*1024))==0)
+			YIELD();
+	}
+
+	fclose(in);
+	fclose(out);
+
+	return(success);
+}
+
+BOOL DLLCALL fcompare(char* fn1, char* fn2)
+{
+	FILE*	fp1;
+	FILE*	fp2;
+	BOOL	success=TRUE;
+
+	if(flength(fn1) != flength(fn2))
+		return(FALSE);
+	if((fp1=fopen(fn1,"rb"))==NULL)
+		return(FALSE);
+	if((fp2=fopen(fn2,"rb"))==NULL) {
+		fclose(fp1);
+		return(FALSE);
+	}
+
+	while(!feof(fp1) && success) {
+		if(fgetc(fp1) != fgetc(fp2))
+			success=FALSE;
+	}
+
+	fclose(fp1);
+	fclose(fp2);
+
+	return(success);
+}
+
+
+/****************************************************************************/
+/****************************************************************************/
+BOOL DLLCALL backup(char *fname, int backup_level, BOOL ren)
+{
+	char	oldname[MAX_PATH+1];
+	char	newname[MAX_PATH+1];
+	char*	ext;
+	int		i;
+	int		len;
+
+	if(flength(fname) < 1)	/* no need to backup a 0-byte (or non-existent) file */
+		return(FALSE);
+
+	if((ext=strrchr(fname,'.'))==NULL)
+		ext="";
+
+	len=strlen(fname)-strlen(ext);
+
+	for(i=backup_level;i;i--) {
+		safe_snprintf(newname,sizeof(newname),"%.*s.%d%s",len,fname,i-1,ext);
+		if(i==backup_level)
+			if(fexist(newname) && remove(newname)!=0)
+				return(FALSE);
+		if(i==1) {
+			if(ren == TRUE) {
+				if(rename(fname,newname)!=0)
+					return(FALSE);
+			} else 
+				if(!fcopy(fname,newname))
+					return(FALSE);
+			continue; 
+		}
+		safe_snprintf(oldname,sizeof(oldname),"%.*s.%d%s",len,fname,i-2,ext);
+		if(fexist(oldname) && rename(oldname,newname)!=0)
+			return(FALSE);
+	}
 
 	return(TRUE);
 }
@@ -362,9 +461,8 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->preqwk_arstr,stream);
 	put_int(cfg->smb_retry_time,stream);
 	put_int(cfg->max_qwkmsgage,stream);
-	put_int(cfg->max_spamage,stream);
 	n=0;
-	for(i=0;i<232;i++)
+	for(i=0;i<233;i++)
 		put_int(n,stream);
 	put_int(cfg->msg_misc,stream);
 	n=0xffff;
@@ -539,10 +637,10 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		put_str(cfg->qhub[i]->unpack,stream);
 		n = 0;
 		for(j=0;j<cfg->qhub[i]->subs;j++)
-			if(cfg->qhub[i]->sub[j] != NULL) n++;
+			if(cfg->qhub[j]->sub[i] != NULL) n++;
 		put_int(n,stream);
 		for(j=0;j<cfg->qhub[i]->subs;j++) {
-			if(cfg->qhub[i]->sub[j] == NULL)
+			if(cfg->qhub[j]->sub[i] == NULL)
 				continue;
 			put_int(cfg->qhub[i]->conf[j],stream);
 			n=(uint16_t)cfg->qhub[i]->sub[j]->subnum;
@@ -660,7 +758,6 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->cdt_up_pct,stream);
 	put_int(cfg->cdt_dn_pct,stream);
 	put_int(l,stream);					/* unused */
-	memset(cmd, 0, sizeof(cmd));
 	put_str(cmd,stream);
 	put_int(cfg->leech_pct,stream);
 	put_int(cfg->leech_sec,stream);
@@ -814,8 +911,8 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
-						safe_snprintf(path, sizeof(path), "%s%s/"
-							, cfg->dir[i]->data_dir
+						safe_snprintf(path, sizeof(path), "%sdirs/%s/"
+							, cfg->data_dir
 							, str);
 					}
 					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
@@ -1089,12 +1186,12 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
 	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
 }
 
-int DLLCALL smb_storage_mode(scfg_t* cfg, smb_t* smb)
+int smb_storage_mode(scfg_t* cfg, smb_t* smb)
 {
-	if(smb == NULL || smb->subnum == INVALID_SUB || (smb->status.attr&SMB_EMAIL))
+	if(smb->subnum == INVALID_SUB)
 		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
 	if(smb->subnum >= cfg->total_subs)
-		return (smb->status.attr&SMB_HYPERALLOC) ? SMB_HYPERALLOC : SMB_FASTALLOC;
+		return -1;
 	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
 		smb->status.attr |= SMB_HYPERALLOC;
 		return SMB_HYPERALLOC;
@@ -1104,7 +1201,7 @@ int DLLCALL smb_storage_mode(scfg_t* cfg, smb_t* smb)
 	return SMB_SELFPACK;
 }
 
-int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
+int smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 {
 	int retval;
 
