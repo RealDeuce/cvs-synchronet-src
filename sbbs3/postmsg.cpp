@@ -1,6 +1,6 @@
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.105 2016/11/20 11:18:55 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.107 2017/10/12 09:02:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,7 +217,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		wm_mode|=WM_ANON;
 	}
 
-	if(cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
+	if(cfg.sub[subnum]->mod_ar!=NULL && cfg.sub[subnum]->mod_ar[0] && chk_ar(cfg.sub[subnum]->mod_ar,&useron,&client))
 		msgattr|=MSG_MODERATED;
 
 	if(cfg.sub[subnum]->misc&SUB_SYSPERM && sub_op(subnum))
@@ -319,9 +319,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		/* Add FidoNet Reply if original message has FidoNet MSGID */
 		if(remsg->ftn_msgid!=NULL)
 			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
-
-		if((i=smb_updatethread(&smb, remsg, smb.status.last_msg+1))!=SMB_SUCCESS)
-			errormsg(WHERE,"updating thread",smb.file,i,smb.last_error); 
 	}
 
 	smb_hfield_str(&msg,RECIPIENT,touser);

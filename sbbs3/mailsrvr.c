@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.601 2016/11/21 05:44:00 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.609 2017/10/23 03:23:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -887,7 +887,7 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.protocol="POP3";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"POP3: %s", host_ip);
@@ -1574,7 +1574,7 @@ static BOOL email_addr_is_exempt(const char* addr)
 	if(*(p=netmail)=='<')
 		p++;
 	truncstr(p,">");
-	return userdatdupe(&scfg, 0, U_NETMAIL, LEN_NETMAIL, p, /* del */FALSE, /* next */FALSE);
+	return userdatdupe(&scfg, 0, U_NETMAIL, LEN_NETMAIL, p, /* del */FALSE, /* next */FALSE, NULL, NULL);
 }
 
 static void exempt_email_addr(const char* comment
@@ -2356,7 +2356,7 @@ static uint smtp_matchuser(scfg_t *scfg, char *str, BOOL aliases, BOOL datdupe)
 		goto end;
 
 	if(datdupe)
-		usernum=userdatdupe(scfg, 0, U_NAME, LEN_NAME, name, /* del */FALSE, /* next */FALSE);
+		usernum=userdatdupe(scfg, 0, U_NAME, LEN_NAME, name, /* del */FALSE, /* next */FALSE, NULL, NULL);
 	else
 		usernum=matchuser(scfg, name, aliases);
 
@@ -2676,7 +2676,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.protocol="SMTP";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -3139,7 +3139,7 @@ static void smtp_thread(void* arg)
 					if(!can_user_post(&scfg,subnum,&relay_user,&client,&reason)) {
 						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
-							,scfg.sub[subnum]->sname, reason);
+							,scfg.sub[subnum]->sname, reason + 1);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						stats.msgs_refused++;
@@ -3354,16 +3354,19 @@ static void smtp_thread(void* arg)
 									break;
 							}
 						if(!newmsg.idx.to || i<=scfg.sys_nodes) {
-							safe_snprintf(str,sizeof(str)
-								,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you e-mail from: "
-								"\1h%s\1n\r\n"
-								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
-								,sender,sender_addr);
-							if(!newmsg.idx.to) {	/* Forwarding */
-								strcat(str,"\1mand it was automatically forwarded to: \1h");
-								strcat(str,rcpt_addr);
-								strcat(str,"\1n\r\n");
+							p=sender_addr;
+							if(stricmp(sender, sender_addr) == 0) {
+								if((p = strchr(sender_addr, '@')) == NULL)
+									p = sender_addr;
+								else
+									p++;
 							}
+							safe_snprintf(str,sizeof(str)
+								,startup->newmail_notice
+								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
+								,sender, p);
+							if(!newmsg.idx.to) 	/* Forwarding */
+								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
 						}
 					}
@@ -3425,6 +3428,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			/* RFC822 Header parsing */
+			strip_char(buf, '\r');	/* There should be no bare carriage returns in header fields */
 			if(startup->options&MAIL_OPT_DEBUG_RX_HEADER)
 				lprintf(LOG_DEBUG,"%04d SMTP %s",socket, buf);
 
@@ -3987,7 +3991,7 @@ static void smtp_thread(void* arg)
 					SAFEPRINTF(relay_list,"%srelay.cfg",scfg.ctrl_dir);
 					if(relay_user.number==0 /* not authenticated, search for IP */
 						&& startup->options&MAIL_OPT_SMTP_AUTH_VIA_IP) { 
-						relay_user.number=userdatdupe(&scfg, 0, U_IPADDR, LEN_IPADDR, host_ip, /* del */FALSE, /* next */FALSE);
+						relay_user.number=userdatdupe(&scfg, 0, U_IPADDR, LEN_IPADDR, host_ip, /* del */FALSE, /* next */FALSE, NULL, NULL);
 						if(relay_user.number) {
 							getuserdat(&scfg,&relay_user);
 							if(relay_user.laston < time(NULL)-(60*60))	/* logon in past hour? */
@@ -5131,7 +5135,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.601 $", "%*s %s", revision);
+	sscanf("$Revision: 1.609 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5388,6 +5392,7 @@ void DLLCALL mail_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","mail");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","mail");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%smailsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mailproc_ini);

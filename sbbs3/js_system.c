@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.162 2015/11/10 22:53:27 deuce Exp $ */
+/* $Id: js_system.c,v 1.164 2017/10/23 03:18:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -888,7 +888,7 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next,NULL,NULL)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1660,6 +1660,11 @@ js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
 	}
+	if(*cmd == 0) {
+		free(cmd);
+		JS_ReportError(cx, "Missing or invalid argument");
+		return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
 	ret=system(cmd);
 	free(cmd);
@@ -1902,7 +1907,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,316
 	},
 #endif
-	{"exec",			js_sys_exec,		1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
+	{"exec",			js_sys_exec,		0,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
 	,JSDOCSTR("executes a native system/shell command-line, returns <i>0</i> on success")
 	,311
 	},
