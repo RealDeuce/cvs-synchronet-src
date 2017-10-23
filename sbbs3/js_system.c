@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "system" Object */
 
-/* $Id: js_system.c,v 1.165 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: js_system.c,v 1.164 2017/10/23 03:18:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -638,12 +638,12 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SYSSTAT_PROP_TOTALMAIL:
 			rc=JS_SUSPENDREQUEST(cx);
-			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */0, /* Sent: */FALSE, /* SPAM: */FALSE));
+			*vp = INT_TO_JSVAL(getmail(cfg, 0,0));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case SYSSTAT_PROP_FEEDBACK:
 			rc=JS_SUSPENDREQUEST(cx);
-			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */1, /* Sent: */FALSE, /* SPAM: */FALSE));
+			*vp = INT_TO_JSVAL(getmail(cfg, 1,0));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 	}
