@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.45 2018/02/20 11:57:13 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.43 2014/03/14 05:37:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -310,11 +310,8 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->lib[i]->code_prefix,instream);
 
 		get_int(c,instream);
-		cfg->lib[i]->sort = c;
 
-		get_int(cfg->lib[i]->misc, instream);
-		
-		for(j=0;j<1;j++)
+		for(j=0;j<3;j++)
 			get_int(n,instream);	/* 0x0000 */
 
 		for(j=0;j<16;j++)
@@ -340,8 +337,6 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 		if((cfg->dir[i]=(dir_t *)malloc(sizeof(dir_t)))==NULL)
 			return allocerr(instream,error,offset,fname,sizeof(dir_t));
 		memset(cfg->dir[i],0,sizeof(dir_t));
-
-		cfg->dir[i]->dirnum = i;
 
 		get_int(cfg->dir[i]->lib,instream);
 		get_str(cfg->dir[i]->lname,instream);
