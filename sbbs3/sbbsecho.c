@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.36 2017/06/09 05:57:13 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.41 2017/10/19 05:56:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -82,6 +82,10 @@ ulong echomail=0;	/* imported */
 ulong exported_netmail=0;
 ulong exported_echomail=0;
 ulong packed_netmail=0;
+ulong packets_sent=0;
+ulong packets_imported=0;
+ulong bundles_sent=0;
+ulong bundles_unpacked=0;
 
 int cur_smb=0;
 FILE *fidologfile=NULL;
@@ -577,11 +581,7 @@ bool parse_origin(const char* fmsgbuf, fmsghdr_t* hdr)
 		return false;
 	p++;
 	origaddr = atofaddr(p);
-	if(origaddr.zone == 0 
-		|| origaddr.zone == 0xffff
-		|| origaddr.net == 0xffff
-		|| origaddr.node == 0xffff
-		|| origaddr.point == 0xffff)
+	if(origaddr.zone == 0 || faddr_contains_wildcard(&origaddr))
 		return false;
 	hdr->origzone	= origaddr.zone;
 	hdr->orignet	= origaddr.net;
@@ -947,7 +947,7 @@ void gen_notify_list(void)
 			,cfg.nodecfg[k].archive == SBBSECHO_ARCHIVE_NONE ? "None" : cfg.nodecfg[k].archive->name);
 		fprintf(tmpf,"Mail Status       %s\r\n", mailStatusStringList[cfg.nodecfg[k].status]);
 		fprintf(tmpf,"Direct            %s\r\n", cfg.nodecfg[k].direct ? "Yes":"No");
-		fprintf(tmpf,"Passive           %s\r\n", cfg.nodecfg[k].passive ? "Yes":"No");
+		fprintf(tmpf,"Passive (paused)  %s\r\n", cfg.nodecfg[k].passive ? "Yes":"No");
 		fprintf(tmpf,"Remote AreaMgr    %s\r\n\r\n"
 			,cfg.nodecfg[k].password[0] ? "Yes" : "No");
 
@@ -1465,8 +1465,9 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		return; 
 	}
 
-	if(strnicmp(instr, "COMPRESSION ", 12) == 0) {
-		char* p = instr + 12;
+	if(strnicmp(instr, "COMPRESSION ", 12) == 0 || strnicmp(instr, "COMPRESS ", 9) == 0) {
+		char* p = instr;
+		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
 		if(!stricmp(p,"NONE"))
 			nodecfg->archive = SBBSECHO_ARCHIVE_NONE;
@@ -1495,27 +1496,75 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		return; 
 	}
 
-	if(strnicmp(instr, "PASSWORD ", 9) == 0) {
-		char password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
-		char* p = instr + 9;
+	if(strnicmp(instr, "PASSWORD ", 9) == 0 || strnicmp(instr, "PWD ", 4) == 0) {
+		char password[FIDO_SUBJ_LEN];	/* AreaMgr password for this node */
+		char* p = instr;
+		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
 		SAFECOPY(password, p);
 		if(!stricmp(password, nodecfg->password)) {
-			sprintf(str,"Your password was already set to '%s'."
+			sprintf(str,"Your AreaMgr password was already set to '%s'."
 				,nodecfg->password);
-			create_netmail(to,/* msg: */NULL,"Password Change Request",str,addr,/* attachment: */false);
+			create_netmail(to,/* msg: */NULL,"AreaMgr Password Change Request",str,addr,/* attachment: */false);
 			return; 
 		}
-		if(alter_config(addr,"areafix_pwd", password)) {
-			SAFEPRINTF2(str,"Your password has been changed from '%s' to '%s'."
+		if(alter_config(addr,"AreafixPwd", password)) {
+			SAFEPRINTF2(str,"Your AreaMgr password has been changed from '%s' to '%s'."
 				,nodecfg->password,password);
 			SAFECOPY(nodecfg->password, password);
 		} else {
-			SAFECOPY(str,"Error changing password");
+			SAFECOPY(str,"Error changing AreaMgr password");
 		}
-		create_netmail(to,/* msg: */NULL,"Password Change Request",str,addr,/* attachment: */false);
+		create_netmail(to,/* msg: */NULL,"AreaMgr Password Change Request",str,addr,/* attachment: */false);
 		return; 
 	}
+
+	if(strnicmp(instr, "PKTPWD ", 7) == 0) {
+		char pktpwd[FIDO_PASS_LEN + 1];	/* Packet password for this node */
+		char* p = instr;
+		FIND_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
+		SAFECOPY(pktpwd, p);
+		if(!stricmp(pktpwd, nodecfg->pktpwd)) {
+			sprintf(str,"Your packet password was already set to '%s'."
+				,nodecfg->pktpwd);
+			create_netmail(to,/* msg: */NULL,"Packet Password Change Request",str,addr,/* attachment: */false);
+			return; 
+		}
+		if(alter_config(addr,"PacketPwd", pktpwd)) {
+			SAFEPRINTF2(str,"Your packet password has been changed from '%s' to '%s'."
+				,nodecfg->pktpwd, pktpwd);
+			SAFECOPY(nodecfg->pktpwd, pktpwd);
+		} else {
+			SAFECOPY(str,"Error changing packet password");
+		}
+		create_netmail(to,/* msg: */NULL,"Packet Password Change Request",str,addr,/* attachment: */false);
+		return; 
+	}
+
+	if(strnicmp(instr, "TICPWD ", 7) == 0) {
+		char ticpwd[FIDO_PASS_LEN + 1];	/* TIC File password for this node */
+		char* p = instr;
+		FIND_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
+		SAFECOPY(ticpwd, p);
+		if(!stricmp(ticpwd, nodecfg->ticpwd)) {
+			sprintf(str,"Your TIC File password was already set to '%s'."
+				,nodecfg->ticpwd);
+			create_netmail(to,/* msg: */NULL,"TIC File Password Change Request",str,addr,/* attachment: */false);
+			return; 
+		}
+		if(alter_config(addr,"TicFilePwd", ticpwd)) {
+			SAFEPRINTF2(str,"Your TIC File password has been changed from '%s' to '%s'."
+				,nodecfg->ticpwd, ticpwd);
+			SAFECOPY(nodecfg->ticpwd, ticpwd);
+		} else {
+			SAFECOPY(str,"Error changing TIC File password");
+		}
+		create_netmail(to,/* msg: */NULL,"TIC File Password Change Request",str,addr,/* attachment: */false);
+		return; 
+	}
+
 
 	if(stricmp(instr, "RESCAN") == 0) {
 		export_echomail(NULL, nodecfg, true);
@@ -1526,7 +1575,8 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 	}
 
 	if(strnicmp(instr, "RESCAN ", 7) == 0) {
-		char* p = instr + 7;
+		char* p = instr;
+		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
 		int subnum = find_linked_area(p, addr);
 		if(subnum == SUB_NOT_FOUND)
@@ -1542,28 +1592,28 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		return; 
 	}
 
-	if(stricmp(instr, "ACTIVE") == 0) {
+	if(stricmp(instr, "ACTIVE") == 0 || stricmp(instr, "RESUME") == 0) {
 		if(!nodecfg->passive) {
-			create_netmail(to,/* msg: */NULL,"Reconnect Disconnected Areas"
+			create_netmail(to,/* msg: */NULL,"Reconnect Disconnected (paused) Areas"
 				,"Your areas are already connected.",addr,/* attachment: */false);
 			return; 
 		}
 		nodecfg->passive = false;
 		alter_config(addr,"passive","false");
-		create_netmail(to,/* msg: */NULL,"Reconnect Disconnected Areas"
+		create_netmail(to,/* msg: */NULL,"Reconnect Disconnected (paused) Areas"
 			,"Temporarily disconnected areas have been reconnected.",addr,/* attachment: */false);
 		return; 
 	}
 
-	if(stricmp(instr, "PASSIVE") == 0) {
+	if(stricmp(instr, "PASSIVE") == 0 || stricmp(instr, "PAUSE") == 0) {
 		if(nodecfg->passive) {
-			create_netmail(to,/* msg: */NULL,"Temporarily Disconnect Areas"
+			create_netmail(to,/* msg: */NULL,"Temporarily Disconnect (pause) Areas"
 				,"Your areas are already temporarily disconnected.",addr,/* attachment: */false);
 			return; 
 		}
 		nodecfg->passive = true;
 		alter_config(addr,"passive","true");
-		create_netmail(to,/* msg: */NULL,"Temporarily Disconnect Areas"
+		create_netmail(to,/* msg: */NULL,"Temporarily Disconnect (pause) Areas"
 			,"Your areas have been temporarily disconnected.",addr,/* attachment: */false);
 		return; 
 	}
@@ -1782,6 +1832,7 @@ enum attachment_mode {
 };
 
 /* bundlename is the full path to the attached bundle file */
+/* Returns 0 on succes */
 int attachment(const char *bundlename, fidoaddr_t dest, enum attachment_mode mode)
 {
 #if 1
@@ -2003,7 +2054,8 @@ bool pack_bundle(const char *tmp_pkt, fidoaddr_t orig, fidoaddr_t dest)
 		}
 		if(fexistcase(bundle)) {
 			if(i!='Z' && flength(bundle)>=(off_t)cfg.maxbdlsize) {
-				attachment(bundle,dest,ATTACHMENT_ADD);
+				if(attachment(bundle,dest,ATTACHMENT_ADD) == 0)
+					bundles_sent++;
 				continue;
 			}
 			file=sopen(bundle,O_WRONLY,SH_DENYRW);
@@ -2016,10 +2068,11 @@ bool pack_bundle(const char *tmp_pkt, fidoaddr_t orig, fidoaddr_t dest)
 	if(i > 'Z')
 		lprintf(LOG_WARNING,"All bundle files for %s already exist, adding to: %s"
 			,smb_faddrtoa(&dest,NULL), bundle);
-	if(pack(packet,bundle,dest))	/* Won't get here unless all bundles are full */
+	if(pack(packet,bundle,dest))
 		return false;
 	if(attachment(bundle,dest,ATTACHMENT_ADD))
 		return false;
+	bundles_sent++;
 	return delfile(packet, __LINE__);
 }
 
@@ -2115,6 +2168,7 @@ bool unpack_bundle(const char* inbound)
 				continue;
 			}
 			delfile(fname, __LINE__);	/* successful, so delete bundle */
+			bundles_unpacked++;
 			return(true); 
 		} 
 	}
@@ -2290,7 +2344,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 const char* area_desc(const char* areatag)
 {
 	char tag[FIDO_AREATAG_LEN+1];
-	static char desc[LEN_GLNAME+1];
+	static char desc[128];
 
 	for(int i=0; i<cfg.listcfgs; i++) {
 		FILE* fp = fopen(cfg.listcfg[i].listpath, "r");
@@ -2337,7 +2391,7 @@ void cleanup(void)
 			strListSortAlpha(bad_areas);
 			for(int i=0; bad_areas[i] != NULL; i++) {
 				p = bad_areas[i];
-				lprintf(LOG_DEBUG, "Writing '%s' (%p) to %s", p, p, cfg.badareafile);
+//				lprintf(LOG_DEBUG, "Writing '%s' (%p) to %s", p, p, cfg.badareafile);
 				fprintf(fp, "%-*s %s\n", FIDO_AREATAG_LEN, p, area_desc(p));
 			}
 			fclose(fp);
@@ -2356,21 +2410,35 @@ void cleanup(void)
 	}
 }
 
-void bail(int code)
+void bail(int error_level)
 {
 	cleanup();
 
-	if(code || netmail || exported_netmail || packed_netmail || echomail || exported_echomail)
-		lprintf(LOG_INFO
-			,"SBBSecho exiting with error level %d, "
-			"NetMail(%u imported, %u exported, %u packed), EchoMail(%u imported, %u exported)"
-			,code, netmail, exported_netmail, packed_netmail, echomail, exported_echomail);
-	if((code && pause_on_abend) || pause_on_exit) {
+	if(cfg.log_level == LOG_DEBUG
+		|| netmail || exported_netmail || packed_netmail 
+		|| echomail || exported_echomail 
+		|| packets_imported || packets_sent
+		|| bundles_unpacked || bundles_sent) {
+		char signoff[1024];
+		sprintf(signoff, "SBBSecho exiting with error level %d", error_level);
+		if(bundles_unpacked || bundles_sent)
+			sprintf(signoff+strlen(signoff), ", Bundles(%u unpacked, %u sent)", bundles_unpacked, bundles_sent);
+		if(packets_imported || packets_sent)
+			sprintf(signoff+strlen(signoff), ", Packets(%u imported, %u sent)", packets_imported, packets_sent);
+		if(netmail || exported_netmail || packed_netmail)
+			sprintf(signoff+strlen(signoff), ", NetMail(%u imported, %u exported, %u packed)"
+				,netmail, exported_netmail, packed_netmail);
+		if(echomail || exported_echomail)
+			sprintf(signoff+strlen(signoff), ", EchoMail(%u imported, %u exported)"
+				,echomail, exported_echomail);
+		lprintf(LOG_INFO, "%s", signoff);
+	}
+	if((error_level && pause_on_abend) || pause_on_exit) {
 		fprintf(stderr,"\nHit any key...");
 		getch();
 		fprintf(stderr,"\n");
 	}
-	exit(code);
+	exit(error_level);
 }
 
 void break_handler(int type)
@@ -3492,7 +3560,8 @@ void move_echomail_packets(void)
 		if(pkt->fp != NULL)
 			finalize_outpkt(pkt);
 
-		pack_bundle(pkt->filename, pkt->orig, pkt->dest);
+		if(pack_bundle(pkt->filename, pkt->orig, pkt->dest))
+			packets_sent++;
 
 		free(pkt->filename);
 		free(pkt);
@@ -4998,8 +5067,11 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 
 		if(bad_packet)
 			rename_bad_packet(packet);
-		else if(cfg.delete_packets)
-			delfile(packet, __LINE__);
+		else {
+			packets_imported++;
+			if(cfg.delete_packets)
+				delfile(packet, __LINE__);
+		}
 	}
 	globfree(&g);
 }
@@ -5066,7 +5138,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.36 $", "%*s %s", revision);
+	sscanf("$Revision: 3.41 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5244,13 +5316,37 @@ int main(int argc, char **argv)
 		bail(1);
 	}
 	backslash(cfg.temp_dir);
+	char* inbound = FULLPATH(NULL, cfg.inbound, sizeof(cfg.inbound)-1);
+	if(inbound != NULL) {
+		SAFECOPY(cfg.inbound, inbound);
+		free(inbound);
+	}
 	backslash(cfg.inbound);
-	if(cfg.secure_inbound[0])
+	if(cfg.secure_inbound[0]) {
+		char* secure_inbound = FULLPATH(NULL, cfg.secure_inbound, sizeof(cfg.secure_inbound)-1);
+		if(secure_inbound != NULL) {
+			SAFECOPY(cfg.secure_inbound, secure_inbound);
+			free(secure_inbound);
+		}
 		backslash(cfg.secure_inbound);
-
+	}
+	backslash(cfg.temp_dir);
+	char* outbound = FULLPATH(NULL, cfg.outbound, sizeof(cfg.outbound)-1);
+	if(outbound != NULL) {
+		SAFECOPY(cfg.outbound, outbound);
+		free(outbound);
+	}
+	for(i=0; i<cfg.nodecfgs; i++) {
+		if(cfg.nodecfg[i].inbox[0])
+			backslash(cfg.nodecfg[i].inbox);
+	}
+	
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
-	lprintf(LOG_DEBUG, "%u packers, %u linked-nodes, %u echolists configured", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
+	lprintf(LOG_DEBUG,"Configured: %u archivers, %u linked-nodes, %u echolists", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
+	lprintf(LOG_DEBUG,"Secure Inbound directory: %s", cfg.secure_inbound);
+	lprintf(LOG_DEBUG,"Non-secure Inbound directory: %s", cfg.inbound);
+	lprintf(LOG_DEBUG,"Outbound (BSO root) directory: %s", cfg.outbound);
 	if(cfg.ignore_netmail_sent_attr && !cfg.delete_netmail)
 		lprintf(LOG_WARNING, "Ignore NetMail 'Sent' Attribute is enabled with Delete NetMail disabled: Duplicate NetMail msgs may be sent!");
 
@@ -5360,7 +5456,8 @@ int main(int argc, char **argv)
 	}
 	fclose(stream);
 
-	printf("\nRead %u areas from %s\n", cfg.areas, cfg.areafile);
+	printf("\n");
+	lprintf(LOG_DEBUG, "Read %u areas from %s", cfg.areas, cfg.areafile);
 
 	if(opt_dump_area_file) {
 		printf("Area file dump (%u areas):\n", cfg.areas);
@@ -5383,7 +5480,7 @@ int main(int argc, char **argv)
 		fp = fopen(cfg.badareafile,"r");
 		bad_areas = strListReadFile(fp, NULL, 0);
 		before = strListCount(bad_areas);
-		printf("Read %u areas from %s\n", before, cfg.badareafile);
+		lprintf(LOG_DEBUG, "Read %u areas from %s", before, cfg.badareafile);
 		if(fp!=NULL)
 			fclose(fp);
 		strListTruncateStrings(bad_areas, " \t\r\n");
@@ -5553,8 +5650,10 @@ int main(int argc, char **argv)
 	free(email);
 
 	if(cfg.outgoing_sem[0]) {
-		if (exported_netmail || exported_echomail || packed_netmail)
+		if (exported_netmail || exported_echomail || packed_netmail || packets_sent || bundles_sent) {
+			lprintf(LOG_DEBUG, "Touching outgoing semfile: %s\n", cfg.outgoing_sem);
 			ftouch(cfg.outgoing_sem);
+		}
 	}
 	bail(0);
 	return(0);
