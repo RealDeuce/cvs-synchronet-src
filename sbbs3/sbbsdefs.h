@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.214 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.215 2017/10/23 04:29:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -321,6 +321,7 @@ enum area_sort {
 	AREA_SORT_LNAME,
 	AREA_SORT_SNAME,
 	AREA_SORT_CODE,
+	AREA_SORT_TYPES,
 };
 
 enum {
