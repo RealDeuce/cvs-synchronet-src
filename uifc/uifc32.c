@@ -1,7 +1,6 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
-// vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.233 2017/12/06 05:42:01 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.226 2017/10/23 03:04:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -343,16 +342,14 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
 
     api->scrn_len=txtinfo.screenheight;
     if(api->scrn_len<MIN_LINES) {
-		uifcbail();
-		printf("\r\nUIFC: Screen length (%u) must be %d lines or greater\r\n"
+        cprintf("\7UIFC: Screen length (%u) must be %d lines or greater\r\n"
             ,api->scrn_len,MIN_LINES);
         return(-2);
     }
     api->scrn_len--; /* account for status line */
 
     if(txtinfo.screenwidth<40) {
-		uifcbail();
-        printf("\r\nUIFC: Screen width (%u) must be at least 40 characters\r\n"
+        cprintf("\7UIFC: Screen width (%u) must be at least 40 characters\r\n"
             ,txtinfo.screenwidth);
         return(-3);
     }
@@ -2000,8 +1997,6 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		}
 	}
 
-	if(api->bottomline != NULL)
-		api->bottomline(WIN_COPY|WIN_CUT|WIN_PASTE);
 	textattr(api->lclr|(api->bclr<<4));
 	if(!plen)
 		i=ugetstr(s_left+left+2,s_top+top+tbrdrwidth,iwidth,str,max,kmode,NULL);
@@ -2057,7 +2052,7 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 /****************************************************************************/
 int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey)
 {
-	char   *str;
+	char   *str,ins=0;
 	int	ch;
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
@@ -2074,7 +2069,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		return(-1); 
 	}
 	gotoxy(left,top);
-	_setcursortype(cursor = api->insert_mode ? _SOLIDCURSOR : _NORMALCURSOR);
+	cursor=_NORMALCURSOR;
+	_setcursortype(cursor);
 	str[0]=0;
 	if(mode&K_EDIT && outstr[0]) {
 	/***
@@ -2144,9 +2140,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				|| (f == '%' && mode&K_SCANNING)
 				|| f==CTRL_B
 				|| f==CTRL_E
+				|| f==CTRL_V
 				|| f==CTRL_Z
-				|| f==CTRL_X	/* Cut */
-				|| f==CTRL_C	/* Copy */
 				|| f==0)
 		{
 			getstrupd(left, top, width, str, i, &soffset, mode);
@@ -2253,13 +2248,13 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					}
 					continue;
 				case CTRL_V:
-				case CIO_KEY_SHIFT_IC:	/* Shift-Insert: Paste */
-					if((pastebuf=getcliptext()) != NULL)
-						pb=(unsigned char *)pastebuf;
-					continue;
 				case CIO_KEY_IC:	/* insert */
-					api->insert_mode = !api->insert_mode;
-					_setcursortype(cursor = api->insert_mode ? _SOLIDCURSOR : _NORMALCURSOR);
+					ins=!ins;
+					if(ins)
+						cursor=_SOLIDCURSOR;
+					else
+						cursor=_NORMALCURSOR;
+					_setcursortype(cursor);
 					continue;
 				case BS:
 					if(i)
@@ -2279,7 +2274,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						}
 						continue;
 					}
-					break;
+					/* Fall-through at beginning of string */
 				case CIO_KEY_DC:	/* delete */
 				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
@@ -2294,6 +2289,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 				case CIO_KEY_QUIT:
 					api->exit_flags |= UIFC_XF_QUIT;
 				case CIO_KEY_ABORTED:
+				case CTRL_C:
 				case ESC:
 					{
 						cursor=_NOCURSOR;
@@ -2321,15 +2317,9 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						break;
 					}
 					continue;
-				case CTRL_C:
-				case CIO_KEY_CTRL_IC:	/* Ctrl-Insert */
-					copytext(str, j);
-					continue;
 				case CTRL_X:
-				case CIO_KEY_SHIFT_DC:
 					if(j)
 					{
-						copytext(str, j);
 						i=j=0;
 					}
 					continue;
@@ -2351,11 +2341,16 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			}
 			if(mode&K_ALPHA && !isalpha(ch))
 				continue;
-			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!api->insert_mode || j<max) && ch < 256)
+#if 0
+			/* This broke swedish chars... */
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
+#else
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && ch < 256)
+#endif
 			{
 				if(mode&K_UPPER)
 					ch=toupper(ch);
-				if(api->insert_mode)
+				if(ins)
 				{
 					for(k=++j;k>i;k--)
 						str[k]=str[k-1];
@@ -2555,47 +2550,44 @@ char *utimestr(time_t *intime)
 /****************************************************************************/
 void upop(char *str)
 {
-	static char sav[80*3*2];
-	char buf[80*3*2];
+	static char sav[26*3*2];
+	char buf[26*3*2];
 	int i,j,k;
-	static int width;
 
-	if(str == NULL) {
-		puttext((api->scrn_width-width+1)/2+1,(api->scrn_len-3+1)/2+1
-			,(api->scrn_width+width-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
+	if(!str) {
+		/* puttext(28,12,53,14,sav); */
+		puttext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
+			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
 		return;
 	}
-
-	width = strlen(str);
-	if(!width)
-		return;
-	width += 7;
-	gettext((api->scrn_width-width+1)/2+1,(api->scrn_len-3+1)/2+1
-			,(api->scrn_width+width-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
-	memset(buf,' ',(width-1)*3*2);
-	for(i=1;i<width*3*2;i+=2)
+	/* gettext(28,12,53,14,sav); */
+	gettext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
+			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
+	memset(buf,' ',25*3*2);
+	for(i=1;i<26*3*2;i+=2)
 		buf[i]=(api->hclr|(api->bclr<<4));
 	buf[0]=api->chars->popup_top_left;
-	for(i=2;i<(width-1)*2;i+=2)
+	for(i=2;i<25*2;i+=2)
 		buf[i]=api->chars->popup_top;
 	buf[i]=api->chars->popup_top_right; i+=2;
 	buf[i]=api->chars->popup_left; i+=2;
 	i+=2;
 	k=strlen(str);
-	i+=((((width-3)-k)/2)*2);
+	i+=(((23-k)/2)*2);
 	for(j=0;j<k;j++,i+=2) {
 		buf[i]=str[j];
 		buf[i+1]|=BLINK;
 	}
-	i=(((width-1)*2)+1)*2;
+	i=((25*2)+1)*2;
 	buf[i]=api->chars->popup_right; i+=2;
 	buf[i]=api->chars->popup_bottom_left; i+=2;
-	for(;i<((width*3)-1)*2;i+=2)
+	for(;i<((26*3)-1)*2;i+=2)
 		buf[i]=api->chars->popup_bottom;
 	buf[i]=api->chars->popup_bottom_right;
 
-	puttext((api->scrn_width-width+1)/2+1,(api->scrn_len-3+1)/2+1
-			,(api->scrn_width+width-1)/2+1,(api->scrn_len+3-1)/2+1,buf);
+	/* puttext(28,12,53,14,buf); */
+	puttext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
+			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,buf);
 }
 
 /****************************************************************************/
@@ -2741,16 +2733,6 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 			j=k;
 		}
 	    tmp_buffer2[j]=api->chars->help_bottom_right;
-		if(!(mode&WIN_DYN)) {
-			tmp_buffer2[j-2]=api->chars->button_right;
-			tmp_buffer2[j-4]=' ';
-			tmp_buffer2[j-6]=' ';
-			tmp_buffer2[j-8]=api->chars->button_left;
-#define SCROLL_UP_BUTTON_X	left + (width - 4)
-#define SCROLL_UP_BUTTON_Y	top + height
-#define SCROLL_DN_BUTTON_X	left + (width - 3)
-#define SCROLL_DN_BUTTON_Y	top + height
-		}
 		puttext(left,top+1,left+width-1,top+height,tmp_buffer2);
 	}
 	len=strlen(hbuf);
@@ -2788,9 +2770,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	for(j=i;j<len;j++,i+=2) {
 		if(hbuf[j]==LF) {
 			i+=2;
-			while(i%((width-2-pad-pad)*2))	
-				i++;
-			i-=2;
+			while(i%((width-2-pad-pad)*2)) i++; i-=2;
 		}
 		else if(mode&WIN_HLP && (hbuf[j]==2 || hbuf[j]=='~')) {		 /* Ctrl-b toggles inverse */
 			inverse=!inverse;
@@ -2812,25 +2792,20 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	}
 	i=0;
 	p=textbuf;
-	char* textend = textbuf + (lines-(height-2-pad-pad))*(width-2-pad-pad)*2;
 	if(mode&WIN_DYN) {
 		puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
 	}
 	else {
 		while(i==0) {
 			if(p!=oldp) {
-				if(p > textend)
-					p=textend;
+				if(p > textbuf+(lines-(height-2-pad-pad))*(width-2-pad-pad)*2)
+					p=textbuf+(lines-(height-2-pad-pad))*(width-2-pad-pad)*2;
 				if(p<textbuf)
 					p=textbuf;
 				if(p!=oldp) {
 					puttext(left+1+pad,top+2+pad,left+width-2-pad,top+height-1-pad,p);
 					oldp=p;
 				}
-				gotoxy(SCROLL_UP_BUTTON_X, SCROLL_UP_BUTTON_Y);
-				textattr(api->lclr|(api->bclr<<4));
-				putch(p > textbuf ? api->chars->up_arrow : ' ');
-				putch(p < textend ? api->chars->down_arrow : ' ');
 			}
 			if(kbwait()) {
 				j=inkey();
@@ -2843,30 +2818,20 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty>=top+pad+1
 								&& mevnt.starty<=top+pad+(height/2)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p -= ((width-2-pad-pad)*2*(height-5));
-							continue;
-						}
-						if(mevnt.startx == SCROLL_UP_BUTTON_X && mevnt.starty == SCROLL_UP_BUTTON_Y
-							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p -= ((width-2-pad-pad)*2);
+							p = p-((width-2-pad-pad)*2*(height-5));
 							continue;
 						}
 						/* Clicked Scroll Down */
-						if(mevnt.startx>=left+pad
+						else if(mevnt.startx>=left+pad
 								&& mevnt.startx<=left+pad+width
 								&& mevnt.starty<=top+pad+height-2
 								&& mevnt.starty>=top+pad+height-(height/2+1)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p += (width-2-pad-pad)*2*(height-5);
-							continue;
-						}
-						if(mevnt.startx == SCROLL_DN_BUTTON_X && mevnt.starty == SCROLL_DN_BUTTON_Y
-							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p += ((width-2-pad-pad)*2);
+							p=p+(width-2-pad-pad)*2*(height-5);
 							continue;
 						}
 						/* Non-click events (drag, move, multiclick, etc) */
-						if(mevnt.event!=CIOLIB_BUTTON_CLICK(CIOLIB_BUTTON_NUMBER(mevnt.event)))
+						else if(mevnt.event!=CIOLIB_BUTTON_CLICK(CIOLIB_BUTTON_NUMBER(mevnt.event)))
 							continue;
 						i=1;
 					}
@@ -2874,7 +2839,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 				}
 				switch(j) {
 					case CIO_KEY_HOME:	/* home */
-						p = textbuf;
+						p=textbuf;
 						break;
 
 					case CIO_KEY_UP:	/* up arrow */
@@ -2886,15 +2851,15 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						break;
 
 					case CIO_KEY_NPAGE:	/* PgDn */
-						p += (width-2-pad-pad)*2*(height-5);
+						p=p+(width-2-pad-pad)*2*(height-5);
 						break;
 
 					case CIO_KEY_END:	/* end */
-						p = textend;
+						p=textbuf+(lines-height+1)*(width-2-pad-pad)*2;
 						break;
 
 					case CIO_KEY_DOWN:	/* dn arrow */
-						p += ((width-2-pad-pad)*2);
+						p = p+((width-2-pad-pad)*2);
 						break;
 
 					case CIO_KEY_QUIT:
