@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.47 2017/10/23 03:57:17 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.48 2017/10/23 04:17:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -958,6 +958,8 @@ void dir_cfg(uint libnum)
 				case AREA_SORT_CODE:
 					name = cfg.dir[i]->code_suffix;
 					name_len = LEN_CODE;
+					break;
+				default:	/* Defeat stupid GCC warning */
 					break;
 			}
 			sprintf(str, "%-*s %c", name_len, name, cfg.dir[i]->misc&DIR_TEMPLATE ? '*' : ' ');

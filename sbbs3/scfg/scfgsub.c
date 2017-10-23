@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.41 2017/10/23 03:57:17 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.42 2017/10/23 04:17:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,6 +168,8 @@ while(1) {
 				case AREA_SORT_CODE:
 					name = cfg.sub[i]->code_suffix;
 					name_len = LEN_CODE;
+					break;
+				default:	/* Defeat stupid GCC warning */
 					break;
 			}
 			sprintf(str, "%-*s %c", name_len, name, cfg.sub[i]->misc&SUB_TEMPLATE ? '*' : ' ');
