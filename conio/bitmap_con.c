@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.54 2017/10/26 20:36:38 rswindell Exp $ */
+/* $Id: bitmap_con.c,v 1.53 2015/08/25 01:33:08 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -184,17 +184,8 @@ int bitmap_init_mode(int mode, int *width, int *height)
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
 	cio_textinfo.currmode=mode;
-
-	if (vstat.rows > 0xff)
-		cio_textinfo.screenheight = 0xff;
-	else
-		cio_textinfo.screenheight = vstat.rows;
-
-	if (vstat.cols > 0xff)
-		cio_textinfo.screenwidth = 0xff;
-	else
-		cio_textinfo.screenwidth = vstat.cols;
-
+	cio_textinfo.screenheight=vstat.rows;
+	cio_textinfo.screenwidth=vstat.cols;
 	cio_textinfo.curx=1;
 	cio_textinfo.cury=1;
 	cio_textinfo.winleft=1;

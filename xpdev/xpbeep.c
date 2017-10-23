@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.95 2017/12/28 04:17:39 rswindell Exp $ */
+/* $Id: xpbeep.c,v 1.94 2015/04/28 02:06:53 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -12,7 +12,6 @@
 	#include <mmsystem.h>
 #elif defined(__unix__)
 	#include <fcntl.h>
-	#include <sys/ioctl.h>
 	#if SOUNDCARD_H_IN==1
 		#include <sys/soundcard.h>
 	#elif SOUNDCARD_H_IN==2
