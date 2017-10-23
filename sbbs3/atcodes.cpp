@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.75 2017/10/23 07:43:25 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.76 2017/10/23 08:16:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,9 +97,13 @@ int sbbs_t::show_atcode(const char *instr)
 			int left = (disp_len - vlen) / 2;
 			bprintf("%*s%-*s", left, "", disp_len - left, cp);
 		} else
-			bputs(cp);
+			bprintf("%.*s", disp_len, cp);
 	} else if(zero_padded) {
-		bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+		int vlen = strlen(cp);
+		if(vlen < disp_len)
+			bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+		else
+			bprintf("%.*s", disp_len, cp);
 	} else
 		bputs(cp);
 
