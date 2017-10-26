@@ -1,6 +1,6 @@
-/* Synchronet FidoNet Echomail tosser/scanner/areafix program */
+/* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.16 2017/10/19 05:56:52 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.17 2017/10/26 20:44:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ enum pkt_type {
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
-    char*		name;						/* Area tag name */
+    char*		tag;						/* AreaTag, a.k.a. 'EchoTag' */
 	uint		imported; 					/* Total messages imported this run */
 	uint		exported; 					/* Total messages exported this run */
 	uint		circular; 					/* Total circular paths detected */
