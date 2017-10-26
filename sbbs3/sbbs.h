@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 
-/* $Id: sbbs.h,v 1.447 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.450 2017/10/23 03:38:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -706,6 +706,8 @@ public:
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
 
+	long	mselect(const char *title, str_list_t list, unsigned max_selections, const char* item_fmt, const char* selected_str, const char* unselected_str, const char* prompt_fmt);
+
 	void	redrwstr(char *strin, int i, int l, long mode);
 	void	attr(int atr);				/* Change local and remote text attributes */
 	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
@@ -730,7 +732,7 @@ public:
 	int		putnodeext(uint number, char * str);
 
 	/* login.ccp */
-	int		login(char *str, char *pw);
+	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd);
 
 	/* answer.cpp */
@@ -785,7 +787,7 @@ public:
 	void	logoffstats(void);
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
-	bool	chksyspass(void);
+	bool	chksyspass(const char* sys_pw = NULL);
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
@@ -1081,6 +1083,7 @@ extern "C" {
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
 	DLLEXPORT ushort	DLLCALL sys_timezone(scfg_t* cfg);
+	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);
@@ -1095,9 +1098,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
 
-
-	/* scfglib1.c */
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1314,6 +1314,7 @@ int		strsame(const char *str1, const char *str2);	/* Compares number of same cha
 
 /* load_cfg.c */
 BOOL 	md(char *path);
+char*	prep_code(char *str, const char* prefix);
 
 #ifdef SBBS /* These aren't exported */
 
