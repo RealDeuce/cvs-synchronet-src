@@ -1,7 +1,8 @@
-/* Directory-related system-call wrappers */
-// vi: tabstop=4
+/* dirwrap.c */
 
-/* $Id: dirwrap.c,v 1.100 2018/03/07 02:44:59 deuce Exp $ */
+/* Directory-related system-call wrappers */
+
+/* $Id: dirwrap.c,v 1.92 2017/08/26 06:44:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +153,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
-   return strcmp( * ( char** ) arg1, * ( char** ) arg2 );
+   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
 }
 
 #if defined(__BORLANDC__)
@@ -248,7 +249,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 			SAFECOPY(path,pattern);
 			p=getfname(path);
 			*p=0;
-			SAFECAT(path,ff.name);
+			strcat(path,ff.name);
 
 			if((glob->gl_pathv[glob->gl_pathc]=(char*)malloc(strlen(path)+2))==NULL) {
 				globfree(glob);
@@ -315,9 +316,8 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 
 	SAFECOPY(match,path);
 	backslash(match);
-	SAFECAT(match,ALLFILES);
-	if (glob(match,GLOB_MARK,NULL,&g) != 0)
-		return 0;
+	strcat(match,ALLFILES);
+	glob(match,GLOB_MARK,NULL,&g);
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -388,22 +388,6 @@ void DLLCALL rewinddir(DIR* dir)
 	dir->handle=_findfirst(dir->filespec,&dir->finddata);
 }
 #endif /* defined(_MSC_VER) */
-
-/****************************************************************************/
-/* Returns the creation time of the file 'filename' in time_t format		*/
-/****************************************************************************/
-time_t DLLCALL fcdate(const char* filename)
-{
-	struct stat st;
-
-	if(access(filename, 0) < 0)
-		return -1;
-
-	if(stat(filename, &st) != 0)
-		return -1;
-
-	return st.st_ctime;
-}
 
 /****************************************************************************/
 /* Returns the time/date of the file in 'filename' in time_t (unix) format  */
@@ -768,7 +752,7 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 
 	SAFECOPY(path, inpath);
 	backslash(path);
-	SAFECAT(path, pattern);
+	strcat(path, pattern);
 	if(glob(path, GLOB_MARK, NULL, &g))
 		return 0;
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
@@ -887,7 +871,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	struct statfs fs;
 	unsigned long blocks;
 
-	if(statfs(path, &fs) < 0)
+    if (statfs(path, &fs) < 0)
     	return 0;
 
 	if(freespace)
@@ -969,8 +953,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(sb.st_mode&S_IFDIR)
 		strcat(target,"/"); */
 
-	for(;*out;out++) {
-		while(*out=='/') {
+	for(;*out;out++)  {
+		while(*out=='/')  {
 			if(*(out+1)=='/')
 				memmove(out,out+1,strlen(out));
 			else if(*(out+1)=='.' && (*(out+2)=='/' || *(out+2)==0))
@@ -987,8 +971,6 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 				out++;
 			}
 		}
-		if (!*out)
-			break;
 	}
 	return(target);
 }
@@ -1032,7 +1014,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || (isalpha(filename[0]) && filename[1]==':')
+		|| filename[0]=='\\' || filename[1]==':'
 #endif
 		);
 }
