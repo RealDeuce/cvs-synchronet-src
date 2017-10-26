@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.52 2015/07/07 04:26:44 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.54 2017/10/26 20:36:38 rswindell Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -184,8 +184,17 @@ int bitmap_init_mode(int mode, int *width, int *height)
 	cio_textinfo.attribute=7;
 	cio_textinfo.normattr=7;
 	cio_textinfo.currmode=mode;
-	cio_textinfo.screenheight=vstat.rows;
-	cio_textinfo.screenwidth=vstat.cols;
+
+	if (vstat.rows > 0xff)
+		cio_textinfo.screenheight = 0xff;
+	else
+		cio_textinfo.screenheight = vstat.rows;
+
+	if (vstat.cols > 0xff)
+		cio_textinfo.screenwidth = 0xff;
+	else
+		cio_textinfo.screenwidth = vstat.cols;
+
 	cio_textinfo.curx=1;
 	cio_textinfo.cury=1;
 	cio_textinfo.winleft=1;
@@ -764,7 +773,6 @@ static void bitmap_draw_cursor(struct video_stats *vs)
 	char attr;
 	int pixel;
 	int xoffset,yoffset;
-	int width;
 	int yo, xw, yw;
 
 	if(!bitmap_initialized)
@@ -777,7 +785,6 @@ static void bitmap_draw_cursor(struct video_stats *vs)
 				if(xoffset < 0 || yoffset < 0)
 					return;
 				attr=cio_textinfo.attribute&0x0f;
-				width=vs->charwidth;
 	
 				pthread_mutex_lock(&screenlock);
 				for(y=vs->curs_start; y<=vs->curs_end; y++) {
@@ -785,7 +792,7 @@ static void bitmap_draw_cursor(struct video_stats *vs)
 						pixel=PIXEL_OFFSET(xoffset, yoffset+y);
 						for(x=0;x<vs->charwidth;x++)
 							screen[pixel++]=attr;
-						//memset(screen+pixel,attr,width);
+						//memset(screen+pixel,attr,vs->charwidth);
 					}
 				}
 				pthread_mutex_unlock(&screenlock);
@@ -892,7 +899,6 @@ static int update_rect(int sx, int sy, int width, int height, int force)
 	unsigned int pos;
 	int	redraw_cursor=0;
 	int	lastcharupdated=0;
-	int fullredraw=0;
 	static unsigned short *last_vmem=NULL;
 	static unsigned short *this_vmem=NULL;
 	static struct video_stats vs;
@@ -906,9 +912,6 @@ static int update_rect(int sx, int sy, int width, int height, int force)
 
 	if(!bitmap_initialized)
 		return(-1);
-
-	if(sx==0 && sy==0 && width==0 && height==0)
-		fullredraw=1;
 
 	if(sx<=0)
 		sx=1;
