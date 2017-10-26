@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.28 2018/02/20 11:17:26 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.19 2017/10/19 05:56:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,190 +65,6 @@ void bail(int code)
 static char* logLevelStringList[] 
 	= {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Informational", "Debugging", NULL};
 
-void global_settings(void)
-{
-	static int global_opt;
-
-	while(1) {
-		int i = 0;
-		char str[128];
-		char duration[64];
-		sprintf(opt[i++], "%-25s %s", "Mailer Type"
-			,cfg.flo_mailer ? "Binkley/FLO":"ArcMail/Attach");
-		sprintf(opt[i++], "%-25s %s", "Log Level", logLevelStringList[cfg.log_level]);
-		sprintf(opt[i++], "%-25s %s", "Log Timestamp Format", cfg.logtime);
-		sprintf(opt[i++], "%-25s %s", "Strict Packet Passwords", cfg.strict_packet_passwords ? "Enabled" : "Disabled");
-		sprintf(opt[i++], "%-25s %s", "Use FTN Domain/Zone Map", cfg.use_ftn_domains ? "Enabled" : "Disabled");
-		sprintf(opt[i++], "%-25s %s", "BSY Mutex File Timeout", duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration)));
-		sprintf(opt[i++], "%-25s %s", "BSO Lock Attempt Delay", duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration)));
-		sprintf(opt[i++], "%-25s %lu", "BSO Lock Attempt Limit", cfg.bso_lock_attempts);
-		sprintf(opt[i++], "%-25s %u", "Config File Backups", cfg.cfgfile_backups);
-		opt[i][0] = 0;
-		uifc.helpbuf=
-			"~ Global Settings ~\n"
-			"\n"
-			"`Mailer Type` should normally be set to `Binkley/FLO` to enable SBBSecho's\n"
-			"    \"Binkley-Style Outbound\" operating mode (a.k.a. `BSO` or `FLO` mode).\n"
-			"    If you are using an `Attach`, `ArcMail`, or `FrontDoor` style FidoNet\n"
-			"    mailer, then set this setting to `ArcMail/Attach`, but know that most\n"
-			"    modern FidoNet mailers are Binkley-Style and therefore that mode of\n"
-			"    operation in SBBSecho is more widely tested and supported.\n"
-			"\n"
-			"`Log Level` should normally be set to `Informational` but if you're\n"
-			"    experiencing problems with SBBSecho and would like more verbose log\n"
-			"    output, set this to `Debugging`. If you want less verbose logging,\n"
-			"    set to higher-severity levels to reduce the number of log messages.\n"
-			"\n"
-			"`Log Timestmap Format` defines the format of the date/time-stamps added\n"
-			"    along with each log message to the log file (e.g. sbbsecho.log).\n"
-			"    The timestamp format is defined using standard C `strftime` notation.\n"
-			"    The default format is: `" DEFAULT_LOG_TIME_FMT "`\n"
-			"    For SBBSecho v2 timestamp format, use `%m/%d/%y %H:%M:%S`\n"
-			"\n"
-			"`Strict Packet Passwords`, when enabled, requires that Packet Passwords\n"
-			"    must match the password for the linked-node from which the packet\n"
-			"    was received, even if that linked-node has no password configured.\n"
-			"    If you wish to revert to the SBBSecho v2 behavior with less strict\n"
-			"    enforcement of matching packet passwords, disable this option.\n"
-			"    Default: Enabled\n"
-			"\n"
-			"`Use FTN Domain/Zone Map`, when enabled, uses the configuration file\n"
-			"    `ctrl/ftn_domains.ini` to determine the mapping between FTN domains\n"
-			"    and FTN zones and the relevant BSO outbound directory.\n"
-			"    Default: Disabled\n"
-			"\n"
-			"`BSY Mutex File Timeout` determines the maximum age of an existing\n"
-			"    mutex file (`*.bsy`) before SBBSecho will act as though the mutex\n"
-			"    file was not present.  This setting applies to the global\n"
-			"    `sbbsecho.bsy` file as well as the BSO lock (`*.bsy`) files for\n"
-			"    individual nodes.\n"
-			"    Default: 12 hours\n"
-			"\n"
-			"`BSO Lock Attempt Delay` determines the amount of time between BSO\n"
-			"    node lock attempts (via `*.bsy` files in the relevant outbound\n"
-			"    directory).\n"
-			"    Default: 10 seconds\n"
-			"\n"
-			"`BSO Lock Attempt Limit` determines the maximum number of BSO node lock\n"
-			"    attempts before SBBSecho will give-up and move on to another node\n"
-			"    to process mail.  This value multiplied by the `BSO Lock Attempt\n"
-			"    Delay` should be much less than the `BSY Mutex File Timeout` value.\n"
-			"    Default: 60 attempts\n"
-			"\n"
-			"`Config File Backups` determines the number of automatic backups of your\n"
-			"    SBBSecho configuration file (e.g. `sbbsecho.ini`) that will be\n"
-			"    maintained by SBBSecho Config and SBBSecho AreaFix.\n"
-			;
-
-		int key = uifc.list(WIN_BOT|WIN_L2R|WIN_ACT|WIN_SAV, 0, 0, 0, &global_opt,0, "Global Settings", opt);
-
-		switch(key) {
-
-			case -1:
-				return;
-
-			case 0:
-				cfg.flo_mailer = !cfg.flo_mailer;
-				break;
-
-			case 1:
-	uifc.helpbuf=
-	"~ Log Level ~\n"
-	"\n"
-	"Select the minimum severity of log entries to be logged to the log file.\n"
-	"The default/normal setting is `Informational`.";
-				int i = cfg.log_level;
-				i = uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Log Level",logLevelStringList);
-				if(i>=0 && i<=LOG_DEBUG)
-					cfg.log_level=i;
-				break;
-
-			case 2:
-				uifc.input(WIN_MID|WIN_SAV,0,0
-					,"Log Timestamp Format", cfg.logtime, sizeof(cfg.logtime)-1, K_EDIT);
-				break;
-
-			case 3:
-				cfg.strict_packet_passwords = !cfg.strict_packet_passwords;
-				break;
-
-			case 4:
-				cfg.use_ftn_domains = !cfg.use_ftn_domains;
-				break;
-
-			case 5:
-				duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration));
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "BSY Mutex File Timeout", duration, 10, K_EDIT) > 0)
-					cfg.bsy_timeout = (ulong)parse_duration(duration);
-				break;
-
-			case 6:
-				duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration));
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Delay Between BSO Lock Attempts", duration, 10, K_EDIT) > 0)
-					cfg.bso_lock_delay = (ulong)parse_duration(duration);
-				break;
-
-			case 7:
-				sprintf(str, "%lu", cfg.bso_lock_attempts);
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Maximum BSO Lock Attempts", str, 5, K_EDIT|K_NUMBER) > 0)
-					cfg.bso_lock_attempts = atoi(str);
-				break;
-
-			case 8:
-				sprintf(str, "%u", cfg.cfgfile_backups);
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Configuration File Backups", str, 5, K_EDIT|K_NUMBER) > 0)
-					cfg.cfgfile_backups = atoi(str);
-				break;
-		}
-	}
-}
-
-static bool new_node(unsigned new_nodenum)
-{
-	nodecfg_t* nodecfg = realloc(cfg.nodecfg, sizeof(nodecfg_t)*(cfg.nodecfgs+1));
-	
-	if(nodecfg == NULL)
-		return false;
-
-	cfg.nodecfg = nodecfg;
-	for(unsigned int i=cfg.nodecfgs; i > new_nodenum; i--)
-		memcpy(&cfg.nodecfg[i], &cfg.nodecfg[i-1], sizeof(nodecfg_t));
-
-	cfg.nodecfgs++;
-	memset(&cfg.nodecfg[new_nodenum], 0, sizeof(nodecfg_t));
-	return true;
-}
-
-static bool new_arcdef(unsigned new_arcnum)
-{
-	arcdef_t * arcdef = realloc(cfg.arcdef, sizeof(arcdef_t)*(cfg.arcdefs+1));
-
-	if(arcdef == NULL)
-		return false;
-
-	cfg.arcdef = arcdef;
-
-	for(unsigned j=cfg.arcdefs;j>new_arcnum;j--)
-		memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1], sizeof(arcdef_t));
-	cfg.arcdefs++;
-	memset(&cfg.arcdef[new_arcnum], 0, sizeof(arcdef_t));
-	return true;
-}
-
-static bool new_list(unsigned new_listnum)
-{
-	echolist_t *listcfg = realloc(cfg.listcfg, sizeof(echolist_t)*(cfg.listcfgs+1));
-
-	if(listcfg == NULL)
-		return false;
-	cfg.listcfg = listcfg;
-	for(unsigned j=cfg.listcfgs;j>new_listnum;j--)
-		memcpy(&cfg.listcfg[j],&cfg.listcfg[j-1], sizeof(echolist_t));
-	cfg.listcfgs++;
-	memset(&cfg.listcfg[new_listnum],0,sizeof(echolist_t));
-	return true;
-}
-
 int main(int argc, char **argv)
 {
 	char str[256],*p;
@@ -275,7 +91,7 @@ int main(int argc, char **argv)
 		if(argv[i][0]=='-')
 			switch(toupper(argv[i][1])) {
                 case 'D':
-					printf("NOTICE: The -d option is deprecated, use -id instead\n");
+					printf("NOTICE: The -d option is deprecated, use -id instead\r\n");
 					SLEEP(2000);
                     door_mode=TRUE;
                     break;
@@ -294,7 +110,7 @@ int main(int argc, char **argv)
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is deprecated, use -if instead\n");
+							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
@@ -326,29 +142,29 @@ int main(int argc, char **argv)
                     break;
                 default:
 					USAGE:
-                    printf("usage: echocfg [path/to/sbbsecho.ini] [options]"
+                    printf("\nusage: echocfg [path/to/sbbsecho.ini] [options]"
                         "\n\noptions:\n\n"
-						"-k  =  keyboard mode only (no mouse support)\n"
-                        "-c  =  force color mode\n"
-						"-m  =  force monochrome mode\n"
-                        "-e# =  set escape delay to #msec\n"
-						"-iX =  set interface mode to X (default=auto) where X is one of:\n"
+						"-k  =  keyboard mode only (no mouse support)\r\n"
+                        "-c  =  force color mode\r\n"
+						"-m  =  force monochrome mode\r\n"
+                        "-e# =  set escape delay to #msec\r\n"
+						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
 #ifdef __unix__
-						"       X = X11 mode\n"
-						"       C = Curses mode\n"
-						"       F = Curses mode with forced IBM charset\n"
+						"       X = X11 mode\r\n"
+						"       C = Curses mode\r\n"
+						"       F = Curses mode with forced IBM charset\r\n"
 #else
-						"       W = Win32 native mode\n"
+						"       W = Win32 native mode\r\n"
 #endif
-						"       A = ANSI mode\n"
-						"       D = standard input/output/door mode\n"
-                        "-v# =  set video mode to # (default=auto)\n"
-                        "-l# =  set screen lines to # (default=auto-detect)\n"
+						"       A = ANSI mode\r\n"
+						"       D = standard input/output/door mode\r\n"
+                        "-v# =  set video mode to # (default=auto)\r\n"
+                        "-l# =  set screen lines to # (default=auto-detect)\r\n"
                         );
         			exit(0);
 		}
 		else
-			SAFECOPY(str,argv[i]);
+			strcpy(str,argv[i]);
 	}
 	if(str[0]==0) {
 		p=getenv("SBBSCTRL");
@@ -358,14 +174,14 @@ int main(int argc, char **argv)
 				goto USAGE;
 				exit(1); 
 			}
-			SAFECOPY(str,p);
+			strcpy(str,p);
 			backslash(str);
-			SAFECAT(str,"../ctrl/sbbsecho.ini"); 
+			strcat(str,"../ctrl/sbbsecho.ini"); 
 		}
 		else {
-			SAFECOPY(str,p);
+			strcpy(str,p);
 			backslash(str);
-			SAFECAT(str,"sbbsecho.ini"); 
+			strcat(str,"sbbsecho.ini"); 
 		} 
 	}
 	SAFECOPY(cfg.cfgfile,str);
@@ -411,105 +227,107 @@ int main(int argc, char **argv)
 		p=getfname(cfg.cfgfile);
 	uifc.printf(uifc.scrn_width-(strlen(p)+1),1,uifc.bclr|(uifc.cclr<<4),p);
 
-	/* Remember current menu item selections using these vars: */
-	int netmail_opt = 0;
-	int echomail_opt = 0;
-	int path_opt = 0;
-	int node_opt = 0;
-	int archive_opt = 0;
-	int echolist_opt = 0;
 	dflt=0;
 	while(1) {
 		if(memcmp(&cfg, &orig_cfg, sizeof(cfg)) != 0)
 			uifc.changes = TRUE;
 		uifc.helpbuf=
-	"~ SBBSecho Configuration ~\n\n"
-	"This program allows you to easily configure the Synchronet BBS\n"
-	"FidoNet-style EchoMail program known as `SBBSecho`.  Alternatively, you\n"
-	"may edit the SBBSecho configuration file (e.g. `ctrl/sbbsecho.ini`) using\n"
-	"an ASCII/plain-text editor.\n"
-	"\n"
-	"For detailed documentation, see `http://wiki.synchro.net/util:sbbsecho`\n"
-	"\n"
-	"The `Global Settings` sub-menu is where SBBSecho configuration settings\n"
-	"are located which are neither NetMail nor EchoMail specific, but more\n"
-	"general to the operation of SBBSecho.\n"
-	"\n"
-	"The `Linked Nodes` sub-menu is where you configure your FidoNet-style\n"
-	"links: other FidoNet-style nodes/systems you regularly connect with\n"
-	"to exchange mail/files.\n"
-	"\n"
-	"The `Archive Types` sub-menu is where you configure your archive\n"
-	"programs (a.k.a. \"packers\") used for the packing and unpacking of\n"
-	"EchoMail bundle files (usually in 'zip' format).\n"
-	"\n"
-	"The `NetMail Settings` sub-menu is where you configure settings specific\n"
-	"to NetMail (private one-on-one networked mail).\n"
-	"\n"
-	"The `EchoMail Settings` sub-menu is where you configure settings specific\n"
-	"to EchoMail (public group discussions in topical message areas, echoes).\n"
-	"\n"
-	"The `Paths and Filenames` sub-menu is where you configure your system's\n"
-	"directory and file paths used by SBBSecho.\n"
-	"\n"
-	"The `EchoLists` sub-menu is for configuring additional (optional)\n"
-	"lists of FidoNet-style message areas (echoes) in `BACKBONE.NA` file\n"
-	"format.  These lists, if configured, are used in addition to your main\n"
+	"~ SBBSecho Configuration ~\r\n\r\n"
+	"This program allows you to easily configure the Synchronet BBS\r\n"
+	"FidoNet-style EchoMail program known as `SBBSecho`.  Alternatively, you\r\n"
+	"may edit the SBBSecho configuration file (e.g. `ctrl/sbbsecho.ini`) using\r\n"
+	"an ASCII/plain-text editor.\r\n"
+	"\r\n"
+	"For detailed documentation, see `http://wiki.synchro.net/util:sbbsecho`\r\n"
+	"\r\n"
+	"`Mailer Type` should normally be set to `Binkley/FLO` to enable SBBSecho's\r\n"
+	"\"Binkley-Style Outbound\" operating mode (a.k.a. `BSO` or `FLO` mode).\r\n"
+	"If you are using an `Attach`, `ArcMail`, or `FrontDoor` style FidoNet\r\n"
+	"mailer, then set this setting to `ArcMail/Attach`, but know that most\r\n"
+	"modern FidoNet mailers are Binkley-Style and therefore that mode of\r\n"
+	"operation in SBBSecho is more widely tested and supported.\r\n"
+	"\r\n"
+	"`Log Level` should normally be set to `Informational` but if you're\r\n"
+	"experiencing problems with SBBSecho and would like more verbose log\r\n"
+	"output, set this to `Debugging`. If you want less verbose logging,\r\n"
+	"set to higher-severity levels to reduce the number of log messages.\r\n"
+	"\r\n"
+	"The `Linked Nodes` sub-menu is where you configure your FidoNet-style\r\n"
+	"links: other FidoNet-style nodes/systems you directly connect with.\r\n"
+	"\r\n"
+	"The `Archive Types` sub-menu is where you configure your archive\r\n"
+	"programs (a.k.a. \"packers\") used for the packing and unpacking of\r\n"
+	"EchoMail bundle files (usually in 'zip' format).\r\n"
+	"\r\n"
+	"The `NetMail Settings` sub-menu is where you configure NetMail-specific\r\n"
+	"settings.\r\n"
+	"\r\n"
+	"The `EchoMail Settings` sub-menu is where you configure EchoMail-specific\r\n"
+	"settings.\r\n"
+	"\r\n"
+	"The `Paths and Filenames` sub-menu is where you configure your system's\r\n"
+	"directory and file paths used by SBBSecho.\r\n"
+	"\r\n"
+	"The `Additional EchoLists` sub-menu is for configuring additional\r\n"
+	"(optional) lists of FidoNet-style message areas in `BACKBONE.NA` format.\r\n"
+	"These lists, if configured, are used in addition to your main\r\n"
 	"`Area File` (e.g. areas.bbs) for advanced AreaFix/AreaMgr operations."
 	;
 		i=0;
-		sprintf(opt[i++],"Global Settings...");
+		sprintf(opt[i++],"%-25s %s","Mailer Type"
+			,cfg.flo_mailer ? "Binkley/FLO":"ArcMail/Attach");
+		sprintf(opt[i++],"%-25s %s","Log Level",logLevelStringList[cfg.log_level]);
 		sprintf(opt[i++],"Linked Nodes...");
 		sprintf(opt[i++],"Archive Types...");
 		sprintf(opt[i++],"NetMail Settings...");
 		sprintf(opt[i++],"EchoMail Settings...");
 		sprintf(opt[i++],"Paths and Filenames...");
-		sprintf(opt[i++],"EchoLists...");
+		sprintf(opt[i++],"Additional EchoLists...");
 		if(uifc.changes)
 			snprintf(opt[i++],MAX_OPLN-1,"Save Changes to %s", getfname(cfg.cfgfile));
 		opt[i][0]=0;
-		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT|WIN_ESC,0,0,0,&dflt,0
+		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT|WIN_ESC,0,0,45,&dflt,0
 			,"Configure SBBSecho",opt)) {
 
 			case 0:
-				global_settings();
+				cfg.flo_mailer = !cfg.flo_mailer;
 				break;
 
 			case 1:
+	uifc.helpbuf=
+	"~ Log Level ~\r\n"
+	"\r\n"
+	"Select the minimum severity of log entries to be logged to the log file.\r\n"
+	"The default/normal setting is `Informational`.";
+				j=cfg.log_level;
+				i=uifc.list(WIN_MID,0,0,0,&j,0,"Log Level",logLevelStringList);
+				if(i>=0 && i<=LOG_DEBUG)
+					cfg.log_level=i;
+				break;
+
+
+			case 2:
 				i=0;
 				while(1) {
 					uifc.helpbuf=
-	"~ Linked Nodes ~\n\n"
-	"From this menu you can configure the settings for your linked\n"
-	"FidoNet-style nodes (uplinks and downlinks).\n"
-	"\n"
-	"A single node configuration can represent one node or a collection\n"
-	"of nodes, by using the `ALL` wildcard word.\n"
-	"\n"
-	"The hexadecimal numbers in parentheses are provided as an aide when\n"
-	"correlating FidoNet files and BSO directories with node numbers."
+	"~ Linked Nodes ~\r\n\r\n"
+	"From this menu you can configure the settings for your linked\r\n"
+	"FidoNet-style nodes (uplinks and downlinks).\r\n"
+	"\r\n"
+	"A single node configuration can represent one node or a collection\r\n"
+	"of nodes, by using the `ALL` wildcard word."
 	;
 
-					for(u=0;u<cfg.nodecfgs;u++) {
-						char hexaddr[16] = "";
-						if(cfg.nodecfg[u].addr.zone != 0xffff) {
-							if(!faddr_contains_wildcard(&cfg.nodecfg[u].addr))
-								sprintf(hexaddr, "(%04hx%04hx)", cfg.nodecfg[u].addr.net,cfg.nodecfg[u].addr.node);
-							else
-								sprintf(hexaddr, "(.%03X)", cfg.nodecfg[u].addr.zone);
-						}
-						snprintf(opt[u], MAX_OPLN-1, "%-16s %-10s  %s"
-							,faddrtoa(&cfg.nodecfg[u].addr), hexaddr
-							,cfg.nodecfg[u].name[0] ? cfg.nodecfg[u].name : cfg.nodecfg[u].comment);
-					}
+					for(u=0;u<cfg.nodecfgs;u++)
+						snprintf(opt[u], MAX_OPLN-1, "%-23s %s"
+							,faddrtoa(&cfg.nodecfg[u].addr)
+							,cfg.nodecfg[u].comment);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
-					if(cfg.nodecfgs)
-						mode |= WIN_COPY | WIN_CUT;
 					if (savnodecfg.addr.zone)
-						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&node_opt,0,"Linked Nodes",opt);
+						mode |= WIN_PUT;
+					i=uifc.list(mode,0,0,0,&i,0,"Linked Nodes",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -517,18 +335,22 @@ int main(int argc, char **argv)
 					if (msk == MSK_INS) {
 						str[0]=0;
 	uifc.helpbuf=
-	"~ Address ~\n\n"
-	"This is the FidoNet style address of the node you wish to add (3D or 4D).\n"
-	"The `ALL` wildcard may be usd for portions of the address.\n"
-	;
+	"~ Address ~\r\n\r\n"
+	"This is the FidoNet style address of the node you wish to add (4D).\r\n";
 						if(uifc.input(WIN_MID|WIN_SAV,0,0
 							,"Node Address (ALL wildcard allowed)",str
 							,25,K_EDIT)<1)
 							continue;
-						if(!new_node(i)) {
+						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+							,sizeof(nodecfg_t)*(cfg.nodecfgs+1)))==NULL) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
+						for(j=cfg.nodecfgs;j>i;j--)
+							memcpy(&cfg.nodecfg[j],&cfg.nodecfg[j-1]
+								,sizeof(nodecfg_t));
+						cfg.nodecfgs++;
+						memset(&cfg.nodecfg[i],0,sizeof(nodecfg_t));
 						cfg.nodecfg[i].addr=atofaddr(str);
 						uifc.changes=TRUE;
 						continue; 
@@ -545,107 +367,96 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.nodecfgs;u++)
 							memcpy(&cfg.nodecfg[u],&cfg.nodecfg[u+1]
 								,sizeof(nodecfg_t));
+						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+							,sizeof(nodecfg_t)*(cfg.nodecfgs)))==NULL) {
+							printf("\nMemory Allocation Error\n");
+							exit(1); 
+						}
 						uifc.changes=TRUE;
 						continue; 
 					}
-					if (msk == MSK_COPY) {
+					if (msk == MSK_GET) {
 						memcpy(&savnodecfg,&cfg.nodecfg[i],sizeof(nodecfg_t));
 						continue; 
 					}
-					if (msk == MSK_PASTE) {
-						if(!new_node(i))
-							continue;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.nodecfg[i],&savnodecfg,sizeof(nodecfg_t));
 						uifc.changes=TRUE;
 						continue; 
 					}
 					while(1) {
 	uifc.helpbuf=
-	"~ Linked Node Settings ~\n"
-	"\n"
-	"`Address` is the FidoNet-style address in the Zone:Net/Node (3D) or\n"
-	"    Zone:Net/Node.Point (4D) format. The wildcard word '`ALL`' may be used\n"
-	"    in place of one of the fields to create a node configuration which\n"
-	"    will apply to *all* nodes matching that address pattern.\n"
-	"    e.g. '`1:ALL`' matches all nodes within FidoNet Zone 1.\n"
-	"\n"
-	"`Name` is name of the system operator of the configured node. This is\n"
-	"    as the destination name for AreaFix Notification NetMail messages.\n"
-	"\n"
-	"`Comment` is a note to yourself about this node. Setting this to the\n"
-	"    BBS name or official FidoNet title corresponding with the configured\n"
-	"    node can be a helpful reminder to yourself later.\n"
-	"\n"
-	"`Archive Type` is the name of an archive type corresponding with one of\n"
-	"    your configured archive types or '`None`'.  This archive type will\n"
-	"    be used when creating EchoMail bundles or if `None`, raw/uncompressed\n"
-	"    EchoMail packets will be sent to this node.\n"
-	"    This setting may be managed by the node using AreaFix requests.\n"
-	"\n"
-	"`Packet Type` is the type of outbound packet generated for this node.\n"
-	"    Incoming packet types are automatically detected from among the list\n"
-	"    of supported packet types (`2`, `2.2`, `2e`, and `2+`).\n"
-	"    The default outbound packet type is `2+`.\n"
-	"\n"
-	"`Packet Password` is an optional password that may be added to outbound\n"
-	"    packets for this node.  Incoming packet passwords are compared with\n"
-	"    this password value.  If this password is blank/empty and `Strict\n"
-	"    Packet Passwords` are enabled, then incoming packets from this node\n"
-	"    must also have no password.  Packet passwords are case insensitive.\n"
-	"    This setting may be managed by the node using AreaFix requests.\n"
-	"\n"
-	"`TIC File Password` is an optional password that may be configured here\n"
-	"    (and in your `sbbsecho.ini` file) for use by `tickit.js` when creating\n"
-	"    or authenticating `.TIC` files.\n"
-	"    This setting may be managed by the node using AreaFix requests.\n"
-	"\n"
-	"`AreaFix Support` is a toggle that determines whether or not this node\n"
-	"    may send AreaFix NetMail requests to your system to perform remote\n"
-	"    area management.\n"
-	"\n"
-	"`AreaFix Password` is an optional password used to authenticate inbound\n"
-	"    AreaFix NetMail requests (Remote Area Management) from this node.\n"
-	"    AreaFix Passwords are case insensitive.\n"
-	"    This setting may be managed by the node using AreaFix requests.\n"
-	"\n"
-	"`EchoList Keys` is a list of keys which enable AreaFix access to one or\n"
-	"    more additional EchoLists.\n"
-	"\n"
-	"`Status` is the default mode for sending mail to this node: `Normal`, `Hold`\n"
-	"    (wait for pickup) or `Crash` (immediate).\n"
-	"\n"
-	"`Direct` determines whether to connect to this node directly (whenever\n"
-	"    possible) when sending mail to this node.\n"
-	"\n"
-	"`Passive` is used to temporarily disable (pause) the packing and sending\n"
-	"    of EchoMail for this node.  The opposite of Passive is `Active`.\n"
-	"    This setting may be managed by the node using AreaFix requests.\n"
-	"\n"
-	"`Send Notify List` is used to flag nodes that you want notified via\n"
-	"    NetMail of their current AreaFix settings whenever SBBSecho is run\n"
-	"    with the '`G`' option.\n"
-	"\n"
-	"`Uplink for Message Groups` is an optional list of Message Groups (short\n"
-	"    names) for which this node is a hub/uplink for your system.  This\n"
-	"    setting is used in combination with the `Auto Add Sub-boards` feature\n"
-	"    to auto-link hubs with the newly added areas in your Area File.\n"
-	"\n"
-	"`Route To` is only used in Binkley-Style Outbound (BSO/FLO) operating\n"
-	"    mode and is used to set the FTN address to route mail for this node.\n"
-	"\n"
-	"`Inbox Directory` is only used in BSO operating mode and is an optional\n"
-	"    alternate directory to search for incoming files from this node\n"
-	"    (e.g. used in combination with BinkD's ibox setting).\n"
-	"\n"
-	"`Outbox Directory` is only used in BSO operating mode and is an optional\n"
-	"    alternate directory to place outbound files for this node (e.g. used\n"
-	"    in combination with BinkD's obox setting).\n"
+	"~ Linked Node Settings ~\r\n\r\n"
+	"These are the settings available for each configured node:\r\n"
+	"\r\n"
+	"`Address` is the FidoNet-style address in the Zone:Net/Node (3D) or\r\n"
+	"Zone:Net/Node.Point (4D) format. The wildcard word '`ALL`' may be used\r\n"
+	"in place of one of the fields to create a node configuration which\r\n"
+	"will apply to *all* nodes matching that address pattern.\r\n"
+	"e.g. '`1:ALL`' matches all nodes within FidoNet Zone 1.\r\n"
+	"\r\n"
+	"`Comment` is a note to yourself about this node. Setting this to the\r\n"
+	"user or sysop name corresponding with the configured node can be\r\n"
+	"a helpful reminder to yourself later.\r\n"
+	"\r\n"
+	"`Archive Type` is the name of an archive type corresponding with one of\r\n"
+	"your configured archive types or '`None`'.  This archive type will\r\n"
+	"be used when creating EchoMail bundles or if `None`, raw/uncompressed\r\n"
+	"EchoMail packets will be sent to this node.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
+	"\r\n"
+	"`Packet Type` is the type of outbound packet generated for this node.\r\n"
+	"Incoming packet types are automatically detected from among the list\r\n"
+	"of supported packet types (`2`, `2.2`, `2e`, and `2+`).\r\n"
+	"The default outbound packet type is `Type-2+`.\r\n"
+	"\r\n"
+	"`Packet Password` is an optional password that may be added to outbound\r\n"
+	"packets for this node.  Incoming packets from this node must also have\r\n"
+	"the same password value if this password is configured (not blank).\r\n"
+	"Packet passwords are case insensitive.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
+	"\r\n"
+	"`TIC File Password` is an optional password that may be configured here\r\n"
+	"(and in your `sbbsecho.ini` file) for use by `ticket.js` when creating\r\n"
+	"or authenticating `.TIC` files.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
+	"\r\n"
+	"`AreaFix Password` is an optional password used to enable AreaFix\r\n"
+	"NetMail requests (remote Area Management) from this node.\r\n"
+	"AreaFix Passwords are case insensitive.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
+	"\r\n"
+	"`AreaFix Keys` is a list of keys which enable AreaFix access to one or\r\n"
+	"more Additional EchoLists.\r\n"
+	"\r\n"
+	"`Status` is the default mode for sending mail to this node: `Normal`, `Hold`\r\n"
+	"(wait for pickup) or `Crash` (immediate).\r\n"
+	"\r\n"
+	"`Direct` determines whether to connect to this node directly (whenever\r\n"
+	"possible) when sending mail to this node.\r\n"
+	"\r\n"
+	"`Passive` is used to temporarily disable the packing and sending of\r\n"
+	"EchoMail for a node.  The opposite of Passive is `Active`.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
+	"\r\n"
+	"`Send Notify List` is used to flag nodes that you want notified via\r\n"
+	"NetMail of their current AreaFix settings whenever SBBSecho is run\r\n"
+	"with the '`G`' option.\r\n"
+	"\r\n"
+	"`Route To` is only used in Binkley-Style Outbound (BSO/FLO) operating\r\n"
+	"mode and is used to set the FidoNet address to route mail for this node.\r\n"
+	"\r\n"
+	"`Inbox Directory` is only used in BSO operating mode and is an optional\r\n"
+	"alternate directory to search for incoming files from this node (e.g.\r\n"
+	"used in combination with BinkD's ibox setting).\r\n"
+	"\r\n"
+	"`Outbox Directory` is only used in BSO operating mode and is an optional\r\n"
+	"alternate directory to place outbound files for this node (e.g. used\r\n"
+	"in combination with BinkD's obox setting).\r\n"
 	;
 						j=0;
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Address"
 							,faddrtoa(&cfg.nodecfg[i].addr));
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Name"
-							,cfg.nodecfg[i].name);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Comment"
 							,cfg.nodecfg[i].comment);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Archive Type"
@@ -657,11 +468,9 @@ int main(int argc, char **argv)
 							,cfg.nodecfg[i].pktpwd);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","TIC File Password"
 							,cfg.nodecfg[i].ticpwd);
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Support"
-							,cfg.nodecfg[i].areafix ? "Yes" : "No");
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Password"
 							,cfg.nodecfg[i].password);
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","EchoList Keys"
+						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Keys"
 							,strListCombine(cfg.nodecfg[i].keys,str,sizeof(str),","));
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Status"
 							,mailStatusStringList[cfg.nodecfg[i].status]);
@@ -671,8 +480,6 @@ int main(int argc, char **argv)
 							,cfg.nodecfg[i].passive ? "Yes":"No");
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Send Notify List"
 							,cfg.nodecfg[i].send_notify ? "Yes" : "No");
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Uplink for Message Groups"
-							,strListCombine(cfg.nodecfg[i].grphub,str,sizeof(str),","));
 						if(cfg.flo_mailer) {
 							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Route To"
 								,cfg.nodecfg[i].route.zone
@@ -684,46 +491,36 @@ int main(int argc, char **argv)
 						}
 						opt[j][0]=0;
 						SAFEPRINTF(str, "Linked Node - %s"
-							,cfg.nodecfg[i].name[0] ? cfg.nodecfg[i].name : faddrtoa(&cfg.nodecfg[i].addr));
-						k=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&nodeop,0,str,opt);
+							,cfg.nodecfg[i].comment[0] ? cfg.nodecfg[i].comment : faddrtoa(&cfg.nodecfg[i].addr));
+						k=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,60,&nodeop,0,str,opt);
 						if(k==-1)
 							break;
 						switch(k) {
-							case __COUNTER__:
+							case 0:
 	uifc.helpbuf=
-	"~ Address ~\n\n"
-	"This is the FidoNet style address of this linked node.\n";
-								SAFECOPY(str,faddrtoa(&cfg.nodecfg[i].addr));
+	"~ Address ~\r\n\r\n"
+	"This is the FidoNet style address of this linked node.\r\n";
+								strcpy(str,faddrtoa(&cfg.nodecfg[i].addr));
 								if(uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address (ALL wildcard allowed)",str
 									,25,K_EDIT|K_UPPER)>0)
 									cfg.nodecfg[i].addr=atofaddr(str);
 								break;
-							case __COUNTER__:
+							case 1:
 	uifc.helpbuf=
-	"~ Name ~\n\n"
-	"This is an optional NetMail destination name for the node (e.g. the sysop's name).\n"
-	"This is used for AreaFix Notification NetMail messages.\n";
-								uifc.input(WIN_MID|WIN_SAV,0,0
-									,"Name"
-									,cfg.nodecfg[i].name,sizeof(cfg.nodecfg[i].name)-1
-									,K_EDIT);
-								break;
-							case __COUNTER__:
-	uifc.helpbuf=
-	"~ Comment ~\n\n"
-	"This is an optional comment for the node (e.g. the sysop's name).\n"
-	"This is used for informational purposes only.\n";
+	"~ Comment ~\r\n\r\n"
+	"This is an optional comment for the node (e.g. the sysop's name).\r\n"
+	"This is used for informational purposes only.\r\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Comment"
 									,cfg.nodecfg[i].comment,sizeof(cfg.nodecfg[i].comment)-1
 									,K_EDIT);
 								break;
-							case __COUNTER__:
+							case 2:
 	uifc.helpbuf=
-	"~ Archive Type ~\n\n"
-	"This is the archive type that will be used for compressing packets\n"
-	"into archive bundles for this node.\n";
+	"~ Archive Type ~\r\n\r\n"
+	"This is the archive type that will be used for compressing packets\r\n"
+	"into archive bundles for this node.\r\n";
 								int cur=cfg.arcdefs;
 								for(u=0;u<cfg.arcdefs;u++) {
 									if(cfg.nodecfg[i].archive == &cfg.arcdef[u])
@@ -742,16 +539,16 @@ int main(int argc, char **argv)
 									cfg.nodecfg[i].archive = &cfg.arcdef[k];
 								uifc.changes=TRUE;
 								break;
-							case __COUNTER__:
+							case 3:
 	uifc.helpbuf=
-	"~ Packet Type ~\n\n"
-	"This is the packet header type that will be used in mail packets\n"
-	"created for this node.  SBBSecho defaults to creating `Type-2+` packets.\n"
-	"\n"
-	"`Type-2  ` packets are defined in FTS-0001.16 (Stone Age)\n"
-	"`Type-2e ` packets are defined in FSC-0039.04 (Sometimes called 2+)\n"
-	"`Type-2+ ` packets are defined in FSC-0048.02 (4D address support)\n"
-	"`Type-2.2` packets are defined in FSC-0045.01 (5D address support)\n"
+	"~ Packet Type ~\r\n\r\n"
+	"This is the packet header type that will be used in mail packets\r\n"
+	"created for this node.  SBBSecho defaults to creating `Type-2+` packets.\r\n"
+	"\r\n"
+	"`Type-2  ` packets are defined in FTS-0001.16 (Stone Age)\r\n"
+	"`Type-2e ` packets are defined in FSC-0039.04 (Sometimes called 2+)\r\n"
+	"`Type-2+ ` packets are defined in FSC-0048.02 (4D address support)\r\n"
+	"`Type-2.2` packets are defined in FSC-0045.01 (5D address support)\r\n"
 	;
 								j=cfg.nodecfg[i].pkt_type;
 								k=uifc.list(WIN_RHT|WIN_SAV,0,0,0,&j,0,"Packet Type"
@@ -761,66 +558,54 @@ int main(int argc, char **argv)
 								cfg.nodecfg[i].pkt_type=k;
 								uifc.changes=TRUE;
 								break;
-							case __COUNTER__:
+							case 4:
 	uifc.helpbuf=
-	"~ Packet Password ~\n\n"
-	"This is an optional password that SBBSecho will place into packets\n"
-	"destined for this node.\n";
+	"~ Packet Password ~\r\n\r\n"
+	"This is an optional password that SBBSecho will place into packets\r\n"
+	"destined for this node.\r\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Packet Password (optional)"
 									,cfg.nodecfg[i].pktpwd,sizeof(cfg.nodecfg[i].pktpwd)-1
 									,K_EDIT|K_UPPER);
 								break;
-							case __COUNTER__:
+							case 5:
 	uifc.helpbuf=
-	"~ TIC File Password ~\n\n"
-	"This is an optional password that tickit.js will use for creating\n"
-	"and authenticating `.TIC` files to/from this node.\n";
+	"~ TIC File Password ~\r\n\r\n"
+	"This is an optional password that ticket.js will use for creating\r\n"
+	"and authenticating `.TIC` files to/from this node.\r\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"TIC File Password (optional)"
 									,cfg.nodecfg[i].ticpwd,sizeof(cfg.nodecfg[i].ticpwd)-1
 									,K_EDIT|K_UPPER);
 								break;
-							case __COUNTER__:
+							case 6:
 	uifc.helpbuf=
-	"~ AreaFix Support ~\n\n"
-	"If you wish for this node to be able to remotely configure their configuration\n"
-	"via `AreaFix` NetMail messages, set to option to `Yes`.\n";
-								k = cfg.nodecfg[i].areafix;
-								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-									,"AreaFix Support",uifcYesNoOpts)) {
-									case 0:	cfg.nodecfg[i].areafix = true;	uifc.changes=TRUE; break;
-									case 1:	cfg.nodecfg[i].areafix = false;	uifc.changes=TRUE; break;
-								}
-								break;
-							case __COUNTER__:
-	uifc.helpbuf=
-	"~ AreaFix Password ~\n\n"
-	"This is the password that will be used by this node when doing remote\n"
-	"AreaManager / AreaFix functions.\n";
+	"~ AreaFix Password ~\r\n\r\n"
+	"This is the password that will be used by this node when doing remote\r\n"
+	"AreaManager / AreaFix functions.\r\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"AreaFix Password"
 									,cfg.nodecfg[i].password,sizeof(cfg.nodecfg[i].password)-1
 									,K_EDIT|K_UPPER);
 								break;
-							case __COUNTER__:
+							case 7:
 	uifc.helpbuf=
-	"~ EchoList Keys ~\n\n"
-	"These are a named-keys to be given to this node allowing access to one or\n"
-	"more of the configured `EchoLists`\n";
+	"~ AreaFix Keys ~\r\n\r\n"
+	"These are a named-keys to be given to this node allowing access to one or\r\n"
+	"more of the configured `Additional Echolists`\r\n";
 								while(1) {
 									for(j=0; cfg.nodecfg[i].keys!=NULL && cfg.nodecfg[i].keys[j]!=NULL ;j++)
 										strcpy(opt[j],cfg.nodecfg[i].keys[j]);
 									opt[j][0]=0;
 									k=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|
 										WIN_XTR|WIN_INSACT|WIN_DELACT|WIN_RHT
-										,0,0,0,&k,0,"EchoList Keys",opt);
+										,0,0,0,&k,0,"AreaFix Keys",opt);
 									if(k==-1)
 										break;
 									if((k&MSK_ON)==MSK_INS) {
 										k&=MSK_OFF;
 										if(uifc.input(WIN_MID|WIN_SAV,0,0
-											,"EchoList Key",str,SBBSECHO_MAX_KEY_LEN
+											,"AreaFix Keys",str,SBBSECHO_MAX_KEY_LEN
 											,K_UPPER)<1)
 											continue;
 										strListInsert(&cfg.nodecfg[i].keys, str, k);
@@ -835,17 +620,17 @@ int main(int argc, char **argv)
 										continue; 
 									}
 									SAFECOPY(str,cfg.nodecfg[i].keys[k]);
-									uifc.input(WIN_MID|WIN_SAV,0,0,"EchoList Key"
+									uifc.input(WIN_MID|WIN_SAV,0,0,"AreaFix Key"
 										,str,SBBSECHO_MAX_KEY_LEN,K_EDIT|K_UPPER);
 									strListReplace(cfg.nodecfg[i].keys, k, str);
 									uifc.changes=TRUE;
 									continue; 
 								}
 								break;
-							case __COUNTER__:
+							case 8:
 	uifc.helpbuf=
-	"~ Mail Status ~\n\n"
-	"Set the mail status for this node: `Normal`, `Hold`, or `Crash`.\n";
+	"~ Mail Status ~\r\n\r\n"
+	"Set the mail status for this node: `Normal`, `Hold`, or `Crash`.\r\n";
 								j=cfg.nodecfg[i].status;
 								k=uifc.list(WIN_RHT|WIN_SAV,0,0,0,&j,0,"Mail Status"
 									,mailStatusStringList);
@@ -856,7 +641,7 @@ int main(int argc, char **argv)
 									uifc.changes=TRUE;
 								}
 								break;
-							case __COUNTER__:
+							case 9:
 								k = !cfg.nodecfg[i].direct;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"Direct Delivery",uifcYesNoOpts)) {
@@ -864,7 +649,7 @@ int main(int argc, char **argv)
 									case 1:	cfg.nodecfg[i].direct = false;	uifc.changes=TRUE; break;
 								}
 								break;
-							case __COUNTER__:
+							case 10:
 								k = !cfg.nodecfg[i].passive;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"Passive Node",uifcYesNoOpts)) {
@@ -872,7 +657,7 @@ int main(int argc, char **argv)
 									case 1:	cfg.nodecfg[i].passive = false;	uifc.changes=TRUE; break;
 								}
 								break;
-							case __COUNTER__:
+							case 11:
 								k = !cfg.nodecfg[i].send_notify;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"Send AreaFix Notifications",uifcYesNoOpts)) {
@@ -880,60 +665,16 @@ int main(int argc, char **argv)
 									case 1:	cfg.nodecfg[i].send_notify = false;	uifc.changes=TRUE; break;
 								}
 								break;
-							case __COUNTER__:
+							case 12:
 	uifc.helpbuf=
-	"~ Uplink for Message Groups ~\n\n"
-	"These are Message Group short names (as configured in SCFG) for which\n"
-	"this linked-node is your system's uplink (hub).\n"
-	"\n"
-	"Use of this setting allows your hub to be automatically linked with new\n"
-	"areas when new Sub-boards (within a listed group) are auto-added to the\n"
-	"Area File."
-	;
-								while(1) {
-									for(j=0; cfg.nodecfg[i].grphub!=NULL && cfg.nodecfg[i].grphub[j]!=NULL ;j++)
-										strcpy(opt[j],cfg.nodecfg[i].grphub[j]);
-									opt[j][0]=0;
-									k=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|
-										WIN_XTR|WIN_INSACT|WIN_DELACT|WIN_RHT
-										,0,0,0,&k,0,"Uplink for Message Groups",opt);
-									if(k==-1)
-										break;
-									if((k&MSK_ON)==MSK_INS) {
-										k&=MSK_OFF;
-										if(uifc.input(WIN_MID|WIN_SAV,0,0
-											,"Message Group (short name)",str,LEN_GSNAME
-											,/* kmode: */0) < 1)
-											continue;
-										strListInsert(&cfg.nodecfg[i].grphub, str, k);
-										uifc.changes=TRUE;
-										continue; 
-									}
-
-									if((k&MSK_ON)==MSK_DEL) {
-										k&=MSK_OFF;
-										strListRemove(&cfg.nodecfg[i].grphub, k);
-										uifc.changes=TRUE;
-										continue; 
-									}
-									SAFECOPY(str,cfg.nodecfg[i].grphub[k]);
-									uifc.input(WIN_MID|WIN_SAV,0,0,"Message Group (short name)"
-										,str,LEN_GSNAME,K_EDIT|K_UPPER);
-									strListReplace(cfg.nodecfg[i].grphub, k, str);
-									uifc.changes=TRUE;
-									continue; 
-								}
-								break;
-							case __COUNTER__:
-	uifc.helpbuf=
-	"~ Route To ~\n\n"
-	"When using a BSO/FLO type mailer, this is the Fido address to route mail\n"
-	"for this node(s) to.\n"
-	"\n"
-	"This option is normally only used with wildcard type node entries\n"
-	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\n"
-	"NetMail packets to your uplink node (hub).\n";
-								SAFECOPY(str,faddrtoa(&cfg.nodecfg[i].route));
+	"~ Route To ~\r\n\r\n"
+	"When using a BSO/FLO type mailer, this is the Fido address to route mail\r\n"
+	"for this node(s) to.\r\n"
+	"\r\n"
+	"This option is normally only used with wildcard type node entries\r\n"
+	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\r\n"
+	"NetMail packets to your uplink node (hub).\r\n";
+								strcpy(str,faddrtoa(&cfg.nodecfg[i].route));
 								if(uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address to Route To",str
 									,25,K_EDIT) >= 0) {
@@ -944,12 +685,12 @@ int main(int argc, char **argv)
 									uifc.changes=TRUE;
 								}
 								break;
-							case __COUNTER__:
+							case 13:
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Inbound FileBox Directory"
 									,cfg.nodecfg[i].inbox, sizeof(cfg.nodecfg[i].inbox)-1
 									,K_EDIT);
 								break;
-							case __COUNTER__:
+							case 14:
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Outbound FileBox Directory"
 									,cfg.nodecfg[i].outbox, sizeof(cfg.nodecfg[i].outbox)-1
 									,K_EDIT);
@@ -959,254 +700,216 @@ int main(int argc, char **argv)
 				}
 				break;
 
-			case 5:	/* Paths and Filenames... */
+			case 6:	/* Paths and Filenames... */
 				j=0;
 				while(1) {
 					i=0;
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Non-secure Inbound Directory"
-						,cfg.inbound[0] ? cfg.inbound : DEFAULT_INBOUND);
+						,cfg.inbound);
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Secure Inbound Directory"
-						,cfg.secure_inbound[0] ? cfg.secure_inbound : DEFAULT_SECURE_INBOUND);
+						,cfg.secure_inbound[0] ? cfg.secure_inbound : "<None>");
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Outbound Directory"
-						,cfg.outbound[0] ? cfg.outbound : DEFAULT_OUTBOUND);
+						,cfg.outbound);
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Area File"
-						,cfg.areafile[0] ? cfg.areafile : DEFAULT_AREA_FILE);
+						,cfg.areafile);
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Bad Area File"
-						,cfg.badareafile[0] ? cfg.badareafile : DEFAULT_BAD_AREA_FILE);
+						,cfg.badareafile);
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Log File"
-						,cfg.logfile[0] ? cfg.logfile : DEFAULT_LOG_FILE);
-					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Echo Statistics File"
-						,cfg.echostats[0] ? cfg.echostats : DEFAULT_ECHOSTATS_FILE);
+						,cfg.logfile[0] ? cfg.logfile
+						: "SCFG->data/sbbsecho.log");
 					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Temporary File Directory"
-						,cfg.temp_dir[0] ? cfg.temp_dir	: DEFAULT_TEMP_DIR);
-					snprintf(opt[i++],MAX_OPLN-1,"%-30.30s %s","Outgoing Semaphore File"
-						,cfg.outgoing_sem);
+						,cfg.temp_dir[0] ? cfg.temp_dir
+						: "../temp/sbbsecho");
 					opt[i][0]=0;
 					uifc.helpbuf=
-						"~ Paths and Filenames ~\n\n"
-						"From this menu you can configure the paths and filenames that SBBSecho\n"
-						"will use during its operation (e.g. importing and exporting messages).\n";
-					j=uifc.list(WIN_BOT|WIN_L2R|WIN_ACT|WIN_SAV,0,0,0,&path_opt,0
+						"~ Paths and Filenames ~\r\n\r\n"
+						"From this menu you can configure the paths that SBBSecho will use\r\n"
+						"when importing, exporting and logging.\r\n";
+					j=uifc.list(WIN_MID|WIN_ACT,0,0,60,&j,0
 						,"Paths and Filenames",opt);
 					if(j==-1)
 						break;
 					switch(j) {
 						case 0:
 	uifc.helpbuf=
-	"~ Non-secure Inbound Directory ~\n\n"
-	"This is the path where your FTN mailer stores, and where SBBSecho will\n"
-	"look for, incoming files (potentially including message bundles and\n"
-	"packets) from unauthenticated (non-secure) mailer sessions.\n"
-	"\n"
-	"Default value is `" DEFAULT_INBOUND "`."
+	"~ Non-secure Inbound Directory ~\r\n\r\n"
+	"This is the path where your FTN mailer stores, and where SBBSecho will\r\n"
+	"look for, incoming files (potentially including message bundles and\r\n"
+	"packets) from unauthenticated (non-secure) mailer sessions."
 	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Non-secure Inbound Directory"
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Non-secure Inbound Directory"
 								,cfg.inbound,sizeof(cfg.inbound)-1
 								,K_EDIT);
 							break;
 
 						case 1:
 	uifc.helpbuf=
-	"~ Secure Inbound Directory ~\n\n"
-	"This is the path where your FTN mailer stores, and where SBBSecho will\n"
-	"look for, incoming message bundles and packets for `Secure` (password\n"
-	"protected) sessions.\n"
-	"\n"
-	"Default value is `" DEFAULT_SECURE_INBOUND "`."
-	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Secure Inbound Directory"
+	"~ Secure Inbound Directory ~\r\n\r\n"
+	"This is the path where your FTN mailer stores, and where SBBSecho will\r\n"
+	"look for, incoming message bundles and packets for `Secure` (password\r\n"
+	"protected) sessions.";
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Secure Inbound Directory"
 								,cfg.secure_inbound,sizeof(cfg.secure_inbound)-1
 								,K_EDIT);
 							break;
 
 						case 2:
 	uifc.helpbuf=
-	"~ Outbound Directory ~\n\n"
-	"This is the path where your FTN mailer will look for, and where SBBSecho\n"
-	"will place, outgoing message bundles and packets.\n"
-	"\n"
-	"In Binkley-Style Outbound mode, this serves as the base directory\n"
+	"~ Outbound Directory ~\r\n\r\n"
+	"This is the path where your FTN mailer will look for, and where SBBSecho\r\n"
+	"will place, outgoing message bundles and packets.\r\n"
+	"\r\n"
+	"In Binkley-Style Outbound mode, this serves as the base directory\r\n"
 	"name for special foreign zone and point destination nodes as well."
-	"\n"
-	"Default value is `" DEFAULT_OUTBOUND "`."
 	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Outbound Directory"
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Outbound Directory"
 								,cfg.outbound,sizeof(cfg.outbound)-1
 								,K_EDIT);
 							break;
 
 						case 3:
 	uifc.helpbuf=
-	"~ Area File ~\n\n"
-	"This is the path of the file SBBSecho will use as your primary\n"
-	"list of FidoNet-style message areas (default is `data/areas.bbs`).\n"
-	"\n"
-	"Each line in the file defines an FTN message area (echo) of the format:\n"
-	"\n"
-	"   <`code`> <`tag`> [[`link`] [`link`] [...]]\n"
-	"\n"
-	"Each field is separated by one or more white-space characters:\n"
-	"\n"
-	"   `<code>` is the Synchronet `internal code` for the local sub-board\n"
-	"   `<tag>`  is the network's agreed-upon `echo tag` for the message area\n"
-	"   `[link]` is an `FTN address` to send and receive messages for this area\n"
-	"          (there may be many linked nodes for each area)\n"
-	"          (often your FTN uplink/hub may be the only linked node)\n"
-	"\n"
-	"Example Area Line:\n"
-	"\n"
-	"   `FIDO_BBS_CARN    BBS_CARNIVAL                        1:218/700`\n"
-	"\n"
-	"Notes:\n"
-	"\n"
-	" `*` Only the `<code>` and `<tag>` fields are required\n"
-	" `*` The `<code>` and `<tag>` fields are case in-sensitive\n"
-	" `*` The `[link]` fields must be 2D, 3D, or 4D FidoNet-style node addresses\n"
-	" `*` The '`<`' and '`>`', '`[`' and '`]`' characters are not part of the syntax\n"
-	" `*` Lines beginning with a semicolon (`;`) are ignored (i.e. comments)\n"
-	" `*` Leading white-space characters are ignored\n"
-	" `*` Blank lines are ignored\n"
-	" `*` A `<tag>` value of `*` indicates a `bad echo` (unknown) area\n"
-	" `*` A `<code>` value of `P` indicates a pass-through message area\n"
-	" `*` This file may be import/exported to/from your `Message Areas` in `SCFG`\n"
-	" `*` This file may be remotely modified by authorized nodes using `AreaFix`\n"
-	"\n"
-	"Default value is `" DEFAULT_AREA_FILE "`."
+	"~ Area File ~\r\n\r\n"
+	"This is the path of the file SBBSecho will use as your primary\r\n"
+	"list of FidoNet-style message areas (default is `data/areas.bbs`).\r\n"
+	"\r\n"
+	"Each line in the file defines an FTN message area (echo) of the format:\r\n"
+	"\r\n"
+	"   <`code`> <`tag`> [[`link`] [`link`] [...]]\r\n"
+	"\r\n"
+	"Each field is separated by one or more white-space characters:\r\n"
+	"\r\n"
+	"   `<code>` is the Synchronet `internal code` for the local sub-board\r\n"
+	"   `<tag>`  is the network's agreed-upon `echo tag` for the message area\r\n"
+	"   `[link]` is an `FTN address` to send and receive messages for this area\r\n"
+	"          (there may be many linked nodes for each area)\r\n"
+	"          (often your FTN hub may be the only linked node)\r\n"
+	"\r\n"
+	"Example Area Line:\r\n"
+	"\r\n"
+	"   `FIDO_BBS_CARN    BBS_CARNIVAL                        1:218/700`\r\n"
+	"\r\n"
+	"Notes:\r\n"
+	"\r\n"
+	" `*` Only the `<code>` and `<tag>` fields are required\r\n"
+	" `*` The `<code>` and `<tag>` fields are case in-sensitive\r\n"
+	" `*` The `[link]` fields must be 2D, 3D, or 4D FidoNet-style node addresses\r\n"
+	" `*` The '`<`' and '`>`', '`[`' and '`]`' characters are not part of the syntax\r\n"
+	" `*` Lines beginning with a semicolon (`;`) are ignored (i.e. comments)\r\n"
+	" `*` Leading white-space characters are ignored\r\n"
+	" `*` Blank lines are ignored\r\n"
+	" `*` This file may be import/exported to/from your `Message Areas` in `SCFG`\r\n"
+	" `*` This file may be remotely modified by authorized nodes using `AreaFix`\r\n"
 	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Area File"
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Area File"
 								,cfg.areafile,sizeof(cfg.areafile)-1
 								,K_EDIT);
 							break;
 
 						case 4:
 	uifc.helpbuf=
-	"~ Bad Area File ~\n\n"
-	"This is the path of the file SBBSecho will use to record the names\n"
-	"(echo tags) and descriptions of FTN message areas (echoes) that your\n"
-	"system has received EchoMail for, but does not carry locally. The\n"
-	"default path/filename is `" DEFAULT_BAD_AREA_FILE "`.\n"
-	"\n"
-	"Notes:\n"
-	"\n"
-	" `*` The descriptions of the areas will only be included if the\n"
-	"   corresponding echo tags can be located in one of your configured\n"
-	"   `EchoLists`.\n"
-	"\n"
-	" `*` The format of the file is the same as `BACKBONE.NA` and suitable for\n"
-	"   importing into a Synchronet Message Group using `SCFG`.\n"
-	"\n"
-	" `*` SBBSecho will automatically sort and maintain this list, removing\n"
-	"   areas if they are added to your configuration (`SCFG->Message Areas`)\n"
-	"   and your `Area File`.\n"
+	"~ Bad Area File ~\r\n\r\n"
+	"This is the path of the file SBBSecho will use to record the names\r\n"
+	"(echo tags) and descriptions of FTN message areas (echoes) that your\r\n"
+	"system has received EchoMail for, but does not carry locally. The\r\n"
+	"default path/filename is `data/badareas.lst`.\r\n"
+	"\r\n"
+	"Notes:\r\n"
+	"\r\n"
+	" `*` The descriptions of the areas will only be included if the\r\n"
+	"   corresponding echo tags can be located in one of your configured\r\n"
+	"   `Additional EchoLists`.\r\n"
+	"\r\n"
+	" `*` The format of the file is the same as `BACKBONE.NA` and suitable for\r\n"
+	"   importing into a Synchronet Message Group using `SCFG`.\r\n"
+	"\r\n"
+	" `*` SBBSecho will automatically sort and maintain this list, removing\r\n"
+	"   areas if they are added to your configuration (`SCFG->Message Areas`\r\n"
+	"   and `Area File`).\r\n"
 	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Bad Area File"
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Bad Area File"
 								,cfg.badareafile,sizeof(cfg.badareafile)-1
 								,K_EDIT);
 							break;
 
 						case 5:
 	uifc.helpbuf=
-	"~ Log File ~\n\n"
-	"This is the path of the file SBBSecho will use to log information each\n"
-	"time it is run (default is `" DEFAULT_LOG_FILE "`)."
+	"~ Log File ~\r\n\r\n"
+	"This is the path of the file SBBSecho will use to log information each time\r\n"
+	"it is run (default is `data/sbbsecho.log`)."
 	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Log File"
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Log File"
 								,cfg.logfile,sizeof(cfg.logfile)-1
 								,K_EDIT);
 							break; 
 
 						case 6:
 	uifc.helpbuf=
-	"~ EchoStats File ~\n\n"
-	"This is the path of the file SBBSecho will use to track statistics for\n"
-	"EchoMail message areas (default is `" DEFAULT_ECHOSTATS_FILE "`)."
+	"~ Temporary File Directory ~\r\n\r\n"
+	"This is the directory where SBBSecho will store temporary files that\r\n"
+	"it creates and uses during its run-time.\r\n"
+	"(default is `../temp/sbbsecho`)."
 	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"EchoStats File"
-								,cfg.echostats,sizeof(cfg.echostats)-1
-								,K_EDIT);
-							break; 
-
-						case 7:
-	uifc.helpbuf=
-	"~ Temporary File Directory ~\n\n"
-	"This is the directory where SBBSecho will store temporary files that\n"
-	"it creates and uses during its run-time (default is `" DEFAULT_TEMP_DIR "`)."
-	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Temp Dir"
+							uifc.input(WIN_MID|WIN_SAV,0,0,"Temp Dir"
 								,cfg.temp_dir,sizeof(cfg.temp_dir)-1
-								,K_EDIT);
-							break; 
-
-						case 8:
-	uifc.helpbuf=
-	"~ Outgoing Semaphore File ~\n\n"
-	"This is an optional file to create/touch whenever there are new outbound\n"
-	"files created or updated by SBBSecho."
-	;
-							uifc.input(WIN_L2R|WIN_SAV,0,0,"Outgoing Sem File"
-								,cfg.outgoing_sem,sizeof(cfg.outgoing_sem)-1
 								,K_EDIT);
 							break; 
 					} 
 				}
 				break;
 
-			case 3:	/* NetMail Settings */
+			case 4:	/* NetMail Settings */
 				j=0;
 				while(1) {
 					uifc.helpbuf=
-	"~ NetMail Settings ~\n"
-	"\n"
-	"`Sysop Aliases` is a comma-separated list of names by which the sysop\n"
-	"    (user #1) may receive NetMail messages, in addition to the alias\n"
-	"    and real name associated with their BBS user account.\n"
-	"    This setting defaults to just '`SYSOP`'.\n"
-	"\n"
-    "`Default Recipient` is the name of the user account you wish to receive\n"
-	"    inbound NetMail messages that have been addressed to an unrecognized\n"
-	"    user name or alias.\n"
-	"\n"
-	"`Fuzzy Zone Operation` when set to `Yes`, if SBBSecho receives an inbound\n"
-	"    netmail with no international zone information, it will compare the\n"
-	"    net/node of the destination to the net/node information in your AKAs\n"
-	"    and assume the zone of a matching AKA.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Kill/Ignore Empty NetMail Messages` will instruct SBBSecho to simply\n"
-	"    discard (not import or export) NetMail messages without any body.\n"
-	"    This setting defaults to `Yes`.\n"
-	"\n"
-	"`Delete Processed NetMail Messages` will instruct SBBSecho to delete\n"
-	"    NetMail messages/files after they have been sent or imported.\n"
-	"    When set to `No`, SBBSecho will mark them as Sent or Received instead.\n"
-	"    This setting defaults to `Yes`.\n"
-	"\n"
-	"`Ignore NetMail Destination Address` will instruct SBBSecho to treat\n"
-	"    all NetMail as though it is destined for one of your systems's FTN\n"
-	"    addresses (AKAs) and potentially import it.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Ignore Netmail 'Sent' Attribute` will instruct SBBSecho to export\n"
-	"    NetMail messages even when their 'Sent' attribute flag is set.\n"
-	"    This setting `should not` be set to `Yes` when `Delete NetMail` is\n"
-	"    disabled.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Ignore Netmail 'KillSent' Attribute` will instruct SBBSecho to ignore\n"
-	"    this attribute flag and will `not` delete Sent NetMail.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Ignore Netmail 'Received' Attribute` will instruct SBBSecho to import\n"
-	"    NetMail messages even when their 'Received' attribute flag is set.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Ignore NetMail 'Local' Attribute` will instruct SBBSecho to import\n"
-	"    NetMail messages even when their 'Local' attribute flag is set.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Maximum Age of Imported NetMail` allows you to optionally set an age\n"
-	"    limit of NetMail messages that may be imported.\n"
-	"    This setting defaults to `None` (no maximum age).\n"
+	"~ NetMail Settings ~\r\n"
+	"\r\n"
+	"`Sysop Aliases` is a comma-separated list of names by which the sysop\r\n"
+	"    (user #1) may receive NetMail messages, in addition to the alias\r\n"
+	"    and real name associated with their BBS user account.\r\n"
+	"    This setting defaults to just '`SYSOP`'.\r\n"
+	"\r\n"
+    "`Default Recipient` is the name of the user account you wish to receive\r\n"
+	"    inbound NetMail messages that have been addressed to an unrecognized\r\n"
+	"    user name or alias.\r\n"
+	"\r\n"
+	"`Fuzzy Zone Operation` when set to `Yes`, if SBBSecho receives an inbound\r\n"
+	"    netmail with no international zone information, it will compare the\r\n"
+	"    net/node of the destination to the net/node information in your AKAs\r\n"
+	"    and assume the zone of a matching AKA.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Kill/Ignore Empty NetMail Messages` will instruct SBBSecho to simply\r\n"
+	"    discard (not import or export) NetMail messages without any body.\r\n"
+	"    This setting defaults to `Yes`.\r\n"
+	"\r\n"
+	"`Delete Processed NetMail Messages` will instruct SBBSecho to delete\r\n"
+	"    NetMail messages/files after they have been sent or imported.\r\n"
+	"    When set to `No`, SBBSecho will mark them as Sent or Received instead.\r\n"
+	"    This setting defaults to `Yes`.\r\n"
+	"\r\n"
+	"`Ignore NetMail Destination Address` will instruct SBBSecho to treat\r\n"
+	"    all NetMail as though it is destined for one of your systems's FTN\r\n"
+	"    addresses (AKAs) and potentially import it.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Ignore Netmail 'Sent' Attribute` will instruct SBBSecho to export\r\n"
+	"    NetMail messages even when their 'Sent' attribute flag is set.\r\n"
+	"    This setting `should not` be set to `Yes` when `Delete NetMail` is\r\n"
+	"    disabled.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Ignore Netmail 'Received' Attribute` will instruct SBBSecho to import\r\n"
+	"    NetMail messages even when their 'Received' attribute flag is set.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Ignore NetMail 'Local' Attribute` will instruct SBBSecho to import\r\n"
+	"    NetMail messages even when their 'Local' attribute flag is set.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Maximum Age of Imported NetMail` allows you to optionally set an age\r\n"
+	"    limit (in days) of NetMail messages that may be imported.\r\n"
+	"    This setting defaults to `None` (no maximum age).\r\n"
 ;
 					i=0;
 					strListCombine(cfg.sysop_alias_list, sysop_aliases, sizeof(sysop_aliases)-1, ",");
@@ -1223,29 +926,27 @@ int main(int argc, char **argv)
 						,cfg.ignore_netmail_dest_addr ? "Yes" : "No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'Sent' Attribute"
 						,cfg.ignore_netmail_sent_attr ? "Yes" : "No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'KillSent' Attribute"
-						,cfg.ignore_netmail_kill_attr ? "Yes" : "No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'Received' Attribute"
 						,cfg.ignore_netmail_recv_attr ? "Yes" : "No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%-3.3s","Ignore NetMail 'Local' Attribute"
 						,cfg.ignore_netmail_local_attr ? "Yes" : "No");
 					if(cfg.max_netmail_age)
-						duration_to_vstr(cfg.max_netmail_age, str, sizeof(str));
+						sprintf(str,"%1.0f days", cfg.max_netmail_age / (24.0*60.0*60.0));
 					else
-						SAFECOPY(str, "None");
+						strcpy(str, "None");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%s","Maximum Age of Imported NetMail"	, str);
 					opt[i][0]=0;
-					j=uifc.list(WIN_ACT|WIN_SAV,0,0,0,&netmail_opt,0,"NetMail Settings",opt);
+					j=uifc.list(WIN_ACT,0,0,60,&j,0,"NetMail Settings",opt);
 					if(j==-1)
 						break;
 					switch(j) {
 						case 0:
 							uifc.helpbuf=
-							"~ Sysop Aliases ~\n\n"
-							"This is a comma-separated list of additional `To` names that the sysop\n"
-							"(user #1) can receive netmail by. When specifying multiple aliases,\n"
-							"they must be separated by a single comma and no extra white-space\n"
-							"(e.g. \"SYSOP,COORDINATOR\"). The default value is just `SYSOP`.\n";
+							"~ Sysop Aliases ~\r\n\r\n"
+							"This is a comma-separated list of additional `To` names that the sysop\r\n"
+							"(user #1) can receive netmail by. When specifying multiple aliases,\r\n"
+							"they must be separated by a single comma and no extra white-space\r\n"
+							"(e.g. \"SYSOP,COORDINATOR\"). The default value is just `SYSOP`.\r\n";
 							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Sysop Aliases (comma separated)"
 								,sysop_aliases
 								,sizeof(sysop_aliases)-1,K_EDIT|K_UPPER) >= 0) {
@@ -1299,14 +1000,6 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 7:
-							k = !cfg.ignore_netmail_kill_attr;
-							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Ignore NetMail 'KillSent' Attribute",uifcYesNoOpts)) {
-								case 0:	cfg.ignore_netmail_kill_attr = true;	break;
-								case 1:	cfg.ignore_netmail_kill_attr = false;	break;
-							}
-							break;
-						case 8:
 							k = !cfg.ignore_netmail_recv_attr;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Ignore NetMail 'Received' Attribute",uifcYesNoOpts)) {
@@ -1314,7 +1007,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.ignore_netmail_recv_attr = false;	break;
 							}
 							break;
-						case 9:
+						case 8:
 							k = !cfg.ignore_netmail_local_attr;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Ignore NetMail 'Local' Attribute",uifcYesNoOpts)) {
@@ -1322,100 +1015,84 @@ int main(int argc, char **argv)
 								case 1:	cfg.ignore_netmail_local_attr = false;	break;
 							}
 							break;
-						case 10:
+						case 9:
 							uifc.helpbuf=
-							"~ Maximum Age of Imported NetMail ~\n\n"
-							"Maximum age of NetMail that may be imported. The age is based\n"
-							"on the date supplied in the message header and may be incorrect in some\n"
-							"conditions (e.g. erroneous software or incorrect system date).\n"
+							"~ Maximum Age of Imported NetMail ~\r\n\r\n"
+							"Maximum age (in days) of NetMail that may be imported. The age is based\r\n"
+							"on the date supplied in the message header and may be incorrect in some\r\n"
+							"conditions (e.g. erroneous software or incorrect system date).\r\n"
 							"Set this value to `0` to disable this feature (no maximum age imposed)."
 							;
 							if(cfg.max_netmail_age)
-								duration_to_vstr(cfg.max_netmail_age, str, sizeof(str));
+								sprintf(str,"%1.0f", cfg.max_netmail_age / (24.0*60.0*60.0));
 							else
-								SAFECOPY(str, "None");
-							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum NetMail Age"
-								,str, 10, K_EDIT) >= 0)
-								cfg.max_netmail_age = (ulong)parse_duration(str);
+								strcpy(str, "None");
+							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum NetMail Age (in Days)"
+								,str, 5, K_EDIT) >= 0)
+								cfg.max_netmail_age = (long) (strtod(str, NULL) * (24.0*60.0*60.0));
 							break;
 
 					} 
 				}
 				break;
 
-			case 4:	/* EchoMail Settings */
+			case 5:	/* EchoMail Settings */
 				j=0;
 				while(1) {
 					uifc.helpbuf=
-	"~ EchoMail Settings ~\n"
-	"\n"
-	"`Area Manager` is the BBS user name or alias to notify (via email) of\n"
-	"    AreaFix activities and errors.  This setting defaults to `SYSOP`.\n"
-	"\n"
-	"`Maximum Packet Size` is the largest packet file size that SBBSecho will\n"
-	"    normally create (in bytes).\n"
-	"    This settings defaults to `250K` (250 Kilobytes, or 256,000 bytes).\n"
-	"\n"
-	"`Maximum Bundle Size` is the largest bundle file size that SBBSecho will\n"
-	"    normally create (in bytes).\n"
-	"    This settings defaults to `250K` (250 Kilobytes, or 256,000 bytes).\n"
-	"\n"
-	"`Secure Operation` tells SBBSecho to check the Area File (e.g. areas.bbs)\n"
-	"    to insure that the packet origin (FTN address) of EchoMail messages\n"
-	"    is already linked to the EchoMail area where the message was posted.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Notify Users of Received EchoMail` tells SBBSecho to send telegrams\n"
-	"    (short messages) to BBS users when EchoMail addressed to their name\n"
-	"    or alias has been imported into a message base that the user has\n"
-	"    access to read.\n"
-	"\n"
-	"`Convert Existing Tear Lines` tells SBBSecho to convert any tear lines\n"
-	"    (`---`) existing in the message text to `===`.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Strip Line Feeds From Outgoing Messages` when set to `Yes` instructs\n"
-	"    SBBSecho to remove any line-feed (ASCII 10) characters from the body\n"
-	"    text of messages being exported to FidoNet EchoMail.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Automatically Add New Subs to Area File`, when set to `Yes`, enables\n"
-	"    SBBSecho to detect newly added Sub-boards in any Message Groups that\n"
-	"    are listed with a `Linked Node` as their hub/uplink and add those\n"
-	"    Sub-boards as new areas in your Area File.\n"
-	"\n"
-	"`Allow Nodes to Add Areas from Area File` when set to `Yes` allows linked\n"
-	"    nodes to add areas listed in your Area File (e.g. `areas.bbs`).\n"
-	"    When set to `No`, only areas found in one or more `EchoLists` may be\n"
-	"    added via AreaFix, provided the linked node has access.\n"
-	"    This setting defaults to `Yes`.\n"
-	"\n"
-	"`Maximum Backups to Maintain of Area File` defines the number of backup\n"
-	"    versions SBBSecho will maintain of your Area File (e.g. `areas.bbs`).\n"
-	"\n"
-	"`Circular Path Detection` when `Enabled` will cause SBBSecho, during\n"
-	"    EchoMail import, to check the PATH kludge lines for any of the\n"
-	"    system's AKAs and if found (indicating a message loop), not import\n"
-	"    the message.\n"
-	"\n"
-	"`Relay Filtered Messages` controls whether or not incoming messages that\n"
-	"    have been filtered (e.g. due to maximum message age restrictions)\n"
-	"    are to be forwarded to downlinks.\n"
-	"\n"
-	"`Outbound Bundle Attachments` may be either `Deleted` (killed) or `Truncated`\n"
-	"    (changed to 0-bytes in length) after being sent by your mailer.\n"
-	"    This only controls the bundle prefix that is written to the FLO\n"
-	"    files (`#` for truncate, `^` for delete).\n"
-	"\n"
-	"`Zone Blind SEEN-BY and PATH Lines` when `Enabled` will cause SBBSecho\n"
-	"    to assume that node numbers are not duplicated across zones and\n"
-	"    that a net/node combination in either of these Kludge lines should\n"
-	"    be used to identify a specific node regardless of which zone that\n"
-	"    node is located (thus breaking the rules of FidoNet 3D addressing).\n"
-	"\n"
-	"`Maximum Age of Imported EchoMail` allows you to optionally set an age\n"
-	"    limit of EchoMail messages that may be imported.\n"
-	"    This setting defaults to `60 days`.\n"
+	"~ EchoMail Settings ~\r\n"
+	"\r\n"
+	"`Area Manager` is the BBS user name or alias to notify (via email) of\r\n"
+	"    AreaFix activities and errors.  This setting defaults to `SYSOP`.\r\n"
+	"\r\n"
+	"`Maximum Packet Size` is the largest packet file size that SBBSecho will\r\n"
+	"    normally create (in bytes).\r\n"
+	"    This settings defaults to `250K` (250 Kilobytes, or 256,000 bytes).\r\n"
+	"\r\n"
+	"`Maximum Bundle Size` is the largest bundle file size that SBBSecho will\r\n"
+	"    normally create (in bytes).\r\n"
+	"    This settings defaults to `250K` (250 Kilobytes, or 256,000 bytes).\r\n"
+	"\r\n"
+	"`Secure Operation` tells SBBSecho to check the Area File (e.g. areas.bbs)\r\n"
+	"    to insure that the packet origin (FTN address) of EchoMail messages\r\n"
+	"    is already linked to the EchoMail area where the message was posted.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Notify Users of Received EchoMail` tells SBBSecho to send telegrams\r\n"
+	"    (short messages) to BBS users when EchoMail addressed to their name\r\n"
+	"    or alias has been imported into a message base that the user has\r\n"
+	"    access to read.\r\n"
+	"\r\n"
+	"`Convert Existing Tear Lines` tells SBBSecho to convert any tear lines\r\n"
+	"    (`---`) existing in the message text to `===`.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Allow Nodes to Add Areas from Area File` when set to `Yes` allows linked\r\n"
+	"    nodes to add areas listed in your Area File (e.g. `areas.bbs`).\r\n"
+	"    This setting defaults to `Yes`.\r\n"
+	"\r\n"
+	"`Strip Line Feeds From Outgoing Messages` when set to `Yes` instructs\r\n"
+	"    SBBSecho to remove any line-feed (ASCII 10) characters from the body\r\n"
+	"    text of messages being exported to FidoNet EchoMail.\r\n"
+	"    This setting defaults to `No`.\r\n"
+	"\r\n"
+	"`Circular Path Detection` when `Enabled` will cause SBBSecho, during\r\n"
+	"    EchoMail import, to check the PATH kludge lines for any of the\r\n"
+	"    system's AKAs and if found (indicating a message loop), not import\r\n"
+	"    the message.\r\n"
+	"\r\n"
+	"`Outbound Bundle Attachments` may be either `Deleted` (killed) or `Truncated`\r\n"
+	"    (changed to 0-bytes in length) after being sent by your mailer.\r\n"
+	"\r\n"
+	"`Zone Blind SEEN-BY and PATH Lines` when `Enabled` will cause SBBSecho\r\n"
+	"    to assume that node numbers are not duplicated across zones and\r\n"
+	"    that a net/node combination in either of these Kludge lines should\r\n"
+	"    be used to identify a specific node regardless of which zone that\r\n"
+	"    node is located (thus breaking the rules of FidoNet 3D addressing).\r\n"
+	"\r\n"
+	"`Maximum Age of Imported EchoMail` allows you to optionally set an age\r\n"
+	"    limit (in days) of EchoMail messages that may be imported.\r\n"
+	"    This setting defaults to `60` (60 days).\r\n"
 	;
 
 					i=0;
@@ -1430,39 +1107,33 @@ int main(int argc, char **argv)
 						,cfg.echomail_notify ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Convert Existing Tear Lines"
 						,cfg.convert_tear ? "Yes":"No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Allow Nodes to Add Areas "
+						"from Area File",cfg.add_from_echolists_only ?"No":"Yes");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Strip Line Feeds "
 						"from Outgoing Messages",cfg.strip_lf ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Automatically Add New Subs "
-						"to Area File",cfg.auto_add_subs ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Allow Nodes to Add Areas "
-						"from Area File",cfg.add_from_echolists_only ? "No":"Yes");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%u","Maximum Backups to Maintain of Area File"
-						,cfg.areafile_backups);
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Circular Path Detection"
 						,cfg.check_path ? "Enabled" : "Disabled");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Relay Filtered Messages"
-						,cfg.relay_filtered_msgs ? "Yes" : "No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Outbound Bundle Attachments"
 						,cfg.trunc_bundles ? "Truncate" : "Delete");
 					if(cfg.zone_blind)
 						sprintf(str,"Zones 1-%u", cfg.zone_blind_threshold);
 					else
-						SAFECOPY(str,"Disabled");
+						strcpy(str,"Disabled");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Zone Blind SEEN-BY and PATH Lines", str);
 					if(cfg.max_echomail_age)
-						duration_to_vstr(cfg.max_echomail_age, str, sizeof(str));
+						sprintf(str,"%1.0f days", ((float)cfg.max_echomail_age) / (24.0*60.0*60.0));
 					else
-						SAFECOPY(str, "None");
+						strcpy(str, "None");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Maximum Age of Imported EchoMail", str);
 					opt[i][0]=0;
-					j=uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&echomail_opt,0,"EchoMail Settings",opt);
+					j=uifc.list(WIN_ACT|WIN_RHT|WIN_BOT,0,0,64,&j,0,"EchoMail Settings",opt);
 					if(j==-1)
 						break;
 					switch(j) {
 						case 0:
 				uifc.helpbuf=
-				"~ Area Manager ~\n\n"
-				"Local user to notify of AreaFix activity and errors.\n";
+				"~ Area Manager ~\r\n\r\n"
+				"User to notify of AreaFix activity and errors.\r\n";
 							uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Area Manager (user name or alias)"
 								,cfg.areamgr
 								,LEN_ALIAS,K_EDIT);
@@ -1470,9 +1141,9 @@ int main(int argc, char **argv)
 
 						case 1:
 				uifc.helpbuf=
-				"~ Maximum Packet Size ~\n\n"
-				"This is the maximum file size that SBBSecho will create when placing\n"
-				"outgoing messages into packets.  The default max size is 250 Kilobytes.\n";
+				"~ Maximum Packet Size ~\r\n\r\n"
+				"This is the maximum file size that SBBSecho will create when placing\r\n"
+				"outgoing messages into packets.  The default max size is 250 Kilobytes.\r\n";
 							sprintf(str,"%lu",cfg.maxpktsize);
 							uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum Packet Size (in Bytes)",str
 								,9,K_EDIT|K_NUMBER);
@@ -1481,9 +1152,9 @@ int main(int argc, char **argv)
 
 						case 2:
 				uifc.helpbuf=
-				"~ Maximum Bundle Size ~\n\n"
-				"This is the maximum file size that SBBSecho will create when placing\n"
-				"outgoing packets into bundles.  The default max size is 250 Kilobytes.\n";
+				"~ Maximum Bundle Size ~\r\n\r\n"
+				"This is the maximum file size that SBBSecho will create when placing\r\n"
+				"outgoing packets into bundles.  The default max size is 250 Kilobytes.\r\n";
 							sprintf(str,"%lu",cfg.maxbdlsize);
 							uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum Bundle Size (in Bytes)",str
 								,9,K_EDIT|K_NUMBER);
@@ -1514,6 +1185,14 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 6:
+							k = cfg.add_from_echolists_only;
+							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+								,"Allow Add from Area File",uifcYesNoOpts)) {
+								case 0:	cfg.add_from_echolists_only = false;	break;
+								case 1:	cfg.add_from_echolists_only = true;		break;
+							}
+							break;
+						case 7:
 							k = !cfg.strip_lf;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Strip Line Feeds",uifcYesNoOpts)) {
@@ -1521,29 +1200,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.strip_lf = false;	break;
 							}
 							break;
-						case 7:
-							k = !cfg.auto_add_subs;
-							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Automatically Add New Sub-boards to Area File",uifcYesNoOpts)) {
-								case 0:	cfg.auto_add_subs = true;	break;
-								case 1:	cfg.auto_add_subs = false;	break;
-							}
-							break;
 						case 8:
-							k = cfg.add_from_echolists_only;
-							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Allow AreaFix-Add from Area File",uifcYesNoOpts)) {
-								case 0:	cfg.add_from_echolists_only = false;	break;
-								case 1:	cfg.add_from_echolists_only = true;		break;
-							}
-							break;
-						case 9:
-							sprintf(str, "%u", cfg.areafile_backups);
-							if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Total Area File Backups to Maintain"
-								,str, 5, K_EDIT|K_NUMBER) >= 0)
-								cfg.areafile_backups = atoi(str);
-							break;
-						case 10:
 							k = !cfg.check_path;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Circular Path Detection",uifcYesNoOpts)) {
@@ -1551,15 +1208,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.check_path = false;	break;
 							}
 							break;
-						case 11:
-							k = !cfg.check_path;
-							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Relay Filtered EchoMail Messages",uifcYesNoOpts)) {
-								case 0:	cfg.relay_filtered_msgs = true;		break;
-								case 1:	cfg.relay_filtered_msgs = false;	break;
-							}
-							break;
-						case 12:
+						case 9:
 						{
 							k = cfg.trunc_bundles;
 							char* opt[] = {"Delete after Sent", "Truncate after Sent", NULL };
@@ -1570,7 +1219,7 @@ int main(int argc, char **argv)
 							}
 							break;
 						}
-						case 13:
+						case 10:
 							k = !cfg.zone_blind;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Zone Blind",uifcYesNoOpts)) {
 								case 0:
@@ -1588,48 +1237,46 @@ int main(int argc, char **argv)
 									break;
 							}
 							break;
-						case 14:
+						case 11:
 							uifc.helpbuf=
-							"~ Maximum Age of Imported EchoMail ~\n\n"
-							"Maximum age of EchoMail that may be imported. The age is based\n"
-							"on the date supplied in the message header and may be incorrect in some\n"
-							"conditions (e.g. erroneous software or incorrect system date).\n"
+							"~ Maximum Age of Imported EchoMail ~\r\n\r\n"
+							"Maximum age (in days) of EchoMail that may be imported. The age is based\r\n"
+							"on the date supplied in the message header and may be incorrect in some\r\n"
+							"conditions (e.g. erroneous software or incorrect system date).\r\n"
 							"Set this value to `0` to disable this feature (no maximum age imposed)."
 							;
 							if(cfg.max_echomail_age)
-								duration_to_vstr(cfg.max_echomail_age, str, sizeof(str));
+								sprintf(str,"%1.0f", cfg.max_echomail_age / (24.0*60.0*60.0));
 							else
-								SAFECOPY(str, "None");
-							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum EchoMail Age"
-								,str, 10, K_EDIT) >= 0)
-								cfg.max_echomail_age = (ulong)parse_duration(str);
+								strcpy(str, "None");
+							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum EchoMail Age (in Days)"
+								,str, 5, K_EDIT) >= 0)
+								cfg.max_echomail_age = (long) (strtod(str, NULL) * (24.0*60.0*60.0));
 							break;
 
 					} 
 				}
 				break;
 
-			case 2:	/* Archive Types */
+			case 3:	/* Archive Types */
 				i=0;
 				while(1) {
 					uifc.helpbuf=
-	"~ Archive Types ~\n\n"
-	"These are the archive file types that have been configured along with\n"
-	"their corresponding archive programs and command-lines for the packing\n"
-	"and unpacking of EchoMail bundle files.\n"
-	"\n"
+	"~ Archive Types ~\r\n\r\n"
+	"These are the archive file types that have been configured along with\r\n"
+	"their corresponding archive programs and command-lines for the packing\r\n"
+	"and unpacking of EchoMail bundle files.\r\n"
+	"\r\n"
 	"The corresponding archive programs are sometimes referred to as `packers`."
 	;
 					for(u=0;u<cfg.arcdefs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%-30.30s",cfg.arcdef[u].name);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
-					if(cfg.arcdefs)
-						mode |= WIN_COPY | WIN_CUT;
 					if(savarcdef.name[0])
-						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&archive_opt,0,"Archive Types",opt);
+						mode |= WIN_PUT;
+					i=uifc.list(mode,0,0,0,&i,0,"Archive Types",opt);
 					if(i==-1)
 						break;
 					int msk = i & MSK_ON;
@@ -1637,16 +1284,24 @@ int main(int argc, char **argv)
 					if (msk == MSK_INS) {
 						str[0]=0;
 	uifc.helpbuf=
-	"~ Archive Type ~\n\n"
-	"This is the identifying name of the archiving program (packer).\n";
-						if(uifc.input(WIN_MID|WIN_SAV,0,0
+	"~ Archive Type ~\r\n\r\n"
+	"This is the identifying name of the archiving program (packer).\r\n";
+						if(uifc.input(WIN_MID,0,0
 							,"Archive Type",str,25,K_EDIT|K_UPPER)<1)
 							continue;
-						if(!new_arcdef(i)) {
+						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
+							,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
-						SAFECOPY(cfg.arcdef[i].name,str);
+						for(j=cfg.arcdefs;j>i;j--)
+							memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1]
+								,sizeof(arcdef_t));
+							strcpy(cfg.arcdef[j].name
+								,cfg.arcdef[j-1].name);
+						cfg.arcdefs++;
+						memset(&cfg.arcdef[i],0,sizeof(arcdef_t));
+						strcpy(cfg.arcdef[i].name,str);
 						continue; 
 					}
 
@@ -1661,15 +1316,18 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.arcdefs;u++)
 							memcpy(&cfg.arcdef[u],&cfg.arcdef[u+1]
 								,sizeof(arcdef_t));
+						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
+							,sizeof(arcdef_t)*(cfg.arcdefs)))==NULL) {
+							printf("\nMemory Allocation Error\n");
+							exit(1); 
+						}
 						continue; 
 					}
-					if (msk == MSK_COPY) {
+					if (msk == MSK_GET) {
 						memcpy(&savarcdef,&cfg.arcdef[i],sizeof(arcdef_t));
 						continue; 
 					}
-					if (msk == MSK_PASTE) {
-						if(!new_arcdef(i))
-							continue;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.arcdef[i],&savarcdef,sizeof(arcdef_t));
 						continue; 
 					}
@@ -1691,15 +1349,15 @@ int main(int argc, char **argv)
 							,cfg.arcdef[i].unpack);
 						opt[j][0]=0;
 						SAFEPRINTF(str,"Archive Type - %s", cfg.arcdef[i].name);
-						k=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,0,0,0,&packop,0,str,opt);
+						k=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,0,0,60,&packop,0,str,opt);
 						if(k==-1)
 							break;
 						switch(k) {
 							case 0:
 								uifc.helpbuf=
-								"~ Archive Type ~\n\n"
-								"This is the identifying name of the archive file type. Usually this name\n"
-								"corresponds with the common file extension or suffix denoting this type\n"
+								"~ Archive Type ~\r\n\r\n"
+								"This is the identifying name of the archive file type. Usually this name\r\n"
+								"corresponds with the common file extension or suffix denoting this type\r\n"
 								"of archive file (e.g. `zip`, `arc`, etc.)."
 								;
 								uifc.input(WIN_MID|WIN_SAV,0,0
@@ -1709,10 +1367,10 @@ int main(int argc, char **argv)
 								break;
 							case 1:
 								uifc.helpbuf=
-								"~ Archive Signature ~\n\n"
-								"This is the identifying signature of the archive file format (in\n"
-								"hexadecimal notation).  This signature is used in combination with the\n"
-								"Archive `Signature Offset` for the automatic detection of proper archive\n"
+								"~ Archive Signature ~\r\n\r\n"
+								"This is the identifying signature of the archive file format (in\r\n"
+								"hexadecimal notation).  This signature is used in combination with the\r\n"
+								"Archive `Signature Offset` for the automatic detection of proper archive\r\n"
 								"program to extract (unarchive) inbound EchoMail bundle files."
 								;
 								uifc.input(WIN_MID|WIN_SAV,0,0
@@ -1722,10 +1380,10 @@ int main(int argc, char **argv)
 								break;
 							case 2:
 								uifc.helpbuf=
-								"~ Archive Signature Offset ~\n\n"
-								"This is the byte-offset of the identifying signature of the archive file\n"
-								"format.  This offset is used in combination with the Archive `Signature`\n"
-								"for the automatic detection of proper archive program to extract\n"
+								"~ Archive Signature Offset ~\r\n\r\n"
+								"This is the byte-offset of the identifying signature of the archive file\r\n"
+								"format.  This offset is used in combination with the Archive `Signature`\r\n"
+								"for the automatic detection of proper archive program to extract\r\n"
 								"(unarchive) inbound EchoMail bundle files."
 								;
 								sprintf(str,"%u",cfg.arcdef[i].byteloc);
@@ -1736,22 +1394,22 @@ int main(int argc, char **argv)
 								break;
 							case 3:
 								uifc.helpbuf=
-								"~ Pack Command Line ~\n\n"
-								"This is the command-line to execute to create an archive file of the\n"
-								"selected type.  The following command-line specifiers may be used for\n"
-								"dynamic variable replacement:\n"
-								"\n"
-								"  `%f`  The path/filename of the archive file to be created\n"
-								"  `%s`  The path/filename of the file(s) to be added to the archive\n"
-								"  `%!`  The Synchronet `exec` directory\n"
-								"  `%@`  The Synchronet `exec` directory only for non-Unix systems\n"
-								"  `%.`  Blank for Unix systems, '`.exe`' otherwise\n"
-								"  `%?`  The current platform description (e.g. 'linux', 'win32')\n"
-								"  `%j`  The Synchronet `data` directory\n"
-								"  `%k`  The Synchronet `ctrl` directory\n"
-								"  `%o`  The configured system operator name\n"
-								"  `%q`  The configured system QWK-ID\n"
-								"  `%g`  The configured temporary file directory\n"
+								"~ Pack Command Line ~\r\n\r\n"
+								"This is the command-line to execute to create an archive file of the\r\n"
+								"selected type.  The following command-line specifiers may be used for\r\n"
+								"dynamic variable replacement:\r\n"
+								"\r\n"
+								"  `%f`  The path/filename of the archive file to be created\r\n"
+								"  `%s`  The path/filename of the file(s) to be added to the archive\r\n"
+								"  `%!`  The Synchronet `exec` directory\r\n"
+								"  `%@`  The Synchronet `exec` directory only for non-Unix systems\r\n"
+								"  `%.`  Blank for Unix systems, '`.exe`' otherwise\r\n"
+								"  `%?`  The current platform description (e.g. 'linux', 'win32')\r\n"
+								"  `%j`  The Synchronet `data` directory\r\n"
+								"  `%k`  The Synchronet `ctrl` directory\r\n"
+								"  `%o`  The configured system operator name\r\n"
+								"  `%q`  The configured system QWK-ID\r\n"
+								"  `%g`  The configured temporary file directory\r\n"
 								;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Pack Command Line"
@@ -1760,22 +1418,22 @@ int main(int argc, char **argv)
 								break;
 							case 4:
 								uifc.helpbuf=
-								"~ Unpack Command Line ~\n\n"
-								"This is the command-line to execute to extract an archive file of the\n"
-								"selected type.  The following command-line specifiers may be used for\n"
-								"dynamic variable replacement:\n"
-								"\n"
-								"  `%f`  The path/filename of the archive file to be extracted\n"
-								"  `%s`  The destination directory for files extracted from the archive\n"
-								"  `%!`  The Synchronet `exec` directory\n"
-								"  `%@`  The Synchronet `exec` directory only for non-Unix systems\n"
-								"  `%.`  Blank for Unix systems, '`.exe`' otherwise\n"
-								"  `%?`  The current platform description (e.g. 'linux', 'win32')\n"
-								"  `%j`  The Synchronet `data` directory\n"
-								"  `%k`  The Synchronet `ctrl` directory\n"
-								"  `%o`  The configured system operator name\n"
-								"  `%q`  The configured system QWK-ID\n"
-								"  `%g`  The configured temporary file directory\n"
+								"~ Unpack Command Line ~\r\n\r\n"
+								"This is the command-line to execute to extract an archive file of the\r\n"
+								"selected type.  The following command-line specifiers may be used for\r\n"
+								"dynamic variable replacement:\r\n"
+								"\r\n"
+								"  `%f`  The path/filename of the archive file to be extracted\r\n"
+								"  `%s`  The path/filename of the file(s) to extracted from the archive\r\n"
+								"  `%!`  The Synchronet `exec` directory\r\n"
+								"  `%@`  The Synchronet `exec` directory only for non-Unix systems\r\n"
+								"  `%.`  Blank for Unix systems, '`.exe`' otherwise\r\n"
+								"  `%?`  The current platform description (e.g. 'linux', 'win32')\r\n"
+								"  `%j`  The Synchronet `data` directory\r\n"
+								"  `%k`  The Synchronet `ctrl` directory\r\n"
+								"  `%o`  The configured system operator name\r\n"
+								"  `%q`  The configured system QWK-ID\r\n"
+								"  `%g`  The configured temporary file directory\r\n"
 								;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Unpack Command Line"
@@ -1787,24 +1445,22 @@ int main(int argc, char **argv)
 				}
 				break;
 
-			case 6:
+			case 7:
 	uifc.helpbuf=
-	"~ EchoLists ~\n\n"
-	"This feature allows you to specify lists of echoes, in `BACKBONE.NA`\n"
-	"format, which are utilized in `addition` to your Area File (e.g. \n"
-	"`areas.bbs`) for advanced AreaFix (Area Management) operations.\n";
+	"~ Additional EchoLists ~\r\n\r\n"
+	"This feature allows you to specify lists of echoes, in `BACKBONE.NA`\r\n"
+	"format, which are utilized in `addition` to your Area File (e.g. \r\n"
+	"`areas.bbs`) for advanced AreaFix (Area Management) operations.\r\n";
 				i=0;
 				while(1) {
 					for(u=0;u<cfg.listcfgs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%s",cfg.listcfg[u].listpath);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
-					if(cfg.listcfgs)
-						mode |= WIN_COPY | WIN_CUT;
 					if(savlistcfg.listpath[0])
-						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&echolist_opt,0,"EchoLists",opt);
+						mode |= WIN_PUT;
+					i=uifc.list(mode,0,0,0,&i,0,"Additional EchoLists",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -1812,17 +1468,23 @@ int main(int argc, char **argv)
 					if (msk == MSK_INS) {
 						str[0]=0;
 	uifc.helpbuf=
-	"~ EchoList ~\n\n"
-	"This is the path and filename of the echolist file you wish\n"
-	"to add.\n";
+	"~ EchoList ~\r\n\r\n"
+	"This is the path and filename of the echolist file you wish\r\n"
+	"to add.\r\n";
 						if(uifc.input(WIN_MID|WIN_SAV,0,0
 							,"EchoList Path/Name",str,50,K_EDIT)<1)
 							continue;
-						if(!new_list(i)) {
+						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
+							,sizeof(echolist_t)*(cfg.listcfgs+1)))==NULL) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
-						SAFECOPY(cfg.listcfg[i].listpath,str);
+						for(j=cfg.listcfgs;j>i;j--)
+							memcpy(&cfg.listcfg[j],&cfg.listcfg[j-1]
+								,sizeof(echolist_t));
+						cfg.listcfgs++;
+						memset(&cfg.listcfg[i],0,sizeof(echolist_t));
+						strcpy(cfg.listcfg[i].listpath,str);
 						continue; 
 					}
 
@@ -1837,15 +1499,18 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.listcfgs;u++)
 							memcpy(&cfg.listcfg[u],&cfg.listcfg[u+1]
 								,sizeof(echolist_t));
+						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
+							,sizeof(echolist_t)*(cfg.listcfgs)))==NULL) {
+							printf("\nMemory Allocation Error\n");
+							exit(1); 
+						}
 						continue; 
 					}
-					if (msk == MSK_COPY) {
+					if (msk == MSK_GET) {
 						memcpy(&savlistcfg,&cfg.listcfg[i],sizeof(echolist_t));
 						continue; 
 					}
-					if (msk == MSK_PASTE) {
-						if(!new_list(i))
-							continue;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.listcfg[i],&savlistcfg,sizeof(echolist_t));
 						continue; 
 					}
@@ -1854,26 +1519,23 @@ int main(int argc, char **argv)
 					while(1) {
 						j=0;
 						uifc.helpbuf=
-						"Configuring an EchoList"
+						"Configuring an Additional EchoList"
 						;
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","EchoList Path/Name"
 							,cfg.listcfg[i].listpath);
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Required Key"
-							,strListCombine(cfg.listcfg[i].keys, str, sizeof(str), ","));
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Hub Address"
 							,(cfg.listcfg[i].hub.zone) ?
 							 faddrtoa(&cfg.listcfg[i].hub) : "None");
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Forward AreaMgr Requests"
+						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Forward Password"
+							,(cfg.listcfg[i].password[0]) ?
+							 cfg.listcfg[i].password : "None");
+						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Forward Requests"
 							,cfg.listcfg[i].forward ? "Yes" : "No");
-						if(cfg.listcfg[i].forward) {
-							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaMgr Name"
-								,cfg.listcfg[i].areamgr);
-							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaMgr Password"
-								,cfg.listcfg[i].password);
-						}
+						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Keys"
+							,strListCombine(cfg.listcfg[i].keys, str, sizeof(str), ","));
 						opt[j][0]=0;
-						SAFEPRINTF(str, "EchoList - %s", getfname(cfg.listcfg[i].listpath));
-						k=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,0,0,0,&listop,0,str,opt);
+						SAFEPRINTF(str, "Additional EchoList - %s", getfname(cfg.listcfg[i].listpath));
+						k=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,0,0,60,&listop,0,str,opt);
 						if(k==-1)
 							break;
 						switch(k) {
@@ -1884,28 +1546,47 @@ int main(int argc, char **argv)
 									,K_EDIT);
 								break;
 							case 1:
+								if(cfg.listcfg[i].hub.zone)
+									strcpy(str,faddrtoa(&cfg.listcfg[i].hub));
+								else
+									str[0]=0;
+								uifc.input(WIN_MID|WIN_SAV,0,0
+									,"Hub Address",str
+									,25,K_EDIT);
+								if(str[0])
+									cfg.listcfg[i].hub=atofaddr(str);
+								else
+									memset(&cfg.listcfg[i].hub,0
+										,sizeof(faddr_t));
+								break;
+							case 2:
+								uifc.input(WIN_MID|WIN_SAV,0,0
+									,"Password to use when forwarding requests"
+									,cfg.listcfg[i].password,sizeof(cfg.listcfg[i].password)-1
+									,K_EDIT|K_UPPER);
+								break;
+							case 3:
+								cfg.listcfg[i].forward = !cfg.listcfg[i].forward;
+								break;
+							case 4:
 								uifc.helpbuf=
-								"~ Required Key ~\n\n"
-								"These keys determine which linked nodes have access to the selected\n"
-								"echolist file via AreaFix requests (e.g. query, add, remove).\n"
-								"\n"
-								"A linked node need only have one of the required keys to have access\n"
-								"the echolist."
-								;
+								"~ AreaFix Keys ~\r\n\r\n"
+								"These keys determine which linked nodes have access to the current\r\n"
+								"echolist file via AreaFix requests (e.g. query, add, remove).\r\n";
 								while(1) {
 									for(u=0; cfg.listcfg[i].keys!=NULL && cfg.listcfg[i].keys[u] != NULL;u++)
 										strcpy(opt[u],cfg.listcfg[i].keys[u]);
 									opt[u][0]=0;
 									x=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|
 										WIN_XTR|WIN_INSACT|WIN_DELACT|WIN_RHT
-										,0,0,0,&x,0,"Required Key (any one of)",opt);
+										,0,0,0,&x,0,"AreaFix keys",opt);
 									if(x==-1)
 										break;
 									if((x&MSK_ON)==MSK_INS) {
 										x&=MSK_OFF;
 										str[0]=0;
 										if(uifc.input(WIN_MID|WIN_SAV,0,0
-											,"EchoList Key",str,SBBSECHO_MAX_KEY_LEN
+											,"AreaFix Keys",str,SBBSECHO_MAX_KEY_LEN
 											,K_EDIT|K_UPPER)<1)
 											continue;
 										strListInsert(&cfg.listcfg[i].keys,str,x);
@@ -1918,47 +1599,18 @@ int main(int argc, char **argv)
 										continue; 
 									}
 									SAFECOPY(str,cfg.listcfg[i].keys[x]);
-										uifc.input(WIN_MID|WIN_SAV,0,0,"EchoList Keys"
+										uifc.input(WIN_MID|WIN_SAV,0,0,"AreaFix Keys"
 											,str,SBBSECHO_MAX_KEY_LEN,K_EDIT|K_UPPER);
 										strListReplace(cfg.listcfg[i].keys,x,str);
 										continue; 
 								}
-								break;
-							case 2:
-								if(cfg.listcfg[i].hub.zone)
-									SAFECOPY(str,faddrtoa(&cfg.listcfg[i].hub));
-								else
-									str[0]=0;
-								uifc.input(WIN_MID|WIN_SAV,0,0
-									,"Hub Address",str
-									,25,K_EDIT);
-								if(str[0])
-									cfg.listcfg[i].hub=atofaddr(str);
-								else
-									memset(&cfg.listcfg[i].hub,0
-										,sizeof(faddr_t));
-								break;
-							case 3:
-								cfg.listcfg[i].forward = !cfg.listcfg[i].forward;
-								break;
-							case 4:
-								uifc.input(WIN_MID|WIN_SAV,0,0
-									,"Name to use when forwarding AreaMgr requests"
-									,cfg.listcfg[i].areamgr,sizeof(cfg.listcfg[i].areamgr)-1
-									,K_EDIT);
-								break;
-							case 5:
-								uifc.input(WIN_MID|WIN_SAV,0,0
-									,"Password to use when forwarding AreaMgr requests"
-									,cfg.listcfg[i].password,sizeof(cfg.listcfg[i].password)-1
-									,K_EDIT|K_UPPER);
 								break;
 						} 
 					} 
 				}
 				break;
 
-			case 7:
+			case 8:
 				if(!sbbsecho_write_ini(&cfg))
 					uifc.msg("Error saving configuration file");
 				else {
@@ -1969,11 +1621,14 @@ int main(int argc, char **argv)
 			case -1:
 				if(uifc.changes) {
 		uifc.helpbuf=
-		"~ Save Configuration File ~\n\n"
-		"Select `Yes` to save the config file, `No` to quit without saving,\n"
-		"or hit ~ ESC ~ to go back to the menu.\n\n";
+		"~ Save Configuration File ~\r\n\r\n"
+		"Select `Yes` to save the config file, `No` to quit without saving,\r\n"
+		"or hit ~ ESC ~ to go back to the menu.\r\n\r\n";
 					i=0;
-					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
+					strcpy(opt[0],"Yes");
+					strcpy(opt[1],"No");
+					opt[2][0]=0;
+					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",opt);
 					if(i==-1) break;
 					if(i) {uifc.bail(); exit(0);}
 					if(!sbbsecho_write_ini(&cfg))
