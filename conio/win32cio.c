@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.101 2014/11/13 07:40:55 deuce Exp $ */
+/* $Id: win32cio.c,v 1.103 2017/10/26 20:39:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,8 +101,8 @@ CIOLIBEXPORTVAR const struct keyvals keyval[] =
 	{VK_UP, 0x4800, 0x4800, 0x8d00, 0x9800},
 	{VK_RIGHT, 0x4d00, 0x4d00, 0x7400, 0x9d00},
 	{VK_DOWN, 0x5000, 0x5000, 0x9100, 0xa000},
-	{VK_INSERT, 0x5200, 0x5200, 0x9200, 0xa200},
-	{VK_DELETE, 0x5300, 0x5300, 0x9300, 0xa300},
+	{VK_INSERT, CIO_KEY_IC, CIO_KEY_SHIFT_IC, CIO_KEY_CTRL_IC, 0xa200},
+	{VK_DELETE, CIO_KEY_DC, CIO_KEY_SHIFT_DC, CIO_KEY_CTRL_DC, 0xa300},
 	{VK_NUMPAD0, '0', 0x5200, 0x9200, 0},
 	{VK_NUMPAD1, '1', 0x4f00, 0x7500, 0},
 	{VK_NUMPAD2, '2', 0x5000, 0x9100, 0},
@@ -548,8 +548,17 @@ int win32_initciolib(long inmode)
 	}
 	else {
 		/* Switch to closest mode to current screen size */
-		cio_textinfo.screenwidth=sbuff.srWindow.Right-sbuff.srWindow.Left+1;
-		cio_textinfo.screenheight=sbuff.srWindow.Bottom-sbuff.srWindow.Top+1;
+		unsigned screenwidth = sbuff.srWindow.Right - sbuff.srWindow.Left + 1;
+		unsigned screenheight = sbuff.srWindow.Bottom - sbuff.srWindow.Top + 1;
+		if (screenwidth > 0xff)
+			cio_textinfo.screenwidth = 0xff;
+		else
+			cio_textinfo.screenwidth = screenwidth;
+		if (screenheight > 0xff)
+			cio_textinfo.screenheight = 0xff;
+		else
+			cio_textinfo.screenheight = screenheight;
+
 		if(cio_textinfo.screenwidth>=132) {
 			if(cio_textinfo.screenheight<25)
 				win32_textmode(VESA_132X21);
@@ -644,7 +653,7 @@ void win32_textmode(int mode)
 	if ((h=GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE)
 		return;
 	if (!SetConsoleScreenBufferSize(h,sz))
-		return;
+		return;	// Note: This fails and returns here with large windows (e.g. width > 255)
 	if (!SetConsoleWindowInfo(h,TRUE,&rc))
 		return;
 	sz.X=vparams[modeidx].cols;
