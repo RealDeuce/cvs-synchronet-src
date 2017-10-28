@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.168 2018/01/12 22:23:07 rswindell Exp $ */
+/* $Id: js_file.c,v 1.167 2016/12/01 21:42:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2666,8 +2666,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,317
 	},
 	{"write",			js_write,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("text [,length=<i>text_length</i>]")
-	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process). "
-		"If the specified <i>length</i> is longer than the <i>text</i>, the remaining length will be written as NUL bytes.")
+	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process)")
 	,310
 	},
 	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[text]")
