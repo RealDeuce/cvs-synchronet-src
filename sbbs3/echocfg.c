@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.12 2017/06/09 04:52:58 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.19 2017/10/19 05:56:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,6 +78,10 @@ int main(int argc, char **argv)
 	char	sysop_aliases[256];
 	sbbsecho_cfg_t orig_cfg;
 
+	ZERO_VAR(savlistcfg);
+	ZERO_VAR(savnodecfg);
+	ZERO_VAR(savarcdef);
+
 	fprintf(stderr,"\nSBBSecho Configuration  Version %u.%02u  Copyright %s "
 		"Rob Swindell\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR, __DATE__+7);
 
@@ -124,6 +128,9 @@ int main(int argc, char **argv)
 							goto USAGE;
 					}
 					break;
+				case 'K':	/* Keyboard-only mode (no mouse support) */
+					uifc.mode |= UIFC_NOMOUSE;
+					break;
 		        case 'M':   /* Monochrome mode */
         			uifc.mode|=UIFC_MONO;
                     break;
@@ -137,6 +144,7 @@ int main(int argc, char **argv)
 					USAGE:
                     printf("\nusage: echocfg [path/to/sbbsecho.ini] [options]"
                         "\n\noptions:\n\n"
+						"-k  =  keyboard mode only (no mouse support)\r\n"
                         "-c  =  force color mode\r\n"
 						"-m  =  force monochrome mode\r\n"
                         "-e# =  set escape delay to #msec\r\n"
@@ -156,7 +164,7 @@ int main(int argc, char **argv)
         			exit(0);
 		}
 		else
-			strcpy(str,argv[1]);
+			strcpy(str,argv[i]);
 	}
 	if(str[0]==0) {
 		p=getenv("SBBSCTRL");
@@ -315,13 +323,16 @@ int main(int argc, char **argv)
 							,faddrtoa(&cfg.nodecfg[u].addr)
 							,cfg.nodecfg[u].comment);
 					opt[u][0]=0;
-					i=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|WIN_GET|WIN_PUT
-						|WIN_INSACT|WIN_DELACT|WIN_XTR
-						,0,0,0,&i,0,"Linked Nodes",opt);
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
+						| WIN_INSACT | WIN_DELACT | WIN_XTR;
+					if (savnodecfg.addr.zone)
+						mode |= WIN_PUT;
+					i=uifc.list(mode,0,0,0,&i,0,"Linked Nodes",opt);
 					if(i==-1)
 						break;
-					if((i&MSK_ON)==MSK_INS) {
-						i&=MSK_OFF;
+					int msk = i&MSK_ON;
+					i &= MSK_OFF;
+					if (msk == MSK_INS) {
 						str[0]=0;
 	uifc.helpbuf=
 	"~ Address ~\r\n\r\n"
@@ -345,8 +356,9 @@ int main(int argc, char **argv)
 						continue; 
 					}
 
-					if((i&MSK_ON)==MSK_DEL) {
-						i&=MSK_OFF;
+					if (msk == MSK_DEL || msk == MSK_CUT) {
+						if(msk == MSK_CUT)
+							memcpy(&savnodecfg, &cfg.nodecfg[i], sizeof(nodecfg_t));
 						cfg.nodecfgs--;
 						if(cfg.nodecfgs<=0) {
 							cfg.nodecfgs=0;
@@ -363,13 +375,11 @@ int main(int argc, char **argv)
 						uifc.changes=TRUE;
 						continue; 
 					}
-					if((i&MSK_ON)==MSK_GET) {
-						i&=MSK_OFF;
+					if (msk == MSK_GET) {
 						memcpy(&savnodecfg,&cfg.nodecfg[i],sizeof(nodecfg_t));
 						continue; 
 					}
-					if((i&MSK_ON)==MSK_PUT) {
-						i&=MSK_OFF;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.nodecfg[i],&savnodecfg,sizeof(nodecfg_t));
 						uifc.changes=TRUE;
 						continue; 
@@ -404,14 +414,20 @@ int main(int argc, char **argv)
 	"packets for this node.  Incoming packets from this node must also have\r\n"
 	"the same password value if this password is configured (not blank).\r\n"
 	"Packet passwords are case insensitive.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
+	"\r\n"
+	"`TIC File Password` is an optional password that may be configured here\r\n"
+	"(and in your `sbbsecho.ini` file) for use by `ticket.js` when creating\r\n"
+	"or authenticating `.TIC` files.\r\n"
+	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
 	"\r\n"
 	"`AreaFix Password` is an optional password used to enable AreaFix\r\n"
-	"NetMail requests from this node.\r\n"
+	"NetMail requests (remote Area Management) from this node.\r\n"
 	"AreaFix Passwords are case insensitive.\r\n"
 	"This setting may be managed by the node using NetMail/AreaFix requests.\r\n"
 	"\r\n"
-	"`AreaFix Keys` is a list of keys which enable access to one or more\r\n"
-	"Additional EchoLists.\r\n"
+	"`AreaFix Keys` is a list of keys which enable AreaFix access to one or\r\n"
+	"more Additional EchoLists.\r\n"
 	"\r\n"
 	"`Status` is the default mode for sending mail to this node: `Normal`, `Hold`\r\n"
 	"(wait for pickup) or `Crash` (immediate).\r\n"
@@ -450,6 +466,8 @@ int main(int argc, char **argv)
 							,pktTypeStringList[cfg.nodecfg[i].pkt_type]);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Packet Password"
 							,cfg.nodecfg[i].pktpwd);
+						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","TIC File Password"
+							,cfg.nodecfg[i].ticpwd);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Password"
 							,cfg.nodecfg[i].password);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Keys"
@@ -466,8 +484,10 @@ int main(int argc, char **argv)
 							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Route To"
 								,cfg.nodecfg[i].route.zone
 								? faddrtoa(&cfg.nodecfg[i].route) : "Disabled");
-							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s", "Inbox Directory", cfg.nodecfg[i].inbox);
-							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s", "Outbox Directory", cfg.nodecfg[i].outbox);
+							if(!faddr_contains_wildcard(&cfg.nodecfg[i].addr)) {
+								snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s", "Inbox Directory", cfg.nodecfg[i].inbox);
+								snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s", "Outbox Directory", cfg.nodecfg[i].outbox);
+							}
 						}
 						opt[j][0]=0;
 						SAFEPRINTF(str, "Linked Node - %s"
@@ -550,6 +570,16 @@ int main(int argc, char **argv)
 								break;
 							case 5:
 	uifc.helpbuf=
+	"~ TIC File Password ~\r\n\r\n"
+	"This is an optional password that ticket.js will use for creating\r\n"
+	"and authenticating `.TIC` files to/from this node.\r\n";
+								uifc.input(WIN_MID|WIN_SAV,0,0
+									,"TIC File Password (optional)"
+									,cfg.nodecfg[i].ticpwd,sizeof(cfg.nodecfg[i].ticpwd)-1
+									,K_EDIT|K_UPPER);
+								break;
+							case 6:
+	uifc.helpbuf=
 	"~ AreaFix Password ~\r\n\r\n"
 	"This is the password that will be used by this node when doing remote\r\n"
 	"AreaManager / AreaFix functions.\r\n";
@@ -558,11 +588,11 @@ int main(int argc, char **argv)
 									,cfg.nodecfg[i].password,sizeof(cfg.nodecfg[i].password)-1
 									,K_EDIT|K_UPPER);
 								break;
-							case 6:
+							case 7:
 	uifc.helpbuf=
 	"~ AreaFix Keys ~\r\n\r\n"
-	"This is a named-key to to be given to this node allowing access to one or\r\n"
-	"more of the configured echolists\r\n";
+	"These are a named-keys to be given to this node allowing access to one or\r\n"
+	"more of the configured `Additional Echolists`\r\n";
 								while(1) {
 									for(j=0; cfg.nodecfg[i].keys!=NULL && cfg.nodecfg[i].keys[j]!=NULL ;j++)
 										strcpy(opt[j],cfg.nodecfg[i].keys[j]);
@@ -575,7 +605,7 @@ int main(int argc, char **argv)
 									if((k&MSK_ON)==MSK_INS) {
 										k&=MSK_OFF;
 										if(uifc.input(WIN_MID|WIN_SAV,0,0
-											,"AreaFix Key",str,SBBSECHO_MAX_KEY_LEN
+											,"AreaFix Keys",str,SBBSECHO_MAX_KEY_LEN
 											,K_UPPER)<1)
 											continue;
 										strListInsert(&cfg.nodecfg[i].keys, str, k);
@@ -597,7 +627,7 @@ int main(int argc, char **argv)
 									continue; 
 								}
 								break;
-							case 7:
+							case 8:
 	uifc.helpbuf=
 	"~ Mail Status ~\r\n\r\n"
 	"Set the mail status for this node: `Normal`, `Hold`, or `Crash`.\r\n";
@@ -611,7 +641,7 @@ int main(int argc, char **argv)
 									uifc.changes=TRUE;
 								}
 								break;
-							case 8:
+							case 9:
 								k = !cfg.nodecfg[i].direct;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"Direct Delivery",uifcYesNoOpts)) {
@@ -619,7 +649,7 @@ int main(int argc, char **argv)
 									case 1:	cfg.nodecfg[i].direct = false;	uifc.changes=TRUE; break;
 								}
 								break;
-							case 9:
+							case 10:
 								k = !cfg.nodecfg[i].passive;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"Passive Node",uifcYesNoOpts)) {
@@ -627,7 +657,7 @@ int main(int argc, char **argv)
 									case 1:	cfg.nodecfg[i].passive = false;	uifc.changes=TRUE; break;
 								}
 								break;
-							case 10:
+							case 11:
 								k = !cfg.nodecfg[i].send_notify;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"Send AreaFix Notifications",uifcYesNoOpts)) {
@@ -635,7 +665,7 @@ int main(int argc, char **argv)
 									case 1:	cfg.nodecfg[i].send_notify = false;	uifc.changes=TRUE; break;
 								}
 								break;
-							case 11:
+							case 12:
 	uifc.helpbuf=
 	"~ Route To ~\r\n\r\n"
 	"When using a BSO/FLO type mailer, this is the Fido address to route mail\r\n"
@@ -655,12 +685,12 @@ int main(int argc, char **argv)
 									uifc.changes=TRUE;
 								}
 								break;
-							case 12:
+							case 13:
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Inbound FileBox Directory"
 									,cfg.nodecfg[i].inbox, sizeof(cfg.nodecfg[i].inbox)-1
 									,K_EDIT);
 								break;
-							case 13:
+							case 14:
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Outbound FileBox Directory"
 									,cfg.nodecfg[i].outbox, sizeof(cfg.nodecfg[i].outbox)-1
 									,K_EDIT);
@@ -753,16 +783,23 @@ int main(int argc, char **argv)
 	"   `<tag>`  is the network's agreed-upon `echo tag` for the message area\r\n"
 	"   `[link]` is an `FTN address` to send and receive messages for this area\r\n"
 	"          (there may be many linked nodes for each area)\r\n"
+	"          (often your FTN hub may be the only linked node)\r\n"
+	"\r\n"
+	"Example Area Line:\r\n"
+	"\r\n"
+	"   `FIDO_BBS_CARN    BBS_CARNIVAL                        1:218/700`\r\n"
 	"\r\n"
 	"Notes:\r\n"
 	"\r\n"
-	" * Only the `<code>` and `<tag>` fields are required\r\n"
-	" * The '`<`' and '`>`', '`[`' and '`]`' characters are not part of the syntax\r\n"
-	" * Lines beginning with a semicolon (`;`) are ignored (i.e. comments)\r\n"
-	" * Leading white-space characters are ignored\r\n"
-	" * Blank lines are ignored\r\n"
-	" * This file may be import/exported to/from your `Message Areas` in `SCFG`\r\n"
-	" * This file may be remotely modified by authorized nodes using `AreaFix`\r\n"
+	" `*` Only the `<code>` and `<tag>` fields are required\r\n"
+	" `*` The `<code>` and `<tag>` fields are case in-sensitive\r\n"
+	" `*` The `[link]` fields must be 2D, 3D, or 4D FidoNet-style node addresses\r\n"
+	" `*` The '`<`' and '`>`', '`[`' and '`]`' characters are not part of the syntax\r\n"
+	" `*` Lines beginning with a semicolon (`;`) are ignored (i.e. comments)\r\n"
+	" `*` Leading white-space characters are ignored\r\n"
+	" `*` Blank lines are ignored\r\n"
+	" `*` This file may be import/exported to/from your `Message Areas` in `SCFG`\r\n"
+	" `*` This file may be remotely modified by authorized nodes using `AreaFix`\r\n"
 	;
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Area File"
 								,cfg.areafile,sizeof(cfg.areafile)-1
@@ -774,17 +811,21 @@ int main(int argc, char **argv)
 	"~ Bad Area File ~\r\n\r\n"
 	"This is the path of the file SBBSecho will use to record the names\r\n"
 	"(echo tags) and descriptions of FTN message areas (echoes) that your\r\n"
-	"system has received EchoMail for, but does not carry locally (default\r\n"
-	"is `data/badarea.lst`).\r\n"
+	"system has received EchoMail for, but does not carry locally. The\r\n"
+	"default path/filename is `data/badareas.lst`.\r\n"
 	"\r\n"
-	"The descriptions of the areas will only be included if the corresponding\r\n"
-	"echo tags can be located in one of your configured `Additional EchoLists`.\r\n"
+	"Notes:\r\n"
 	"\r\n"
-	"The format of the file is the same as `BACKBONE.NA` and suitable for\r\n"
-	"importing into a Synchronet Message Group using `SCFG`.\r\n"
+	" `*` The descriptions of the areas will only be included if the\r\n"
+	"   corresponding echo tags can be located in one of your configured\r\n"
+	"   `Additional EchoLists`.\r\n"
 	"\r\n"
-	"SBBSecho will automatically remove areas from this list when they\r\n"
-	"are added to your configuration (SCFG->Message Areas and Area File).\r\n"
+	" `*` The format of the file is the same as `BACKBONE.NA` and suitable for\r\n"
+	"   importing into a Synchronet Message Group using `SCFG`.\r\n"
+	"\r\n"
+	" `*` SBBSecho will automatically sort and maintain this list, removing\r\n"
+	"   areas if they are added to your configuration (`SCFG->Message Areas`\r\n"
+	"   and `Area File`).\r\n"
 	;
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Bad Area File"
 								,cfg.badareafile,sizeof(cfg.badareafile)-1
@@ -1231,13 +1272,16 @@ int main(int argc, char **argv)
 					for(u=0;u<cfg.arcdefs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%-30.30s",cfg.arcdef[u].name);
 					opt[u][0]=0;
-					i=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|WIN_GET|WIN_PUT
-						|WIN_INSACT|WIN_DELACT|WIN_XTR
-						,0,0,0,&i,0,"Archive Types",opt);
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
+						| WIN_INSACT | WIN_DELACT | WIN_XTR;
+					if(savarcdef.name[0])
+						mode |= WIN_PUT;
+					i=uifc.list(mode,0,0,0,&i,0,"Archive Types",opt);
 					if(i==-1)
 						break;
-					if((i&MSK_ON)==MSK_INS) {
-						i&=MSK_OFF;
+					int msk = i & MSK_ON;
+					i &= MSK_OFF;
+					if (msk == MSK_INS) {
 						str[0]=0;
 	uifc.helpbuf=
 	"~ Archive Type ~\r\n\r\n"
@@ -1261,8 +1305,9 @@ int main(int argc, char **argv)
 						continue; 
 					}
 
-					if((i&MSK_ON)==MSK_DEL) {
-						i&=MSK_OFF;
+					if (msk == MSK_DEL || msk == MSK_CUT) {
+						if (msk == MSK_CUT)
+							memcpy(&savarcdef, &cfg.arcdef[i], sizeof(arcdef_t));
 						cfg.arcdefs--;
 						if(cfg.arcdefs<=0) {
 							cfg.arcdefs=0;
@@ -1278,16 +1323,16 @@ int main(int argc, char **argv)
 						}
 						continue; 
 					}
-					if((i&MSK_ON)==MSK_GET) {
-						i&=MSK_OFF;
+					if (msk == MSK_GET) {
 						memcpy(&savarcdef,&cfg.arcdef[i],sizeof(arcdef_t));
 						continue; 
 					}
-					if((i&MSK_ON)==MSK_PUT) {
-						i&=MSK_OFF;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.arcdef[i],&savarcdef,sizeof(arcdef_t));
 						continue; 
 					}
+					if (msk != 0)
+						continue;
 					while(1) {
 						uifc.helpbuf=
 	"Archive Type and Program configuration";
@@ -1403,21 +1448,24 @@ int main(int argc, char **argv)
 			case 7:
 	uifc.helpbuf=
 	"~ Additional EchoLists ~\r\n\r\n"
-	"This feature allows you to specify lists of echoes, in `BACKBONE.NA` format\r\n"
-	"which are utilized in addition to your Area File (e.g. `areas.bbs`)\r\n"
-	"for advanced AreaFix (Area Management) operations.\r\n";
+	"This feature allows you to specify lists of echoes, in `BACKBONE.NA`\r\n"
+	"format, which are utilized in `addition` to your Area File (e.g. \r\n"
+	"`areas.bbs`) for advanced AreaFix (Area Management) operations.\r\n";
 				i=0;
 				while(1) {
 					for(u=0;u<cfg.listcfgs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%s",cfg.listcfg[u].listpath);
 					opt[u][0]=0;
-					i=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|WIN_GET|WIN_PUT
-						|WIN_INSACT|WIN_DELACT|WIN_XTR
-						,0,0,0,&i,0,"Additional EchoLists",opt);
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
+						| WIN_INSACT | WIN_DELACT | WIN_XTR;
+					if(savlistcfg.listpath[0])
+						mode |= WIN_PUT;
+					i=uifc.list(mode,0,0,0,&i,0,"Additional EchoLists",opt);
 					if(i==-1)
 						break;
-					if((i&MSK_ON)==MSK_INS) {
-						i&=MSK_OFF;
+					int msk = i&MSK_ON;
+					i &= MSK_OFF;
+					if (msk == MSK_INS) {
 						str[0]=0;
 	uifc.helpbuf=
 	"~ EchoList ~\r\n\r\n"
@@ -1440,8 +1488,9 @@ int main(int argc, char **argv)
 						continue; 
 					}
 
-					if((i&MSK_ON)==MSK_DEL) {
-						i&=MSK_OFF;
+					if (msk == MSK_DEL || msk == MSK_CUT) {
+						if(msk == MSK_CUT)
+							memcpy(&savlistcfg, &cfg.listcfg[i], sizeof(echolist_t));
 						cfg.listcfgs--;
 						if(cfg.listcfgs<=0) {
 							cfg.listcfgs=0;
@@ -1457,16 +1506,16 @@ int main(int argc, char **argv)
 						}
 						continue; 
 					}
-					if((i&MSK_ON)==MSK_GET) {
-						i&=MSK_OFF;
+					if (msk == MSK_GET) {
 						memcpy(&savlistcfg,&cfg.listcfg[i],sizeof(echolist_t));
 						continue; 
 					}
-					if((i&MSK_ON)==MSK_PUT) {
-						i&=MSK_OFF;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.listcfg[i],&savlistcfg,sizeof(echolist_t));
 						continue; 
 					}
+					if (msk != 0)
+						continue;
 					while(1) {
 						j=0;
 						uifc.helpbuf=
@@ -1482,7 +1531,7 @@ int main(int argc, char **argv)
 							 cfg.listcfg[i].password : "None");
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Forward Requests"
 							,cfg.listcfg[i].forward ? "Yes" : "No");
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Areafix keys"
+						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","AreaFix Keys"
 							,strListCombine(cfg.listcfg[i].keys, str, sizeof(str), ","));
 						opt[j][0]=0;
 						SAFEPRINTF(str, "Additional EchoList - %s", getfname(cfg.listcfg[i].listpath));
@@ -1520,24 +1569,24 @@ int main(int argc, char **argv)
 								cfg.listcfg[i].forward = !cfg.listcfg[i].forward;
 								break;
 							case 4:
+								uifc.helpbuf=
+								"~ AreaFix Keys ~\r\n\r\n"
+								"These keys determine which linked nodes have access to the current\r\n"
+								"echolist file via AreaFix requests (e.g. query, add, remove).\r\n";
 								while(1) {
 									for(u=0; cfg.listcfg[i].keys!=NULL && cfg.listcfg[i].keys[u] != NULL;u++)
 										strcpy(opt[u],cfg.listcfg[i].keys[u]);
 									opt[u][0]=0;
 									x=uifc.list(WIN_SAV|WIN_INS|WIN_DEL|WIN_ACT|
 										WIN_XTR|WIN_INSACT|WIN_DELACT|WIN_RHT
-										,0,0,0,&x,0,"EchoList keys",opt);
+										,0,0,0,&x,0,"AreaFix keys",opt);
 									if(x==-1)
 										break;
 									if((x&MSK_ON)==MSK_INS) {
 										x&=MSK_OFF;
 										str[0]=0;
-	uifc.helpbuf=
-	"~ EchoList Keys ~\r\n\r\n"
-	"These keys determine which nodes have access to the current\r\n"
-	"echolist file via AreaFix requests.\r\n";
 										if(uifc.input(WIN_MID|WIN_SAV,0,0
-											,"EchoList Key",str,SBBSECHO_MAX_KEY_LEN
+											,"AreaFix Keys",str,SBBSECHO_MAX_KEY_LEN
 											,K_EDIT|K_UPPER)<1)
 											continue;
 										strListInsert(&cfg.listcfg[i].keys,str,x);
@@ -1550,11 +1599,7 @@ int main(int argc, char **argv)
 										continue; 
 									}
 									SAFECOPY(str,cfg.listcfg[i].keys[x]);
-	uifc.helpbuf=
-	"~ EchoList Keys ~\r\n\r\n"
-	"These keys determine which nodes have access to the current\r\n"
-	"echolist file via AreaFix requests.\r\n";
-										uifc.input(WIN_MID|WIN_SAV,0,0,"EchoList Key"
+										uifc.input(WIN_MID|WIN_SAV,0,0,"AreaFix Keys"
 											,str,SBBSECHO_MAX_KEY_LEN,K_EDIT|K_UPPER);
 										strListReplace(cfg.listcfg[i].keys,x,str);
 										continue; 
