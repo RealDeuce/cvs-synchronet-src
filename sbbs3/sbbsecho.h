@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.17 2017/10/26 20:44:41 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.18 2017/10/28 20:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,6 +106,7 @@ typedef struct {
 	enum mail_status status;
 #define SBBSECHO_ARCHIVE_NONE	NULL
 	arcdef_t*	archive;
+	str_list_t	grphub;			/* This link is hub of these groups (short names */
 } nodecfg_t;
 
 typedef struct {
@@ -135,6 +136,7 @@ typedef struct {
 	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
 	uint		areafile_backups;		/* Number of backups to keep of area file */
 	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
+	char		echostats[MAX_PATH+1];	/* Echo statistics (default: data/echostats.ini) */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
@@ -178,6 +180,7 @@ typedef struct {
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
 	bool		relay_filtered_msgs;
+	bool		auto_add_subs;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */
