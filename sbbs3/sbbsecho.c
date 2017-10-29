@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.48 2017/10/29 23:25:24 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.49 2017/10/29 23:29:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4710,7 +4710,7 @@ bool retoss_bad_echomail(void)
 	}
 		
 	for(ulong m=0; m<posts && !terminated; m++) {
-		printf("\r%*s %5lu of %-5"PRIu32"  "
+		printf("\r%*s %5lu of %-5lu  "
 			,LEN_EXTCODE,scfg.sub[badsub]->code,m+1,posts);
 		smbmsg_t badmsg;
 		memset(&badmsg, 0, sizeof(badmsg));
@@ -4778,7 +4778,7 @@ bool retoss_bad_echomail(void)
 			continue;
 		}
 		truncsp(body);
-		uchar* tail = smb_getmsgtxt(&badsmb, &badmsg, GETMSGTXT_TAIL_ONLY);
+		char* tail = smb_getmsgtxt(&badsmb, &badmsg, GETMSGTXT_TAIL_ONLY);
 		if(tail != NULL)
 			truncsp(tail);
 
@@ -4800,13 +4800,13 @@ bool retoss_bad_echomail(void)
 			long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 			if(smb.status.max_crcs == 0)
 				dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
-			uchar* body_start = body;
+			char* body_start = body;
 			if(strncmp(body_start, "AREA:", 5) == 0) {
 				FIND_CHAR(body_start, '\r');
 				SKIP_CHARSET(body_start, "\r\n");
 			}
 			retval = smb_addmsg(&smb, &newmsg, smb.status.attr&SMB_HYPERALLOC, dupechk_hashes, XLAT_NONE
-				,body_start, tail);
+				,(uchar*)body_start, (uchar*)tail);
 			FREE_AND_NULL(body);
 			FREE_AND_NULL(tail);
 
@@ -5663,7 +5663,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.48 $", "%*s %s", revision);
+	sscanf("$Revision: 3.49 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
