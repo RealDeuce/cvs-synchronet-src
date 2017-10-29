@@ -1,4 +1,4 @@
-/* $Id: scfgchat.c,v 1.21 2017/11/11 22:27:18 rswindell Exp $ */
+/* $Id: scfgchat.c,v 1.20 2017/10/23 07:09:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,7 +75,6 @@ void page_cfg()
 				"`External Chat Pager Command Line:`\n"
 				"\n"
 				"This is the command line to execute for this external chat pager.\n"
-				SCFG_CMDLINE_SPEC_HELP
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Command Line",str,50
 				,K_EDIT)<1)
@@ -141,7 +140,6 @@ void page_cfg()
 						"`External Chat Pager Command Line:`\n"
 						"\n"
 						"This is the command line to execute for this external chat pager.\n"
-						SCFG_CMDLINE_SPEC_HELP
 					;
 					strcpy(str,cfg.page[i]->cmd);
 					if(!uifc.input(WIN_MID|WIN_SAV,0,10,"Command Line"

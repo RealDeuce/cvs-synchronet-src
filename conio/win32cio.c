@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.104 2017/11/05 02:22:03 rswindell Exp $ */
+/* $Id: win32cio.c,v 1.103 2017/10/26 20:39:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -813,7 +813,7 @@ char *win32_getcliptext(void)
 {
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
-	char *ret = NULL;
+	char *ret;
 
 	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
 		return(NULL);
