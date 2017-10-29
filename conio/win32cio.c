@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.107 2018/02/05 18:52:26 deuce Exp $ */
+/* $Id: win32cio.c,v 1.103 2017/10/26 20:39:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -617,7 +617,6 @@ int win32_initciolib(long inmode)
 		atexit(RestoreDisplayMode);
 	}
 	cio_api.mouse=1;
-	cio_api.options = CONIO_OPT_BRIGHT_BACKGROUND | CONIO_OPT_CUSTOM_CURSOR | CONIO_OPT_SET_TITLE;
 	return(1);
 }
 
@@ -639,9 +638,6 @@ void win32_textmode(int mode)
 	HANDLE	h;
 	COORD	sz;
 	SMALL_RECT	rc;
-#if 0
-	CONSOLE_SCREEN_BUFFER_INFOEX	bi;
-#endif
 
 	for(i=0;i<NUMMODES;i++) {
 		if(vparams[i].mode==mode)
@@ -676,16 +672,6 @@ void win32_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-#if 0
-	if (GetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
-		for (i = 0; i < 16; i++) {
-			bi.ColorTable[] = RGB(dac_default[palettes[vparams[modeidx]][i]].red, dac_default[palettes[vparams[modeidx].palette][i]].green, dac_default[palettes[vparams[modeidx]][i]].blue);
-		}
-		if (SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
-			cio_api.options |= CONIO_OPT_PALETTE_SETTING;
-		}
-	}
-#endif
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -827,7 +813,7 @@ char *win32_getcliptext(void)
 {
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
-	char *ret = NULL;
+	char *ret;
 
 	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
 		return(NULL);
@@ -895,23 +881,4 @@ int win32_getvideoflags(void)
 	if(mode==CONSOLE_FULLSCREEN_MODE)
 		return(0);
 	return(CIOLIB_VIDEO_BGBRIGHT);
-}
-
-int win32_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
-{
-#if 0
-	CONSOLE_SCREEN_BUFFER_INFOEX	bi;
-
-	if (entry > 15)
-		return 0;
-
-	if (!GetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi))
-		return 0;
-
-	bi.ColorTable[entry] = RGB(r >> 8, g >> 8, b >> 8);
-	if (!SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi))
-		return 0;
-#endif
-
-	return 1;
 }
