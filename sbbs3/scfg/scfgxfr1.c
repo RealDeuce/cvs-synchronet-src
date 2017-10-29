@@ -1,4 +1,4 @@
-/* $Id: scfgxfr1.c,v 1.27 2017/11/11 22:27:18 rswindell Exp $ */
+/* $Id: scfgxfr1.c,v 1.25 2017/10/23 07:09:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,6 +177,9 @@ void xfer_opts()
 				cfg.cdt_dn_pct=atoi(tmp);
 				break;
 			case 6:
+				strcpy(opt[0],"Yes");
+				strcpy(opt[1],"No");
+				opt[2][0]=0;
 				i=0;
 				uifc.helpbuf=
 					"`Long Filenames in File Listings:`\n"
@@ -186,7 +189,7 @@ void xfer_opts()
 					"or later.\n"
 				;
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Long Filenames in Listings (Win98/Win2K)",uifcYesNoOpts);
+					,"Long Filenames in Listings (Win98/Win2K)",opt);
 				if(!i && cfg.file_misc&FM_NO_LFN) {
 					cfg.file_misc&=~FM_NO_LFN;
 					uifc.changes=1;
@@ -242,8 +245,8 @@ void xfer_opts()
 						"`Viewable File Types:`\n"
 						"\n"
 						"This is a list of file types that have content information that can be\n"
-						"viewed on the Terminal Server through the execution of an external\n"
-						"program."
+						"viewed through the execution of an external program. Here are a couple of\n"
+						"command line examples for a few file types.\n"
 					;
 					i=uifc.list(i,0,0,50,&fview_dflt,NULL,"Viewable File Types",opt);
 					if(i==-1)
@@ -330,7 +333,6 @@ void xfer_opts()
 									,cfg.fview[i]->ext,sizeof(cfg.fview[i]->ext)-1,K_EDIT);
 								break;
 							case 1:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.fview[i]->cmd,sizeof(cfg.fview[i]->cmd)-1,K_EDIT);
@@ -362,7 +364,7 @@ void xfer_opts()
 						"This is a list of file types that will have a command line executed to\n"
 						"test the file integrity upon their upload. The file types are specified\n"
 						"by `extension` and if one file extension is listed more than once, each\n"
-						"command line will be executed. The command lines must return a error\n"
+						"command line will be executed. The command lines must return a DOS error\n"
 						"code of 0 (no error) in order for the file to pass the test. This method\n"
 						"of file testing upon upload is also known as an upload event. This test\n"
 						"or event, can do more than just test the file, it can perform any\n"
@@ -461,7 +463,6 @@ void xfer_opts()
 									,cfg.ftest[i]->ext,sizeof(cfg.ftest[i]->ext)-1,K_EDIT);
 								break;
 							case 1:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.ftest[i]->cmd,sizeof(cfg.ftest[i]->cmd)-1,K_EDIT);
@@ -498,7 +499,7 @@ void xfer_opts()
 						"perform an event upon their download (e.g. trigger a download event).\n"
 						"The file types are specified by `extension` and if one file extension\n"
 						"is listed more than once, each command line will be executed. The\n"
-						"command lines must return a error level of 0 (no error) in order\n"
+						"command lines must return a DOS error code of 0 (no error) in order\n"
 						"for the file to pass the test. This test or event, can do more than\n"
 						"just test the file, it can perform any function that the sysop wishes.\n"
 						"Such as adding comments to an archived file, or extracting an archive\n"
@@ -595,7 +596,6 @@ void xfer_opts()
 									,cfg.dlevent[i]->ext,sizeof(cfg.dlevent[i]->ext)-1,K_EDIT);
 								break;
 							case 1:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.dlevent[i]->cmd,sizeof(cfg.dlevent[i]->cmd)-1,K_EDIT);
@@ -720,7 +720,6 @@ void xfer_opts()
 									,cfg.fextr[i]->ext,sizeof(cfg.fextr[i]->ext)-1,K_EDIT);
 								break;
 							case 1:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.fextr[i]->cmd,sizeof(cfg.fextr[i]->cmd)-1,K_EDIT);
@@ -838,7 +837,6 @@ void xfer_opts()
 									,cfg.fcomp[i]->ext,sizeof(cfg.fcomp[i]->ext)-1,K_EDIT);
 								break;
 							case 1:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.fcomp[i]->cmd,sizeof(cfg.fcomp[i]->cmd)-1,K_EDIT);
@@ -991,39 +989,37 @@ void xfer_opts()
 								getar(str,cfg.prot[i]->arstr);
 								break;
 							case 3:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.prot[i]->ulcmd,sizeof(cfg.prot[i]->ulcmd)-1,K_EDIT);
 								break;
 							case 4:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.prot[i]->dlcmd,sizeof(cfg.prot[i]->dlcmd)-1,K_EDIT);
 								break;
 							case 5:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.prot[i]->batulcmd,sizeof(cfg.prot[i]->batulcmd)-1,K_EDIT);
 								break;
 							case 6:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.prot[i]->batdlcmd,sizeof(cfg.prot[i]->batdlcmd)-1,K_EDIT);
 								break;
 							case 7:
-								uifc.helpbuf = SCFG_CMDLINE_SPEC_HELP;
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Command"
 									,cfg.prot[i]->bicmd,sizeof(cfg.prot[i]->bicmd)-1,K_EDIT);
 								break;
 							case 8:
 								l=cfg.prot[i]->misc&PROT_NATIVE ? 0:1;
+								strcpy(opt[0],"Yes");
+								strcpy(opt[1],"No");
+								opt[2][0]=0;
 								l=uifc.list(WIN_MID|WIN_SAV,0,0,0,&l,0
-									,"Native (32-bit) Executable",uifcYesNoOpts);
+									,"Native (32-bit) Executable",opt);
 								if((l==0 && !(cfg.prot[i]->misc&PROT_NATIVE))
 									|| (l==1 && cfg.prot[i]->misc&PROT_NATIVE)) {
 									cfg.prot[i]->misc^=PROT_NATIVE;
@@ -1032,8 +1028,11 @@ void xfer_opts()
 								break; 
 							case 9:
 								l=cfg.prot[i]->misc&PROT_DSZLOG ? 0:1;
+								strcpy(opt[0],"Yes");
+								strcpy(opt[1],"No");
+								opt[2][0]=0;
 								l=uifc.list(WIN_MID|WIN_SAV,0,0,0,&l,0
-									,"Uses DSZLOG",uifcYesNoOpts);
+									,"Uses DSZLOG",opt);
 								if((l==0 && !(cfg.prot[i]->misc&PROT_DSZLOG))
 									|| (l==1 && cfg.prot[i]->misc&PROT_DSZLOG)) {
 									cfg.prot[i]->misc^=PROT_DSZLOG;
@@ -1042,8 +1041,11 @@ void xfer_opts()
 								break; 
 							case 10:
 								l=cfg.prot[i]->misc&PROT_SOCKET ? 0:1l;
+								strcpy(opt[0],"Yes");
+								strcpy(opt[1],"No");
+								opt[2][0]=0;
 								l=uifc.list(WIN_MID|WIN_SAV,0,0,0,&l,0
-									,"Uses Socket I/O",uifcYesNoOpts);
+									,"Uses Socket I/O",opt);
 								if((l==0 && !(cfg.prot[i]->misc&PROT_SOCKET))
 									|| (l==1 && cfg.prot[i]->misc&PROT_SOCKET)) {
 									cfg.prot[i]->misc^=PROT_SOCKET;
