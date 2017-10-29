@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.74 2018/01/22 09:31:41 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.73 2017/10/10 22:29:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -504,7 +504,7 @@ CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
 CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
 CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void ciolib_mouse_thread(void *data);
+CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
