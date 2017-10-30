@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.73 2016/11/16 09:05:38 rswindell Exp $ */
+/* $Id: str.cpp,v 1.74 2017/10/12 09:14:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,8 +71,9 @@ void sbbs_t::userlist(long mode)
 			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user,/* client: */NULL))
 				continue;
 			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user,/* client: */NULL)
-				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
-				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
+				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar!=NULL 
+					&& cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
+					&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
 				continue; 
 		}
 		else if(mode==UL_DIR) {
