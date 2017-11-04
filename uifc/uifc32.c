@@ -1,6 +1,6 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 
-/* $Id: uifc32.c,v 1.227 2017/10/26 20:40:52 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.228 2017/11/04 22:58:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2276,7 +2276,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						}
 						continue;
 					}
-					/* Fall-through at beginning of string */
+					break;
 				case CIO_KEY_DC:	/* delete */
 				case DEL:			/* sdl_getch() is returning 127 when keypad "Del" is hit */
 					if(i<j)
