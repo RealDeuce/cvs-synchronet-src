@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.646 2017/11/24 23:35:21 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.645 2017/06/15 19:12:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5184,8 +5184,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-	if(startup==NULL || startup->lputs==NULL)
-		return(JS_FALSE);
+    if(startup==NULL || startup->lputs==NULL)
+        return(JS_FALSE);
 
 	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
 		if(!JS_ValueToInt32(cx,argv[i++],&level))
@@ -6484,7 +6484,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.646 $", "%*s %s", revision);
+	sscanf("$Revision: 1.645 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
