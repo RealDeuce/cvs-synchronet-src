@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.21 2017/08/17 19:41:09 rswindell Exp $ */
+/* $Id: scfg.h,v 1.24 2017/10/23 04:17:13 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <limits.h>	/* USHRT_MAX */
 
 #include "gen_defs.h"
@@ -52,6 +53,16 @@
 
 #define SUB_HDRMOD	(1L<<31)		/* Modified sub-board header info */
 
+#define MAX_UNIQUE_CODE_ATTEMPTS (36*36*36)
+
+enum import_list_type {
+	IMPORT_LIST_TYPE_SUBS_TXT,
+	IMPORT_LIST_TYPE_QWK_CONTROL_DAT,
+	IMPORT_LIST_TYPE_GENERIC_AREAS_BBS,
+	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
+	IMPORT_LIST_TYPE_BACKBONE_NA,
+};
+
 /************/
 /* Typedefs */
 /************/
@@ -69,6 +80,7 @@ extern char *nulstr;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
 extern BOOL new_install;
+char* area_sort_desc[AREA_SORT_TYPES];
 
 /***********************/
 /* Function Prototypes */
@@ -110,6 +122,15 @@ int export_mdm(char *fname);
 int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
+bool new_sub(unsigned new_subnum, unsigned group_num);
+bool new_qhub_sub(qhub_t*, unsigned qsubnum, sub_t*, unsigned confnum);
+void sort_subs(int grpnum);
+void sort_dirs(int libnum);
+unsigned subs_in_group(unsigned grpnum);
+char random_code_char(void);
+
+	
+long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum, qhub_t*, long* added);
 
 /* Prepare a string to be used as an internal code; Note: use the return value, Luke */
 char* prep_code(char *str, const char* prefix);
