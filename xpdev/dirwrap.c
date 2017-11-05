@@ -1,7 +1,8 @@
-/* Directory-related system-call wrappers */
-// vi: tabstop=4
+/* dirwrap.c */
 
-/* $Id: dirwrap.c,v 1.95 2018/01/13 06:11:56 rswindell Exp $ */
+/* Directory-related system-call wrappers */
+
+/* $Id: dirwrap.c,v 1.92 2017/08/26 06:44:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +153,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
-   return strcmp( * ( char** ) arg1, * ( char** ) arg2 );
+   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
 }
 
 #if defined(__BORLANDC__)
@@ -387,22 +388,6 @@ void DLLCALL rewinddir(DIR* dir)
 	dir->handle=_findfirst(dir->filespec,&dir->finddata);
 }
 #endif /* defined(_MSC_VER) */
-
-/****************************************************************************/
-/* Returns the creation time of the file 'filename' in time_t format		*/
-/****************************************************************************/
-time_t DLLCALL fcdate(const char* filename)
-{
-	struct stat st;
-
-	if(access(filename, 0) < 0)
-		return -1;
-
-	if(stat(filename, &st) != 0)
-		return -1;
-
-	return st.st_ctime;
-}
 
 /****************************************************************************/
 /* Returns the time/date of the file in 'filename' in time_t (unix) format  */
@@ -886,7 +871,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	struct statfs fs;
 	unsigned long blocks;
 
-	if(statfs(path, &fs) < 0)
+    if (statfs(path, &fs) < 0)
     	return 0;
 
 	if(freespace)

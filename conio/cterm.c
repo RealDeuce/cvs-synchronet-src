@@ -1,10 +1,10 @@
-/* $Id: cterm.c,v 1.158 2018/01/24 04:41:51 rswindell Exp $ */
+/* $Id: cterm.c,v 1.156 2017/10/26 21:42:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -1366,7 +1366,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								case 1:
 								case 2:
 								case 3:
-									cterm->setfont_result = SETFONT(j,FALSE,i+1);
+									SETFONT(j,FALSE,i+1);
 							}
 						}
 					}
@@ -1592,16 +1592,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					i=strtoul(cterm->escbuf+1,NULL,10);
 					if(!i) {
 						if(retbuf!=NULL) {
-							uint8_t mode_flags = cterm->autowrap 
-								| (cterm->origin_mode << 1)
-								| (cterm->doorway_mode << 2)
-								| (cterm->cursor << 3);
-							if(strlen(retbuf)+strlen(cterm->DA)+12 < retsize)
-								sprintf(retbuf + strlen(retbuf), "%s;%u;%u;%uc"
-									,cterm->DA
-									,(uint8_t)cterm->setfont_result
-									,(uint8_t)GETVIDEOFLAGS()
-									,mode_flags);
+							if(strlen(retbuf)+strlen(cterm->DA) < retsize)
+								strcat(retbuf,cterm->DA);
 						}
 					}
 					break;
@@ -1893,7 +1885,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.158 $";
+	char	*revision="$Revision: 1.156 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1930,7 +1922,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->origin_mode=false;
 	if(cterm->scrollback!=NULL)
 		memset(cterm->scrollback,0,cterm->width*2*cterm->backlines);
-	sprintf(cterm->DA,"\x1b[=67;84;101;114;109;%u;", CONIO_FIRST_FREE_FONT);
+	strcpy(cterm->DA,"\x1b[=67;84;101;114;109;");
 	out=strchr(cterm->DA, 0);
 	if(out != NULL) {
 		for(in=revision; *in; in++) {
@@ -1941,6 +1933,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 		}
 		*out=0;
 	}
+	strcat(cterm->DA,"c");
 	/* Fire up note playing thread */
 	if(!cterm->playnote_thread_running) {
 		listInit(&cterm->notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
@@ -2100,7 +2093,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 	*cterm->_wscroll=oldscroll;
 }
 
-CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *vbuf, int buflen, char *retbuf, size_t retsize, int *speed)
+char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *vbuf, int buflen, char *retbuf, size_t retsize, int *speed)
 {
 	const unsigned char *buf = (unsigned char *)vbuf;
 	unsigned char ch[2];
