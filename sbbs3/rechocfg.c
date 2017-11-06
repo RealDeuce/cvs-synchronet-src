@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.23 2017/11/06 06:43:21 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.24 2017/11/06 11:27:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,7 +334,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		nodecfg_t* ncfg = &cfg->nodecfg[cfg->nodecfgs++];
 		memset(ncfg, 0, sizeof(nodecfg_t));
 		ncfg->addr = atofaddr(node+5);
-		if(iniGetString(ini, node, "route", NULL, value) != NULL)
+		if(iniGetString(ini, node, "route", NULL, value) != NULL && value[0])
 			ncfg->route = atofaddr(value);
 		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreaFixPwd", "", value));
 		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
@@ -389,7 +389,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		memset(elist, 0, sizeof(echolist_t));
 		SAFECOPY(elist->listpath, echolist + 9);
 		elist->keys = iniGetStringList(ini, echolist, "keys", ",", "");
-		elist->hub = atofaddr(iniGetString(ini,echolist,"hub","",value));
+		if(iniGetString(ini, echolist, "hub", "", value) != NULL && value[0])
+			elist->hub = atofaddr(value);
 		elist->forward = iniGetBool(ini, echolist, "fwd", false);
 		SAFECOPY(elist->password, iniGetString(ini,echolist, "pwd", "", value));
 	}
