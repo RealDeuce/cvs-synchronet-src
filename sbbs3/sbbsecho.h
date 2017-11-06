@@ -1,6 +1,6 @@
-/* Synchronet FidoNet Echomail tosser/scanner/areafix program */
+/* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.15 2017/09/19 03:12:04 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.18 2017/10/28 20:15:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ enum pkt_type {
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
-    char*		name;						/* Area tag name */
+    char*		tag;						/* AreaTag, a.k.a. 'EchoTag' */
 	uint		imported; 					/* Total messages imported this run */
 	uint		exported; 					/* Total messages exported this run */
 	uint		circular; 					/* Total circular paths detected */
@@ -95,6 +95,7 @@ typedef struct {
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
+	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
 	char		inbox[MAX_PATH+1];
 	char		outbox[MAX_PATH+1];
@@ -105,6 +106,7 @@ typedef struct {
 	enum mail_status status;
 #define SBBSECHO_ARCHIVE_NONE	NULL
 	arcdef_t*	archive;
+	str_list_t	grphub;			/* This link is hub of these groups (short names */
 } nodecfg_t;
 
 typedef struct {
@@ -134,6 +136,7 @@ typedef struct {
 	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
 	uint		areafile_backups;		/* Number of backups to keep of area file */
 	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
+	char		echostats[MAX_PATH+1];	/* Echo statistics (default: data/echostats.ini) */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
@@ -177,6 +180,7 @@ typedef struct {
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
 	bool		relay_filtered_msgs;
+	bool		auto_add_subs;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */
