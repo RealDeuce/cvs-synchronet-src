@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.50 2017/10/30 06:18:56 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.51 2017/11/06 06:43:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1765,6 +1765,10 @@ bool add_sub_to_areafile(sub_t* sub, fidoaddr_t uplink)
 bool alter_config(fidoaddr_t addr, const char* key, const char* value)
 {
 	FILE* fp;
+
+	static ulong alterations;
+	if(alterations++ == 0)
+		backup(cfg.cfgfile, cfg.cfgfile_backups, /* ren: */false);
 
 	if((fp=iniOpenFile(cfg.cfgfile, false)) == NULL) {
 		lprintf(LOG_ERR, "ERROR %d (%s) opening %s for altering configuration of node %s"
@@ -5663,7 +5667,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.50 $", "%*s %s", revision);
+	sscanf("$Revision: 3.51 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
