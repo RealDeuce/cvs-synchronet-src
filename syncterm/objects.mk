@@ -15,8 +15,6 @@ OBJS = \
                         $(MTOBJODIR)$(DIRSEP)crc32$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)zmodem$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)xmodem$(OFILE) \
-                        $(MTOBJODIR)$(DIRSEP)md5$(OFILE) \
-                        $(MTOBJODIR)$(DIRSEP)base64$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)st_crypt$(OFILE) \
                         $(MTOBJODIR)$(DIRSEP)syncterm$(OFILE)
 
