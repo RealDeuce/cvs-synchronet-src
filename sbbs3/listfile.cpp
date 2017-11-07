@@ -2,13 +2,13 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.61 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.59 2015/08/18 00:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -294,7 +294,7 @@ int sbbs_t::listfiles(uint dirnum, const char *filespec, int tofile, long mode)
 				if(tofile) {
 					write(tofile,crlf,2);
 					sprintf(hdr,"%*s",c,nulstr);
-					memset(hdr,0xC4,c);
+					memset(hdr,'Ä',c);
 					strcat(hdr,crlf);
 					write(tofile,hdr,strlen(hdr)); 
 				}
@@ -302,7 +302,7 @@ int sbbs_t::listfiles(uint dirnum, const char *filespec, int tofile, long mode)
 					CRLF;
 					attr(cfg.color[clr_filelstline]);
 					while(c--)
-						outchar('\xC4');
+						outchar('Ä');
 					CRLF; 
 				} 
 			} 
@@ -705,7 +705,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 			return(0);
 		if(ch=='P' || ch=='-')
 			return(3);
-		if(ch=='B' || ch=='D') {    /* Flag for batch download */
+		if(ch=='B') {    /* Flag for batch download */
 			if(useron.rest&FLAG('D')) {
 				bputs(text[R_Download]);
 				return(2); 
@@ -716,10 +716,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				f.datoffset=bf[0].datoffset;
 				f.size=0;
 				getfiledat(&cfg,&f);
-				if(ch=='D')
-					downloadfile(&f);
-				else
-					addtobatdl(&f);
+				addtobatdl(&f);
 				CRLF;
 				return(2); 
 			}
@@ -736,7 +733,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 						bprintf(text[BatchDlQueueIsFull],str+c);
 						break; 
 					}
-					if(str[c]=='*' || strchr(str+c,'.')) {     /* filename or spec given */
+					if(strchr(str+c,'.')) {     /* filename or spec given */
 						f.dir=dirnum;
 						p=strchr(str+c,' ');
 						if(!p) p=strchr(str+c,',');
@@ -764,11 +761,8 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 						f.datoffset=bf[str[c]-'A'].datoffset;
 						f.size=0;
 						getfiledat(&cfg,&f);
-						addtobatdl(&f);
-					} 
+						addtobatdl(&f); } 
 				}
-				if(ch=='D')
-					start_batch_download();
 				CRLF;
 				return(2); 
 			}
@@ -798,7 +792,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				CRLF;
 				lncntr=0;
 				for(c=0;c<d;c++) {
-					if(str[c]=='*' || strchr(str+c,'.')) {     /* filename or spec given */
+					if(strchr(str+c,'.')) {     /* filename or spec given */
 						f.dir=dirnum;
 						p=strchr(str+c,' ');
 						if(!p) p=strchr(str+c,',');
@@ -836,7 +830,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 			continue; 
 		}
 
-		if((ch=='R' || ch=='M')     /* Delete or Move */
+		if((ch=='D' || ch=='M')     /* Delete or Move */
 			&& !(useron.rest&FLAG('R'))
 			&& (dir_op(dirnum) || useron.exempt&FLAG('R'))) {
 			if(total==1) {
@@ -852,8 +846,8 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				return(-1);
 			if(d) { 	/* d is string length */
 				CRLF;
-				if(ch=='R') {
-					if(noyes(text[RemoveFileQ]))
+				if(ch=='D') {
+					if(noyes(text[AreYouSureQ]))
 						return(2);
 					remcdt=remfile=1;
 					if(dir_op(dirnum)) {
@@ -887,7 +881,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				}
 				lncntr=0;
 				for(c=0;c<d;c++) {
-					if(str[c]=='*' || strchr(str+c,'.')) {     /* filename or spec given */
+					if(strchr(str+c,'.')) {     /* filename or spec given */
 						f.dir=dirnum;
 						p=strchr(str+c,' ');
 						if(!p) p=strchr(str+c,',');
@@ -907,7 +901,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 										,f.opencount,f.opencount>1 ? "s":nulstr);
 									continue; 
 								}
-								if(ch=='R') {
+								if(ch=='D') {
 									removefile(&f);
 									if(remfile) {
 										sprintf(tmp,"%s%s",cfg.dir[f.dir]->path,fname);
@@ -937,7 +931,7 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 								,f.opencount,f.opencount>1 ? "s":nulstr);
 							continue; 
 						}
-						if(ch=='R') {
+						if(ch=='D') {
 							removefile(&f);
 							if(remfile) {
 								sprintf(tmp,"%s%s",cfg.dir[f.dir]->path,fname);
@@ -1009,13 +1003,11 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 		return(0);
 	l=(long)filelength(file);
 	if(!l) {
-		FREE_AND_NULL(usrxfrbuf);
 		close(file);
 		return(0); 
 	}
 	if((ixbbuf=(uchar *)malloc(l))==NULL) {
 		close(file);
-		FREE_AND_NULL(usrxfrbuf);
 		errormsg(WHERE,ERR_ALLOC,str,l);
 		return(0); 
 	}
@@ -1211,7 +1203,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					if(!fexistcase(str))
 						bprintf(text[FileDoesNotExist],str);
 					else {
-						if(!noyes(text[DeleteFileQ])) {
+						if(!noyes(text[AreYouSureQ])) {
 							if(remove(str))
 								bprintf(text[CouldntRemoveFile],str);
 							else {
@@ -1224,7 +1216,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 					}
 					break;
 				case 'R':   /* remove file from database */
-					if(noyes(text[RemoveFileQ]))
+					if(noyes(text[AreYouSureQ]))
 						break;
 					removefile(&f);
 					sprintf(str,"%s%s",dirpath,fname);
