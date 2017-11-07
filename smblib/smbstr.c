@@ -1,14 +1,12 @@
-/* smbstr.c */
-
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.22 2011/08/31 04:12:34 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.28 2017/07/08 04:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -40,7 +38,7 @@
 #include <genwrap.h> 		/* stricmp */
 #include "smblib.h"
 
-char* SMBCALL smb_hfieldtype(ushort type)
+char* SMBCALL smb_hfieldtype(uint16_t type)
 {
 	static char str[8];
 
@@ -111,6 +109,8 @@ char* SMBCALL smb_hfieldtype(ushort type)
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 
+		case SMB_POLL_ANSWER:	return("PollAnswer");
+
 		case UNKNOWN:			return("UNKNOWN");
 		case UNKNOWNASCII:		return("UNKNOWNASCII");
 		case UNUSED:			return("UNUSED");
@@ -119,12 +119,12 @@ char* SMBCALL smb_hfieldtype(ushort type)
 	return(str);
 }
 
-ushort SMBCALL smb_hfieldtypelookup(const char* str)
+uint16_t SMBCALL smb_hfieldtypelookup(const char* str)
 {
-	ushort type;
+	uint16_t type;
 
 	if(isdigit(*str))
-		return((ushort)strtol(str,NULL,0));
+		return((uint16_t)strtol(str,NULL,0));
 
 	for(type=0;type<=UNUSED;type++)
 		if(stricmp(str,smb_hfieldtype(type))==0)
@@ -133,7 +133,7 @@ ushort SMBCALL smb_hfieldtypelookup(const char* str)
 	return(UNKNOWN);
 }
 
-char* SMBCALL smb_dfieldtype(ushort type)
+char* SMBCALL smb_dfieldtype(uint16_t type)
 {
 	static char str[8];
 
@@ -176,14 +176,14 @@ char* SMBCALL smb_hashsource(smbmsg_t* msg, int source)
 /****************************************************************************/
 /* Converts when_t.zone into ASCII format                                   */
 /****************************************************************************/
-char* SMBCALL smb_zonestr(short zone, char* str)
+char* SMBCALL smb_zonestr(int16_t zone, char* str)
 {
 	char*		plus;
     static char buf[32];
 
 	if(str==NULL)
 		str=buf;
-	switch((ushort)zone) {
+	switch((uint16_t)zone) {
 		case 0:     return("UTC");
 		case AST:   return("AST");
 		case EST:   return("EST");
@@ -210,9 +210,12 @@ char* SMBCALL smb_zonestr(short zone, char* str)
 		case RIO:   return("RIO");
 		case FER:   return("FER");
 		case AZO:   return("AZO");
-		case LON:   return("LON");
-		case BER:   return("BER");
-		case ATH:   return("ATH");
+		case WET:   return("WET");
+		case WEST:  return("WEST");
+		case CET:   return("CET");
+		case CEST:	return("CEST");
+		case EET:   return("EET");
+		case EEST:  return("EEST");
 		case MOS:   return("MOS");
 		case DUB:   return("DUB");
 		case KAB:   return("KAB");
@@ -226,7 +229,7 @@ char* SMBCALL smb_zonestr(short zone, char* str)
 		case SYD:   return("SYD");
 		case NOU:   return("NOU");
 		case WEL:   return("WEL");
-		}
+	}
 
 	if(!OTHER_ZONE(zone)) {
 		if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
@@ -269,7 +272,8 @@ char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* str)
 /****************************************************************************/
 fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 {
-	char *p;
+	char*		p;
+	const char*	terminator;
 	fidoaddr_t addr;
 	fidoaddr_t tmp_addr={1,1,1,0};	/* Default system address: 1:1/1.0 */
 
@@ -277,7 +281,9 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 		sys_addr=&tmp_addr;
 
 	ZERO_VAR(addr);
-	if((p=strchr(str,':'))!=NULL) {
+	terminator = str;
+	FIND_WHITESPACE(terminator);
+	if((p=strchr(str,':'))!=NULL && p < terminator) {
 		addr.zone=atoi(str);
 		addr.net=atoi(p+1); 
 	} else {
@@ -286,14 +292,14 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 	}
 	if(addr.zone==0)              /* no such thing as zone 0 */
 		addr.zone=1;
-	if((p=strchr(str,'/'))!=NULL)
+	if((p=strchr(str,'/'))!=NULL && p < terminator)
 		addr.node=atoi(p+1);
 	else {
 		if(addr.zone==sys_addr->zone)
 			addr.net=sys_addr->net;
 		addr.node=atoi(str); 
 	}
-	if((p=strchr(str,'.'))!=NULL)
+	if((p=strchr(str,'.'))!=NULL && p < terminator)
 		addr.point=atoi(p+1);
 	return(addr);
 }
@@ -320,12 +326,9 @@ char* SMBCALL smb_netaddrstr(net_t* net, char* fidoaddr_buf)
 /****************************************************************************/
 /* Returns net_type for passed e-mail address (i.e. "user@addr")			*/
 /****************************************************************************/
-ushort SMBCALL smb_netaddr_type(const char* str)
+enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 {
 	char*	p;
-	char*	tp;
-	char*	firstdot;
-	char*	lastdot;
 
 	if((p=strchr(str,'@'))==NULL)
 		return(NET_NONE);
@@ -334,6 +337,32 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 	SKIP_WHITESPACE(p);
 	if(*p==0)
 		return(NET_UNKNOWN);
+
+	return smb_get_net_type_by_addr(p);
+}
+
+/****************************************************************************/
+/* Returns net_type for passed network address 								*/
+/* The only addresses expected with an '@' are Internet/SMTP addresses		*/
+/* Examples:																*/
+/*	"VERT"				= NET_QWK											*/
+/*	"1:103/705"			= NET_FIDO											*/
+/*	"705.0"				= NET_FIDO											*/
+/*	"705"				= NET_FIDO											*/
+/*	"192.168.1.0"		= NET_INTERNET										*/
+/*	"some.host"			= NET_INTERNET										*/
+/*	"someone@anywhere"	= NET_INTERNET										*/
+/*	"someone@some.host"	= NET_INTERNET										*/
+/****************************************************************************/
+enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr)
+{
+	const char*	p = addr;
+	const char*	tp;
+	char*	firstdot;
+	char*	lastdot;
+
+	if(strchr(p,'@') != NULL)
+		return(NET_INTERNET);
 
 	firstdot=strchr(p,'.');
 	lastdot=strrchr(p,'.');
@@ -351,4 +380,16 @@ ushort SMBCALL smb_netaddr_type(const char* str)
 		return(NET_INTERNET);
 
 	return(NET_UNKNOWN);
+}
+
+char* SMBCALL smb_nettype(enum smb_net_type type)
+{
+	switch(type) {
+		case NET_NONE:		return "NONE";
+		case NET_UNKNOWN:	return "UNKNOWN";
+		case NET_QWK:		return "QWKnet";
+		case NET_FIDO:		return "Fidonet";
+		case NET_INTERNET:	return "Internet";
+		default:			return "Unsupported net type";
+	}
 }
