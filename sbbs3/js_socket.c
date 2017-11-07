@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.182 2018/01/09 06:48:26 deuce Exp $ */
+/* $Id: js_socket.c,v 1.181 2016/12/01 21:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,26 +75,21 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 	return ret;
 }
 
-static void do_CryptFlush(js_socket_private_t *p)
+static void do_CryptFlush(const CRYPT_CONTEXT session)
 {
-	int ret;
+	int ret=cryptFlushData(session);
 	char	*estr;
 
-	if (p->unflushed) {
-		ret = cryptFlushData(p->session);
+	ret = cryptFlushData(session);
 
-		if(ret==CRYPT_OK) {
-			p->unflushed = 0;
+	if(ret!=CRYPT_OK) {
+		estr = get_crypt_error(session);
+		if (estr) {
+			lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
+			free_crypt_attrstr(estr);
 		}
-		else {
-			estr = get_crypt_error(p->session);
-			if (estr) {
-				lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
-				free_crypt_attrstr(estr);
-			}
-			else
-				lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
-		}
+		else
+			lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
 	}
 }
 
@@ -153,24 +148,25 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 		return sendsocket(p->sock, msg, len);
 	do {
 		if((ret=cryptPushData(p->session, msg, len, &copied))==CRYPT_OK) {
-			p->unflushed += copied;
-			if(flush) do_CryptFlush(p);
-			if(p->nonblocking)
+			if(p->nonblocking) {
+				if(flush) do_CryptFlush(p->session);
 				return copied;
+			}
 			total += copied;
-			if(total >= (ptrdiff_t)len)
+			if(total >= (ptrdiff_t)len) {
+				if(flush) do_CryptFlush(p->session);
 				return total;
-			do_CryptFlush(p);
+			}
 			len -= copied;
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
 			lprintf(LOG_WARNING,"cryptPushData() returned %d", ret);
-			if(flush) do_CryptFlush(p);
+			if(flush) do_CryptFlush(p->session);
 			return total;
 		}
 	} while(len);
-	if(flush) do_CryptFlush(p);
+	if(flush) do_CryptFlush(p->session);
 	return total; // shouldn't happen...
 }
 
@@ -205,7 +201,7 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 	while(total<count) {
 		rd=read(file,buf,sizeof(buf));
 		if(rd==-1) {
-			do_CryptFlush(p);
+			do_CryptFlush(p->session);
 			return(-1);
 		}
 		if(rd==0)
@@ -219,11 +215,11 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 				SLEEP(1);
 				continue;
 			}
-			do_CryptFlush(p);
+			do_CryptFlush(p->session);
 			return(wr);
 		}
 		if(i!=rd) {
-			do_CryptFlush(p);
+			do_CryptFlush(p->session);
 			return(-1);
 		}
 		total+=rd;
@@ -232,7 +228,7 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 	if(offset!=NULL)
 		(*offset)+=total;
 
-	do_CryptFlush(p);
+	do_CryptFlush(p->session);
 	return(total);
 }
 
@@ -2075,7 +2071,6 @@ JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock,
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
 	p->session=session;
-	p->unflushed = 0;
 
 	if (p->sock != INVALID_SOCKET) {
 		len=sizeof(p->remote_addr);
@@ -2154,7 +2149,6 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->type = type;
 	p->network_byte_order = TRUE;
 	p->session=-1;
-	p->unflushed = 0;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2239,7 +2233,6 @@ JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent, 
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
 	p->session=-1;
-	p->unflushed = 0;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
