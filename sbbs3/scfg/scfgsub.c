@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.43 2017/10/23 07:09:11 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.44 2017/11/07 04:09:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1227,8 +1227,8 @@ void sub_cfg(uint grpnum)
 								uifc.helpbuf=
 									"`Sub-board Networked via FidoNet EchoMail:`\n"
 									"\n"
-									"If this sub-board is part of a FidoNet EchoMail conference, set this\n"
-									"option to `Yes`.\n"
+									"If this sub-board is networked with a FidoNet-technology Network (FTN)\n"
+									"EchoMail conference (public message area) set this option to `Yes`.\n"
 								;
 								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
 									,"Networked via FidoNet EchoMail",uifcYesNoOpts);
