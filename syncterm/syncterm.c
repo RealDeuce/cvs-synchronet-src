@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.203 2018/01/30 02:32:09 deuce Exp $ */
+/* $Id: syncterm.c,v 1.202 2017/01/25 08:11:30 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1612,6 +1612,7 @@ int main(int argc, char **argv)
 						}
 					}
 				}
+				free(bbs);
 			}
 			bbs=NULL;
 			break;
