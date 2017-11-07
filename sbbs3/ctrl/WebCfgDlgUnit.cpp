@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: WebCfgDlgUnit.cpp,v 1.8 2018/02/18 00:38:50 rswindell Exp $ */
+/* $Id: WebCfgDlgUnit.cpp,v 1.7 2016/05/27 08:55:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,27 +63,14 @@ void __fastcall TWebCfgDlg::FormShow(TObject *Sender)
         strListCombine(MainForm->web_startup.interfaces, str, sizeof(str)-1, ",");
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
-    if(MainForm->web_startup.tls_interfaces==NULL)
-        TlsInterfaceEdit->Text=NetworkInterfaceEdit->Text;
-    else {
-        strListCombine(MainForm->web_startup.tls_interfaces, str, sizeof(str)-1, ",");
-        TlsInterfaceEdit->Text=AnsiString(str);
-    }
-
     if(MainForm->web_startup.max_clients==0)
         MaxClientsEdit->Text="infinite";
     else
         MaxClientsEdit->Text=AnsiString((int)MainForm->web_startup.max_clients);
     MaxInactivityEdit->Text=AnsiString((int)MainForm->web_startup.max_inactivity);
 	PortEdit->Text=AnsiString((int)MainForm->web_startup.port);
-    TlsPortEdit->Text=AnsiString((int)MainForm->web_startup.tls_port);
     AutoStartCheckBox->Checked=MainForm->WebAutoStart;
-    if(MainForm->web_startup.options&WEB_OPT_ALLOW_TLS)
-        TlsEnableCheckBox->Checked = true;
-    else
-        TlsEnableCheckBox->Checked = false;
 
-    AuthTypesEdit->Text = AnsiString(MainForm->web_startup.default_auth_list);
     HtmlRootEdit->Text=AnsiString(MainForm->web_startup.root_dir);
     ErrorSubDirEdit->Text=AnsiString(MainForm->web_startup.error_dir);
     CGIDirEdit->Text=AnsiString(MainForm->web_startup.cgi_dir);
@@ -118,27 +105,17 @@ void __fastcall TWebCfgDlg::FormShow(TObject *Sender)
     PageControl->ActivePage=GeneralTabSheet;
 
     CGICheckBoxClick(Sender);
-    TlsEnableCheckBoxClick(Sender);
 }
 //---------------------------------------------------------------------------
 void __fastcall TWebCfgDlg::OKBtnClick(TObject *Sender)
 {
     iniFreeStringList(MainForm->web_startup.interfaces);
     MainForm->web_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
-    iniFreeStringList(MainForm->web_startup.tls_interfaces);
-    MainForm->web_startup.tls_interfaces = strListSplitCopy(NULL, TlsInterfaceEdit->Text.c_str(), ",");
     MainForm->web_startup.max_clients=MaxClientsEdit->Text.ToIntDef(10);
     MainForm->web_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(WEB_DEFAULT_MAX_INACTIVITY);
     MainForm->web_startup.port=PortEdit->Text.ToIntDef(IPPORT_HTTP);
-    MainForm->web_startup.tls_port=TlsPortEdit->Text.ToIntDef(IPPORT_HTTPS);
     MainForm->WebAutoStart=AutoStartCheckBox->Checked;
-    if(TlsEnableCheckBox->Checked)
-        MainForm->web_startup.options |= WEB_OPT_ALLOW_TLS;
-    else
-        MainForm->web_startup.options &= ~WEB_OPT_ALLOW_TLS;
 
-    SAFECOPY(MainForm->web_startup.default_auth_list
-        ,AuthTypesEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.root_dir
         ,HtmlRootEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.error_dir
@@ -273,17 +250,6 @@ void __fastcall TWebCfgDlg::CGICheckBoxClick(TObject *Sender)
     CGIMaxInactivityLabel->Enabled=enabled;
     CGIMaxInactivityEdit->Enabled=enabled;
     CGIEnvButton->Enabled=enabled;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TWebCfgDlg::TlsEnableCheckBoxClick(TObject *Sender)
-{
-    bool enabled = TlsEnableCheckBox->Checked;
-
-    TlsInterfaceEdit->Enabled = enabled;
-    TlsInterfaceLabel->Enabled = enabled;
-    TlsPortEdit->Enabled = enabled;
-    TlsPortLabel->Enabled = enabled;
 }
 //---------------------------------------------------------------------------
 
