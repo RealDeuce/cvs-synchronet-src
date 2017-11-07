@@ -1,10 +1,10 @@
-/* $Id: cterm.c,v 1.163 2018/01/29 17:20:34 deuce Exp $ */
+/* $Id: cterm.c,v 1.156 2017/10/26 21:42:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -980,7 +980,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 		case '[':
 			/* ANSI stuff */
 			p=cterm->escbuf+strlen(cterm->escbuf)-1;
-			if(cterm->escbuf[1]>=60 && cterm->escbuf[1] <= 63) {	/* Private extensions */
+			if(cterm->escbuf[1]>=60 && cterm->escbuf[1] <= 63) {	/* Private extenstions */
 				switch(*p) {
 					case 'M':
 						if(cterm->escbuf[1] == '=') {	/* ANSI Music setup */
@@ -1078,58 +1078,16 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						if(!strcmp(cterm->escbuf,"[=255l"))
 							cterm->doorway_mode=0;
 						break;
-					case 'n':	/* Query (extended) state information */
-						if(retbuf == NULL)
-							break;
-						tmp[0] = 0;
-						if ((strcmp(cterm->escbuf,"[=n") == 0) || (strcmp(cterm->escbuf,"[=1n"))) {
-							sprintf(tmp, "\x1b[=1;%u;%u;%u;%u;%u;%un"
-								,CONIO_FIRST_FREE_FONT
-								,(uint8_t)cterm->setfont_result
-								,(uint8_t)cterm->altfont[0]
-								,(uint8_t)cterm->altfont[1]
-								,(uint8_t)cterm->altfont[2]
-								,(uint8_t)cterm->altfont[3]
-							);
-						}
-						if (!strcmp(cterm->escbuf,"[=2n")) {
-							int vidflags = GETVIDEOFLAGS();
-							strcpy(tmp, "\x1b[=2");
-							if(cterm->origin_mode)
-								strcat(tmp, ";6");
-							if(cterm->autowrap)
-								strcat(tmp, ";7");
-							if(cterm->cursor == _NORMALCURSOR)
-								strcat(tmp, ";25");
-							if(vidflags & CIOLIB_VIDEO_ALTCHARS)
-								strcat(tmp, ";31");
-							if(vidflags & CIOLIB_VIDEO_NOBRIGHT)
-								strcat(tmp, ";32");
-							if(vidflags & CIOLIB_VIDEO_BGBRIGHT)
-								strcat(tmp, ";33");
-							if(vidflags & CIOLIB_VIDEO_BLINKALTCHARS)
-								strcat(tmp, ";34");
-							if(vidflags & CIOLIB_VIDEO_NOBLINK)
-								strcat(tmp, ";35");
-							if (strlen(tmp) == 4) {	// Nothing set
-								strcat(tmp, ";");
-							}
-							strcat(tmp, "n");
-							break;
-						}
-						if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
-							strcat(retbuf, tmp);
-						break;
 					case 's':
 						if(cterm->escbuf[1] == '?') {
 							*p=0;
 							p2=cterm->escbuf+2;
 							GETTEXTINFO(&ti);
 							i=GETVIDEOFLAGS();
-							if(!*p2) {
+							if(p2>p) {
 								/* All the save stuff... */
-								cterm->saved_mode_mask |= (CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_ORIGIN);
-								cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_ORIGIN);
+								cterm->saved_mode_mask |= (CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY|CTERM_SAVEMODE_ORIGIN);
+								cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_DOORWAY|CTERM_SAVEMODE_ORIGIN);
 								cterm->saved_mode |= (cterm->autowrap)?CTERM_SAVEMODE_AUTOWRAP:0;
 								cterm->saved_mode |= (cterm->cursor==_NORMALCURSOR)?CTERM_SAVEMODE_CURSOR:0;
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_ALTCHARS)?CTERM_SAVEMODE_ALTCHARS:0;
@@ -1137,50 +1095,56 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_BGBRIGHT)?CTERM_SAVEMODE_BGBRIGHT:0;
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_BLINKALTCHARS)?CTERM_SAVEMODE_BLINKALTCHARS:0;
 								cterm->saved_mode |= (i&CIOLIB_VIDEO_NOBLINK)?CTERM_SAVEMODE_NOBLINK:0;
+								cterm->saved_mode |= (cterm->doorway_mode)?CTERM_SAVEMODE_DOORWAY:0;
 								cterm->saved_mode |= (cterm->origin_mode)?CTERM_SAVEMODE_ORIGIN:0;
 								break;
 							}
 							while((p=strtok(p2,";"))!=NULL) {
 								p2=NULL;
-								if(!strcmp(p,"6")) {
+								if(!strcmp(cterm->escbuf,"?6")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_ORIGIN;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT|CTERM_SAVEMODE_ORIGIN);
 									cterm->saved_mode |= cterm->origin_mode?CTERM_SAVEMODE_ORIGIN:0;
 								}
-								if(!strcmp(p,"7")) {
+								if(!strcmp(cterm->escbuf,"?7")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_AUTOWRAP;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_AUTOWRAP|CTERM_SAVEMODE_CURSOR|CTERM_SAVEMODE_ALTCHARS|CTERM_SAVEMODE_NOBRIGHT|CTERM_SAVEMODE_BGBRIGHT);
 									cterm->saved_mode |= cterm->autowrap?CTERM_SAVEMODE_AUTOWRAP:0;
 								}
-								if(!strcmp(p,"25")) {
+								if(!strcmp(cterm->escbuf,"?25")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_CURSOR;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_CURSOR);
 									cterm->saved_mode |= (cterm->cursor==_NORMALCURSOR)?CTERM_SAVEMODE_CURSOR:0;
 								}
-								if(!strcmp(p,"31")) {
+								if(!strcmp(cterm->escbuf,"?31")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_ALTCHARS;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_ALTCHARS);
 									cterm->saved_mode |= (i&CIOLIB_VIDEO_ALTCHARS)?CTERM_SAVEMODE_ALTCHARS:0;
 								}
-								if(!strcmp(p,"32")) {
+								if(!strcmp(cterm->escbuf,"?32")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_NOBRIGHT;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_NOBRIGHT);
 									cterm->saved_mode |= (i&CIOLIB_VIDEO_NOBRIGHT)?CTERM_SAVEMODE_NOBRIGHT:0;
 								}
-								if(!strcmp(p,"33")) {
+								if(!strcmp(cterm->escbuf,"?33")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_BGBRIGHT;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_BGBRIGHT);
 									cterm->saved_mode |= (i&CIOLIB_VIDEO_BGBRIGHT)?CTERM_SAVEMODE_BGBRIGHT:0;
 								}
-								if(!strcmp(p,"34")) {
+								if(!strcmp(cterm->escbuf,"?34")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_BLINKALTCHARS;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_BLINKALTCHARS);
 									cterm->saved_mode |= (i&CIOLIB_VIDEO_BLINKALTCHARS)?CTERM_SAVEMODE_BLINKALTCHARS:0;
 								}
-								if(!strcmp(p,"35")) {
+								if(!strcmp(cterm->escbuf,"?35")) {
 									cterm->saved_mode_mask |= CTERM_SAVEMODE_NOBLINK;
 									cterm->saved_mode &= ~(CTERM_SAVEMODE_NOBLINK);
 									cterm->saved_mode |= (i&CIOLIB_VIDEO_NOBLINK)?CTERM_SAVEMODE_NOBLINK:0;
+								}
+								if(!strcmp(cterm->escbuf,"=255")) {
+									cterm->saved_mode_mask |= CTERM_SAVEMODE_DOORWAY;
+									cterm->saved_mode &= ~(CTERM_SAVEMODE_DOORWAY);
+									cterm->saved_mode |= (cterm->doorway_mode)?CTERM_SAVEMODE_DOORWAY:0;
 								}
 							}
 						}
@@ -1191,7 +1155,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							p2=cterm->escbuf+2;
 							GETTEXTINFO(&ti);
 							i=GETVIDEOFLAGS();
-							if(!*p2) {
+							if(p2>p) {
 								/* All the save stuff... */
 								if(cterm->saved_mode_mask & CTERM_SAVEMODE_ORIGIN)
 									cterm->origin_mode=(cterm->saved_mode & CTERM_SAVEMODE_ORIGIN) ? true : false;
@@ -1231,26 +1195,32 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									else
 										i &= ~CIOLIB_VIDEO_BGBRIGHT;
 								}
+								if(cterm->saved_mode_mask & CTERM_SAVEMODE_DOORWAY) {
+									if(cterm->saved_mode & CTERM_SAVEMODE_DOORWAY)
+										cterm->doorway_mode = 1;
+									else
+										cterm->doorway_mode = 0;
+								}
 								SETVIDEOFLAGS(i);
 								break;
 							}
 							while((p=strtok(p2,";"))!=NULL) {
 								p2=NULL;
-								if(!strcmp(p,"6")) {
+								if(!strcmp(cterm->escbuf,"?6")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_ORIGIN)
 										cterm->origin_mode=(cterm->saved_mode & CTERM_SAVEMODE_ORIGIN) ? true : false;
 								}
-								if(!strcmp(p,"7")) {
+								if(!strcmp(cterm->escbuf,"?7")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_AUTOWRAP)
 										cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_AUTOWRAP) ? true : false;
 								}
-								if(!strcmp(p,"25")) {
+								if(!strcmp(cterm->escbuf,"?25")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_CURSOR) {
 										cterm->cursor = (cterm->saved_mode & CTERM_SAVEMODE_CURSOR) ? _NORMALCURSOR : _NOCURSOR;
 										SETCURSORTYPE(cterm->cursor);
 									}
 								}
-								if(!strcmp(p,"31")) {
+								if(!strcmp(cterm->escbuf,"?31")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_ALTCHARS) {
 										if(cterm->saved_mode & CTERM_SAVEMODE_ALTCHARS)
 											i |= CIOLIB_VIDEO_ALTCHARS;
@@ -1259,7 +1229,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										SETVIDEOFLAGS(i);
 									}
 								}
-								if(!strcmp(p,"32")) {
+								if(!strcmp(cterm->escbuf,"?32")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_NOBRIGHT) {
 										if(cterm->saved_mode & CTERM_SAVEMODE_NOBRIGHT)
 											i |= CIOLIB_VIDEO_NOBRIGHT;
@@ -1268,7 +1238,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										SETVIDEOFLAGS(i);
 									}
 								}
-								if(!strcmp(p,"33")) {
+								if(!strcmp(cterm->escbuf,"?33")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_BGBRIGHT) {
 										if(cterm->saved_mode & CTERM_SAVEMODE_BGBRIGHT)
 											i |= CIOLIB_VIDEO_BGBRIGHT;
@@ -1277,7 +1247,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										SETVIDEOFLAGS(i);
 									}
 								}
-								if(!strcmp(p,"34")) {
+								if(!strcmp(cterm->escbuf,"?34")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_BLINKALTCHARS) {
 										if(cterm->saved_mode & CTERM_SAVEMODE_BLINKALTCHARS)
 											i |= CIOLIB_VIDEO_BLINKALTCHARS;
@@ -1286,7 +1256,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										SETVIDEOFLAGS(i);
 									}
 								}
-								if(!strcmp(p,"35")) {
+								if(!strcmp(cterm->escbuf,"?35")) {
 									if(cterm->saved_mode_mask & CTERM_SAVEMODE_NOBLINK) {
 										if(cterm->saved_mode & CTERM_SAVEMODE_NOBLINK)
 											i |= CIOLIB_VIDEO_NOBLINK;
@@ -1294,6 +1264,10 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 											i &= ~CIOLIB_VIDEO_NOBLINK;
 										SETVIDEOFLAGS(i);
 									}
+								}
+								if(!strcmp(cterm->escbuf,"=255")) {
+									if(cterm->saved_mode_mask & CTERM_SAVEMODE_DOORWAY)
+										cterm->autowrap=(cterm->saved_mode & CTERM_SAVEMODE_DOORWAY) ? 1 : 0;
 								}
 							}
 						}
@@ -1392,10 +1366,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								case 1:
 								case 2:
 								case 3:
-									cterm->setfont_result = SETFONT(j,FALSE,i+1);
-									if(cterm->setfont_result == CIOLIB_SETFONT_SUCCESS)
-										cterm->altfont[i] = j;
-									break;
+									SETFONT(j,FALSE,i+1);
 							}
 						}
 					}
@@ -1621,7 +1592,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					i=strtoul(cterm->escbuf+1,NULL,10);
 					if(!i) {
 						if(retbuf!=NULL) {
-							if(strlen(retbuf) + strlen(cterm->DA)  < retsize)
+							if(strlen(retbuf)+strlen(cterm->DA) < retsize)
 								strcat(retbuf,cterm->DA);
 						}
 					}
@@ -1914,7 +1885,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.163 $";
+	char	*revision="$Revision: 1.156 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1963,7 +1934,6 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 		*out=0;
 	}
 	strcat(cterm->DA,"c");
-	cterm->setfont_result = CTERM_NO_SETFONT_REQUESTED;
 	/* Fire up note playing thread */
 	if(!cterm->playnote_thread_running) {
 		listInit(&cterm->notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
@@ -2123,7 +2093,7 @@ static void ctputs(struct cterminal *cterm, char *buf)
 	*cterm->_wscroll=oldscroll;
 }
 
-CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *vbuf, int buflen, char *retbuf, size_t retsize, int *speed)
+char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *vbuf, int buflen, char *retbuf, size_t retsize, int *speed)
 {
 	const unsigned char *buf = (unsigned char *)vbuf;
 	unsigned char ch[2];
