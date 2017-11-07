@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.52 2017/11/07 00:53:45 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.53 2017/11/07 04:12:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5668,7 +5668,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.52 $", "%*s %s", revision);
+	sscanf("$Revision: 3.53 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5990,7 +5990,7 @@ int main(int argc, char **argv)
 	printf("\n");
 	lprintf(LOG_DEBUG, "Read %u areas from %s", cfg.areas, cfg.areafile);
 	if(cfg.badecho >= 0)
-		lprintf(LOG_DEBUG, "Bad-echo area: %s", scfg.sub[cfg.badecho]->code);
+		lprintf(LOG_DEBUG, "Bad-echo area: %s", scfg.sub[cfg.area[cfg.badecho].sub]->code);
 
 	if(cfg.auto_add_subs) {
 		for(unsigned subnum = 0; subnum < scfg.total_subs; subnum++) {
