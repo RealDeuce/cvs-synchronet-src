@@ -1,7 +1,6 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
-// vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.232 2017/11/23 05:34:52 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.229 2017/11/06 04:09:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2057,7 +2056,7 @@ void getstrupd(int left, int top, int width, char *outstr, int cursoffset, int *
 /****************************************************************************/
 int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int *lastkey)
 {
-	char   *str;
+	char   *str,ins=0;
 	int	ch;
 	int     i,j,k,f=0;	/* i=offset, j=length */
 	BOOL	gotdecimal=FALSE;
@@ -2074,7 +2073,8 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		return(-1); 
 	}
 	gotoxy(left,top);
-	_setcursortype(cursor = api->insert_mode ? _SOLIDCURSOR : _NORMALCURSOR);
+	cursor=_NORMALCURSOR;
+	_setcursortype(cursor);
 	str[0]=0;
 	if(mode&K_EDIT && outstr[0]) {
 	/***
@@ -2258,8 +2258,12 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 						pb=(unsigned char *)pastebuf;
 					continue;
 				case CIO_KEY_IC:	/* insert */
-					api->insert_mode = !api->insert_mode;
-					_setcursortype(cursor = api->insert_mode ? _SOLIDCURSOR : _NORMALCURSOR);
+					ins=!ins;
+					if(ins)
+						cursor=_SOLIDCURSOR;
+					else
+						cursor=_NORMALCURSOR;
+					_setcursortype(cursor);
 					continue;
 				case BS:
 					if(i)
@@ -2351,11 +2355,16 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			}
 			if(mode&K_ALPHA && !isalpha(ch))
 				continue;
-			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!api->insert_mode || j<max) && ch < 256)
+#if 0
+			/* This broke swedish chars... */
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && isprint(ch))
+#else
+			if((ch>=' ' || (ch==1 && mode&K_MSG)) && i<max && (!ins || j<max) && ch < 256)
+#endif
 			{
 				if(mode&K_UPPER)
 					ch=toupper(ch);
-				if(api->insert_mode)
+				if(ins)
 				{
 					for(k=++j;k>i;k--)
 						str[k]=str[k-1];
@@ -2555,47 +2564,44 @@ char *utimestr(time_t *intime)
 /****************************************************************************/
 void upop(char *str)
 {
-	static char sav[80*3*2];
-	char buf[80*3*2];
+	static char sav[26*3*2];
+	char buf[26*3*2];
 	int i,j,k;
-	static int width;
 
-	if(str == NULL) {
-		puttext((api->scrn_width-width+1)/2+1,(api->scrn_len-3+1)/2+1
-			,(api->scrn_width+width-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
+	if(!str) {
+		/* puttext(28,12,53,14,sav); */
+		puttext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
+			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
 		return;
 	}
-
-	width = strlen(str);
-	if(!width)
-		return;
-	width += 7;
-	gettext((api->scrn_width-width+1)/2+1,(api->scrn_len-3+1)/2+1
-			,(api->scrn_width+width-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
-	memset(buf,' ',(width-1)*3*2);
-	for(i=1;i<width*3*2;i+=2)
+	/* gettext(28,12,53,14,sav); */
+	gettext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
+			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,sav);
+	memset(buf,' ',25*3*2);
+	for(i=1;i<26*3*2;i+=2)
 		buf[i]=(api->hclr|(api->bclr<<4));
 	buf[0]=api->chars->popup_top_left;
-	for(i=2;i<(width-1)*2;i+=2)
+	for(i=2;i<25*2;i+=2)
 		buf[i]=api->chars->popup_top;
 	buf[i]=api->chars->popup_top_right; i+=2;
 	buf[i]=api->chars->popup_left; i+=2;
 	i+=2;
 	k=strlen(str);
-	i+=((((width-3)-k)/2)*2);
+	i+=(((23-k)/2)*2);
 	for(j=0;j<k;j++,i+=2) {
 		buf[i]=str[j];
 		buf[i+1]|=BLINK;
 	}
-	i=(((width-1)*2)+1)*2;
+	i=((25*2)+1)*2;
 	buf[i]=api->chars->popup_right; i+=2;
 	buf[i]=api->chars->popup_bottom_left; i+=2;
-	for(;i<((width*3)-1)*2;i+=2)
+	for(;i<((26*3)-1)*2;i+=2)
 		buf[i]=api->chars->popup_bottom;
 	buf[i]=api->chars->popup_bottom_right;
 
-	puttext((api->scrn_width-width+1)/2+1,(api->scrn_len-3+1)/2+1
-			,(api->scrn_width+width-1)/2+1,(api->scrn_len+3-1)/2+1,buf);
+	/* puttext(28,12,53,14,buf); */
+	puttext((api->scrn_width-26+1)/2+1,(api->scrn_len-3+1)/2+1
+			,(api->scrn_width+26-1)/2+1,(api->scrn_len+3-1)/2+1,buf);
 }
 
 /****************************************************************************/
