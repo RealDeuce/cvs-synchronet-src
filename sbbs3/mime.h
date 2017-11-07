@@ -1,12 +1,12 @@
-/* Synchronet MIME functions, originally written/submitted by Marc Lanctot */
+/* mime.h */
 
-/* $Id: mime.h,v 1.5 2018/03/04 07:11:56 deuce Exp $ */
+/* $Id: mime.h,v 1.3 2002/02/02 04:19:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,10 +38,10 @@
 
 /* mime.c */
 char *  mimegetboundary(void);
-void    mimeheaders(SOCKET socket, int sess, char * boundary);
-void    mimeblurb(SOCKET socket, int sess, char * boundary);
-void    mimetextpartheader(SOCKET socket, int sess, char * boundary, const char* charset);
-BOOL    mimeattach(SOCKET socket, int sess, char * boundary, char * pathfile);
-void    endmime(SOCKET socket, int sess, char * boundary);
+void    mimeheaders(SOCKET socket, char * boundary);
+void    mimeblurb(SOCKET socket, char * boundary);
+void    mimetextpartheader(SOCKET socket, char * boundary);
+BOOL    mimeattach(SOCKET socket, char * boundary, char * pathfile);
+void    endmime(SOCKET socket, char * boundary);
 
 #endif	/* Don't add anything after this line */
