@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.648 2017/06/09 02:20:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.650 2017/10/23 03:38:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2724,10 +2724,10 @@ void event_thread(void* arg)
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
-					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
+					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
 					}
 				}
 				if(file!=-1)
@@ -2741,14 +2741,14 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*4L) {
 								l32=l;
 								write(file,&l32,4);		/* initialize ptrs to null */
 							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
 						}
 						close(file); 
 					} 
@@ -4901,7 +4901,7 @@ NO_SSH:
 		_beginthread(event_thread, 0, events);
 	}
 
-	/* Save these values incase they're changed dynamically */
+	/* Save these values in case they're changed dynamically */
 	first_node=startup->first_node;
 	last_node=startup->last_node;
 
@@ -5156,6 +5156,9 @@ NO_SSH:
 			}
 		}
 
+		sbbs->client_socket=client_socket;	// required for output to the user
+		sbbs->online=ON_REMOTE;
+
 		login_attempt_t attempted;
 		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
@@ -5250,8 +5253,6 @@ NO_SSH:
 			}
 		}
 #endif
-   		sbbs->client_socket=client_socket;	// required for output to the user
-        sbbs->online=ON_REMOTE;
 
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
