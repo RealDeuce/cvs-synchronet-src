@@ -804,10 +804,6 @@ enum {
 	,BallotHdr
 	,BallotAnswerFmt
 	,BallotVoteWhich
-	,Only
-	,SPAMVisibilityIsNow
-	,VoteInThisPollNow
-	,MIMEDecodedPlainText
 
 	,TOTAL_TEXT
 };
