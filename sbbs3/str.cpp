@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.75 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: str.cpp,v 1.74 2017/10/12 09:14:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -915,7 +915,7 @@ void sbbs_t::user_info()
 		,useron.ptoday);
 	bprintf(text[UserEmails]
 		,useron.emails,useron.fbacks
-		,getmail(&cfg,useron.number,/* Sent: */FALSE, /* SPAM: */FALSE),useron.etoday);
+		,getmail(&cfg,useron.number,0),useron.etoday);
 	CRLF;
 	bprintf(text[UserUploads]
 		,ultoac(useron.ulb,tmp),useron.uls);
