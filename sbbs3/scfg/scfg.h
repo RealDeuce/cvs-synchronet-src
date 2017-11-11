@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.26 2017/11/11 22:27:18 rswindell Exp $ */
+/* $Id: scfg.h,v 1.25 2017/11/11 08:38:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -46,26 +46,6 @@
 /**********/
 
 #define SETHELP(where)  uifc.sethelp(where)
-
-#define SCFG_CMDLINE_SPEC_HELP 	"\n"																				\
-								"The following is a list of commonly-used command-line specifiers:\n"				\
-								"\n"																				\
-								"  `%f`  The path/filename of the file to act upon or door/game drop file\n"		\
-								"  `%s`  File specification (e.g. `*.txt`) or the current `Startup Directory`\n"	\
-								"  `%!`  The Synchronet `exec` directory (use `%@` for non-Unix only)\n"			\
-								"  `%.`  Executable file extension (`.exe`, or blank for Unix systems)\n"			\
-								"  `%n`  The current node directory\n"												\
-								"  `%#`  The current node number\n"													\
-								"  `%a`  The current user's alias\n"												\
-								"  `%1`  The current user's number (use `%2`, `%3`, etc. for 0-padded values)\n"	\
-								"  `%h`  The current TCP/IP socket descriptor (handle) value\n"						\
-								"  `%p`  The current connection type (protocol, e.g. `telnet`, `rlogin`, etc.)\n"	\
-								"  `%r`  The current user's terminal height (rows)\n"								\
-								"  `%w`  The current user's terminal width (columns)\n"								\
-								"\n"																				\
-								"For a complete list of the supported command-line specifiers, see:\n"				\
-								"`http://wiki.synchro.net/config:cmdline`\n"
-
 
 /*************/
 /* Constants */
