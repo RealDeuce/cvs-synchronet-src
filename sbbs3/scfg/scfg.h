@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.24 2017/10/23 04:17:13 rswindell Exp $ */
+/* $Id: scfg.h,v 1.25 2017/11/11 08:38:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -80,7 +80,7 @@ extern char *nulstr;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
 extern BOOL new_install;
-char* area_sort_desc[AREA_SORT_TYPES];
+char* area_sort_desc[AREA_SORT_TYPES+1];
 
 /***********************/
 /* Function Prototypes */

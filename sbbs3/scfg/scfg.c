@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.89 2017/10/23 04:17:13 rswindell Exp $ */
+/* $Id: scfg.c,v 1.90 2017/11/11 08:38:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,7 +55,7 @@ char **opt;
 char tmp[256];
 char error[256];
 int  backup_level=5;
-char* area_sort_desc[] = { "Index Position", "Long Name", "Short Name", "Internal Code" };
+char* area_sort_desc[] = { "Index Position", "Long Name", "Short Name", "Internal Code", NULL };
 
 char *invalid_code=
 	"`Invalid Internal Code:`\n\n"
