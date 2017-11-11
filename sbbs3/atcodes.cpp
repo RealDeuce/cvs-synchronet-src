@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.73 2016/11/21 09:30:15 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.76 2017/10/23 08:16:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,6 +54,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	padded_left=false;
 	bool	padded_right=false;
 	bool	centered=false;
+	bool	zero_padded=false;
 	const char *cp;
 
 	SAFECOPY(str,instr);
@@ -74,6 +75,8 @@ int sbbs_t::show_atcode(const char *instr)
 		padded_right=true;
 	else if((p=strstr(sp,"-C"))!=NULL)
 		centered=true;
+	else if((p=strstr(sp,"-Z"))!=NULL)
+		zero_padded=true;
 	if(p!=NULL) {
 		if(*(p+2) && isdigit(*(p+2)))
 			disp_len=atoi(p+2);
@@ -94,7 +97,13 @@ int sbbs_t::show_atcode(const char *instr)
 			int left = (disp_len - vlen) / 2;
 			bprintf("%*s%-*s", left, "", disp_len - left, cp);
 		} else
-			bputs(cp);
+			bprintf("%.*s", disp_len, cp);
+	} else if(zero_padded) {
+		int vlen = strlen(cp);
+		if(vlen < disp_len)
+			bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+		else
+			bprintf("%.*s", disp_len, cp);
 	} else
 		bputs(cp);
 
@@ -657,6 +666,26 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strcmp(sp,"POPXY")) {
 		ansi_restore();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"HOME")) {
+		cursor_home();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLRLINE")) {
+		clearline();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLR2EOL")) {
+		cleartoeol();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLR2EOS")) {
+		cleartoeos();
 		return(nulstr);
 	}
 
