@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.91 2017/11/05 04:22:09 rswindell Exp $ */
+/* $Id: uifc.h,v 1.92 2017/11/11 10:17:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -348,6 +348,10 @@ typedef struct {
 /* Set to TRUE when changes to data have been made by input function.		*/ 
 /****************************************************************************/
     BOOL    changes;
+/****************************************************************************/
+/* Set to TRUE to enable insert mode by default (not overwrite)				*/
+/****************************************************************************/
+	BOOL	insert_mode;
 /****************************************************************************/
 /* The overlapped-window save buffer number.								*/
 /****************************************************************************/
