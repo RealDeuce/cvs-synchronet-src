@@ -1,8 +1,6 @@
-/* str.cpp */
-
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.72 2015/11/25 02:38:23 rswindell Exp $ */
+/* $Id: str.cpp,v 1.74 2017/10/12 09:14:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,11 +56,12 @@ void sbbs_t::userlist(long mode)
 	}
 	j=0;
 	k=lastuser(&cfg);
+	int userfile = openuserdat(&cfg, /* for_modify: */FALSE);
 	for(i=1;i<=k && !msgabort();i++) {
 		if(sort && (online==ON_LOCAL || !rioctl(TXBC)))
 			bprintf("%-4d\b\b\b\b",i);
 		user.number=i;
-		getuserdat(&cfg,&user);
+		fgetuserdat(&cfg, &user, userfile);
 		if(user.misc&(DELETED|INACTIVE))
 			continue;
 		users++;
@@ -72,8 +71,9 @@ void sbbs_t::userlist(long mode)
 			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user,/* client: */NULL))
 				continue;
 			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user,/* client: */NULL)
-				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
-				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
+				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar!=NULL 
+					&& cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
+					&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
 				continue; 
 		}
 		else if(mode==UL_DIR) {
@@ -108,6 +108,7 @@ void sbbs_t::userlist(long mode)
 		}
 		j++; 
 	}
+	close(userfile);
 	if(i<=k) {	/* aborted */
 		if(sort)
 			for(i=0;i<j;i++)
