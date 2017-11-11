@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.50 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.49 2016/11/23 10:28:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,7 +144,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 				,str,sizeof(str))
 			,sys_timezone(&cfg)
 			);
-		fprintf(hdrs,"ExportedFrom: %s %s %" PRIu32 "\n"
+		fprintf(hdrs,"ExportedFrom: %s %s %"PRIu32"\n"
 			,cfg.sys_id
 			,subnum==INVALID_SUB ? "mail":cfg.sub[subnum]->code
 			,msg->hdr.number
