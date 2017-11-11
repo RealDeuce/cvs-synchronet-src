@@ -1,7 +1,6 @@
 /* Synchronet message base (SMB) alloc/free routines */
-// vi: tabstop=4
 
-/* $Id: smballoc.c,v 1.12 2017/11/21 23:32:23 rswindell Exp $ */
+/* $Id: smballoc.c,v 1.9 2016/11/29 10:09:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,40 +132,28 @@ long SMBCALL smb_fallocdat(smb_t* smb, ulong length, uint16_t refs)
 /****************************************************************************/
 /* De-allocates space for data												*/
 /* Returns non-zero on error												*/
-/* Always unlocks the SMB header (when not hyper-alloc)						*/
 /****************************************************************************/
 int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs)
 {
 	BOOL	da_opened=FALSE;
 	int		retval=SMB_SUCCESS;
 	uint16_t	i;
-	long	l,blocks;
+	ulong	l,blocks;
 	ulong	sda_offset;
-	off_t	flen;
 
 	if(smb->status.attr&SMB_HYPERALLOC)	/* do nothing */
 		return(SMB_SUCCESS);
 
-	blocks = smb_datblocks(length);
-
-	if(blocks < 1)
-		return SMB_SUCCESS;	// Nothing to do
+	blocks=smb_datblocks(length);
 
 	if(smb->sda_fp==NULL) {
 		if((i=smb_open_da(smb))!=SMB_SUCCESS)
 			return(i);
 		da_opened=TRUE;
 	}
-	flen = filelength(fileno(smb->sda_fp));
-	if(flen < sizeof(uint16_t))
-		return 0;	// Nothing to do
-	
-	if(!smb->locked && smb_locksmbhdr(smb) != SMB_SUCCESS)
-		return SMB_ERR_LOCK;
 
 	clearerr(smb->sda_fp);
-	// Free from the last block first
-	for(l=blocks-1; l >= 0; l--) {
+	for(l=0;l<blocks;l++) {
 		sda_offset=((offset/SDT_BLOCK_LEN)+l)*sizeof(i);
 		if(fseek(smb->sda_fp,sda_offset,SEEK_SET)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
@@ -178,7 +165,7 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 		}
 		if(smb_fread(smb,&i,sizeof(i),smb->sda_fp)!=sizeof(i)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%s %d '%s' reading allocation record at offset %ld", __FUNCTION__
+				,"%s %d '%s' reading allocation bytes at offset %ld", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,sda_offset);
 			retval=SMB_ERR_READ;
@@ -188,15 +175,6 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 			i=0;			/* don't want to go negative */
 		else
 			i-=refs;
-
-		// Completely free? and at end of SDA? Just truncate record from end of file
-		if(i == 0 && ftell(smb->sda_fp) == flen) {
-			if(chsize(fileno(smb->sda_fp), sda_offset) == 0) {
-				flen = sda_offset;
-				continue;
-			}
-		}
-		
 		if(fseek(smb->sda_fp,-(int)sizeof(i),SEEK_CUR)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s %d '%s' seeking backwards 2 bytes in allocation file", __FUNCTION__
@@ -214,17 +192,13 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 		}
 	}
 	fflush(smb->sda_fp);
-	if(filelength(fileno(smb->sdt_fp)) / SDT_BLOCK_LEN > (long)(filelength(fileno(smb->sda_fp)) / sizeof(uint16_t)))
-		chsize(fileno(smb->sdt_fp), (filelength(fileno(smb->sda_fp)) / sizeof(uint16_t)) * SDT_BLOCK_LEN);
 	if(da_opened)
 		smb_close_da(smb);
-	smb_unlocksmbhdr(smb);
 	return(retval);
 }
 
 /****************************************************************************/
 /* Adds to data allocation records for blocks starting at 'offset'          */
-/* SMB header should be locked before calling this function					*/
 /* Returns non-zero on error												*/
 /****************************************************************************/
 int SMBCALL smb_incdat(smb_t* smb, ulong offset, ulong length, uint16_t refs)
@@ -271,7 +245,6 @@ int SMBCALL smb_incdat(smb_t* smb, ulong offset, ulong length, uint16_t refs)
 /* Increments data allocation records (message references) by number of		*/
 /* header references specified (usually 1)									*/
 /* The opposite function of smb_freemsg()									*/
-/* Always unlocks the SMB header (when not hyper-alloc)						*/
 /****************************************************************************/
 int SMBCALL smb_incmsg_dfields(smb_t* smb, smbmsg_t* msg, uint16_t refs)
 {
@@ -288,19 +261,14 @@ int SMBCALL smb_incmsg_dfields(smb_t* smb, smbmsg_t* msg, uint16_t refs)
 		da_opened=TRUE;
 	}
 
-	if(!smb->locked && smb_locksmbhdr(smb)!=SMB_SUCCESS)
-		return SMB_ERR_LOCK;
-
 	for(x=0;x<msg->hdr.total_dfields;x++) {
 		if((i=smb_incdat(smb,msg->hdr.offset+msg->dfield[x].offset
 			,msg->dfield[x].length,refs))!=SMB_SUCCESS)
 			break; 
 	}
-	smb_unlocksmbhdr(smb);
 
 	if(da_opened)
 		smb_close_da(smb);
-
 	return(i);
 }
 
@@ -311,28 +279,16 @@ int SMBCALL smb_incmsg_dfields(smb_t* smb, smbmsg_t* msg, uint16_t refs)
 int SMBCALL smb_freemsghdr(smb_t* smb, ulong offset, ulong length)
 {
 	uchar	c=0;
-	long	l,blocks;
-	off_t	sha_offset;
+	ulong	l,blocks;
 
 	if(smb->sha_fp==NULL) {
 		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	clearerr(smb->sha_fp);
-	blocks = smb_hdrblocks(length);
-	if(blocks < 1)
-		return SMB_ERR_HDR_LEN;
-
-	sha_offset = offset/SHD_BLOCK_LEN;
-	if(filelength(fileno(smb->sha_fp)) <= (sha_offset + blocks)) {
-		if(chsize(fileno(smb->sha_fp), sha_offset) == 0) {
-			chsize(fileno(smb->shd_fp), smb->status.header_offset + offset);
-			return SMB_SUCCESS;
-		}
-	}
-
-	if(fseek(smb->sha_fp, sha_offset, SEEK_SET)) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s seeking to %ld", __FUNCTION__, sha_offset);
+	blocks=smb_hdrblocks(length);
+	if(fseek(smb->sha_fp,offset/SHD_BLOCK_LEN,SEEK_SET)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s seeking to %ld", __FUNCTION__, offset/SHD_BLOCK_LEN);
 		return(SMB_ERR_SEEK);
 	}
 	for(l=0;l<blocks;l++)
@@ -430,7 +386,7 @@ long SMBCALL smb_allochdr(smb_t* smb, ulong length)
 }
 
 /****************************************************************************/
-/* Allocates space for header, but doesn't search for unused blocks          */
+/* Allocates space for index, but doesn't search for unused blocks          */
 /* Returns negative value on error 											*/
 /****************************************************************************/
 long SMBCALL smb_fallochdr(smb_t* smb, ulong length)
