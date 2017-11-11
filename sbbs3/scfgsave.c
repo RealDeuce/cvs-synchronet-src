@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.72 2017/11/24 21:35:10 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.71 2017/11/06 06:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1087,12 +1087,12 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
 	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
 }
 
-int DLLCALL smb_storage_mode(scfg_t* cfg, smb_t* smb)
+int smb_storage_mode(scfg_t* cfg, smb_t* smb)
 {
-	if(smb == NULL || smb->subnum == INVALID_SUB || (smb->status.attr&SMB_EMAIL))
+	if(smb->subnum == INVALID_SUB)
 		return (cfg->sys_misc&SM_FASTMAIL) ? SMB_FASTALLOC : SMB_SELFPACK;
 	if(smb->subnum >= cfg->total_subs)
-		return (smb->status.attr&SMB_HYPERALLOC) ? SMB_HYPERALLOC : SMB_FASTALLOC;
+		return -1;
 	if(cfg->sub[smb->subnum]->misc&SUB_HYPER) {
 		smb->status.attr |= SMB_HYPERALLOC;
 		return SMB_HYPERALLOC;
@@ -1102,7 +1102,7 @@ int DLLCALL smb_storage_mode(scfg_t* cfg, smb_t* smb)
 	return SMB_SELFPACK;
 }
 
-int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
+int smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 {
 	int retval;
 
