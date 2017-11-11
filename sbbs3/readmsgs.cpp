@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.101 2017/11/07 03:35:18 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.102 2017/11/11 11:25:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1724,7 +1724,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 		strupr(subj);
 		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found)
-				CRLF;
+				bputs(text[MailOnSystemLstHdr]);
 			bprintf(text[SubMsgLstFmt],l+1
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !sub_op(subnum) ? text[Anonymous]
 				: msg.from
