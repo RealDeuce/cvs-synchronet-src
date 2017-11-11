@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.48 2017/10/23 04:17:13 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.49 2017/11/11 09:43:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1815,7 +1815,7 @@ void dir_cfg(uint libnum)
 					sprintf(opt[n++],"%-27.27s%s","Extensions Allowed"
 						,cfg.dir[i]->exts);
 					if(!cfg.dir[i]->data_dir[0])
-						sprintf(str,"%sdirs/",cfg.data_dir);
+						sprintf(str,"[%sdirs/]",cfg.data_dir);
 					else
 						strcpy(str,cfg.dir[i]->data_dir);
 					sprintf(opt[n++],"%-27.27s%.40s","Data Directory"
