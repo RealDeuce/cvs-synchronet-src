@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.90 2017/11/11 08:38:59 rswindell Exp $ */
+/* $Id: scfg.c,v 1.91 2017/11/11 10:19:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -192,6 +192,10 @@ int main(int argc, char **argv)
             ) {
 			if(strncmp(argv[i]+1, "import=", 7) == 0) {
 				import = argv[i] + 8;
+				continue;
+			}
+			if(strcmp(argv[i]+1, "insert") == 0) {
+				uifc.insert_mode = TRUE;
 				continue;
 			}
             switch(toupper(argv[i][1])) {
