@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.92 2017/11/26 00:08:16 rswindell Exp $ */
+/* $Id: scfg.c,v 1.90 2017/11/11 08:38:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     if(p!=NULL)
         SAFECOPY(cfg.ctrl_dir,p);
     else
-		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+        getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 	uifc.esc_delay=25;
 
@@ -192,10 +192,6 @@ int main(int argc, char **argv)
             ) {
 			if(strncmp(argv[i]+1, "import=", 7) == 0) {
 				import = argv[i] + 8;
-				continue;
-			}
-			if(strcmp(argv[i]+1, "insert") == 0) {
-				uifc.insert_mode = TRUE;
 				continue;
 			}
             switch(toupper(argv[i][1])) {

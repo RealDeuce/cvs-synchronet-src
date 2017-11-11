@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.52 2017/11/11 09:43:39 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.51 2017/11/11 08:44:45 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -543,7 +543,7 @@ void msgs_cfg()
 								, cfg.sub[j]->code_suffix);
 							strlwr(str);
 							if (!cfg.sub[j]->data_dir[0])
-								sprintf(tmp, "[%ssubs/]", cfg.data_dir);
+								sprintf(tmp, "%ssubs/", cfg.data_dir);
 							else
 								strcpy(tmp, cfg.sub[j]->data_dir);
 							delfiles(tmp, str);
