@@ -804,8 +804,6 @@ enum {
 	,BallotHdr
 	,BallotAnswerFmt
 	,BallotVoteWhich
-	,Only
-	,SPAMVisibilityIsNow
 
 	,TOTAL_TEXT
 };
