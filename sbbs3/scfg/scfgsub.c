@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.45 2017/11/16 06:03:43 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.44 2017/11/07 04:09:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,6 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 				cfg.qhub[q]->sub[s]++;
 #endif
 
-	new_subboard->subnum = new_subnum;
 	cfg.sub[new_subnum] = new_subboard;
 	cfg.total_subs++;
 	return true;
