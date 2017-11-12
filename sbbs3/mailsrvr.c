@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.609 2017/10/23 03:23:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.610 2017/11/12 00:04:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3011,6 +3011,7 @@ static void smtp_thread(void* arg)
 									p=str;
 									lprintf(LOG_NOTICE,"%04d SMTP TAGGED MAIL SUBJECT from blacklisted server with: %s"
 										,socket, startup->dnsbl_tag);
+									msg.hdr.attr |= MSG_SPAM;
 								}
 							}
 							smb_hfield_str(&msg, hfield_type=SUBJECT, p);
@@ -3066,6 +3067,7 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if(relay_user.number==0 && dnsbl_result.s_addr && !(startup->options&MAIL_OPT_DNSBL_IGNORE)) {
+					msg.hdr.attr |= MSG_SPAM;
 					/* tag message as spam */
 					if(startup->dnsbl_hdr[0]) {
 						safe_snprintf(str,sizeof(str),"%s: %s is listed on %s as %s"
@@ -5135,7 +5137,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.609 $", "%*s %s", revision);
+	sscanf("$Revision: 1.610 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
