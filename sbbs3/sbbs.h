@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
-// vi: tabstop=4
-/* $Id: sbbs.h,v 1.474 2018/03/10 03:19:02 rswindell Exp $ */
+
+/* $Id: sbbs.h,v 1.451 2017/11/06 06:28:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,16 +105,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
-#if __GNUC__ > 5
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
-	#pragma GCC diagnostic ignored "-Wignored-attributes"
-#endif
 #include <jsversion.h>
 #include <jsapi.h>
-#if __GNUC_ > 5
-	#pragma GCC diagnostic pop
-#endif
 #define JS_DestroyScript(cx,script)
 
 #define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
@@ -133,8 +125,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 				*(sizeptr) = *JSSTSlenptr+1; \
 				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
 					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
-					if((ret) != NULL) free(ret); \
 					(ret)=NULL; \
+					free(ret); \
 				} \
 				else { \
 					(ret)=JSSTStmpptr; \
@@ -217,12 +209,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
 }
 
-#define HANDLE_PENDING(cx, p ) \
-	if(JS_IsExceptionPending(cx)) { \
-		if(p != NULL) \
-			free(p); \
-		return JS_FALSE; \
-	}
+#define HANDLE_PENDING(cx) \
+	if(JS_IsExceptionPending(cx)) \
+		return JS_FALSE;
 
 #define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
 { \
@@ -350,10 +339,7 @@ public:
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
 
-	#define OUTCOM_RETRY_DELAY		80		// milliseconds
-	#define OUTCOM_RETRY_ATTEMPTS	1000	// 80 seconds
-	int 	_outcom(uchar ch); 	   // send character, without retry (on buffer flow condition)
-	int		outcom(uchar ch, int max_attempts = OUTCOM_RETRY_ATTEMPTS);		// send character, with retry
+	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
 
 	void	spymsg(const char *msg);		// send message to active spies
@@ -393,7 +379,6 @@ public:
 
 #endif
 
-	char	syspage_semfile[MAX_PATH+1];	/* Sysop page semaphore file */
 	char 	menu_dir[128];	/* Over-ride default menu dir */
 	char 	menu_file[128]; /* Over-ride menu file */
 
@@ -457,9 +442,7 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
-	long	lastlinelen;	/* The previously displayed line length */
-	long 	autoterm;		/* Auto-detected terminal type */
-	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
+	long 	autoterm;		/* Autodetected terminal type */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
 	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
@@ -470,7 +453,6 @@ public:
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
-			last_sysop_auth,/* Time sysop was last authenticated */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -528,7 +510,6 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
-	file_t*		current_file;	
 
 			/* Global command shell variables */
 	uint	global_str_vars;
@@ -598,8 +579,6 @@ public:
 	void	getusrdirs(void);
 	uint	getusrsub(uint subnum);
 	uint	getusrgrp(uint subnum);
-	uint	getusrdir(uint dirnum);
-	uint	getusrlib(uint dirnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del=false, bool next=false);
@@ -607,10 +586,8 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t);
-	char*	datestr(time_t);
+	char*	timestr(time_t intime);
     char	timestr_output[60];
-	char	datestr_output[60];
 	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
@@ -660,7 +637,7 @@ public:
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which, bool permanent=true, long lm_mode = 0);
+	void	delallmail(uint usernumber, int which, bool permanent=true);
 
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
@@ -673,9 +650,8 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which);
+	void	readmail(uint usernumber, int sent);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -726,7 +702,6 @@ public:
 	void	printfile(char *str, long mode);
 	void	printtail(char *str, int lines, long mode);
 	void	menu(const char *code);
-	bool	menu_exists(const char *code);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -787,7 +762,6 @@ public:
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
 	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
-	int64_t get_start_msgnum(smb_t*, int next=0);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -808,8 +782,6 @@ public:
 	int		getnodetopage(int all, int telegram);
 
 	/* main.cpp */
-	int		lputs(int level, const char* str);
-	int		lprintf(int level, const char *fmt, ...);
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
@@ -819,7 +791,6 @@ public:
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
-	bool	backup(const char* fname, int backup_level, bool rename);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
@@ -835,9 +806,9 @@ public:
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
-	bool	checkdszlog(const char*);
+	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
+	bool	sendfile(char* fname, char prot=0);
 	bool	recvfile(char* fname, char prot=0);
 
 	/* file.cpp */
@@ -1033,7 +1004,7 @@ extern "C" {
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* getmail.c */
-	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
+	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
@@ -1123,8 +1094,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
-	DLLEXPORT int		DLLCALL smb_storage_mode(scfg_t*, smb_t*);
-	DLLEXPORT int		DLLCALL smb_open_sub(scfg_t*, smb_t*, unsigned int subnum);
+
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
@@ -1204,6 +1174,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1215,14 +1186,11 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
-#ifdef USE_CRYPTLIB
 													,CRYPT_CONTEXT session		/* client */
-#else
-													,int unused
-#endif
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
+#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1329,12 +1297,6 @@ extern "C" {
 
 	/* js_cryptcon.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
-
-	/* js_cryptkeyset.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateCryptKeysetClass(JSContext* cx, JSObject* parent);
-
-	/* js_cryptcert.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateCryptCertClass(JSContext* cx, JSObject* parent);
 
 #endif
 
