@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.608 2017/08/26 01:57:24 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.609 2017/10/23 03:23:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3139,7 +3139,7 @@ static void smtp_thread(void* arg)
 					if(!can_user_post(&scfg,subnum,&relay_user,&client,&reason)) {
 						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
-							,scfg.sub[subnum]->sname, reason);
+							,scfg.sub[subnum]->sname, reason + 1);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						stats.msgs_refused++;
@@ -5135,7 +5135,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.608 $", "%*s %s", revision);
+	sscanf("$Revision: 1.609 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
