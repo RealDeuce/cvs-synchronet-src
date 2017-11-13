@@ -2,7 +2,7 @@
 
 /* Synchronet real-time chat functions */
 
-/* $Id: chat.cpp,v 1.68 2016/10/06 06:42:32 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.69 2017/10/12 08:41:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -897,14 +897,14 @@ void sbbs_t::privchat(bool local)
 		mswait(2000);
 	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,DEFFILEMODE))==-1) {
 		close(out);
-		errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE|O_CREAT);
+		errormsg(WHERE,ERR_OPEN,inpath,O_RDWR|O_DENYNONE|O_CREAT);
 		return; 
 	}
 
 	if((p=(char *)malloc(PCHAT_LEN))==NULL) {
 		close(in);
 		close(out);
-		errormsg(WHERE,ERR_ALLOC,str,PCHAT_LEN);
+		errormsg(WHERE,ERR_ALLOC,nulstr,PCHAT_LEN);
 		return; 
 	}
 	memset(p,0,PCHAT_LEN);
