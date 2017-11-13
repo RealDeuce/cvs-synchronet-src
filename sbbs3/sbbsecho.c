@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.59 2017/11/13 08:50:51 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.60 2017/11/13 08:56:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4332,7 +4332,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 						,hdr.attr
 						,hdr.to, smb_faddrtoa(&scfg.faddr[match], NULL)
 						,hdr.from, faddrtoa(&addr)
-						,hdr.time, (uint32_t)t, ctime(&t));
+						,hdr.time, (ulong)t, ctime(&t));
 					bodylen += sprintf(body+bodylen,"\r======[ Received message text ]======\r%s"
 													"\r======[ End received msg text ]======\r", fmsgbuf);
 				}
@@ -4652,8 +4652,8 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			}
 
 			if(!rescan && cfg.max_echomail_age != 0 
-				&& (now > msg.hdr.when_written.time && (now - msg.hdr.when_written.time) > cfg.max_echomail_age)
-				|| (now > msg.hdr.when_imported.time && (now - msg.hdr.when_imported.time) > cfg.max_echomail_age)) {
+				&& ((now > msg.hdr.when_written.time && (now - msg.hdr.when_written.time) > cfg.max_echomail_age)
+				|| (now > msg.hdr.when_imported.time && (now - msg.hdr.when_imported.time) > cfg.max_echomail_age))) {
 				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
 				continue;
@@ -5845,7 +5845,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.59 $", "%*s %s", revision);
+	sscanf("$Revision: 3.60 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
