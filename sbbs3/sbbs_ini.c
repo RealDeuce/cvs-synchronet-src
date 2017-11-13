@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.158 2017/08/26 01:57:24 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.159 2017/11/13 19:46:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -215,7 +215,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	const char* section = "Global";
 	char		value[INI_MAX_VALUE_LEN];
 	char*		p;
-	struct in6_addr	wildcard6 = {0};
+	struct in6_addr	wildcard6 = {{{0}}};
 
 	p=iniGetString(list,section,strCtrlDirectory,nulstr,value);
 	if(*p) {
@@ -278,7 +278,7 @@ void sbbs_read_ini(
 	char		value[INI_MAX_VALUE_LEN];
 	str_list_t	list;
 	global_startup_t global_buf;
-	struct in6_addr	wildcard6 = {0};
+	struct in6_addr	wildcard6 = {{{0}}};
 	char		*global_interfaces;
 
 	if(global==NULL) {
