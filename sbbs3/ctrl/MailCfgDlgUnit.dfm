@@ -1,6 +1,6 @@
 object MailCfgDlg: TMailCfgDlg
-  Left = 1213
-  Top = 393
+  Left = 516
+  Top = 157
   BorderStyle = bsDialog
   Caption = 'Mail Server Configuration'
   ClientHeight = 246
@@ -53,8 +53,8 @@ object MailCfgDlg: TMailCfgDlg
     Top = 3
     Width = 278
     Height = 199
-    ActivePage = POP3TabSheet
-    TabIndex = 2
+    ActivePage = GeneralTabSheet
+    TabIndex = 0
     TabOrder = 3
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -165,7 +165,7 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Log Transmissions'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 6
       end
       object LogFileCheckBox: TCheckBox
         Left = 150
@@ -176,7 +176,7 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Log to Disk'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 10
+        TabOrder = 9
       end
       object LinesPerYieldEdit: TEdit
         Left = 92
@@ -188,7 +188,7 @@ object MailCfgDlg: TMailCfgDlg
           ' yields'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 5
       end
       object DebugRXCheckBox: TCheckBox
         Left = 150
@@ -199,7 +199,7 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Log Responses'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
+        TabOrder = 7
       end
       object DebugHeadersCheckBox: TCheckBox
         Left = 150
@@ -210,7 +210,7 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Log RX Headers'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 9
+        TabOrder = 8
       end
       object MaxMsgsWaitingEdit: TEdit
         Left = 92
@@ -220,7 +220,7 @@ object MailCfgDlg: TMailCfgDlg
         Hint = 'Maximum number of messages waiting per user (0=unlimited)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 10
       end
     end
     object SMTPTabSheet: TTabSheet
@@ -232,11 +232,11 @@ object MailCfgDlg: TMailCfgDlg
         Width = 85
         Height = 19
         AutoSize = False
-        Caption = 'TCP Port'
+        Caption = 'Transfer Port'
       end
       object DefaultUserLabel: TLabel
         Left = 7
-        Top = 114
+        Top = 88
         Width = 85
         Height = 19
         AutoSize = False
@@ -244,7 +244,7 @@ object MailCfgDlg: TMailCfgDlg
       end
       object MaxRecipientsLabel: TLabel
         Left = 157
-        Top = 88
+        Top = 62
         Width = 84
         Height = 19
         AutoSize = False
@@ -252,7 +252,7 @@ object MailCfgDlg: TMailCfgDlg
       end
       object MaxMsgSizeLabel: TLabel
         Left = 7
-        Top = 88
+        Top = 62
         Width = 85
         Height = 19
         AutoSize = False
@@ -260,19 +260,11 @@ object MailCfgDlg: TMailCfgDlg
       end
       object SubPortLabel: TLabel
         Left = 7
-        Top = 60
-        Width = 85
-        Height = 19
-        AutoSize = False
-        Caption = 'Submission Port'
-      end
-      object TLSSubPortLabel: TLabel
-        Left = 7
         Top = 36
         Width = 85
         Height = 19
         AutoSize = False
-        Caption = 'TLS Port'
+        Caption = 'Submission Port'
       end
       object SMTPPortEdit: TEdit
         Left = 92
@@ -286,7 +278,7 @@ object MailCfgDlg: TMailCfgDlg
       end
       object DefaultUserEdit: TEdit
         Left = 92
-        Top = 114
+        Top = 88
         Width = 143
         Height = 21
         Hint = 
@@ -294,27 +286,39 @@ object MailCfgDlg: TMailCfgDlg
           'ysop")'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
+        TabOrder = 6
+      end
+      object AllowRelayCheckBox: TCheckBox
+        Left = 7
+        Top = 116
+        Width = 234
+        Height = 19
+        Hint = 'Allow authenticated users to relay mail through this server'
+        Caption = 'Allow Authenticated Users to Relay Mail'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 7
+        OnClick = AllowRelayCheckBoxClick
       end
       object MaxRecipientsEdit: TEdit
         Left = 241
-        Top = 88
+        Top = 62
         Width = 26
         Height = 21
         Hint = 'Maximum number of recipients for a single message'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 5
       end
       object MaxMsgSizeEdit: TEdit
         Left = 92
-        Top = 88
+        Top = 62
         Width = 58
         Height = 21
         Hint = 'Maximum received message size (in bytes)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 4
       end
       object AuthViaIpCheckBox: TCheckBox
         Left = 7
@@ -327,7 +331,7 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Allow Authentication via POP3, Telnet, etc.'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 9
+        TabOrder = 8
       end
       object NotifyCheckBox: TCheckBox
         Left = 150
@@ -342,43 +346,23 @@ object MailCfgDlg: TMailCfgDlg
       end
       object SubPortEdit: TEdit
         Left = 92
-        Top = 60
+        Top = 36
         Width = 39
         Height = 21
         Hint = 'TCP port number for incoming SMTP submissions (default=587)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 2
       end
       object UseSubPortCheckBox: TCheckBox
         Left = 150
-        Top = 60
+        Top = 36
         Width = 117
-        Height = 19
+        Height = 14
         Hint = 'Enable the SMTP submission port'
         Caption = 'Enabled'
-        TabOrder = 5
-        OnClick = UseSubPortCheckBoxClick
-      end
-      object TLSSubPortEdit: TEdit
-        Left = 92
-        Top = 36
-        Width = 39
-        Height = 21
-        Hint = 'TCP port number for incoming SMTP/TLS submissions'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 2
-      end
-      object TLSSubPortCheckBox: TCheckBox
-        Left = 150
-        Top = 36
-        Width = 117
-        Height = 19
-        Hint = 'Enable the SMTP/TLS submission port'
-        Caption = 'Enabled'
         TabOrder = 3
-        OnClick = TLSSubPortCheckBoxClick
+        OnClick = UseSubPortCheckBoxClick
       end
     end
     object POP3TabSheet: TTabSheet
@@ -390,15 +374,7 @@ object MailCfgDlg: TMailCfgDlg
         Width = 83
         Height = 19
         AutoSize = False
-        Caption = 'TCP Port'
-      end
-      object TLSPOP3PortLabel: TLabel
-        Left = 7
-        Top = 36
-        Width = 83
-        Height = 19
-        AutoSize = False
-        Caption = 'TLS Port'
+        Caption = 'Listening Port'
       end
       object POP3PortEdit: TEdit
         Left = 92
@@ -412,17 +388,17 @@ object MailCfgDlg: TMailCfgDlg
       end
       object POP3LogCheckBox: TCheckBox
         Left = 150
-        Top = 62
-        Width = 107
+        Top = 10
+        Width = 57
         Height = 19
         Hint = 'Log all POP3 user activity'
-        Caption = 'Log All Activity'
+        Caption = 'Log'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 1
       end
       object POP3EnabledCheckBox: TCheckBox
-        Left = 150
+        Left = 208
         Top = 10
         Width = 66
         Height = 19
@@ -430,29 +406,7 @@ object MailCfgDlg: TMailCfgDlg
         Caption = 'Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 1
-        OnClick = POP3EnabledCheckBoxClick
-      end
-      object TLSPOP3PortEdit: TEdit
-        Left = 92
-        Top = 36
-        Width = 39
-        Height = 21
-        Hint = 'TCP port number for incoming POP3S connections'
-        ParentShowHint = False
-        ShowHint = True
         TabOrder = 2
-      end
-      object TLSPOP3EnabledCheckBox: TCheckBox
-        Left = 150
-        Top = 36
-        Width = 66
-        Height = 19
-        Hint = 'Enable the TLS POP3 port'
-        Caption = 'Enabled'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 3
         OnClick = POP3EnabledCheckBoxClick
       end
     end
@@ -962,11 +916,9 @@ object MailCfgDlg: TMailCfgDlg
           'Retain received mail files (in temp directory)'
           'Allow receipt of mail by user number'
           'Allow receipt of mail to '#39'sysop'#39' and '#39'postmaster'#39
-          'Allow authenticated users to relay mail'
           'Check '#39'Received'#39' header fields against DNSBL'
           'Throttle DNS blacklisted server sessions'
-          'Auto-exempt sent-mail recipients from DNSBL'
-          'Set Kill-Read attribute on received SPAM')
+          'Auto-exempt sent-mail recipients from DNSBL')
         TabOrder = 0
       end
     end
