@@ -2,7 +2,7 @@
 
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.14 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.13 2010/03/06 00:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,8 @@ int sbbs_t::text_sec()
 	}
 	action=NODE_RTXT;
 	while(online) {
-		if(menu_exists("text_sec"))
+		sprintf(str,"%smenu/text_sec.*",cfg.text_dir);
+		if(fexist(str))
 			menu("text_sec");
 		else {
 			bputs(text[TextSectionLstHdr]);
@@ -82,8 +83,9 @@ int sbbs_t::text_sec()
 			break;
 		cursec--;
 		while(online) {
-			sprintf(str,"text%lu",cursec+1);
-			if(menu_exists(str)) {
+			sprintf(str,"%smenu/text%lu.*",cfg.text_dir,cursec+1);
+			if(fexist(str)) {
+				sprintf(str,"text%lu",cursec+1);
 				menu(str);
 				usemenu=1; 
 			}
