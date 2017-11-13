@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.81 2017/11/29 01:53:02 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.77 2017/11/13 19:44:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -795,8 +795,6 @@ int main(int argc, char** argv)  {
 	scfg_t	cfg;
 	int		done;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
-	time_t	last_semfile_check = time(NULL);
-	int		idle_sleep=100;
 
 	/******************/
 	/* Ini file stuff */
@@ -805,7 +803,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.81 $", "%*s %s", revision);
+	sscanf("$Revision: 1.77 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -887,9 +885,6 @@ int main(int argc, char** argv)  {
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
-				case 'S':
-					idle_sleep=atoi(argv[i]+2);
-					break;
 				case 'I':
 					switch(toupper(argv[i][2])) {
 						case 'A':
@@ -930,9 +925,7 @@ int main(int argc, char** argv)  {
 #endif
 						"       A = ANSI mode\r\n"
                         "-l# =  set screen lines to #\n"
-						"-s# =  set idle slsep to # milliseconds (defualt: %d)\n"
 						,argv[0]
-						,idle_sleep
                         );
         			exit(0);
            }
@@ -972,20 +965,13 @@ int main(int argc, char** argv)  {
 		bail(1);
 	}
 
-	int paging_node = 0;
 	while(1) {
 		strcpy(mopt[0],"System Options");
 		for(i=1;i<=cfg.sys_nodes;i++) {
 			if((j=getnodedat(&cfg,i,&node,NULL)))
 				sprintf(mopt[i],"Error reading node data (%d)!",j);
-			else {
-				nodestatus(&cfg, &node, str, 71);
-				if(i == paging_node) {
-					strupr(str);
-					strcat(str,  " <PAGING>");
-				}
-				sprintf(mopt[i],"%3d: %s", i, str);
-			}
+			else
+				sprintf(mopt[i],"%3d: %s",i,nodestatus(&cfg,&node,str,71));
 		}
 		mopt[i][0]=0;
 
@@ -1008,29 +994,11 @@ int main(int argc, char** argv)  {
 
 		drawstats(&cfg, main_dflt, &node, &main_dflt, &main_bar);
 
-		if(time(NULL) - last_semfile_check > bbs_startup.sem_chk_freq * 2) {
-			paging_node = 0;
-			SAFEPRINTF(str, "%ssyspage.*", cfg.ctrl_dir);
-			if(fexistcase(str) && (paging_node = atoi(getfext(str) + 1)) > 0) {
-				putch(BEL);
-				char msg[128];
-				SAFEPRINTF(msg, "Node %u is paging you to chat", paging_node);
-				uifc.pop(msg);
-				SLEEP(1500);
-				uifc.pop(NULL);
-			}
-			last_semfile_check = time(NULL);
-		}
-
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN,0,5,70,&main_dflt,&main_bar
 			,title,mopt);
 
-		if(j == -2) {
-			SLEEP(idle_sleep);
+		if(j == -2)
 			continue;
-		}
-
-		last_semfile_check = time(NULL);
 
 		if(j==-7) {	/* CTRL-E */
 			sprintf(str,"%s/error.log",cfg.data_dir);
@@ -1132,7 +1100,7 @@ int main(int argc, char** argv)  {
 							"\n"
 							"\nIf you want to exit the Synchronet UNIX monitor utility,"
 							"\nselect `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
-			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Exit Synchronet Monitor",opt);
+			i=uifc.list(WIN_MID,0,0,0,&i,0,"Exit Synchronet Monitor",opt);
 			if(!i)
 				bail(0);
 			continue;
