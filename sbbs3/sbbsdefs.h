@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.218 2017/12/10 02:07:22 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.215 2017/10/23 04:29:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -54,7 +54,7 @@
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
-#define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
+#define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
@@ -661,8 +661,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define TERM_KEY_INSERT	CTRL_V
 #define TERM_KEY_DELETE	DEL
 #define TERM_KEY_ABORT	CTRL_C
-#define TERM_KEY_PAGEUP	CTRL_U
-#define TERM_KEY_PAGEDN	CTRL_D
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
@@ -773,8 +771,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 								/* Bits in the mode of loadmail()			*/
 #define LM_UNREAD	(1<<0)		/* Include un-read mail only				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
-#define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
-#define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
 								
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
