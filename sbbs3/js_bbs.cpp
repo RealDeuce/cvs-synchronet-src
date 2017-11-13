@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.158 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.156 2017/08/09 20:18:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,19 +142,6 @@ enum {
 	,BBS_PROP_BATCH_UPLOAD_TOTAL
 	,BBS_PROP_BATCH_DNLOAD_TOTAL
 
-	/* READ ONLY */
-	,BBS_PROP_FILE_NAME
-	,BBS_PROP_FILE_DESC
-	,BBS_PROP_FILE_DIR
-	,BBS_PROP_FILE_ATTR
-	,BBS_PROP_FILE_DATE
-	,BBS_PROP_FILE_SIZE
-	,BBS_PROP_FILE_CREDITS
-	,BBS_PROP_FILE_ULER
-	,BBS_PROP_FILE_DATE_ULED
-	,BBS_PROP_FILE_DATE_DLED
-	,BBS_PROP_FILE_TIMES_DLED
-
 	,BBS_PROP_COMMAND_STR
 };
 
@@ -225,22 +212,22 @@ enum {
 	/* READ ONLY */
 	,"message recipient name"
 	,"message recipient extension"
-	,"message recipient network address"
+	,"message recipient network type"
 	,"message recipient agent type"
 	,"message sender name"
 	,"message sender extension"
-	,"message sender network address"
+	,"message sender network type"
 	,"message sender agent type"
 	,"message reply-to name"
 	,"message reply-to extension"
-	,"message reply-to network address"
+	,"message reply-to network type"
 	,"message reply-to agent type"
 	,"message subject"
 	,"message date/time"
 	,"message time zone"
 	,"message date/time imported"
 	,"message attributes"
-	,"message auxiliary attributes"
+	,"message auxillary attributes"
 	,"message network attributes"
 	,"message header offset"
 	,"message number (unique, monotonically incrementing)"
@@ -253,18 +240,6 @@ enum {
 	,"message identifier"
 	,"message replied-to identifier"
 	,"message delivery attempt counter"
-
-	,"file name"
-	,"file description"
-	,"file directory (number)"
-	,"file attribute flags"
-	,"file date"
-	,"file size (in bytes)"
-	,"file credit value"
-	,"file uploader (user name)"
-	,"file upload date"
-	,"file last-download date"
-	,"file download count"
 
 	,"number of files in batch upload queue"
 	,"number of files in batch download queue"
@@ -656,74 +631,6 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				p=sbbs->current_msg->reply_id;
 			break;
 
-		/* Currently Displayed File (sbbs.current_file) */
-		case BBS_PROP_FILE_NAME:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				p=sbbs->current_file->name;
-			break;
-		case BBS_PROP_FILE_DESC:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				p=sbbs->current_file->desc;
-			break;
-		case BBS_PROP_FILE_ULER:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				p=sbbs->current_file->uler;
-			break;
-		case BBS_PROP_FILE_DATE:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->date;
-			break;
-		case BBS_PROP_FILE_DATE_ULED:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->dateuled;
-			break;
-		case BBS_PROP_FILE_DATE_DLED:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->datedled;
-			break;
-		case BBS_PROP_FILE_TIMES_DLED:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->timesdled;
-			break;
-		case BBS_PROP_FILE_SIZE:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->size;
-			break;
-		case BBS_PROP_FILE_CREDITS:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->cdt;
-			break;
-		case BBS_PROP_FILE_DIR:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->dir;
-			break;
-		case BBS_PROP_FILE_ATTR:
-			if(sbbs->current_file==NULL)
-				p=nulstr;
-			else
-				val=sbbs->current_file->misc;
-			break;
-
 		case BBS_PROP_BATCH_UPLOAD_TOTAL:
 			val=sbbs->batup_total;
 			break;
@@ -1038,18 +945,6 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"msg_reply_id"		,BBS_PROP_MSG_REPLY_ID		,PROP_READONLY	,310},
 	{	"msg_delivery_attempts"	,BBS_PROP_MSG_DELIVERY_ATTEMPTS
 														,PROP_READONLY	,310},
-
-	{	"file_name"			,BBS_PROP_FILE_NAME			,PROP_READONLY	,317},
-	{	"file_description"	,BBS_PROP_FILE_DESC			,PROP_READONLY	,317},
-	{	"file_dir_number"	,BBS_PROP_FILE_DIR			,PROP_READONLY	,317},
-	{	"file_attr"			,BBS_PROP_FILE_ATTR			,PROP_READONLY	,317},
-	{	"file_date"			,BBS_PROP_FILE_DATE			,PROP_READONLY	,317},
-	{	"file_size"			,BBS_PROP_FILE_SIZE			,PROP_READONLY	,317},
-	{	"file_credits"		,BBS_PROP_FILE_CREDITS		,PROP_READONLY	,317},
-	{	"file_uploader"		,BBS_PROP_FILE_ULER			,PROP_READONLY	,317},
-	{	"file_upload_date"	,BBS_PROP_FILE_DATE_ULED	,PROP_READONLY	,317},
-	{	"file_download_date",BBS_PROP_FILE_DATE_DLED	,PROP_READONLY	,317},
-	{	"file_download_count",BBS_PROP_FILE_TIMES_DLED	,PROP_READONLY	,317},
 
 	{	"batch_upload_total",BBS_PROP_BATCH_UPLOAD_TOTAL,PROP_READONLY	,310},
 	{	"batch_dnload_total",BBS_PROP_BATCH_DNLOAD_TOTAL,PROP_READONLY	,310},
