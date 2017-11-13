@@ -1,6 +1,6 @@
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.53 2018/01/31 23:42:30 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.52 2017/08/26 01:37:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -78,12 +78,6 @@ DLLEXPORT named_string_t** DLLCALL
 /* Return the supported Log Levels in a string list - for *LogLevel macros */
 DLLEXPORT str_list_t DLLCALL	iniLogLevelStringList(void);
 
-/* Return the unparsed/converted value */
-DLLEXPORT char* DLLCALL		iniReadValue(FILE*, const char* section, const char* key
-								,const char* deflt, char* value);
-DLLEXPORT char* DLLCALL		iniReadExistingValue(FILE*, const char* section, const char* key
-					,const char* deflt, char* value);
-
 /* These functions read a single key of the specified type */
 DLLEXPORT char* DLLCALL		iniReadString(FILE*, const char* section, const char* key
 					,const char* deflt, char* value);
@@ -143,13 +137,6 @@ DLLEXPORT str_list_t DLLCALL	iniGetKeyList(str_list_t list, const char* section)
 DLLEXPORT named_string_t** DLLCALL
 			iniGetNamedStringList(str_list_t list, const char* section);
 
-/* Return the unparsed value (string literals not supported): */
-DLLEXPORT char* DLLCALL		iniGetValue(str_list_t, const char* section, const char* key
-					,const char* deflt, char* value /* may be NULL */);
-DLLEXPORT char* DLLCALL		iniGetExistingValue(str_list_t, const char* section, const char* key
-					,const char* deflt, char* value /* may be NULL */);
-
-/* Return the string value (potentially string literals separated by colon rather than equal): */
 DLLEXPORT char* DLLCALL		iniGetString(str_list_t, const char* section, const char* key
 					,const char* deflt, char* value /* may be NULL */);
 /* If the key doesn't exist, iniGetExistingString just returns NULL */
@@ -257,7 +244,6 @@ DLLEXPORT BOOL DLLCALL		iniSectionExists(str_list_t, const char* section);
 DLLEXPORT BOOL DLLCALL		iniKeyExists(str_list_t, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniValueExists(str_list_t, const char* section, const char* key);
 DLLEXPORT char* DLLCALL		iniPopKey(str_list_t*, const char* section, const char* key, char* value);
-DLLEXPORT char* DLLCALL		iniPopString(str_list_t*, const char* section, const char* key, char* value);
 DLLEXPORT BOOL DLLCALL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveSection(str_list_t*, const char* section);
