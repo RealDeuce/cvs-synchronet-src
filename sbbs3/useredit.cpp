@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.49 2018/01/07 23:13:22 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.48 2017/11/13 08:31:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -897,7 +897,7 @@ void sbbs_t::maindflts(user_t* user)
 					user->misc|=NO_EXASCII;
 				else
 					user->misc&=~NO_EXASCII;
-				if(!(user->misc&AUTOTERM) && (user->misc&(ANSI|NO_EXASCII)) == ANSI) {
+				if(!(user->misc&AUTOTERM)) {
 					if(!noyes(text[RipTerminalQ]))
 						user->misc|=RIP;
 					else
