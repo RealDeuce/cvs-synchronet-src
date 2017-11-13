@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.606 2016/12/08 06:58:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.612 2017/11/13 08:31:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -887,7 +887,7 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.protocol="POP3";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"POP3: %s", host_ip);
@@ -2676,7 +2676,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.protocol="SMTP";
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -3011,6 +3011,7 @@ static void smtp_thread(void* arg)
 									p=str;
 									lprintf(LOG_NOTICE,"%04d SMTP TAGGED MAIL SUBJECT from blacklisted server with: %s"
 										,socket, startup->dnsbl_tag);
+									msg.hdr.attr |= MSG_SPAM;
 								}
 							}
 							smb_hfield_str(&msg, hfield_type=SUBJECT, p);
@@ -3028,6 +3029,8 @@ static void smtp_thread(void* arg)
 							smb_error=SMB_FAILURE;
 							break;
 						}
+						if(stricmp(field, "X-Spam-Flag") == 0 && stricmp(p, "Yes") == 0)
+							msg.hdr.attr |= MSG_SPAM;	/* e.g. flagged by SpamAssasin */
 					}
 					if((smb_error=parse_header_field((char*)buf,&msg,&hfield_type))!=SMB_SUCCESS) {
 						if(smb_error==SMB_ERR_HDR_LEN)
@@ -3066,6 +3069,7 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if(relay_user.number==0 && dnsbl_result.s_addr && !(startup->options&MAIL_OPT_DNSBL_IGNORE)) {
+					msg.hdr.attr |= MSG_SPAM;
 					/* tag message as spam */
 					if(startup->dnsbl_hdr[0]) {
 						safe_snprintf(str,sizeof(str),"%s: %s is listed on %s as %s"
@@ -3139,7 +3143,7 @@ static void smtp_thread(void* arg)
 					if(!can_user_post(&scfg,subnum,&relay_user,&client,&reason)) {
 						lprintf(LOG_WARNING,"%04d !SMTP %s (user #%u) cannot post on %s (reason: %u)"
 							,socket, sender_addr, relay_user.number
-							,scfg.sub[subnum]->sname, reason);
+							,scfg.sub[subnum]->sname, reason + 1);
 						sockprintf(socket,"550 Insufficient access");
 						subnum=INVALID_SUB;
 						stats.msgs_refused++;
@@ -3362,15 +3366,11 @@ static void smtp_thread(void* arg)
 									p++;
 							}
 							safe_snprintf(str,sizeof(str)
-								,"\7\1n\1hOn %.24s\r\n\1m%s \1n\1msent you \1h\1we-mail\1n\1m from: "
-								"\1h%s\1n\r\n"
+								,startup->newmail_notice
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
-							if(!newmsg.idx.to) {	/* Forwarding */
-								strcat(str,"\1mand it was automatically forwarded to: \1h");
-								strcat(str,rcpt_addr);
-								strcat(str,"\1n\r\n");
-							}
+							if(!newmsg.idx.to) 	/* Forwarding */
+								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
 						}
 					}
@@ -3868,7 +3868,7 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 				if(relay_user.number!=0 && !(relay_user.exempt&FLAG('M'))
-					&& rcpt_count+(waiting=getmail(&scfg,relay_user.number,/* sent: */TRUE)) > startup->max_recipients) {
+					&& rcpt_count+(waiting=getmail(&scfg,relay_user.number,/* sent: */TRUE, /* SPAM: */FALSE)) > startup->max_recipients) {
 					lprintf(LOG_NOTICE,"%04d !SMTP MAXIMUM PENDING SENT EMAILS (%u) REACHED for User #%u (%s)"
 						,socket, waiting, relay_user.number, relay_user.alias);
 					sockprintf(socket, "452 Too many pending emails sent");
@@ -4207,7 +4207,7 @@ static void smtp_thread(void* arg)
 					continue;
 				}
 				if(startup->max_msgs_waiting && !(user.exempt&FLAG('W')) 
-					&& (waiting=getmail(&scfg, user.number, /* sent: */FALSE)) > startup->max_msgs_waiting) {
+					&& (waiting=getmail(&scfg, user.number, /* sent: */FALSE, /* spam: */FALSE)) > startup->max_msgs_waiting) {
 					lprintf(LOG_NOTICE,"%04d !SMTP User #%u (%s) mailbox (%u msgs) exceeds the maximum (%u) msgs waiting"
 						,socket, user.number, user.alias, waiting, startup->max_msgs_waiting);
 					sockprintf(socket, "450 Mailbox full: %s", rcpt_to);
@@ -4387,16 +4387,17 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		return(TRUE);
 	}
 	
-	lprintf(LOG_WARNING,"%04d !SEND Bouncing message back to %s", sock, msg->from);
-
 	newmsg.hfield=NULL;
 	newmsg.hfield_dat=NULL;
 	newmsg.total_hfields=0;
 	newmsg.hdr.delivery_attempts=0;
+	char* reverse_path = msg->reverse_path==NULL ? msg->from : msg->reverse_path;
+
+	lprintf(LOG_WARNING,"%04d !SEND Bouncing message back to %s", sock, reverse_path);
 
 	SAFEPRINTF(str,"Delivery failure: %s",newmsg.subj);
 	smb_hfield_str(&newmsg, SUBJECT, str);
-	smb_hfield_str(&newmsg, RECIPIENT, newmsg.from);
+	smb_hfield_str(&newmsg, RECIPIENT, reverse_path);
 	if(msg->from_agent==AGENT_PERSON) {
 
 		if(newmsg.from_ext!=NULL) { /* Back to sender */
@@ -4426,7 +4427,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		,startup->host_name, attempts);
 	smb_hfield_str(&newmsg, SMB_COMMENT, str);
 	SAFEPRINTF2(str,"from %s to %s\r\n"
-		,msg->reverse_path==NULL ? msg->from : msg->reverse_path
+		,msg->from
 		,(char*)msg->to_net.addr);
 	smb_hfield_str(&newmsg, SMB_COMMENT, str);
 	strcpy(str,"Reason:");
@@ -4439,7 +4440,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 			,sock,i,smb->last_error);
 	else {
 		lprintf(LOG_WARNING,"%04d !SEND Delivery failure notification (message #%ld) created for %s"
-			,sock, newmsg.hdr.number, newmsg.from);
+			,sock, newmsg.hdr.number, reverse_path);
 		if((i=smb_incmsg_dfields(smb,&newmsg,1))!=SMB_SUCCESS)
 			lprintf(LOG_ERR,"%04d !SEND BOUNCE ERROR %d (%s) incrementing data allocation units"
 				,sock, i,smb->last_error);
@@ -5139,7 +5140,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.606 $", "%*s %s", revision);
+	sscanf("$Revision: 1.612 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
