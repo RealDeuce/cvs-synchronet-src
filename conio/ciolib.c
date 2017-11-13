@@ -1,10 +1,10 @@
-/* $Id: ciolib.c,v 1.138 2018/01/31 06:51:08 deuce Exp $ */
+/* $Id: ciolib.c,v 1.135 2015/08/05 09:24:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -118,7 +118,6 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -164,7 +163,6 @@ int try_sdl_init(int mode)
 		cio_api.get_window_info=sdl_get_window_info;
 		cio_api.setscaling=sdl_setscaling;
 		cio_api.getscaling=sdl_getscaling;
-		cio_api.setpalette=sdl_setpalette;
 		return(1);
 	}
 	return(0);
@@ -211,7 +209,6 @@ int try_x_init(int mode)
 		cio_api.get_window_info=x_get_window_info;
 		cio_api.setscaling=bitmap_setscaling;
 		cio_api.getscaling=bitmap_getscaling;
-		cio_api.setpalette=x_setpalette;
 		return(1);
 	}
 	return(0);
@@ -1480,7 +1477,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num)
 	if(cio_api.setfont!=NULL)
 		return(cio_api.setfont(font,force,font_num));
 	else
-		return(CIOLIB_SETFONT_NOT_SUPPORTED);
+		return(-1);
 }
 
 /* Optional */
@@ -1575,13 +1572,5 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void)
 {
 	if(cio_api.getscaling)
 		return(cio_api.getscaling());
-	return(1);
-}
-
-/* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
-{
-	if(cio_api.setpalette)
-		return(cio_api.setpalette(entry, r, g, b));
 	return(1);
 }
