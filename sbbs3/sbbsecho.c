@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.57 2017/11/09 08:07:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.58 2017/11/13 04:15:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -188,6 +188,14 @@ char* parse_control_line(const char* fmsgbuf, const char* kludge)
 	p = str + strlen(kludge) + 1;
 	SKIP_WHITESPACE(p);
 	return strdup(p);
+}
+
+
+int fwrite_intl_control_line(FILE* fp, fmsghdr_t* hdr)
+{
+	return fprintf(fp,"\1INTL %hu:%hu/%hu %hu:%hu/%hu\r"
+		,hdr->destzone,hdr->destnet,hdr->destnode
+		,hdr->origzone,hdr->orignet,hdr->orignode);
 }
 
 typedef struct echostat_msg {
@@ -1107,9 +1115,7 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	SAFECOPY(hdr.subj,subject);
 
 	fwrite(&hdr,sizeof(fmsghdr_t),1,fp);
-	fprintf(fp,"\1INTL %hu:%hu/%hu %hu:%hu/%hu\r"
-		,hdr.destzone,hdr.destnet,hdr.destnode
-		,hdr.origzone,hdr.orignet,hdr.orignode);
+	fwrite_intl_control_line(fp, &hdr);
 
 	if(!fidoctrl_line_exists(msg, "TZUTC:")) {
 		/* TZUTC (FSP-1001) */
@@ -3533,6 +3539,9 @@ void putfmsg(FILE* stream, const char* fbuf, fmsghdr_t fmsghdr, area_t area
 	fwrite(fmsghdr.from	,strlen(fmsghdr.from)+1	,1,stream);
 	fwrite(fmsghdr.subj	,strlen(fmsghdr.subj)+1	,1,stream);
 
+	if(area.tag == NULL) /* NetMail, so add FSC-0004 INTL kludge */
+		fwrite_intl_control_line(stream, &fmsghdr);
+
 	len = strlen((char *)fbuf);
 
 	/* Write message body */
@@ -5692,7 +5701,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.57 $", "%*s %s", revision);
+	sscanf("$Revision: 3.58 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
