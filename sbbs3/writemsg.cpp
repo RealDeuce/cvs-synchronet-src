@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.122 2018/03/10 06:20:47 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.115 2016/11/27 23:03:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,10 +174,8 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 	if((buf=(char*)malloc(len+1))==NULL)
 		return -2;
 
-	if((fp=fopen(src,"rb"))==NULL) {
-		free(buf);
+	if((fp=fopen(src,"rb"))==NULL)
 		return -3;
-	}
 
 	memset(buf,0,len+1);
 	fread(buf,len,sizeof(char),fp);
@@ -222,10 +220,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(editor!=NULL)
 		*editor=NULL;
 
-	if((buf=(char*)malloc((cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) + 1))
+	if((buf=(char*)malloc(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN))
 		==NULL) {
 		errormsg(WHERE,ERR_ALLOC,fname
-			,(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) +1);
+			,cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
 		return(false); 
 	}
 
@@ -728,6 +726,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	int		i,j,line,lines=0,maxlines;
 	char	strin[256],**str,done=0;
 	char 	tmp[512];
+	char	path[MAX_PATH+1];
     ulong	l,m;
 
 	rioctl(IOCM|ABORT);
@@ -780,7 +779,8 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
 
-	if(menu_exists("msgtabs"))
+	SAFEPRINTF(path,"%smenu/msgtabs.*", cfg.text_dir);
+	if(fexist(path))
 		menu("msgtabs");
 	else {
 		for(i=0;i<79;i++) {
@@ -1061,7 +1061,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 			return false;
 		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
 		if(l>0) {
-			SAFEPRINTF4(str,"%s created or edited file: %s (%ld bytes, %u lines)"
+			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 				,useron.alias, path, l, lines);
 			logline(LOG_NOTICE,nulstr,str);
 		}
@@ -1109,7 +1109,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
-	SAFEPRINTF4(str,"%s created or edited file: %s (%ld bytes, %u lines)"
+	SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 		,useron.alias, fname, l, lines);
 	logline(nulstr,str);
 	return true;
@@ -1207,7 +1207,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_close_da(&smb);
 
 
-	if((i=smb_addmsghdr(&smb,msg,smb_storage_mode(&cfg, &smb)))!=SMB_SUCCESS) {
+	if((i=smb_addmsghdr(&smb,msg,SMB_SELFPACK))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		smb_freemsg_dfields(&smb,msg,1);
 		return; 
@@ -1549,9 +1549,6 @@ ushort sbbs_t::chmsgattr(smbmsg_t msg)
 		switch(ch) {
 			case 'P':
 				msg.hdr.attr^=MSG_PRIVATE;
-				break;
-			case 'S':
-				msg.hdr.attr^=MSG_SPAM;
 				break;
 			case 'R':
 				msg.hdr.attr^=MSG_READ;

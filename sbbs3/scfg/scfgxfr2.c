@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.54 2018/03/10 03:20:06 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.50 2017/11/11 09:51:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,6 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 
 	dir_t** new_dir_list;
 	if ((new_dir_list = (dir_t **)realloc(cfg.dir, sizeof(dir_t *)*(cfg.total_dirs + 1))) == NULL) {
-		free(new_directory);
 		errormsg(WHERE, ERR_ALLOC, "directory list", cfg.total_dirs + 1);
 		return false;
 	}
@@ -73,7 +72,6 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 	for (unsigned u = cfg.total_dirs; u > new_dirnum; u--)
 		cfg.dir[u] = cfg.dir[u - 1];
 
-	new_directory->dirnum = new_dirnum;
 	cfg.dir[new_dirnum] = new_directory;
 	cfg.total_dirs++;
 	return true;
@@ -90,7 +88,6 @@ static bool new_lib(unsigned new_libnum)
 
 	lib_t** new_lib_list;
 	if ((new_lib_list = (lib_t **)realloc(cfg.lib, sizeof(lib_t *)*(cfg.total_libs + 1))) == NULL) {
-		free(new_library);
 		errormsg(WHERE, ERR_ALLOC, "library list", cfg.total_libs + 1);
 		return false;
 	}
@@ -823,11 +820,6 @@ void xfer_cfg()
 							} 
 						}
 
-						if(tmpdir.lname[0] == 0)
-							SAFECOPY(tmpdir.lname, tmp_code);
-						if(tmpdir.sname[0] == 0)
-							SAFECOPY(tmpdir.sname, tmp_code);
-
 						SAFECOPY(tmpdir.code_suffix, prep_code(tmp_code,cfg.lib[i]->code_prefix));
 
 						int dupes = 0;
@@ -880,7 +872,6 @@ void xfer_cfg()
 								break;
 							}
 							memset(cfg.dir[j],0,sizeof(dir_t)); 
-							cfg.dir[j]->dirnum = j;
 							added++;
 						} else
 							dupes++;
@@ -903,7 +894,7 @@ void xfer_cfg()
 						uifc.changes=1; 
 					}
 					fclose(stream);
-					if(ported && cfg.lib[i]->sort)
+					if(ported)
 						sort_dirs(i);
 					uifc.pop(0);
 					sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
@@ -1039,7 +1030,9 @@ void dir_cfg(uint libnum)
 				"This is the drive and directory where your uploads to and downloads from\n"
 				"this directory will be stored. Example: `C:\\XFER\\GAMES`\n"
 			;
-			uifc.input(WIN_MID|WIN_SAV,0,0,"Directory File Path", path, LEN_DIR,K_EDIT);
+			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory File Path",path,50
+				,K_EDIT)<1)
+				continue;
 
 			if (!new_dir(dirnum[i], libnum))
 				continue;
@@ -1121,25 +1114,8 @@ void dir_cfg(uint libnum)
 				,cfg.dir[i]->op_arstr);
 			sprintf(opt[n++],"%-27.27s%.40s","Exemption Requirements"
 				,cfg.dir[i]->ex_arstr);
-			if(cfg.dir[i]->path[0]) {
-				SAFECOPY(str, cfg.dir[i]->path);
-				if(cfg.lib[cfg.dir[i]->lib]->parent_path[0])
-					prep_dir(cfg.lib[cfg.dir[i]->lib]->parent_path, str, sizeof(str));
-				else 
-					prep_dir(cfg.ctrl_dir, str, sizeof(str));
-			} else {
-				if (!cfg.dir[dirnum[i]]->data_dir[0])
-					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
-				else
-					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
-				backslash(data_dir);
-				SAFEPRINTF3(str, "[%s%s%s/]"
-					,data_dir 
-					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
-			}
-			strlwr(str);
 			sprintf(opt[n++],"%-27.27s%.40s","Transfer File Path"
-				,str);
+				,cfg.dir[i]->path);
 			sprintf(opt[n++],"%-27.27s%u","Maximum Number of Files"
 				,cfg.dir[i]->maxfiles);
 			if(cfg.dir[i]->maxage)
@@ -1162,7 +1138,7 @@ void dir_cfg(uint libnum)
 				"Options with a trailing `...` provide a sub-menu of more options.\n"
 			;
 			switch(uifc.list(WIN_SAV|WIN_ACT|WIN_RHT|WIN_BOT
-				,0,0,0,&opt_dflt,0,str,opt)) {
+				,0,0,60,&opt_dflt,0,str,opt)) {
 				case -1:
 					done=1;
 					break;
@@ -1851,7 +1827,6 @@ void dir_cfg(uint libnum)
 						: cfg.dir[i]->sort==SORT_NAME_D ? "Name Descending"
 						: cfg.dir[i]->sort==SORT_DATE_A ? "Date Ascending"
 						: "Date Descending");
-					sprintf(opt[n++],"%-27.27sNow %u / Was %u","Directory Index", i, cfg.dir[i]->dirnum);
 					opt[n][0]=0;
 					uifc.helpbuf=
 						"`Directory Advanced Options:`\n"
@@ -1931,9 +1906,6 @@ void dir_cfg(uint libnum)
 									uifc.changes=1;
 								}
 								break; 
-							case 4:
-								uifc.msg("This value cannot be changed.");
-								break;
 						} 
 					}
 				break;
