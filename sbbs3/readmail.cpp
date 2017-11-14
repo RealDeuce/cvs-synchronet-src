@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.70 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.71 2017/11/14 08:47:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -764,12 +764,12 @@ void sbbs_t::readmail(uint usernumber, int which)
 			case 'V':	/* View SPAM (toggle) */
 			{
 				domsg = false;
-				int spam = getmail(&cfg, usernumber, /* Sent: */FALSE, /* SPAM */TRUE);
+				int spam = getmail(&cfg, usernumber, /* Sent: */FALSE, /* SPAM-ONLY */TRUE);
 				if(!spam) {
 					bprintf(text[NoMailWaiting], "SPAM");
 					break;
 				}
-				if(spam >= (int)smb.msgs) {
+				if(spam >= getmail(&cfg, usernumber, /* Sent: */FALSE, /* SPAM-ONLY */FALSE)) {
 					bprintf(text[NoMailWaiting], "HAM");
 					break;
 				}
