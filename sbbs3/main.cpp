@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.650 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: main.cpp,v 1.651 2017/11/14 10:08:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5488,6 +5488,7 @@ NO_PASSTHRU:
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
+			sbbs->ssh_session=NULL; // Don't allow subsequent SSH connections to affect this one (!)
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
