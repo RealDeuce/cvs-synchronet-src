@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.646 2016/11/29 08:37:58 rswindell Exp $ */
+/* $Id: main.cpp,v 1.651 2017/11/14 10:08:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2724,10 +2724,10 @@ void event_thread(void* arg)
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
-					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
+					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
 					}
 				}
 				if(file!=-1)
@@ -2741,14 +2741,14 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*4L) {
 								l32=l;
 								write(file,&l32,4);		/* initialize ptrs to null */
 							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
 						}
 						close(file); 
 					} 
@@ -4901,7 +4901,7 @@ NO_SSH:
 		_beginthread(event_thread, 0, events);
 	}
 
-	/* Save these values incase they're changed dynamically */
+	/* Save these values in case they're changed dynamically */
 	first_node=startup->first_node;
 	last_node=startup->last_node;
 
@@ -5146,15 +5146,18 @@ NO_SSH:
 			
 			if(connections - logins >= (int)startup->max_concurrent_connections
 				&& !is_host_exempt(&scfg, host_ip, /* host_name */NULL)) {
-				lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections (%u) reached from host: %s"
+				lprintf(LOG_NOTICE, "%04d !Maximum concurrent connections without login (%u) reached from host: %s"
  					,client_socket, startup->max_concurrent_connections, host_ip);
 				SSH_END();
 				close_socket(client_socket);
-				SAFEPRINTF(logstr, "Too many concurrent connections from host: %s",host_ip);
+				SAFEPRINTF(logstr, "Too many concurrent connections without login from host: %s",host_ip);
 				sbbs->syslog("@!",logstr);
 				continue;
 			}
 		}
+
+		sbbs->client_socket=client_socket;	// required for output to the user
+		sbbs->online=ON_REMOTE;
 
 		login_attempt_t attempted;
 		ulong banned = loginBanned(&scfg, startup->login_attempt_list, client_socket, /* host_name: */NULL, startup->login_attempt, &attempted);
@@ -5250,8 +5253,6 @@ NO_SSH:
 			}
 		}
 #endif
-   		sbbs->client_socket=client_socket;	// required for output to the user
-        sbbs->online=ON_REMOTE;
 
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
@@ -5307,7 +5308,7 @@ NO_SSH:
 #else
 		client.protocol=rlogin ? "RLogin":"Telnet";
 #endif
-		client.user="<unknown>";
+		client.user=STR_UNKNOWN_USER;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
@@ -5487,6 +5488,7 @@ NO_PASSTHRU:
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
+			sbbs->ssh_session=NULL; // Don't allow subsequent SSH connections to affect this one (!)
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
