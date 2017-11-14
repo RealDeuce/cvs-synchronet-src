@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.649 2017/08/14 07:41:19 rswindell Exp $ */
+/* $Id: main.cpp,v 1.651 2017/11/14 10:08:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2724,10 +2724,10 @@ void event_thread(void* arg)
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
 				for(j=0;j<sbbs->cfg.qhub[i]->subs;j++) {
-					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr=0;
+					sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr=0;
 					if(file!=-1) {
-						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t),SEEK_SET);
-						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+						lseek(file,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t),SEEK_SET);
+						read(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
 					}
 				}
 				if(file!=-1)
@@ -2741,14 +2741,14 @@ void event_thread(void* arg)
 					else {
 						for(j=l=0;j<sbbs->cfg.qhub[i]->subs;j++) {
 							while(filelength(file)<
-								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*4L) {
+								sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*4L) {
 								l32=l;
 								write(file,&l32,4);		/* initialize ptrs to null */
 							}
 							lseek(file
-								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]]->ptridx*sizeof(int32_t)
+								,sbbs->cfg.sub[sbbs->cfg.qhub[i]->sub[j]->subnum]->ptridx*sizeof(int32_t)
 								,SEEK_SET);
-							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]].ptr)); 
+							write(file,&sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr,sizeof(sbbs->subscan[sbbs->cfg.qhub[i]->sub[j]->subnum].ptr)); 
 						}
 						close(file); 
 					} 
@@ -5488,6 +5488,7 @@ NO_PASSTHRU:
 			new_node->sys_status|=SS_SSH;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
 			new_node->ssh_session=sbbs->ssh_session;
+			sbbs->ssh_session=NULL; // Don't allow subsequent SSH connections to affect this one (!)
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);

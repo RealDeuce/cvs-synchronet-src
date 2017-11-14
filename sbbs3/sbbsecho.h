@@ -1,6 +1,6 @@
-/* Synchronet FidoNet Echomail tosser/scanner/areafix program */
+/* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.15 2017/09/19 03:12:04 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.20 2017/11/13 08:50:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,21 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		1
+#define SBBSECHO_VERSION_MINOR		3
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
+
+#define SBBSECHO_AREAMGR_NAME		"AreaFix"
+
+#define DEFAULT_INBOUND				"../fido/nonsecure"
+#define DEFAULT_SECURE_INBOUND		"../fido/inbound"
+#define DEFAULT_OUTBOUND			"../fido/outbound"
+#define DEFAULT_AREA_FILE			"../data/areas.bbs"
+#define DEFAULT_BAD_AREA_FILE		"../data/badareas.lst"
+#define DEFAULT_ECHOSTATS_FILE		"../data/echostats.ini"
+#define DEFAULT_LOG_FILE			"../data/sbbsecho.log"
+#define DEFAULT_LOG_TIME_FMT		"%Y-%m-%d %H:%M:%S"
+#define DEFAULT_TEMP_DIR			"../temp/sbbsecho"
 
 enum mail_status {
 	 MAIL_STATUS_NORMAL
@@ -67,7 +79,7 @@ enum pkt_type {
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
-    char*		name;						/* Area tag name */
+    char*		tag;						/* AreaTag, a.k.a. 'EchoTag' */
 	uint		imported; 					/* Total messages imported this run */
 	uint		exported; 					/* Total messages exported this run */
 	uint		circular; 					/* Total circular paths detected */
@@ -95,16 +107,20 @@ typedef struct {
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
+	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
+	char		name[FIDO_NAME_LEN];
 	char		inbox[MAX_PATH+1];
 	char		outbox[MAX_PATH+1];
 	str_list_t	keys;
+	bool		areafix;
 	bool		send_notify;
 	bool		passive;
 	bool		direct;
 	enum mail_status status;
 #define SBBSECHO_ARCHIVE_NONE	NULL
 	arcdef_t*	archive;
+	str_list_t	grphub;			/* This link is hub of these groups (short names */
 } nodecfg_t;
 
 typedef struct {
@@ -113,6 +129,7 @@ typedef struct {
 	fidoaddr_t 	hub;			/* Where to forward requests */
 	bool		forward;
 	char		password[FIDO_SUBJ_LEN];	/* Password to use for forwarding req's */
+	char		areamgr[FIDO_NAME_LEN];		/* Destination name for Area Manager req's */
 } echolist_t;
 
 typedef struct {
@@ -134,11 +151,13 @@ typedef struct {
 	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
 	uint		areafile_backups;		/* Number of backups to keep of area file */
 	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
+	char		echostats[MAX_PATH+1];	/* Echo statistics (default: data/echostats.ini) */
 	char		logfile[MAX_PATH+1];	/* LOG path/filename */
 	char		logtime[64];			/* format of log timestamp */
 	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
+	uint		cfgfile_backups;		/* Number of backups to keep of cfg file */
 	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
-	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to creat when there's outgoing data */
+	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to create/touch when there's outgoing data */
 	str_list_t	sysop_alias_list;		/* List of sysop aliases */
 	ulong		maxpktsize				/* Maximum size for packets */
 			   ,maxbdlsize;				/* Maximum size for bundles */
@@ -177,6 +196,7 @@ typedef struct {
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
 	bool		relay_filtered_msgs;
+	bool		auto_add_subs;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */
