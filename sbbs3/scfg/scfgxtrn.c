@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.54 2017/10/16 19:02:01 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.56 2017/11/11 22:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -361,6 +361,7 @@ void fevents_cfg()
 					"in the logon sequence of users that includes interaction or requires\n"
 					"account information, you probably want to use an online external\n"
 					"program configured to run as a logon event.\n"
+					SCFG_CMDLINE_SPEC_HELP
 				;
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Logon Event"
 					,cfg.sys_logon,sizeof(cfg.sys_logon)-1,K_EDIT);
@@ -375,6 +376,7 @@ void fevents_cfg()
 					"wish to have a program execute before carrier is dropped, you probably\n"
 					"want to use an `Online External Program` configured to run as a logoff\n"
 					"event.\n"
+					SCFG_CMDLINE_SPEC_HELP
 				;
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Logout Event"
 					,cfg.sys_logout,sizeof(cfg.sys_logout)-1,K_EDIT);
@@ -385,6 +387,7 @@ void fevents_cfg()
 					"\n"
 					"This is the command line for a program that will run after the first\n"
 					"user that logs on after midnight, logs off (regardless of what node).\n"
+					SCFG_CMDLINE_SPEC_HELP
 				;
 				uifc.input(WIN_MID|WIN_SAV,0,0,"Daily Event"
 					,cfg.sys_daily,sizeof(cfg.sys_daily)-1,K_EDIT);
@@ -408,7 +411,7 @@ void tevents_cfg()
 		opt[i][0]=0;
 		j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_RHT;
 		if(cfg.total_events)
-			j|=WIN_DEL|WIN_COPY;
+			j|=WIN_DEL|WIN_COPY|WIN_CUT;
 		if(cfg.total_events<MAX_OPTS)
 			j|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savevent.code[0])
@@ -458,15 +461,9 @@ void tevents_cfg()
 			savevent=*cfg.event[i];
 			continue; 
 		}
-		if(msk == MSK_PASTE_OVER || msk == MSK_PASTE_INSERT) {
-			if (msk == MSK_PASTE_INSERT) {
-				if (!new_timed_event(i))
-					continue;
-			}
-			else if (opt[i][0] == 0) {	/* Paste-over extra/blank item */
-				if (!new_timed_event(cfg.total_events))
-					continue;
-			}
+		if(msk == MSK_PASTE) {
+			if (!new_timed_event(i))
+				continue;
 			*cfg.event[i]=savevent;
 			uifc.changes=1;
 			continue; 
@@ -516,10 +513,6 @@ void tevents_cfg()
 				"external program that performs some type of automated function on the\n"
 				"system. Use this menu to configure how and when this event will be\n"
 				"executed.\n"
-				"\n"
-				"If you need the BBS to swap out of memory for this event (to make more\n"
-				"available memory), add the program name (first word of the command line)\n"
-				"to `Global Swap List` from the `External Programs` menu.\n"
 			;
 			sprintf(str,"%s Timed Event",cfg.event[i]->code);
 			switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,70,&dfltopt,0
@@ -534,7 +527,7 @@ void tevents_cfg()
 						"\n"
 						"Every timed event must have its own unique internal code for Synchronet\n"
 						"to reference it by. It is helpful if this code is an abbreviation of the\n"
-						"command line.\n"
+						"command line or program name.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
 						,str,LEN_CODE,K_EDIT|K_UPPER);
@@ -555,9 +548,6 @@ void tevents_cfg()
 						"before the event's command line is executed. This eliminates the need\n"
 						"for batch files that just change the current drive and directory before\n"
 						"executing the event.\n"
-						"\n"
-						"If this option is not used, the current NODE's directory will be the\n"
-						"current DOS drive/directory before the command line is executed.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,"Directory"
 						,cfg.event[i]->dir,sizeof(cfg.event[i]->dir)-1,K_EDIT);
@@ -567,6 +557,7 @@ void tevents_cfg()
 						"`Timed Event Command Line:`\n"
 						"\n"
 						"This is the command line to execute upon this timed event.\n"
+						SCFG_CMDLINE_SPEC_HELP
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 						,cfg.event[i]->cmd,sizeof(cfg.event[i]->cmd)-1,K_EDIT);
@@ -871,7 +862,7 @@ void xtrn_cfg(uint section)
 		opt[j][0]=0;
 		i=WIN_ACT|WIN_CHE|WIN_SAV|WIN_RHT;
 		if(j)
-			i|=WIN_DEL | WIN_COPY;
+			i|=WIN_DEL | WIN_COPY | WIN_CUT;
 		if(cfg.total_xtrns<MAX_OPTS)
 			i|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savxtrn.name[0])
@@ -942,15 +933,9 @@ void xtrn_cfg(uint section)
 			savxtrn=*cfg.xtrn[xtrnnum[i]];
 			continue; 
 		}
-		if(msk == MSK_PASTE_OVER || msk == MSK_PASTE_INSERT) {
-			if (msk == MSK_PASTE_INSERT) {
-				if (!new_external_program(xtrnnum[i], section))
-					continue;
-			}
-			else if (opt[i][0] == 0) {	/* Paste-over extra/blank item */
-				if (!new_external_program(cfg.total_xtrns, section))
-					continue;
-			}
+		if(msk == MSK_PASTE) {
+			if (!new_external_program(xtrnnum[i], section))
+				continue;
 			*cfg.xtrn[xtrnnum[i]]=savxtrn;
 			cfg.xtrn[xtrnnum[i]]->sec=section;
 			uifc.changes=TRUE;
@@ -1080,9 +1065,6 @@ void xtrn_cfg(uint section)
 						"before the program's command line is executed. This eliminates the need\n"
 						"for batch files that just change the current drive and directory before\n"
 						"executing the program.\n"
-						"\n"
-						"If this option is not used, the current NODE's directory will be the\n"
-						"current DOS drive/directory before the command line is executed.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,""
 						,cfg.xtrn[i]->path,sizeof(cfg.xtrn[i]->path)-1,K_EDIT);
@@ -1092,6 +1074,7 @@ void xtrn_cfg(uint section)
 						"`Online Program Command Line:`\n"
 						"\n"
 						"This is the command line to execute to run the online program.\n"
+						SCFG_CMDLINE_SPEC_HELP
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 						,cfg.xtrn[i]->cmd,sizeof(cfg.xtrn[i]->cmd)-1,K_EDIT);
@@ -1102,6 +1085,7 @@ void xtrn_cfg(uint section)
 						"\n"
 						"This is the command line to execute after the main command line. This\n"
 						"option is usually only used for multiuser online programs.\n"
+						SCFG_CMDLINE_SPEC_HELP
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,"Clean-up"
 						,cfg.xtrn[i]->clean,sizeof(cfg.xtrn[i]->clean)-1,K_EDIT);
@@ -1558,7 +1542,7 @@ void xedit_cfg()
 		opt[i][0]=0;
 		j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_RHT;
 		if(cfg.total_xedits)
-			j|=WIN_DEL | WIN_COPY;
+			j|=WIN_DEL | WIN_COPY | WIN_CUT;
 		if(cfg.total_xedits<MAX_OPTS)
 			j|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savxedit.name[0])
@@ -1625,15 +1609,9 @@ void xedit_cfg()
 			savxedit=*cfg.xedit[i];
 			continue; 
 		}
-		if(msk == MSK_PASTE_OVER || msk == MSK_PASTE_INSERT) {
-			if (msk == MSK_PASTE_INSERT) {
-				if (!new_external_editor(i))
-					continue;
-			}
-			else if (opt[i][0] == 0) {	/* Paste-over extra/blank item */
-				if (!new_external_editor(cfg.total_xedits))
-					continue;
-			}
+		if(msk == MSK_PASTE) {
+			if (!new_external_editor(i))
+				continue;
 			*cfg.xedit[i]=savxedit;
 			uifc.changes=TRUE;
 			continue; 
@@ -1720,6 +1698,7 @@ void xedit_cfg()
 						"`External Editor Command Line:`\n"
 						"\n"
 						"This is the command line to execute when using this editor.\n"
+						SCFG_CMDLINE_SPEC_HELP
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 						,cfg.xedit[i]->rcmd,sizeof(cfg.xedit[i]->rcmd)-1,K_EDIT);
@@ -2107,7 +2086,7 @@ void xtrnsec_cfg()
 		opt[i][0]=0;
 		j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_BOT;
 		if(cfg.total_xtrnsecs)
-			j|=WIN_DEL | WIN_COPY;
+			j|=WIN_DEL | WIN_COPY | WIN_CUT;
 		if(cfg.total_xtrnsecs<MAX_OPTS)
 			j|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savxtrnsec.name[0])
@@ -2203,15 +2182,9 @@ void xtrnsec_cfg()
 			savxtrnsec=*cfg.xtrnsec[xtrnsec_num];
 			continue; 
 		}
-		if(msk == MSK_PASTE_OVER || msk == MSK_PASTE_INSERT) {
-			if (msk == MSK_PASTE_INSERT) {
-				if (!new_external_program_section(xtrnsec_num))
-					continue;
-			}
-			else if (opt[xtrnsec_num][0] == 0) {	/* Paste-over extra/blank item */
-				if (!new_external_program_section(cfg.total_xtrnsecs))
-					continue;
-			}
+		if(msk == MSK_PASTE) {
+			if (!new_external_program_section(xtrnsec_num))
+				continue;
 			/* Restore previously cut xtrns to newly-pasted xtrn_sec */
 			for (unsigned u = 0; u < cfg.total_xtrns; u++)
 				if (cfg.xtrn[u]->sec == CUT_XTRNSEC_NUM)
@@ -2296,7 +2269,7 @@ void hotkey_cfg(void)
 		opt[i][0]=0;
 		j=WIN_SAV|WIN_ACT|WIN_CHE|WIN_RHT;
 		if(cfg.total_hotkeys)
-			j|=WIN_DEL | WIN_COPY;
+			j|=WIN_DEL | WIN_COPY | WIN_CUT;
 		if(cfg.total_hotkeys<MAX_OPTS)
 			j|=WIN_INS|WIN_INSACT|WIN_XTR;
 		if(savhotkey.cmd[0])
@@ -2363,7 +2336,7 @@ void hotkey_cfg(void)
 			savhotkey=*cfg.hotkey[i];
 			continue; 
 		}
-		if(msk == MSK_PASTE_OVER) {
+		if(msk == MSK_PASTE) {
 			*cfg.hotkey[i]=savhotkey;
 			uifc.changes=TRUE;
 			continue; 
@@ -2406,6 +2379,7 @@ void hotkey_cfg(void)
 						"`Hot Key Event Command Line:`\n"
 						"\n"
 						"This is the command line to execute when this hot key is pressed.\n"
+						SCFG_CMDLINE_SPEC_HELP
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,10,"Command"
 						,cfg.hotkey[i]->cmd,sizeof(cfg.hotkey[i]->cmd)-1,K_EDIT);
