@@ -1,6 +1,6 @@
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.15 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: getmail.c,v 1.14 2017/11/13 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,7 @@
 /* If sent is non-zero, it returns the number of mail sent by usernumber    */
 /* If usernumber is 0, it returns all mail on the system                    */
 /****************************************************************************/
-int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
+int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, BOOL spam_only)
 {
     char    path[MAX_PATH+1];
     int     i=0;
@@ -55,7 +55,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
 	l=(long)flength(path);
 	if(l<(long)sizeof(idxrec_t))
 		return(0);
-	if(usernumber == 0 && attr == 0) 
+	if(!usernumber) 
 		return(l/sizeof(idxrec_t)); 	/* Total system e-mail */
 	smb.subnum=INVALID_SUB;
 
@@ -69,11 +69,10 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
 			continue;
 		if(idx.attr&MSG_DELETE)
 			continue;
-		if((idx.attr&attr) != attr)
+		if(spam_only && !(idx.attr&MSG_SPAM))
 			continue;
-		if(usernumber == 0
-			|| (!sent && idx.to==usernumber)
-			|| (sent && idx.from==usernumber))
+		if((!sent && idx.to==usernumber)
+		 || (sent && idx.from==usernumber))
 			i++; 
 	}
 	smb_close(&smb);
