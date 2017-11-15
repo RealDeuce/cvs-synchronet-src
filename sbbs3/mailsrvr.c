@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.613 2017/11/14 23:15:24 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.614 2017/11/15 09:57:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1047,8 +1047,8 @@ static void pop3_thread(void* arg)
 			i=smb_getmsghdr(&smb,&msg);
 			smb_unlockmsghdr(&smb,&msg);
 			if(i!=0) {
-				lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
-					,socket, i, smb.last_error, msg.hdr.number);
+				lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) line %u, msg #%lu"
+					,socket, i, smb.last_error, __LINE__, msg.hdr.number);
 				break;
 			}
 			bytes+=smb_getmsgtxtlen(&msg);
@@ -1103,8 +1103,8 @@ static void pop3_thread(void* arg)
 					}
 					if((i=smb_getmsghdr(&smb,&msg))!=SMB_SUCCESS) {
 						smb_unlockmsghdr(&smb,&msg);
-						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
-							,socket, i, smb.last_error, msg.hdr.number);
+						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) line %u, msg #%lu"
+							,socket, i, smb.last_error, __LINE__, msg.hdr.number);
 						break;
 					}
 					msg.hdr.attr=mail[l].attr;
@@ -1156,8 +1156,8 @@ static void pop3_thread(void* arg)
 					smb_unlockmsghdr(&smb,&msg);
 					if(i!=0) {
 						smb_freemsgmem(&msg);
-						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
-							,socket, i, smb.last_error, msg.hdr.number);
+						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) line %u, msg #%lu"
+							,socket, i, smb.last_error, __LINE__, msg.hdr.number);
 						sockprintf(socket,"-ERR %d getting message header",i);
 						continue;
 					}
@@ -1189,8 +1189,8 @@ static void pop3_thread(void* arg)
 					smb_unlockmsghdr(&smb,&msg);
 					if(i!=0) {
 						smb_freemsgmem(&msg);
-						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
-							,socket, i, smb.last_error, msg.hdr.number);
+						lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) line %u, msg #%lu"
+							,socket, i, smb.last_error, __LINE__, msg.hdr.number);
 						break;
 					}
 					if(!strnicmp(buf, "LIST",4)) {
@@ -1250,8 +1250,8 @@ static void pop3_thread(void* arg)
 				i=smb_getmsghdr(&smb,&msg);
 				smb_unlockmsghdr(&smb,&msg);
 				if(i!=0) {
-					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
-						,socket, i, smb.last_error, msg.hdr.number);
+					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) line %u, msg #%lu"
+						,socket, i, smb.last_error, __LINE__, msg.hdr.number);
 					sockprintf(socket,"-ERR %d getting message header",i);
 					continue;
 				}
@@ -1347,8 +1347,8 @@ static void pop3_thread(void* arg)
 				if((i=smb_getmsghdr(&smb,&msg))!=SMB_SUCCESS) {
 					smb_unlockmsghdr(&smb,&msg);
 					smb_unlocksmbhdr(&smb);
-					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) getting message header #%lu"
-						,socket, i, smb.last_error, msg.hdr.number);
+					lprintf(LOG_ERR,"%04d !POP3 ERROR %d (%s) line %u, msg #%lu"
+						,socket, i, smb.last_error, __LINE__, msg.hdr.number);
 					sockprintf(socket,"-ERR %d getting message header",i);
 					continue;
 				}
@@ -3098,7 +3098,9 @@ static void smtp_thread(void* arg)
 				}
 				if(dnsbl_recvhdr)			/* DNSBL-listed IP found in Received header? */
 					dnsbl_result.s_addr=0;	/* Reset DNSBL look-up result between messages */
-
+				
+				if((startup->options&MAIL_OPT_KILL_READ_SPAM) && (msg.hdr.attr&MSG_SPAM))
+					msg.hdr.attr |= MSG_KILLREAD;
 				if(sender[0]==0) {
 					lprintf(LOG_WARNING,"%04d !SMTP MISSING mail header 'FROM' field (%u total)"
 						,socket, ++stats.msgs_refused);
@@ -3722,7 +3724,7 @@ static void smtp_thread(void* arg)
 		}
 		if(state<SMTP_STATE_HELO) {
 			/* RFC 821 4.1.1 "The first command in a session must be the HELO command." */
-			lprintf(LOG_WARNING,"%04d !SMTP MISSING 'HELO' command",socket);
+			lprintf(LOG_WARNING,"%04d !SMTP MISSING 'HELO' command (Received: '%s')",socket, buf);
 			sockprintf(socket, badseq_rsp);
 			continue;
 		}
@@ -4647,8 +4649,8 @@ static void sendmail_thread(void* arg)
 			}
 			if((i=smb_getmsghdr(&smb,&msg))!=SMB_SUCCESS) {
 				smb_unlockmsghdr(&smb,&msg);
-				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) reading message header #%lu"
-					,i, smb.last_error, msg.idx.number);
+				lprintf(LOG_ERR,"0000 !SEND ERROR %d (%s) line %u, msg #%lu"
+					,i, smb.last_error, __LINE__, msg.idx.number);
 				continue; 
 			}
 			if(msg.hdr.attr&MSG_DELETE || msg.to_net.type!=NET_INTERNET || msg.to_net.addr==NULL) {
@@ -5152,7 +5154,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.613 $", "%*s %s", revision);
+	sscanf("$Revision: 1.614 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
