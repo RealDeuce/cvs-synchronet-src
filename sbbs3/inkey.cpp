@@ -1,14 +1,12 @@
-/* inkey.cpp */
-
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.48 2015/02/21 02:32:57 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.51 2016/12/08 07:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -101,7 +99,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 	char 	tmp[512];
 	uint	i,j;
 
-	if(ch==CTRL_C) {  /* Ctrl-C Abort */
+	if(ch==TERM_KEY_ABORT) {  /* Ctrl-C Abort */
 		sys_status|=SS_ABORT;
 		if(mode&K_SPIN) /* back space once if on spinning cursor */
 			backspace();
@@ -236,7 +234,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			attr(LIGHTGRAY);
 			now=time(NULL);
 			bprintf(text[TiLogon],timestr(logontime));
-			bprintf(text[TiNow],timestr(now));
+			bprintf(text[TiNow],timestr(now),smb_zonestr(sys_timezone(&cfg),NULL));
 			bprintf(text[TiTimeon]
 				,sectostr((uint)(now-logontime),tmp));
 			bprintf(text[TiTimeLeft]
@@ -290,33 +288,33 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					j++;
 					continue;
 				}
-				if(ch!=';' && !isdigit(ch) && ch!='R') {    /* other ANSI */
+				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
 					switch(ch) {
 						case 'A':
-							return(0x1e);	/* ctrl-^ (up arrow) */
+							return(TERM_KEY_UP);
 						case 'B':
-							return(LF); 	/* ctrl-j (dn arrow) */
+							return(TERM_KEY_DOWN);
 						case 'C':
-							return(CTRL_F);	/* ctrl-f (rt arrow) */
+							return(TERM_KEY_RIGHT);
 						case 'D':
-							return(0x1d);	/* ctrl-] (lf arrow) */
+							return(TERM_KEY_LEFT);
 						case 'H':	/* ANSI:  home cursor */
-							return(CTRL_B);	/* ctrl-b (beg line) */
+							return(TERM_KEY_HOME);
 						case 'F':	/* Xterm: cursor preceding line */
 						case 'K':	/* ANSI:  clear-to-end-of-line */
-							return(CTRL_E);	/* ctrl-e (end line) */
+							return(TERM_KEY_END);
 						case '@':	/* ANSI/ECMA-048 INSERT */
-							return(CTRL_V);
+							return(TERM_KEY_INSERT);
 						case '~':	/* VT-220 (XP telnet.exe) */
 							switch(atoi(str)) {
 								case 1:
-									return(CTRL_B);
+									return(TERM_KEY_HOME);
 								case 2:
-									return(CTRL_V);
+									return(TERM_KEY_INSERT);
 								case 3:
-									return(DEL);
+									return(TERM_KEY_DELETE);
 								case 4:
-									return(CTRL_E);
+									return(TERM_KEY_END);
 							}
 							break;
 					}
