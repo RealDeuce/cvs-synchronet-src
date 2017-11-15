@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.61 2015/11/25 12:31:49 rswindell Exp $ */
+/* $Id: email.cpp,v 1.64 2016/12/02 06:01:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,9 +50,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	char 		tmp[512];
 	char		pid[128];
 	char*		editor=NULL;
-	ushort		msgattr=0;
+	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
-	ushort		nettype;
 	int 		i,j,x,file;
 	long		l;
 	long		length;
@@ -95,6 +94,10 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		if((mode & WM_FORCEFWD) || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
 			return(netmail(str,subj,mode));
 	}
+	if(sys_status&SS_ABORT) {
+		bputs(text[Aborted]);
+		return false;
+	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);
 	action=NODE_SMAL;
 	nodesync();
@@ -107,8 +110,10 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	}
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
-		&& !noyes(text[AnonymousQ]))
+		&& !noyes(text[AnonymousQ])) {
 		msgattr|=MSG_ANONYMOUS;
+		mode|=WM_ANON;
+	}
 
 	if(cfg.sys_misc&SM_DELREADM)
 		msgattr|=MSG_KILLREAD;
@@ -299,11 +304,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(useron.misc&NETMAIL) {
 		if(useron.rest&FLAG('G'))
 			smb_hfield_str(&msg,REPLYTO,useron.name);
-		nettype=smb_netaddr_type(useron.netmail);
-		if(nettype!=NET_NONE && nettype!=NET_UNKNOWN) {
-			smb_hfield(&msg,REPLYTONETTYPE,sizeof(nettype),&nettype);
-			smb_hfield_str(&msg,REPLYTONETADDR,useron.netmail);
-		}
+		smb_hfield_netaddr(&msg,REPLYTONETADDR,useron.netmail,NULL);
 	}
 
 	/* Security logging */
