@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.54 2018/03/10 03:20:06 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.51 2017/11/16 05:33:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,6 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 
 	dir_t** new_dir_list;
 	if ((new_dir_list = (dir_t **)realloc(cfg.dir, sizeof(dir_t *)*(cfg.total_dirs + 1))) == NULL) {
-		free(new_directory);
 		errormsg(WHERE, ERR_ALLOC, "directory list", cfg.total_dirs + 1);
 		return false;
 	}
@@ -73,7 +72,6 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 	for (unsigned u = cfg.total_dirs; u > new_dirnum; u--)
 		cfg.dir[u] = cfg.dir[u - 1];
 
-	new_directory->dirnum = new_dirnum;
 	cfg.dir[new_dirnum] = new_directory;
 	cfg.total_dirs++;
 	return true;
@@ -90,7 +88,6 @@ static bool new_lib(unsigned new_libnum)
 
 	lib_t** new_lib_list;
 	if ((new_lib_list = (lib_t **)realloc(cfg.lib, sizeof(lib_t *)*(cfg.total_libs + 1))) == NULL) {
-		free(new_library);
 		errormsg(WHERE, ERR_ALLOC, "library list", cfg.total_libs + 1);
 		return false;
 	}
@@ -903,7 +900,7 @@ void xfer_cfg()
 						uifc.changes=1; 
 					}
 					fclose(stream);
-					if(ported && cfg.lib[i]->sort)
+					if(ported)
 						sort_dirs(i);
 					uifc.pop(0);
 					sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
@@ -1128,13 +1125,8 @@ void dir_cfg(uint libnum)
 				else 
 					prep_dir(cfg.ctrl_dir, str, sizeof(str));
 			} else {
-				if (!cfg.dir[dirnum[i]]->data_dir[0])
-					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
-				else
-					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
-				backslash(data_dir);
-				SAFEPRINTF3(str, "[%s%s%s/]"
-					,data_dir 
+				SAFEPRINTF3(str, "[%sdirs/%s%s/]"
+					,cfg.data_dir 
 					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
 			}
 			strlwr(str);
