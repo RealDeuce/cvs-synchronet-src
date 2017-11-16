@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.619 2017/12/28 04:08:32 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.615 2017/11/16 03:28:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -63,7 +63,6 @@
 static const char*	server_name="Synchronet Mail Server";
 #define FORWARD			"forward:"
 #define NO_FORWARD		"local:"
-#define NO_SPAM			"#nospam"
 
 int dns_getmx(char* name, char* mx, char* mx2
 			  ,DWORD intf, DWORD ip_addr, BOOL use_tcp, int timeout);
@@ -639,7 +638,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
         sockprintf(socket,"");
         mimeblurb(socket,mime_boundary);
         sockprintf(socket,"");
-        mimetextpartheader(socket, mime_boundary, startup->default_charset);
+        mimetextpartheader(socket,mime_boundary);
 	}
 	if(!sockprintf(socket,""))	/* Header Terminator */
 		return(0);
@@ -812,7 +811,6 @@ static void pop3_thread(void* arg)
 	BOOL		activity=TRUE;
 	BOOL		apop=FALSE;
 	uint32_t	l;
-	long		lm_mode = 0;
 	ulong		lines;
 	ulong		lines_sent;
 	ulong		login_attempts;
@@ -942,11 +940,6 @@ static void pop3_thread(void* arg)
 				response=p;
 		}
 		SAFECOPY(username,p);
-		if((p = strstr(username, NO_SPAM)) != NULL) {
-			*p = 0;
-			lm_mode = LM_NOSPAM;
-		} else
-			lm_mode = 0;
 		if(!apop) {
 			sockprintf(socket,"+OK");
 			if(!sockgetrsp(socket,"PASS ",buf,sizeof(buf))) {
@@ -1037,7 +1030,7 @@ static void pop3_thread(void* arg)
 			break;
 		}
 
-		mail=loadmail(&smb,&msgs,user.number,MAIL_YOUR,lm_mode);
+		mail=loadmail(&smb,&msgs,user.number,MAIL_YOUR,0);
 
 		for(l=bytes=0;l<msgs;l++) {
 			msg.hdr.number=mail[l].number;
@@ -3106,10 +3099,8 @@ static void smtp_thread(void* arg)
 				if(dnsbl_recvhdr)			/* DNSBL-listed IP found in Received header? */
 					dnsbl_result.s_addr=0;	/* Reset DNSBL look-up result between messages */
 				
-				if((scfg.sys_misc&SM_DELREADM)
-					|| ((startup->options&MAIL_OPT_KILL_READ_SPAM) && (msg.hdr.attr&MSG_SPAM)))
+				if((startup->options&MAIL_OPT_KILL_READ_SPAM) && (msg.hdr.attr&MSG_SPAM))
 					msg.hdr.attr |= MSG_KILLREAD;
-
 				if(sender[0]==0) {
 					lprintf(LOG_WARNING,"%04d !SMTP MISSING mail header 'FROM' field (%u total)"
 						,socket, ++stats.msgs_refused);
@@ -3335,11 +3326,6 @@ static void smtp_thread(void* arg)
 						,reverse_path);
 					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
 
-					if(nettype == NET_FIDO) {
-						char* tp = strchr(rcpt_name, '@');
-						if(tp != NULL)
-							*tp = 0;
-					}
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
 					if(usernum && nettype!=NET_INTERNET) {	/* Local destination or QWKnet routed */
@@ -3354,7 +3340,7 @@ static void smtp_thread(void* arg)
 					if(agent!=newmsg.to_agent)
 						smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(agent), &agent);
 
-					i=smb_addmsghdr(&smb,&newmsg,smb_storage_mode(&scfg, &smb));
+					i=smb_addmsghdr(&smb,&newmsg,SMB_SELFPACK);
 					smb_freemsgmem(&newmsg);
 					if(i!=SMB_SUCCESS) {
 						lprintf(LOG_ERR,"%04d !SMTP ERROR %d (%s) adding message header"
@@ -4443,10 +4429,6 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		smb_hfield(&newmsg, RECIPIENTAGENT, sizeof(msg->from_agent), &msg->from_agent);
 	}
 	newmsg.hdr.attr|=MSG_NOREPLY;
-	newmsg.hdr.attr&=~MSG_READ;
-	if(scfg.sys_misc&SM_DELREADM)
-		newmsg.hdr.attr |= MSG_KILLREAD;
-
 	strcpy(str,"Mail Delivery Subsystem");
 	smb_hfield_str(&newmsg, SENDER, str);
 	smb_hfield(&newmsg, SENDERAGENT, sizeof(agent), &agent);
@@ -4469,7 +4451,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	smb_hfield_str(&newmsg, SMB_COMMENT, err);
 	smb_hfield_str(&newmsg, SMB_COMMENT, "\r\nOriginal message text follows:");
 
-	if((i=smb_addmsghdr(smb,&newmsg,smb_storage_mode(&scfg, smb)))!=SMB_SUCCESS)
+	if((i=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK))!=SMB_SUCCESS)
 		lprintf(LOG_ERR,"%04d !BOUNCE ERROR %d (%s) adding message header"
 			,sock,i,smb->last_error);
 	else {
@@ -5174,7 +5156,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.619 $", "%*s %s", revision);
+	sscanf("$Revision: 1.615 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
