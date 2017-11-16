@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.115 2016/11/27 23:03:03 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.116 2017/11/15 10:39:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1549,6 +1549,9 @@ ushort sbbs_t::chmsgattr(smbmsg_t msg)
 		switch(ch) {
 			case 'P':
 				msg.hdr.attr^=MSG_PRIVATE;
+				break;
+			case 'S':
+				msg.hdr.attr^=MSG_SPAM;
 				break;
 			case 'R':
 				msg.hdr.attr^=MSG_READ;
