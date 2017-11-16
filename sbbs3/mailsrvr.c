@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.614 2017/11/15 09:57:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.615 2017/11/16 03:28:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4358,6 +4358,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 {
 	char		str[128];
 	char		attempts[64];
+	char		msgid[256];
 	int			i;
 	ushort		agent=AGENT_SMTPSYSMSG;
 	smbmsg_t	newmsg;
@@ -4431,6 +4432,7 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	strcpy(str,"Mail Delivery Subsystem");
 	smb_hfield_str(&newmsg, SENDER, str);
 	smb_hfield(&newmsg, SENDERAGENT, sizeof(agent), &agent);
+	smb_hfield_str(&newmsg, RFC822MSGID, get_msgid(&scfg, INVALID_SUB, &newmsg, msgid, sizeof(msgid)));
 	
 	/* Put error message in subject for now */
 	if(msg->hdr.delivery_attempts>1)
@@ -5154,7 +5156,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.614 $", "%*s %s", revision);
+	sscanf("$Revision: 1.615 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
