@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.189 2017/12/30 04:07:12 deuce Exp $ */
+/* $Id: jsexec.c,v 1.186 2017/11/13 19:50:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -80,7 +80,6 @@ int  		err_level=DEFAULT_ERR_LOG_LVL;
 pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
-struct termios	orig_term;
 #endif
 char		orig_cwd[MAX_PATH+1];
 BOOL		debugger=FALSE;
@@ -160,51 +159,6 @@ void usage(FILE* fp)
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
-}
-
-static void
-cooked_tty(void)
-{
-	if (isatty(fileno(stdin))) {
-#ifdef __unix__
-		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
-#elif defined _WIN32
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), ENABLE_ECHO_INPUT
-		    | ENABLE_EXTENDED_FLAGS | ENABLE_INSERT_MODE | ENABLE_LINE_INPUT
-		    | ENABLE_MOUSE_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_QUICK_EDIT_MODE
-		    | ENABLE_VIRTUAL_TERMINAL_INPUT);
-#else
-		#warning Can't cook the tty on this platform
-#endif
-	}
-}
-
-#ifdef __unix__
-static void raw_input(struct termios *t)
-{
-#ifdef JSDOOR
-	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-#else
-	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
-#endif
-}
-#endif
-
-static void
-raw_tty(void)
-{
-	if (isatty(fileno(stdin))) {
-#ifdef __unix__
-		struct termios term = orig_term;
-
-		raw_input(&term);
-		tcsetattr(fileno(stdin), TCSANOW, &term);
-#elif defined _WIN32
-		#warning Can't set the tty as raw on this platform
-#endif
-	}
 }
 
 int mfprintf(FILE* fp, char *fmt, ...)
@@ -325,6 +279,10 @@ static BOOL winsock_startup(void)
 
 #endif
 
+#ifdef __unix__
+struct termios orig_term;
+#endif
+
 static int do_bail(int code)
 {
 #if defined(_WINSOCKAPI_)
@@ -339,7 +297,10 @@ static int do_bail(int code)
 
 	if(code)
 		fprintf(statfp,"\nReturning error code: %d\n",code);
-	cooked_tty();
+#ifdef __unix__
+	if(isatty(fileno(stdin)))
+		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
+#endif
 	return(code);
 }
 
@@ -434,9 +395,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	cooked_tty();
 	p=fgets(buf,len+1,stdin);
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(p!=NULL)
@@ -564,9 +523,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	printf("%s (Y/n)? ", cstr);
 	free(cstr);
-	cooked_tty();
 	fgets(instr,sizeof(instr),stdin);
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	p=instr;
@@ -597,9 +554,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	printf("%s (N/y)? ", cstr);
 	free(cstr);
-	cooked_tty();
 	fgets(instr,sizeof(instr),stdin);
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	p=instr;
@@ -637,13 +592,10 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	cooked_tty();
 	if(!fgets(instr,sizeof(instr),stdin)) {
-		raw_tty();
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((str=JS_NewStringCopyZ(cx, truncnl(instr)))==NULL)
@@ -890,12 +842,8 @@ char *dbg_getline(void)
 	char	*line=NULL;
 	size_t	linecap=0;
 
-	cooked_tty();
-	if(getline(&line, &linecap, stdin)>=0) {
-		raw_tty();
+	if(getline(&line, &linecap, stdin)>=0)
 		return line;
-	}
-	raw_tty();
 	if(line)
 		free(line);
 	return NULL;
@@ -903,12 +851,8 @@ char *dbg_getline(void)
 	// I assume Windows sucks.
 	char	buf[1025];
 
-	cooked_tty();
-	if(fgets(buf,sizeof(buf),stdin)) {
-		raw_tty();
+	if(fgets(buf,sizeof(buf),stdin))
 		return strdup(buf);
-	}
-	raw_tty();
 	return NULL;
 #endif
 }
@@ -932,7 +876,6 @@ long js_exec(const char *fname, char** args)
 	int32		result=0;
 	long double	start;
 	long double	diff;
-	JSBool		exec_result;
 
 	if(fname!=NULL) {
 		if(isfullpath(fname)) {
@@ -1038,7 +981,7 @@ long js_exec(const char *fname, char** args)
 	start=xp_timer();
 	if(debugger)
 		debug_prompt(js_cx, js_script);
-	exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
@@ -1047,8 +990,7 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
-	} else if(!exec_result)
-		result = EXIT_FAILURE;
+	}
 	js_EvalOnExit(js_cx, js_glob, &cb);
 
 	JS_ReportPendingException(js_cx);
@@ -1107,6 +1049,19 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
+#ifdef __unix__
+void raw_input(struct termios *t)
+{
+#ifdef JSDOOR
+	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+#else
+	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
+#endif
+}
+#endif
+
 /*********************/
 /* Entry point (duh) */
 /*********************/
@@ -1132,10 +1087,15 @@ int main(int argc, char **argv, char** environ)
 	}
 	if(isatty(fileno(stdin))) {
 #ifdef __unix__
+		struct termios term;
+
 		tcgetattr(fileno(stdin), &orig_term);
-		raw_tty();
+		term = orig_term;
+		raw_input(&term);
+		tcsetattr(fileno(stdin), TCSANOW, &term);
 #else
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+	//	This completely disabled console input on Windows:
+	//	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #endif
 		statfp=stderr;
 	}
@@ -1147,7 +1107,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.189 $", "%*s %s", revision);
+	sscanf("$Revision: 1.186 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
