@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.207 2017/08/19 04:47:06 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.209 2017/11/06 06:56:01 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,6 +57,16 @@ typedef struct
 } privatemsg_t;
 
 static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+
+JSBool JS_ValueToUint32(JSContext *cx, jsval v, uint32 *ip)
+{
+	jsdouble d;
+
+	if(!JS_ValueToNumber(cx, v, &d))
+		return JS_FALSE;
+	*ip = (uint32)d;
+	return JS_TRUE;
+}
 
 /* Destructor */
 
@@ -277,6 +287,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		type;
 	ushort		agent;
 	int32		i32;
+	uint32		u32;
 	jsval		val;
 	JSObject*	array;
 	JSObject*	field;
@@ -747,9 +758,9 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
+		if(!JS_ValueToUint32(cx,val,&u32))
 			goto err;
-		msg->hdr.auxattr=i32;
+		msg->hdr.auxattr=u32;
 	}
 	if(JS_GetProperty(cx, hdr, "netattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
