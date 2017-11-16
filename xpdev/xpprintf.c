@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.56 2015/09/29 00:47:48 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.57 2015/09/29 00:48:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#define _GNU_SOURCE	// asprintf() on Linux
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
