@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
-
-/* $Id: sbbs.h,v 1.453 2017/11/15 10:39:53 rswindell Exp $ */
+// vi: tabstop=4
+/* $Id: sbbs.h,v 1.454 2017/11/16 20:40:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -379,6 +379,7 @@ public:
 
 #endif
 
+	char	syspage_semfile[MAX_PATH+1];	/* Sysop page semaphore file */
 	char 	menu_dir[128];	/* Over-ride default menu dir */
 	char 	menu_file[128]; /* Over-ride menu file */
 
