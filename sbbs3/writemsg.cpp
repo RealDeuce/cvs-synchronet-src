@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.118 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.116 2017/11/15 10:39:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -779,7 +779,8 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
 
-	if(menu_exists("msgtabs"))
+	SAFEPRINTF(path,"%smenu/msgtabs.*", cfg.text_dir);
+	if(fexist(path))
 		menu("msgtabs");
 	else {
 		for(i=0;i<79;i++) {
@@ -1206,7 +1207,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_close_da(&smb);
 
 
-	if((i=smb_addmsghdr(&smb,msg,smb_storage_mode(&cfg, &smb)))!=SMB_SUCCESS) {
+	if((i=smb_addmsghdr(&smb,msg,SMB_SELFPACK))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		smb_freemsg_dfields(&smb,msg,1);
 		return; 
