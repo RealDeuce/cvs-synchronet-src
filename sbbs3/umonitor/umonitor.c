@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.84 2018/03/10 06:11:57 deuce Exp $ */
+/* $Id: umonitor.c,v 1.77 2017/11/13 19:44:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -795,17 +795,15 @@ int main(int argc, char** argv)  {
 	scfg_t	cfg;
 	int		done;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
-	time_t	last_semfile_check = time(NULL);
-	int		idle_sleep=100;
 
 	/******************/
 	/* Ini file stuff */
 	/******************/
 	char	ini_file[MAX_PATH+1];
-	FILE*				fp=NULL;
+	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.84 $", "%*s %s", revision);
+	sscanf("$Revision: 1.77 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -866,14 +864,14 @@ int main(int argc, char** argv)  {
 
 	uifc.esc_delay=500;
 
-	boxch.ls=(char)186;
-	boxch.rs=(char)186;
-	boxch.ts=(char)205;
-	boxch.bs=(char)205;
-	boxch.tl=(char)201;
-	boxch.tr=(char)187;
-	boxch.bl=(char)200;
-	boxch.br=(char)188;
+	boxch.ls=186;
+	boxch.rs=186;
+	boxch.ts=205;
+	boxch.bs=205;
+	boxch.tl=201;
+	boxch.tr=187;
+	boxch.bl=200;
+	boxch.br=188;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
             )
@@ -887,9 +885,6 @@ int main(int argc, char** argv)  {
                 case 'E':
                     uifc.esc_delay=atoi(argv[i]+2);
                     break;
-				case 'S':
-					idle_sleep=atoi(argv[i]+2);
-					break;
 				case 'I':
 					switch(toupper(argv[i][2])) {
 						case 'A':
@@ -930,9 +925,7 @@ int main(int argc, char** argv)  {
 #endif
 						"       A = ANSI mode\r\n"
                         "-l# =  set screen lines to #\n"
-						"-s# =  set idle slsep to # milliseconds (defualt: %d)\n"
 						,argv[0]
-						,idle_sleep
                         );
         			exit(0);
            }
@@ -972,20 +965,13 @@ int main(int argc, char** argv)  {
 		bail(1);
 	}
 
-	int paging_node = 0;
 	while(1) {
 		strcpy(mopt[0],"System Options");
 		for(i=1;i<=cfg.sys_nodes;i++) {
 			if((j=getnodedat(&cfg,i,&node,NULL)))
 				sprintf(mopt[i],"Error reading node data (%d)!",j);
-			else {
-				nodestatus(&cfg, &node, str, 71);
-				if(i == paging_node) {
-					strupr(str);
-					strcat(str,  " <PAGING>");
-				}
-				sprintf(mopt[i],"%3d: %s", i, str);
-			}
+			else
+				sprintf(mopt[i],"%3d: %s",i,nodestatus(&cfg,&node,str,71));
 		}
 		mopt[i][0]=0;
 
@@ -1008,29 +994,11 @@ int main(int argc, char** argv)  {
 
 		drawstats(&cfg, main_dflt, &node, &main_dflt, &main_bar);
 
-		if(time(NULL) - last_semfile_check > bbs_startup.sem_chk_freq * 2) {
-			paging_node = 0;
-			SAFEPRINTF(str, "%ssyspage.*", cfg.ctrl_dir);
-			if(fexistcase(str) && (paging_node = atoi(getfext(str) + 1)) > 0) {
-				putch(BEL);
-				char msg[128];
-				SAFEPRINTF(msg, "Node %u is paging you to chat", paging_node);
-				uifc.pop(msg);
-				SLEEP(1500);
-				uifc.pop(NULL);
-			}
-			last_semfile_check = time(NULL);
-		}
-
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN,0,5,70,&main_dflt,&main_bar
 			,title,mopt);
 
-		if(j == -2) {
-			SLEEP(idle_sleep);
+		if(j == -2)
 			continue;
-		}
-
-		last_semfile_check = time(NULL);
 
 		if(j==-7) {	/* CTRL-E */
 			sprintf(str,"%s/error.log",cfg.data_dir);
@@ -1039,9 +1007,6 @@ int main(int argc, char** argv)  {
 		}
 
 		if(j==0) {
-			BOOL sysop_avail = sysop_available(&cfg);
-			int sysop_chat_opt;
-
 			/* System Options */
 			i=0;
 			strcpy(opt[i++],"Run SCFG");
@@ -1053,7 +1018,6 @@ int main(int argc, char** argv)  {
 			strcpy(opt[i++],"Recycle servers");
 			strcpy(opt[i++],"Edit CFG/INI files");
 			strcpy(opt[i++],"Edit trashcan files");
-			sysop_chat_opt = i++;
 			opt[i][0]=0;
 			uifc.helpbuf=	"`System Options`\n"
 			                "`------------`\n\n"
@@ -1073,7 +1037,6 @@ int main(int argc, char** argv)  {
 			done=0;
 			i=0;
 			while(!done) {
-				sprintf(opt[sysop_chat_opt], "Turn Sysop Chat availability %s", sysop_avail ? "Off" : "On");
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
 					case -1:
 						done=1;
@@ -1123,10 +1086,6 @@ int main(int argc, char** argv)  {
 					case 8:
 						edit_can(&cfg);
 						break;
-					case 9:
-						sysop_avail = !sysop_avail;
-						set_sysop_availability(&cfg, sysop_avail);
-						break;
 				}
 			}
 			continue;
@@ -1141,7 +1100,7 @@ int main(int argc, char** argv)  {
 							"\n"
 							"\nIf you want to exit the Synchronet UNIX monitor utility,"
 							"\nselect `Yes`. Otherwise, select `No` or hit ~ ESC ~.";
-			i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Exit Synchronet Monitor",opt);
+			i=uifc.list(WIN_MID,0,0,0,&i,0,"Exit Synchronet Monitor",opt);
 			if(!i)
 				bail(0);
 			continue;
