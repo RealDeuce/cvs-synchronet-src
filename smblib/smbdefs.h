@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.100 2017/11/25 01:24:23 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.99 2017/11/12 00:03:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -659,7 +659,6 @@ typedef struct {				/* Message base */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 		/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
-	BOOL		continue_on_error;			/* Attempt recovery after some normaly fatal errors */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
