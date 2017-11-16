@@ -1,6 +1,6 @@
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.42 2017/12/29 06:02:39 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.41 2017/10/23 03:38:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -536,7 +536,6 @@ typedef struct
 	uint32_t		max_minutes;	/* Maximum minutes a user can have */
 	uint32_t		max_qwkmsgs;	/* Maximum messages per QWK packet */
 	uint16_t		max_qwkmsgage;	/* Maximum age (in days) of QWK messages to be imported */
-	uint16_t		max_spamage;	/* Maximum age (in days) of SPAM-tagged messages */
 	char			preqwk_arstr[LEN_ARSTR+1]; /* pre pack QWK */
 	uchar*			preqwk_ar;
 	uint16_t		cdt_min_value;	/* Minutes per 100k credits */
