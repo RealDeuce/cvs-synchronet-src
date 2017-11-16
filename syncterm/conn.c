@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.75 2018/02/11 22:46:52 rswindell Exp $ */
+/* $Id: conn.c,v 1.74 2015/02/27 10:44:47 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -537,8 +537,6 @@ connected:
 		failcode=FAILURE_DISCONNECTED;
 		goto connect_failed;
 	}
-	int keepalives = TRUE;
-	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepalives, sizeof(keepalives));
 
 	uifc.pop(NULL);
 	return(sock);
