@@ -1,8 +1,7 @@
-/* smballoc.c */
-
 /* Synchronet message base (SMB) alloc/free routines */
+// vi: tabstop=4
 
-/* $Id: smballoc.c,v 1.7 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smballoc.c,v 1.10 2017/11/16 06:23:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +52,7 @@ long SMBCALL smb_allocdat(smb_t* smb, ulong length, uint16_t refs)
 	ulong	j,l,blocks,offset=0L;
 
 	if(smb->sda_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	blocks=smb_datblocks(length);
@@ -72,17 +71,19 @@ long SMBCALL smb_allocdat(smb_t* smb, ulong length, uint16_t refs)
 		} 
 	}
 	if((long)offset<0) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"invalid data offset: %lu",offset);
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s invalid data offset: %lu", __FUNCTION__, offset);
 		return(SMB_ERR_DAT_OFFSET);
 	}
 	clearerr(smb->sda_fp);
 	if(fseek(smb->sda_fp,(offset/SDT_BLOCK_LEN)*sizeof(refs),SEEK_SET)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s seeking to: %ld", __FUNCTION__
+			,(offset/SDT_BLOCK_LEN)*sizeof(refs));
 		return(SMB_ERR_SEEK);
 	}
 	for(l=0;l<blocks;l++)
 		if(!fwrite(&refs,sizeof(refs),1,smb->sda_fp)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' writing allocation bytes at offset %ld"
+				,"%s %d '%s' writing allocation bytes at offset %ld", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,((offset/SDT_BLOCK_LEN)+l)*sizeof(refs));
 			return(SMB_ERR_WRITE);
@@ -100,19 +101,20 @@ long SMBCALL smb_fallocdat(smb_t* smb, ulong length, uint16_t refs)
 	ulong	l,blocks,offset;
 
 	if(smb->sda_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	fflush(smb->sda_fp);
 	clearerr(smb->sda_fp);
 	blocks=smb_datblocks(length);
 	if(fseek(smb->sda_fp,0L,SEEK_END)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s rewinding", __FUNCTION__);
 		return(SMB_ERR_SEEK);
 	}
 	offset=(ftell(smb->sda_fp)/sizeof(refs))*SDT_BLOCK_LEN;
 	if((long)offset<0) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"invalid data offset: %lu",offset);
+			,"%s invalid data offset: %lu", __FUNCTION__, offset);
 		return(SMB_ERR_DAT_OFFSET);
 	}
 	for(l=0;l<blocks;l++)
@@ -121,7 +123,7 @@ long SMBCALL smb_fallocdat(smb_t* smb, ulong length, uint16_t refs)
 	fflush(smb->sda_fp);
 	if(l<blocks) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%d '%s' writing allocation bytes"
+			,"%s %d '%s' writing allocation bytes", __FUNCTION__
 			,get_errno(),STRERROR(get_errno()));
 		return(SMB_ERR_WRITE);
 	}
@@ -137,26 +139,34 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 	BOOL	da_opened=FALSE;
 	int		retval=SMB_SUCCESS;
 	uint16_t	i;
-	ulong	l,blocks;
+	long	l,blocks;
 	ulong	sda_offset;
+	off_t	flen;
 
 	if(smb->status.attr&SMB_HYPERALLOC)	/* do nothing */
 		return(SMB_SUCCESS);
 
-	blocks=smb_datblocks(length);
+	blocks = smb_datblocks(length);
+
+	if(blocks < 1)
+		return SMB_SUCCESS;	// Nothing to do
 
 	if(smb->sda_fp==NULL) {
 		if((i=smb_open_da(smb))!=SMB_SUCCESS)
 			return(i);
 		da_opened=TRUE;
 	}
+	flen = filelength(fileno(smb->sda_fp));
+	if(flen < sizeof(uint16_t))
+		return 0;	// Nothing to do
 
 	clearerr(smb->sda_fp);
-	for(l=0;l<blocks;l++) {
+	// Free from the last block first
+	for(l=blocks-1; l >= 0; l--) {
 		sda_offset=((offset/SDT_BLOCK_LEN)+l)*sizeof(i);
 		if(fseek(smb->sda_fp,sda_offset,SEEK_SET)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' seeking to %lu (0x%lX) of allocation file"
+				,"%s %d '%s' seeking to %lu (0x%lX) of allocation file", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,sda_offset,sda_offset);
 			retval=SMB_ERR_SEEK;
@@ -164,7 +174,7 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 		}
 		if(smb_fread(smb,&i,sizeof(i),smb->sda_fp)!=sizeof(i)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' reading allocation bytes at offset %ld"
+				,"%s %d '%s' reading allocation bytes at offset %ld", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,sda_offset);
 			retval=SMB_ERR_READ;
@@ -174,16 +184,25 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 			i=0;			/* don't want to go negative */
 		else
 			i-=refs;
+
+		// Completely free? and at end of SDA? Just truncate record from end of file
+		if(i == 0 && ftell(smb->sda_fp) == flen) {
+			if(chsize(fileno(smb->sda_fp), sda_offset) == 0) {
+				flen = sda_offset;
+				continue;
+			}
+		}
+		
 		if(fseek(smb->sda_fp,-(int)sizeof(i),SEEK_CUR)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' seeking backwards 2 bytes in allocation file"
+				,"%s %d '%s' seeking backwards 2 bytes in allocation file", __FUNCTION__
 				,get_errno(),STRERROR(get_errno()));
 			retval=SMB_ERR_SEEK;
 			break;
 		}
 		if(!fwrite(&i,sizeof(i),1,smb->sda_fp)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' writing allocation bytes at offset %ld"
+				,"%s %d '%s' writing allocation bytes at offset %ld", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,sda_offset);
 			retval=SMB_ERR_WRITE; 
@@ -191,6 +210,8 @@ int SMBCALL smb_freemsgdat(smb_t* smb, ulong offset, ulong length, uint16_t refs
 		}
 	}
 	fflush(smb->sda_fp);
+	if(filelength(fileno(smb->sdt_fp)) / SDT_BLOCK_LEN > filelength(fileno(smb->sda_fp)) /  sizeof(uint16_t))
+		chsize(fileno(smb->sdt_fp), (filelength(fileno(smb->sda_fp)) / sizeof(uint16_t)) * SDT_BLOCK_LEN);
 	if(da_opened)
 		smb_close_da(smb);
 	return(retval);
@@ -206,29 +227,32 @@ int SMBCALL smb_incdat(smb_t* smb, ulong offset, ulong length, uint16_t refs)
 	ulong	l,blocks;
 
 	if(smb->sda_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	clearerr(smb->sda_fp);
 	blocks=smb_datblocks(length);
 	for(l=0;l<blocks;l++) {
 		if(fseek(smb->sda_fp,((offset/SDT_BLOCK_LEN)+l)*sizeof(i),SEEK_SET)) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s seeking to %ld", __FUNCTION__
+				,((offset/SDT_BLOCK_LEN)+l)*sizeof(i));
 			return(SMB_ERR_SEEK);
 		}
 		if(smb_fread(smb,&i,sizeof(i),smb->sda_fp)!=sizeof(i)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' reading allocation record at offset %ld"
+				,"%s %d '%s' reading allocation record at offset %ld", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,((offset/SDT_BLOCK_LEN)+l)*sizeof(i));
 			return(SMB_ERR_READ);
 		}
 		i+=refs;
 		if(fseek(smb->sda_fp,-(int)sizeof(i),SEEK_CUR)) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s rewinding %ld", __FUNCTION__, -(int)sizeof(i));
 			return(SMB_ERR_SEEK);
 		}
 		if(!fwrite(&i,sizeof(i),1,smb->sda_fp)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' writing allocation record at offset %ld"
+				,"%s %d '%s' writing allocation record at offset %ld", __FUNCTION__
 				,get_errno(),STRERROR(get_errno())
 				,((offset/SDT_BLOCK_LEN)+l)*sizeof(i));
 			return(SMB_ERR_WRITE); 
@@ -275,20 +299,34 @@ int SMBCALL smb_incmsg_dfields(smb_t* smb, smbmsg_t* msg, uint16_t refs)
 int SMBCALL smb_freemsghdr(smb_t* smb, ulong offset, ulong length)
 {
 	uchar	c=0;
-	ulong	l,blocks;
+	long	l,blocks;
+	off_t	sha_offset;
 
 	if(smb->sha_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	clearerr(smb->sha_fp);
-	blocks=smb_hdrblocks(length);
-	if(fseek(smb->sha_fp,offset/SHD_BLOCK_LEN,SEEK_SET))
+	blocks = smb_hdrblocks(length);
+	if(blocks < 1)
+		return SMB_ERR_HDR_LEN;
+
+	sha_offset = offset/SHD_BLOCK_LEN;
+	if(filelength(fileno(smb->sha_fp)) <= (sha_offset + blocks)) {
+		if(chsize(fileno(smb->sha_fp), sha_offset) == 0) {
+			chsize(fileno(smb->shd_fp), smb->status.header_offset + offset);
+			return SMB_SUCCESS;
+		}
+	}
+
+	if(fseek(smb->sha_fp, sha_offset, SEEK_SET)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s seeking to %ld", __FUNCTION__, sha_offset);
 		return(SMB_ERR_SEEK);
+	}
 	for(l=0;l<blocks;l++)
 		if(!fwrite(&c,1,1,smb->sha_fp)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' writing allocation record"
+				,"%s %d '%s' writing allocation record", __FUNCTION__
 				,get_errno(),STRERROR(get_errno()));
 			return(SMB_ERR_WRITE);
 		}
@@ -345,7 +383,7 @@ long SMBCALL smb_allochdr(smb_t* smb, ulong length)
 	ulong	i,l,blocks,offset=0;
 
 	if(smb->sha_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	blocks=smb_hdrblocks(length);
@@ -364,13 +402,14 @@ long SMBCALL smb_allochdr(smb_t* smb, ulong length)
 		} 
 	}
 	clearerr(smb->sha_fp);
-	if(fseek(smb->sha_fp,offset/SHD_BLOCK_LEN,SEEK_SET))
+	if(fseek(smb->sha_fp,offset/SHD_BLOCK_LEN,SEEK_SET)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s seeking to %ld", __FUNCTION__, offset/SHD_BLOCK_LEN);
 		return(SMB_ERR_SEEK);
-
+	}
 	for(l=0;l<blocks;l++)
 		if(fputc(1,smb->sha_fp)!=1) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' writing allocation record"
+				,"%s %d '%s' writing allocation record", __FUNCTION__
 				,get_errno(),STRERROR(get_errno()));
 			return(SMB_ERR_WRITE);
 		}
@@ -388,19 +427,21 @@ long SMBCALL smb_fallochdr(smb_t* smb, ulong length)
 	ulong	l,blocks,offset;
 
 	if(smb->sha_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	blocks=smb_hdrblocks(length);
 	fflush(smb->sha_fp);
 	clearerr(smb->sha_fp);
-	if(fseek(smb->sha_fp,0L,SEEK_END))
+	if(fseek(smb->sha_fp,0L,SEEK_END)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s rewinding", __FUNCTION__);
 		return(SMB_ERR_SEEK);
+	}
 	offset=ftell(smb->sha_fp)*SHD_BLOCK_LEN;
 	for(l=0;l<blocks;l++)
 		if(!fwrite(&c,1,1,smb->sha_fp)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%d '%s' writing allocation record"
+				,"%s %d '%s' writing allocation record", __FUNCTION__
 				,get_errno(),STRERROR(get_errno()));
 			return(SMB_ERR_WRITE);
 		}
@@ -418,12 +459,14 @@ long SMBCALL smb_hallochdr(smb_t* smb)
 	ulong offset;
 
 	if(smb->shd_fp==NULL) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	fflush(smb->shd_fp);
-	if(fseek(smb->shd_fp,0L,SEEK_END))
+	if(fseek(smb->shd_fp,0L,SEEK_END)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s rewinding", __FUNCTION__);
 		return(SMB_ERR_SEEK);
+	}
 	offset=ftell(smb->shd_fp);
 	if(offset<smb->status.header_offset) 	/* Header file truncated?!? */
 		return(smb->status.header_offset);
@@ -448,22 +491,24 @@ long SMBCALL smb_hallocdat(smb_t* smb)
 
 	if(smb->sdt_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"msgbase not open");
+			,"%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
 	}
 	fflush(smb->sdt_fp);
 	offset=filelength(fileno(smb->sdt_fp));
 	if(offset<0) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"invalid file length: %lu",(ulong)offset);
+			,"%s invalid file length: %lu", __FUNCTION__,(ulong)offset);
 		return(SMB_ERR_FILE_LEN);
 	}
-	if(fseek(smb->sdt_fp,0L,SEEK_END))
+	if(fseek(smb->sdt_fp,0L,SEEK_END)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s rewinding", __FUNCTION__);
 		return(SMB_ERR_SEEK);
+	}
 	offset=ftell(smb->sdt_fp);
 	if(offset<0) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"invalid file offset: %ld",offset);
+			,"%s invalid file offset: %ld", __FUNCTION__,offset);
 		return(SMB_ERR_DAT_OFFSET);
 	}
 
