@@ -1,8 +1,6 @@
-/* mail.cpp */
-
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.26 2012/10/24 19:03:13 deuce Exp $ */
+/* $Id: mail.cpp,v 1.28 2017/11/13 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,7 +159,7 @@ void sbbs_t::telluser(smbmsg_t* msg)
 /************************************************************************/
 /* Deletes all mail waiting for user number 'usernumber'                */
 /************************************************************************/
-void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
+void sbbs_t::delallmail(uint usernumber, int which, bool permanent, long lm_mode)
 {
 	int 		i;
 	long		deleted=0;
@@ -182,7 +180,7 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 		return; 
 	}
 
-	mail=loadmail(&smb,&msgs,usernumber,which,0);
+	mail=loadmail(&smb,&msgs,usernumber,which,lm_mode);
 	if(!msgs) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -199,7 +197,7 @@ void sbbs_t::delallmail(uint usernumber, int which, bool permanent)
 		msg.idx.offset=0;						/* search by number */
 		if((mail[u].attr&MSG_PERMANENT) && !permanent)
 			continue;
-		if(loadmsg(&msg,mail[u].number)) {	   /* message still there */
+		if(loadmsg(&msg,mail[u].number) >= 0) {	   /* message still there */
 			msg.hdr.attr|=MSG_DELETE;
 			msg.hdr.attr&=~MSG_PERMANENT;
 			msg.idx.attr=msg.hdr.attr;
