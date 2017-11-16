@@ -1,7 +1,8 @@
-/* Synchronet JavaScript "system" Object */
-// vi: tabstop=4
+/* js_system.c */
 
-/* $Id: js_system.c,v 1.166 2017/11/16 09:41:37 rswindell Exp $ */
+/* Synchronet JavaScript "system" Object */
+
+/* $Id: js_system.c,v 1.165 2017/11/13 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
