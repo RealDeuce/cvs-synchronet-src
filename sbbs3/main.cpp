@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.684 2018/03/10 08:09:42 deuce Exp $ */
+/* $Id: main.cpp,v 1.653 2017/11/15 10:39:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -71,13 +71,7 @@
 #endif // _WIN32
 
 #ifdef USE_CRYPTLIB
-	#define SSH_END() do {                                  \
-		if(ssh) {                                       \
-			pthread_mutex_lock(&sbbs->ssh_mutex);   \
-			cryptDestroySession(sbbs->ssh_session); \
-			pthread_mutex_unlock(&sbbs->ssh_mutex); \
-		}                                               \
-	} while(0)
+	#define SSH_END()	if(ssh) { pthread_mutex_lock(&sbbs->ssh_mutex); cryptDestroySession(sbbs->ssh_session); pthread_mutex_unlock(&sbbs->ssh_mutex); }
 #else
 	#define	SSH_END()
 #endif
@@ -108,36 +102,6 @@ static	link_list_t current_connections;
 #ifdef _THREAD_SUID_BROKEN
 int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 #endif
-
-#define GCES(status, node, sess, action) do {                          \
-	char *GCES_estr;                                                    \
-	int GCES_level;                                                      \
-	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
-	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "Node %d SSH %s", node, GCES_estr);             \
-		free_crypt_attrstr(GCES_estr);                                       \
-	}                                                                         \
-} while (0)
-
-#define GCESNN(status, sess, action) do {                              \
-	char *GCES_estr;                                                    \
-	int GCES_level;                                                      \
-	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
-	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "SSH %s", GCES_estr);                           \
-		free_crypt_attrstr(GCES_estr);                                       \
-	}                                                                         \
-} while (0)
-
-#define GCESS(status, sock, sess, action) do {                         \
-	char *GCES_estr;                                                    \
-	int GCES_level;                                                      \
-	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
-	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "%04d SSH %s", sock, GCES_estr);                \
-		free_crypt_attrstr(GCES_estr);                                       \
-	}                                                                         \
-} while (0)
 
 extern "C" {
 
@@ -204,9 +168,6 @@ int lputs(int level, const char* str)
 
 int eputs(int level, const char *str)
 {
-	if(*str == 0)
-		return 0;
-
 	if(level <= LOG_ERR) {
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
@@ -243,7 +204,7 @@ int eprintf(int level, const char *fmt, ...)
 
 	strip_ctrl(sbuf, sbuf);
 
-    return(eputs(level,truncsp(sbuf)));
+    return(eputs(level,sbuf));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -252,18 +213,6 @@ int sbbs_t::lputs(int level, const char* str)
 	if(cfg.node_num == 0)
 		return ::eputs(level, str);
 	return ::lputs(level, str);
-}
-
-int sbbs_t::lprintf(int level, const char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[1024];
-
-    va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-    return(lputs(level,sbuf));
 }
 
 struct main_sock_cb_data {
@@ -304,7 +253,6 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
-// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -766,10 +714,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-			FREE_AND_NULL(line);
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		}
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
@@ -782,8 +728,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if(line != NULL)
-		free(line);
+	free(line);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -875,10 +820,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-			FREE_AND_NULL(cstr);
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		}
 		JSSTRING_TO_RASTRING(cx, str, cstr, &cstr_sz, NULL);
 		if(cstr==NULL)
 		    return(JS_FALSE);
@@ -889,7 +832,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	FREE_AND_NULL(cstr);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -918,14 +860,10 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_RASTRING(cx, argv[i], str, &str_sz, &len);
 		if(str==NULL)
 		    return(JS_FALSE);
-		if(len < 1)
-			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if (str != NULL)
-		free(str);
 
     return(JS_TRUE);
 }
@@ -1000,15 +938,11 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(sbbs->online==ON_LOCAL)
-		eprintf(LOG_WARNING, "%s", cstr);
-	else {
-		sbbs->attr(sbbs->cfg.color[clr_err]);
-		sbbs->bputs(cstr);
-		sbbs->attr(LIGHTGRAY);
-		sbbs->bputs(crlf);
-	}
+	sbbs->attr(sbbs->cfg.color[clr_err]);
+	sbbs->bputs(cstr);
 	free(cstr);
+	sbbs->attr(LIGHTGRAY);
+	sbbs->bputs(crlf);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, argv[0]);
@@ -1405,14 +1339,6 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptKeyset Class */
-		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptCert Class */
-		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
@@ -1891,7 +1817,7 @@ void input_thread(void *arg)
 				if(err==CRYPT_ERROR_TIMEOUT)
 					continue;
 				/* Handle the SSH error here... */
-				GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+				lprintf(LOG_WARNING,"Node %d SSH ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				break;
 			}
 			else {
@@ -2074,10 +2000,9 @@ void passthru_output_thread(void* arg)
 
 		if(sbbs->ssh_mode) {
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if((rd = cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i))) == CRYPT_OK)
+			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
 				rd=0;
 			else {
-				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
 				if(!i) {
 					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
@@ -2356,15 +2281,13 @@ void output_thread(void* arg)
 			pthread_mutex_lock(&sbbs->ssh_mutex);
 			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 				/* Handle the SSH error here... */
-				GCES(err, node, sbbs->ssh_session, "pushing data");
-				ssh_errors++;
+				lprintf(ssh_errors++ ? LOG_DEBUG : LOG_WARNING,"%s SSH ERROR %d sending on Cryptlib session", node, err);
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
 			}
 			else {
 				if(!cryptStatusOK((err=cryptFlushData(sbbs->ssh_session)))) {
-					GCES(err, node, sbbs->ssh_session, "flushing data");
-					ssh_errors++;
+					lprintf(ssh_errors++ ? LOG_DEBUG : LOG_WARNING,"%s SSH ERROR %d flushing Cryptlib session", node, err);
 					sbbs->online=FALSE;
 					i=buftop-bufbot;	// Pretend we sent it all
 				}
@@ -2375,15 +2298,15 @@ void output_thread(void* arg)
 #endif
 			i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
 		if(i==SOCKET_ERROR) {
-			if(ERROR_VALUE == ENOTSOCK)
-				lprintf(LOG_NOTICE,"%s client socket closed on send", node);
-			else if(ERROR_VALUE==ECONNRESET) 
+        	if(ERROR_VALUE == ENOTSOCK)
+                lprintf(LOG_NOTICE,"%s client socket closed on send", node);
+            else if(ERROR_VALUE==ECONNRESET) 
 				lprintf(LOG_NOTICE,"%s connection reset by peer on send", node);
-			else if(ERROR_VALUE==ECONNABORTED) 
+            else if(ERROR_VALUE==ECONNABORTED) 
 				lprintf(LOG_NOTICE,"%s connection aborted by peer on send", node);
 			else
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on socket %d"
-					,node, ERROR_VALUE, sbbs->client_socket);
+                	,node, ERROR_VALUE, sbbs->client_socket);
 			sbbs->online=FALSE;
 			/* was break; on 4/7/00 */
 			i=buftop-bufbot;	// Pretend we sent it all
@@ -2565,15 +2488,12 @@ void event_thread(void* arg)
 						continue;
 					}
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
-					sbbs->online=FALSE;
-					sbbs->console&=~CON_L_ECHO;
 					
 					/* putuserdat? */
 					remove(g.gl_pathv[i]);
@@ -2598,7 +2518,6 @@ void event_thread(void* arg)
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2610,14 +2529,13 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed: %s", str);
+						eprintf(LOG_INFO,"Packing completed");
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
 					} else
 						eprintf(LOG_INFO,"No packet created (no new messages)");
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);
-					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
 				remove(g.gl_pathv[i]);
@@ -2653,7 +2571,6 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2664,7 +2581,6 @@ void event_thread(void* arg)
 							sbbs->putmsgptrs(); 
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
-						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					} 
 				}
@@ -2708,13 +2624,10 @@ void event_thread(void* arg)
 
 						eprintf(LOG_INFO,"Running node %d daily event",i);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						sbbs->logentry("!:","Run node daily event");
 						sbbs->external(
 							 sbbs->cmdstr(sbbs->cfg.node_daily,nulstr,nulstr,NULL)
 							,EX_OFFLINE);
-						sbbs->console&=~CON_L_ECHO;
-						sbbs->online=FALSE;
 					}
 					sbbs->getnodedat(i,&node,1);
 					node.misc&=~NODE_EVENT;
@@ -2859,13 +2772,10 @@ void event_thread(void* arg)
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
 							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					sbbs->console&=~CON_L_ECHO;
-					sbbs->online=FALSE;
 				}
 			} 
 		}
@@ -2904,12 +2814,9 @@ void event_thread(void* arg)
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name); 
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.phub[i]->call,nulstr,nulstr,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					sbbs->online=FALSE;
-					sbbs->console&=~CON_L_ECHO;
 				} 
 			}
 		}
@@ -3079,7 +2986,6 @@ void event_thread(void* arg)
 						ex_mode |= EX_SH;
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Running %s%stimed event: %s"
 						,(ex_mode&EX_NATIVE)	? "native ":""
@@ -3087,15 +2993,13 @@ void event_thread(void* arg)
 						,strupr(str));
 					{
 						int result=
-							sbbs->external(
-								 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
-								,ex_mode
-								,sbbs->cfg.event[i]->dir);
+						sbbs->external(
+							 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
+							,ex_mode
+							,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
 							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
-					sbbs->console&=~CON_L_ECHO;
-					sbbs->online=FALSE;
 					sbbs->cfg.event[i]->last=time32(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -3155,8 +3059,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	if(node_num>0) {
 		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
-		SAFEPRINTF2(syspage_semfile, "%ssyspage.%u", cfg.ctrl_dir, node_num);
-		remove(syspage_semfile);
 	} else {	/* event thread needs exclusive-use temp_dir */
 		if(startup->temp_dir[0])
 			SAFECOPY(cfg.temp_dir,startup->temp_dir);
@@ -3223,7 +3125,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	scanposts_inside = false;
 	scansubs_inside = false;
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
-	last_sysop_auth = 0;
 	uselect_total = 0;
 	lbuflen = 0;
 	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
@@ -3240,7 +3141,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
-	lastlinelen=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3252,7 +3152,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
-	current_file=NULL;
 	mnestr=NULL;
 
 #ifdef JAVASCRIPT
@@ -3664,9 +3563,6 @@ sbbs_t::~sbbs_t()
 		logfile_fp=NULL;
 	}
 
-	if(syspage_semfile[0])
-		remove(syspage_semfile);
-
 	/********************************/
 	/* Free allocated class members */
 	/********************************/
@@ -3970,37 +3866,13 @@ int sbbs_t::incom(unsigned long timeout)
 	return(ch);
 }
 
-// Steve's original implementation (in RCIOL) did not incorporate a retry
-// ... so this function does not either. :-P
-int sbbs_t::_outcom(uchar ch)
+int sbbs_t::outcom(uchar ch)
 {
 	if(!RingBufFree(&outbuf))
 		return(TXBOF);
     if(!RingBufWrite(&outbuf, &ch, 1))
 		return(TXBOF);
 	return(0);
-}
-
-// This outcom version retries - copied loop from sbbs_t::outchar()
-int sbbs_t::outcom(uchar ch, int max_attempts)
-{
-	int i = 0;
-	while(_outcom(ch) != 0) {
-		if(!online)
-			break;
-		i++;
-		if(i >= max_attempts) {			/* timeout - beep flush outbuf */
-			lprintf(LOG_NOTICE, "timeout(outcom) %04X %04X", rioctl(TXBC), rioctl(IOFO));
-			_outcom(BEL);
-			rioctl(IOCS|PAUSE); 
-			return TXBOF;
-		} 
-		if(sys_status&SS_SYSPAGE)
-			sbbs_beep(i, OUTCOM_RETRY_DELAY);
-		else
-			mswait(OUTCOM_RETRY_DELAY); 
-	}
-	return 0;	// Success
 }
 
 int sbbs_t::putcom(const char *str, size_t len)
@@ -4010,7 +3882,7 @@ int sbbs_t::putcom(const char *str, size_t len)
 	if(!len)
 		len=strlen(str);
     for(i=0;i<len && online;i++)
-		if(outcom(str[i])!=0)
+        if(outcom(str[i])!=0)
 			break;
 	return i;
 }
@@ -4116,7 +3988,6 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
-	cterm_version = 0;
     lbuflen=0;
     slcnt=0;
     altul=0;
@@ -4127,10 +3998,10 @@ void sbbs_t::reset_logon_vars(void)
     batdn_total=batup_total=0;
     usrgrps=usrlibs=0;
     curgrp=curlib=0;
-	for(i=0;i<cfg.total_libs;i++)
-		curdir[i]=0;
-	for(i=0;i<cfg.total_grps;i++)
-		cursub[i]=0;
+    for(i=0;i<cfg.total_libs;i++)
+        curdir[i]=0;
+    for(i=0;i<cfg.total_grps;i++)
+        cursub[i]=0;
 	cur_cps=3000;
     cur_rate=30000;
     dte_rate=38400;
@@ -4441,15 +4312,6 @@ void node_thread(void* arg)
 	thread_down();
 }
 
-bool sbbs_t::backup(const char* fname, int backup_level, bool rename)
-{
-	if(!fexist(fname))
-		return false;
-
-	lprintf(LOG_DEBUG, "Backing-up %s (%lu bytes)", fname, flength(fname));
-	return ::backup(fname, backup_level, rename) ? true : false;
-}
-
 void sbbs_t::daily_maint(void)
 {
 	char			str[128];
@@ -4492,10 +4354,6 @@ void sbbs_t::daily_maint(void)
 		SAFEPRINTF(str,"%smail.sid",cfg.data_dir);
 		backup(str,cfg.mail_backup_level,FALSE);
 		SAFEPRINTF(str,"%smail.sch",cfg.data_dir);
-		backup(str,cfg.mail_backup_level,FALSE);
-		SAFEPRINTF(str,"%smail.hash",cfg.data_dir);
-		backup(str,cfg.mail_backup_level,FALSE);
-		SAFEPRINTF(str,"%smail.ini",cfg.data_dir);
 		backup(str,cfg.mail_backup_level,FALSE);
 	}
 
@@ -4605,18 +4463,18 @@ void sbbs_t::daily_maint(void)
 			if((i=smb_locksmbhdr(&smb))!=0)
 				errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
 			else
-				lprintf(LOG_INFO, "DAILY: Removed %d messages", delmail(0, MAIL_ALL));
+				delmail(0,MAIL_ALL);
 		}
 		smb_close(&smb); 
 	}
 
+	sys_status&=~SS_DAILY;
 	if(cfg.sys_daily[0]) {
 		lputs(LOG_INFO, "DAILY: Running system event");
 		external(cmdstr(cfg.sys_daily,nulstr,nulstr,NULL), EX_OFFLINE); 
 	}
 	status(STATUS_WFC);
 	lputs(LOG_INFO, "DAILY: System maintenance ended");
-	sys_status&=~SS_DAILY;
 }
 
 const char* DLLCALL js_ver(void)
@@ -4723,7 +4581,7 @@ void DLLCALL bbs_thread(void* arg)
 	char*			p;
     char			str[MAX_PATH+1];
 	char			logstr[256];
-	union xp_sockaddr	server_addr={{0}};
+	union xp_sockaddr	server_addr={0};
 	union xp_sockaddr	client_addr;
 	socklen_t		client_addr_len;
 	SOCKET			client_socket=INVALID_SOCKET;
@@ -4739,6 +4597,7 @@ void DLLCALL bbs_thread(void* arg)
 	startup=(bbs_startup_t*)arg;
 	BOOL			is_client=FALSE;
 #ifdef __unix__
+	SOCKET	uspy_listen_socket[MAX_NODES];
 	struct main_sock_cb_data	uspy_cb[MAX_NODES]={};
 	union xp_sockaddr uspy_addr;
 #endif
@@ -4936,6 +4795,7 @@ void DLLCALL bbs_thread(void* arg)
 		spy_socket[i]=INVALID_SOCKET;
 #ifdef __unix__
 		uspy_socket[i]=INVALID_SOCKET;
+		uspy_listen_socket[i]=INVALID_SOCKET;
 #endif
 	}
 
@@ -4956,11 +4816,14 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
+	lprintf(LOG_INFO,"Telnet Server listening");
+
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
+		lprintf(LOG_INFO,"RLogin Server listening");
 	}
 
 #ifdef USE_CRYPTLIB
@@ -4976,43 +4839,42 @@ void DLLCALL bbs_thread(void* arg)
 		}
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
-		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_READONLY))) {
-			if(!cryptStatusOK(i=cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
-				GCESNN(i, ssh_keyset, "getting private key");
+		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
+			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
+				lprintf(LOG_ERR, "SSH cryptGetPrivateKey failure");
 				goto NO_SSH;
 			}
 		}
 		else {
 			/* Couldn't do that... create a new context and use the key from there... */
 
-			if(cryptStatusError(i=cryptCreateContext(&ssh_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
-				GCESNN(i, CRYPT_UNUSED, "creating context");
+			if(!cryptStatusOK(i=cryptCreateContext(&ssh_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
+				lprintf(LOG_ERR,"SSH Cryptlib error %d creating context",i);
 				goto NO_SSH;
 			}
-			if(cryptStatusError(i=cryptSetAttributeString(ssh_context, CRYPT_CTXINFO_LABEL, "ssh_server", 10))) {
-				GCESNN(i, ssh_context, "setting label");
+			if(!cryptStatusOK(i=cryptSetAttributeString(ssh_context, CRYPT_CTXINFO_LABEL, "ssh_server", 10))) {
+				lprintf(LOG_ERR,"SSH Cryptlib error %d setting key label",i);
 				goto NO_SSH;
 			}
-			if(cryptStatusError(i=cryptGenerateKey(ssh_context))) {
-				GCESNN(i, ssh_context, "generating key");
+			if(!cryptStatusOK(i=cryptGenerateKey(ssh_context))) {
+				lprintf(LOG_ERR,"SSH Cryptlib error %d generating key",i);
 				goto NO_SSH;
 			}
 
-			/* Ok, now try saving this one... use the syspass to encrypt it. */
-			if(cryptStatusOK(i=cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
-				if(cryptStatusError(i=cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
-					GCESNN(i, ssh_keyset, "adding private key");
-				if(cryptStatusError(i=cryptKeysetClose(ssh_keyset)))
-					GCESNN(i, ssh_keyset, "closing keyset");
+			/* Ok, now try saving this one... use the syspass to enctrpy it. */
+			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
+				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
+					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
+				if(!cryptStatusOK(cryptKeysetClose(ssh_keyset)))
+					lprintf(LOG_ERR,"SSH Cryptlib error %d closing keyset",i);
 			}
-			else
-				GCESNN(i, CRYPT_UNUSED, "creating keyset");
 		}
 
 		/* open a socket and wait for a client */
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
+		lprintf(LOG_INFO,"SSH Server listening");
 	}
 NO_SSH:
 #endif
@@ -5122,8 +4984,8 @@ NO_SSH:
 #endif // __unix__ (unix-domain spy sockets)
 
 	/* signal caller that we've started up successfully */
-	if(startup->started!=NULL)
-		startup->started(startup->cbdata);
+    if(startup->started!=NULL)
+    	startup->started(startup->cbdata);
 
 	lprintf(LOG_INFO,"Terminal Server thread started for nodes %d through %d", first_node, last_node);
 
@@ -5243,10 +5105,6 @@ NO_SSH:
 			continue;
 		}
 
-		// Count the socket:
-		if(startup->socket_open!=NULL)
-			startup->socket_open(startup->cbdata, TRUE);
-
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
@@ -5272,13 +5130,13 @@ NO_SSH:
 			continue;
 		}
 
-#ifdef USE_CRYPTLIB
-		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
-#else
-		client.protocol=rlogin ? "RLogin":"Telnet";
-#endif
 		lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
-			,client_socket, client.protocol
+			,client_socket
+#ifdef USE_CRYPTLIB
+			,rlogin ? "RLogin" : (ssh ? "SSH" : "Telnet")
+#else
+			,rlogin ? "RLogin" : "Telnet"
+#endif
 			, host_ip, inet_addrport(&client_addr));
 
 		if(startup->max_concurrent_connections > 0) {
@@ -5330,26 +5188,23 @@ NO_SSH:
 #ifdef USE_CRYPTLIB
 		if(ssh) {
 			int	ssh_failed=0;
-			if(cryptStatusError(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
-				GCESS(i, client_socket, CRYPT_UNUSED, "creating SSH session");
+			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d creating session", client_socket, i);
 				close_socket(client_socket);
 				continue;
 			}
 			lprintf(LOG_DEBUG, "%04d SSH Cryptlib Session: %d", client_socket, sbbs->ssh_session);
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 1)))
-				GCESS(i, client_socket, sbbs->ssh_session, "setting read timeout");
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_CONNECTTIMEOUT, startup->ssh_connect_timeout)))
+				lprintf(LOG_ERR, "%04d SSH Error %d setting CRYPT_OPTION_NET_CONNECTTIMEOUT", client_socket, i);
 
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_CONNECTTIMEOUT, startup->ssh_connect_timeout)))
-				GCESS(i, client_socket, sbbs->ssh_session, "setting connect timeout");
-
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
-				GCESS(i, client_socket, sbbs->ssh_session, "setting private key");
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting private key",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
 			}
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
-				GCESS(i, client_socket, sbbs->ssh_session, "setting network socket");
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting socket",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
@@ -5357,14 +5212,12 @@ NO_SSH:
 			for(ssh_failed=0; ssh_failed < 2; ssh_failed++) {
 				/* Accept any credentials */
 				lprintf(LOG_DEBUG, "%04d SSH Setting attribute: SESSINFO_AUTHRESPONSE", client_socket);
-				if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
-					GCESS(i, client_socket, sbbs->ssh_session, "setting auth response");
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
 					ssh_failed=1;
 					break;
 				}
 				lprintf(LOG_DEBUG, "%04d SSH Setting attribute: SESSINFO_ACTIVE", client_socket);
-				if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
-					GCESS(i, client_socket, sbbs->ssh_session, "setting session active");
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
 					if(i != CRYPT_ENVELOPE_RESOURCE) {
 						ssh_failed=2;
 						break;
@@ -5375,11 +5228,29 @@ NO_SSH:
 					break;
 				}
 			}
-			if (!ssh_failed) {
-				if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_PROPERTY_OWNER, CRYPT_UNUSED))) {
-					GCESS(i, client_socket, sbbs->ssh_session, "clearing owner");
-					ssh_failed = 2;
-				}
+			switch(ssh_failed) {
+				case 1:
+					lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
+					break;
+				case 2:
+					switch(i) {
+						case CRYPT_ERROR_BADDATA:
+							lprintf(LOG_NOTICE,"%04d SSH Bad/unrecognized data format", client_socket);
+							break;
+						case CRYPT_ERROR_READ:
+							lprintf(LOG_WARNING,"%04d SSH Read failure", client_socket);
+							break;
+						case CRYPT_ERROR_WRITE:
+							lprintf(LOG_WARNING,"%04d SSH Write failure", client_socket);
+							break;
+						case CRYPT_ERROR_TIMEOUT:
+							lprintf(LOG_WARNING,"%04d SSH Connect timeout", client_socket);
+							break;
+						default:
+							lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting session active",client_socket, i);
+							break;
+					}
+					break;
 			}
 			if(ssh_failed) {
 				cryptDestroySession(sbbs->ssh_session);
@@ -5387,10 +5258,9 @@ NO_SSH:
 				continue;
 			}
 			if(!cryptStatusOK(err=cryptPopData(sbbs->ssh_session, str, sizeof(str), &i))) {
-				GCES(i, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
-			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
@@ -5402,7 +5272,7 @@ NO_SSH:
 		sbbs->putcom(VERSION_NOTICE);
 		sbbs->putcom(crlf);
 
-		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
+		sbbs->bprintf("Connection from: %s\r\n", host_ip);
 
 		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
@@ -5444,6 +5314,11 @@ NO_SSH:
 		SAFECOPY(client.addr,host_ip);
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
+#ifdef USE_CRYPTLIB
+		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
+#else
+		client.protocol=rlogin ? "RLogin":"Telnet";
+#endif
 		client.user=STR_UNKNOWN_USER;
 		client_on(client_socket,&client,FALSE /* update */);
 
@@ -5629,7 +5504,7 @@ NO_PASSTHRU:
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
 			if(!cryptStatusOK(err=cryptPopData(sbbs->ssh_session, str, sizeof(str), &i))) {
-				GCES(err, new_node->cfg.node_num, sbbs->ssh_session, "popping data");
+				lprintf(LOG_WARNING,"Node %d SSH ERROR %d receiving on Cryptlib session", new_node->cfg.node_num, err);
 				i=0;
 			}
 			sbbs->ssh_mode=false;
@@ -5654,13 +5529,17 @@ NO_PASSTHRU:
 			node_socket[i]=INVALID_SOCKET;
         }
 #ifdef __unix__
+		if(uspy_listen_socket[i]!=INVALID_SOCKET) {
+			close_socket(uspy_listen_socket[i]);
+			uspy_listen_socket[i]=INVALID_SOCKET;
+			snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
+			if(fexist(str))
+				unlink(str);
+		}
 		if(uspy_socket[i]!=INVALID_SOCKET) {
 			close_socket(uspy_socket[i]);
 			uspy_socket[i]=INVALID_SOCKET;
-		}
-		snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
-		if(fexist(str))
-			unlink(str);
+		}		
 #endif
 	}
 
