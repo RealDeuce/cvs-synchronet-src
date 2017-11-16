@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.68 2018/03/06 01:24:55 deuce Exp $ */
+/* $Id: js_msg_area.c,v 1.66 2017/10/23 03:20:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -155,24 +155,9 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		SAFECOPY(str,sub->newsgroup);
 	else {
 		sprintf(str,"%s.%s",cfg->grp[sub->grp]->sname,sub->sname);
-		for(c=0;str[c];c++) {
-			if (str[c] >= 0 && str[c] < 0x22)
-				str[c] = '_';
-			switch(str[c]) {
-				// Illegal chars:
-				case '*':
-				case ',':
-				case '?':
-				case '[':
-				case '\\':
-				case ']':
-				case 0x7f:
-					str[c]='_';
-					break;
-				default:
-					break;
-			}
-		}
+		for(c=0;str[c];c++)
+			if(str[c]==' ')
+				str[c]='_';
 	}
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
 		return(FALSE);
