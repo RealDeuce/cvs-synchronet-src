@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.114 2017/11/16 06:13:21 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.115 2017/11/16 09:41:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -165,6 +165,32 @@ ulong lf_expand(uchar* inbuf, uchar* outbuf)
 	return(j);
 }
 
+char* gen_msgid(smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen)
+{
+	char* host = getenv(
+#if defined(_WIN32)
+		"COMPUTERNAME"
+#else
+		"HOSTNAME"
+#endif
+	);
+	if(host == NULL)
+		host = getenv(
+#if defined(_WIN32)
+		"USERNAME"
+#else
+		"USER"
+#endif
+	);
+	safe_snprintf(msgid, maxlen
+		,"<%08lX.%lu.%s@%s>"
+		,msg->hdr.when_imported.time
+		,smb->status.last_msg + 1
+		,getfname(smb->file)
+		,host);
+	return msgid;
+}
+
 /****************************************************************************/
 /* Adds a new message to the message base									*/
 /****************************************************************************/
@@ -324,6 +350,8 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 			,beep,FIDOPID,i,smb.last_error);
 		bail(1); 
 	}
+
+	smb_hfield_str(&msg, RFC822MSGID, gen_msgid(&smb, &msg, str, sizeof(str)-1));
 
 	if(mode&NOCRC || smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
@@ -1505,7 +1533,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.114 $", "%*s %s", revision);
+	sscanf("$Revision: 1.115 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
