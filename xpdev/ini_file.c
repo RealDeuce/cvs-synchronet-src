@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.151 2017/10/11 19:55:35 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.152 2017/11/16 07:15:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -663,7 +663,7 @@ char* DLLCALL iniSetIp6Address(str_list_t* list, const char* section, const char
 					,ini_style_t* style)
 {
 	char				addrstr[INET6_ADDRSTRLEN];
-	union xp_sockaddr	addr = {0};
+	union xp_sockaddr	addr = {{0}};
 
 	addr.in6.sin6_addr = value;
 	addr.in6.sin6_family = AF_INET6;
@@ -1487,7 +1487,7 @@ static struct in6_addr parseIp6Address(const char* value)
 {
 	struct addrinfo hints = {0};
 	struct addrinfo *res, *cur;
-	struct in6_addr ret = {0};
+	struct in6_addr ret = {{{0}}};
 
 	hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
 	if(getaddrinfo(value, NULL, &hints, &res))
