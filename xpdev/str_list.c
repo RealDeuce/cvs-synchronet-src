@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.42 2014/04/28 05:17:54 deuce Exp $ */
+/* $Id: str_list.c,v 1.47 2017/06/09 02:02:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -78,6 +78,26 @@ int DLLCALL strListIndexOf(const str_list_t list, const char* str)
 	return -1;
 }
 
+int DLLCALL strListFind(const str_list_t list, const char* str, BOOL case_sensistive)
+{
+	size_t		i;
+
+	if(list==NULL)
+		return -1;
+
+	for(i=0; list[i]!=NULL; i++) {
+		if(case_sensistive) {
+			if(strcmp(list[i],str) == 0)
+				return i;
+		} else {
+			if(stricmp(list[i],str) == 0)
+				return i;
+		}
+	}
+	
+	return -1;
+}
+
 static char* str_list_append(str_list_t* list, char* str, size_t index)
 {
 	str_list_t lp;
@@ -98,6 +118,8 @@ static char* str_list_insert(str_list_t* list, char* str, size_t index)
 	size_t	count;
 	str_list_t lp;
 
+	if(*list == NULL)
+		*list = strListInit();
 	count = strListCount(*list);
 	if(index > count)	/* invalid index, do nothing */
 		return(NULL);
@@ -318,14 +340,17 @@ char* DLLCALL strListCombine(str_list_t list, char* buf, size_t maxlen, const ch
 	char*	end;
 	char*	ptr;
 
-	if(list==NULL || maxlen<1)
+	if(maxlen<1)
 		return(NULL);
 
 	if(buf==NULL)
 		if((buf=(char*)malloc(maxlen))==NULL)
 			return(NULL);
 
-	*buf=0;
+	memset(buf, 0, maxlen);
+	if(list==NULL)
+		return buf;
+
 	end=buf+maxlen;
 	for(i=0, ptr=buf; list[i]!=NULL && buf<end; i++)
 		ptr += safe_snprintf(ptr, end-ptr, "%s%s", i ? delimit:"", list[i]);
@@ -605,4 +630,48 @@ void DLLCALL strListFreeBlock(char* block)
 {
 	if(block!=NULL)
 		free(block);	/* this must be done here for Windows-DLL reasons */
+}
+
+int DLLCALL strListTruncateTrailingWhitespaces(str_list_t list)
+{
+	size_t		i;
+
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++) {
+		truncsp(list[i]);
+	}
+	return i;
+}
+
+int DLLCALL strListTruncateTrailingLineEndings(str_list_t list)
+{
+	size_t		i;
+
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++) {
+		truncnl(list[i]);
+	}
+	return i;
+}
+
+
+/* Truncate strings in list at first occurrence of any char in 'set' */
+int DLLCALL	strListTruncateStrings(str_list_t list, const char* set)
+{
+	size_t		i;
+	char*		p;
+
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++) {
+		p=strpbrk(list[i], set);
+		if(p!=NULL && *p!=0)
+			*p=0;
+	}
+	return i;
 }
