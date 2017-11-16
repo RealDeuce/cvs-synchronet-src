@@ -1,4 +1,4 @@
-/* $Id: scfgchat.c,v 1.22 2017/12/29 06:04:36 rswindell Exp $ */
+/* $Id: scfgchat.c,v 1.21 2017/11/11 22:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -779,8 +779,8 @@ void actsets_cfg()
 			"\n"
 			"This is a list of the configured action sets.\n"
 			"\n"
-			"To add an action set, select the desired location with the arrow keys\n"
-			"and hit ~ INS ~.\n"
+			"To add an action set, select the desired location with the arrow keys and\n"
+			"hit ~ INS ~.\n"
 			"\n"
 			"To delete an action set, select it with the arrow keys and hit ~ DEL ~.\n"
 			"\n"
