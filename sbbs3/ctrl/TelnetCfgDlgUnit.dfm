@@ -1,6 +1,6 @@
 object TelnetCfgDlg: TTelnetCfgDlg
-  Left = 1133
-  Top = 475
+  Left = 377
+  Top = 354
   BorderStyle = bsDialog
   Caption = 'Terminal Server Configuration'
   ClientHeight = 234
@@ -44,7 +44,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Width = 74
         Height = 20
         AutoSize = False
-        Caption = 'Max Con-Conn'
+        Caption = 'Max Con-Con'
       end
       object AutoStartCheckBox: TCheckBox
         Left = 148
@@ -55,7 +55,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Auto Startup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 3
       end
       object FirstNodeEdit: TEdit
         Left = 85
@@ -76,7 +76,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Minimize Externals'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 4
       end
       object LastNodeEdit: TEdit
         Left = 85
@@ -97,7 +97,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Hostname Lookup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 3
+        TabOrder = 2
       end
       object QWKEventsCheckBox: TCheckBox
         Left = 148
@@ -108,7 +108,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'QWK Msg Events'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 6
       end
       object JavaScriptCheckBox: TCheckBox
         Left = 148
@@ -119,7 +119,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'JavaScript Support'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
+        TabOrder = 7
       end
       object EventsCheckBox: TCheckBox
         Left = 148
@@ -130,7 +130,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Events Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 5
       end
       object DosSupportCheckBox: TCheckBox
         Left = 7
@@ -141,7 +141,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'DOS Program Support'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 9
+        TabOrder = 8
       end
       object IdentityCheckBox: TCheckBox
         Left = 7
@@ -152,7 +152,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Identity Lookup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 10
+        TabOrder = 9
       end
       object MaxConConEdit: TEdit
         Left = 85
@@ -164,7 +164,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
           'nlimited)'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 2
+        TabOrder = 10
       end
     end
     object TelnetTabSheet: TTabSheet
@@ -331,14 +331,6 @@ object TelnetCfgDlg: TTelnetCfgDlg
         AutoSize = False
         Caption = 'Interfaces (IPs)'
       end
-      object SshConnectTimeoutLabel: TLabel
-        Left = 7
-        Top = 62
-        Width = 78
-        Height = 21
-        AutoSize = False
-        Caption = 'Conn Timeout'
-      end
       object SshPortEdit: TEdit
         Left = 85
         Top = 10
@@ -372,16 +364,6 @@ object TelnetCfgDlg: TTelnetCfgDlg
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
-      end
-      object SshConnTimeoutEdit: TEdit
-        Left = 85
-        Top = 62
-        Width = 39
-        Height = 21
-        Hint = 'SSH Connection Timeout (in seconds)'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 3
       end
     end
     object SoundTabSheet: TTabSheet
