@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.40 2015/08/22 10:16:57 deuce Exp $ */
+/* $Id: wordwrap.c,v 1.42 2015/12/16 09:47:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,6 +272,7 @@ struct paragraph {
 	struct prefix prefix;
 	char *text;
 	size_t alloc_size;
+	size_t len;
 };
 
 /*
@@ -296,18 +297,18 @@ static void free_paragraphs(struct paragraph *paragraph, int count)
  */
 static BOOL paragraph_append(struct paragraph *paragraph, const char *bytes, size_t count)
 {
-	size_t len = strlen(paragraph->text);
 	char *new_text;
 
-	while (len + count + 1 > paragraph->alloc_size) {
+	while (paragraph->len + count + 1 > paragraph->alloc_size) {
 		new_text = realloc(paragraph->text, paragraph->alloc_size * 2);
 		if (new_text == NULL)
 			return FALSE;
 		paragraph->text = new_text;
 		paragraph->alloc_size *= 2;
 	}
-	memcpy(paragraph->text + len, bytes, count);
-	paragraph->text[len+count] = 0;
+	memcpy(paragraph->text + paragraph->len, bytes, count);
+	paragraph->text[paragraph->len+count] = 0;
+	paragraph->len += count;
 	return TRUE;
 }
 
@@ -329,7 +330,10 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 	BOOL paragraph_done;
 	int next_word_len;
 	size_t new_prefix_len;
+	size_t alloc_len = oldlen+1;
 
+	if (alloc_len > 4096)
+		alloc_len = 4096;
 	if(has_crs)
 		*has_crs = FALSE;
 	while(inbuf[inpos]) {
@@ -341,13 +345,14 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 			return NULL;
 		}
 		ret = newret;
-		ret[paragraph].text = (char *)malloc(oldlen+1);
+		ret[paragraph].text = (char *)malloc(alloc_len);
+		ret[paragraph].len = 0;
 		ret[paragraph].prefix.bytes = NULL;
 		if (ret[paragraph].text == NULL) {
 			free_paragraphs(ret, paragraph+1);
 			return NULL;
 		}
-		ret[paragraph].alloc_size = oldlen+1;
+		ret[paragraph].alloc_size = alloc_len;
 		ret[paragraph].text[0] = 0;
 		if (handle_quotes) {
 			ret[paragraph].prefix = parse_prefix(inbuf+inpos);
@@ -562,6 +567,8 @@ char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes)
 	BOOL		has_crs;
 
 	paragraphs = word_unwrap(inbuf, oldlen, handle_quotes, &has_crs);
+	if (paragraphs == NULL)
+		return NULL;
 
 #if 0
 	for(int i=0;paragraphs[i].text;i++)
