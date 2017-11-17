@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.155 2015/07/08 00:56:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.156 2017/10/26 21:42:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -309,8 +309,14 @@ static void ciolib_gettextinfo(struct cterminal *cterm,struct text_info *ti)
 	ti->attribute=BD->attr;
 	ti->normattr=7;
 	ti->currmode=BD->currmode;
-	ti->screenheight=cterm->height;
-	ti->screenwidth=cterm->width;
+	if (cterm->height > 0xff)
+		ti->screenheight = 0xff;
+	else
+		ti->screenheight = cterm->height;
+	if (cterm->width > 0xff)
+		ti->screenwidth = 0xff;
+	else
+		ti->screenwidth = cterm->width;
 	ti->curx=BD->x;
 	ti->cury=BD->y;
 }
@@ -1879,7 +1885,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.155 $";
+	char	*revision="$Revision: 1.156 $";
 	char *in;
 	char	*out;
 	int		i;
