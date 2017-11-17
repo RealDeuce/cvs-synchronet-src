@@ -1,8 +1,7 @@
-/* ini_file.h */
-
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.50 2016/01/19 08:10:30 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.52 2017/08/26 01:37:45 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +57,7 @@ typedef struct {
 	const char* section_separator;
 	const char* value_separator;
 	const char*	bit_separator;
+	const char* literal_separator;
 } ini_style_t;
 
 #if defined(__cplusplus)
@@ -196,6 +196,8 @@ DLLEXPORT void DLLCALL		iniSetDefaultStyle(ini_style_t);
 
 DLLEXPORT char* DLLCALL		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
+DLLEXPORT char* DLLCALL		iniSetStringLiteral(str_list_t*, const char* section, const char* key, const char* value
+					,ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetInteger(str_list_t*, const char* section, const char* key, long value
 					,ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetShortInt(str_list_t*, const char* section, const char* key, ushort value
@@ -245,6 +247,7 @@ DLLEXPORT char* DLLCALL		iniPopKey(str_list_t*, const char* section, const char*
 DLLEXPORT BOOL DLLCALL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveSection(str_list_t*, const char* section);
+DLLEXPORT BOOL DLLCALL		iniRemoveSections(str_list_t*, const char* prefex);
 DLLEXPORT BOOL DLLCALL		iniRenameSection(str_list_t*, const char* section, const char* newname);
 
 /*
