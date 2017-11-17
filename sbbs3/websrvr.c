@@ -1,8 +1,7 @@
-/* websrvr.c */
-
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.633 2016/01/21 09:53:00 deuce Exp $ */
+/* $Id: websrvr.c,v 1.645 2017/06/15 19:12:50 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +91,7 @@ static const char*	error_404="404 Not Found";
 static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
-static const char*	unknown="<unknown>";
+static const char*	unknown=STR_UNKNOWN_USER;
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -911,7 +910,8 @@ static void open_socket(SOCKET sock, void *cbdata)
 	struct accept_filter_arg afa;
 #endif
 
-	startup->socket_open(startup->cbdata,TRUE);
+	if(startup!=NULL && startup->socket_open!=NULL)
+		startup->socket_open(startup->cbdata,TRUE);
 	if (cbdata != NULL && !strcmp(cbdata, "TLS")) {
 		if(set_socket_options(&scfg, sock, "web|http|tls", error, sizeof(error)))
 			lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
@@ -931,7 +931,8 @@ static void open_socket(SOCKET sock, void *cbdata)
 
 static void close_socket_cb(SOCKET sock, void *cbdata)
 {
-	startup->socket_open(startup->cbdata,FALSE);
+	if(startup!=NULL && startup->socket_open!=NULL)
+		startup->socket_open(startup->cbdata,FALSE);
 	sockets--;
 }
 
@@ -1525,7 +1526,7 @@ void http_logon(http_session_t * session, user_t *usr)
 	lprintf(LOG_DEBUG,"%04d HTTP Logon (user #%d)",session->socket,session->user.number);
 
 	if(session->subscan!=NULL)
-		getmsgptrs(&scfg,&session->user,session->subscan);
+		getmsgptrs(&scfg,&session->user,session->subscan,NULL,NULL);
 
 	session->logon_time=time(NULL);
 	if(session->user.number==0)
@@ -1780,18 +1781,18 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 
 	SAFEPRINTF(reason,"%s LOGIN", prot);
 	count=loginFailure(startup->login_attempt_list, addr, prot, user, passwd);
-	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold) {
+	if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold) {
 		hacklog(&scfg, reason, user, passwd, host, addr);
 #ifdef _WIN32
 		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
-	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
+	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
 		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 			,host, inet_addrtop(addr, addrstr, sizeof(addrstr)), user, /* fname: */NULL);
 	if(count>1)
-		mswait(startup->login_attempt_delay);
+		mswait(startup->login_attempt.delay);
 }
 
 static BOOL check_ars(http_session_t * session)
@@ -4492,7 +4493,7 @@ static BOOL exec_fastcgi(http_session_t *session)
 	if (sendsocket(sock, (void *)msg, msglen) != msglen) {
 		free(msg);
 		closesocket(sock);
-		lprintf(LOG_ERR, "%04d Failure to send to FastCGI socket!", session->socket);
+		lprintf(LOG_WARNING, "%04d Failure to send to FastCGI socket!", session->socket);
 		return FALSE;
 	}
 	if (!fastcgi_send_params(sock, session)) {
@@ -4510,7 +4511,7 @@ static BOOL exec_fastcgi(http_session_t *session)
 	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header)) != sizeof(struct fastcgi_header)) {
 		free(msg);
 		closesocket(sock);
-		lprintf(LOG_ERR, "%04d Failure to send stdin to FastCGI socket!", session->socket);
+		lprintf(LOG_WARNING, "%04d Failure to send stdin to FastCGI socket!", session->socket);
 		return FALSE;
 	}
 	free(msg);
@@ -6010,7 +6011,7 @@ void http_output_thread(void *arg)
 	int		i;
 	unsigned mss=OUTBUF_LEN;
 
-	SetThreadName("HTTP Output");
+	SetThreadName("sbbs/httpOutput");
 	thread_up(TRUE /* setuid */);
 
 	obuf=&(session->outbuf);
@@ -6146,7 +6147,7 @@ void http_session_thread(void* arg)
 	char			*uname;
 #endif
 
-	SetThreadName("HTTP Session");
+	SetThreadName("sbbs/httpSess");
 	pthread_mutex_lock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_unlock(&((http_session_t*)arg)->struct_filled);
 	pthread_mutex_destroy(&((http_session_t*)arg)->struct_filled);
@@ -6246,9 +6247,17 @@ void http_session_thread(void* arg)
 		}
 	}
 
+	login_attempt_t attempted;
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
+
 	/* host_ip wasn't defined in http_session_thread */
-	if(trashcan(&scfg,session.host_ip,"ip")) {
-		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
+	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
+		if(banned) {
+			char ban_duration[128];
+			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
+				,session.socket, session.host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
+		} else
+			lprintf(LOG_NOTICE, "%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
 		close_session_socket(&session);
 		sem_wait(&session.output_thread_terminated);
 		sem_destroy(&session.output_thread_terminated);
@@ -6270,11 +6279,11 @@ void http_session_thread(void* arg)
 	session.client.size=sizeof(session.client);
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 
-	if(startup->login_attempt_throttle
+	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
 		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
 			,socket, session.client.protocol, session.host_ip, login_attempts);
-		mswait(login_attempts*startup->login_attempt_throttle);
+		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
 	session.last_user_num=-1;
@@ -6475,7 +6484,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.633 $", "%*s %s", revision);
+	sscanf("$Revision: 1.645 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6504,7 +6513,7 @@ void http_logging_thread(void* arg)
 	if(!base[0])
 		SAFEPRINTF(base,"%slogs/http-",scfg.logs_dir);
 
-	SetThreadName("HTTP Logging");
+	SetThreadName("sbbs/httpLog");
 	filename[0]=0;
 	newfilename[0]=0;
 
@@ -6618,7 +6627,7 @@ void DLLCALL web_server(void* arg)
 
 	startup=(web_startup_t*)arg;
 
-	SetThreadName("Web Server");
+	SetThreadName("sbbs/webServer");
 	web_ver();	/* get CVS revision */
 
     if(startup==NULL) {
@@ -6640,21 +6649,6 @@ void DLLCALL web_server(void* arg)
 		startup->seteuid(TRUE);
 #endif
 
-	/* Setup intelligent defaults */
-	if(startup->port==0)					startup->port=IPPORT_HTTP;
-	if(startup->root_dir[0]==0)				SAFECOPY(startup->root_dir,WEB_DEFAULT_ROOT_DIR);
-	if(startup->error_dir[0]==0)			SAFECOPY(startup->error_dir,WEB_DEFAULT_ERROR_DIR);
-	if(startup->default_auth_list[0]==0)	SAFECOPY(startup->default_auth_list,WEB_DEFAULT_AUTH_LIST);
-	if(startup->cgi_dir[0]==0)				SAFECOPY(startup->cgi_dir,WEB_DEFAULT_CGI_DIR);
-	if(startup->default_cgi_content[0]==0)	SAFECOPY(startup->default_cgi_content,WEB_DEFAULT_CGI_CONTENT);
-	if(startup->max_inactivity==0) 			startup->max_inactivity=WEB_DEFAULT_MAX_INACTIVITY; /* seconds */
-	if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=WEB_DEFAULT_MAX_CGI_INACTIVITY; /* seconds */
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2; /* seconds */
-	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-	if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
-	if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
-
 	ZERO_VAR(js_server_props);
 	SAFEPRINTF2(js_server_props.version,"%s %s",server_name,revision);
 	js_server_props.version_detail=web_ver();
@@ -6670,6 +6664,20 @@ void DLLCALL web_server(void* arg)
 	protected_uint32_init(&thread_count, 0);
 
 	do {
+		/* Setup intelligent defaults */
+		if(startup->port==0)					startup->port=IPPORT_HTTP;
+		if(startup->root_dir[0]==0)				SAFECOPY(startup->root_dir,WEB_DEFAULT_ROOT_DIR);
+		if(startup->error_dir[0]==0)			SAFECOPY(startup->error_dir,WEB_DEFAULT_ERROR_DIR);
+		if(startup->default_auth_list[0]==0)	SAFECOPY(startup->default_auth_list,WEB_DEFAULT_AUTH_LIST);
+		if(startup->cgi_dir[0]==0)				SAFECOPY(startup->cgi_dir,WEB_DEFAULT_CGI_DIR);
+		if(startup->default_cgi_content[0]==0)	SAFECOPY(startup->default_cgi_content,WEB_DEFAULT_CGI_CONTENT);
+		if(startup->max_inactivity==0) 			startup->max_inactivity=WEB_DEFAULT_MAX_INACTIVITY; /* seconds */
+		if(startup->max_cgi_inactivity==0) 		startup->max_cgi_inactivity=WEB_DEFAULT_MAX_CGI_INACTIVITY; /* seconds */
+		if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ; /* seconds */
+		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
+		if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
+		if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
 
 		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
@@ -6813,6 +6821,7 @@ void DLLCALL web_server(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","web");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","web");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%swebsrvr.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,mime_types_ini);
@@ -6832,7 +6841,7 @@ void DLLCALL web_server(void* arg)
 		status("Listening");
 
 		while(!terminated && !terminate_server) {
-
+			YIELD();
 			/* check for re-cycle/shutdown semaphores */
 			if(protected_uint32_value(thread_count) <= (unsigned int)(2 /* web_server() and http_output_thread() */ + (http_logging_thread_running?1:0))) {
 				if(!(startup->options&BBS_OPT_NO_RECYCLE)) {
