@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.39 2016/01/13 00:54:17 deuce Exp $ */
+/* $Id: js_uifc.c,v 1.40 2017/11/17 10:03:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -711,13 +711,15 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 	if(argn<argc && JSVAL_IS_NUMBER(argv[argn]) 
 		&& !JS_ValueToInt32(cx,argv[argn++],&mode))
 		return(JS_FALSE);
-	if(argn<argc && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], title, NULL);
-		argn++;
-		HANDLE_PENDING(cx);
-	}
-	while(argn<argc && JSVAL_IS_OBJECT(argv[argn])) {
-		if((objarg = JSVAL_TO_OBJECT(argv[argn++]))==NULL)
+	for(; argn<argc; argn++) {
+		if(JSVAL_IS_STRING(argv[argn])) {
+			JSVALUE_TO_MSTRING(cx, argv[argn], title, NULL);
+			HANDLE_PENDING(cx);
+			continue;
+		}
+		if(!JSVAL_IS_OBJECT(argv[argn]))
+			continue;
+		if((objarg = JSVAL_TO_OBJECT(argv[argn]))==NULL)
 			return(JS_FALSE);
 		if(JS_IsArrayObject(cx, objarg)) {
 			if(!JS_GetArrayLength(cx, objarg, &numopts))
@@ -747,11 +749,14 @@ js_uifc_list(JSContext *cx, uintN argc, jsval *arglist)
 			}
 		}
 	}
-
-	rc=JS_SUSPENDREQUEST(cx);
-    JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)dptr,(int*)bptr,title,opts)));
+	if(title == NULL || opts == NULL) {
+		JS_SET_RVAL(cx, arglist, JS_FALSE);
+	} else {
+		rc=JS_SUSPENDREQUEST(cx);
+		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(uifc->list(mode,left,top,width,(int*)dptr,(int*)bptr,title,opts)));
+		JS_RESUMEREQUEST(cx, rc);
+	}
 	strListFree(&opts);
-	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
 
