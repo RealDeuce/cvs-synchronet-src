@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.78 2017/11/16 20:50:06 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.79 2017/11/17 10:47:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -804,7 +804,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.78 $", "%*s %s", revision);
+	sscanf("$Revision: 1.79 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -1011,8 +1011,10 @@ int main(int argc, char** argv)  {
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN,0,5,70,&main_dflt,&main_bar
 			,title,mopt);
 
-		if(j == -2)
+		if(j == -2) {
+			SLEEP(100);
 			continue;
+		}
 
 		last_semfile_check = time(NULL);
 
