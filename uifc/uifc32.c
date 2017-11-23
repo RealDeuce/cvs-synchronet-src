@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.231 2017/11/16 20:47:35 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.232 2017/11/23 05:34:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2590,7 +2590,7 @@ void upop(char *str)
 	i=(((width-1)*2)+1)*2;
 	buf[i]=api->chars->popup_right; i+=2;
 	buf[i]=api->chars->popup_bottom_left; i+=2;
-	for(;i<(((width-1)*3)-1)*2;i+=2)
+	for(;i<((width*3)-1)*2;i+=2)
 		buf[i]=api->chars->popup_bottom;
 	buf[i]=api->chars->popup_bottom_right;
 
