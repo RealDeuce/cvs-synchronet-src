@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.23 2017/11/24 22:06:41 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.24 2017/11/24 23:35:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1602,8 +1602,6 @@ int main(int argc, char **argv)
 						for(j=cfg.arcdefs;j>i;j--)
 							memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1]
 								,sizeof(arcdef_t));
-							strcpy(cfg.arcdef[j].name
-								,cfg.arcdef[j-1].name);
 						cfg.arcdefs++;
 						memset(&cfg.arcdef[i],0,sizeof(arcdef_t));
 						strcpy(cfg.arcdef[i].name,str);

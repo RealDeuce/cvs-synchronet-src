@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.263 2017/06/04 00:54:14 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.264 2017/11/24 23:35:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -557,7 +557,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
 	if(up)
 	    thread_count++;
     else if(thread_count>0)
-    	thread_count--;
+		thread_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
@@ -575,7 +575,7 @@ static void socket_open(void* p, BOOL open)
 	pthread_mutex_lock(&mutex);
 	if(open)
 	    socket_count++;
-    else if(socket_count>0)
+	else if(socket_count>0)
     	socket_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
