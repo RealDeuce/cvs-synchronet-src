@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.26 2017/11/14 02:52:17 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.27 2017/11/24 22:08:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,6 +294,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->fuzzy_zone					= iniGetBool(ini, ROOT_SECTION, "FuzzyNetmailZones", cfg->fuzzy_zone);
 	cfg->ignore_netmail_dest_addr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailDestAddr", cfg->ignore_netmail_dest_addr);
 	cfg->ignore_netmail_sent_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailSentAttr", cfg->ignore_netmail_sent_attr);
+	cfg->ignore_netmail_kill_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailKillAttr", cfg->ignore_netmail_kill_attr);
 	cfg->ignore_netmail_recv_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailRecvAttr", cfg->ignore_netmail_recv_attr);
 	cfg->ignore_netmail_local_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailLocalAttr", cfg->ignore_netmail_local_attr);
 	cfg->kill_empty_netmail			= iniGetBool(ini, ROOT_SECTION, "KillEmptyNetmail", cfg->kill_empty_netmail);
@@ -525,6 +526,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailSentAttr"	,cfg->ignore_netmail_sent_attr	,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailKillAttr"	,cfg->ignore_netmail_kill_attr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailRecvAttr"	,cfg->ignore_netmail_recv_attr	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailLocalAttr"	,cfg->ignore_netmail_local_attr	,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "DefaultRecipient"		,cfg->default_recipient			,NULL);
