@@ -1,4 +1,4 @@
-/* $Id: scfgnode.c,v 1.32 2017/10/16 21:23:50 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.33 2017/10/23 03:57:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,7 @@ void node_menu()
 			savnode=1;
 			continue; 
 		}
-		if(msk == MSK_PASTE_OVER) {
+		if(msk == MSK_PASTE) {
 			i&=MSK_OFF;
 			SAFECOPY(cfg.node_dir,cfg.node_path[i]);
 			cfg.node_num=i+1;
