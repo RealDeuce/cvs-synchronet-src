@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.29 2018/03/14 05:55:32 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.28 2017/07/08 04:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -324,18 +324,16 @@ char* SMBCALL smb_netaddrstr(net_t* net, char* fidoaddr_buf)
 }
 
 /****************************************************************************/
-/* Returns net_type for passed e-mail address (e.g. "user@addr")			*/
-/* QWKnet and Internet addresses must have an '@'.							*/
-/* FidoNet addresses may be in form: "user@addr" or just "addr".			*/
+/* Returns net_type for passed e-mail address (i.e. "user@addr")			*/
 /****************************************************************************/
 enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 {
-	const char*	p;
+	char*	p;
 
 	if((p=strchr(str,'@'))==NULL)
-		p = str;
-	else
-		p++;
+		return(NET_NONE);
+
+	p++;
 	SKIP_WHITESPACE(p);
 	if(*p==0)
 		return(NET_UNKNOWN);
