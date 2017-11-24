@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.80 2018/02/01 23:41:16 deuce Exp $ */
+/* $Id: ciolib.h,v 1.73 2017/10/10 22:29:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
-#include "gen_defs.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -68,16 +67,6 @@
         #define CIOLIBEXPORT
         #define CIOLIBEXPORTVAR	extern
 #endif
-
-enum {
-	 CIOLIB_SETFONT_SUCCESS						= 0
-	,CIOLIB_SETFONT_NOT_SUPPORTED				= 1
-	,CIOLIB_SETFONT_NOT_INITIALIZED				= 2
-	,CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED	= 3
-	,CIOLIB_SETFONT_INVALID_FONT				= 4
-	,CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE		= 5
-	,CIOLIB_SETFONT_MALLOC_FAILURE				= 6
-};
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -259,16 +248,13 @@ typedef struct {
 	int		mouse;
 	void	(*clreol)		(void);
 	int		(*puttext)		(int,int,int,int,void *);
-	int		(*pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	int		(*gettext)		(int,int,int,int,void *);
-	int		(*pgettext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*textattr)		(int);
 	int		(*kbhit)		(void);
 	void	(*delay)		(long);
 	int		(*wherex)		(void);
 	int		(*wherey)		(void);
 	int		(*putch)		(int);
-	int		(*cputch)		(uint32_t, uint32_t, int);
 	void	(*gotoxy)		(int,int);
 	void	(*clrscr)		(void);
 	void	(*gettextinfo)	(struct text_info *);
@@ -291,7 +277,6 @@ typedef struct {
 	void	(*insline)		(void);
 	int		(*cprintf)		(const char *,...);
 	int		(*cputs)		(char *);
-	int		(*ccputs)		(uint32_t, uint32_t, const char *);
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
 	int		(*getmouse)		(struct mouse_event *mevent);
@@ -316,8 +301,6 @@ typedef struct {
 	void	(*setscaling)	(int new_value);
 	int		(*getscaling)	(void);
 	int		*ESCDELAY;
-	int		(*setpalette)	(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
-	int		(*attr2palette)	(uint8_t attr, uint32_t *fg, uint32_t *bg);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -351,7 +334,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_cputs(char *str);
-CIOLIBEXPORT int CIOLIBCALL ciolib_ccputs(uint32_t fg_palette, uint32_t bg_palette, const char *str);
 CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(const char *fmat, ...);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textbackground(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
@@ -363,7 +345,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);
-CIOLIBEXPORT int CIOLIBCALL ciolib_cputch(uint32_t, uint32_t, int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcursortype(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode);
 CIOLIBEXPORT void CIOLIBCALL ciolib_window(int sx, int sy, int ex, int ey);
@@ -388,8 +369,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
-CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
-CIOLIBEXPORT int CIOLIBCALL ciolib_attr2palette(uint8_t attr, uint32_t *fg, uint32_t *bg);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -415,7 +394,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define clreol()				ciolib_clreol()
 	#define clrscr()				ciolib_clrscr()
 	#define cputs(a)				ciolib_cputs(a)
-	#define ccputs(a,b,c)				ciolib_ccputs(a,b,c)
 	#define textbackground(a)		ciolib_textbackground(a)
 	#define textcolor(a)			ciolib_textcolor(a)
 	#define highvideo()				ciolib_highvideo()
@@ -426,7 +404,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define textattr(a)				ciolib_textattr(a)
 	#define delay(a)				ciolib_delay(a)
 	#define putch(a)				ciolib_putch(a)
-	#define cputch(a,b,c)				ciolib_cputch(a,b,c)
 	#define _setcursortype(a)		ciolib_setcursortype(a)
 	#define textmode(a)				ciolib_textmode(a)
 	#define window(a,b,c,d)			ciolib_window(a,b,c,d)
@@ -453,8 +430,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define getvideoflags()			ciolib_getvideoflags()
 	#define setscaling(a)			ciolib_setscaling(a)
 	#define getscaling()			ciolib_getscaling()
-	#define setpalette(e,r,g,b)		ciolib_setpalette(e,r,g,b)
-	#define attr2palette(a,b,c)		ciolib_attr2palette(a,b,c)
 #endif
 
 #ifdef WITH_SDL
@@ -529,7 +504,7 @@ CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
 CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
 CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void ciolib_mouse_thread(void *data);
+CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
