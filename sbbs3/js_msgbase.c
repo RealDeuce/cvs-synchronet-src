@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.210 2017/11/22 02:44:15 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.211 2017/11/24 21:53:39 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2304,7 +2304,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 						break;
 
 					rc=JS_SUSPENDREQUEST(cx);
-					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK))!=SMB_SUCCESS) {
+					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, smb_storage_mode(scfg, &(p->smb))))!=SMB_SUCCESS) {
 						JS_RESUMEREQUEST(cx, rc);
 						break;
 					}
