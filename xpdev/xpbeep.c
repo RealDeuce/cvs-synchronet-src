@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.97 2018/03/09 05:50:12 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.94 2015/04/28 02:06:53 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -12,7 +12,6 @@
 	#include <mmsystem.h>
 #elif defined(__unix__)
 	#include <fcntl.h>
-	#include <sys/ioctl.h>
 	#if SOUNDCARD_H_IN==1
 		#include <sys/soundcard.h>
 	#elif SOUNDCARD_H_IN==2
@@ -572,10 +571,7 @@ void DLLCALL xptone_complete(void)
 		while(pa_api->active(portaudio_stream))
 			SLEEP(1);
 		pa_api->stop(portaudio_stream);
-		if (pawave) {
-			free((void *)pawave);
-			pawave = NULL;
-		}
+		FREE_AND_NULL(pawave);
 	}
 #endif
 
@@ -826,10 +822,6 @@ error_return:
 	sample_thread_running=FALSE;
 }
 
-/*
- * This MUST not return false after sample goes into the sample buffer in the background.
- * If it does, the caller won't be able to free() it.
- */
 BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t size, BOOL background)
 {
 	if(!sample_initialized) {
@@ -989,7 +981,6 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 {
 	unsigned char	*wave;
 	int samples;
-	BOOL ret;
 
 	wave=(unsigned char *)malloc(S_RATE*15/2+1);
 	if(!wave)
@@ -1009,17 +1000,13 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 			;
 		sample_len++;
 		while(samples > S_RATE*15/2) {
-			if(!xp_play_sample(wave, sample_len, TRUE)) {
-				free(wave);
+			if(!xp_play_sample(wave, sample_len, TRUE))
 				return FALSE;
-			}
 			samples -= sample_len;
 		}
 	}
 	makewave(freq,wave,samples,shape);
-	ret = xp_play_sample(wave, samples, FALSE);
-	free(wave);
-	return ret;
+	return(xp_play_sample(wave, samples, FALSE));
 }
 
 #ifdef __unix__
