@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.157 2018/01/07 23:08:43 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.156 2017/08/09 20:18:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,22 +212,22 @@ enum {
 	/* READ ONLY */
 	,"message recipient name"
 	,"message recipient extension"
-	,"message recipient network address"
+	,"message recipient network type"
 	,"message recipient agent type"
 	,"message sender name"
 	,"message sender extension"
-	,"message sender network address"
+	,"message sender network type"
 	,"message sender agent type"
 	,"message reply-to name"
 	,"message reply-to extension"
-	,"message reply-to network address"
+	,"message reply-to network type"
 	,"message reply-to agent type"
 	,"message subject"
 	,"message date/time"
 	,"message time zone"
 	,"message date/time imported"
 	,"message attributes"
-	,"message auxiliary attributes"
+	,"message auxillary attributes"
 	,"message network attributes"
 	,"message header offset"
 	,"message number (unique, monotonically incrementing)"
