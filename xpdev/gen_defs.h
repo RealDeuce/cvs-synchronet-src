@@ -1,8 +1,7 @@
-/* gen_defs.h */
-
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.69 2015/12/04 09:23:17 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.72 2017/08/26 01:29:02 rswindell Exp $ */
+// vi: tabstop=4
 																			
 /****************************************************************************
  * @format.tab-size 4           (Plain Text/Source Code File Header)        *
@@ -106,32 +105,39 @@
 
 #ifndef CTRL_A
 enum {
-         CTRL_A=1
-        ,CTRL_B
-        ,CTRL_C
-        ,CTRL_D 
-        ,CTRL_E
-        ,CTRL_F
-        ,CTRL_G
-        ,CTRL_H
-        ,CTRL_I
-        ,CTRL_J
-        ,CTRL_K
-        ,CTRL_L
-        ,CTRL_M
-        ,CTRL_N
-        ,CTRL_O
-        ,CTRL_P
-        ,CTRL_Q
-        ,CTRL_R
-        ,CTRL_S
-        ,CTRL_T
-        ,CTRL_U
-        ,CTRL_V
-        ,CTRL_W
-        ,CTRL_X
-        ,CTRL_Y
-        ,CTRL_Z
+	 CTRL_AT						// NUL
+	,CTRL_A							// SOH
+	,CTRL_B							// STX
+	,CTRL_C							// ETX
+	,CTRL_D							// EOT
+	,CTRL_E							// ENQ
+	,CTRL_F							// ACK
+	,CTRL_G							// BEL
+	,CTRL_H							// BS
+	,CTRL_I							// HT
+	,CTRL_J							// LF
+	,CTRL_K							// VT
+	,CTRL_L							// FF
+	,CTRL_M							// CR
+	,CTRL_N							// SO
+	,CTRL_O							// SI
+	,CTRL_P							// DLE
+	,CTRL_Q							// DC1
+	,CTRL_R							// DC2
+	,CTRL_S							// DC3
+	,CTRL_T							// DC4
+	,CTRL_U							// NAK
+	,CTRL_V							// SYN
+	,CTRL_W							// ETB
+	,CTRL_X							// CAN
+	,CTRL_Y							// EM
+	,CTRL_Z							// SUB
+	,CTRL_OPEN_BRACKET				// ESC
+	,CTRL_BACKSLASH					// FS
+	,CTRL_CLOSE_BRACKET				// GS
+	,CTRL_CARET						// RS
+	,CTRL_UNDERSCORE				// US
+	,CTRL_QUESTION_MARK	= 0x7f		// DEL
 };
 #endif
 
@@ -388,20 +394,27 @@ typedef struct {
 #define REPLACE_CHARS(str,c1,c2,p)      for((p)=(str);*(p);(p)++) if(*(p)==(c1)) *(p)=(c2);
 
 /* ASCIIZ char* parsing helper macros */
-#define SKIP_WHITESPACE(p)              while(*(p) && isspace((unsigned char)*(p)))                     (p)++;
+#define SKIP_WHITESPACE(p)              while(*(p) && isspace((unsigned char)*(p)))             (p)++;
 #define FIND_WHITESPACE(p)              while(*(p) && !isspace((unsigned char)*(p)))            (p)++;
-#define SKIP_CHAR(p,c)                  while(*(p)==c)                                                                          (p)++;
-#define FIND_CHAR(p,c)                  while(*(p) && *(p)!=c)                                                          (p)++;
-#define SKIP_CHARSET(p,s)               while(*(p) && strchr(s,*(p))!=NULL)                                     (p)++;
-#define FIND_CHARSET(p,s)               while(*(p) && strchr(s,*(p))==NULL)                                     (p)++;
-#define SKIP_ALPHA(p)                   while(*(p) && isalpha((unsigned char)*(p)))                     (p)++;
+#define SKIP_CHAR(p,c)                  while(*(p)==c)                                          (p)++;
+#define FIND_CHAR(p,c)                  while(*(p) && *(p)!=c)                                  (p)++;
+#define SKIP_CHARSET(p,s)               while(*(p) && strchr(s,*(p))!=NULL)                     (p)++;
+#define FIND_CHARSET(p,s)               while(*(p) && strchr(s,*(p))==NULL)                     (p)++;
+#define SKIP_ALPHA(p)                   while(*(p) && isalpha((unsigned char)*(p)))             (p)++;
 #define FIND_ALPHA(p)                   while(*(p) && !isalpha((unsigned char)*(p)))            (p)++;
-#define SKIP_ALPHANUMERIC(p)            while(*(p) && isalnum((unsigned char)*(p)))                     (p)++;
+#define SKIP_ALPHANUMERIC(p)            while(*(p) && isalnum((unsigned char)*(p)))             (p)++;
 #define FIND_ALPHANUMERIC(p)            while(*(p) && !isalnum((unsigned char)*(p)))            (p)++;
-#define SKIP_DIGIT(p)                   while(*(p) && isdigit((unsigned char)*(p)))                     (p)++;
+#define SKIP_DIGIT(p)                   while(*(p) && isdigit((unsigned char)*(p)))             (p)++;
 #define FIND_DIGIT(p)                   while(*(p) && !isdigit((unsigned char)*(p)))            (p)++;
 #define SKIP_HEXDIGIT(p)                while(*(p) && isxdigit((unsigned char)*(p)))            (p)++;
 #define FIND_HEXDIGIT(p)                while(*(p) && !isxdigit((unsigned char)*(p)))           (p)++;
+
+#define HEX_CHAR_TO_INT(ch) 			(((ch)&0xf)+(((ch)>>6)&1)*9)
+#define DEC_CHAR_TO_INT(ch)				((ch)&0xf)
+#define OCT_CHAR_TO_INT(ch)				((ch)&0x7)
+#ifndef isodigit
+#define isodigit(ch)					((ch) >= '0' && (ch) <= '7')
+#endif
 
 /* Variable/buffer initialization (with zeros) */
 #define ZERO_VAR(var)                           memset(&(var),0,sizeof(var))

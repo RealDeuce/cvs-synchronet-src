@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.62 2015/12/16 08:13:58 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.64 2017/11/13 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,8 +71,10 @@ bool sbbs_t::logon()
 
 	if(useron.rest&FLAG('Q'))
 		qwklogon=1;
-	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP))
+	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
+		hangup();
 		return(false);
+	}
 
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
@@ -103,6 +105,7 @@ bool sbbs_t::logon()
 		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
 		logline(LOG_NOTICE,"+!",str);
+		hangup();
 		return(false); 
 	}
 
@@ -114,6 +117,7 @@ bool sbbs_t::logon()
 			sprintf(str,"(%04u)  %-25s  Locked node logon attempt"
 				,useron.number,useron.alias);
 			logline(LOG_NOTICE,"+!",str);
+			hangup();
 			return(false); 
 		}
 		if(yesno(text[RemoveNodeLockQ])) {
@@ -438,7 +442,7 @@ bool sbbs_t::logon()
 		return(true);
 
 	sys_status|=SS_PAUSEON;	/* always force pause on during this section */
-	mailw=getmail(&cfg,useron.number,0);
+	mailw=getmail(&cfg,useron.number,/* Sent: */FALSE, /* SPAM: */FALSE);
 
 	if(!(cfg.sys_misc&SM_NOSYSINFO)) {
 		bprintf(text[SiSysName],cfg.sys_name);
