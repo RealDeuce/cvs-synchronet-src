@@ -2,13 +2,13 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.24 2014/02/09 13:37:21 deuce Exp $ */
+/* $Id: str_list.h,v 1.26 2017/06/09 02:02:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -60,18 +60,23 @@ DLLEXPORT void DLLCALL		strListFree(str_list_t*);
 /* Frees the strings in the list */
 DLLEXPORT void DLLCALL		strListFreeStrings(str_list_t);
 
+/* Adds a string to the end of a string list (see strListPush) */
 /* Pass a pointer to a string list, the string to add (append) */
+/* The string to add is duplicated (using strdup) and the duplicate is added to the list */
+/* If you already know the index of the last string, pass it, otherwise pass STR_LIST_LAST_INDEX */
 /* Returns the updated list or NULL on error */
 DLLEXPORT char* DLLCALL		strListAppend(str_list_t*, const char* str, size_t index);
 
 /* Append a string list onto another string list */
-DLLEXPORT size_t DLLCALL		strListAppendList(str_list_t*, const str_list_t append_list);
+DLLEXPORT size_t DLLCALL	strListAppendList(str_list_t*, const str_list_t append_list);
 
 /* Inserts a string into the list at a specific index */
+/* Pass a pointer to a string list, the string to add (insert) */
+/* The string to add is duplicated (using strdup) and the duplicate is added to the list */
 DLLEXPORT char* DLLCALL		strListInsert(str_list_t*, const char* str, size_t index);
 
 /* Insert a string list into another string list */
-DLLEXPORT size_t DLLCALL		strListInsertList(str_list_t*, const str_list_t append_list, size_t index);
+DLLEXPORT size_t DLLCALL	strListInsertList(str_list_t*, const str_list_t append_list, size_t index);
 
 /* Remove a string at a specific index */
 DLLEXPORT char* DLLCALL		strListRemove(str_list_t*, size_t index);
@@ -105,10 +110,12 @@ DLLEXPORT size_t DLLCALL		strListMerge(str_list_t*, str_list_t append_list);
 DLLEXPORT char* DLLCALL		strListCombine(str_list_t, char* buf, size_t maxlen, const char* delimit);
 
 /* Count the number of strings in the list and returns the count */
-DLLEXPORT size_t DLLCALL		strListCount(const str_list_t);
+DLLEXPORT size_t DLLCALL	strListCount(const str_list_t);
 
 /* Returns the index of the specified str (by ptr compare) or -1 if not found */
-DLLEXPORT int DLLCALL			strListIndexOf(const str_list_t, const char* str);
+DLLEXPORT int DLLCALL		strListIndexOf(const str_list_t, const char* str);
+/* Returns the index of the specified str (by string compare) or -1 if not found */
+DLLEXPORT int DLLCALL		strListFind(const str_list_t, const char* str, BOOL case_sensitive);
 
 /* Sort the strings in the string list */
 DLLEXPORT void DLLCALL		strListSortAlpha(str_list_t);
@@ -123,7 +130,7 @@ DLLEXPORT void DLLCALL		strListSortAlphaCaseReverse(str_list_t);
 DLLEXPORT char* DLLCALL		strListCreateBlock(str_list_t);
 DLLEXPORT char* DLLCALL		strListCopyBlock(char* block);
 DLLEXPORT char* DLLCALL		strListAppendBlock(char* block, str_list_t);
-DLLEXPORT size_t DLLCALL		strListBlockLength(char* block);
+DLLEXPORT size_t DLLCALL	strListBlockLength(char* block);
 DLLEXPORT void DLLCALL		strListFreeBlock(char*);
 
 /* Duplicates a list */
@@ -132,11 +139,17 @@ DLLEXPORT str_list_t DLLCALL	strListDup(str_list_t list);
 /* Compares two lists */
 DLLEXPORT int DLLCALL			strListCmp(str_list_t list1, str_list_t list2);
 
+/* Modifies strings in list (returns count of items in list) */
+DLLEXPORT int DLLCALL			strListTruncateTrailingWhitespaces(str_list_t);
+DLLEXPORT int DLLCALL			strListTruncateTrailingLineEndings(str_list_t);
+/* Truncate strings in list at first occurrence of any char in 'set' */
+DLLEXPORT int DLLCALL			strListTruncateStrings(str_list_t, const char* set);
+
 /************/
 /* File I/O */
 /************/
 
-/* Read lines from file appending each line to string list */
+/* Read lines from file appending each line (with '\n' char) to string list */
 /* Pass NULL list to have list allocated for you */
 DLLEXPORT str_list_t DLLCALL	strListReadFile(FILE*, str_list_t*, size_t max_line_len);
 DLLEXPORT size_t DLLCALL		strListInsertFile(FILE*, str_list_t*, size_t index, size_t max_line_len);

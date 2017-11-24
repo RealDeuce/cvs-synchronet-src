@@ -1,14 +1,13 @@
-/* node.c */
-
 /* Synchronet BBS Node control program */
+// vi: tabstop=4
 
-/* $Id: node.c,v 1.28 2015/08/22 06:33:25 deuce Exp $ */
+/* $Id: node.c,v 1.30 2017/11/15 07:12:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -260,7 +259,10 @@ void printnodedat(int number, node_t node)
 			printf("Networking");
 			break;
 		case NODE_LOGON:
-			printf("At logon prompt");
+			printf("At login prompt");
+			break;
+		case NODE_LOGOUT:
+			printf("Logging out");
 			break;
 		case NODE_EVENT_WAITING:
 			printf("Waiting for all nodes to become inactive");
@@ -441,7 +443,7 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.28 $", "%*s %s", revision);
+	sscanf("$Revision: 1.30 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
@@ -531,28 +533,28 @@ int main(int argc, char **argv)
 				onoff=2;
 			else if(!strnicmp(argv[i],"STATUS=",7)) {
 				mode=MODE_STATUS;
-				value=atoi(argv[i]+7); }
+				value=strtoul(argv[i]+7, NULL, 0); }
 			else if(!strnicmp(argv[i],"ERRORS=",7)) {
 				mode=MODE_ERRORS;
-				value=atoi(argv[i]+7); }
+				value=strtoul(argv[i]+7, NULL, 0); }
 			else if(!strnicmp(argv[i],"USERON=",7)) {
 				mode=MODE_USERON;
-				value=atoi(argv[i]+7); }
+				value=strtoul(argv[i]+7, NULL, 0); }
 			else if(!strnicmp(argv[i],"ACTION=",7)) {
 				mode=MODE_ACTION;
-				value=atoi(argv[i]+7); }
+				value=strtoul(argv[i]+7, NULL, 0); }
 			else if(!strnicmp(argv[i],"CONN=",5)) {
 				mode=MODE_CONN;
-				value=atoi(argv[i]+5); }
+				value=strtoul(argv[i]+5, NULL, 0); }
 			else if(!strnicmp(argv[i],"MISC=",5)) {
 				mode=MODE_MISC;
-				value=atoi(argv[i]+5); }
+				value=strtoul(argv[i]+5, NULL, 0); }
 			else if(!strnicmp(argv[i],"AUX=",4)) {
 				mode=MODE_AUX;
-				value=atoi(argv[i]+4); }
+				value=strtoul(argv[i]+4, NULL, 0); }
 			else if(!strnicmp(argv[i],"EXTAUX=",7)) {
 				mode=MODE_EXTAUX;
-				value=atoi(argv[i]+7); }
+				value=strtoul(argv[i]+7, NULL, 0); }
 			}
 		if(mode!=MODE_LIST)
 			modify=1;
@@ -601,16 +603,16 @@ int main(int argc, char **argv)
 								node.action=(uchar)value;
 								break;
 							case MODE_USERON:
-								node.useron=(uchar)value;
+								node.useron=(uint16_t)value;
 								break;
 							case MODE_MISC:
-								node.misc=(uchar)value;
+								node.misc=(uint16_t)value;
 								break;
 							case MODE_CONN:
-								node.connection=(uchar)value;
+								node.connection=(uint16_t)value;
 								break;
 							case MODE_AUX:
-								node.aux=(uchar)value;
+								node.aux=(uint16_t)value;
 								break;
 							case MODE_EXTAUX:
 								node.extaux=value;
