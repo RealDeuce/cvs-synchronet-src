@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.266 2018/03/16 18:32:09 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.264 2017/11/24 23:35:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,7 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#if defined USE_LINUX_CAPS && !defined _GNU_SOURCE
+#ifdef USE_LINUX_CAPS
 #define _GNU_SOURCE
 #endif
 
@@ -1885,11 +1885,10 @@ int main(int argc, char** argv)
         }
 	}
 
-	if(!isatty(fileno(stdin))) {  			/* redirected */
-		while(1) {
-			select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
-			lputs(LOG_WARNING,"select(NULL) returned!");
-		}
+    if(!isatty(fileno(stdin)))  			/* redirected */
+	   	while(1) {
+	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+		lputs(LOG_WARNING,"select(NULL) returned!");
 	}
 	else 								/* interactive */
 #endif
