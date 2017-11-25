@@ -2,13 +2,13 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.77 2013/09/15 07:32:48 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.81 2017/11/24 23:35:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -198,7 +198,7 @@ const char *hungupstr="\1n\1h%s\1n hung up on \1h%s\1n %s\r\n";
 /****************************************************************************/
 /* Convert C string to pascal string										*/
 /****************************************************************************/
-void str2pas(char *instr, char *outstr)
+void str2pas(const char *instr, char *outstr)
 {
 	int i;
 
@@ -294,7 +294,7 @@ static void lfexpand(char *str, ulong misc)
 /****************************************************************************/
 /* Creates various types of xtrn (Doors, Chains, etc.) data (drop) files.	*/
 /****************************************************************************/
-void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
+void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tleft
 					,ulong misc)
 {
 	char	str[1024],tmp2[128],c,*p;
@@ -430,7 +430,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%d\n%s\n%lu\n%s\n%s\n%s\n%s\n"
-			"%"PRIx32"\n%d\n"
+			"%" PRIx32 "\n%d\n"
 			,ltoaf(useron.flags3,tmp)			/* Flag set #3 */
 			,ltoaf(useron.flags4,tmp2)			/* Flag set #4 */
 			,0									/* Time-slice type */
@@ -585,12 +585,12 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 
 		sprintf(str,"%lu\n%c\n%s\n%u\n%s\n%u\n%c\n%u\n%u\n"
 			,rows								/* 21: User screen length */
-			,useron.misc&EXPERT ? 'Y':'N'       /* 22: Expert? (Y/N) */
+			,(useron.misc&EXPERT) ? 'Y':'N'     /* 22: Expert? (Y/N) */
 			,ltoaf(useron.flags1,tmp2)			/* 23: Registered conferences */
 			,0									/* 24: Conference came from */
 			,unixtodstr(&cfg,useron.expire,tmp)	/* 25: User expiration date */
 			,useron.number						/* 26: User number */
-			,'Y'                                /* 27: Default protocol */
+			,useron.prot                        /* 27: Default protocol */
 			,useron.uls 						/* 28: User total uploads */
 			,useron.dls);						/* 29: User total downloads */
 		lfexpand(str,misc);
@@ -616,7 +616,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			,(useron.misc&(NO_EXASCII|ANSI|COLOR))==ANSI
 				? 'Y':'N'                       /* 39: ANSI supported but NG mode */
 			,'Y'                                /* 40: Use record locking */
-			,14 								/* 41: BBS default color */
+			,cfg.color[clr_external]			/* 41: BBS default color */
 			,useron.min 						/* 42: Time credits in minutes */
 			,tm.tm_mon+1						/* 43: File new-scan date */
 			,tm.tm_mday
@@ -1161,7 +1161,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 		if((p=strchr(tmp,' '))!=NULL)
 			*p=0;
 
-		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%"PRId32"\n"
+		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%" PRId32 "\n"
 			,useron.number						/* User number */
 			,name								/* User name */
 			,useron.pass						/* Password */
@@ -1180,7 +1180,7 @@ void sbbs_t::xtrndat(char *name, char *dropdir, uchar type, ulong tleft
 			l=((((long)tm.tm_hour*60L)+(long)tm.tm_min)*60L)
 				+(long)tm.tm_sec;
 
-		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%"PRId32"\n%lu\n%s\n"
+		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%" PRId32 "\n%lu\n%s\n"
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
@@ -1704,14 +1704,11 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%sINTRSBBS.DAT"
 			,cfg.xtrn[xtrnnum]->path[0] ? cfg.xtrn[xtrnnum]->path : cfg.node_dir);
-	if(fexistcase(str))
-		remove(str);
+	removecase(str);
 	sprintf(str,"%shangup.now",cfg.node_dir);
-	if(fexistcase(str))
-		remove(str);
+	removecase(str);
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
-	if(fexistcase(str))
-		remove(str);
+	removecase(str);
 
 	mode=0; 	
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_SH)
@@ -1722,8 +1719,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		mode|=EX_CONIO;
 	mode|=(cfg.xtrn[xtrnnum]->misc&(XTRN_CHKTIME|XTRN_NATIVE|XTRN_NOECHO|WWIVCOLOR));
 	if(cfg.xtrn[xtrnnum]->misc&MODUSERDAT) {		/* Delete MODUSER.DAT */
-		sprintf(str,"%sMODUSER.DAT",dropdir);       /* if for some weird  */
-		remove(str); 								/* reason it's there  */
+		SAFEPRINTF(str,"%sMODUSER.DAT",dropdir);	/* if for some weird  */
+		removecase(str);							/* reason it's there  */
 	}
 
 	start=time(NULL);
@@ -1753,7 +1750,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(fexistcase(str)) {
 		lprintf(LOG_NOTICE,"Node %d External program requested hangup (%s signaled)"
 			,cfg.node_num, str);
-		remove(str);
+		removecase(str);
 		hangup(); 
 	}
 	else if(!online) {
