@@ -1,8 +1,7 @@
-/* dirwrap.h */
-
 /* Directory system-call wrappers */
+// vi: tabstop=4
 
-/* $Id: dirwrap.h,v 1.46 2014/02/09 23:48:59 deuce Exp $ */
+/* $Id: dirwrap.h,v 1.48 2017/11/16 07:16:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,6 +219,7 @@ DLLEXPORT BOOL		DLLCALL fexist(const char *filespec);
 DLLEXPORT BOOL		DLLCALL fexistcase(char *filespec);	/* fixes upr/lwr case fname */
 DLLEXPORT off_t		DLLCALL flength(const char *filename);
 DLLEXPORT time_t	DLLCALL fdate(const char *filename);
+DLLEXPORT time_t	DLLCALL fcdate(const char* filename);
 DLLEXPORT int		DLLCALL setfdate(const char* filename, time_t t);
 DLLEXPORT BOOL		DLLCALL	isdir(const char *filename);
 DLLEXPORT BOOL		DLLCALL	isabspath(const char *filename);
@@ -227,6 +227,7 @@ DLLEXPORT BOOL		DLLCALL isfullpath(const char* filename);
 DLLEXPORT char*		DLLCALL getfname(const char* path);
 DLLEXPORT char*		DLLCALL getfext(const char* path);
 DLLEXPORT int		DLLCALL getfattr(const char* filename);
+DLLEXPORT ulong		DLLCALL getfilecount(const char *inpath, const char* spec);
 DLLEXPORT long		DLLCALL	getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only);
 DLLEXPORT ulong		DLLCALL getdisksize(const char* path, ulong unit);
 DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path, ulong unit);

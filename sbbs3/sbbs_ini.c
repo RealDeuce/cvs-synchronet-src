@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.157 2017/07/20 22:13:04 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.160 2017/11/15 10:39:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -215,7 +215,7 @@ static void get_ini_globals(str_list_t list, global_startup_t* global)
 	const char* section = "Global";
 	char		value[INI_MAX_VALUE_LEN];
 	char*		p;
-	struct in6_addr	wildcard6 = {0};
+	struct in6_addr	wildcard6 = {{{0}}};
 
 	p=iniGetString(list,section,strCtrlDirectory,nulstr,value);
 	if(*p) {
@@ -278,7 +278,7 @@ void sbbs_read_ini(
 	char		value[INI_MAX_VALUE_LEN];
 	str_list_t	list;
 	global_startup_t global_buf;
-	struct in6_addr	wildcard6 = {0};
+	struct in6_addr	wildcard6 = {{{0}}};
 	char		*global_interfaces;
 
 	if(global==NULL) {
@@ -335,6 +335,8 @@ void sbbs_read_ini(
 
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
+		bbs->ssh_connect_timeout
+			=iniGetShortInt(list,section,"SSHConnectTimeout",10);
 		iniFreeStringList(bbs->ssh_interfaces);
 		bbs->ssh_interfaces
 			=iniGetStringList(list,section,"SSHInterface",",",global_interfaces);
@@ -562,6 +564,11 @@ void sbbs_read_ini(
 		SAFECOPY(mail->outbound_sound
 			,iniGetString(list,section,"OutboundSound",nulstr,value));
 
+		SAFECOPY(mail->newmail_notice
+			,iniGetString(list,section,"NewMailNotice","%.0s\1n\1mNew e-mail from \1h%s \1n<\1h%s\1n>\r\n", value));
+		SAFECOPY(mail->forward_notice
+			,iniGetString(list,section,"ForwardNotice","\1n\1mand it was automatically forwarded to: \1h%s\1n\r\n", value));
+	
 		/* JavaScript Operating Parameters */
 		sbbs_get_js_settings(list, section, &mail->js, &global->js);
 
@@ -794,6 +801,8 @@ BOOL sbbs_write_ini(
 		else if(!iniSetStringList(lp,section,"SSHInterface", ",", bbs->ssh_interfaces,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"SSHPort",bbs->ssh_port,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"SSHConnectTimeout",bbs->ssh_connect_timeout,&style))
 			break;
 
 		if(!iniSetShortInt(lp,section,"FirstNode",bbs->first_node,&style))
@@ -1051,7 +1060,12 @@ BOOL sbbs_write_ini(
 			break;
 		if(!iniSetString(lp,section,"OutboundSound",mail->outbound_sound,&style))
 			break;
-
+#if 0
+		if(!iniSetStringLiteral(lp,section,"NewMailNotice",mail->newmail_notice,&style))
+			break;
+		if(!iniSetStringLiteral(lp,section,"ForwardNotice",mail->forward_notice,&style))
+			break;
+#endif
 		/* JavaScript Operating Parameters */
 		if(!sbbs_set_js_settings(lp,section,&mail->js,&global->js,&style))
 			break;
