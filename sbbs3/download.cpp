@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.48 2017/11/26 05:32:14 rswindell Exp $ */
+/* $Id: download.cpp,v 1.49 2017/11/26 06:30:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -487,7 +487,7 @@ bool sbbs_t::sendfile(char* fname, char prot, const char* desc)
 		ultoac(length, bytes);
 		bprintf(text[FileNBytesSent], getfname(fname), bytes);
 		char str[128];
-		SAFEPRINTF3(str, "%s downloaded %s: %s (%s bytes)"
+		SAFEPRINTF4(str, "%s downloaded %s: %s (%s bytes)"
 			,useron.alias, desc == NULL ? "file" : desc, fname, bytes);
 		logline("D-",str); 
 		autohangup(); 
