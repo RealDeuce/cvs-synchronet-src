@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.46 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: download.cpp,v 1.48 2017/11/26 05:32:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -450,14 +450,14 @@ void sbbs_t::seqwait(uint devnum)
 
 }
 
-bool sbbs_t::sendfile(char* fname, char prot)
+bool sbbs_t::sendfile(char* fname, char prot, const char* desc)
 {
 	char	keys[128];
 	char	ch;
 	size_t	i;
 	bool	result=false;
 
-	if(prot)
+	if(prot > ' ')
 		ch=toupper(prot);
 	else {
 		xfer_prot_menu(XFER_DOWNLOAD);
@@ -478,6 +478,18 @@ bool sbbs_t::sendfile(char* fname, char prot)
 	if(i<cfg.total_prots) {
 		if(protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false)==0)
 			result=true;
+		off_t length = flength(fname);
+		logon_dlb += length;	/* Update stats */
+		logon_dls++;
+		useron.dls = (ushort)adjustuserrec(&cfg, useron.number, U_DLS, 5, 1);
+		useron.dlb = adjustuserrec(&cfg,useron.number, U_DLB, 10, length);
+		char bytes[32];
+		ultoac(length, bytes);
+		bprintf(text[FileNBytesSent], getfname(fname), bytes);
+		char str[128];
+		SAFEPRINTF3(str, "%s downloaded %s: %s (%s bytes)"
+			,useron.alias, desc == NULL ? "file" : desc, fname, bytes);
+		logline("D-",str); 
 		autohangup(); 
 	}
 
