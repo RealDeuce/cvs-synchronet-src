@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.46 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: download.cpp,v 1.47 2017/11/26 05:12:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -457,7 +457,7 @@ bool sbbs_t::sendfile(char* fname, char prot)
 	size_t	i;
 	bool	result=false;
 
-	if(prot)
+	if(prot > ' ')
 		ch=toupper(prot);
 	else {
 		xfer_prot_menu(XFER_DOWNLOAD);
