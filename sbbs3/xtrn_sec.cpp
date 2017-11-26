@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.82 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.81 2017/11/24 23:35:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,8 @@ int sbbs_t::xtrn_sec()
 			return(1); 
 		}
 		if(usrxsecs>1) {
-			if(menu_exists("xtrn_sec")) {
+			sprintf(str,"%smenu/xtrn_sec.*",cfg.text_dir);
+			if(fexist(str)) {
 				menu("xtrn_sec");
 				xsec=getnum(usrxsecs);
 				if(xsec<=0)
@@ -124,8 +125,9 @@ int sbbs_t::xtrn_sec()
 				pause();
 				break; 
 			}
-			sprintf(str,"xtrn%u",xsec+1);
-			if(menu_exists(str)) {
+			sprintf(str,"%smenu/xtrn%u.*",cfg.text_dir,xsec+1);
+			if(fexist(str)) {
+				sprintf(str,"xtrn%u",xsec+1);
 				menu(str); 
 			}
 			else {
@@ -171,8 +173,9 @@ int sbbs_t::xtrn_sec()
 			if((l=getnum(usrxtrns))<1)
 				break;
 			l--;
-			sprintf(str,"xtrn/%s",cfg.xtrn[usrxtrn[l]]->code);
-			if(menu_exists(str)) {
+			sprintf(str,"%smenu/xtrn/%s.*",cfg.text_dir,cfg.xtrn[usrxtrn[l]]->code);
+			if(fexist(str)) {
+				sprintf(str,"xtrn/%s",cfg.xtrn[usrxtrn[l]]->code);
 				menu(str);
 				lncntr=0;
 			}
