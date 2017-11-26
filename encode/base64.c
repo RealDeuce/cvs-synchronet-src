@@ -2,13 +2,13 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.25 2017/11/26 00:58:51 rswindell Exp $ */
+/* $Id: base64.c,v 1.21 2004/09/17 07:56:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "base64.h"
-#include "gen_defs.h"
 
 static const char * base64alphabet = 
  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
@@ -60,8 +59,6 @@ int b64_decode(char *target, size_t tlen, const char *source, size_t slen)
 	outend=target+tlen;
 	inend=source+slen;
 	for(;outp<outend && inp<inend;inp++) {
-		if(isspace(*inp))
-			continue;
 		working<<=6;
 		i=strchr(base64alphabet,(char)*inp);
 		if(i==NULL) {
@@ -127,28 +124,32 @@ int b64_encode(char *target, size_t tlen, const char *source, size_t slen)  {
 		enc=*(inp++);
 		buf=(enc & 0x03)<<4;
 		enc=(enc&0xFC)>>2;
-		if(add_char(outp++, enc, done, outend)) {
-			FREE_AND_NULL(tmpbuf);
+		if(add_char(outp++, enc, done, outend))  {
+			if(target==source)
+				free(tmpbuf);
 			return(-1);
 		}
 		enc=buf|((*inp & 0xF0) >> 4);
-		if(add_char(outp++, enc, done, outend)) {
-			FREE_AND_NULL(tmpbuf);
+		if(add_char(outp++, enc, done, outend))  {
+			if(target==source)
+				free(tmpbuf);
 			return(-1);
 		}
 		if(inp==inend)
 			done=1;
 		buf=(*(inp++)<<2)&0x3C;
 		enc=buf|((*inp & 0xC0)>>6);
-		if(add_char(outp++, enc, done, outend)) {
-			FREE_AND_NULL(tmpbuf);
+		if(add_char(outp++, enc, done, outend))  {
+			if(target==source)
+				free(tmpbuf);
 			return(-1);
 		}
 		if(inp==inend)
 			done=1;
 		enc=((int)*(inp++))&0x3F;
-		if(add_char(outp++, enc, done, outend)) {
-			FREE_AND_NULL(tmpbuf);
+		if(add_char(outp++, enc, done, outend))  {
+			if(target==source)
+				free(tmpbuf);
 			return(-1);
 		}
 		if(inp==inend)
@@ -156,11 +157,10 @@ int b64_encode(char *target, size_t tlen, const char *source, size_t slen)  {
 	}
 	if(outp<outend)
 		*outp=0;
-	if(target==source) {
+	if(target==source)  {
 		memcpy(target,tmpbuf,tlen);
 		free(tmpbuf);
 	}
-
 	return(outp-target);
 }
 
