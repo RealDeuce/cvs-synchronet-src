@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpFormUnit.cpp,v 1.6 2017/11/28 05:21:27 rswindell Exp $ */
+/* $Id: FtpFormUnit.cpp,v 1.5 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ void __fastcall TFtpForm::LogLevelUpDownChangingEx(TObject *Sender,
     else {
         MainForm->ftp_startup.log_level = NewValue;
         LogLevelText->Caption = LogLevelDesc[NewValue];
+        MainForm->SaveIniSettings(Sender);
     }
 }
 //---------------------------------------------------------------------------
