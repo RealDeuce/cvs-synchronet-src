@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.616 2017/11/24 21:53:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.617 2017/11/26 01:08:13 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -638,7 +638,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
         sockprintf(socket,"");
         mimeblurb(socket,mime_boundary);
         sockprintf(socket,"");
-        mimetextpartheader(socket,mime_boundary);
+        mimetextpartheader(socket, mime_boundary, startup->default_charset);
 	}
 	if(!sockprintf(socket,""))	/* Header Terminator */
 		return(0);
@@ -5162,7 +5162,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.616 $", "%*s %s", revision);
+	sscanf("$Revision: 1.617 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
