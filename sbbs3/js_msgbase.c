@@ -1,6 +1,7 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.206 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.211 2017/11/24 21:53:39 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +57,16 @@ typedef struct
 } privatemsg_t;
 
 static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+
+JSBool JS_ValueToUint32(JSContext *cx, jsval v, uint32 *ip)
+{
+	jsdouble d;
+
+	if(!JS_ValueToNumber(cx, v, &d))
+		return JS_FALSE;
+	*ip = (uint32)d;
+	return JS_TRUE;
+}
 
 /* Destructor */
 
@@ -276,6 +287,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		type;
 	ushort		agent;
 	int32		i32;
+	uint32		u32;
 	jsval		val;
 	JSObject*	array;
 	JSObject*	field;
@@ -746,9 +758,9 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
+		if(!JS_ValueToUint32(cx,val,&u32))
 			goto err;
-		msg->hdr.auxattr=i32;
+		msg->hdr.auxattr=u32;
 	}
 	if(JS_GetProperty(cx, hdr, "netattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
@@ -2173,7 +2185,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	char*		body=NULL;
 	uintN		n;
     jsuint      i;
-    jsuint      rcpt_list_length;
+    jsuint      rcpt_list_length=0;
 	jsval       val;
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
@@ -2193,7 +2205,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc<2)
 		return JS_TRUE;
-	
+
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
@@ -2277,7 +2289,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 					if(!JS_GetElement(cx, rcpt_list, i, &val))
 						break;
-					
+
 					if(!JSVAL_IS_OBJECT(val))
 						break;
 
@@ -2292,7 +2304,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 						break;
 
 					rc=JS_SUSPENDREQUEST(cx);
-					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK))!=SMB_SUCCESS) {
+					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, smb_storage_mode(scfg, &(p->smb))))!=SMB_SUCCESS) {
 						JS_RESUMEREQUEST(cx, rc);
 						break;
 					}
@@ -2304,6 +2316,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 				if(i==rcpt_list_length)
 					JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+				if(i > 1)
+					smb_incmsg_dfields(&(p->smb), &msg, (uint16_t)(i - 1));
 			}
 		}
 		else
@@ -2489,6 +2503,47 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(votes));
+
+	return JS_TRUE;
+}
+
+static JSBool
+js_close_poll(JSContext *cx, uintN argc, jsval *arglist)
+{
+	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
+	jsval*		argv=JS_ARGV(cx, arglist);
+	int32		msgnum;
+	private_t*	p;
+	char*		name;
+	int			result;
+	jsrefcount	rc;
+	scfg_t*		scfg;
+
+	scfg = JS_GetRuntimePrivate(JS_GetRuntime(cx));
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
+		return JS_FALSE;
+	}
+
+	if(!SMB_IS_OPEN(&(p->smb)))
+		return JS_TRUE;
+
+	if(!JS_ValueToInt32(cx, argv[0], &msgnum))
+		return JS_FALSE;
+
+	JSVALUE_TO_MSTRING(cx, argv[1], name, NULL)
+	HANDLE_PENDING(cx);
+	if(name==NULL)
+		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	result = closepoll(scfg, &(p->smb), msgnum, name);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, result == SMB_SUCCESS ? JSVAL_TRUE : JSVAL_FALSE);
 
 	return JS_TRUE;
 }
@@ -2829,6 +2884,10 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>from_net_addr</tt><td>Sender's network address"
 	"</table>"
 	)
+	,317
+	},
+	{"close_poll",		js_close_poll,		2, JSTYPE_BOOLEAN,	JSDOCSTR("message number, user name or alias")
+	,JSDOCSTR("close an existing poll")
 	,317
 	},
 	{"how_user_voted",		js_how_user_voted,		2, JSTYPE_NUMBER,	JSDOCSTR("message number, user name or alias")
