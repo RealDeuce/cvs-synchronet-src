@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.28 2017/11/27 06:27:15 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.29 2017/11/27 06:29:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,7 +440,7 @@ uint8_t* SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, uin
 		if(result < 1)
 			return NULL;
 		*filelen = result;
-		return buf;
+		return (uint8_t*)buf;
 	}
 
 	return NULL;	/* No attachment */
