@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.74 2017/11/27 06:30:33 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.73 2017/11/26 05:34:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,17 +269,15 @@ void sbbs_t::readmail(uint usernumber, int which)
 					? 0:P_NOATCODES);
 
 			char* txt;
-			int attachment_index = 0;
-			bool found = true;
-			while((txt=smb_getmsgtxt(&smb,&msg, 0)) != NULL && found) {
+			if((txt=smb_getmsgtxt(&smb,&msg, 0)) != NULL) {
 				char filename[MAX_PATH+1] = {0};
 				uint32_t filelen = 0;
 				uint8_t* filedata;
-				if((filedata = smb_getattachment(&msg, txt, filename, &filelen, attachment_index++)) != NULL 
+				if((filedata = smb_getattachment(&msg, txt, filename, &filelen)) != NULL 
 					&& filename[0] != 0 && filelen > 0) {
 					char tmp[32];
 					sprintf(str3, text[DownloadAttachedFileQ], filename, ultoac(filelen,tmp));
-					if(!noyes(str3)) {
+					if(yesno(str3)) {
 						char fpath[MAX_PATH+1];
 						SAFEPRINTF2(fpath, "%s%s", cfg.temp_dir, filename);
 						FILE* fp = fopen(fpath, "wb");
@@ -294,8 +292,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 								sendfile(fpath, useron.prot, "attachment");
 						}
 					}
-				} else
-					found = false;
+				}
 				smb_freemsgtxt(txt);
 			}
 

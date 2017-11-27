@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.661 2018/01/20 04:16:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.657 2017/11/26 01:40:31 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -950,15 +950,11 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(sbbs->online==ON_LOCAL)
-		eprintf(LOG_WARNING, "%s", cstr);
-	else {
-		sbbs->attr(sbbs->cfg.color[clr_err]);
-		sbbs->bputs(cstr);
-		sbbs->attr(LIGHTGRAY);
-		sbbs->bputs(crlf);
-	}
+	sbbs->attr(sbbs->cfg.color[clr_err]);
+	sbbs->bputs(cstr);
 	free(cstr);
+	sbbs->attr(LIGHTGRAY);
+	sbbs->bputs(crlf);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, argv[0]);
@@ -2504,15 +2500,12 @@ void event_thread(void* arg)
 						continue;
 					}
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
-					sbbs->online=FALSE;
-					sbbs->console&=~CON_L_ECHO;
 					
 					/* putuserdat? */
 					remove(g.gl_pathv[i]);
@@ -2537,7 +2530,6 @@ void event_thread(void* arg)
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2556,7 +2548,6 @@ void event_thread(void* arg)
 					} else
 						eprintf(LOG_INFO,"No packet created (no new messages)");
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);
-					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
 				remove(g.gl_pathv[i]);
@@ -2592,7 +2583,6 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2603,7 +2593,6 @@ void event_thread(void* arg)
 							sbbs->putmsgptrs(); 
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
-						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					} 
 				}
@@ -2647,13 +2636,10 @@ void event_thread(void* arg)
 
 						eprintf(LOG_INFO,"Running node %d daily event",i);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						sbbs->logentry("!:","Run node daily event");
 						sbbs->external(
 							 sbbs->cmdstr(sbbs->cfg.node_daily,nulstr,nulstr,NULL)
 							,EX_OFFLINE);
-						sbbs->console&=~CON_L_ECHO;
-						sbbs->online=FALSE;
 					}
 					sbbs->getnodedat(i,&node,1);
 					node.misc&=~NODE_EVENT;
@@ -2798,13 +2784,10 @@ void event_thread(void* arg)
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
 							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					sbbs->console&=~CON_L_ECHO;
-					sbbs->online=FALSE;
 				}
 			} 
 		}
@@ -2843,12 +2826,9 @@ void event_thread(void* arg)
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name); 
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.phub[i]->call,nulstr,nulstr,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					sbbs->online=FALSE;
-					sbbs->console&=~CON_L_ECHO;
 				} 
 			}
 		}
@@ -3018,7 +2998,6 @@ void event_thread(void* arg)
 						ex_mode |= EX_SH;
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Running %s%stimed event: %s"
 						,(ex_mode&EX_NATIVE)	? "native ":""
@@ -3026,15 +3005,13 @@ void event_thread(void* arg)
 						,strupr(str));
 					{
 						int result=
-							sbbs->external(
-								 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
-								,ex_mode
-								,sbbs->cfg.event[i]->dir);
+						sbbs->external(
+							 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
+							,ex_mode
+							,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
 							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
-					sbbs->console&=~CON_L_ECHO;
-					sbbs->online=FALSE;
 					sbbs->cfg.event[i]->last=time32(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -3178,7 +3155,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
-	lastlinelen=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3190,7 +3166,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
-	current_file=NULL;
 	mnestr=NULL;
 
 #ifdef JAVASCRIPT
@@ -4652,6 +4627,7 @@ void DLLCALL bbs_thread(void* arg)
 	startup=(bbs_startup_t*)arg;
 	BOOL			is_client=FALSE;
 #ifdef __unix__
+	SOCKET	uspy_listen_socket[MAX_NODES];
 	struct main_sock_cb_data	uspy_cb[MAX_NODES]={};
 	union xp_sockaddr uspy_addr;
 #endif
@@ -4849,6 +4825,7 @@ void DLLCALL bbs_thread(void* arg)
 		spy_socket[i]=INVALID_SOCKET;
 #ifdef __unix__
 		uspy_socket[i]=INVALID_SOCKET;
+		uspy_listen_socket[i]=INVALID_SOCKET;
 #endif
 	}
 
@@ -5577,13 +5554,17 @@ NO_PASSTHRU:
 			node_socket[i]=INVALID_SOCKET;
         }
 #ifdef __unix__
+		if(uspy_listen_socket[i]!=INVALID_SOCKET) {
+			close_socket(uspy_listen_socket[i]);
+			uspy_listen_socket[i]=INVALID_SOCKET;
+			snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
+			if(fexist(str))
+				unlink(str);
+		}
 		if(uspy_socket[i]!=INVALID_SOCKET) {
 			close_socket(uspy_socket[i]);
 			uspy_socket[i]=INVALID_SOCKET;
-		}
-		snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
-		if(fexist(str))
-			unlink(str);
+		}		
 #endif
 	}
 
