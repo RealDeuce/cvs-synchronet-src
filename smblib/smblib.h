@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.82 2016/12/06 07:17:17 rswindell Exp $ */
+/* $Id: smblib.h,v 1.84 2017/11/26 05:09:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -132,12 +132,14 @@ SMBEXPORT int 		SMBCALL smb_ver(void);
 SMBEXPORT char*		SMBCALL smb_lib_ver(void);
 SMBEXPORT int 		SMBCALL smb_open(smb_t* smb);
 SMBEXPORT void		SMBCALL smb_close(smb_t* smb);
+SMBEXPORT int 		SMBCALL smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_create(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_stack(smb_t* smb, int op);
 SMBEXPORT int 		SMBCALL smb_trunchdr(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_lock(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_unlock(smb_t* smb);
 SMBEXPORT BOOL		SMBCALL smb_islocked(smb_t* smb);
+SMBEXPORT int		SMBCALL Smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_locksmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_getstatus(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_putstatus(smb_t* smb);
@@ -271,6 +273,7 @@ SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
 /* smbtxt.c */
 SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode);
 SMBEXPORT char*		SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf);
+SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, uint32_t* filelen);
 
 /* smbfile.c */
 SMBEXPORT int 		SMBCALL smb_feof(FILE* fp);

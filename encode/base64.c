@@ -2,13 +2,13 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.23 2006/05/08 21:11:40 deuce Exp $ */
+/* $Id: base64.c,v 1.25 2017/11/26 00:58:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -60,6 +60,8 @@ int b64_decode(char *target, size_t tlen, const char *source, size_t slen)
 	outend=target+tlen;
 	inend=source+slen;
 	for(;outp<outend && inp<inend;inp++) {
+		if(isspace(*inp))
+			continue;
 		working<<=6;
 		i=strchr(base64alphabet,(char)*inp);
 		if(i==NULL) {
