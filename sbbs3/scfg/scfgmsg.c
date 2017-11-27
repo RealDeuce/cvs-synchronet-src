@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.49 2017/10/23 03:57:16 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.52 2017/11/11 09:43:39 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -333,8 +333,9 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 		int mod_offset = LEN_CODE-1;
 		for(j=0; j < cfg.total_subs && mod_offset >= 0; j++) {
 			/* same group and duplicate name/echotag or QWK confname? overwrite the sub entry */
-			if(cfg.sub[j]->grp == grpnum && stricmp(cfg.sub[j]->sname, tmpsub.sname) == 0)  {
-				break;
+			if(cfg.sub[j]->grp == grpnum) {
+				if(stricmp(cfg.sub[j]->sname, tmpsub.sname) == 0)
+					break;
 			} else {
 				if((cfg.grp[grpnum]->code_prefix[0] || cfg.grp[cfg.sub[j]->grp]->code_prefix[0]))
 					continue;
@@ -542,7 +543,7 @@ void msgs_cfg()
 								, cfg.sub[j]->code_suffix);
 							strlwr(str);
 							if (!cfg.sub[j]->data_dir[0])
-								sprintf(tmp, "%ssubs/", cfg.data_dir);
+								sprintf(tmp, "[%ssubs/]", cfg.data_dir);
 							else
 								strcpy(tmp, cfg.sub[j]->data_dir);
 							delfiles(tmp, str);
@@ -798,7 +799,7 @@ void msgs_cfg()
 					}
 					else
 						j=O_WRONLY|O_CREAT;
-					if((stream=fnopen(&file,str,j))==NULL) {
+					if((stream=fnopen(&file,str,j|O_TEXT))==NULL) {
 						sprintf(str,"Open Failure: %d (%s)"
 							,errno,strerror(errno));
 						uifc.msg(str);
@@ -816,19 +817,19 @@ void msgs_cfg()
 								,cfg.grp[cfg.sub[j]->grp]->code_prefix
 								,cfg.sub[j]->code_suffix);
 
-							fprintf(stream,"%-*s %-*s %s\r\n"
+							fprintf(stream,"%-*s %-*s %s\n"
 								,LEN_EXTCODE, extcode
 								,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname)
 								,str2);
 							continue; 
 						}
 						if(k==2) {		/* BACKBONE.NA */
-							fprintf(stream,"%-*s %s\r\n"
+							fprintf(stream,"%-*s %s\n"
 								,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
 							continue; 
 						}
-						fprintf(stream,"%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
-								"%s\r\n%s\r\n%s\r\n"
+						fprintf(stream,"%s\n%s\n%s\n%s\n%s\n%s\n"
+								"%s\n%s\n%s\n"
 							,cfg.sub[j]->lname
 							,cfg.sub[j]->sname
 							,cfg.sub[j]->qwkname
@@ -839,7 +840,7 @@ void msgs_cfg()
 							,cfg.sub[j]->post_arstr
 							,cfg.sub[j]->op_arstr
 							);
-						fprintf(stream,"%"PRIX32"\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
+						fprintf(stream,"%"PRIX32"\n%s\n%s\n%s\n%s\n%s\n"
 							,cfg.sub[j]->misc
 							,cfg.sub[j]->tagline
 							,cfg.sub[j]->origline
@@ -847,14 +848,14 @@ void msgs_cfg()
 							,cfg.sub[j]->newsgroup
 							,smb_faddrtoa(&cfg.sub[j]->faddr,tmp)
 							);
-						fprintf(stream,"%"PRIu32"\r\n%"PRIu32"\r\n%u\r\n%u\r\n%s\r\n"
+						fprintf(stream,"%"PRIu32"\n%"PRIu32"\n%u\n%u\n%s\n"
 							,cfg.sub[j]->maxmsgs
 							,cfg.sub[j]->maxcrcs
 							,cfg.sub[j]->maxage
 							,cfg.sub[j]->ptridx
 							,cfg.sub[j]->mod_arstr
 							);
-						fprintf(stream,"***END-OF-SUB***\r\n\r\n"); 
+						fprintf(stream,"***END-OF-SUB***\n\n"); 
 					}
 					fclose(stream);
 					uifc.pop(0);
