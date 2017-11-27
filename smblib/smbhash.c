@@ -1,8 +1,7 @@
-/* smbhash.c */
-
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.31 2015/12/06 11:08:41 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.35 2016/11/29 10:09:06 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -130,8 +129,10 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 	size_t	h;
 
 	COUNT_LIST_ITEMS(hashes, h);
-	if(!h)	/* nothing to add */
+	if(!h) { /* nothing to add */
+		smb_close_hash(smb);
 		return(SMB_SUCCESS);
+	}
 
 	if((retval=smb_open_hash(smb))!=SMB_SUCCESS)
 		return(retval);
@@ -311,7 +312,7 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	if(smb_findhash(smb, hashes, &found, SMB_HASH_SOURCE_DUPE, update)==SMB_SUCCESS && !update) {
 		retval=SMB_DUPE_MSG;
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"duplicate %s: %s found in message #%lu"
+			,"%s duplicate %s: %s found in message #%lu", __FUNCTION__
 			,smb_hashsourcetype(found.source)
 			,smb_hashsource(msg,found.source)
 			,found.number);
