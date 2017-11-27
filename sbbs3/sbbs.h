@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.458 2017/11/26 05:32:14 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.459 2017/11/27 01:59:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,14 +105,14 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
-#if defined(__GNUC__)
+#if __GNUC__ > 5
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
 	#pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 #include <jsversion.h>
 #include <jsapi.h>
-#if defined(__GNUC_)
+#if __GNUC_ > 5
 	#pragma GCC diagnostic pop
 #endif
 #define JS_DestroyScript(cx,script)
