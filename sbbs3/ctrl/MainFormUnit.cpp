@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.192 2016/11/28 10:18:34 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.194 2017/11/15 10:01:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1509,9 +1509,9 @@ void __fastcall TMainForm::StatsTimerTick(TObject *Sender)
     StatsForm->LogonsToday->Caption=AnsiString(stats.ltoday);
     StatsForm->TotalTimeOn->Caption=AnsiString(stats.timeon);
     StatsForm->TimeToday->Caption=AnsiString(stats.ttoday);
-    StatsForm->TotalEMail->Caption=AnsiString(getmail(&cfg,0,0));
+    StatsForm->TotalEMail->Caption=AnsiString(getmail(&cfg,0,0,0));
 	StatsForm->EMailToday->Caption=AnsiString(stats.etoday);
-	StatsForm->TotalFeedback->Caption=AnsiString(getmail(&cfg,1,0));
+	StatsForm->TotalFeedback->Caption=AnsiString(getmail(&cfg,1,0,0));
 	StatsForm->FeedbackToday->Caption=AnsiString(stats.ftoday);
 	/* Don't scan a large user database more often than necessary */
 	if(!counter || users<100 || (counter%(users/100))==0 || stats.nusers!=newusers)
@@ -2344,7 +2344,6 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
     StatsTimer->Interval=cfg.node_stat_check*1000;
 	StatsTimer->Enabled=true;
-    Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
     LogTimer->Enabled=true;
@@ -2364,6 +2363,8 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
+
+    Initialized=true;
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::SaveRegistrySettings(TObject* Sender)
@@ -2553,7 +2554,7 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
 bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
 {
     FILE* fp=NULL;
-   	if(ini_file[0]==0)
+   	if(ini_file[0]==0 || !Initialized)
         return(false);
 
     if((fp=fopen(ini_file,"r+"))==NULL) {
