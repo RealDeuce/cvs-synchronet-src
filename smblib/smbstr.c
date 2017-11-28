@@ -1,8 +1,6 @@
-/* smbstr.c */
-
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.24 2015/12/07 02:33:18 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.28 2017/07/08 04:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,6 +109,8 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 
+		case SMB_POLL_ANSWER:	return("PollAnswer");
+
 		case UNKNOWN:			return("UNKNOWN");
 		case UNKNOWNASCII:		return("UNKNOWNASCII");
 		case UNUSED:			return("UNUSED");
@@ -210,9 +210,12 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case RIO:   return("RIO");
 		case FER:   return("FER");
 		case AZO:   return("AZO");
-		case LON:   return("LON");
-		case BER:   return("BER");
-		case ATH:   return("ATH");
+		case WET:   return("WET");
+		case WEST:  return("WEST");
+		case CET:   return("CET");
+		case CEST:	return("CEST");
+		case EET:   return("EET");
+		case EEST:  return("EEST");
 		case MOS:   return("MOS");
 		case DUB:   return("DUB");
 		case KAB:   return("KAB");
@@ -226,7 +229,7 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case SYD:   return("SYD");
 		case NOU:   return("NOU");
 		case WEL:   return("WEL");
-		}
+	}
 
 	if(!OTHER_ZONE(zone)) {
 		if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
@@ -269,7 +272,8 @@ char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* str)
 /****************************************************************************/
 fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 {
-	char *p;
+	char*		p;
+	const char*	terminator;
 	fidoaddr_t addr;
 	fidoaddr_t tmp_addr={1,1,1,0};	/* Default system address: 1:1/1.0 */
 
@@ -277,7 +281,9 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 		sys_addr=&tmp_addr;
 
 	ZERO_VAR(addr);
-	if((p=strchr(str,':'))!=NULL) {
+	terminator = str;
+	FIND_WHITESPACE(terminator);
+	if((p=strchr(str,':'))!=NULL && p < terminator) {
 		addr.zone=atoi(str);
 		addr.net=atoi(p+1); 
 	} else {
@@ -286,14 +292,14 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 	}
 	if(addr.zone==0)              /* no such thing as zone 0 */
 		addr.zone=1;
-	if((p=strchr(str,'/'))!=NULL)
+	if((p=strchr(str,'/'))!=NULL && p < terminator)
 		addr.node=atoi(p+1);
 	else {
 		if(addr.zone==sys_addr->zone)
 			addr.net=sys_addr->net;
 		addr.node=atoi(str); 
 	}
-	if((p=strchr(str,'.'))!=NULL)
+	if((p=strchr(str,'.'))!=NULL && p < terminator)
 		addr.point=atoi(p+1);
 	return(addr);
 }
