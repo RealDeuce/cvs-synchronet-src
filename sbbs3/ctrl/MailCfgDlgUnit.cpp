@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.32 2017/12/11 06:35:57 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.31 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,8 +190,6 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_THROTTLE);
     AdvancedCheckListBox->Checked[i++]
         =!(MainForm->mail_startup.options&MAIL_OPT_NO_AUTO_EXEMPT);
-    AdvancedCheckListBox->Checked[i++]
-        =(MainForm->mail_startup.options&MAIL_OPT_KILL_READ_SPAM);
 
     DNSBLRadioButtonClick(Sender);
     DNSRadioButtonClick(Sender);
@@ -353,9 +351,6 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_NO_AUTO_EXEMPT
         ,!AdvancedCheckListBox->Checked[i++]);
-    setBit(&MainForm->mail_startup.options
-        ,MAIL_OPT_KILL_READ_SPAM
-        ,AdvancedCheckListBox->Checked[i++]);
 
     MainForm->MailAutoStart=AutoStartCheckBox->Checked;
     MainForm->MailLogFile=LogFileCheckBox->Checked;
@@ -488,5 +483,4 @@ void __fastcall TMailCfgDlg::UseSubPortCheckBoxClick(TObject *Sender)
     SubPortEdit->Enabled = enabled;
 }
 //---------------------------------------------------------------------------
-
 
