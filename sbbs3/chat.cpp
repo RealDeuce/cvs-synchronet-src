@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.73 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.71 2017/11/24 23:35:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -372,7 +372,8 @@ void sbbs_t::multinodechat(int channel)
 						done=1;
 						break;
 					case '*':
-						if(menu_exists("chan"))
+						sprintf(str,"%smenu/chan.*",cfg.text_dir);
+						if(fexist(str))
 							menu("chan");
 						else {
 							bputs(text[ChatChanLstHdr]);
@@ -694,25 +695,6 @@ void sbbs_t::chatsection()
 //		free(gurubuf);
 }
 
-static char* sysop_available_semfile(scfg_t* scfg)
-{
-	static char semfile[MAX_PATH+1];
-	SAFEPRINTF(semfile, "%ssysavail.chat", scfg->ctrl_dir);
-	return semfile;
-}
-
-extern "C" BOOL DLLCALL sysop_available(scfg_t* scfg)
-{
-	return fexist(sysop_available_semfile(scfg));
-}
-
-extern "C" BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
-{
-	if(available)
-		return ftouch(sysop_available_semfile(scfg));
-	return remove(sysop_available_semfile(scfg)) == 0;
-}
-
 /****************************************************************************/
 /****************************************************************************/
 bool sbbs_t::sysop_page(void)
@@ -725,7 +707,7 @@ bool sbbs_t::sysop_page(void)
 		return(false); 
 	}
 
-	if(sysop_available(&cfg)
+	if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
 		|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron,&client))
 		|| useron.exempt&FLAG('C')) {
 
