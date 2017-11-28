@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.212 2017/11/27 22:34:53 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.213 2017/11/28 01:00:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1790,7 +1790,7 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	privatemsg_t* mp;
 	mp=(privatemsg_t*)JS_GetPrivate(cx,hdr);
-	if(mp->expand_fields) {
+	if(mp != NULL && mp->expand_fields) {
 		JS_ReportError(cx, "Message header has 'expanded fields'", WHERE);
 		return JS_FALSE;
 	}
