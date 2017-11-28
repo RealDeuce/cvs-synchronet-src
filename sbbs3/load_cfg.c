@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.71 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.70 2017/10/23 03:38:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -349,7 +349,6 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 	if((cfg->color=malloc(MIN_COLORS))==NULL) {
 		sprintf(error,"Error allocating memory (%u bytes) for colors"
 			,MIN_COLORS);
-		fclose(instream);
 		return(FALSE);
 	}
 	/* Setup default colors here: */

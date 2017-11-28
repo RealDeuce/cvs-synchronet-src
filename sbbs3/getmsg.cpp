@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.73 2018/01/12 22:21:50 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.67 2017/11/28 02:22:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -88,7 +88,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 	return msg->total_hfields;
 }
 
-/* Synchronized with atcode()! */
+
 void sbbs_t::show_msgattr(smbmsg_t* msg)
 {
 	uint16_t attr = msg->hdr.attr;
@@ -132,37 +132,41 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	else
 		CRLF;
 
-	if(menu_exists("msghdr")) {
+	SAFEPRINTF(str,"%smenu/msghdr.*", cfg.text_dir);
+	if(fexist(str)) {
 		menu("msghdr");
-	} else {
-		bprintf(text[MsgSubj],msg->subj);
-		if(msg->hdr.attr)
-			show_msgattr(msg);
-		if(msg->to && *msg->to) {
-			bprintf(text[MsgTo],msg->to);
-			if(msg->to_net.addr!=NULL)
-				bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
-			if(msg->to_ext)
-				bprintf(text[MsgToExt],msg->to_ext);
-		}
-		if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
-			bprintf(text[MsgFrom],msg->from);
-			if(msg->from_ext)
-				bprintf(text[MsgFromExt],msg->from_ext);
-			if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
-				bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
-		}
-		if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
-			bprintf(text[MsgVotes]
-				,msg->upvotes, msg->user_voted==1 ? text[PollAnswerChecked] : nulstr
-				,msg->downvotes, msg->user_voted==2 ? text[PollAnswerChecked] : nulstr
-				,msg->upvotes - msg->downvotes);
-		bprintf(text[MsgDate]
-			,timestr(msg->hdr.when_written.time)
-			,smb_zonestr(msg->hdr.when_written.zone,NULL)
-			,age_of_posted_item(age, sizeof(age), msg->hdr.when_written.time - (smb_tzutc(msg->hdr.when_written.zone) * 60)));
-		bputs(text[MsgHdrBodySeparator]);
+		return; 
 	}
+
+	bprintf(text[MsgSubj],msg->subj);
+	if(msg->hdr.attr)
+		show_msgattr(msg);
+	if(msg->to && *msg->to) {
+		bprintf(text[MsgTo],msg->to);
+		if(msg->to_net.addr!=NULL)
+			bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
+		if(msg->to_ext)
+			bprintf(text[MsgToExt],msg->to_ext);
+	}
+	if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
+		bprintf(text[MsgFrom],msg->from);
+		if(msg->from_ext)
+			bprintf(text[MsgFromExt],msg->from_ext);
+		if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
+			bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
+	}
+	if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
+		bprintf(text[MsgVotes]
+			,msg->upvotes, msg->user_voted==1 ? text[PollAnswerChecked] : nulstr
+			,msg->downvotes, msg->user_voted==2 ? text[PollAnswerChecked] : nulstr
+			,msg->upvotes - msg->downvotes);
+	bprintf(text[MsgDate]
+		,timestr(msg->hdr.when_written.time)
+		,smb_zonestr(msg->hdr.when_written.zone,NULL)
+		,age_of_posted_item(age, sizeof(age), msg->hdr.when_written.time - (smb_tzutc(msg->hdr.when_written.zone) * 60)));
+
+	CRLF;
+
 	for(i=0;i<msg->total_hfields;i++) {
 		if(msg->hfield[i].type==SENDER)
 			sender=(char *)msg->hfield_dat[i];
@@ -170,6 +174,7 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			bprintf(text[ForwardedFrom],sender
 				,timestr(*(time32_t *)msg->hfield_dat[i])); 
 	}
+	CRLF;
 }
 
 /****************************************************************************/
@@ -243,21 +248,15 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 			answers++;
 		}
 		if(!msg->user_voted && !(useron.misc&EXPERT) && !(msg->hdr.auxattr&POLL_CLOSED) && !(useron.rest&FLAG('V')))
-			mnemonics(text[VoteInThisPollNow]);
+			mnemonics("\r\nTo vote in this poll, hit ~V now.\r\n");
 		return;
 	}
-	if((txt=smb_getmsgtxt(&smb, msg, 0)) != NULL) {
-		char* p = txt;
-		if(!(console&CON_RAW_IN)) {
+	if((txt=smb_getmsgtxt(&smb,msg,(console&CON_RAW_IN) ? 0:GETMSGTXT_PLAIN)) != NULL) {
+		if(!(console&CON_RAW_IN))
 			mode|=P_WORDWRAP;
-			p = smb_getplaintext(msg, txt);
-			if(p == NULL)
-				p = txt;
-			else
-				bputs(text[MIMEDecodedPlainText]);
-		}
+		char* p = txt;
 		truncsp(p);
-		SKIP_CRLF(p);
+		SKIP_WHITESPACE(p);
 		putmsg(p, mode);
 		smb_freemsgtxt(txt);
 		if(column)
