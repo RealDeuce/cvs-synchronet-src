@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.187 2017/11/27 22:38:59 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.188 2017/11/28 09:42:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -991,7 +991,8 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
-	}
+	} else if(!exec_result)
+		result = EXIT_FAILURE;
 	js_EvalOnExit(js_cx, js_glob, &cb);
 
 	JS_ReportPendingException(js_cx);
@@ -1004,8 +1005,6 @@ long js_exec(const char *fname, char** args)
 	if(js_buf!=NULL)
 		free(js_buf);
 
-	if(result == 0 && !exec_result)
-		return EXIT_FAILURE;
 	return(result);
 }
 
@@ -1110,7 +1109,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.187 $", "%*s %s", revision);
+	sscanf("$Revision: 1.188 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
