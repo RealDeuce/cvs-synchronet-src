@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.31 2017/11/28 03:42:09 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.30 2017/11/28 02:20:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,11 +184,8 @@ char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 		*(buf+l)=0; 
 	}
 
-	if(mode&GETMSGTXT_PLAIN) {
-		char* plaintext = smb_getplaintext(msg, buf);
-		if(plaintext != NULL)
-			return plaintext;
-	}
+	if(mode&GETMSGTXT_PLAIN)
+		buf = smb_getplaintext(msg, buf);
 	return(buf);
 }
 
@@ -384,7 +381,6 @@ static char* mime_getcontent(char* buf, const char* content_type, const char* co
 }
 
 /* Get just the plain-text portion of a MIME-encoded message body */
-/* Returns NULL if there is no MIME-encoded plain-text portion of the message */
 char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
 {
 	int		i;
@@ -401,24 +397,23 @@ char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
         }
     }
 	if(content_type == NULL)	/* not MIME */
-		return NULL;
+		return buf;
 	txt = mime_getcontent(buf, content_type, "text/plain", 0, &xfer_encoding
 		,/* attachment: */NULL, /* index: */0);
-	if(txt == NULL)
-		return NULL;
-
-	memmove(buf, txt, strlen(txt)+1);
-	if(*buf == 0)	/* No decoding necessary */
-		return buf;
-	if(xfer_encoding == CONTENT_TRANFER_ENCODING_QUOTED_PRINTABLE)
-		qp_decode(buf);
-	else if(xfer_encoding == CONTENT_TRANFER_ENCODING_BASE64) {
-		char* decoded = strdup(buf);
-		if(decoded == NULL)
-			return NULL;
-		if(b64_decode(decoded, strlen(decoded), buf, strlen(buf)) > 0)
-			strcpy(buf, decoded);
-		free(decoded);
+	if(txt != NULL) {
+		memmove(buf, txt, strlen(txt)+1);
+		if(*buf == 0)
+			return buf;
+		if(xfer_encoding == CONTENT_TRANFER_ENCODING_QUOTED_PRINTABLE)
+			qp_decode(buf);
+		else if(xfer_encoding == CONTENT_TRANFER_ENCODING_BASE64) {
+			char* decoded = strdup(buf);
+			if(decoded == NULL)
+				return buf;
+			if(b64_decode(decoded, strlen(decoded), buf, strlen(buf)) > 0)
+				strcpy(buf, decoded);
+			free(decoded);
+		}
 	}
 
 	return buf;
