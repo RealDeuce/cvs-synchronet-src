@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.194 2017/11/15 10:01:11 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.195 2017/11/28 05:21:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1114,8 +1114,8 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
         TrayIcon->Visible=false;    /* restore to avoid crash */
         
     /* This is necessary to save form sizes/positions */
-    if(Initialized) /* Don't overwrite registry settings with defaults */
-        SaveRegistrySettings(Sender);
+    if(Initialized) /* Don't overwrite registry and .ini settings with defaults */
+        SaveSettings(Sender);
 
 	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Terminating servers...";
     time_t start=time(NULL);
