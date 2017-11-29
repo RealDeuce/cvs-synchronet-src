@@ -2,13 +2,13 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.c,v 1.15 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: ident.c,v 1.14 2015/08/20 05:19:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
