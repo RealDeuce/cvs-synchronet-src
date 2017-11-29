@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.61 2017/11/24 22:06:41 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.62 2017/11/29 01:23:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5279,6 +5279,7 @@ void pack_netmail(void)
 			if(hdr.attr&FIDO_FILE) {
 				if(write_flofile(hdr.subj,addr,/* bundle: */false,/* use_outbox: */false, hdr.attr))
 					bail(1);
+				SAFECOPY(hdr.subj, getfname(hdr.subj));	/* Don't include the file path in the subject */
 			}
 		}
 		else {
@@ -5838,7 +5839,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.61 $", "%*s %s", revision);
+	sscanf("$Revision: 3.62 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
