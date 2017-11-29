@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.617 2017/11/26 01:08:13 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.618 2017/11/29 14:46:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3328,6 +3328,11 @@ static void smtp_thread(void* arg)
 						,reverse_path);
 					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
 
+					if(nettype == NET_FIDO) {
+						char* tp = strchr(rcpt_name, '@');
+						if(tp != NULL)
+							*tp = 0;
+					}
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
 					if(usernum && nettype!=NET_INTERNET) {	/* Local destination or QWKnet routed */
@@ -5162,7 +5167,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.617 $", "%*s %s", revision);
+	sscanf("$Revision: 1.618 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
