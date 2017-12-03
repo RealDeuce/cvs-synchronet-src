@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.24 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.25 2017/12/03 21:38:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -549,7 +549,7 @@ int main(int argc, char **argv)
 	"    This setting may be managed by the node using AreaFix requests.\n"
 	"\n"
 	"`TIC File Password` is an optional password that may be configured here\n"
-	"    (and in your `sbbsecho.ini` file) for use by `ticket.js` when creating\n"
+	"    (and in your `sbbsecho.ini` file) for use by `tickit.js` when creating\n"
 	"    or authenticating `.TIC` files.\n"
 	"    This setting may be managed by the node using AreaFix requests.\n"
 	"\n"
@@ -728,7 +728,7 @@ int main(int argc, char **argv)
 							case __COUNTER__:
 	uifc.helpbuf=
 	"~ TIC File Password ~\n\n"
-	"This is an optional password that ticket.js will use for creating\n"
+	"This is an optional password that tickit.js will use for creating\n"
 	"and authenticating `.TIC` files to/from this node.\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"TIC File Password (optional)"
