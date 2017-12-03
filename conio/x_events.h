@@ -23,14 +23,6 @@ enum x11_local_events {
 	,X11_LOCAL_DRAWRECT
 	,X11_LOCAL_FLUSH
 	,X11_LOCAL_BEEP
-	,X11_LOCAL_SETPALETTE
-};
-
-struct x11_palette_entry {
-	uint32_t	index;
-	uint16_t	r;
-	uint16_t	g;
-	uint16_t	b;
 };
 
 struct x11_local_event {
@@ -39,8 +31,7 @@ struct x11_local_event {
 		int		mode;
 		char	name[81];
 		char	title[81];
-		struct	update_rect rect;
-		struct	x11_palette_entry palette;
+		struct	update_rect rect; 
 	} data;
 };
 
@@ -92,7 +83,6 @@ struct x11 {
 	void	(*XSetWMProperties) (Display*, Window, XTextProperty*, XTextProperty*, char**, int, XSizeHints*, XWMHints*, XClassHint*);
 	Status	(*XSetWMProtocols) (Display*, Window, Atom *, int);
 	Atom	(*XInternAtom) (Display *, char *, Bool);
-	int		(*XFreeColors) (Display*, Colormap, unsigned long *, int, unsigned long);
 };
 
 
