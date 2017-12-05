@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.216 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.217 2017/11/24 23:35:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -54,7 +54,7 @@
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
-#define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
+#define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
