@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.459 2017/11/27 01:59:54 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.460 2017/12/06 04:49:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1011,6 +1011,10 @@ extern "C" {
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL sbbs_random(int);
 	DLLEXPORT void		DLLCALL sbbs_srand(void);
+
+	/* chat.cpp */
+	DLLEXPORT BOOL		DLLCALL sysop_available(scfg_t*);
+	DLLEXPORT BOOL		DLLCALL set_sysop_availability(scfg_t*, BOOL available);
 
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
