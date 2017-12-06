@@ -2,7 +2,7 @@
 
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.90 2015/12/16 08:13:58 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.92 2016/10/06 06:37:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -191,6 +191,7 @@ bool sbbs_t::answer()
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
+		tmp[0]=0;
 		pthread_mutex_lock(&ssh_mutex);
 		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
 		if (ctmp) {
@@ -201,8 +202,6 @@ bool sbbs_t::answer()
 				SAFECOPY(tmp, ctmp);
 				free_crypt_attrstr(ctmp);
 			}
-			else
-				tmp[0] = 0;
 			pthread_mutex_unlock(&ssh_mutex);
 			lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
 				,cfg.node_num, rlogin_name);
@@ -265,7 +264,7 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, tmp);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, truncsp(tmp));
 			else
 				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
 			badlogin(rlogin_name, tmp);
