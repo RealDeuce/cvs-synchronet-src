@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.33 2015/11/23 08:48:50 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.37 2017/11/24 21:53:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	int 		i,j,x;
 	long		msgs=0;
 	long		length;
+	long		wm_mode=WM_EMAIL;
 	FILE*		fp;
 	smb_t		smb;
 	smbmsg_t	msg;
@@ -60,11 +61,15 @@ bool sbbs_t::bulkmail(uchar *ar)
 	nodesync();
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
-		&& !noyes(text[AnonymousQ]))
+		&& !noyes(text[AnonymousQ])) {
 		msg.hdr.attr|=MSG_ANONYMOUS;
+		wm_mode|=WM_ANON;
+	}
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,"Bulk Mailing",&editor)) {
+	if(!writemsg(msgpath,nulstr,title,wm_mode,INVALID_SUB,"Bulk Mailing"
+		,/* From: */useron.alias
+		,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -193,14 +198,14 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 
 	if(cfg.sys_misc&SM_FWDTONET && user.misc&NETMAIL && user.netmail[0]) {
 		bprintf(text[UserNetMail],user.netmail);
-		smb_hfield_add_netaddr(&newmsg,RECIPIENTNETADDR,user.netmail,&nettype);
+		smb_hfield_netaddr(&newmsg,RECIPIENTNETADDR,user.netmail,&nettype);
 		smb_hfield_bin(&newmsg,RECIPIENTNETTYPE,nettype);
 	} else {
 		sprintf(str,"%u",usernum);
 		smb_hfield_str(&newmsg,RECIPIENTEXT,str);
 	}
 
-	j=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK);
+	j=smb_addmsghdr(smb,&newmsg,smb_storage_mode(&cfg, smb));
 	smb_freemsgmem(&newmsg);
 	if(j!=SMB_SUCCESS)
 		return(j);
