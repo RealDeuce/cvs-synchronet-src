@@ -1,15 +1,14 @@
 /* xpprintf.c */
-// vi: tabstop=4
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.60 2018/03/10 04:04:05 rswindell Exp $ */
+/* $Id: xpprintf.c,v 1.57 2015/09/29 00:48:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -36,9 +35,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#if defined(__linux__) && !defined(_GNU_SOURCE)
-	#define _GNU_SOURCE	// asprintf() on Linux
-#endif
+#define _GNU_SOURCE	// asprintf() on Linux
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,7 +46,7 @@
 #include "gen_defs.h"
 
 #if defined(_MSC_VER) || defined(__MSVCRT__)
-int DLLCALL vasprintf(char **strptr, const char *format, va_list va)
+int DLLCALL vasprintf(char **strptr, char *format, va_list va)
 {
 	va_list	va2;
 	int		ret;
@@ -66,7 +63,7 @@ int DLLCALL vasprintf(char **strptr, const char *format, va_list va)
 	return ret;
 }
 
-int DLLCALL asprintf(char **strptr, const char *format, ...)
+int DLLCALL asprintf(char **strptr, char *format, ...)
 {
 	va_list	va;
 	int		ret;
@@ -1243,10 +1240,8 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(format_len < (format_len-this_format_len+j)) {
 			newbuf=(char *)realloc(format, format_len-this_format_len+j);
-			if(newbuf==NULL) {
-				FREE_AND_NULL(entry);
+			if(newbuf==NULL)
 				return(NULL);
-			}
 			format=newbuf;
 		}
 		/* Move trailing end to make space */

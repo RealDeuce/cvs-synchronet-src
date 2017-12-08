@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.54 2018/03/09 23:54:15 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.52 2017/11/11 09:43:39 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -468,7 +468,6 @@ void msgs_cfg()
 			"networked sub-boards. One might have a `Local` message group that contains\n"
 			"non-networked sub-boards of various topics and also have a `FidoNet`\n"
 			"message group that contains sub-boards that are echoed across FidoNet.\n"
-			"\n"
 			"Some sysops separate sub-boards into more specific areas such as `Main`,\n"
 			"`Technical`, or `Adult`. If you have many sub-boards that have a common\n"
 			"subject denominator, you may want to have a separate message group for\n"
@@ -921,7 +920,7 @@ void msgs_cfg()
 					}
 
 					/* QWK Conference number range */
-					int min_confnum = 1, max_confnum = 99999;
+					int min_confnum, max_confnum;
 					if(k == IMPORT_LIST_TYPE_QWK_CONTROL_DAT) {
 						strcpy(str, "1000");
 						uifc.helpbuf = "`Minimum / Maximum QWK Conference Number:`\n"
@@ -1001,11 +1000,6 @@ void msg_opts()
         else
             strcpy(str,"Disabled");
 		sprintf(opt[i++],"%-33.33s%s","Purge E-mail by Age",str);
-		if(cfg.max_spamage)
-			sprintf(str,"Enabled (%u days old)",cfg.max_spamage);
-        else
-            strcpy(str,"Disabled");
-		sprintf(opt[i++],"%-33.33s%s","Purge SPAM by Age",str);
 		if(cfg.sys_misc&SM_DELEMAIL)
 			strcpy(str,"Immediately");
 		else
@@ -1040,7 +1034,7 @@ void msg_opts()
 			"`Message Options:`\n"
 			"\n"
 			"This is a menu of system-wide message related options. Messages include\n"
-			"private E-mail and public posts in public message areas, sub-boards.\n"
+			"E-mail and public posts (on sub-boards).\n"
 		;
 
 		switch(uifc.list(WIN_ORG|WIN_ACT|WIN_MID|WIN_CHE,0,0,72,&msg_dflt,0
@@ -1140,28 +1134,15 @@ void msg_opts()
 			case 5:
 				sprintf(str,"%u",cfg.mail_maxage);
                 uifc.helpbuf=
-	                "`Maximum Age of E-mail:`\n"
+	                "`Maximum Age of Mail:`\n"
 	                "\n"
-	                "This value is the maximum number of days that E-mail will be kept (read\n"
-					"or not). Use `0` for `unlimited`.\n"
+	                "This value is the maximum number of days that mail will be kept.\n"
                 ;
-                uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of E-mail "
+                uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of Mail "
                     "(in days)",str,5,K_EDIT|K_NUMBER);
                 cfg.mail_maxage=atoi(str);
                 break;
 			case 6:
-				sprintf(str,"%u",cfg.max_spamage);
-                uifc.helpbuf=
-	                "`Maximum Age of SPAM:`\n"
-	                "\n"
-	                "This value is the maximum number of days that SPAM-tagged E-mail will be\n"
-					"kept (read or not). Use `0` for `unlimited`.\n"
-                ;
-                uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Age of SPAM-tagged E-mail "
-                    "(in days)",str,5,K_EDIT|K_NUMBER);
-                cfg.max_spamage=atoi(str);
-                break;
-			case 7:
 				strcpy(opt[0],"Daily");
 				strcpy(opt[1],"Immediately");
 				opt[2][0]=0;
@@ -1190,20 +1171,20 @@ void msg_opts()
 					uifc.changes=1; 
 				}
                 break;
-			case 8:
+			case 7:
 				sprintf(str,"%"PRIu32,cfg.mail_maxcrcs);
                 uifc.helpbuf=
-	                "`Maximum Number of E-mail CRCs:`\n"
+	                "`Maximum Number of Mail CRCs:`\n"
 	                "\n"
 	                "This value is the maximum number of CRCs that will be kept for duplicate\n"
 	                "mail checking. Once this maximum number of CRCs is reached, the oldest\n"
 	                "CRCs will be automatically purged.\n"
                 ;
-                uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of E-mail "
+                uifc.input(WIN_MID|WIN_SAV,0,17,"Maximum Number of Mail "
                     "CRCs",str,5,K_EDIT|K_NUMBER);
                 cfg.mail_maxcrcs=atol(str);
                 break;
-			case 9:
+			case 8:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1226,7 +1207,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
 				break;
-			case 10:
+			case 9:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1249,7 +1230,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
 				break;
-			case 11:
+			case 10:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1272,7 +1253,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
 				break;
-			case 12:
+			case 11:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1296,7 +1277,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
                 break;
-			case 13:
+			case 12:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1319,7 +1300,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
                 break;
-			case 14:
+			case 13:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				opt[2][0]=0;
@@ -1342,7 +1323,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
                 break;
-			case 15:
+			case 14:
 				n=(cfg.sub[i]->misc&MM_EMAILSIG) ? 0:1;
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
@@ -1367,7 +1348,7 @@ void msg_opts()
 					cfg.msg_misc&=~MM_EMAILSIG; 
 				}
                 break;
-			case 16:
+			case 15:
 				strcpy(opt[0],"Yes");
 				strcpy(opt[1],"No");
 				strcpy(opt[2],"Sysops Only");
@@ -1406,7 +1387,7 @@ void msg_opts()
 					uifc.changes=1; 
 				}
                 break;
-			case 17:
+			case 16:
 				uifc.helpbuf=
 					"`Days of New Messages for Guest:`\n"
 					"\n"
@@ -1421,7 +1402,7 @@ void msg_opts()
 					,str,4,K_EDIT|K_NUMBER);
 				cfg.guest_msgscan_init=atoi(str);
                 break;
-			case 18:
+			case 17:
 				uifc.helpbuf=
 					"`Extra Attribute Codes...`\n"
 					"\n"
