@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.68 2017/11/28 03:44:05 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.69 2017/12/08 02:05:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -262,7 +262,7 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 				bputs(text[MIMEDecodedPlainText]);
 		}
 		truncsp(p);
-		SKIP_WHITESPACE(p);
+		SKIP_CRLF(p);
 		putmsg(p, mode);
 		smb_freemsgtxt(txt);
 		if(column)
