@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.217 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.218 2017/12/10 02:07:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -661,6 +661,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define TERM_KEY_INSERT	CTRL_V
 #define TERM_KEY_DELETE	DEL
 #define TERM_KEY_ABORT	CTRL_C
+#define TERM_KEY_PAGEUP	CTRL_U
+#define TERM_KEY_PAGEDN	CTRL_D
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
