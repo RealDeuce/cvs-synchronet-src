@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.19 2017/11/06 06:43:21 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.21 2017/11/24 22:06:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,9 +42,11 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		2
+#define SBBSECHO_VERSION_MINOR		3
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
+
+#define SBBSECHO_AREAMGR_NAME		"AreaFix"
 
 #define DEFAULT_INBOUND				"../fido/nonsecure"
 #define DEFAULT_SECURE_INBOUND		"../fido/inbound"
@@ -107,9 +109,11 @@ typedef struct {
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
 	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
+	char		name[FIDO_NAME_LEN];
 	char		inbox[MAX_PATH+1];
 	char		outbox[MAX_PATH+1];
 	str_list_t	keys;
+	bool		areafix;
 	bool		send_notify;
 	bool		passive;
 	bool		direct;
@@ -125,6 +129,7 @@ typedef struct {
 	fidoaddr_t 	hub;			/* Where to forward requests */
 	bool		forward;
 	char		password[FIDO_SUBJ_LEN];	/* Password to use for forwarding req's */
+	char		areamgr[FIDO_NAME_LEN];		/* Destination name for Area Manager req's */
 } echolist_t;
 
 typedef struct {
@@ -187,6 +192,7 @@ typedef struct {
 	bool		echomail_notify;
 	bool		ignore_netmail_dest_addr;
 	bool		ignore_netmail_sent_attr;
+	bool		ignore_netmail_kill_attr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
 	bool		use_ftn_domains;
