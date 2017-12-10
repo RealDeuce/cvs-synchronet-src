@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.93 2017/12/29 06:04:36 rswindell Exp $ */
+/* $Id: scfg.c,v 1.92 2017/11/26 00:08:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -475,11 +475,11 @@ int main(int argc, char **argv)
 			"    Networks             : Message networking configuration\n"
 			"    File Areas           : File area configuration\n"
 			"    File Options         : File area options\n"
-			"    Chat Features        : Chat actions, sections, pagers, and robots\n"
+			"    Chat Features        : Chat actions, sections, pagers, and gurus\n"
 			"    Message Areas        : Message area configuration\n"
-			"    Message Options      : Message and e-mail options\n"
-			"    External Programs    : Events, editors, and online programs (doors)\n"
-			"    Text File Sections   : Text file areas available for online viewing\n"
+			"    Message Options      : Message and email options\n"
+			"    External Programs    : Events, editors, and online programs\n"
+			"    Text File Sections   : General text file area\n"
 			"\n"
 			"Use the arrow keys and ~ ENTER ~ to select an option, or ~ ESC ~ to exit.\n"
 		;
@@ -593,10 +593,6 @@ int main(int argc, char **argv)
 					strcpy(opt[i++],"Multinode Chat Channels");
 					strcpy(opt[i++],"External Sysop Chat Pagers");
 					opt[i][0]=0;
-					uifc.helpbuf=
-						"`Chat Features:`\n"
-						"\n"
-						"Here you may configure the real-time chat-related features of the BBS.";
 					j=uifc.list(WIN_ORG|WIN_ACT|WIN_CHE,0,0,0,&chat_dflt,0
 						,"Chat Features",opt);
 					if(j==-1) {
