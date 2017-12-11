@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.216 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.218 2017/12/10 02:07:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -54,7 +54,7 @@
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
-#define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
+#define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
@@ -661,6 +661,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define TERM_KEY_INSERT	CTRL_V
 #define TERM_KEY_DELETE	DEL
 #define TERM_KEY_ABORT	CTRL_C
+#define TERM_KEY_PAGEUP	CTRL_U
+#define TERM_KEY_PAGEDN	CTRL_D
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
