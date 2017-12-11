@@ -2,13 +2,13 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.106 2018/02/03 07:31:18 deuce Exp $
+# $Id: Common.gmake,v 1.104 2015/09/02 08:04:45 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
 # @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)			#
 #																			#
-# Copyright Rob Swindell - http://www.synchro.net/copyright.html			#
+# Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		#
 #																			#
 # This program is free software; you can redistribute it and/or				#
 # modify it under the terms of the GNU General Public License				#
@@ -107,16 +107,9 @@
 #																			#
 #############################################################################
 
-# Set SBBSEXEC (if SBBSCTRL is set)
-ifdef SBBSCTRL
-ifndef SBBSEXEC
-SBBSEXEC:=$(SBBSCTRL)/../exec
-endif
-endif
-
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.17
+ VERSION	:=	3.16
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -246,10 +239,6 @@ ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
 else
  ifeq ($(shell if [ -f /boot/develop/headers/posix/inttypes.h ] ; then echo YES ; fi),YES)
   CFLAGS	+=	-DHAS_INTTYPES_H
- else
-  ifeq ($(os),darwin)	# Don't go digging for stuff on Mac, nobody knows what's up.
-   CFLAGS	+=	-DHAS_INTTYPES_H
-  endif
  endif
 endif
 
