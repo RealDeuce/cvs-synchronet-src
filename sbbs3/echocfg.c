@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.27 2018/01/12 23:06:09 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.26 2017/12/11 06:53:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -201,52 +201,6 @@ void global_settings(void)
 				break;
 		}
 	}
-}
-
-static bool new_node(unsigned new_nodenum)
-{
-	nodecfg_t* nodecfg = realloc(cfg.nodecfg, sizeof(nodecfg_t)*(cfg.nodecfgs+1));
-	
-	if(nodecfg == NULL)
-		return false;
-
-	cfg.nodecfg = nodecfg;
-	for(unsigned int i=cfg.nodecfgs; i > new_nodenum; i--)
-		memcpy(&cfg.nodecfg[i], &cfg.nodecfg[i-1], sizeof(nodecfg_t));
-
-	cfg.nodecfgs++;
-	memset(&cfg.nodecfg[new_nodenum], 0, sizeof(nodecfg_t));
-	return true;
-}
-
-static bool new_arcdef(unsigned new_arcnum)
-{
-	arcdef_t * arcdef = realloc(cfg.arcdef, sizeof(arcdef_t)*(cfg.arcdefs+1));
-
-	if(arcdef == NULL)
-		return false;
-
-	cfg.arcdef = arcdef;
-
-	for(unsigned j=cfg.arcdefs;j>new_arcnum;j--)
-		memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1], sizeof(arcdef_t));
-	cfg.arcdefs++;
-	memset(&cfg.arcdef[new_arcnum], 0, sizeof(arcdef_t));
-	return true;
-}
-
-static bool new_list(unsigned new_listnum)
-{
-	echolist_t *listcfg = realloc(cfg.listcfg, sizeof(echolist_t)*(cfg.listcfgs+1));
-
-	if(listcfg == NULL)
-		return false;
-	cfg.listcfg = listcfg;
-	for(unsigned j=cfg.listcfgs;j>new_listnum;j--)
-		memcpy(&cfg.listcfg[j],&cfg.listcfg[j-1], sizeof(echolist_t));
-	cfg.listcfgs++;
-	memset(&cfg.listcfg[new_listnum],0,sizeof(echolist_t));
-	return true;
 }
 
 int main(int argc, char **argv)
@@ -503,12 +457,10 @@ int main(int argc, char **argv)
 							,cfg.nodecfg[u].name[0] ? cfg.nodecfg[u].name : cfg.nodecfg[u].comment);
 					}
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
-					if(cfg.nodecfgs)
-						mode |= WIN_COPY | WIN_CUT;
 					if (savnodecfg.addr.zone)
-						mode |= WIN_PASTE | WIN_PASTEXTR;
+						mode |= WIN_PUT;
 					i=uifc.list(mode,0,0,0,&node_opt,0,"Linked Nodes",opt);
 					if(i==-1)
 						break;
@@ -525,10 +477,16 @@ int main(int argc, char **argv)
 							,"Node Address (ALL wildcard allowed)",str
 							,25,K_EDIT)<1)
 							continue;
-						if(!new_node(i)) {
+						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+							,sizeof(nodecfg_t)*(cfg.nodecfgs+1)))==NULL) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
+						for(j=cfg.nodecfgs;j>i;j--)
+							memcpy(&cfg.nodecfg[j],&cfg.nodecfg[j-1]
+								,sizeof(nodecfg_t));
+						cfg.nodecfgs++;
+						memset(&cfg.nodecfg[i],0,sizeof(nodecfg_t));
 						cfg.nodecfg[i].addr=atofaddr(str);
 						uifc.changes=TRUE;
 						continue; 
@@ -545,16 +503,19 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.nodecfgs;u++)
 							memcpy(&cfg.nodecfg[u],&cfg.nodecfg[u+1]
 								,sizeof(nodecfg_t));
+						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+							,sizeof(nodecfg_t)*(cfg.nodecfgs)))==NULL) {
+							printf("\nMemory Allocation Error\n");
+							exit(1); 
+						}
 						uifc.changes=TRUE;
 						continue; 
 					}
-					if (msk == MSK_COPY) {
+					if (msk == MSK_GET) {
 						memcpy(&savnodecfg,&cfg.nodecfg[i],sizeof(nodecfg_t));
 						continue; 
 					}
-					if (msk == MSK_PASTE) {
-						if(!new_node(i))
-							continue;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.nodecfg[i],&savnodecfg,sizeof(nodecfg_t));
 						uifc.changes=TRUE;
 						continue; 
@@ -1623,12 +1584,10 @@ int main(int argc, char **argv)
 					for(u=0;u<cfg.arcdefs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%-30.30s",cfg.arcdef[u].name);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
-					if(cfg.arcdefs)
-						mode |= WIN_COPY | WIN_CUT;
 					if(savarcdef.name[0])
-						mode |= WIN_PASTE | WIN_PASTEXTR;
+						mode |= WIN_PUT;
 					i=uifc.list(mode,0,0,0,&archive_opt,0,"Archive Types",opt);
 					if(i==-1)
 						break;
@@ -1639,13 +1598,19 @@ int main(int argc, char **argv)
 	uifc.helpbuf=
 	"~ Archive Type ~\n\n"
 	"This is the identifying name of the archiving program (packer).\n";
-						if(uifc.input(WIN_MID|WIN_SAV,0,0
+						if(uifc.input(WIN_MID,0,0
 							,"Archive Type",str,25,K_EDIT|K_UPPER)<1)
 							continue;
-						if(!new_arcdef(i)) {
+						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
+							,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
+						for(j=cfg.arcdefs;j>i;j--)
+							memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1]
+								,sizeof(arcdef_t));
+						cfg.arcdefs++;
+						memset(&cfg.arcdef[i],0,sizeof(arcdef_t));
 						strcpy(cfg.arcdef[i].name,str);
 						continue; 
 					}
@@ -1661,15 +1626,18 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.arcdefs;u++)
 							memcpy(&cfg.arcdef[u],&cfg.arcdef[u+1]
 								,sizeof(arcdef_t));
+						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
+							,sizeof(arcdef_t)*(cfg.arcdefs)))==NULL) {
+							printf("\nMemory Allocation Error\n");
+							exit(1); 
+						}
 						continue; 
 					}
-					if (msk == MSK_COPY) {
+					if (msk == MSK_GET) {
 						memcpy(&savarcdef,&cfg.arcdef[i],sizeof(arcdef_t));
 						continue; 
 					}
-					if (msk == MSK_PASTE) {
-						if(!new_arcdef(i))
-							continue;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.arcdef[i],&savarcdef,sizeof(arcdef_t));
 						continue; 
 					}
@@ -1798,12 +1766,10 @@ int main(int argc, char **argv)
 					for(u=0;u<cfg.listcfgs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%s",cfg.listcfg[u].listpath);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
-					if(cfg.listcfgs)
-						mode |= WIN_COPY | WIN_CUT;
 					if(savlistcfg.listpath[0])
-						mode |= WIN_PASTE | WIN_PASTEXTR;
+						mode |= WIN_PUT;
 					i=uifc.list(mode,0,0,0,&echolist_opt,0,"EchoLists",opt);
 					if(i==-1)
 						break;
@@ -1818,10 +1784,16 @@ int main(int argc, char **argv)
 						if(uifc.input(WIN_MID|WIN_SAV,0,0
 							,"EchoList Path/Name",str,50,K_EDIT)<1)
 							continue;
-						if(!new_list(i)) {
+						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
+							,sizeof(echolist_t)*(cfg.listcfgs+1)))==NULL) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
+						for(j=cfg.listcfgs;j>i;j--)
+							memcpy(&cfg.listcfg[j],&cfg.listcfg[j-1]
+								,sizeof(echolist_t));
+						cfg.listcfgs++;
+						memset(&cfg.listcfg[i],0,sizeof(echolist_t));
 						strcpy(cfg.listcfg[i].listpath,str);
 						continue; 
 					}
@@ -1837,15 +1809,18 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.listcfgs;u++)
 							memcpy(&cfg.listcfg[u],&cfg.listcfg[u+1]
 								,sizeof(echolist_t));
+						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
+							,sizeof(echolist_t)*(cfg.listcfgs)))==NULL) {
+							printf("\nMemory Allocation Error\n");
+							exit(1); 
+						}
 						continue; 
 					}
-					if (msk == MSK_COPY) {
+					if (msk == MSK_GET) {
 						memcpy(&savlistcfg,&cfg.listcfg[i],sizeof(echolist_t));
 						continue; 
 					}
-					if (msk == MSK_PASTE) {
-						if(!new_list(i))
-							continue;
+					if (msk == MSK_PUT) {
 						memcpy(&cfg.listcfg[i],&savlistcfg,sizeof(echolist_t));
 						continue; 
 					}
