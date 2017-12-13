@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.41 2017/12/13 20:59:41 rswindell Exp $
+# $Id: targets.mk,v 1.42 2017/12/13 21:25:21 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -67,12 +67,12 @@ mono:	xpdev-mt smblib \
 
 ifdef SBBSEXEC
 .PHONY: install
-install:
+install: all
 	install $(EXEODIR)/* $(SBBSEXEC)
 	install $(LIBODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
-symlinks:
+symlinks: all
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr $(LIBODIR)/* $(SBBSEXEC)
 endif
