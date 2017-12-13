@@ -1,6 +1,7 @@
 /* Synchronet user data-related routines (exported) */
+// vi: tabstop=4
 
-/* $Id: userdat.c,v 1.182 2017/10/12 09:11:57 rswindell Exp $ */
+/* $Id: userdat.c,v 1.183 2017/11/24 23:35:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1128,8 +1129,8 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             strcat(str,"C");
         strcat(str,"]"); 
 	}
-    if(node->errors)
-        sprintf(str+strlen(str)
+	if(node->errors)
+		sprintf(str+strlen(str)
 			," %d error%c",node->errors, node->errors>1 ? 's' : '\0' );
 
 	strncpy(buf,str,buflen);
