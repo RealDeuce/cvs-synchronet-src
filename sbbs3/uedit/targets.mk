@@ -4,11 +4,11 @@ all: smblib uifc-mt ciolib-mt xpdev-mt $(MTOBJODIR) $(EXEODIR) $(UEDIT)
 
 ifdef SBBSEXEC
 .PHONY: install
-install: all
+install:
 	install $(EXEODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
-symlinks: all
+symlinks:
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 endif
 $(UEDIT):	$(SMBLIB) $(UIFCLIB-MT) $(CIOLIB-MT) $(XPDEV-MT_LIB)

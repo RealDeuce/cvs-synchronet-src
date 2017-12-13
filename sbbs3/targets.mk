@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.46 2018/03/17 05:43:39 deuce Exp $
+# $Id: targets.mk,v 1.41 2017/12/13 20:59:41 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -36,8 +36,6 @@ DELFILES	= $(EXEODIR)$(DIRSEP)delfiles$(EXEFILE)
 DUPEFIND	= $(EXEODIR)$(DIRSEP)dupefind$(EXEFILE)
 SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
 DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
-READSAUCE	= $(EXEODIR)$(DIRSEP)readsauce$(EXEFILE)
-SHOWSTAT	= $(EXEODIR)$(DIRSEP)showstat$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -46,9 +44,9 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT)
+			  $(SEXYZ) $(DSTSEDIT)
 
-all:	dlls utils console scfg uedit umonitor
+all:	dlls utils console
 
 console:	$(JS_DEPS) xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
@@ -67,27 +65,14 @@ mono:	xpdev-mt smblib \
 		$(MTOBJODIR) $(EXEODIR) \
 		$(SBBSMONO)
 
-.PHONY: scfg
-scfg:
-	$(MAKE) -C scfg
-
-.PHONY: uedit
-uedit:
-	$(MAKE) -C uedit
-
-.PHONY: umonitor
-umonitor:
-	$(MAKE) -C umonitor
-
-
 ifdef SBBSEXEC
 .PHONY: install
-install: all
+install:
 	install $(EXEODIR)/* $(SBBSEXEC)
 	install $(LIBODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
-symlinks: all
+symlinks:
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr $(LIBODIR)/* $(SBBSEXEC)
 endif
@@ -129,5 +114,3 @@ $(DELFILES): $(XPDEV_LIB)
 $(DUPEFIND): $(XPDEV_LIB) $(SMBLIB)
 $(SMBACTIV): $(XPDEV_LIB) $(SMBLIB)
 $(DSTSEDIT): $(XPDEV_LIB)
-$(READSAUCE): $(XPDEV_LIB)
-$(SHOWSTAT): $(XPDEV_LIB)
