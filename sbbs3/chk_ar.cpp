@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.25 2015/08/20 05:19:40 deuce Exp $ */
+/* $Id: chk_ar.cpp,v 1.26 2017/10/12 08:47:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -752,7 +752,7 @@ uint sbbs_t::getusrsub(uint subnum)
 
 int sbbs_t::dir_op(uint dirnum)
 {
-	return(SYSOP || (cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron,&client)));
+	return(SYSOP || (cfg.dir[dirnum]->op_ar!=NULL && cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron,&client)));
 }
 
 
