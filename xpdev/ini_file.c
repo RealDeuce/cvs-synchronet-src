@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.152 2017/11/16 07:15:45 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.153 2017/12/28 04:17:39 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1810,8 +1810,8 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	FIND_WHITESPACE(p);
 	*p=0;
 
-    if((count=strListCount(names)) == 0)
-        return 0;
+	if((count=strListCount(names)) == 0)
+		return 0;
 
 	/* Look for exact matches first */
 	for(i=0; i<count; i++)
@@ -1824,8 +1824,8 @@ static unsigned parseEnum(const char* value, str_list_t names)
 			return(i);
 
     i=strtoul(val,NULL,0);
-    if(i>=count)
-        i=count-1;
+	if(i>=count)
+		i=count-1;
 	return i;
 }
 
