@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.30 2015/08/20 05:20:36 deuce Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.32 2017/12/11 06:35:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,17 +73,12 @@ void __fastcall TMailCfgDlg::OutboundSoundButtonClick(TObject *Sender)
 
 void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
 {
-    char str[128];
+    char str[256];
 
-    if(MainForm->mail_startup.outgoing4.s_addr==0)
+    if(MainForm->mail_startup.interfaces==NULL)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
-        sprintf(str,"%d.%d.%d.%d"
-            ,(MainForm->mail_startup.outgoing4.s_addr>>24)&0xff
-            ,(MainForm->mail_startup.outgoing4.s_addr>>16)&0xff
-            ,(MainForm->mail_startup.outgoing4.s_addr>>8)&0xff
-            ,MainForm->mail_startup.outgoing4.s_addr&0xff
-        );
+        strListCombine(MainForm->mail_startup.interfaces, str, sizeof(str)-1, ",");
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
     MaxClientsEdit->Text=AnsiString(MainForm->mail_startup.max_clients);
@@ -195,6 +190,8 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_THROTTLE);
     AdvancedCheckListBox->Checked[i++]
         =!(MainForm->mail_startup.options&MAIL_OPT_NO_AUTO_EXEMPT);
+    AdvancedCheckListBox->Checked[i++]
+        =(MainForm->mail_startup.options&MAIL_OPT_KILL_READ_SPAM);
 
     DNSBLRadioButtonClick(Sender);
     DNSRadioButtonClick(Sender);
@@ -216,26 +213,8 @@ static void setBit(unsigned long* l, long bit, bool yes)
 //---------------------------------------------------------------------------
 void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
 {
-    char    str[128],*p;
-    DWORD   addr;
-
-    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
-    p=str;
-    while(*p && *p<=' ') p++;
-    if(*p && isdigit(*p)) {
-        addr=atoi(p)<<24;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p)<<16;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p)<<8;
-        while(*p && *p!='.') p++;
-        if(*p=='.') p++;
-        addr|=atoi(p);
-        MainForm->mail_startup.outgoing4.s_addr=addr;
-    } else
-        MainForm->mail_startup.outgoing4.s_addr=0;
+    iniFreeStringList(MainForm->mail_startup.interfaces);
+    MainForm->mail_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
 
 	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(IPPORT_SMTP);
    	MainForm->mail_startup.submission_port=SubPortEdit->Text.ToIntDef(IPPORT_SUBMISSION);
@@ -374,6 +353,9 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_NO_AUTO_EXEMPT
         ,!AdvancedCheckListBox->Checked[i++]);
+    setBit(&MainForm->mail_startup.options
+        ,MAIL_OPT_KILL_READ_SPAM
+        ,AdvancedCheckListBox->Checked[i++]);
 
     MainForm->MailAutoStart=AutoStartCheckBox->Checked;
     MainForm->MailLogFile=LogFileCheckBox->Checked;
@@ -506,4 +488,5 @@ void __fastcall TMailCfgDlg::UseSubPortCheckBoxClick(TObject *Sender)
     SubPortEdit->Enabled = enabled;
 }
 //---------------------------------------------------------------------------
+
 
