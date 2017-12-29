@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.81 2018/03/04 07:11:56 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.80 2017/11/15 09:57:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -250,6 +250,6 @@ int mail_close_socket(SOCKET sock);
 }
 #endif
 
-int sockprintf(SOCKET sock, int sess, char *fmt, ...);
+int sockprintf(SOCKET sock, char *fmt, ...);
 
 #endif /* Don't add anything after this line */
