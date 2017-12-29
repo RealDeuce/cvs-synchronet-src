@@ -1,6 +1,6 @@
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.29 2017/11/24 21:39:04 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.30 2017/12/29 06:02:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 /****************************************************************************/
 /* Removes all mail messages for usernumber that have been marked 'deleted' */
 /* smb_locksmbhdr() should be called prior to this function 				*/
-/* Returns the nubmer of messages removed									*/
+/* Returns the number of messages removed									*/
 /****************************************************************************/
 int sbbs_t::delmail(uint usernumber, int which)
 {
@@ -81,6 +81,10 @@ int sbbs_t::delmail(uint usernumber, int which)
 				|| which==MAIL_ALL)) {
 			if(smb.status.max_age && (now<0?0:(uintmax_t)now)>msg.idx.time
 				&& (now-msg.idx.time)/(24L*60L*60L)>smb.status.max_age)
+				msg.idx.attr|=MSG_DELETE;
+			else if((msg.idx.attr&MSG_SPAM)
+				&& cfg.max_spamage && (now<0?0:(uintmax_t)now) > msg.idx.time
+				&& (now-msg.idx.time)/(24L*60L*60L) > cfg.max_spamage)
 				msg.idx.attr|=MSG_DELETE;
 			else if(msg.idx.attr&MSG_KILLREAD && msg.idx.attr&MSG_READ)
 				msg.idx.attr|=MSG_DELETE;
