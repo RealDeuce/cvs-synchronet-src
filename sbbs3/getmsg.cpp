@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.65 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.69 2017/12/08 02:05:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -79,7 +79,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 		return i;
 	}
 	if((i=smb_getmsghdr(&smb,msg))!=SMB_SUCCESS) {
-		SAFEPRINTF4(str,"(%06"PRIX32") #%"PRIu32"/%lu %s",msg->idx.offset,msg->idx.number
+		SAFEPRINTF4(str,"(%06" PRIX32 ") #%" PRIu32 "/%lu %s",msg->idx.offset,msg->idx.number
 			,number,smb.file);
 		smb_unlockmsghdr(&smb,msg);
 		errormsg(WHERE,ERR_READ,str,i,smb.last_error);
@@ -248,14 +248,25 @@ void sbbs_t::show_msg(smbmsg_t* msg, long mode, post_t* post)
 			answers++;
 		}
 		if(!msg->user_voted && !(useron.misc&EXPERT) && !(msg->hdr.auxattr&POLL_CLOSED) && !(useron.rest&FLAG('V')))
-			mnemonics("\r\nTo vote in this poll, hit ~V now.\r\n");
+			mnemonics(text[VoteInThisPollNow]);
 		return;
 	}
-	if((txt=smb_getmsgtxt(&smb,msg,(console&CON_RAW_IN) ? 0:GETMSGTXT_PLAIN)) != NULL) {
-		if(!(console&CON_RAW_IN))
+	if((txt=smb_getmsgtxt(&smb, msg, 0)) != NULL) {
+		char* p = txt;
+		if(!(console&CON_RAW_IN)) {
 			mode|=P_WORDWRAP;
-		putmsg(txt, mode);
+			p = smb_getplaintext(msg, txt);
+			if(p == NULL)
+				p = txt;
+			else
+				bputs(text[MIMEDecodedPlainText]);
+		}
+		truncsp(p);
+		SKIP_CRLF(p);
+		putmsg(p, mode);
 		smb_freemsgtxt(txt);
+		if(column)
+			CRLF;
 	}
 	if((txt=smb_getmsgtxt(&smb,msg,GETMSGTXT_TAIL_ONLY))!=NULL) {
 		putmsg(txt, mode&(~P_WORDWRAP));

@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.93 2017/11/16 07:16:28 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.94 2017/12/28 04:17:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -886,7 +886,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	struct statfs fs;
 	unsigned long blocks;
 
-    if (statfs(path, &fs) < 0)
+	if(statfs(path, &fs) < 0)
     	return 0;
 
 	if(freespace)
