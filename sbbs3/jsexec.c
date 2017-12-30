@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.189 2017/12/30 04:07:12 deuce Exp $ */
+/* $Id: jsexec.c,v 1.190 2017/12/30 04:23:24 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -202,6 +202,8 @@ raw_tty(void)
 		raw_input(&term);
 		tcsetattr(fileno(stdin), TCSANOW, &term);
 #elif defined _WIN32
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+#else
 		#warning Can't set the tty as raw on this platform
 #endif
 	}
@@ -1133,10 +1135,8 @@ int main(int argc, char **argv, char** environ)
 	if(isatty(fileno(stdin))) {
 #ifdef __unix__
 		tcgetattr(fileno(stdin), &orig_term);
-		raw_tty();
-#else
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #endif
+		raw_tty();
 		statfp=stderr;
 	}
 	else	/* if redirected, don't send status messages to stderr */
@@ -1147,7 +1147,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.189 $", "%*s %s", revision);
+	sscanf("$Revision: 1.190 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
