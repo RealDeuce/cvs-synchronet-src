@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
-
-/* $Id: sbbs.h,v 1.452 2017/11/13 08:31:25 rswindell Exp $ */
+// vi: tabstop=4
+/* $Id: sbbs.h,v 1.460 2017/12/06 04:49:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,8 +105,16 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
+#if __GNUC__ > 5
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+	#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
 #include <jsversion.h>
 #include <jsapi.h>
+#if __GNUC_ > 5
+	#pragma GCC diagnostic pop
+#endif
 #define JS_DestroyScript(cx,script)
 
 #define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
@@ -379,6 +387,7 @@ public:
 
 #endif
 
+	char	syspage_semfile[MAX_PATH+1];	/* Sysop page semaphore file */
 	char 	menu_dir[128];	/* Over-ride default menu dir */
 	char 	menu_file[128]; /* Over-ride menu file */
 
@@ -784,6 +793,8 @@ public:
 	int		getnodetopage(int all, int telegram);
 
 	/* main.cpp */
+	int		lputs(int level, const char* str);
+	int		lprintf(int level, const char *fmt, ...);
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
@@ -793,6 +804,7 @@ public:
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
+	bool	backup(const char* fname, int backup_level, bool rename);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
@@ -810,7 +822,7 @@ public:
 	void	autohangup(void);
 	bool	checkdszlog(file_t*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0);
+	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
 	bool	recvfile(char* fname, char prot=0);
 
 	/* file.cpp */
@@ -1000,13 +1012,17 @@ extern "C" {
 	DLLEXPORT int		DLLCALL sbbs_random(int);
 	DLLEXPORT void		DLLCALL sbbs_srand(void);
 
+	/* chat.cpp */
+	DLLEXPORT BOOL		DLLCALL sysop_available(scfg_t*);
+	DLLEXPORT BOOL		DLLCALL set_sysop_availability(scfg_t*, BOOL available);
+
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
 
 	/* getmail.c */
-	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, BOOL spam_only);
+	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
@@ -1096,7 +1112,8 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
-
+	DLLEXPORT int		DLLCALL smb_storage_mode(scfg_t*, smb_t*);
+	DLLEXPORT int		DLLCALL smb_open_sub(scfg_t*, smb_t*, unsigned int subnum);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
