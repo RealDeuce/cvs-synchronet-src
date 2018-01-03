@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.76 2018/02/22 09:58:26 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.75 2016/11/25 07:33:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -381,9 +381,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				mode&=~QM_TO_QNET;
 
 			for(u=0;u<mailmsgs;u++) {
-				if(cfg.node_num)
-					bprintf("\b\b\b\b\b\b\b\b\b\b\b\b%4lu of %-4lu"
-						,u+1,mailmsgs);
+				bprintf("\b\b\b\b\b\b\b\b\b\b\b\b%4lu of %-4lu"
+					,u+1,mailmsgs);
 
 				memset(&msg,0,sizeof(msg));
 				msg.idx=mail[u];
@@ -478,8 +477,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					smb_close(&smb);
 					continue; 
 				}
-				if(cfg.node_num)
-					bputs(text[QWKPackingSubboard]);	
+				bputs(text[QWKPackingSubboard]);	
 				submsgs=0;
 				conf=cfg.sub[usrsub[i][j]]->qwkconf;
 				if(!conf)
@@ -505,8 +503,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					ndx=NULL;
 
 				for(u=0;u<posts && !msgabort();u++) {
-					if(cfg.node_num)
-						bprintf("\b\b\b\b\b%-5lu",u+1);
+					bprintf("\b\b\b\b\b%-5lu",u+1);
 
 					subscan[usrsub[i][j]].ptr=post[u].idx.number;	/* set ptr */
 					subscan[usrsub[i][j]].last=post[u].idx.number; /* set last read */
