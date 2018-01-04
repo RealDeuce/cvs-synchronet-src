@@ -1,6 +1,6 @@
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.44 2018/03/03 02:02:32 deuce Exp $ */
+/* $Id: scfgdefs.h,v 1.42 2017/12/29 06:02:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -586,7 +586,7 @@ typedef struct
 	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
 	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
 	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */
-	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line - unused! */
+	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line */
 	uchar			smb_retry_time; 		/* Seconds to retry on SMBs */
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */
 	uint16_t		sec_hangup; 			/* Seconds before inactivity hang-up */
@@ -600,8 +600,6 @@ typedef struct
 
 	uint16_t		user_backup_level;
 	uint16_t		mail_backup_level;
-
-	int				tls_certificate;
 
 } scfg_t;
 
