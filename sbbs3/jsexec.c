@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.191 2017/12/30 04:42:55 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.192 2018/01/06 02:45:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -173,7 +173,7 @@ cooked_tty(void)
 		    | ENABLE_EXTENDED_FLAGS | ENABLE_INSERT_MODE | ENABLE_LINE_INPUT
 		    | ENABLE_MOUSE_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_QUICK_EDIT_MODE);
 #else
-		#warning Can't cook the tty on this platform
+		#warning "Can't cook the tty on this platform"
 #endif
 	}
 }
@@ -203,7 +203,7 @@ raw_tty(void)
 #elif defined _WIN32
 		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #else
-		#warning Can't set the tty as raw on this platform
+		#warning "Can't set the tty as raw on this platform"
 #endif
 	}
 }
@@ -1146,7 +1146,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.191 $", "%*s %s", revision);
+	sscanf("$Revision: 1.192 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
