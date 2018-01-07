@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.84 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.82 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,7 +275,7 @@ static void lfexpand(char *str, ulong misc)
 	if(misc&XTRN_NATIVE)
 		return;
 
-	for(p=str;*p && len < sizeof(newstr)-2;p++) {
+	for(p=str;*p && len < sizeof(newstr)-1;p++) {
 		if(*p=='\n')
 			newstr[len++]='\r';
 		newstr[len++]=*p;
@@ -403,7 +403,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 				strcpy(str,cfg.xtrn[i]->name);
 			else
 				str[0]=0;						/* Blank if no access */
-			SAFECAT(str,"\n");
+			strcat(str,"\n");
 			lfexpand(str,misc);
 			write(file,str,strlen(str)); 
 		}
@@ -794,7 +794,6 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		write(file,&logontime,sizeof(logontime));	/* LoginSec */
 		write(file,&useron.cdt,sizeof(useron.cdt));	/* Credit */
 		write(file,&useron.number,sizeof(useron.number)); /* UserRecNum */
-		i=0;
 		write(file,&i,2);						/* ReadThru */
 		write(file,&i,2);						/* PageTimes */
 		write(file,&i,2);						/* DownLimit */
@@ -989,10 +988,9 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		i=cfg.level_timepercall[useron.level];	/* Time allowed on */
 		write(file,&i,2);
 
-		c=0;
 		i=0;									/* Allowed K-bytes for D/L */
 		write(file,&i,2);
-		write(file,&c,1);						/* Conference user was in */
+		write(file,&i,1);						/* Conference user was in */
 		write(file,&i,2);						/* Conferences joined */
 		write(file,&i,2);						/* "" */
 		write(file,&i,2);						/* "" */
@@ -1078,14 +1076,9 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		write(file,name,26);			/* Name */
 		sprintf(str,"%.24s",useron.location);
 		write(file,str,25); 			/* Location */
-		write(file,useron.pass, 9); 	/* Password */
-		l=0;
-		write(file, &l, 4);	/* more password bytes */
-		c=0;
-		write(file,useron.phone, 13);	/* Business or Data Phone */
-		write(file, &c, 1);	/* more phone number bytes */
-		write(file,useron.phone, 13);	/* Home or Voice Phone */
-		write(file, &c, 1);	/* more phone number bytes */
+		write(file,useron.pass,13); 	/* Password */
+		write(file,useron.phone,14);	/* Business or Data Phone */
+		write(file,useron.phone,14);	/* Home or Voice Phone */
 		i=unixtojulian(useron.laston);
 		write(file,&i,2);				/* Date last on */
 		localtime32(&useron.laston,&tm);
@@ -1474,8 +1467,8 @@ void sbbs_t::moduserdat(uint xtrnnum)
 			ultoac(mod>0L ? mod : -mod,tmp);		/* put commas in the # */
 			strcpy(str,"Credit Adjustment: ");
 			if(mod<0L)
-				SAFECAT(str,"-");                    /* negative, put '-' */
-			SAFECAT(str,tmp);
+				strcat(str,"-");                    /* negative, put '-' */
+			strcat(str,tmp);
 			if(mod>0L)
 				strcpy(tmp,"$+");
 			else
@@ -1677,7 +1670,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	}
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_LWRCASE)
 		strlwr(name);
-	SAFECAT(path,name);
+	strcat(path,name);
 	if(action!=NODE_PCHT) {
 		getnodedat(cfg.node_num,&thisnode,1);
 		thisnode.action=NODE_XTRN;
