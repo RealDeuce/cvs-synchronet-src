@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.72 2016/11/27 22:58:41 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.74 2017/12/29 06:02:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -441,7 +441,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 	if(!cfg->smb_retry_time)
 		cfg->smb_retry_time=30;
 	get_int(cfg->max_qwkmsgage, instream);
-	for(i=0;i<233;i++)	/* NULL */
+	get_int(cfg->max_spamage, instream);
+	for(i=0;i<232;i++)	/* NULL */
 		get_int(n,instream);
 	get_int(cfg->msg_misc,instream);
 	for(i=0;i<255;i++)	/* 0xff */
@@ -475,9 +476,10 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_str(cfg->grp[i]->code_prefix,instream);
 
 		get_int(c,instream);
+		cfg->grp[i]->sort = c;
 		for(j=0;j<43;j++)
 			get_int(n,instream);
-		}
+	}
 	cfg->total_grps=i;
 
 	/**********************/
@@ -497,6 +499,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		if((cfg->sub[i]=(sub_t *)malloc(sizeof(sub_t)))==NULL)
 			return allocerr(instream,error,offset,fname,sizeof(sub_t));
 		memset(cfg->sub[i],0,sizeof(sub_t));
+
+		cfg->sub[i]->subnum = i;
 
 		get_int(cfg->sub[i]->grp,instream);
 		get_str(cfg->sub[i]->lname,instream);
@@ -625,7 +629,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_int(k,instream);
 
 		if(k) {
-			if((cfg->qhub[i]->sub=(ulong *)malloc(sizeof(ulong)*k))==NULL)
+			if((cfg->qhub[i]->sub=(sub_t**)malloc(sizeof(sub_t*)*k))==NULL)
 				return allocerr(instream,error,offset,fname,sizeof(ulong)*k);
 			if((cfg->qhub[i]->conf=(ushort *)malloc(sizeof(ushort)*k))==NULL)
 				return allocerr(instream,error,offset,fname,sizeof(ushort)*k);
@@ -634,18 +638,20 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		}
 
 		for(j=0;j<k;j++) {
+			uint16_t	confnum;
 			uint16_t	subnum;
+			uint8_t		mode;
 			if(feof(instream)) break;
-			get_int(cfg->qhub[i]->conf[cfg->qhub[i]->subs],instream);
-			get_int(subnum,instream);
-			cfg->qhub[i]->sub[cfg->qhub[i]->subs]=subnum;
-			get_int(cfg->qhub[i]->mode[cfg->qhub[i]->subs],instream);
-			if(cfg->qhub[i]->sub[cfg->qhub[i]->subs]<cfg->total_subs)
-				cfg->sub[cfg->qhub[i]->sub[cfg->qhub[i]->subs]]->misc|=SUB_QNET;
-			else
-				continue;
-			if(cfg->qhub[i]->sub[cfg->qhub[i]->subs]!=INVALID_SUB)
+			get_int(confnum,instream);
+			get_int(subnum, instream);
+			get_int(mode, instream);
+			if(subnum < cfg->total_subs) {
+				cfg->sub[subnum]->misc |= SUB_QNET;
+				cfg->qhub[i]->sub[cfg->qhub[i]->subs]	= cfg->sub[subnum];
+				cfg->qhub[i]->mode[cfg->qhub[i]->subs]	= mode;
+				cfg->qhub[i]->conf[cfg->qhub[i]->subs]	= confnum;
 				cfg->qhub[i]->subs++;
+			}
 		}
 		get_int(cfg->qhub[i]->misc, instream);
 		for(j=0;j<30;j++)
