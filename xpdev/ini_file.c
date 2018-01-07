@@ -1,8 +1,7 @@
-/* ini_file.c */
-
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.147 2016/01/27 06:16:29 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.153 2017/12/28 04:17:39 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +98,7 @@ static char* section_name(char* p)
 	return(p);
 }
 
-static BOOL section_match(const char* name, const char* compare)
+static BOOL section_match(const char* name, const char* compare, BOOL case_sensitive)
 {
 	BOOL found=FALSE;
 	str_list_t names=strListSplitCopy(NULL,name,INI_SECTION_NAME_SEP);
@@ -108,7 +107,7 @@ static BOOL section_match(const char* name, const char* compare)
 	char*	n;
 	char*	c;
 
-	/* Ignore trailing whitepsace */
+	/* Ignore trailing whitespace */
 	for(i=0; names[i]!=NULL; i++)
 		truncsp(names[i]);
 	for(i=0; comps[i]!=NULL; i++)
@@ -121,8 +120,10 @@ static BOOL section_match(const char* name, const char* compare)
 			SKIP_WHITESPACE(n);
 			c=comps[j];
 			SKIP_WHITESPACE(c);
-			if(stricmp(n,c)==0)
-				found=TRUE;
+			if (case_sensitive)
+				found = strcmp(n, c) == 0;
+			else
+				found = stricmp(n, c) == 0;
 		}
 
 	strListFree(&names);
@@ -141,6 +142,7 @@ static BOOL seek_section(FILE* fp, const char* section)
 	if(section==ROOT_SECTION)
 		return(TRUE);
 
+	/* Perform case-sensitive search first */
 	while(!feof(fp)) {
 		if(fgets(str,sizeof(str),fp)==NULL)
 			break;
@@ -148,9 +150,23 @@ static BOOL seek_section(FILE* fp, const char* section)
 			break;
 		if((p=section_name(str))==NULL)
 			continue;
-		if(section_match(p,section))
+		if(section_match(p, section, /* case-sensitive */TRUE))
 			return(TRUE);
 	}
+
+	/* Then perform case-insensitive search */
+	rewind(fp);
+	while (!feof(fp)) {
+		if (fgets(str, sizeof(str), fp) == NULL)
+			break;
+		if (is_eof(str))
+			break;
+		if ((p = section_name(str)) == NULL)
+			continue;
+		if (section_match(p, section, /* case-sensitive */FALSE))
+			return(TRUE);
+	}
+
 	return(FALSE);
 }
 
@@ -160,11 +176,21 @@ static size_t find_section_index(str_list_t list, const char* section)
 	char	str[INI_MAX_VALUE_LEN];
 	size_t	i;
 
-	for(i=0; list[i]!=NULL; i++) {
-		SAFECOPY(str,list[i]);
+	/* Perform case-sensitive search first */
+	for (i = 0; list[i] != NULL; i++) {
+		SAFECOPY(str, list[i]);
 		if(is_eof(str))
 			return(strListCount(list));
-		if((p=section_name(str))!=NULL && section_match(p,section))
+		if((p=section_name(str))!=NULL && section_match(p, section, /* case-sensitive */TRUE))
+			return(i);
+	}
+
+	/* Then perform case-insensitive search */
+	for (i = 0; list[i] != NULL; i++) {
+		SAFECOPY(str, list[i]);
+		if (is_eof(str))
+			return(strListCount(list));
+		if ((p = section_name(str)) != NULL && section_match(p, section, /* case-sensitive */FALSE))
 			return(i);
 	}
 
@@ -188,6 +214,7 @@ static char* key_name(char* p, char** vp)
 {
 	char* equal;
 	char* colon;
+	char* tp;
 
     *vp=NULL;
 
@@ -217,9 +244,17 @@ static char* key_name(char* p, char** vp)
 	/* Parse value */
 	(*vp)++;
 	SKIP_WHITESPACE(*vp);
-	if(colon!=NULL)
+	if(colon!=NULL) {		/* string literal value */
 		truncnl(*vp);		/* "key : value" - truncate new-line chars only */
-	else
+		if(*(*vp) == '"') {	/* handled quoted-strings here */
+			(*vp)++;
+			tp = strrchr(*vp, '"');
+			if(tp != NULL) {
+				*tp = 0;
+			}
+		}
+		c_unescape_str(*vp);
+	} else
 		truncsp(*vp);		/* "key = value" - truncate all white-space chars */
 
 	return(p);
@@ -466,11 +501,23 @@ size_t DLLCALL iniAppendSection(str_list_t* list, const char* section, ini_style
 	return ini_add_section(list,section,style,strListCount(*list));
 }
 
-char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
+static BOOL str_contains_ctrl_char(const char* str)
+{
+	while(*str) {
+		if(*(unsigned char*)str < ' ')
+			return TRUE;
+		str++;
+	}
+	return FALSE;
+}
+
+static char* ini_set_string(str_list_t* list, const char* section, const char* key, const char* value, BOOL literal
 				 ,ini_style_t* style)
 {
 	char	str[INI_MAX_LINE_LEN];
+	char	litstr[INI_MAX_VALUE_LEN];
 	char	curval[INI_MAX_VALUE_LEN];
+	const char*	value_separator;
 	size_t	i;
 
 	if(style==NULL)
@@ -484,10 +531,19 @@ char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* ke
 		style->key_prefix="";
 	if(style->value_separator==NULL)
 		style->value_separator="=";
+	if(style->literal_separator==NULL)
+		style->literal_separator=":";
 	if(value==NULL)
 		value="";
+	if(literal) {
+		char cstr[INI_MAX_VALUE_LEN];
+		SAFEPRINTF(litstr, "\"%s\"", c_escape_str(value, cstr, sizeof(cstr)-1, /* ctrl_only: */FALSE));
+		value = litstr;
+		value_separator = style->literal_separator;
+	} else
+		value_separator = style->value_separator;
 	safe_snprintf(str, sizeof(str), "%s%-*s%s%s"
-		, style->key_prefix, style->key_len, key, style->value_separator, value);
+		,style->key_prefix, style->key_len, key, value_separator, value);
 	i=get_value(*list, section, key, curval, NULL);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
         while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
@@ -498,6 +554,19 @@ char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* ke
 		return((*list)[i]);	/* no change */
 
 	return strListReplace(*list, i, str);
+}
+char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* key, const char* value
+				 ,ini_style_t* style)
+{
+	BOOL literal = value != NULL && (str_contains_ctrl_char(value) || *value==' ' || *lastchar(value)==' ');
+		
+	return ini_set_string(list, section, key, value, literal, style);
+}
+
+char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const char* key, const char* value
+				 ,ini_style_t* style)
+{
+	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
@@ -549,7 +618,6 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 					,int64_t value, ini_style_t* style)
 {
 	char	str[INI_MAX_VALUE_LEN];
-	double	bytes;
 
 	if(value==0)
 		SAFECOPY(str,"0");
@@ -567,18 +635,7 @@ char* DLLCALL iniSetBytes(str_list_t* list, const char* section, const char* key
 			default:
 				if(unit<1)
 					unit=1;
-				bytes=(double)(value*unit);
-
-				if(fmod(bytes,1024.0*1024.0*1024.0*1024.0)==0)
-					SAFEPRINTF(str,"%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
-				else if(fmod(bytes,1024*1024*1024)==0)
-					SAFEPRINTF(str,"%gG",bytes/(1024*1024*1024));
-				else if(fmod(bytes,1024*1024)==0)
-					SAFEPRINTF(str,"%gM",bytes/(1024*1024));
-				else if(fmod(bytes,1024)==0)
-					SAFEPRINTF(str,"%gK",bytes/1024);
-				else
-					SAFEPRINTF(str,"%"PRIi64, (int64_t)bytes);
+				byte_count_to_str(value*unit, str, sizeof(str));
 		}
 
 	return iniSetString(list, section, key, str, style);
@@ -589,20 +646,7 @@ char* DLLCALL iniSetDuration(str_list_t* list, const char* section, const char* 
 {
 	char	str[INI_MAX_VALUE_LEN];
 
-	if(fmod(value,365.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gY",value/(365.0*24.0*60.0*60.0));
-	else if(fmod(value,7.0*24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gW",value/(7.0*24.0*60.0*60.0));
-	else if(fmod(value,24.0*60.0*60.0)==0)
-		SAFEPRINTF(str,"%gD",value/(24.0*60.0*60.0));
-	else if(fmod(value,60.0*60.0)==0)
-		SAFEPRINTF(str,"%gH",value/(60.0*60.0));
-	else if(fmod(value,60.0)==0)
-		SAFEPRINTF(str,"%gM",value/60.0);
-	else
-		SAFEPRINTF(str,"%gS",value);
-
-	return iniSetString(list, section, key, str, style);
+	return iniSetString(list, section, key, duration_to_str(value, str, sizeof(str)), style);
 }
 
 
@@ -619,7 +663,7 @@ char* DLLCALL iniSetIp6Address(str_list_t* list, const char* section, const char
 					,ini_style_t* style)
 {
 	char				addrstr[INET6_ADDRSTRLEN];
-	union xp_sockaddr	addr = {0};
+	union xp_sockaddr	addr = {{0}};
 
 	addr.in6.sin6_addr = value;
 	addr.in6.sin6_family = AF_INET6;
@@ -1443,7 +1487,7 @@ static struct in6_addr parseIp6Address(const char* value)
 {
 	struct addrinfo hints = {0};
 	struct addrinfo *res, *cur;
-	struct in6_addr ret = {0};
+	struct in6_addr ret = {{{0}}};
 
 	hints.ai_flags = AI_NUMERICHOST|AI_PASSIVE;
 	if(getaddrinfo(value, NULL, &hints, &res))
@@ -1766,8 +1810,8 @@ static unsigned parseEnum(const char* value, str_list_t names)
 	FIND_WHITESPACE(p);
 	*p=0;
 
-    if((count=strListCount(names)) == 0)
-        return 0;
+	if((count=strListCount(names)) == 0)
+		return 0;
 
 	/* Look for exact matches first */
 	for(i=0; i<count; i++)
@@ -1780,8 +1824,8 @@ static unsigned parseEnum(const char* value, str_list_t names)
 			return(i);
 
     i=strtoul(val,NULL,0);
-    if(i>=count)
-        i=count-1;
+	if(i>=count)
+		i=count-1;
 	return i;
 }
 

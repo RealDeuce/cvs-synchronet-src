@@ -1,6 +1,6 @@
 object TelnetCfgDlg: TTelnetCfgDlg
-  Left = 377
-  Top = 354
+  Left = 1133
+  Top = 475
   BorderStyle = bsDialog
   Caption = 'Terminal Server Configuration'
   ClientHeight = 234
@@ -17,8 +17,8 @@ object TelnetCfgDlg: TTelnetCfgDlg
     Top = 3
     Width = 278
     Height = 186
-    ActivePage = GeneralTabSheet
-    TabIndex = 0
+    ActivePage = SshTabSheet
+    TabIndex = 3
     TabOrder = 0
     object GeneralTabSheet: TTabSheet
       Caption = 'General'
@@ -38,6 +38,14 @@ object TelnetCfgDlg: TTelnetCfgDlg
         AutoSize = False
         Caption = 'Last Node'
       end
+      object MaxConConLabel: TLabel
+        Left = 7
+        Top = 62
+        Width = 74
+        Height = 20
+        AutoSize = False
+        Caption = 'Max Con-Conn'
+      end
       object AutoStartCheckBox: TCheckBox
         Left = 148
         Top = 10
@@ -47,7 +55,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Auto Startup'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 4
+        TabOrder = 3
       end
       object FirstNodeEdit: TEdit
         Left = 85
@@ -68,7 +76,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Minimize Externals'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 5
+        TabOrder = 4
       end
       object LastNodeEdit: TEdit
         Left = 85
@@ -82,9 +90,9 @@ object TelnetCfgDlg: TTelnetCfgDlg
       end
       object HostnameCheckBox: TCheckBox
         Left = 7
-        Top = 88
+        Top = 114
         Width = 117
-        Height = 19
+        Height = 23
         Hint = 'Automatically lookup client'#39's hostname via DNS'
         Caption = 'Hostname Lookup'
         ParentShowHint = False
@@ -100,7 +108,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'QWK Msg Events'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 7
+        TabOrder = 6
       end
       object JavaScriptCheckBox: TCheckBox
         Left = 148
@@ -111,18 +119,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'JavaScript Support'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 8
-      end
-      object IdentityCheckBox: TCheckBox
-        Left = 7
-        Top = 114
-        Width = 117
-        Height = 19
-        Hint = 'Automatically lookup client'#39's identity via IDENT protocol'
-        Caption = 'Identity Lookup'
-        ParentShowHint = False
-        ShowHint = True
-        TabOrder = 3
+        TabOrder = 7
       end
       object EventsCheckBox: TCheckBox
         Left = 148
@@ -133,18 +130,41 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Caption = 'Events Enabled'
         ParentShowHint = False
         ShowHint = True
-        TabOrder = 6
+        TabOrder = 5
       end
       object DosSupportCheckBox: TCheckBox
         Left = 7
-        Top = 62
+        Top = 88
         Width = 130
-        Height = 19
+        Height = 20
         Hint = 'Attempt to execute DOS progarms (requires 32-bit OS)'
         Caption = 'DOS Program Support'
         ParentShowHint = False
         ShowHint = True
+        TabOrder = 8
+      end
+      object IdentityCheckBox: TCheckBox
+        Left = 7
+        Top = 114
+        Width = 117
+        Height = 20
+        Hint = 'Automatically lookup client'#39's identity via IDENT protocol'
+        Caption = 'Identity Lookup'
+        ParentShowHint = False
+        ShowHint = True
         TabOrder = 9
+      end
+      object MaxConConEdit: TEdit
+        Left = 85
+        Top = 62
+        Width = 39
+        Height = 21
+        Hint = 
+          'Maximum unauthenticated Concurrent Connections from same IP (0=u' +
+          'nlimited)'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 10
       end
     end
     object TelnetTabSheet: TTabSheet
@@ -156,7 +176,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Width = 78
         Height = 21
         AutoSize = False
-        Caption = 'Interface (IP)'
+        Caption = 'Interfaces (IPs)'
       end
       object TelnetPortLabel: TLabel
         Left = 7
@@ -181,10 +201,10 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 85
         Top = 36
         Width = 156
-        Height = 24
+        Height = 21
         Hint = 
-          'Enter your Network adapter'#39's static IP address here or blank for' +
-          ' <ANY>'
+          'Comma-separated list of IP addresses to accept incoming connecti' +
+          'ons'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 1
@@ -193,7 +213,7 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 85
         Top = 10
         Width = 39
-        Height = 24
+        Height = 21
         Hint = 'TCP port for incoming connections (default=23)'
         ParentShowHint = False
         ShowHint = True
@@ -241,13 +261,13 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Width = 78
         Height = 21
         AutoSize = False
-        Caption = 'Interface (IP)'
+        Caption = 'Interfaces (IPs)'
       end
       object RLoginPortEdit: TEdit
         Left = 85
         Top = 10
         Width = 39
-        Height = 24
+        Height = 21
         Hint = 'TCP port for incoming connections (default=513)'
         ParentShowHint = False
         ShowHint = True
@@ -257,10 +277,10 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 85
         Top = 36
         Width = 156
-        Height = 24
+        Height = 21
         Hint = 
-          'Enter your Network adapter'#39's static IP address here or blank for' +
-          ' <ANY>'
+          'Comma-separated list of IP addresses to accept incoming connecti' +
+          'ons'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
@@ -278,14 +298,14 @@ object TelnetCfgDlg: TTelnetCfgDlg
         OnClick = RLoginEnabledCheckBoxClick
       end
       object RLoginIPallowButton: TButton
-        Left = 158
+        Left = 8
         Top = 62
-        Width = 83
+        Width = 233
         Height = 21
         Hint = 
           'IP addresses of trusted hosts to allow unauthenticed RLogins fro' +
           'm'
-        Caption = 'Allowed IPs'
+        Caption = 'Allow Unauthenticated Logins from these IPs'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 3
@@ -309,13 +329,21 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Width = 78
         Height = 21
         AutoSize = False
-        Caption = 'Interface (IP)'
+        Caption = 'Interfaces (IPs)'
+      end
+      object SshConnectTimeoutLabel: TLabel
+        Left = 7
+        Top = 62
+        Width = 78
+        Height = 21
+        AutoSize = False
+        Caption = 'Conn Timeout'
       end
       object SshPortEdit: TEdit
         Left = 85
         Top = 10
         Width = 39
-        Height = 24
+        Height = 21
         Hint = 'TCP port for incoming connections (default=22)'
         ParentShowHint = False
         ShowHint = True
@@ -337,13 +365,23 @@ object TelnetCfgDlg: TTelnetCfgDlg
         Left = 85
         Top = 36
         Width = 156
-        Height = 24
+        Height = 21
         Hint = 
-          'Enter your Network adapter'#39's static IP address here or blank for' +
-          ' <ANY>'
+          'Comma-separated list of IP addresses to accept incoming connecti' +
+          'ons'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 2
+      end
+      object SshConnTimeoutEdit: TEdit
+        Left = 85
+        Top = 62
+        Width = 39
+        Height = 21
+        Hint = 'SSH Connection Timeout (in seconds)'
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 3
       end
     end
     object SoundTabSheet: TTabSheet
