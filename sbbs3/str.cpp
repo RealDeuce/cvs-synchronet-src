@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.75 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: str.cpp,v 1.76 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -929,11 +929,8 @@ void sbbs_t::user_info()
 
 void sbbs_t::xfer_policy()
 {
-	char	str[MAX_PATH+1];
-
 	if(!usrlibs) return;
-	sprintf(str,"%smenu/tpolicy.*", cfg.text_dir);
-	if(fexist(str))
+	if(menu_exists("tpolicy"))
 		menu("tpolicy");
 	else {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
@@ -954,10 +951,7 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	char path[MAX_PATH+1];
-
-	sprintf(path,"%smenu/%s.*",cfg.text_dir,prot_menu_file[type]);
-	if(fexistcase(path)) {
+	if(menu_exists(prot_menu_file[type])) {
 		menu(prot_menu_file[type]);
 		return;
 	}
