@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.152 2015/11/08 04:57:26 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.157 2018/01/07 23:08:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,22 +212,22 @@ enum {
 	/* READ ONLY */
 	,"message recipient name"
 	,"message recipient extension"
-	,"message recipient network type"
+	,"message recipient network address"
 	,"message recipient agent type"
 	,"message sender name"
 	,"message sender extension"
-	,"message sender network type"
+	,"message sender network address"
 	,"message sender agent type"
 	,"message reply-to name"
 	,"message reply-to extension"
-	,"message reply-to network type"
+	,"message reply-to network address"
 	,"message reply-to agent type"
 	,"message subject"
 	,"message date/time"
 	,"message time zone"
 	,"message date/time imported"
 	,"message attributes"
-	,"message auxillary attributes"
+	,"message auxiliary attributes"
 	,"message network attributes"
 	,"message header offset"
 	,"message number (unique, monotonically incrementing)"
@@ -456,7 +456,7 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				p=sbbs->cfg.sub[sbbs->smb.subnum]->code;
 			break;
 		case BBS_PROP_SMB_SUB_NUM:
-			if(sbbs->smb.subnum!=INVALID_SUB && sbbs->smb.subnum<sbbs->cfg.total_subs) {
+			if(sbbs->usrsubs && sbbs->smb.subnum!=INVALID_SUB && sbbs->smb.subnum<sbbs->cfg.total_subs) {
 				uint ugrp;
 				for(ugrp=0;ugrp<sbbs->usrgrps;ugrp++)
 					if(sbbs->usrgrp[ugrp]==sbbs->cfg.sub[sbbs->smb.subnum]->grp)
@@ -1195,7 +1195,9 @@ js_user_event(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv = JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
+	char*		sys_pw = NULL;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -1203,8 +1205,13 @@ js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
+	if (argc) {
+		JSString* str = JS_ValueToString(cx, argv[0]);
+		JSSTRING_TO_ASTRING(cx, str, sys_pw, sizeof(sbbs->cfg.sys_pass)+2, NULL);
+	}
+
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chksyspass()));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chksyspass(sys_pw)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1679,9 +1686,13 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		name;
-	char*		pw;
+	char*		pw_prompt = NULL;
+	char*		user_pw = NULL;
+	char*		sys_pw = NULL;
 	JSString*	js_name;
-	JSString*	js_pw;
+	JSString*	js_pw_prompt = NULL;
+	JSString*	js_user_pw = NULL;
+	JSString*	js_sys_pw = NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1696,21 +1707,27 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_name=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if((js_pw=JS_ValueToString(cx, argv[1]))==NULL) 
-		return(JS_FALSE);
+	if(argc > 1)
+		js_pw_prompt = JS_ValueToString(cx, argv[1]);
+	if(argc > 2)
+		js_user_pw = JS_ValueToString(cx, argv[2]);
+	if(argc > 3)
+		js_sys_pw = JS_ValueToString(cx, argv[3]);
 
 	JSSTRING_TO_ASTRING(cx, js_name, name, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
 	if(name==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_pw, pw, NULL);
-	if(pw==NULL) 
-		return(JS_FALSE);
+	JSSTRING_TO_MSTRING(cx, js_pw_prompt, pw_prompt, NULL);
+	JSSTRING_TO_MSTRING(cx, js_user_pw, user_pw, NULL);
+	JSSTRING_TO_MSTRING(cx, js_sys_pw, sys_pw, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw_prompt,user_pw,sys_pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
 	JS_RESUMEREQUEST(cx, rc);
-	free(pw);
+	FREE_AND_NULL(pw_prompt);
+	FREE_AND_NULL(user_pw);
+	FREE_AND_NULL(sys_pw);
 	return(JS_TRUE);
 }
 
@@ -3521,8 +3538,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive new user procedure")
 	,310
 	},
-	{"login",			js_login,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name, password_prompt")
-	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for password (if required)")
+	{"login",			js_login,			4,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name [,password_prompt] [,user_password] [,system_password]")
+	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for user's password (if required), "
+	"optionally supplying the user's password and the system password as arguments so as to not be prompted")
 	,310
 	},
 	{"logon",			js_logon,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
@@ -3774,8 +3792,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,316
 	},		
 	/* security */
-	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
-	,JSDOCSTR("prompt for and verify system password")
+	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[sys_pw]")
+	,JSDOCSTR("verify system password, prompting for the password if not passed as an argument")
 	,310
 	},
 	{"good_password",	js_chkpass,			1,	JSTYPE_STRING,	JSDOCSTR("password")

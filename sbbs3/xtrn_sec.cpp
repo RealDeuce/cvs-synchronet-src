@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.79 2015/11/25 12:31:50 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.82 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,7 @@ int sbbs_t::xtrn_sec()
 			return(1); 
 		}
 		if(usrxsecs>1) {
-			sprintf(str,"%smenu/xtrn_sec.*",cfg.text_dir);
-			if(fexist(str)) {
+			if(menu_exists("xtrn_sec")) {
 				menu("xtrn_sec");
 				xsec=getnum(usrxsecs);
 				if(xsec<=0)
@@ -125,9 +124,8 @@ int sbbs_t::xtrn_sec()
 				pause();
 				break; 
 			}
-			sprintf(str,"%smenu/xtrn%u.*",cfg.text_dir,xsec+1);
-			if(fexist(str)) {
-				sprintf(str,"xtrn%u",xsec+1);
+			sprintf(str,"xtrn%u",xsec+1);
+			if(menu_exists(str)) {
 				menu(str); 
 			}
 			else {
@@ -173,9 +171,8 @@ int sbbs_t::xtrn_sec()
 			if((l=getnum(usrxtrns))<1)
 				break;
 			l--;
-			sprintf(str,"%smenu/xtrn/%s.*",cfg.text_dir,cfg.xtrn[usrxtrn[l]]->code);
-			if(fexist(str)) {
-				sprintf(str,"xtrn/%s",cfg.xtrn[usrxtrn[l]]->code);
+			sprintf(str,"xtrn/%s",cfg.xtrn[usrxtrn[l]]->code);
+			if(menu_exists(str)) {
 				menu(str);
 				lncntr=0;
 			}
@@ -430,7 +427,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		write(file,str,strlen(str));
 
 		sprintf(str,"%s\n%s\n%d\n%s\n%lu\n%s\n%s\n%s\n%s\n"
-			"%"PRIx32"\n%d\n"
+			"%" PRIx32 "\n%d\n"
 			,ltoaf(useron.flags3,tmp)			/* Flag set #3 */
 			,ltoaf(useron.flags4,tmp2)			/* Flag set #4 */
 			,0									/* Time-slice type */
@@ -1161,7 +1158,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if((p=strchr(tmp,' '))!=NULL)
 			*p=0;
 
-		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%"PRId32"\n"
+		sprintf(str,"%u\n%s\n%s\n%s\n%lu\n%u\n%lu\n%" PRId32 "\n"
 			,useron.number						/* User number */
 			,name								/* User name */
 			,useron.pass						/* Password */
@@ -1180,7 +1177,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 			l=((((long)tm.tm_hour*60L)+(long)tm.tm_min)*60L)
 				+(long)tm.tm_sec;
 
-		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%"PRId32"\n%lu\n%s\n"
+		sprintf(str,"%s\n%s\n%u\n%u\n%u\n%u\n%" PRId32 "\n%lu\n%s\n"
 			"%s\n%s\n%lu\n%s\n%u\n%u\n%u\n%u\n%u\n%lu\n%u\n"
 			"%lu\n%lu\n%s\n%s\n"
 			,dropdir
@@ -1704,14 +1701,11 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 
 	sprintf(str,"%sINTRSBBS.DAT"
 			,cfg.xtrn[xtrnnum]->path[0] ? cfg.xtrn[xtrnnum]->path : cfg.node_dir);
-	if(fexistcase(str))
-		remove(str);
+	removecase(str);
 	sprintf(str,"%shangup.now",cfg.node_dir);
-	if(fexistcase(str))
-		remove(str);
+	removecase(str);
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
-	if(fexistcase(str))
-		remove(str);
+	removecase(str);
 
 	mode=0; 	
 	if(cfg.xtrn[xtrnnum]->misc&XTRN_SH)
@@ -1722,8 +1716,8 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		mode|=EX_CONIO;
 	mode|=(cfg.xtrn[xtrnnum]->misc&(XTRN_CHKTIME|XTRN_NATIVE|XTRN_NOECHO|WWIVCOLOR));
 	if(cfg.xtrn[xtrnnum]->misc&MODUSERDAT) {		/* Delete MODUSER.DAT */
-		sprintf(str,"%sMODUSER.DAT",dropdir);       /* if for some weird  */
-		remove(str); 								/* reason it's there  */
+		SAFEPRINTF(str,"%sMODUSER.DAT",dropdir);	/* if for some weird  */
+		removecase(str);							/* reason it's there  */
 	}
 
 	start=time(NULL);
@@ -1753,7 +1747,7 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 	if(fexistcase(str)) {
 		lprintf(LOG_NOTICE,"Node %d External program requested hangup (%s signaled)"
 			,cfg.node_num, str);
-		remove(str);
+		removecase(str);
 		hangup(); 
 	}
 	else if(!online) {
