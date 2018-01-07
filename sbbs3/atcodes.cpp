@@ -1,8 +1,6 @@
-/* atcodes.cpp */
-
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.69 2015/12/10 20:01:14 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.78 2017/11/15 10:39:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +54,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	padded_left=false;
 	bool	padded_right=false;
 	bool	centered=false;
+	bool	zero_padded=false;
 	const char *cp;
 
 	SAFECOPY(str,instr);
@@ -76,6 +75,8 @@ int sbbs_t::show_atcode(const char *instr)
 		padded_right=true;
 	else if((p=strstr(sp,"-C"))!=NULL)
 		centered=true;
+	else if((p=strstr(sp,"-Z"))!=NULL)
+		zero_padded=true;
 	if(p!=NULL) {
 		if(*(p+2) && isdigit(*(p+2)))
 			disp_len=atoi(p+2);
@@ -96,7 +97,13 @@ int sbbs_t::show_atcode(const char *instr)
 			int left = (disp_len - vlen) / 2;
 			bprintf("%*s%-*s", left, "", disp_len - left, cp);
 		} else
-			bputs(cp);
+			bprintf("%.*s", disp_len, cp);
+	} else if(zero_padded) {
+		int vlen = strlen(cp);
+		if(vlen < disp_len)
+			bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+		else
+			bprintf("%.*s", disp_len, cp);
 	} else
 		bputs(cp);
 
@@ -662,6 +669,26 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
+	if(!strcmp(sp,"HOME")) {
+		cursor_home();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLRLINE")) {
+		clearline();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLR2EOL")) {
+		cleartoeol();
+		return(nulstr);
+	}
+
+	if(!strcmp(sp,"CLR2EOS")) {
+		cleartoeos();
+		return(nulstr);
+	}
+
 	if(!strncmp(sp,"UP:",3)) {
 		cursor_up(atoi(sp+3));
 		return(str);
@@ -859,22 +886,32 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 
 	if(!strcmp(sp,"MAILW")) {
-		safe_snprintf(str,maxlen,"%u",getmail(&cfg,useron.number,0));
+		safe_snprintf(str,maxlen,"%u",getmail(&cfg,useron.number, /* Sent: */FALSE, /* attr: */0));
 		return(str);
 	}
 
 	if(!strcmp(sp,"MAILP")) {
-		safe_snprintf(str,maxlen,"%u",getmail(&cfg,useron.number,1));
+		safe_snprintf(str,maxlen,"%u",getmail(&cfg,useron.number,/* Sent: */TRUE, /* attr: */0));
+		return(str);
+	}
+
+	if(!strcmp(sp,"SPAMW")) {
+		safe_snprintf(str,maxlen,"%u",getmail(&cfg,useron.number, /* Sent: */FALSE, /* attr: */MSG_SPAM));
 		return(str);
 	}
 
 	if(!strncmp(sp,"MAILW:",6)) {
-		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6),0));
+		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */0));
 		return(str);
 	}
 
 	if(!strncmp(sp,"MAILP:",6)) {
-		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6),1));
+		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */TRUE, /* attr: */0));
+		return(str);
+	}
+
+	if(!strncmp(sp,"SPAMW:",6)) {
+		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */MSG_SPAM));
 		return(str);
 	}
 
@@ -998,18 +1035,23 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_TIMEZONE") && current_msg!=NULL)
 		return(smb_zonestr(current_msg->hdr.when_written.zone,NULL));
 	if(!strcmp(sp,"MSG_ATTR") && current_msg!=NULL) {
-		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s%s"
-			,current_msg->hdr.attr&MSG_PRIVATE		? "Private  "   :nulstr
-			,current_msg->hdr.attr&MSG_READ			? "Read  "      :nulstr
-			,current_msg->hdr.attr&MSG_DELETE		? "Deleted  "   :nulstr
-			,current_msg->hdr.attr&MSG_KILLREAD		? "Kill  "      :nulstr
-			,current_msg->hdr.attr&MSG_ANONYMOUS	? "Anonymous  " :nulstr
-			,current_msg->hdr.attr&MSG_LOCKED		? "Locked  "    :nulstr
-			,current_msg->hdr.attr&MSG_PERMANENT	? "Permanent  " :nulstr
-			,current_msg->hdr.attr&MSG_MODERATED	? "Moderated  " :nulstr
-			,current_msg->hdr.attr&MSG_VALIDATED	? "Validated  " :nulstr
-			,current_msg->hdr.attr&MSG_REPLIED		? "Replied  "	:nulstr
-			,current_msg->hdr.attr&MSG_NOREPLY		? "NoReply  "	:nulstr
+		uint16_t attr = current_msg->hdr.attr;
+		uint16_t poll = attr&MSG_POLL_VOTE_MASK;
+		uint32_t auxattr = current_msg->hdr.auxattr;
+		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s%s%s%s"
+			,attr&MSG_PRIVATE						? "Private  "   :nulstr
+			,attr&MSG_READ							? "Read  "      :nulstr
+			,attr&MSG_DELETE						? "Deleted  "   :nulstr
+			,attr&MSG_KILLREAD						? "Kill  "      :nulstr
+			,attr&MSG_ANONYMOUS						? "Anonymous  " :nulstr
+			,attr&MSG_LOCKED						? "Locked  "    :nulstr
+			,attr&MSG_PERMANENT						? "Permanent  " :nulstr
+			,attr&MSG_MODERATED						? "Moderated  " :nulstr
+			,attr&MSG_VALIDATED						? "Validated  " :nulstr
+			,attr&MSG_REPLIED						? "Replied  "	:nulstr
+			,attr&MSG_NOREPLY						? "NoReply  "	:nulstr
+			,poll == MSG_POLL						? "Poll  "		:nulstr
+			,poll == MSG_POLL && auxattr&POLL_CLOSED	? "(Closed)  "	:nulstr
 			);
 		return(str);
 	}
@@ -1053,6 +1095,28 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%lu",current_msg->hdr.number);
 		return(str);
 	}
+	if(!strcmp(sp,"MSG_SCORE") && current_msg!=NULL) {
+		safe_snprintf(str, maxlen, "%ld", current_msg->upvotes - current_msg->downvotes);
+		return(str);
+	}
+	if(!strcmp(sp,"MSG_UPVOTES") && current_msg!=NULL) {
+		safe_snprintf(str, maxlen, "%lu", current_msg->upvotes);
+		return(str);
+	}
+	if(!strcmp(sp,"MSG_DOWNVOTES") && current_msg!=NULL) {
+		safe_snprintf(str, maxlen, "%lu", current_msg->downvotes);
+		return(str);
+	}
+	if(!strcmp(sp,"MSG_TOTAL_VOTES") && current_msg!=NULL) {
+		safe_snprintf(str, maxlen, "%lu", current_msg->total_votes);
+		return(str);
+	}
+	if(!strcmp(sp,"MSG_VOTED"))
+		return (current_msg != NULL && current_msg->user_voted) ? text[PollAnswerChecked] : nulstr;
+	if(!strcmp(sp,"MSG_UPVOTED"))
+		return (current_msg != NULL && current_msg->user_voted == 1) ? text[PollAnswerChecked] : nulstr;
+	if(!strcmp(sp,"MSG_DOWNVOTED"))
+		return (current_msg != NULL && current_msg->user_voted == 2) ? text[PollAnswerChecked] : nulstr;
 
 	if(!strcmp(sp,"SMB_AREA")) {
 		if(smb.subnum!=INVALID_SUB && smb.subnum<cfg.total_subs)

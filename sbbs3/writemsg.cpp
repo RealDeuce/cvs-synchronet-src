@@ -1,8 +1,6 @@
-/* writemsg.cpp */
-
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.112 2015/12/04 10:06:05 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.118 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -781,8 +779,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
 
-	SAFEPRINTF(path,"%smenu/msgtabs.*", cfg.text_dir);
-	if(fexist(path))
+	if(menu_exists("msgtabs"))
 		menu("msgtabs");
 	else {
 		for(i=0;i<79;i++) {
@@ -1209,7 +1206,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_close_da(&smb);
 
 
-	if((i=smb_addmsghdr(&smb,msg,SMB_SELFPACK))!=SMB_SUCCESS) {
+	if((i=smb_addmsghdr(&smb,msg,smb_storage_mode(&cfg, &smb)))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		smb_freemsg_dfields(&smb,msg,1);
 		return; 
@@ -1537,48 +1534,57 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 	return(true);
 }
 
-ushort sbbs_t::chmsgattr(ushort attr)
+ushort sbbs_t::chmsgattr(smbmsg_t msg)
 {
 	int ch;
 
 	while(online && !(sys_status&SS_ABORT)) {
 		CRLF;
-		show_msgattr(attr);
+		show_msgattr(&msg);
 		menu("msgattr");
 		ch=getkey(K_UPPER);
 		if(ch)
 			bprintf("%c\r\n",ch);
 		switch(ch) {
 			case 'P':
-				attr^=MSG_PRIVATE;
+				msg.hdr.attr^=MSG_PRIVATE;
+				break;
+			case 'S':
+				msg.hdr.attr^=MSG_SPAM;
 				break;
 			case 'R':
-				attr^=MSG_READ;
+				msg.hdr.attr^=MSG_READ;
 				break;
 			case 'K':
-				attr^=MSG_KILLREAD;
+				msg.hdr.attr^=MSG_KILLREAD;
 				break;
 			case 'A':
-				attr^=MSG_ANONYMOUS;
+				msg.hdr.attr^=MSG_ANONYMOUS;
 				break;
 			case 'N':   /* Non-purgeable */
-				attr^=MSG_PERMANENT;
+				msg.hdr.attr^=MSG_PERMANENT;
 				break;
 			case 'M':
-				attr^=MSG_MODERATED;
+				msg.hdr.attr^=MSG_MODERATED;
 				break;
 			case 'V':
-				attr^=MSG_VALIDATED;
+				msg.hdr.attr^=MSG_VALIDATED;
 				break;
 			case 'D':
-				attr^=MSG_DELETE;
+				msg.hdr.attr^=MSG_DELETE;
 				break;
 			case 'L':
-				attr^=MSG_LOCKED;
+				msg.hdr.attr^=MSG_LOCKED;
+				break;
+			case 'C':
+				msg.hdr.attr^=MSG_NOREPLY;
+				break;
+			case 'E':
+				msg.hdr.attr^=MSG_REPLIED;
 				break;
 			default:
-				return(attr); 
+				return(msg.hdr.attr); 
 		} 
 	}
-	return(attr);
+	return(msg.hdr.attr);
 }
