@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.205 2018/02/01 08:27:00 deuce Exp $ */
+/* $Id: syncterm.c,v 1.202 2017/01/25 08:11:30 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1261,6 +1261,7 @@ int main(int argc, char **argv)
 	str_list_t	inifile;
 	FILE *listfile;
 	char	*inpath=NULL;
+	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
@@ -1611,6 +1612,7 @@ int main(int argc, char **argv)
 						}
 					}
 				}
+				free(bbs);
 			}
 			bbs=NULL;
 			break;
@@ -1665,11 +1667,7 @@ int main(int argc, char **argv)
 		if(i >= txtinfo.screenheight-1) {
 			textattr(WHITE);
 			cputs("<Press A Key>");
-			switch(getch()) {
-				case 0:
-				case 0xe0:
-					getch();
-			}
+			getch();
 			textattr(LIGHTGRAY);
 			gotoxy(1, txtinfo.screenheight);
 			delline();
@@ -1678,11 +1676,7 @@ int main(int argc, char **argv)
 	}
 	textattr(WHITE);
 	cputs("<Press A Key to Exit>");
-	switch(getch()) {
-		case 0:
-		case 0xe0:
-			getch();
-	}
+	getch();
 	textattr(LIGHTGRAY);
 	return(0);
 }
