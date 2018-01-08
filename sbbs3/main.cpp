@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.658 2017/11/28 09:34:08 rswindell Exp $ */
+/* $Id: main.cpp,v 1.659 2018/01/08 05:01:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3155,6 +3155,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
+	lastlinelen=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
