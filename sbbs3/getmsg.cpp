@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.70 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.71 2018/01/09 00:54:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -161,7 +161,9 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			,timestr(msg->hdr.when_written.time)
 			,smb_zonestr(msg->hdr.when_written.zone,NULL)
 			,age_of_posted_item(age, sizeof(age), msg->hdr.when_written.time - (smb_tzutc(msg->hdr.when_written.zone) * 60)));
-		CRLF;
+		if(column)
+			CRLF;
+		CRLF;	 // use a custom header file if you don't want a blank line separating the header and body
 	}
 	for(i=0;i<msg->total_hfields;i++) {
 		if(msg->hfield[i].type==SENDER)
@@ -170,7 +172,6 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			bprintf(text[ForwardedFrom],sender
 				,timestr(*(time32_t *)msg->hfield_dat[i])); 
 	}
-	CRLF;
 }
 
 /****************************************************************************/
