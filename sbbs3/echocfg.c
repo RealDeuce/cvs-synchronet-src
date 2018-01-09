@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.23 2017/11/24 22:06:41 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.26 2017/12/11 06:53:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -438,14 +438,21 @@ int main(int argc, char **argv)
 	"FidoNet-style nodes (uplinks and downlinks).\n"
 	"\n"
 	"A single node configuration can represent one node or a collection\n"
-	"of nodes, by using the `ALL` wildcard word."
+	"of nodes, by using the `ALL` wildcard word.\n"
+	"\n"
+	"The hexadecimal numbers in parentheses are provided as an aide when\n"
+	"correlating FidoNet files and BSO directories with node numbers."
 	;
 
 					for(u=0;u<cfg.nodecfgs;u++) {
 						char hexaddr[16] = "";
-						if(!faddr_contains_wildcard(&cfg.nodecfg[u].addr))
-							sprintf(hexaddr, "(%04hx%04hx)", cfg.nodecfg[u].addr.net,cfg.nodecfg[u].addr.node);
-						snprintf(opt[u], MAX_OPLN-1, "%-16s %10s  %s"
+						if(cfg.nodecfg[u].addr.zone != 0xffff) {
+							if(!faddr_contains_wildcard(&cfg.nodecfg[u].addr))
+								sprintf(hexaddr, "(%04hx%04hx)", cfg.nodecfg[u].addr.net,cfg.nodecfg[u].addr.node);
+							else
+								sprintf(hexaddr, "(.%03X)", cfg.nodecfg[u].addr.zone);
+						}
+						snprintf(opt[u], MAX_OPLN-1, "%-16s %-10s  %s"
 							,faddrtoa(&cfg.nodecfg[u].addr), hexaddr
 							,cfg.nodecfg[u].name[0] ? cfg.nodecfg[u].name : cfg.nodecfg[u].comment);
 					}
@@ -549,7 +556,7 @@ int main(int argc, char **argv)
 	"    This setting may be managed by the node using AreaFix requests.\n"
 	"\n"
 	"`TIC File Password` is an optional password that may be configured here\n"
-	"    (and in your `sbbsecho.ini` file) for use by `ticket.js` when creating\n"
+	"    (and in your `sbbsecho.ini` file) for use by `tickit.js` when creating\n"
 	"    or authenticating `.TIC` files.\n"
 	"    This setting may be managed by the node using AreaFix requests.\n"
 	"\n"
@@ -728,7 +735,7 @@ int main(int argc, char **argv)
 							case __COUNTER__:
 	uifc.helpbuf=
 	"~ TIC File Password ~\n\n"
-	"This is an optional password that ticket.js will use for creating\n"
+	"This is an optional password that tickit.js will use for creating\n"
 	"and authenticating `.TIC` files to/from this node.\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"TIC File Password (optional)"
@@ -1602,8 +1609,6 @@ int main(int argc, char **argv)
 						for(j=cfg.arcdefs;j>i;j--)
 							memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1]
 								,sizeof(arcdef_t));
-							strcpy(cfg.arcdef[j].name
-								,cfg.arcdef[j-1].name);
 						cfg.arcdefs++;
 						memset(&cfg.arcdef[i],0,sizeof(arcdef_t));
 						strcpy(cfg.arcdef[i].name,str);
