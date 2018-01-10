@@ -1,10 +1,10 @@
-/* $Id: cterm.h,v 1.43 2018/01/30 09:06:23 deuce Exp $ */
+/* $Id: cterm.h,v 1.38 2015/02/27 10:42:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -72,14 +72,10 @@ typedef enum {
 #define CTERM_LOG_MASK	0x7f
 #define CTERM_LOG_PAUSED	0x80
 
-#define CTERM_NO_SETFONT_REQUESTED	99
-
 struct cterminal {
 	/* conio stuff */
 	int	x;		// X position of the left side on the screen
 	int	y;		// Y position of the top pn the screen
-	int setfont_result;
-	int altfont[4];	// The font slots successfully assigned to the 4 alt-font styles/attributes
 
 	/* emulation mode */
 	cterm_emulation_t	emulation;
@@ -98,7 +94,7 @@ struct cterminal {
 #define	CTERM_SAVEMODE_ALTCHARS			0x004
 #define CTERM_SAVEMODE_NOBRIGHT			0x008
 #define CTERM_SAVEMODE_BGBRIGHT			0x010
-	// 0x010 was CTERM_SAVEMODE_DOORWAY
+#define CTERM_SAVEMODE_DOORWAY			0x020
 #define CTERM_SAVEMODE_ORIGIN			0x040
 #define	CTERM_SAVEMODE_BLINKALTCHARS	0x080
 #define CTERM_SAVEMODE_NOBLINK			0x100
@@ -112,15 +108,6 @@ struct cterminal {
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
-	int					string;
-#define CTERM_STRING_APC	1
-#define CTERM_STRING_DCS	2
-#define CTERM_STRING_OSC	3
-#define CTERM_STRING_PM		4
-#define CTERM_STRING_SOS	5
-	char				*strbuf;
-	size_t				strbuflen;
-	size_t				strbufsize;
 	char				escbuf[1024];
 	cterm_music_t		music_enable;	// The remotely/locally controled music state
 	char				musicbuf[1024];
@@ -145,7 +132,7 @@ struct cterminal {
 	int					font_size;		// Bytes
 	int					doorway_mode;
 	int					doorway_char;	// Indicates next char is a "doorway" mode char
-	int					cursor;			// Current cursor mode (Normal or None)
+	int					cursor;			// Current cursor mode (Normal or None)z
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
@@ -200,7 +187,7 @@ extern "C" {
 #endif
 
 CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
-CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
+CIOLIBEXPORT char CIOLIBCALL *cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
 CIOLIBEXPORT int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
 CIOLIBEXPORT void CIOLIBCALL cterm_closelog(struct cterminal *cterm);
 CIOLIBEXPORT void CIOLIBCALL cterm_end(struct cterminal *cterm);
