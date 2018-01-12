@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.62 2017/10/12 09:05:13 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.64 2017/12/10 12:05:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -222,7 +222,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	bool		success=false;
 	uint16_t	net_type;
 	ushort		xlat=XLAT_NONE;
-	int			storage=SMB_SELFPACK;
 	long		dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	str_list_t	kludges;
 
@@ -255,8 +254,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		msg->hdr.thread_back=atol((char *)hdrblk+108);
 
 	if(subnum==INVALID_SUB) { 		/* E-mail */
-		if(cfg.sys_misc&SM_FASTMAIL)
-			storage=SMB_FASTALLOC;
 
 		/* duplicate message-IDs must be allowed in mail database */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
@@ -264,10 +261,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		sprintf(str,"%u",touser);
 		smb_hfield_str(msg,RECIPIENTEXT,str); 
 	} else {
-		if(cfg.sub[subnum]->misc&SUB_HYPER)
-			storage = SMB_HYPERALLOC;
-		else if(cfg.sub[subnum]->misc&SUB_FAST)
-			storage = SMB_FASTALLOC;
 
 		if(cfg.sub[subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
@@ -309,7 +302,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			continue;
 		if(bodylen==0 
 			&& (qwkbuf[k]=='@' 
-				|| (((useron.qwk&QWK_EXT) || subnum==INVALID_SUB)
+				|| ((fromhub || (useron.qwk&QWK_EXT) || subnum==INVALID_SUB)
 					&& (strnicmp(qwkbuf+k,"To:",3)==0 
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
@@ -462,7 +455,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	if(smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 
-	if((i=smb_addmsg(&smb,msg,storage,dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
+	if((i=smb_addmsg(&smb,msg,smb_storage_mode(&cfg, &smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
 		success=true;
 	else if(i==SMB_DUPE_MSG) {
 		bprintf("\r\n!%s\r\n",smb.last_error);
