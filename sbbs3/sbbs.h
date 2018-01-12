@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.467 2018/02/05 06:07:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.463 2018/01/12 07:53:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -347,10 +347,7 @@ public:
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
 
-	#define OUTCOM_RETRY_DELAY		80		// milliseconds
-	#define OUTCOM_RETRY_ATTEMPTS	1000	// 80 seconds
-	int 	_outcom(uchar ch); 	   // send character, without retry (on buffer flow condition)
-	int		outcom(uchar ch, int max_attempts = OUTCOM_RETRY_ATTEMPTS);		// send character, with retry
+	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
 
 	void	spymsg(const char *msg);		// send message to active spies
@@ -455,8 +452,7 @@ public:
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
 	long	lastlinelen;	/* The previously displayed line length */
-	long 	autoterm;		/* Auto-detected terminal type */
-	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
+	long 	autoterm;		/* Autodetected terminal type */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
 	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
@@ -467,7 +463,6 @@ public:
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
-			last_sysop_auth,/* Time sysop was last authenticated */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -525,7 +520,6 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
-	file_t*		current_file;	
 
 			/* Global command shell variables */
 	uint	global_str_vars;
@@ -595,8 +589,6 @@ public:
 	void	getusrdirs(void);
 	uint	getusrsub(uint subnum);
 	uint	getusrgrp(uint subnum);
-	uint	getusrdir(uint dirnum);
-	uint	getusrlib(uint dirnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del=false, bool next=false);
@@ -604,10 +596,8 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t);
-	char*	datestr(time_t);
+	char*	timestr(time_t intime);
     char	timestr_output[60];
-	char	datestr_output[60];
 	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);

@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.73 2018/01/12 22:21:50 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.71 2018/01/09 00:54:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -88,7 +88,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 	return msg->total_hfields;
 }
 
-/* Synchronized with atcode()! */
+
 void sbbs_t::show_msgattr(smbmsg_t* msg)
 {
 	uint16_t attr = msg->hdr.attr;
@@ -161,7 +161,9 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 			,timestr(msg->hdr.when_written.time)
 			,smb_zonestr(msg->hdr.when_written.zone,NULL)
 			,age_of_posted_item(age, sizeof(age), msg->hdr.when_written.time - (smb_tzutc(msg->hdr.when_written.zone) * 60)));
-		bputs(text[MsgHdrBodySeparator]);
+		if(column)
+			CRLF;
+		CRLF;	 // use a custom header file if you don't want a blank line separating the header and body
 	}
 	for(i=0;i<msg->total_hfields;i++) {
 		if(msg->hfield[i].type==SENDER)
