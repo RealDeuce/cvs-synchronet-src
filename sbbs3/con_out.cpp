@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.77 2018/01/08 05:01:46 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.78 2018/01/12 08:36:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -512,6 +512,10 @@ void sbbs_t::ctrl_a(char x)
 			break;
 		case '<':   /* Non-destructive backspace */
 			outchar(BS);
+			break;
+		case '/':	/* Conditional new-line */
+			if(column > 0)
+				CRLF;
 			break;
 		case '[':   /* Carriage return */
 			outchar(CR);
