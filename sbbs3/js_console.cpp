@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.110 2018/01/07 23:15:58 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.111 2018/01/12 22:23:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1733,8 +1733,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a string based on template")
 	,310
 	},		
-	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("put a string in the keyboard buffer")
+	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("keys")
+	,JSDOCSTR("put a data (e.g. a string of characters) in the keyboard input buffer")
 	,310
 	},		
 	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
