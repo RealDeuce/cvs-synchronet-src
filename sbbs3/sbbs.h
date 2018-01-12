@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.462 2018/01/08 05:01:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.463 2018/01/12 07:53:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -822,7 +822,7 @@ public:
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
-	bool	checkdszlog(file_t*);
+	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
 	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
 	bool	recvfile(char* fname, char prot=0);
