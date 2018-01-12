@@ -2,13 +2,13 @@
 
 /* Synchronet RFC822 message date/time string conversion routines */
 
-/* $Id: msgdate.c,v 1.5 2018/02/20 11:56:27 rswindell Exp $ */
+/* $Id: msgdate.c,v 1.4 2011/10/16 12:29:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
