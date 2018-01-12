@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.39 2018/01/31 19:58:49 deuce Exp $ */
+/* $Id: x_cio.c,v 1.37 2015/04/30 00:14:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,19 +149,6 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	if(ypos)
 		*ypos=x11_window_ypos;
 	
-	return(0);
-}
-
-int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
-{
-	struct x11_local_event ev;
-
-	ev.type=X11_LOCAL_SETPALETTE;
-	ev.data.palette.index = entry;
-	ev.data.palette.r = r;
-	ev.data.palette.g = g;
-	ev.data.palette.b = b;
-	while(write(local_pipe[1], &ev, sizeof(ev))==-1);
 	return(0);
 }
 
@@ -373,10 +360,6 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
-	if((x11.XFreeColors=xp_dlsym(dl,XFreeColors))==NULL) {
-		xp_dlclose(dl);
-		return(-1);
-	}
 
 	if(sem_init(&pastebuf_set, 0, 0)) {
 		xp_dlclose(dl);
@@ -425,7 +408,7 @@ int x_init(void)
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
+void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *data)
 {
 	struct x11_local_event ev;
 
