@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.73 2018/01/12 22:21:50 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.72 2018/01/12 08:48:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -88,7 +88,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 	return msg->total_hfields;
 }
 
-/* Synchronized with atcode()! */
+
 void sbbs_t::show_msgattr(smbmsg_t* msg)
 {
 	uint16_t attr = msg->hdr.attr;

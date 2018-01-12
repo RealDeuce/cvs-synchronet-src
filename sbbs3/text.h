@@ -809,8 +809,6 @@ enum {
 	,VoteInThisPollNow
 	,MIMEDecodedPlainText
 	,MsgHdrBodySeparator
-	,FileHdrDescSeparator
-	,RemoveFileQ
 
 	,TOTAL_TEXT
 };
