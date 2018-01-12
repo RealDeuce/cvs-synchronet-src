@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.76 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.78 2018/01/12 08:36:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,17 +239,26 @@ void sbbs_t::outchar(char ch)
 	if(!outchar_esc) {
 		if((uchar)ch>=' ')
 			column++;
-		else if(ch=='\r')
+		else if(ch=='\r') {
+			lastlinelen = column;
 			column=0;
+		}
 		else if(ch=='\b') {
 			if(column)
 				column--;
 		}
+		else if(ch=='\t') {
+			column++;
+			while(column%8)
+				column++;
+		}
 	}
 	if(ch==LF || column>=cols) {
-		lncntr++;
+		if(lncntr || lastlinelen)
+			lncntr++;
 		lbuflen=0;
 		tos=0;
+		lastlinelen = column;
 		column=0;
 	} else if(ch==FF) {
 		lncntr=0;
@@ -503,6 +512,10 @@ void sbbs_t::ctrl_a(char x)
 			break;
 		case '<':   /* Non-destructive backspace */
 			outchar(BS);
+			break;
+		case '/':	/* Conditional new-line */
+			if(column > 0)
+				CRLF;
 			break;
 		case '[':   /* Carriage return */
 			outchar(CR);
