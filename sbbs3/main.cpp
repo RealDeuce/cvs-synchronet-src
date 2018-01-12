@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.653 2017/11/15 10:39:52 rswindell Exp $ */
+/* $Id: main.cpp,v 1.659 2018/01/08 05:01:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -213,6 +213,18 @@ int sbbs_t::lputs(int level, const char* str)
 	if(cfg.node_num == 0)
 		return ::eputs(level, str);
 	return ::lputs(level, str);
+}
+
+int sbbs_t::lprintf(int level, const char *fmt, ...)
+{
+	va_list argptr;
+	char sbuf[1024];
+
+    va_start(argptr,fmt);
+    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;
+    va_end(argptr);
+    return(lputs(level,sbuf));
 }
 
 struct main_sock_cb_data {
@@ -3059,6 +3071,8 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	if(node_num>0) {
 		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
+		SAFEPRINTF2(syspage_semfile, "%ssyspage.%u", cfg.ctrl_dir, node_num);
+		remove(syspage_semfile);
 	} else {	/* event thread needs exclusive-use temp_dir */
 		if(startup->temp_dir[0])
 			SAFECOPY(cfg.temp_dir,startup->temp_dir);
@@ -3141,6 +3155,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
+	lastlinelen=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3563,6 +3578,9 @@ sbbs_t::~sbbs_t()
 		logfile_fp=NULL;
 	}
 
+	if(syspage_semfile[0])
+		remove(syspage_semfile);
+
 	/********************************/
 	/* Free allocated class members */
 	/********************************/
@@ -3882,7 +3900,7 @@ int sbbs_t::putcom(const char *str, size_t len)
 	if(!len)
 		len=strlen(str);
     for(i=0;i<len && online;i++)
-        if(outcom(str[i])!=0)
+		if(outcom(str[i])!=0)
 			break;
 	return i;
 }
@@ -3998,10 +4016,10 @@ void sbbs_t::reset_logon_vars(void)
     batdn_total=batup_total=0;
     usrgrps=usrlibs=0;
     curgrp=curlib=0;
-    for(i=0;i<cfg.total_libs;i++)
-        curdir[i]=0;
-    for(i=0;i<cfg.total_grps;i++)
-        cursub[i]=0;
+	for(i=0;i<cfg.total_libs;i++)
+		curdir[i]=0;
+	for(i=0;i<cfg.total_grps;i++)
+		cursub[i]=0;
 	cur_cps=3000;
     cur_rate=30000;
     dte_rate=38400;
@@ -4312,6 +4330,15 @@ void node_thread(void* arg)
 	thread_down();
 }
 
+bool sbbs_t::backup(const char* fname, int backup_level, bool rename)
+{
+	if(!fexist(fname))
+		return false;
+
+	lprintf(LOG_DEBUG, "Backing-up %s (%lu bytes)", fname, flength(fname));
+	return ::backup(fname, backup_level, rename) ? true : false;
+}
+
 void sbbs_t::daily_maint(void)
 {
 	char			str[128];
@@ -4354,6 +4381,10 @@ void sbbs_t::daily_maint(void)
 		SAFEPRINTF(str,"%smail.sid",cfg.data_dir);
 		backup(str,cfg.mail_backup_level,FALSE);
 		SAFEPRINTF(str,"%smail.sch",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.hash",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.ini",cfg.data_dir);
 		backup(str,cfg.mail_backup_level,FALSE);
 	}
 
@@ -4463,18 +4494,18 @@ void sbbs_t::daily_maint(void)
 			if((i=smb_locksmbhdr(&smb))!=0)
 				errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
 			else
-				delmail(0,MAIL_ALL);
+				lprintf(LOG_INFO, "DAILY: Removed %d messages", delmail(0, MAIL_ALL));
 		}
 		smb_close(&smb); 
 	}
 
-	sys_status&=~SS_DAILY;
 	if(cfg.sys_daily[0]) {
 		lputs(LOG_INFO, "DAILY: Running system event");
 		external(cmdstr(cfg.sys_daily,nulstr,nulstr,NULL), EX_OFFLINE); 
 	}
 	status(STATUS_WFC);
 	lputs(LOG_INFO, "DAILY: System maintenance ended");
+	sys_status&=~SS_DAILY;
 }
 
 const char* DLLCALL js_ver(void)
@@ -4597,7 +4628,6 @@ void DLLCALL bbs_thread(void* arg)
 	startup=(bbs_startup_t*)arg;
 	BOOL			is_client=FALSE;
 #ifdef __unix__
-	SOCKET	uspy_listen_socket[MAX_NODES];
 	struct main_sock_cb_data	uspy_cb[MAX_NODES]={};
 	union xp_sockaddr uspy_addr;
 #endif
@@ -4795,7 +4825,6 @@ void DLLCALL bbs_thread(void* arg)
 		spy_socket[i]=INVALID_SOCKET;
 #ifdef __unix__
 		uspy_socket[i]=INVALID_SOCKET;
-		uspy_listen_socket[i]=INVALID_SOCKET;
 #endif
 	}
 
@@ -4984,8 +5013,8 @@ NO_SSH:
 #endif // __unix__ (unix-domain spy sockets)
 
 	/* signal caller that we've started up successfully */
-    if(startup->started!=NULL)
-    	startup->started(startup->cbdata);
+	if(startup->started!=NULL)
+		startup->started(startup->cbdata);
 
 	lprintf(LOG_INFO,"Terminal Server thread started for nodes %d through %d", first_node, last_node);
 
@@ -5130,13 +5159,13 @@ NO_SSH:
 			continue;
 		}
 
-		lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
-			,client_socket
 #ifdef USE_CRYPTLIB
-			,rlogin ? "RLogin" : (ssh ? "SSH" : "Telnet")
+		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
 #else
-			,rlogin ? "RLogin" : "Telnet"
+		client.protocol=rlogin ? "RLogin":"Telnet";
 #endif
+		lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
+			,client_socket, client.protocol
 			, host_ip, inet_addrport(&client_addr));
 
 		if(startup->max_concurrent_connections > 0) {
@@ -5272,7 +5301,7 @@ NO_SSH:
 		sbbs->putcom(VERSION_NOTICE);
 		sbbs->putcom(crlf);
 
-		sbbs->bprintf("Connection from: %s\r\n", host_ip);
+		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
 		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
@@ -5314,11 +5343,6 @@ NO_SSH:
 		SAFECOPY(client.addr,host_ip);
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
-#ifdef USE_CRYPTLIB
-		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
-#else
-		client.protocol=rlogin ? "RLogin":"Telnet";
-#endif
 		client.user=STR_UNKNOWN_USER;
 		client_on(client_socket,&client,FALSE /* update */);
 
@@ -5529,17 +5553,13 @@ NO_PASSTHRU:
 			node_socket[i]=INVALID_SOCKET;
         }
 #ifdef __unix__
-		if(uspy_listen_socket[i]!=INVALID_SOCKET) {
-			close_socket(uspy_listen_socket[i]);
-			uspy_listen_socket[i]=INVALID_SOCKET;
-			snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
-			if(fexist(str))
-				unlink(str);
-		}
 		if(uspy_socket[i]!=INVALID_SOCKET) {
 			close_socket(uspy_socket[i]);
 			uspy_socket[i]=INVALID_SOCKET;
-		}		
+		}
+		snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
+		if(fexist(str))
+			unlink(str);
 #endif
 	}
 
