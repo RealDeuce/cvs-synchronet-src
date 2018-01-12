@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.664 2018/01/29 22:46:21 deuce Exp $ */
+/* $Id: main.cpp,v 1.660 2018/01/12 22:15:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -950,15 +950,11 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(sbbs->online==ON_LOCAL)
-		eprintf(LOG_WARNING, "%s", cstr);
-	else {
-		sbbs->attr(sbbs->cfg.color[clr_err]);
-		sbbs->bputs(cstr);
-		sbbs->attr(LIGHTGRAY);
-		sbbs->bputs(crlf);
-	}
+	sbbs->attr(sbbs->cfg.color[clr_err]);
+	sbbs->bputs(cstr);
 	free(cstr);
+	sbbs->attr(LIGHTGRAY);
+	sbbs->bputs(crlf);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, argv[0]);
@@ -2504,15 +2500,12 @@ void event_thread(void* arg)
 						continue;
 					}
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					sbbs->unpack_rep(g.gl_pathv[i]);
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
-					sbbs->online=FALSE;
-					sbbs->console&=~CON_L_ECHO;
 					
 					/* putuserdat? */
 					remove(g.gl_pathv[i]);
@@ -2537,7 +2530,6 @@ void event_thread(void* arg)
 				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->getmsgptrs();
 					sbbs->getusrsubs();
 					sbbs->batdn_total=0;
@@ -2556,7 +2548,6 @@ void event_thread(void* arg)
 					} else
 						eprintf(LOG_INFO,"No packet created (no new messages)");
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);
-					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
 				remove(g.gl_pathv[i]);
@@ -2592,7 +2583,6 @@ void event_thread(void* arg)
 							continue;
 						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						sbbs->getmsgptrs();
 						sbbs->getusrsubs();
 						sbbs->batdn_total=0;
@@ -2603,7 +2593,6 @@ void event_thread(void* arg)
 							sbbs->putmsgptrs(); 
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
-						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					} 
 				}
@@ -2647,13 +2636,10 @@ void event_thread(void* arg)
 
 						eprintf(LOG_INFO,"Running node %d daily event",i);
 						sbbs->online=ON_LOCAL;
-						sbbs->console|=CON_L_ECHO;
 						sbbs->logentry("!:","Run node daily event");
 						sbbs->external(
 							 sbbs->cmdstr(sbbs->cfg.node_daily,nulstr,nulstr,NULL)
 							,EX_OFFLINE);
-						sbbs->console&=~CON_L_ECHO;
-						sbbs->online=FALSE;
 					}
 					sbbs->getnodedat(i,&node,1);
 					node.misc&=~NODE_EVENT;
@@ -2798,13 +2784,10 @@ void event_thread(void* arg)
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id); 
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
 							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					sbbs->console&=~CON_L_ECHO;
-					sbbs->online=FALSE;
 				}
 			} 
 		}
@@ -2843,12 +2826,9 @@ void event_thread(void* arg)
 					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name); 
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.phub[i]->call,nulstr,nulstr,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					sbbs->online=FALSE;
-					sbbs->console&=~CON_L_ECHO;
 				} 
 			}
 		}
@@ -3018,7 +2998,6 @@ void event_thread(void* arg)
 						ex_mode |= EX_SH;
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
-					sbbs->console|=CON_L_ECHO;
 					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Running %s%stimed event: %s"
 						,(ex_mode&EX_NATIVE)	? "native ":""
@@ -3026,15 +3005,13 @@ void event_thread(void* arg)
 						,strupr(str));
 					{
 						int result=
-							sbbs->external(
-								 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
-								,ex_mode
-								,sbbs->cfg.event[i]->dir);
+						sbbs->external(
+							 sbbs->cmdstr(sbbs->cfg.event[i]->cmd,nulstr,sbbs->cfg.event[i]->dir,NULL)
+							,ex_mode
+							,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
 							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
-					sbbs->console&=~CON_L_ECHO;
-					sbbs->online=FALSE;
 					sbbs->cfg.event[i]->last=time32(NULL);
 					SAFEPRINTF(str,"%stime.dab",sbbs->cfg.ctrl_dir);
 					if((file=sbbs->nopen(str,O_WRONLY))==-1) {
@@ -3162,7 +3139,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	scanposts_inside = false;
 	scansubs_inside = false;
 	timeleft = 60*10;	/* just incase this is being used for calling gettimeleft() */
-	last_sysop_auth = 0;
 	uselect_total = 0;
 	lbuflen = 0;
 	keybufbot=keybuftop=0;	/* initialize [unget]keybuf pointers */
@@ -5248,9 +5224,6 @@ NO_SSH:
 				continue;
 			}
 			lprintf(LOG_DEBUG, "%04d SSH Cryptlib Session: %d", client_socket, sbbs->ssh_session);
-			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 1)))
-				lprintf(LOG_ERR, "%04d SSH Error %d setting CRYPT_OPTION_NET_READTIMEOUT", client_socket, i);
-
 			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_CONNECTTIMEOUT, startup->ssh_connect_timeout)))
 				lprintf(LOG_ERR, "%04d SSH Error %d setting CRYPT_OPTION_NET_CONNECTTIMEOUT", client_socket, i);
 
@@ -5286,12 +5259,6 @@ NO_SSH:
 				}
 			}
 			switch(ssh_failed) {
-				case 0:
-					if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_PROPERTY_OWNER, CRYPT_UNUSED))) {
-						lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d clearing owner",client_socket, i);
-						ssh_failed = 2;
-					}
-					break;
 				case 1:
 					lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
 					break;
