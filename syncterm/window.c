@@ -59,7 +59,7 @@ int drawwin(void)
 		}
 	}
 	old_xlat = ciolib_xlat;
-	ciolib_xlat = CIOLIB_XLAT_CHARS;
+	ciolib_xlat = TRUE;
 	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,winbuf);
 	ciolib_xlat = old_xlat;
 	return(0);
