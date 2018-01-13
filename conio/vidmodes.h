@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.23 2018/02/05 23:49:37 rswindell Exp $ */
+/* $Id: vidmodes.h,v 1.20 2015/07/05 09:07:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 
 #include "ciolib.h"
 
-#define TOTAL_DAC_SIZE	274
+#define TOTAL_DAC_SIZE	34
 
 /* Entry type for the DAC table. */
 struct dac_colors {
@@ -67,8 +67,6 @@ struct  video_params {
 struct vstat_vmem {
 	unsigned refcount;
 	unsigned short *vmem;
-	uint32_t *fgvmem;
-	uint32_t *bgvmem;
 };
 
 struct video_stats {
@@ -94,9 +92,8 @@ struct video_stats {
 	int currattr;
 	int scaling;
 	int	vmultiplier;
-	uint32_t flags;
-#define VIDMODES_FLAG_PALETTE_VMEM	1
-	uint32_t palette[16];
+	struct dac_colors dac_colors[256];
+	unsigned char palette[16];
 	struct vstat_vmem *vmem;
 };
 
@@ -108,9 +105,9 @@ enum {
 	,ATARI_PALETTE
 };
 
-extern struct video_params vparams[50];
+extern struct video_params vparams[49];
 #define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
-extern uint32_t palettes[5][16];
+extern unsigned char palettes[5][16];
 extern struct dac_colors dac_default[TOTAL_DAC_SIZE];
 extern char vga_font_bitmap[4096];
 extern char vga_font_bitmap14[3584];
