@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.229 2018/02/20 11:44:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.227 2018/01/13 09:00:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1558,7 +1558,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* change to the drive where the parent of the startup_dir is mounted */
 		fprintf(dosemubat,"%s\r\n",xtrndrive);
 
-		const char* gamedir = "";
+		char* gamedir = "";
 		if(startup_dir!=NULL && startup_dir[0]) {
 			SAFECOPY(str, startup_dir);
 			*lastchar(str) = 0;
@@ -1566,7 +1566,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 		if(*gamedir == 0) {
 			lprintf(LOG_ERR, "No startup directory configured for: %s", cmdline);
-			return -1;
+			reutrn -1;
 		}
 		fprintf(dosemubat,"cd %s\r\n", gamedir);
 
@@ -2065,7 +2065,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
+    for(i=j=0;i<len && j<(int)sizeof(cmdstr_output);i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2229,7 +2229,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-    for(i=j=0; i<len && j < sizeof(buf)-1; i++) {
+    for(i=j=0;i<len && j<MAX_PATH;i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
