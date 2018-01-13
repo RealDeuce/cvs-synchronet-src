@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.109 2015/11/08 04:57:26 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.111 2018/01/12 22:23:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -1733,8 +1733,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a string based on template")
 	,310
 	},		
-	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("put a string in the keyboard buffer")
+	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("keys")
+	,JSDOCSTR("put a data (e.g. a string of characters) in the keyboard input buffer")
 	,310
 	},		
 	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
@@ -1849,8 +1849,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
 	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("[x,y] or [object { x,y }]")
-	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI), "
-	"arguments can be separate x and y cooridinates or an object with x and y properites "
+	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI, 1-based values), "
+	"arguments can be separate x and y coordinates or an object with x and y properties "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
 	},
