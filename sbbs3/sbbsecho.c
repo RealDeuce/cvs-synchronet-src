@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.67 2018/01/21 22:46:08 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.66 2018/01/09 21:15:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3358,6 +3358,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOMSGID,(ushort)(m-l),fbuf+l); 
 			}
@@ -3367,6 +3368,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOREPLYID,(ushort)(m-l),fbuf+l); 
 			}
@@ -5887,7 +5889,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.67 $", "%*s %s", revision);
+	sscanf("$Revision: 3.66 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
