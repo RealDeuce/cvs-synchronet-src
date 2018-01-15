@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.76 2018/03/09 02:23:38 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.73 2017/12/08 01:58:16 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -252,7 +252,7 @@ typedef int32_t         time32_t;
 #    define PRIuOFF     "lu"
 #  endif
 #elif defined(__linux__) || defined(__sun__)
-#  if (defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)) || defined(__LP64__)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
 #    define PRIdOFF     PRId64
 #    define PRIuOFF     PRIu64
 #  else
@@ -375,8 +375,6 @@ typedef struct {
 #else   /* strncpy is faster */
 #define SAFECOPY(dst,src)                   (strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
 #endif
-
-#define SAFECAT(dst, src)					if(strlen(dst) + strlen(src) < sizeof(dst)) { strcat(dst, src); }
 
 /* Bound-safe version of sprintf() - only works with fixed-length arrays */
 #if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
