@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.656 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.660 2018/01/12 22:15:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3155,6 +3155,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 
 	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
+	lastlinelen=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
 	errorlevel=0;
@@ -3166,6 +3167,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
+	current_file=NULL;
 	mnestr=NULL;
 
 #ifdef JAVASCRIPT
@@ -4627,7 +4629,6 @@ void DLLCALL bbs_thread(void* arg)
 	startup=(bbs_startup_t*)arg;
 	BOOL			is_client=FALSE;
 #ifdef __unix__
-	SOCKET	uspy_listen_socket[MAX_NODES];
 	struct main_sock_cb_data	uspy_cb[MAX_NODES]={};
 	union xp_sockaddr uspy_addr;
 #endif
@@ -4825,7 +4826,6 @@ void DLLCALL bbs_thread(void* arg)
 		spy_socket[i]=INVALID_SOCKET;
 #ifdef __unix__
 		uspy_socket[i]=INVALID_SOCKET;
-		uspy_listen_socket[i]=INVALID_SOCKET;
 #endif
 	}
 
@@ -5160,13 +5160,13 @@ NO_SSH:
 			continue;
 		}
 
-		lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
-			,client_socket
 #ifdef USE_CRYPTLIB
-			,rlogin ? "RLogin" : (ssh ? "SSH" : "Telnet")
+		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
 #else
-			,rlogin ? "RLogin" : "Telnet"
+		client.protocol=rlogin ? "RLogin":"Telnet";
 #endif
+		lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
+			,client_socket, client.protocol
 			, host_ip, inet_addrport(&client_addr));
 
 		if(startup->max_concurrent_connections > 0) {
@@ -5302,7 +5302,7 @@ NO_SSH:
 		sbbs->putcom(VERSION_NOTICE);
 		sbbs->putcom(crlf);
 
-		sbbs->bprintf("Connection from: %s\r\n", host_ip);
+		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
 		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
@@ -5344,11 +5344,6 @@ NO_SSH:
 		SAFECOPY(client.addr,host_ip);
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
-#ifdef USE_CRYPTLIB
-		client.protocol=rlogin ? "RLogin":(ssh ? "SSH" : "Telnet");
-#else
-		client.protocol=rlogin ? "RLogin":"Telnet";
-#endif
 		client.user=STR_UNKNOWN_USER;
 		client_on(client_socket,&client,FALSE /* update */);
 
@@ -5559,17 +5554,13 @@ NO_PASSTHRU:
 			node_socket[i]=INVALID_SOCKET;
         }
 #ifdef __unix__
-		if(uspy_listen_socket[i]!=INVALID_SOCKET) {
-			close_socket(uspy_listen_socket[i]);
-			uspy_listen_socket[i]=INVALID_SOCKET;
-			snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
-			if(fexist(str))
-				unlink(str);
-		}
 		if(uspy_socket[i]!=INVALID_SOCKET) {
 			close_socket(uspy_socket[i]);
 			uspy_socket[i]=INVALID_SOCKET;
-		}		
+		}
+		snprintf(str,sizeof(uspy_addr.un.sun_path),"%slocalspy%d.sock", startup->temp_dir, i+1);
+		if(fexist(str))
+			unlink(str);
 #endif
 	}
 
