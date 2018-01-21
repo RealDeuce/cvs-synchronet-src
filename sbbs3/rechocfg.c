@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.29 2018/03/02 04:30:49 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.27 2017/11/24 22:08:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,10 +307,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	/******************/
 	str_list_t archivelist = iniGetSectionList(ini, "archive:");
 	cfg->arcdefs = strListCount(archivelist);
-	if((cfg->arcdef = realloc(cfg->arcdef, sizeof(arcdef_t)*cfg->arcdefs)) == NULL) {
-		strListFree(&archivelist);
+	if((cfg->arcdef = realloc(cfg->arcdef, sizeof(arcdef_t)*cfg->arcdefs)) == NULL)
 		return false;
-	}
 	cfg->arcdefs = 0;
 	char* archive;
 	while((archive=strListRemove(&archivelist, 0)) != NULL) {
@@ -329,10 +327,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	/****************/
 	str_list_t nodelist = iniGetSectionList(ini, "node:");
 	cfg->nodecfgs = strListCount(nodelist);
-	if((cfg->nodecfg = realloc(cfg->nodecfg, sizeof(nodecfg_t)*cfg->nodecfgs)) == NULL) {
-		strListFree(&nodelist);
+	if((cfg->nodecfg = realloc(cfg->nodecfg, sizeof(nodecfg_t)*cfg->nodecfgs)) == NULL)
 		return false;
-	}
 	cfg->nodecfgs = 0;
 	char* node;
 	while((node=strListRemove(&nodelist, 0)) != NULL) {
@@ -387,10 +383,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	/**************/
 	str_list_t echolists = iniGetSectionList(ini, "echolist:");
 	cfg->listcfgs = strListCount(echolists);
-	if((cfg->listcfg = realloc(cfg->listcfg, sizeof(echolist_t)*cfg->listcfgs)) == NULL) {
-		strListFree(&echolists);
+	if((cfg->listcfg = realloc(cfg->listcfg, sizeof(echolist_t)*cfg->listcfgs)) == NULL)
 		return false;
-	}
 	cfg->listcfgs = 0;
 	char* echolist;
 	while((echolist=strListRemove(&echolists, 0)) != NULL) {
@@ -503,7 +497,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetString(&ini,		ROOT_SECTION, "LogTimeFormat"			,cfg->logtime					,NULL);
 	if(cfg->temp_dir[0])
 	iniSetString(&ini,		ROOT_SECTION, "TempDirectory"			,cfg->temp_dir					,NULL);
-	iniSetString(&ini,		ROOT_SECTION, "OutgoingSemaphore"		,cfg->outgoing_sem				,NULL);
 	iniSetBytes(&ini,		ROOT_SECTION, "BundleSize"				,1,cfg->maxbdlsize				,NULL);
 	iniSetBytes(&ini,		ROOT_SECTION, "PacketSize"				,1,cfg->maxpktsize				,NULL);
 	iniSetStringList(&ini,	ROOT_SECTION, "SysopAliasList", ","		,cfg->sysop_alias_list			,NULL);
