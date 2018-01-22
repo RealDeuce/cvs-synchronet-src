@@ -1,8 +1,6 @@
-/* answer.cpp */
-
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.88 2015/08/27 00:35:51 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.93 2018/01/22 04:01:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +62,7 @@ bool sbbs_t::answer()
         ,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900,cfg.node_num);
 	logline("@ ",str);
 
-	safe_snprintf(str,sizeof(str),"%s  %s [%s]", connection, client_name, cid);
+	safe_snprintf(str,sizeof(str),"%s  %s [%s]", connection, client_name, client_ipaddr);
 	logline("@+:",str);
 
 	if(client_ident[0]) {
@@ -191,6 +189,7 @@ bool sbbs_t::answer()
 	}
 #ifdef USE_CRYPTLIB
 	if(sys_status&SS_SSH) {
+		tmp[0]=0;
 		pthread_mutex_lock(&ssh_mutex);
 		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
 		if (ctmp) {
@@ -201,8 +200,6 @@ bool sbbs_t::answer()
 				SAFECOPY(tmp, ctmp);
 				free_crypt_attrstr(ctmp);
 			}
-			else
-				tmp[0] = 0;
 			pthread_mutex_unlock(&ssh_mutex);
 			lprintf(LOG_DEBUG,"Node %d SSH login: '%s'"
 				,cfg.node_num, rlogin_name);
@@ -265,7 +262,7 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, tmp);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, truncsp(tmp));
 			else
 				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
 			badlogin(rlogin_name, tmp);
@@ -284,7 +281,9 @@ bool sbbs_t::answer()
 			"\x1b[6n"	/* Get cursor position */
 			"\x1b[u"	/* restore cursor position */
 			"\x1b[!_"	/* RIP? */
+#ifdef SUPPORT_ZUULTERM
 			"\x1b[30;40m\xc2\x9f""Zuul.connection.write('\\x1b""Are you the gatekeeper?')\xc2\x9c"	/* ZuulTerm? */
+#endif
 			"\x1b[0m_"	/* "Normal" colors */
 			"\x1b[2J"	/* clear screen */
 			"\x1b[H"	/* home cursor */
@@ -339,13 +338,16 @@ bool sbbs_t::answer()
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"RIP");
 			logline("@R",strstr(str,"RIPSCRIP"));
-			autoterm|=(RIP|COLOR|ANSI); }
+			autoterm|=(RIP|COLOR|ANSI); 
+		}
+#ifdef SUPPORT_ZUULTERM
 		else if(strstr(str,"Are you the gatekeeper?"))  {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"HTML");
 			logline("@H",strstr(str,"Are you the gatekeeper?"));
 			autoterm|=HTML;
 		} 
+#endif
 	}
 	else if(terminal[0]==0)
 		SAFECOPY(terminal,"DUMB");
@@ -360,8 +362,8 @@ bool sbbs_t::answer()
 
 	/* AutoLogon via IP or Caller ID here */
 	if(!useron.number && !(sys_status&SS_RLOGIN)
-		&& (startup->options&BBS_OPT_AUTO_LOGON) && cid[0]) {
-		useron.number=userdatdupe(0, U_IPADDR, LEN_IPADDR, cid);
+		&& (startup->options&BBS_OPT_AUTO_LOGON) && client_ipaddr[0]) {
+		useron.number=userdatdupe(0, U_IPADDR, LEN_IPADDR, client_ipaddr);
 		if(useron.number) {
 			getuserdat(&cfg, &useron);
 			if(!(useron.misc&AUTOLOGON) || !(useron.exempt&FLAG('V')))
@@ -369,8 +371,10 @@ bool sbbs_t::answer()
 		}
 	}
 
-	if(!online) 
+	if(!online) {
+		useron.number=0;
 		return(false); 
+	}
 
 	if(stricmp(terminal,"sexpots")==0) {	/* dial-up connection (via SexPOTS) */
 		SAFEPRINTF2(str,"%s connection detected at %lu bps", terminal, cur_rate);
@@ -404,6 +408,7 @@ bool sbbs_t::answer()
 
 	useron.misc&=~TERM_FLAGS;
 	useron.misc|=autoterm;
+	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
 	if(!useron.number && rlogin_name[0]!=0 && !(cfg.sys_misc&SM_CLOSED) && !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)) {
@@ -442,21 +447,8 @@ bool sbbs_t::answer()
 		if(logon()==false)
 			return(false);
 
-
 	if(!useron.number)
 		hangup();
-
-	/* Save the client IP or Caller-ID string to the user's record */
-	if(cid[0]) {
-		SAFECOPY(useron.ipaddr,cid);
-		putuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
-	}
-
-	/* Save the client hostname to the user's record */
-	if(client_name[0]) {
-		SAFECOPY(useron.comp,client_name);
-		putuserrec(&cfg,useron.number,U_COMP,LEN_COMP,useron.comp);
-	}
 
 	if(!online) 
 		return(false); 

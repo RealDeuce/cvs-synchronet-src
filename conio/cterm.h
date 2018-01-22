@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.38 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: cterm.h,v 1.39 2018/01/22 09:31:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -187,7 +187,7 @@ extern "C" {
 #endif
 
 CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
-CIOLIBEXPORT char CIOLIBCALL *cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
+CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
 CIOLIBEXPORT int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
 CIOLIBEXPORT void CIOLIBCALL cterm_closelog(struct cterminal *cterm);
 CIOLIBEXPORT void CIOLIBCALL cterm_end(struct cterminal *cterm);
