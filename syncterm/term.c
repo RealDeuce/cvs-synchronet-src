@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.314 2018/01/18 03:50:23 rswindell Exp $ */
+/* $Id: term.c,v 1.315 2018/01/22 06:29:49 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -37,6 +37,10 @@
 #define	ANSI_REPLY_BUFSIZE	2048
 
 #define DUMP
+
+#ifndef MIN
+#define MIN(a,b)	((a) < (b) ? (a) : (b))
+#endif
 
 struct terminal term;
 struct cterminal	*cterm;
@@ -2077,8 +2081,8 @@ void capture_control(struct bbslist *bbs)
 							memset(sauce.author, ' ', sizeof(sauce.author));
 							memset(sauce.group, ' ', sizeof(sauce.group));
 							if(bbs != NULL) {
-								memcpy(sauce.title, bbs->name, min(strlen(bbs->name), sizeof(sauce.title)));
-								memcpy(sauce.author, bbs->user, min(strlen(bbs->user), sizeof(sauce.author)));
+								memcpy(sauce.title, bbs->name, MIN(strlen(bbs->name), sizeof(sauce.title)));
+								memcpy(sauce.author, bbs->user, MIN(strlen(bbs->user), sizeof(sauce.author)));
 							}
 							if((tm=localtime(&t)) != NULL)	// The null-terminator overwrites the first byte of filesize
 								sprintf(sauce.date, "%04u%02u%02u"
