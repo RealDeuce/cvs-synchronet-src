@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.37 2018/02/02 22:21:35 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.35 2015/02/27 11:27:07 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -92,11 +92,15 @@ void uifcbail(void)
 void uifcmsg(char *msg, char *helpbuf)
 {
 	int i;
-	struct ciolib_screen *savscrn;
+	char	*buf;
+	struct	text_info txtinfo;
 
+    gettextinfo(&txtinfo);
 	i=uifc_initialized;
-	if(!i)
-		savscrn = savescreen();
+	if(!i) {
+		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -107,19 +111,22 @@ void uifcmsg(char *msg, char *helpbuf)
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {
 		uifcbail();
-		restorescreen(savscrn);
-		freescreen(savscrn);
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 }
 
 void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 {
 	int i;
-	struct ciolib_screen *savscrn;
+	char	*buf;
+	struct	text_info txtinfo;
 
+    gettextinfo(&txtinfo);
 	i=uifc_initialized;
-	if(!i)
-		savscrn = savescreen();
+	if(!i) {
+		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -130,15 +137,15 @@ void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {
 		uifcbail();
-		restorescreen(savscrn);
-		freescreen(savscrn);
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 }
 
 int confirm(char *msg, char *helpbuf)
 {
 	int i;
-	struct ciolib_screen *savscrn;
+	char	*buf;
+	struct	text_info txtinfo;
 	char	*options[] = {
 				 "Yes"
 				,"No"
@@ -146,9 +153,12 @@ int confirm(char *msg, char *helpbuf)
 	int		ret=TRUE;
 	int		copt=0;
 
+    gettextinfo(&txtinfo);
 	i=uifc_initialized;
-	if(!i)
-		savscrn = savescreen();
+	if(!i) {
+		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -159,8 +169,7 @@ int confirm(char *msg, char *helpbuf)
 	}
 	if(!i) {
 		uifcbail();
-		restorescreen(savscrn);
-		freescreen(savscrn);
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	}
 	return(ret);
 }
