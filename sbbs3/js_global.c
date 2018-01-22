@@ -1,8 +1,7 @@
-/* js_global.c */
-
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.359 2016/04/23 02:58:52 deuce Exp $ */
+/* $Id: js_global.c,v 1.366 2017/11/16 07:22:54 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,7 +123,7 @@ static void background_thread(void* arg)
 	jsval result=JSVAL_VOID;
 	jsval exit_code;
 
-	SetThreadName("JS Background");
+	SetThreadName("sbbs/jsBackgrnd");
 	msgQueueAttach(bg->msg_queue);
 	JS_SetContextThread(bg->cx);
 	JS_BEGINREQUEST(bg->cx);
@@ -666,6 +665,70 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
     return(success);
+}
+
+/*
+ * This is hacky, but a but less hacky than using a magic '2'
+ * It does assume the args are always last though (which seems reasonable
+ * since it's variable length)
+ */
+#define JS_ARGS_OFFSET	((unsigned)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
+
+static JSBool
+js_require(JSContext *cx, uintN argc, jsval *arglist)
+{
+	uintN argn = 0;
+	uintN fnarg;
+	JSObject*	exec_obj;
+	JSObject*	tmp_obj;
+    char*		property;
+    char*		filename;
+    JSBool		found = JS_FALSE;
+    JSBool		ret;
+	jsval *argv=JS_ARGV(cx, arglist);
+
+	exec_obj=JS_GetScopeChain(cx);
+	if(JSVAL_IS_BOOLEAN(argv[argn])) {
+		JS_ReportError(cx,"cannot require() background processes");
+		return(JS_FALSE);
+	}
+
+	if(JSVAL_IS_OBJECT(argv[argn])) {
+		tmp_obj=JSVAL_TO_OBJECT(argv[argn++]);
+		if(!JS_ObjectIsFunction(cx,tmp_obj))	/* Scope specified */
+			exec_obj=tmp_obj;
+	}
+
+	// Skip filename
+	fnarg = argn++;
+
+	if(argn==argc) {
+		JS_ReportError(cx,"no symbol name specified");
+		return(JS_FALSE);
+	}
+	JSVALUE_TO_MSTRING(cx, argv[argn], property, NULL);
+
+	// TODO: Does this support sub-objects?
+	if (JS_HasProperty(cx, exec_obj, property, &found) && found) {
+		JS_SET_RVAL(cx, arglist,JSVAL_VOID);
+		free(property);
+		return JS_TRUE;
+	}
+
+	// Remove symbol name from args
+	if (argc > argn+1)
+		memmove(&arglist[argn+JS_ARGS_OFFSET], &arglist[argn+JS_ARGS_OFFSET+1], sizeof(arglist[0]) * (argc - argn - 1));
+
+	ret = js_load(cx, argc-1, arglist);
+
+	if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
+		JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
+		JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
+		free(filename);
+		return(JS_FALSE);
+	}
+	free(property);
+	return ret;
 }
 
 static JSBool
@@ -2355,6 +2418,11 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			continue;
 		}
 
+		if(strcmp(token,"bull")==0) {	/* bullet  */
+			outbuf[j++] = 249;
+			continue;
+		}
+
 		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
 			outbuf[j++]='\'';	/* single quotation mark */
 			continue;
@@ -3100,6 +3168,32 @@ js_fdate(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	fd=fdate(p);
+	free(p);
+	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist,DOUBLE_TO_JSVAL((double)fd));
+	return(JS_TRUE);
+}
+
+static JSBool
+js_fcdate(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		p;
+	time_t		fd;
+	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc==0 || JSVAL_IS_VOID(argv[0]))
+		return(JS_TRUE);
+
+	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL)
+	HANDLE_PENDING(cx);
+	if(p==NULL) 
+		return(JS_TRUE);
+
+	rc=JS_SUSPENDREQUEST(cx);
+	fd=fcdate(p);
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 	JS_SET_RVAL(cx, arglist,DOUBLE_TO_JSVAL((double)fd));
@@ -4075,6 +4169,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
 	,310
 	},
+	{"file_cdate",		js_fcdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
+	,JSDOCSTR("get a file's creation date/time (in time_t format)")
+	,317
+	},
 	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
 	,JSDOCSTR("get a file's length (in bytes)")
 	,310
@@ -4219,6 +4317,18 @@ static jsSyncMethodSpec js_global_functions[] = {
 	"(returns number OR string) - (added in v3.13)")
 	,313
 	},
+	{"require",         js_require,         1,	JSTYPE_UNDEF
+	,JSDOCSTR("[<i>object</i> scope,] <i>string</i> filename, propname [,args]")
+	,JSDOCSTR("load and execute a JavaScript module (<i>filename</i>), "
+		"optionally specifying a target <i>scope</i> object (default: <i>this</i>) "
+		"and a list of arguments to pass to the module (as <i>argv</i>) "
+		"IF AND ONLY IF the property named <i>propname</i> is not defined in "
+		"the target scope (a defined symbol with a value of undefined will not "
+		"cause the script to be loaded). "
+		"Returns the result (last executed statement) of the executed script "
+		"or null if the script is not executed. ")
+	,317
+	},		
 	{0}
 };
 
