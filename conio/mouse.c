@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: mouse.c,v 1.44 2018/01/22 09:32:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,7 +206,7 @@ int CIOLIBCALL more_multies(int button, int clicks)
 	return(0);
 }
 
-void CIOLIBCALL ciolib_mouse_thread(void *data)
+void ciolib_mouse_thread(void *data)
 {
 	int	timedout;
 	int timeout_button=0;
