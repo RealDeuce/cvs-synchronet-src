@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.40 2018/01/24 04:41:51 rswindell Exp $ */
+/* $Id: cterm.h,v 1.41 2018/01/24 07:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,11 +72,14 @@ typedef enum {
 #define CTERM_LOG_MASK	0x7f
 #define CTERM_LOG_PAUSED	0x80
 
+#define CTERM_NO_SETFONT_REQUESTED	99
+
 struct cterminal {
 	/* conio stuff */
 	int	x;		// X position of the left side on the screen
 	int	y;		// Y position of the top pn the screen
 	int setfont_result;
+	int altfont[4];	// The font slots successfully assigned to the 4 alt-font styles/attributes
 
 	/* emulation mode */
 	cterm_emulation_t	emulation;

@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.159 2018/01/24 04:48:39 rswindell Exp $ */
+/* $Id: cterm.c,v 1.160 2018/01/24 07:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1367,6 +1367,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								case 2:
 								case 3:
 									cterm->setfont_result = SETFONT(j,FALSE,i+1);
+									if(cterm->setfont_result == CIOLIB_SETFONT_SUCCESS)
+										cterm->altfont[i] = j;
+									break;
 							}
 						}
 					}
@@ -1596,12 +1599,17 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								| (cterm->origin_mode << 1)
 								| (cterm->doorway_mode << 2)
 								| (cterm->cursor << 3);
-							if(strlen(retbuf)+strlen(cterm->DA)+12 < retsize)
-								sprintf(retbuf + strlen(retbuf), "%s;%u;%u;%uc"
+							if(strlen(retbuf) + strlen(cterm->DA) + 29 < retsize)
+								sprintf(retbuf + strlen(retbuf), "%s;%u;%u;%u;%u;%u;%u;%uc"
 									,cterm->DA
-									,(uint8_t)cterm->setfont_result
 									,(uint8_t)GETVIDEOFLAGS()
-									,mode_flags);
+									,mode_flags
+									,(uint8_t)cterm->setfont_result
+									,(uint8_t)cterm->altfont[0]
+									,(uint8_t)cterm->altfont[1]
+									,(uint8_t)cterm->altfont[2]
+									,(uint8_t)cterm->altfont[3]
+									);
 						}
 					}
 					break;
@@ -1893,7 +1901,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.159 $";
+	char	*revision="$Revision: 1.160 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1942,6 +1950,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 		*out=0;
 	}
 	sprintf(cterm->DA + strlen(cterm->DA), ";%u", CONIO_FIRST_FREE_FONT);
+	cterm->setfont_result = CTERM_NO_SETFONT_REQUESTED;
 	/* Fire up note playing thread */
 	if(!cterm->playnote_thread_running) {
 		listInit(&cterm->notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
