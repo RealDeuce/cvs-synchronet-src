@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.45 2018/02/03 11:06:51 deuce Exp $
+$Id: cterm.txt,v 1.36 2018/01/24 07:21:20 rswindell Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -63,113 +63,6 @@ ESC M	(Disabled in current code)
 	current attribute
 	SOURCE: BANSI.TXT
 
-ESC _	Application Program String
-	Begins a string consisting of the characters 0x08 - 0x0d and
-	0x20-0x7e, terminated by a String Terminator (ST)
-	The string is currently ignored.
-
-ESC P	Device Control String
-	Begins a string consisting of the characters 0x08 - 0x0d and
-	0x20-0x7e, terminated by a String Terminator (ST)
-	Supported OSC values:
-		[ p1 [ ; p2 ] ] q
-		Defaults:  p1 = 0  p2 = 0
-		Indicates the string is a sixel sequence.
-
-		p1 selects the vertical height of a single pixel.  This
-		may be overridden by the raster attributes command, and
-		is deprecated.  Supported values
-		
-			Value      Vertical Size
-			-----      -------------
-			0,1,5,6    2 pixels
-			2          5 pixels
-			3,4        3 pixels
-			7,8,9      1 pixel
-
-		p2 indicates if unset sixels should be set to the current
-		background colour.  If p2 is 1, positions specified as 0
-		remain at their current colour.
-
-		Any additional parameters are ignored.
-
-		The rest of the string is made up of sixel data characters and
-		sixel control functions.  Sixel data characters are in the
-		rage of '?' (0x3f) to '~' (0x7e).  Each sixel data character
-		represents six vertical pixels.  The data is extracted by
-		subtracting 0x3f from the ASCII value of the character.
-		The least significant bit is the topmost pixel.
-
-                Sixel Control Functions
-                ! Pn X
-			Graphics Repeat Introducer
-			The character X is repeated Pn times.
-		" p1 ; p2 [ ; p3 [ ; p4 ] ]
-			Raster Attributes
-			p1 indicates the vertical size in pixels of each
-			sixel.  p2 indicates the horizontal size in pixels.
-			p3 and p4 define the height and width (in sixels)
-			respectively of a block to fill with the background
-			colour.  This block may not extend past the current
-			bottom of the screen.  If any pixel data characters
-			proceed this command, it is ignored.
-		# p1
-			Colour Select
-			Selects the current foreground colour from the
-			sixel palette.
-		# p1 ; p2 ; p3 ; p4 ; p5
-			Palette map
-			Defines sixel palette entry p1 and sets it as the
-			current foreground colour.  p2 specifies the colour
-			space to define the colour in, the only supported
-			value is 2.  p3, p4, and p5 specify the red, green,
-			and blue content as a percentage (0-100).
-		$
-			Graphics Carriage Return
-			Returns the active position to the left border of
-			the same sixel row.  Generally, one pass per colour
-			is used.  In passes after the first one, sixels
-			with a value of zero are not overwritten with the
-			background colour.
-		-
-			Graphics New Line
-			Moves the active position to the left border of the
-			next sixel row.
-
-ESC ^	Privacy Message
-	Begins a string consisting of the characters 0x08 - 0x0d and
-	0x20-0x7e, terminated by a String Terminator (ST)
-	The string is currently ignored.
-
-ESC ]	Operating System Command
-	Begins a string consisting of the characters 0x08 - 0x0d and
-	0x20-0x7e, terminated by a String Terminator (ST)
-	Supported OSC values:
-		4;(pX;pY)...
-		Specifies one or more palette redefinitions.
-		pX is the palette index, and pY is the colour definition
-		Color format:
-			rgb:R/G/B
-			Where R, G, and B are a sequence of one to four
-			hex digits representing the value of the
-			red, green, and blue channels respectively.
-
-		SOURCE: xterm
-
-		104 [ ; Ps ... ]
-		Resets palette entry to default.  If the entire string
-		is "104", resets all colours.  Otherwise, only each index
-		separated by a semicolon is reset.
-
-		SOURCE: xterm
-
-ESC X	Start Of String
-	As the above strings, but may contain any characters except
-	a Start Of String sequence or a String Terminator sequence.
-	The string is currently ignored.
-
-ESC \	String Terminator
-
 Control Sequences:
 ------------------
 
@@ -214,47 +107,11 @@ CSI = [ p1 [ ; p2 ] ] {
 	of predefined fonts)  p2 indicates font size according to the
 	following table:
 		0 - 8x16 font, 4096 bytes.
-		1 - 8x14 font, 3584 bytes.
+		1 - 8x14 font, 3586 bytes.
 		2 - 8x8 font, 2048 bytes.
 
 	SOURCE: CTerm only.
 
-CSI = [ p1 [ ; ... ] ] n
-	NON-STANDARD EXTENSION
-	State/Mode Request/Report
-	Defaults: p1 = 1
-
-	When p1 is 1, CTerm will respond with a Font State Report of the form
-        CSI = 1 ;pF ;pR ;pS0 ;pS1 ;pS2 ;pS3 n
-	pF is the first available loadable-font slot number
-	pR is the result of the previous "Font Selection" request:
-		0 = successful font selection
-		1 = font selection requests are not supported by client
-		2 = required subsystem for font use has not been initialized
-		3 = selected font is not available or is incompatible with
-		    current video mode
-		4 = invalid font slot number specified in request
-		5 = required video mode for selected font is incompatible
-		    with current video mode
-		6 = memory allocation failure
-		99 = no font selection request has been received
-	pS0 - pS3 contain the font slots numbers of previously successful
-	"Font Selection" requests into the 4 available alternate-font
-	style/attribute values:
-		pS0 - normal attribute font slot
-		PS1 - high intensity foreground attribute font slot
-		PS2 - blink attribute font slot
-		PS3 - high intensity blink attribute font slot
-
-	When p1 is 2, CTerm will respond with a Mode Report of the form
-	CSI = 2[;pN [;pN] [...]] n
-	Where pN represent zero or more mode values set previously
-	(e.g. via CSI ? pN h).	Mode values cleared (disabled via CSI ? pN l)
-	will not be included in the set of values returned in the Mode
-	Report.  If no modes are currently set, an empty parameter will be
-	included as the first and only pN.
-
-	SOURCE: CTerm only.
 
 CSI = 255 h
 	NON-STANDARD EXTENSION
@@ -262,49 +119,67 @@ CSI = 255 h
 
 	SOURCE: BANSI.TXT
 
-CSI ? [ p1 [ ; pX ... ] ] h
+CSI ? 6 h
 	NON-STANDARD EXTENSION
-	Set Mode
-	Sets one or more mode.  The following modes are supported:
+    Enable origin mode.
+    
+    In this mode, position parameters are relative to the top left of the
+    scrolling region, not the screen.
+    
+    SOURCE: Digital VT102 User Guide
 
-	6 -  Enable origin mode.
-	     In this mode, position parameters are relative to the top left of
-	     the scrolling region, not the screen.  Defaults to reset.
-	     SOURCE: Digital VT102 User Guide
-	7 -  Enable auto wrap
-	     This is the normal mode in which a write to the last column of a
-	     row will move the cursor to the start of the next line triggering
-	     a scroll if required to create a new line.  Defaults to set.
-	     SOURCE: Digital VT102 User Guide
-	25 - Display the cursor.  Defaults to set.
-	     SOURCE: "Installing and Using the VT320 Video Terminal"
-	31 - Enable bright alt character set
-	     With this mode set, the bright (1) graphic rendition selects
-	     characters from an alternate character set.  Defaults to reset.
-	32 - Bright Intensity Disable
-	     This makes the bright intensity bit not control the intensity.
-	     Mostly for use with CSI ? 31 h to permit fonts in the same
-	     colours.  Defaults to reset.
-	33 - Blink to Bright Intensity Background
-	     With this mode set, the blink (5,6) graphic renditions cause the
-	     background colour to be high intensity rather than causing blink.
-	     Defaults to reset.
-	34 - Enable blink alt character set
-	     With this mode set, the blink (5, 6) graphic renditions selects
-	     characters from an alternate character set.  Defaults to reset
-	35 - Blink Disabled
-	     This makes the blink (5, 6) graphic renditions not cause the
-	     character to blink.  Mostly for use with CSI ? 34 h to permit
-	     fonts to be used without blinking.  Defaults to reset.
-	80 - Sixel Scrolling Enabled
-	     When this is set, the sixel active position begins in the
-	     upper-left corner of the currently active text position.
-	     When the sixel active position reaches the bottom of the
-	     page, the page is scrolled up.  At the end of the sixel
-	     string, a sixel newline is appended, and the current cursor
-	     position is the one in which the bottom sixel is in.
-	     Defaults to set.
-	     SOURCE: VT330/VT340 Programmer Reference Manual
+CSI ? 7 h
+	NON-STANDARD EXTENSION
+    Enable auto wrap.
+    
+    This is the normal mode in which a write to the last column of a
+    row will move the cursor to the start of the next line triggering a
+    scroll if required to create a new line.
+    
+    SOURCE: Digital VT102 User Guide
+
+CSI ? 25 h
+	NON-STANDARD EXTENSION
+	Display the cursor
+
+	SOURCE: "Installing and Using the VT320 Video Terminal"
+
+CSI ? 31 h
+	NON-STANDARD EXTENSION
+	Enable bright alt character set
+
+	With this mode set, the bright (1) graphic rendition selects characters
+	from an alternate character set.
+
+CSI ? 32 h
+	NON-STANDARD EXTENSION
+	Bright Intensity Disable
+
+	This makes the bright intensity bit not control the intensity.
+	Mostly for use with CSI ? 31 h to permit fonts in the same
+	colours.
+
+CSI ? 33 h
+	NON-STANDARD EXTENSION
+	Blink to Bright Intensity Background
+
+	With this mode set, the blink (5,6) graphic renditions cause the
+	background colour to be high intensity rather than causing blink
+
+CSI ? 34 h
+	NON-STANDARD EXTENSION
+	Enable blink alt character set
+
+	With this mode set, the blink (5,6) graphic renditions selects
+	characters from an alternate character set.
+
+CSI ? 35 h
+	NON-STANDARD EXTENSION
+	Blink Disabled
+
+	This makes the blink bit not cause the character to blink.
+	Mostly for use with CSI ? 34 h to permit fonts to be used without
+	blinking.
 
 CSI = 255 l
 	NON-STANDARD EXTENSION
@@ -312,48 +187,30 @@ CSI = 255 l
 
 	SOURCE: BANSI.TXT
 
-CSI ? [ p1 [ ; pX ... ] ] l
+CSI ? 6 h
 	NON-STANDARD EXTENSION
-	Reset Mode
-	Resets one or more mode.  The following modes are supported:
+    Disable origin mode.
+    
+    In this mode, position parameters are relative to the top left of the
+    screen, not the scrolling region.
+    
+    SOURCE: Digital VT102 User Guide
 
-	6 -  Origin Mode
-	     With this mode reset, position parameters are relative to the
-	     top left of the screen, not the scrolling region.  Defaults
-	     to reset.
-	     SOURCE: Digital VT102 User Guide
-	7 -  Disable auto wrap
-	     Resetting this mode causes a write to the last column of a to
-	     leave the cursor where it was before the write occurred,
-	     overwriting anything which was previously written to the same
-	     position.
-	     SOURCE: Digital VT102 User Guide
-	25 - Hide the cursor.  Defaults to set.
-	     SOURCE: "Installing and Using the VT320 Video Terminal"
-	31 - Disable bright alt character set
-	     With this mode reset, the bright (1) graphic rendition does not
-	     select an alternative font.  Defaults to reset.
-	32 - Bright Intensity Enable
-	     When reset, bright intensity graphics rendition behaves normally.
-	     Defaults to reset.
-	33 - Disable Blink to Bright Intensity Background
-	     With this mode set, the blink (5,6) graphic renditions do not
-	     affect the background colour.  Defaults to reset.
-	34 - Disable blink alt character set
-	     With this mode reset, the blink (5, 6) graphic renditions do not
-	     select characters from an alternate character set.  Defaults to
-	     reset.
-	35 - Blink Enable
-	     With this mode reset, the blink (5,6) graphic renditions behave
-	     normally (cause the characters to blink).  Defaults to reset.
-	80 - Sixel Scrolling Disabled
-	     When this is reset, the sixel active position begins in the
-	     upper-left corner of the page.  Any commands that attempt to
-	     advance the sixel position past the bottom of the page are
-	     ignored.  At the end of the sixel string, the current cursor
-	     position is unchanged from where it was when the sixel string
-	     started.  Defaults to set.
-	     SOURCE: VT330/VT340 Programmer Reference Manual
+CSI ? 7 l
+	NON-STANDARD EXTENSION
+    Disable auto wrap.
+    
+    This mode causes a write to the last column of a to leave the
+    cursor where it was before the write occurred, overwriting anything
+    which was previously written to the same position.
+    
+    SOURCE: Digital VT102 User Guide
+
+CSI ? 25 l
+	NON-STANDARD EXTENSION
+	Hide the cursor
+
+	SOURCE: "Installing and Using the VT320 Video Terminal"
 
 CSI ? 31 l
 	NON-STANDARD EXTENSION
@@ -413,12 +270,12 @@ CSI [ p1 [ ; p2 ] ] * r
 
 CSI [ p1 [ ; p2 ] ] r
 	NON-STANDARD EXTENSION.
-	Set Top and Bottom Margins
-	Defaults: p1 = 1
-		p2 = last line on screen
-	Selects top and bottom margins, defining the scrolling region. P1 is
-	the line number of the first line in the scrolling region. P2 is the
-	line number of the bottom line.
+    Set Top and Bottom Margins
+    Defaults: p1 = 1
+              p2 = last line on screen
+    Selects top and bottom margins, defining the scrolling region. P1 is
+    the line number of the first line in the scrolling region. P2 is the line
+    number of the bottom line.
 
 CSI [ p1 ] @
 	Insert Character(s)
@@ -474,12 +331,12 @@ CSI [ p1 [ ; p2 ] ] sp D
 	font selection.  Only X11 and SDL currently do.
 	Supported p1 values:
 		0  - Default font
-		1  - Font selected by the high intensity bit when CSI [ ? 31 h
-		     is enabled
-		2  - Font selected by the blink intensity bit when CSI [ ? 34 h
-		     is enabled
-		3  - Font selected by both the high intensity and blink bits
-		     when both CSI [ ? 31 h and CSI [ ? 34 h are enabled
+		1  - Font selected by the high intensity bit when CSI [ ? 31 h is
+			 enabled
+		2  - Font selected by the blink intensity bit when CSI [ ? 34 h is
+			 enabled
+		3  - Font selected by both the high intensity and blink bits when
+			 both CSI [ ? 31 h and CSI [ ? 34 h are enabled
 	Currently included fonts are:
 		0  - Codepage 437 English
 		1  - Codepage 1251 Cyrillic, (swiss)
@@ -524,28 +381,27 @@ CSI [ p1 [ ; p2 ] ] sp D
 		40 - Topaz Plus (Amiga)      
 		41 - MicroKnight (Amiga)
 		42 - Topaz (Amiga)      
-	Not all fonts are supported in all modes.  If a font is not supported
-	in the current mode, no action is taken, but there should be a
-	non-zero 'Font Selection result' value in the Font State Report.
+	Not all fonts are supported in all modes.  If a font is not supported in
+	the current mode, no action is taken, but there should be a non-zero
+	'Font Selection result' value in the Device Attributes response.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI [ p1 ] E
 	Cursor Next Line
 	Defaults: p1 = 1
-	Moves the cursor to the first column of the line p1 down from the
-	current position. Moving past the bottom of the screen scrolls the
-	screen up the remaining number of lines filling newly added lines
-	with the current attribute.
+	Moves the cursor to the first column of the line p1 down from the current position.
+	Moving past the bottom of the screen scrolls the screen up the remaining
+	number of lines filling newly added lines with the current attribute.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI [ p1 ] F
 	Cursor Preceding Line
 	Defaults: p1 = 1
-	Moves the cursor to the first column if the row p1 up from the
-	current position.  Attempting to move past the screen boundaries
-	stops the cursor at the screen boundary.
+	Moves the cursor to the first column if the row p1 up from the current position.
+	Attempting to move past the screen boundaries stops the cursor
+	at the screen boundary.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -553,7 +409,7 @@ CSI [ p1 ] G
 	Cursor Character Absolute
 	Defaults: p1 = 1
 	Movies the cursor to column p1 of the current row.
-
+	
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI [ p1 [ ; p2 ] ] H
@@ -592,8 +448,8 @@ CSI [ p1 ] L
 	Insert Line(s)
 	Defaults: p1 = 1
 	Inserts p1 lines at the current line position.  The current line and
-	those after it are scrolled down and the new empty lines are filled
-	with the current attribute.
+	those after it are scrolled down and the new empty lines are filled with
+	the current attribute.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -621,10 +477,9 @@ CSI N
 CSI [ p1 ] P
 	Delete Character
 	Defaults: p1 = 1
-	Deletes the character at the current position by shifting all
-	characters from the current column + p1 left to the current column.
-	Opened blanks at the end of the line are filled with the current
-	attribute.
+	Deletes the character at the current position by shifting all characters
+	from the current column + p1 left to the current column.  Opened blanks
+	at the end of the line are filled with the current attribute.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -655,8 +510,8 @@ CSI U
 CSI [ p1 ] X
 	Erase Character
 	Defaults: p1 = 1
-	Erase p1 characters starting at the current character.  Will not erase
-	past the end of line.
+	Erase p1 characters starting at the current character.  Will not erase past the end
+	of line.
 	Erased characters are set to the current attribute.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
@@ -673,13 +528,43 @@ CSI [ p1 ] c
 	Device Attributes
 	Defaults: p1 = 0
 	If p1 is 0, CTerm will reply with the sequence:
-        CSI = 67;84;101;114;109;pN c
+	CSI [ = 67;84;101;114;109;pN;pV;pM;pF;pR;pS0;pS1;pS2;pS3... c
 	64;84;101;114;109 is the ASCII values of the "CTerm" string.  pN is the
-	CVS revision ID of CTerm with dots converted to semi-colons
-	(e.g. "1;156").  Use the CVS revision to detect if a specific feature
-	is available.  If you are adding features to a forked version of cterm,
-	please do so by	adding an extra parameter to the end, not by
-	incrementing any existing one!
+	CVS revision ID of CTerm with dots converted to semi-colons (e.g. "1;156").
+	Use the CVS revision to detect if a specific feature is available.  If
+	you are adding features to a forked version of cterm, please do so by
+	adding an extra parameter to the end, not by incrementing any existing
+	one!
+	pV is the set of current video flags, in decimal:
+		bit 0 = high intensity foreground selects alternate font (CSI ? 31 h)
+		bit 1 = high intensity foreground attribute does not change intensity (CSI ? 32 h)
+		bit 2 = blink attribute control high intensity background attributes (CSI ? 33 h)
+		bit 3 = blink attribute selects alternate font (CSI ? 34 h)
+		bit 4 = blink attribute does not blink text (CSI ? 35 h)
+	pM is the current emulation mode, in decimal:
+		bit 0 = auto wrap enabled (CSI ? 7 h)
+		bit 1 = origin mode enabled (CSI ? 6 h)
+		bit 2 = doorway mode enabled (CSI = 255 h)
+		bits 3:4 = cursor:
+			00b = 0: Invisible cursor (CSI ? 25 l)
+			01b = 1: Solid cursor
+			10b = 2: Normal cursor (CSI ? 25 h)
+	pF is the first available loadable-font slot number, in decimal
+	pR is the result of the previous "Font Selection" request:
+		0 = successful font selection
+		1 = font selection requests are not supported by client
+		2 = required subsystem for font use has not been initialized
+		3 = selected font is not available or is incompatible with current video mode
+		4 = invalid font slot number specified in request
+		5 = required video mode for selected font is incompatible with current video mode
+		6 = memory allocation failure
+        99 = no font selection request has been received
+    pS0 - pS3 contain the font slots numbers of previously successful "Font Selection" requests
+              into the 4 available alternate-font style/attribute values:
+              pS0 - normal attribute font slot
+              PS1 - high intensity foreground attribute font slot
+              PS2 - blink attribute font slot
+              PS3 - high intensity blink attribute font slot
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -699,13 +584,13 @@ CSI [ p1 [ ; pX ... ] ] m
 	7 -  Negative Image - Reverses FG and BG           X  X
 	8 -  Concealed characters, sets the                X
 	     foreground colour to the background
-	     colour.
+		 colour.
 	22 - Normal intensity                           X
 	25 - Steady (Not blinking)                 X
 	27 - Positive Image - Reverses FG and BG           X  X
 	     NOTE: This should be a separate
-	           attribute than 7 but this
-	           implementation makes them equal
+		       attribute than 7 but this
+			   implementation makes them equal
 	30 - Black foreground                              X
 	31 - Red foreground                                X
 	32 - Green foreground                              X
@@ -743,8 +628,8 @@ CSI [ p1 ] n
 		  the current row.
 	255	- NON-STANDARD EXTENSION
 		  Replies as though a CSI [ 6 n was received with the cursor in
-		  the bottom right corner.  i.e.: Returns the terminal size as
-		  a position report.
+		  the bottom right corner.  i.e.: Returns the terminal size as a
+		  position report.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 		(parameters 5 and 6 only)
@@ -752,12 +637,12 @@ CSI [ p1 ] n
 
 CSI ? [ p1 [ pX ... ] ] s
 	NON-STANDARD EXTENSION
-	Save Mode Setting
-	Saves the current mode states as specified by CSI ? l and CSI ? h.  If
-	p1 is omitted, saves all such states.  If pX is included, saves only
-	the specified states (arguments to CSI ? l/h).
-
-	SOURCE: SyncTERM only
+    Save Mode Setting
+    Saves the current mode states as specified by CSI l and CSI h.  If
+    p1 is omitted, saves all such states.  If pX is included, saves only
+    the specified states (arguments to CSI l/h).
+    
+    SOURCE: SyncTERM only
 
 CSI s
 	NON-STANDARD EXTENSION
@@ -770,18 +655,18 @@ CSI s
 
 CSI ? [ p1 [ pX ... ] ]  u
 	NON-STANDARD EXTENSION
-	Restore Mode Setting
-	Saves the current mode states as specified by CSI ? l and CSI ? h.  If
-	p1 is omitted, saves all such states.  If pX is included, restores
-	all the specified states (arguments to CSI ? l/h)
-
-	SOURCE: SyncTERM only
+    Restore Mode Setting
+    Saves the current mode states as specified by CSI l and CSI h.  If
+    p1 is omitted, saves all such states.  If pX is included, restores
+    all the specified states (arguments to CSI l/h)
+    
+    SOURCE: SyncTERM only
 
 CSI u
 	NON-STANDARD EXTENSION
 	Restore Cursor Position
-	Move the cursor to the last position saved by CSI s.  If no position
-	has been saved, the cursor is not moved.
+	Move the cursor to the last position saved by CSI s.  If no position has
+	been saved, the cursor is not moved.
 
 	SOURCE: ANSI.SYS
 
@@ -802,13 +687,13 @@ considered as part of the music string.  You would see things such as:
 CSI MFABCD 0x0e and the F would not be played as a note.  This just added
 further confusion to the mess.
 
-Later on, BananaCom realized the conflict between delete line and music, so
-they added *another* broken code CSI N (Properly, erase in field... not
-implemented in many BBS clients) which was to provide an "unbroken" method of
-playing music strings.  They also used CSI Y to disambiguate delete line, CSI Y
-is supposed to be a vertical tab (also not implemented in very many clients).
-BananaCom also introduced many more non-standard and standard-breaking control
-sequences which are not supported by CTerm.
+Later on, BananaCom realized the conflict between delete line and music, so they
+added *another* broken code CSI N (Properly, erase in field... not implemented
+in many BBS clients) which was to provide an "unbroken" method of playing music
+strings.  They also used CSI Y to disambiguate delete line, CSI Y is supposed
+to be a vertical tab (also not implemented in very many clients).  BananaCom
+also introduced many more non-standard and standard-breaking control sequences
+which are not supported by CTerm.
 
 CTerm has further introduced a standard compliant ANSI music introducer CSI |
 
@@ -869,9 +754,9 @@ A, B, C, D, E, F, G, or P Plays the named note or pause from the current
 		play the note for.  For example, 4 would indicate a 1/4 note.
 		The default note length is 4.
 L### Set the notelength parameter for all following notes which do not have
-	one specified (ie: override the quarter-note default)  Legal note
-	lengths are 1-64 indicating the reciprocal of the fraction (ie: 4
-	indicates a 1/4 note).
+	one specified (ie: override the quarter-note default)  Legal note lengths
+	are 1-64 indicating the reciprocal of the fraction (ie: 4 indicates a 1/4
+	note).
 <	Move the next lowest octave.
 	Octave cannot go above six or below zero.
 >	Move to the next highest octave.
@@ -889,6 +774,5 @@ notes) I am willing to do that assuming the notes still sound "right".
 
 !!!PLEASE NOTE!!! If you are playing some ANSI Music then ask the user if they
 heard it, ALWAYS follow it with an 0x0f 0x0e is the shift lock character which
-*will* cause people with anything but an ANSI-BBS terminal (ie: *nix users
-using the bundled telnet app) to have their screen messed up.  0x0f "undoes"
-the 0x0e.
+*will* cause people with anything but an ANSI-BBS terminal (ie: *nix users using
+the bundled telnet app) to have their screen messed up.  0x0f "undoes" the 0x0e.
