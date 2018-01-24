@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.47 2018/02/02 02:57:33 deuce Exp $ */
+/* $Id: cterm.h,v 1.40 2018/01/24 04:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,14 +72,11 @@ typedef enum {
 #define CTERM_LOG_MASK	0x7f
 #define CTERM_LOG_PAUSED	0x80
 
-#define CTERM_NO_SETFONT_REQUESTED	99
-
 struct cterminal {
 	/* conio stuff */
 	int	x;		// X position of the left side on the screen
 	int	y;		// Y position of the top pn the screen
 	int setfont_result;
-	int altfont[4];	// The font slots successfully assigned to the 4 alt-font styles/attributes
 
 	/* emulation mode */
 	cterm_emulation_t	emulation;
@@ -88,9 +85,7 @@ struct cterminal {
 	int					top_margin;
 	int					bottom_margin;
 	int					quiet;			// No sounds are made
-	unsigned char		*scrollback;
-	uint32_t			*scrollbackf;
-	uint32_t			*scrollbackb;
+	unsigned char				*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
 	bool				autowrap;
@@ -100,7 +95,7 @@ struct cterminal {
 #define	CTERM_SAVEMODE_ALTCHARS			0x004
 #define CTERM_SAVEMODE_NOBRIGHT			0x008
 #define CTERM_SAVEMODE_BGBRIGHT			0x010
-	// 0x010 was CTERM_SAVEMODE_DOORWAY
+#define CTERM_SAVEMODE_DOORWAY			0x020
 #define CTERM_SAVEMODE_ORIGIN			0x040
 #define	CTERM_SAVEMODE_BLINKALTCHARS	0x080
 #define CTERM_SAVEMODE_NOBLINK			0x100
@@ -111,20 +106,9 @@ struct cterminal {
 	int					started;		// Indicates that conio functions are being called
 	int					c64reversemode;	// Commodore 64 reverse mode state
 	unsigned char		attr;			// Current attribute
-	uint32_t			fg_color;
-	uint32_t			bg_color;
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
-	int					string;
-#define CTERM_STRING_APC	1
-#define CTERM_STRING_DCS	2
-#define CTERM_STRING_OSC	3
-#define CTERM_STRING_PM		4
-#define CTERM_STRING_SOS	5
-	char				*strbuf;
-	size_t				strbuflen;
-	size_t				strbufsize;
 	char				escbuf[1024];
 	cterm_music_t		music_enable;	// The remotely/locally controled music state
 	char				musicbuf[1024];
@@ -157,7 +141,6 @@ struct cterminal {
 	int		(*ciolib_wherex)		(struct cterminal *);
 	int		(*ciolib_wherey)		(struct cterminal *);
 	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,void *);
-	int		(*ciolib_pgettext)		(struct cterminal *,int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*ciolib_gettextinfo)	(struct cterminal *,struct text_info *);
 	void	(*ciolib_textattr)		(struct cterminal *,int);
 	void	(*ciolib_setcursortype)	(struct cterminal *,int);
@@ -169,19 +152,15 @@ struct cterminal {
 	void	(*ciolib_setscaling)	(struct cterminal *,int new_value);
 	int		(*ciolib_getscaling)	(struct cterminal *);
 	int		(*ciolib_putch)			(struct cterminal *,int);
-	int		(*ciolib_cputch)		(struct cterminal *,uint32_t,uint32_t,int);
 	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,void *);
-	int		(*ciolib_pputtext)		(struct cterminal *,int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*ciolib_window)		(struct cterminal *,int,int,int,int);
 	int		(*ciolib_cputs)			(struct cterminal *,char *);
-	int		(*ciolib_ccputs)		(struct cterminal *,uint32_t,uint32_t,const char *);
 	int		(*ciolib_setfont)		(struct cterminal *,int font, int force, int font_num);
 #else
 	void	CIOLIBCALL (*ciolib_gotoxy)		(int,int);
 	int		CIOLIBCALL (*ciolib_wherex)		(void);
 	int		CIOLIBCALL (*ciolib_wherey)		(void);
 	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,void *);
-	int		CIOLIBCALL (*ciolib_pgettext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	CIOLIBCALL (*ciolib_gettextinfo)	(struct text_info *);
 	void	CIOLIBCALL (*ciolib_textattr)		(int);
 	void	CIOLIBCALL (*ciolib_setcursortype)	(int);
@@ -193,12 +172,9 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_setscaling)		(int new_value);
 	int		CIOLIBCALL (*ciolib_getscaling)		(void);
 	int		CIOLIBCALL (*ciolib_putch)			(int);
-	int		CIOLIBCALL (*ciolib_cputch)			(uint32_t, uint32_t, int);
 	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,void *);
-	int		CIOLIBCALL (*ciolib_pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	CIOLIBCALL (*ciolib_window)		(int,int,int,int);
 	int		CIOLIBCALL (*ciolib_cputs)			(char *);
-	int		CIOLIBCALL (*ciolib_ccputs)			(uint32_t, uint32_t, const char *);
 	int		CIOLIBCALL (*ciolib_setfont)		(int font, int force, int font_num);
 #endif
 	int 	*_wscroll;
@@ -211,7 +187,7 @@ struct cterminal {
 extern "C" {
 #endif
 
-CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation);
+CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
 CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
 CIOLIBEXPORT int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
 CIOLIBEXPORT void CIOLIBCALL cterm_closelog(struct cterminal *cterm);
