@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.74 2018/01/22 09:31:41 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.75 2018/01/24 04:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,16 @@
         #define CIOLIBEXPORT
         #define CIOLIBEXPORTVAR	extern
 #endif
+
+enum {
+	 CIOLIB_SETFONT_SUCCESS						= 0
+	,CIOLIB_SETFONT_NOT_SUPPORTED				= 1
+	,CIOLIB_SETFONT_NOT_INITIALIZED				= 2
+	,CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED	= 3
+	,CIOLIB_SETFONT_INVALID_FONT				= 4
+	,CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE		= 5
+	,CIOLIB_SETFONT_MALLOC_FAILURE				= 6
+};
 
 enum {
 	 CIOLIB_MODE_AUTO
