@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.158 2018/01/24 04:41:51 rswindell Exp $ */
+/* $Id: cterm.c,v 1.159 2018/01/24 04:48:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1893,7 +1893,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.158 $";
+	char	*revision="$Revision: 1.159 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -1930,7 +1930,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->origin_mode=false;
 	if(cterm->scrollback!=NULL)
 		memset(cterm->scrollback,0,cterm->width*2*cterm->backlines);
-	sprintf(cterm->DA,"\x1b[=67;84;101;114;109;%u;", CONIO_FIRST_FREE_FONT);
+	strcpy(cterm->DA,"\x1b[=67;84;101;114;109;");
 	out=strchr(cterm->DA, 0);
 	if(out != NULL) {
 		for(in=revision; *in; in++) {
@@ -1941,6 +1941,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 		}
 		*out=0;
 	}
+	sprintf(cterm->DA + strlen(cterm->DA), ";%u", CONIO_FIRST_FREE_FONT);
 	/* Fire up note playing thread */
 	if(!cterm->playnote_thread_running) {
 		listInit(&cterm->notes, LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
