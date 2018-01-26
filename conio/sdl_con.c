@@ -73,9 +73,7 @@ int	sdl_init_good=0;
 SDL_mutex *sdl_keylock;
 SDL_sem *sdl_key_pending;
 static unsigned int sdl_pending_mousekeys=0;
-static SDL_Color *sdl_co = NULL;
-static Uint32	*sdl_dac_default = NULL;
-static size_t sdl_dac_defaultsz = 0;
+Uint32	sdl_dac_default[sizeof(dac_default)/sizeof(struct dac_colors)];
 
 struct yuv_settings {
 	int			enabled;
@@ -86,11 +84,10 @@ struct yuv_settings {
 	int			changed;
 	int			best_format;
 	SDL_Overlay	*overlay;
-	Uint8		(*colours)[3];
-	size_t		colourssz;
+	Uint8		colours[sizeof(dac_default)/sizeof(struct dac_colors)][3];
 };
 
-static struct yuv_settings yuv={0,0,0,0,0,0,0,NULL, NULL, 0};
+static struct yuv_settings yuv={0,0,0,0,0,0,0,NULL};
 
 struct sdl_keyvals {
 	int	keysym
@@ -105,14 +102,7 @@ struct update_rect {
 	int		y;
 	int		width;
 	int		height;
-	uint32_t	*data;
-};
-
-struct sdl_palette {
-	uint32_t	index;
-	uint8_t	r;
-	uint8_t	g;
-	uint8_t	b;
+	unsigned char *data;
 };
 
 enum {
@@ -128,7 +118,6 @@ enum {
 	,SDL_USEREVENT_COPY
 	,SDL_USEREVENT_PASTE
 	,SDL_USEREVENT_QUIT
-	,SDL_USEREVENT_SETPALETTE
 };
 
 const struct sdl_keyvals sdl_keyval[] =
@@ -441,16 +430,6 @@ void sdl_user_func(int func, ...)
 				break;
 			}
 			break;
-		case SDL_USEREVENT_SETPALETTE:
-			ev.user.data1=va_arg(argptr, struct sdl_palette *);
-			while(1) {
-				while(sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff)!=1)
-					YIELD();
-				if (sdl.SemWaitTimeout(sdl_ufunc_rec, 1000) != 0)
-					continue;
-				break;
-			}
-			break;
 		case SDL_USEREVENT_COPY:
 		case SDL_USEREVENT_PASTE:
 		case SDL_USEREVENT_SHOWMOUSE:
@@ -621,7 +600,7 @@ char *sdl_getcliptext(void)
 	return(ret);
 }
 
-void sdl_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
+void sdl_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *data)
 {
 	struct update_rect *rect;
 
@@ -640,24 +619,6 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
 	}
 	else
 		free(data);
-}
-
-int sdl_setpalette(uint32_t index, uint16_t r, uint16_t g, uint16_t b)
-{
-	struct sdl_palette *pal;
-
-	if (sdl_init_good) {
-		pal = (struct sdl_palette *)malloc(sizeof(struct sdl_palette));
-		if (pal) {
-			pal->index = index;
-			pal->r = r>>8;
-			pal->g = g>>8;
-			pal->b = b>>8;
-			sdl_user_func(SDL_USEREVENT_SETPALETTE, pal);
-			update_pixels++;
-		}
-	}
-	return 0;
 }
 
 void sdl_flush(void)
@@ -901,34 +862,17 @@ int sdl_setup_colours(SDL_Surface *surf)
 {
 	int i;
 	int ret=0;
-
-	if (sdl_dac_defaultsz < sizeof(dac_default)/sizeof(struct dac_colors)) {
-		Uint32 *newdd;
-		SDL_Color *newco;
-		size_t newsz = sizeof(dac_default)/sizeof(struct dac_colors);
-
-		newdd = realloc(sdl_dac_default, newsz * sizeof(sdl_dac_default[0]));
-		if (newdd == NULL)
-			return -1;
-		newco = realloc(sdl_co, newsz * sizeof(sdl_co[0]));
-		if (newco == NULL) {
-			free(newdd);
-			return -1;
-		}
-		sdl_co = newco;
-		sdl_dac_default = newdd;
-		sdl_dac_defaultsz = newsz;
-	}
+	SDL_Color	co[sizeof(dac_default)/sizeof(struct dac_colors)];
 
 	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-		sdl_co[i].r=dac_default[i].red;
-		sdl_co[i].g=dac_default[i].green;
-		sdl_co[i].b=dac_default[i].blue;
+		co[i].r=dac_default[i].red;
+		co[i].g=dac_default[i].green;
+		co[i].b=dac_default[i].blue;
 	}
-	sdl.SetColors(surf, sdl_co, 0, sizeof(dac_default)/sizeof(struct dac_colors));
+	sdl.SetColors(surf, co, 0, sizeof(dac_default)/sizeof(struct dac_colors));
 
 	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-		sdl_dac_default[i]=sdl.MapRGB(win->format, sdl_co[i].r, sdl_co[i].g, sdl_co[i].b);
+		sdl_dac_default[i]=sdl.MapRGB(win->format, co[i].r, co[i].g, co[i].b);
 	}
 	return(ret);
 }
@@ -939,16 +883,6 @@ int sdl_setup_yuv_colours(void)
 	int ret=0;
 
 	if(yuv.enabled) {
-		if (yuv.colourssz < sizeof(dac_default)/sizeof(struct dac_colors)) {
-			size_t newsz = sizeof(dac_default)/sizeof(struct dac_colors);
-			Uint8 (*newc)[3];
-
-			newc = realloc(yuv.colours, newsz * sizeof(yuv.colours[0]));
-			if (newc == NULL)
-				return -1;
-			yuv.colours = newc;
-			yuv.colourssz = newsz;
-		}
 		for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
 			RGBtoYUV(dac_default[i].red, dac_default[i].green, dac_default[i].blue, &(yuv.colours[i][0]), 0, 100);
 		}
@@ -994,7 +928,7 @@ void setup_surfaces(void)
 			win=sdl.SetVideoMode(yuv.win_width,yuv.win_height,0,flags);
 	}
 	else
-		win=sdl.SetVideoMode(char_width,char_height,0,flags);
+		win=sdl.SetVideoMode(char_width,char_height,8,flags);
 
 #if !defined(NO_X) && defined(__unix__)
 	if(sdl_x11available && sdl_using_x11) {
@@ -1017,7 +951,7 @@ void setup_surfaces(void)
 		tmp_rect=sdl.CreateRGBSurface(SDL_HWSURFACE
 				, char_width
 				, char_height
-				, 32, 0, 0, 0, 0);
+				, 8, 0, 0, 0, 0);
 		if(tmp_rect) {
 			if(yuv.enabled) {
 				new_rect=tmp_rect;
@@ -1073,7 +1007,7 @@ void setup_surfaces(void)
 		sdl_setup_colours(new_rect);
 		sdl.mutexV(newrect_mutex);
 		sdl_setup_colours(win);
-		update_pixels++;
+		force_redraws++;
 	}
 	else if(sdl_init_good) {
 		ev.type=SDL_QUIT;
@@ -1729,7 +1663,7 @@ int sdl_video_event_thread(void *data)
 					case SDL_VIDEOEXPOSE:
 						{
 							if(yuv.enabled) {
-								update_pixels++;
+								force_redraws=1;
 							}
 							else {
 								if(upd_rects) {
@@ -1961,67 +1895,6 @@ int sdl_video_event_thread(void *data)
 #else
 								break;
 #endif
-							case SDL_USEREVENT_SETPALETTE: {
-									struct sdl_palette *pal=(struct sdl_palette *)ev.user.data1;
-									int i;
-									int oldsz;
-
-									if(yuv.enabled) {
-										oldsz = yuv.colourssz;
-										if(yuv.enabled) {
-											if (yuv.colourssz < pal->index+1) {
-												size_t newsz = pal->index+1;
-												Uint8 (*newc)[3];
-
-												newc = realloc(yuv.colours, newsz * sizeof(yuv.colours[0]));
-												if (newc == NULL)
-													break;
-												yuv.colours = newc;
-												yuv.colourssz = newsz;
-												for(i=oldsz; i<pal->index; i++)
-													RGBtoYUV(0, 0, 0, &(yuv.colours[i][0]), 0, 100);
-											}
-											RGBtoYUV(pal->r, pal->g, pal->b, &(yuv.colours[pal->index][0]), 0, 100);
-										}
-									}
-									else {
-										oldsz = sdl_dac_defaultsz;
-										if (sdl_dac_defaultsz < pal->index+1) {
-											Uint32 *newdd;
-											SDL_Color *newco;
-											size_t newsz = pal->index+1;
-
-											newdd = realloc(sdl_dac_default, newsz * sizeof(sdl_dac_default[0]));
-											if (newdd == NULL)
-												break;
-											newco = realloc(sdl_co, newsz * sizeof(sdl_co[0]));
-											if (newco == NULL) {
-												free(newdd);
-												break;
-											}
-											sdl_co = newco;
-											sdl_dac_default = newdd;
-											sdl_dac_defaultsz = newsz;
-											for(i=oldsz; i<pal->index; i++) {
-												sdl_co[i].r=0;
-												sdl_co[i].g=0;
-												sdl_co[i].b=0;
-											}
-										}
-
-										sdl_co[pal->index].r = pal->r;
-										sdl_co[pal->index].g = pal->g;
-										sdl_co[pal->index].b = pal->b;
-										sdl.SetColors(win, sdl_co, 0, sdl_dac_defaultsz);
-										sdl.SetColors(new_rect, sdl_co, 0, sdl_dac_defaultsz);
-
-										for(i=0; i<sdl_dac_defaultsz; i++)
-											sdl_dac_default[i]=sdl.MapRGB(win->format, sdl_co[i].r, sdl_co[i].g, sdl_co[i].b);
-									}
-									free(pal);
-								}
-
-								break;
 						}
 						break;
 					}
