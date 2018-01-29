@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.20 2018/01/29 22:30:52 deuce Exp $ */
+/* $Id: ssh.c,v 1.21 2018/01/29 22:42:55 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -263,6 +263,8 @@ int ssh_connect(struct bbslist *bbs)
 	uifc.pop("Setting Terminal Height");
 	/* Pass socket to cryptlib */
 	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, rows);
+
+	cl.SetAttribute(ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 1);
 
 	/* Activate the session */
 	uifc.pop(NULL);
