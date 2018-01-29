@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.62 2018/03/26 04:30:53 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.58 2017/11/16 06:17:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -115,17 +115,6 @@ BOOL contains_ctrl_chars(char* str)
 	return FALSE;
 }
 
-void print_hash(hash_t* hash)
-{
-	printf("\t%-20s = %lu\n"		,"hash.number"	, (ulong)hash->number);
-	printf("\t%-20s = 0x%08lX\n"	,"hash.time"	, (ulong)hash->time);
-	printf("\t%-20s = %lu\n"		,"hash.length"	, (ulong)hash->length);
-	printf("\t%-20s = 0x%02X\n"		,"hash.source"	, (unsigned)hash->source);
-	printf("\t%-20s = 0x%02X\n"		,"hash.flags"	, (unsigned)hash->flags);
-	printf("\t%-20s = 0x%04hX\n"	,"hash.crc16"	, hash->crc16);
-	printf("\t%-20s = 0x%08X\n"		,"hash.crc32"	, hash->crc32);
-}
-
 char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 			"\n"
 			" opts:\n"
@@ -135,7 +124,6 @@ char *usage="\nusage: chksmb [-opts] <filespec.SHD>\n"
 			"       h - don't check hash file\n"
 			"       a - don't check allocation files\n"
 			"       t - don't check translation strings\n"
-			"       i - don't check message IDs\n"
 			"       e - display extended info on corrupted msgs\n";
 
 int main(int argc, char **argv)
@@ -147,7 +135,6 @@ int main(int argc, char **argv)
 	int 		h,i,j,x,y,lzh,errors,errlast;
 	BOOL		stop_on_error=FALSE,pause_on_error=FALSE,chkxlat=TRUE,chkalloc=TRUE,chkhash=TRUE
 				,lzhmsg,extinfo=FALSE,msgerr;
-	BOOL		chk_msgids = TRUE;
 	uint16_t	xlat;
 	uint32_t	m;
 	ulong		l,n,size,total=0,orphan,deleted,headers
@@ -176,7 +163,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.62 $", "%*s %s", revision);
+	sscanf("$Revision: 1.58 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -225,9 +212,6 @@ int main(int argc, char **argv)
 					case 'H':
 						chkhash=FALSE;
 						break;
-					case 'I':
-						chk_msgids = FALSE;
-						break;
 					case 'E':
 						extinfo=TRUE;
 						break;
@@ -267,7 +251,7 @@ int main(int argc, char **argv)
 		continue; 
 	}
 
-	if(shd_length < (off_t)smb.status.header_offset) {
+	if(shd_length < smb.status.header_offset) {
 		printf("!Status header corruption (header offset: %lu)\n", (ulong)smb.status.header_offset);
 		smb_close(&smb);
 		continue;
@@ -335,9 +319,8 @@ int main(int argc, char **argv)
 	dfieldlength=dfieldoffset=0;
 	msgids = 0;
 	ctrl_chars = 0;
-	oldest = 0;
 
-	for(l=smb.status.header_offset; l < (uint32_t)shd_length;l+=size) {
+	for(l=smb.status.header_offset;l<shd_length;l+=size) {
 		size=SHD_BLOCK_LEN;
 		fprintf(stderr,"\r%2lu%%  ",(long)(100.0/((float)shd_length/l)));
 		fflush(stderr);
@@ -396,7 +379,7 @@ int main(int argc, char **argv)
 			hdrlenerr++; 
 		}
 
-		if(chk_msgids && msg.from_net.type == NET_NONE && msg.id == NULL) {
+		if(msg.from_net.type == NET_NONE && msg.id == NULL) {
 			fprintf(stderr,"%sNo Message-ID\n",beep);
 			msgerr=TRUE;
 			if(extinfo)
@@ -404,8 +387,8 @@ int main(int argc, char **argv)
 			msgids++;
 		}
 
-		long age = (long)(now - msg.hdr.when_imported.time);
-		if(!(msg.hdr.attr&MSG_DELETE) && age  > (long)oldest)
+		long age = now - msg.hdr.when_imported.time;
+		if(!(msg.hdr.attr&MSG_DELETE) && age  > oldest)
 			oldest = age;
 
 		/* Test reading of the message text (body and tails) */
@@ -734,7 +717,7 @@ int main(int argc, char **argv)
 		off_t sda_length=filelength(fileno(smb.sda_fp));
 
 		fseek(smb.sda_fp,0L,SEEK_SET);
-		for(l=0;l < (ulong)sda_length;l+=2) {
+		for(l=0;l<sda_length;l+=2) {
 			if((l%10)==0)
 				fprintf(stderr,"\r%2lu%%  ",l ? (long)(100.0/((float)sda_length/l)) : 0);
 			/* TODO: LE Only */
@@ -842,19 +825,19 @@ int main(int argc, char **argv)
 		off_t hash_length=filelength(fileno(smb.hash_fp));
 
 		fseek(smb.hash_fp,0L,SEEK_SET);
-		for(l=0; l < (ulong)hash_length; l+=sizeof(hash_t)) {
+		for(l=0;l<hash_length;l+=sizeof(hash_t)) {
 			if(((l/sizeof(hash_t))%10)==0)
 				fprintf(stderr,"\r%2lu%%  ",l ? (long)(100.0/((float)hash_length/l)) : 0);
 			if(!fread(&hash,sizeof(hash),1,smb.hash_fp))
 				break;
 			if(hash.number==0 || hash.number > smb.status.last_msg)
-				fprintf(stderr,"\r%sInvalid message number (%u > %u)\n", beep, hash.number, smb.status.last_msg), badhash++, print_hash(&hash);
+				fprintf(stderr,"\r%sInvalid message number (%u)\n", beep, hash.number), badhash++;
 			else if(hash.time < 0x40000000 || hash.time > (ulong)now)
-				fprintf(stderr,"\r%sInvalid time (0x%08"PRIX32")\n", beep, hash.time), badhash++, print_hash(&hash);
+				fprintf(stderr,"\r%sInvalid time (0x%08"PRIX32")\n", beep, hash.time), badhash++;
 			else if(hash.length < 1 || hash.length > 1024*1024)
-				fprintf(stderr,"\r%sInvalid length (%"PRIu32")\n", beep, hash.length), badhash++, print_hash(&hash);
+				fprintf(stderr,"\r%sInvalid length (%"PRIu32")\n", beep, hash.length), badhash++;
 			else if(hash.source >= SMB_HASH_SOURCE_TYPES)
-				fprintf(stderr,"\r%sInvalid source type (%u)\n", beep, hash.source), badhash++, print_hash(&hash);
+				fprintf(stderr,"\r%sInvalid source type (%u)\n", beep, hash.source), badhash++;
 		}
 
 		smb_close_hash(&smb);
@@ -1095,7 +1078,7 @@ int main(int argc, char **argv)
 	}
 
 	if(errors)
-		printf("\n'fixsmb' can be used to repair many message base problems.\n");
+		printf("\n'fixsmb' can be used to repair most message base problems.\n");
 
 	return(errors);
 }
