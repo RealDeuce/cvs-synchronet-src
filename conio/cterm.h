@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.53 2018/02/06 07:05:08 deuce Exp $ */
+/* $Id: cterm.h,v 1.42 2018/01/29 17:20:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,9 +88,7 @@ struct cterminal {
 	int					top_margin;
 	int					bottom_margin;
 	int					quiet;			// No sounds are made
-	unsigned char		*scrollback;
-	uint32_t			*scrollbackf;
-	uint32_t			*scrollbackb;
+	unsigned char				*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
 	bool				autowrap;
@@ -100,7 +98,7 @@ struct cterminal {
 #define	CTERM_SAVEMODE_ALTCHARS			0x004
 #define CTERM_SAVEMODE_NOBRIGHT			0x008
 #define CTERM_SAVEMODE_BGBRIGHT			0x010
-#define CTERM_SAVEMODE_SIXEL_SCROLL		0x020
+	// 0x010 was CTERM_SAVEMODE_DOORWAY
 #define CTERM_SAVEMODE_ORIGIN			0x040
 #define	CTERM_SAVEMODE_BLINKALTCHARS	0x080
 #define CTERM_SAVEMODE_NOBLINK			0x100
@@ -111,20 +109,9 @@ struct cterminal {
 	int					started;		// Indicates that conio functions are being called
 	int					c64reversemode;	// Commodore 64 reverse mode state
 	unsigned char		attr;			// Current attribute
-	uint32_t			fg_color;
-	uint32_t			bg_color;
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
-	int					string;
-#define CTERM_STRING_APC	1
-#define CTERM_STRING_DCS	2
-#define CTERM_STRING_OSC	3
-#define CTERM_STRING_PM		4
-#define CTERM_STRING_SOS	5
-	char				*strbuf;
-	size_t				strbuflen;
-	size_t				strbufsize;
 	char				escbuf[1024];
 	cterm_music_t		music_enable;	// The remotely/locally controled music state
 	char				musicbuf[1024];
@@ -151,39 +138,12 @@ struct cterminal {
 	int					doorway_char;	// Indicates next char is a "doorway" mode char
 	int					cursor;			// Current cursor mode (Normal or None)
 
-	/* Sixel state */
-	int					sixel;			// Sixel status
-#define SIXEL_INACTIVE	0
-#define SIXEL_POSSIBLE	1
-#define SIXEL_STARTED	2
-	int					sx_iv;			// Vertical size
-	int					sx_ih;			// Horizontal size
-	int					sx_trans;		// "Transparent" background
-	unsigned long		sx_repeat;		// Repeat count
-	unsigned			sx_left;		// Left margin (0-based pixel offset)
-	unsigned			sx_x, sx_y;		// Current position
-	uint32_t			sx_fg, sx_bg;	// Current colour set
-	int					sx_pixels_sent;	/* If any pixels have been sent... 
-										   Raster Attributes are ignore if this is true. */
-	int					sx_first_pass;	// First pass through a line
-	int					sx_hold_update;	// hold_update value to restore on completion
-	bool				sx_scroll_mode;	// Sixel scrolling mode
-	int					sx_start_x;		// Starting X position
-	int					sx_start_y;		// Starting Y position
-	int					sx_row_max_x;	// Max right size of this sixel line
-	struct ciolib_pixels *sx_pixels;
-	unsigned long		sx_width;		// Width from raster attributes
-	unsigned long		sx_height;		// REMAINING heigh from raster attributes
-	uint8_t				*sx_mask;
-	int					sx_orig_cursor;	// Original value of cterm->cursor
-
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
 	void	(*ciolib_gotoxy)		(struct cterminal *,int,int);
 	int		(*ciolib_wherex)		(struct cterminal *);
 	int		(*ciolib_wherey)		(struct cterminal *);
 	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,void *);
-	int		(*ciolib_pgettext)		(struct cterminal *,int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*ciolib_gettextinfo)	(struct cterminal *,struct text_info *);
 	void	(*ciolib_textattr)		(struct cterminal *,int);
 	void	(*ciolib_setcursortype)	(struct cterminal *,int);
@@ -195,19 +155,15 @@ struct cterminal {
 	void	(*ciolib_setscaling)	(struct cterminal *,int new_value);
 	int		(*ciolib_getscaling)	(struct cterminal *);
 	int		(*ciolib_putch)			(struct cterminal *,int);
-	int		(*ciolib_cputch)		(struct cterminal *,uint32_t,uint32_t,int);
 	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,void *);
-	int		(*ciolib_pputtext)		(struct cterminal *,int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*ciolib_window)		(struct cterminal *,int,int,int,int);
 	int		(*ciolib_cputs)			(struct cterminal *,char *);
-	int		(*ciolib_ccputs)		(struct cterminal *,uint32_t,uint32_t,const char *);
 	int		(*ciolib_setfont)		(struct cterminal *,int font, int force, int font_num);
 #else
 	void	CIOLIBCALL (*ciolib_gotoxy)		(int,int);
 	int		CIOLIBCALL (*ciolib_wherex)		(void);
 	int		CIOLIBCALL (*ciolib_wherey)		(void);
 	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,void *);
-	int		CIOLIBCALL (*ciolib_pgettext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	CIOLIBCALL (*ciolib_gettextinfo)	(struct text_info *);
 	void	CIOLIBCALL (*ciolib_textattr)		(int);
 	void	CIOLIBCALL (*ciolib_setcursortype)	(int);
@@ -219,12 +175,9 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_setscaling)		(int new_value);
 	int		CIOLIBCALL (*ciolib_getscaling)		(void);
 	int		CIOLIBCALL (*ciolib_putch)			(int);
-	int		CIOLIBCALL (*ciolib_cputch)			(uint32_t, uint32_t, int);
 	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,void *);
-	int		CIOLIBCALL (*ciolib_pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	CIOLIBCALL (*ciolib_window)		(int,int,int,int);
 	int		CIOLIBCALL (*ciolib_cputs)			(char *);
-	int		CIOLIBCALL (*ciolib_ccputs)			(uint32_t, uint32_t, const char *);
 	int		CIOLIBCALL (*ciolib_setfont)		(int font, int force, int font_num);
 #endif
 	int 	*_wscroll;
@@ -237,7 +190,7 @@ struct cterminal {
 extern "C" {
 #endif
 
-CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation);
+CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation);
 CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
 CIOLIBEXPORT int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
 CIOLIBEXPORT void CIOLIBCALL cterm_closelog(struct cterminal *cterm);
