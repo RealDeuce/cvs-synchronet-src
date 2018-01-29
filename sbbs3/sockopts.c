@@ -2,13 +2,13 @@
 
 /* Set socket options based on contents of ctrl/sockopts.ini */
 
-/* $Id: sockopts.c,v 1.25 2018/02/20 11:57:13 rswindell Exp $ */
+/* $Id: sockopts.c,v 1.24 2015/08/20 05:19:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
