@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.164 2018/01/30 09:06:23 deuce Exp $ */
+/* $Id: cterm.c,v 1.165 2018/01/30 23:26:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1957,7 +1957,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.164 $";
+	char	*revision="$Revision: 1.165 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2284,7 +2284,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 					if(cterm->font_size) {
 						cterm->fontbuf[cterm->font_read++]=ch[0];
 						if(cterm->font_read == cterm->font_size) {
-	#ifndef CTERM_WITHOUT_CONIO
+#ifndef CTERM_WITHOUT_CONIO
 							char *buf2;
 
 							if((buf2=(char *)malloc(cterm->font_size))!=NULL) {
@@ -2317,7 +2317,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 								else
 									FREE_AND_NULL(buf2);
 							}
-	#endif
+#endif
 							cterm->font_size=0;
 						}
 					}
