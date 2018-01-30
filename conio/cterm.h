@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.42 2018/01/29 17:20:34 deuce Exp $ */
+/* $Id: cterm.h,v 1.43 2018/01/30 09:06:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,6 +112,15 @@ struct cterminal {
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
+	int					string;
+#define CTERM_STRING_APC	1
+#define CTERM_STRING_DCS	2
+#define CTERM_STRING_OSC	3
+#define CTERM_STRING_PM		4
+#define CTERM_STRING_SOS	5
+	char				*strbuf;
+	size_t				strbuflen;
+	size_t				strbufsize;
 	char				escbuf[1024];
 	cterm_music_t		music_enable;	// The remotely/locally controled music state
 	char				musicbuf[1024];
