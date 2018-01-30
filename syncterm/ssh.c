@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.22 2018/02/01 08:28:22 deuce Exp $ */
+/* $Id: ssh.c,v 1.21 2018/01/29 22:42:55 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -15,8 +15,6 @@
 #include "ciolib.h"
 
 #include "st_crypt.h"
-
-#include "syncterm.h"
 
 static SOCKET	sock;
 CRYPT_SESSION	ssh_session;
