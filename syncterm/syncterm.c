@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.208 2018/02/07 06:06:46 deuce Exp $ */
+/* $Id: syncterm.c,v 1.203 2018/01/30 02:32:09 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -94,8 +94,6 @@ int default_font=0;
 struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
-uint32_t *scrollback_fbuf=NULL;
-uint32_t *scrollback_bbuf=NULL;
 unsigned int  scrollback_lines=0;
 unsigned int  scrollback_mode=C80;
 unsigned int  scrollback_cols=80;
@@ -1263,6 +1261,7 @@ int main(int argc, char **argv)
 	str_list_t	inifile;
 	FILE *listfile;
 	char	*inpath=NULL;
+	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
@@ -1438,9 +1437,6 @@ int main(int argc, char **argv)
             			case 28:
                 			text_mode=C80X28;
                 			break;
-				case 30:
-					text_mode=C80X30;
-					break;
             			case 43:
                 			text_mode=C80X43;
                 			break;
@@ -1670,11 +1666,7 @@ int main(int argc, char **argv)
 		if(i >= txtinfo.screenheight-1) {
 			textattr(WHITE);
 			cputs("<Press A Key>");
-			switch(getch()) {
-				case 0:
-				case 0xe0:
-					getch();
-			}
+			getch();
 			textattr(LIGHTGRAY);
 			gotoxy(1, txtinfo.screenheight);
 			delline();
@@ -1683,11 +1675,7 @@ int main(int argc, char **argv)
 	}
 	textattr(WHITE);
 	cputs("<Press A Key to Exit>");
-	switch(getch()) {
-		case 0:
-		case 0xe0:
-			getch();
-	}
+	getch();
 	textattr(LIGHTGRAY);
 	return(0);
 }
@@ -1704,18 +1692,12 @@ int screen_to_ciolib(int screen)
 			return(C80);
 		case SCREEN_MODE_80X28:
 			return(C80X28);
-		case SCREEN_MODE_80X30:
-			return(C80X30);
 		case SCREEN_MODE_80X43:
 			return(C80X43);
 		case SCREEN_MODE_80X50:
 			return(C80X50);
 		case SCREEN_MODE_80X60:
 			return(C80X60);
-		case SCREEN_MODE_132X37:
-			return ST132X37_16_9;
-		case SCREEN_MODE_132x52:
-			return ST132X52_5_4;
 		case SCREEN_MODE_132X25:
 			return(VESA_132X25);
 		case SCREEN_MODE_132X28:
