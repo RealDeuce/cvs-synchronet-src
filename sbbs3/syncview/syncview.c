@@ -101,8 +101,6 @@ int main(int argc, char **argv)
 	int		len;
 	int		speed=0;
 	unsigned char	*scrollbuf;
-	uint32_t		*scrollbuff;
-	uint32_t		*scrollbufb;
 	char	*infile=NULL;
 	char	title[MAX_PATH+1];
 	int		expand=0;
@@ -140,22 +138,7 @@ int main(int argc, char **argv)
 		return(-1);
 	}
 
-	if((scrollbuff=malloc(SCROLL_LINES*ti.screenwidth*sizeof(scrollbuff[0])))==NULL) {
-		cprintf("Cannot allocate memory\n\n\rPress any key to exit.");
-		free(scrollbuf);
-		getch();
-		return(-1);
-	}
-
-	if((scrollbufb=malloc(SCROLL_LINES*ti.screenwidth*sizeof(scrollbufb[0])))==NULL) {
-		cprintf("Cannot allocate memory\n\n\rPress any key to exit.");
-		free(scrollbuf);
-		free(scrollbuff);
-		getch();
-		return(-1);
-	}
-
-	cterm=cterm_init(ti.screenheight, ti.screenwidth, 1, 1, SCROLL_LINES, scrollbuf, scrollbuff, scrollbufb, CTERM_EMULATION_ANSI_BBS);
+	cterm=cterm_init(ti.screenheight, ti.screenwidth, 1, 1, SCROLL_LINES, scrollbuf, CTERM_EMULATION_ANSI_BBS);
 	if(!cterm) {
 		fputs("ERROR Initializing CTerm!\n", stderr);
 		return 1;
@@ -181,11 +164,11 @@ int main(int argc, char **argv)
 	if(ansi) {
 		puts("");
 		puts("END OF ANSI");
-		pgettext(1,1,ti.screenwidth,ti.screenheight,scrollbuf,scrollbuff,scrollbufb);
+		gettext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
 		puttext_can_move=1;
 		puts("START OF SCREEN DUMP...");
 		clrscr();
-		pputtext(1,1,ti.screenwidth,ti.screenheight,scrollbuf,scrollbuff,scrollbufb);
+		puttext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
 	}
 	else
 		viewscroll();
