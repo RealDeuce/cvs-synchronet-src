@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.54 2018/02/20 11:24:15 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.53 2017/12/30 11:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -289,7 +289,6 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					continue;
 				}
 				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
-					str[i]=0;
 					switch(ch) {
 						case 'A':
 							return(TERM_KEY_UP);
