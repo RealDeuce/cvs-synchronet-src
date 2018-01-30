@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.56 2018/01/30 19:06:57 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.57 2018/01/30 19:32:27 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -151,7 +151,7 @@ int bitmap_init(void (*drawrect_cb) (int xpos, int ypos, int width, int height, 
 int bitmap_init_mode(int mode, int *width, int *height)
 {
     int i;
-	char *newscreen;
+	uint32_t *newscreen;
 
 	if(!bitmap_initialized)
 		return(-1);
