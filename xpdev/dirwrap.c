@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.93 2017/11/16 07:16:28 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.95 2018/01/13 06:11:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
-   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
+   return strcmp( * ( char** ) arg1, * ( char** ) arg2 );
 }
 
 #if defined(__BORLANDC__)
@@ -886,7 +886,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	struct statfs fs;
 	unsigned long blocks;
 
-    if (statfs(path, &fs) < 0)
+	if(statfs(path, &fs) < 0)
     	return 0;
 
 	if(freespace)
