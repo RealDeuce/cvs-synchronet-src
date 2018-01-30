@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.316 2018/01/30 03:04:20 rswindell Exp $ */
+/* $Id: term.c,v 1.317 2018/01/30 05:12:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -107,7 +107,7 @@ void mousedrag(unsigned char *scrollback)
 	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
-		if(key==0 || key==0xff)
+		if(key==0 || key==0xe0)
 			key|=getch()<<8;
 		switch(key) {
 			case CIO_KEY_MOUSE:
@@ -324,7 +324,7 @@ static BOOL zmodem_check_abort(void* vp)
 						zm->local_abort=TRUE;
 						break;
 					case 0:
-					case 0xff:
+					case 0xe0:
 						key |= (getch() << 8);
 						if(key==CIO_KEY_MOUSE)
 							getmouse(NULL);
@@ -1303,7 +1303,7 @@ static BOOL xmodem_check_abort(void* vp)
 					xm->cancelled=TRUE;
 					break;
 				case 0:
-				case 0xff:
+				case 0xe0:
 					key |= (getch() << 8);
 					if(key==CIO_KEY_MOUSE)
 						getmouse(NULL);
@@ -2588,7 +2588,7 @@ BOOL doterm(struct bbslist *bbs)
 				key = CIO_KEY_QUIT;
 			else {
 				key=getch();
-				if(key==0 || key==0xff) {
+				if(key==0 || key==0xe0) {
 					key|=getch()<<8;
 					if(cterm->doorway_mode && ((key & 0xff) == 0) && key != 0x2c00 /* ALT-Z */) {
 						ch[0]=0;
