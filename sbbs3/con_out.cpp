@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.76 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.79 2018/01/15 00:31:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -237,17 +237,33 @@ void sbbs_t::outchar(char ch)
 		} 
 	}
 	if(!outchar_esc) {
-		if((uchar)ch>=' ')
+		if((uchar)ch>=' ') {
 			column++;
-		else if(ch=='\r')
+			if(column >= cols) {	// assume terminal has/will auto-line-wrap
+				lncntr++;
+				lbuflen = 0;
+				tos = 0;
+				lastlinelen = column;
+				column = 0;
+			}
+		}
+		else if(ch=='\r') {
+			lastlinelen = column;
 			column=0;
+		}
 		else if(ch=='\b') {
 			if(column)
 				column--;
 		}
+		else if(ch=='\t') {
+			column++;
+			while(column%8)
+				column++;
+		}
 	}
-	if(ch==LF || column>=cols) {
-		lncntr++;
+	if(ch==LF) {
+		if(lncntr || lastlinelen)
+			lncntr++;
 		lbuflen=0;
 		tos=0;
 		column=0;
@@ -503,6 +519,16 @@ void sbbs_t::ctrl_a(char x)
 			break;
 		case '<':   /* Non-destructive backspace */
 			outchar(BS);
+			break;
+		case '/':	/* Conditional new-line */
+			if(column > 0)
+				CRLF;
+			break;
+		case '?':	/* Conditional blank-line */
+			if(column > 0)
+				CRLF;
+			if(lastlinelen)
+				CRLF;
 			break;
 		case '[':   /* Carriage return */
 			outchar(CR);
