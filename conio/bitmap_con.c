@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.54 2017/10/26 20:36:38 rswindell Exp $ */
+/* $Id: bitmap_con.c,v 1.57 2018/01/30 19:32:27 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -23,7 +23,7 @@
 #include "vidmodes.h"
 #include "bitmap_con.h"
 
-static char *screen=NULL;
+static uint32_t *screen=NULL;
 int screenwidth=0;
 int screenheight=0;
 #define PIXEL_OFFSET(x,y)	( (y)*screenwidth+(x) )
@@ -54,6 +54,17 @@ struct rectangle {
 };
 
 static int update_rect(int sx, int sy, int width, int height, int force);
+
+static void memset_u32(void *buf, uint32_t u, size_t len)
+{
+	size_t i;
+	char *cbuf = buf;
+
+	for (i = 0; i < len; i++) {
+		memcpy(cbuf, &u, sizeof(uint32_t));
+		cbuf += sizeof(uint32_t);
+	}
+}
 
 static __inline void *locked_screen_check(void)
 {
@@ -140,7 +151,7 @@ int bitmap_init(void (*drawrect_cb) (int xpos, int ypos, int width, int height, 
 int bitmap_init_mode(int mode, int *width, int *height)
 {
     int i;
-	char *newscreen;
+	uint32_t *newscreen;
 
 	if(!bitmap_initialized)
 		return(-1);
@@ -167,14 +178,14 @@ int bitmap_init_mode(int mode, int *width, int *height)
 	screenheight=vstat.charheight*vstat.rows;
 	if(height)
 		*height=screenheight;
-	newscreen=realloc(screen, screenwidth*screenheight);
+	newscreen=realloc(screen, screenwidth*screenheight*sizeof(screen[0]));
 	if(!newscreen) {
 		pthread_mutex_unlock(&vstatlock);
 		pthread_mutex_unlock(&screenlock);
 		return(-1);
 	}
 	screen=newscreen;
-	memset(screen,vstat.palette[0],screenwidth*screenheight);
+	memset_u32(screen,vstat.palette[0],screenwidth*screenheight);
 	pthread_mutex_unlock(&vstatlock);
 	pthread_mutex_unlock(&screenlock);
 	for (i=0; i<sizeof(current_font)/sizeof(current_font[0]); i++)
@@ -503,11 +514,12 @@ int bitmap_setfont(int font, int force, int font_num)
 	int		attr;
 	char	*pold;
 	char	*pnew;
+	int		result = CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED;
 
 	if(!bitmap_initialized)
-		return(-1);
+		return(CIOLIB_SETFONT_NOT_INITIALIZED);
 	if(font < 0 || font>(sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)-2))
-		return(-1);
+		return(CIOLIB_SETFONT_INVALID_FONT);
 
 	if(conio_fontdata[font].eight_by_sixteen!=NULL)
 		newmode=C80;
@@ -543,8 +555,10 @@ int bitmap_setfont(int font, int force, int font_num)
 			}
 			break;
 	}
-	if(changemode && (newmode==-1 || font_num > 1))
+	if(changemode && (newmode==-1 || font_num > 1)) {
+		result = CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE;
 		goto error_return;
+	}
 	switch(font_num) {
 		case 0:
 			default_font=font;
@@ -578,7 +592,7 @@ int bitmap_setfont(int font, int force, int font_num)
 			new=malloc(ti.screenwidth*ti.screenheight*2);
 			if(!new) {
 				free(old);
-				return -1;
+				return CIOLIB_SETFONT_MALLOC_FAILURE;
 			}
 			pold=old;
 			pnew=new;
@@ -612,11 +626,11 @@ int bitmap_setfont(int font, int force, int font_num)
 		}
 	}
 	bitmap_loadfont(NULL);
-	return(0);
+	return(CIOLIB_SETFONT_SUCCESS);
 
 error_return:
 	pthread_mutex_unlock(&vstatlock);
-	return(-1);
+	return(result);
 }
 
 int bitmap_getfont(void)
@@ -881,7 +895,7 @@ static int bitmap_draw_one_char(struct video_stats *vs, unsigned int xpos, unsig
 	fontoffset=(sch&0xff)*vs->charheight;
 
 	for(y=0; y<vs->charheight; y++) {
-		memset(&screen[PIXEL_OFFSET(xoffset, yoffset+y)],bg,vs->charwidth);
+		memset_u32(&screen[PIXEL_OFFSET(xoffset, yoffset+y)],bg,vs->charwidth);
 		for(x=0; x<vs->charwidth; x++) {
 			if(this_font[fontoffset] & (0x80 >> x))
 				screen[PIXEL_OFFSET(xoffset+x, yoffset+y)]=fg;
