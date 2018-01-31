@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.73 2017/10/10 22:29:59 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.76 2018/01/31 00:19:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
+#include "gen_defs.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -67,6 +68,16 @@
         #define CIOLIBEXPORT
         #define CIOLIBEXPORTVAR	extern
 #endif
+
+enum {
+	 CIOLIB_SETFONT_SUCCESS						= 0
+	,CIOLIB_SETFONT_NOT_SUPPORTED				= 1
+	,CIOLIB_SETFONT_NOT_INITIALIZED				= 2
+	,CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED	= 3
+	,CIOLIB_SETFONT_INVALID_FONT				= 4
+	,CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE		= 5
+	,CIOLIB_SETFONT_MALLOC_FAILURE				= 6
+};
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -301,6 +312,7 @@ typedef struct {
 	void	(*setscaling)	(int new_value);
 	int		(*getscaling)	(void);
 	int		*ESCDELAY;
+	int		(*setpalette)	(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -369,6 +381,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
+CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -430,6 +443,7 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define getvideoflags()			ciolib_getvideoflags()
 	#define setscaling(a)			ciolib_setscaling(a)
 	#define getscaling()			ciolib_getscaling()
+	#define setpalette(e,r,g,b)		ciolib_setpalette(e,r,g,b)
 #endif
 
 #ifdef WITH_SDL
@@ -504,7 +518,7 @@ CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
 CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
 CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
+CIOLIBEXPORT void ciolib_mouse_thread(void *data);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
