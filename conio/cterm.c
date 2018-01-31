@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.166 2018/01/31 01:22:53 deuce Exp $ */
+/* $Id: cterm.c,v 1.167 2018/01/31 07:10:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,6 +49,7 @@
 #include "ciolib.h"
 
 #include "cterm.h"
+#include "vidmodes.h"
 
 #define	BUFSIZE	2048
 
@@ -1958,15 +1959,15 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case CTERM_STRING_OSC:
 					/* Is this an xterm Change Color(s)? */
 					if (cterm->strbuf[0] == '4' && cterm->strbuf[1] == ';') {
-						uint32_t index = UINT32_MAX;
+						unsigned long index = ULONG_MAX;
 						char *seqlast;
 
 						p2 = &cterm->strbuf[2];
 						while ((p = strtok_r(p2, ";", &seqlast)) != NULL) {
 							p2=NULL;
-							if (index == UINT32_MAX) {
+							if (index == ULONG_MAX) {
 								index = strtoull(p, NULL, 10);
-								if (index == UINT32_MAX || index > 13200)
+								if (index == ULONG_MAX || index > 13200)
 									break;
 							}
 							else {
@@ -2004,11 +2005,28 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								}
 								if (ccount == 3)
 									setpalette(index, rgb[0], rgb[1], rgb[2]);
+								index = ULONG_MAX;
 							}
 						}
 					}
 					else if (strncmp("104", cterm->strbuf, 3)==0) {
-						// TODO reset color(s)
+						if (strlen(cterm->strbuf) == 3) {
+							// Reset all colours
+							for (i=0; i < sizeof(dac_default)/sizeof(struct dac_colors); i++)
+								setpalette(i, dac_default[i].red << 8 | dac_default[i].red, dac_default[i].green << 8 | dac_default[i].green, dac_default[i].blue << 8 | dac_default[i].blue);
+						}
+						else if(cterm->strbuf[3] == ';') {
+							char *seqlast;
+							unsigned long pi;
+
+							p2 = &cterm->strbuf[4];
+							while ((p = strtok_r(p2, ";", &seqlast)) != NULL) {
+								p2=NULL;
+								pi = strtoull(p, NULL, 10);
+								if (pi < sizeof(dac_default)/sizeof(struct dac_colors))
+									setpalette(pi, dac_default[pi].red << 8 | dac_default[pi].red, dac_default[pi].green << 8 | dac_default[pi].green, dac_default[pi].blue << 8 | dac_default[pi].blue);
+							}
+						}
 					}
 			}
 			// TODO: Handle the string...
@@ -2026,7 +2044,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.166 $";
+	char	*revision="$Revision: 1.167 $";
 	char *in;
 	char	*out;
 	int		i;

@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.42 2018/01/31 01:22:53 deuce Exp $
+$Id: cterm.txt,v 1.43 2018/01/31 07:10:52 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -81,6 +81,13 @@ ESC ]	Operating System Command
 			Where R, G, and B are a sequence of one to four
 			hex digits representing the value of the
 			red, green, and blue channels respectively.
+
+		SOURCE: xterm
+
+		104 [ ; Ps ... ]
+		Resets palette entry to default.  If the entire string
+		is "104", resets all colours.  Otherwise, only each index
+		separated by a semicolon is reset.
 
 		SOURCE: xterm
 
