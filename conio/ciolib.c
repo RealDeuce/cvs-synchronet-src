@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.137 2018/01/31 00:19:01 deuce Exp $ */
+/* $Id: ciolib.c,v 1.138 2018/01/31 06:51:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,6 +164,7 @@ int try_sdl_init(int mode)
 		cio_api.get_window_info=sdl_get_window_info;
 		cio_api.setscaling=sdl_setscaling;
 		cio_api.getscaling=sdl_getscaling;
+		cio_api.setpalette=sdl_setpalette;
 		return(1);
 	}
 	return(0);
