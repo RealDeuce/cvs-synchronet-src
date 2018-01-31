@@ -1,4 +1,4 @@
-/* $Id: win32cio.h,v 1.14 2018/02/05 17:56:53 deuce Exp $ */
+/* $Id: win32cio.h,v 1.13 2009/02/12 04:29:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,7 +59,6 @@ void	win32_resume(void);
 void win32_getcustomcursor(int *s, int *e, int *r, int *b, int *v);
 void win32_setcustomcursor(int s, int e, int r, int b, int v);
 int win32_getvideoflags(void);
-int win32_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 
 #ifdef __cplusplus
 }
