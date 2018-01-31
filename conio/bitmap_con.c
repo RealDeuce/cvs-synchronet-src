@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.57 2018/01/30 19:32:27 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.58 2018/01/31 16:52:53 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -859,6 +859,11 @@ static int bitmap_draw_one_char(struct video_stats *vs, unsigned int xpos, unsig
 	}
 
 	pthread_mutex_lock(&screenlock);
+
+	if ((xoffset + vs->charwidth > screenwidth) || yoffset + vs->charheight > screenheight) {
+		pthread_mutex_unlock(&screenlock);
+		return(-1);
+	}
 
 	if(!screen) {
 		pthread_mutex_unlock(&screenlock);
