@@ -645,6 +645,8 @@ void sdl_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
 int sdl_setpalette(uint32_t index, uint16_t r, uint16_t g, uint16_t b)
 {
 	struct sdl_palette *pal;
+	va_list argptr;
+	SDL_Event	ev;
 
 	if (sdl_init_good) {
 		pal = (struct sdl_palette *)malloc(sizeof(struct sdl_palette));
@@ -654,7 +656,7 @@ int sdl_setpalette(uint32_t index, uint16_t r, uint16_t g, uint16_t b)
 			pal->g = g>>8;
 			pal->b = b>>8;
 			sdl_user_func(SDL_USEREVENT_SETPALETTE, pal);
-			bitmap_request_pixels();
+			force_redraws++;
 		}
 	}
 	return 0;
@@ -669,16 +671,16 @@ int sdl_init_mode(int mode)
 {
     int oldcols;
 
-	pthread_rwlock_rdlock(&vstatlock);
+	pthread_mutex_lock(&vstatlock);
 	oldcols = vstat.cols;
-	pthread_rwlock_unlock(&vstatlock);
+	pthread_mutex_unlock(&vstatlock);
 
 	sdl_user_func_ret(SDL_USEREVENT_FLUSH);
 
 	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
 
 	/* Deal with 40 col doubling */
-	pthread_rwlock_wrlock(&vstatlock);
+	pthread_mutex_lock(&vstatlock);
 	if(yuv.enabled) {
 		vstat.scaling=2;
 	}
@@ -695,7 +697,7 @@ int sdl_init_mode(int mode)
 		vstat.scaling = 1;
 	if(vstat.vmultiplier < 1)
 		vstat.vmultiplier = 1;
-	pthread_rwlock_unlock(&vstatlock);
+	pthread_mutex_unlock(&vstatlock);
 
 	sdl_user_func_ret(SDL_USEREVENT_SETVIDMODE);
 
@@ -917,24 +919,19 @@ int sdl_setup_colours(SDL_Surface *surf)
 		}
 		sdl_co = newco;
 		sdl_dac_default = newdd;
-
-		for(i=sdl_dac_defaultsz; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-			sdl_co[i].r=dac_default[i].red;
-			sdl_co[i].g=dac_default[i].green;
-			sdl_co[i].b=dac_default[i].blue;
-		}
-
-		sdl.SetColors(surf, sdl_co, 0, sdl_dac_defaultsz);
-
-		for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
-			sdl_dac_default[i]=sdl.MapRGB(win->format, sdl_co[i].r, sdl_co[i].g, sdl_co[i].b);
-		}
-
 		sdl_dac_defaultsz = newsz;
 	}
-	else
-		sdl.SetColors(surf, sdl_co, 0, sdl_dac_defaultsz);
 
+	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+		sdl_co[i].r=dac_default[i].red;
+		sdl_co[i].g=dac_default[i].green;
+		sdl_co[i].b=dac_default[i].blue;
+	}
+	sdl.SetColors(surf, sdl_co, 0, sizeof(dac_default)/sizeof(struct dac_colors));
+
+	for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+		sdl_dac_default[i]=sdl.MapRGB(win->format, sdl_co[i].r, sdl_co[i].g, sdl_co[i].b);
+	}
 	return(ret);
 }
 
@@ -961,7 +958,6 @@ int sdl_setup_yuv_colours(void)
 	return(ret);
 }
 
-/* Call with vstatlock held (reader or writer) */
 void setup_surfaces(void)
 {
 	int		char_width;
@@ -977,12 +973,14 @@ void setup_surfaces(void)
 		flags |= SDL_RESIZABLE;
 
 	sdl.mutexP(win_mutex);
+	pthread_mutex_lock(&vstatlock);
 	charwidth = vstat.charwidth;
 	charheight = vstat.charheight;
 	cols = vstat.cols;
 	scaling = vstat.scaling;
 	rows = vstat.rows;
 	vmultiplier = vstat.vmultiplier;
+	pthread_mutex_unlock(&vstatlock);
 	
 	char_width=charwidth*cols*scaling;
 	char_height=charheight*rows*scaling*vmultiplier;
@@ -998,7 +996,7 @@ void setup_surfaces(void)
 			win=sdl.SetVideoMode(yuv.win_width,yuv.win_height,0,flags);
 	}
 	else
-		win=sdl.SetVideoMode(char_width,char_height,0,flags);
+		win=sdl.SetVideoMode(char_width,char_height,8,flags);
 
 #if !defined(NO_X) && defined(__unix__)
 	if(sdl_x11available && sdl_using_x11) {
@@ -1021,7 +1019,7 @@ void setup_surfaces(void)
 		tmp_rect=sdl.CreateRGBSurface(SDL_HWSURFACE
 				, char_width
 				, char_height
-				, 32, 0, 0, 0, 0);
+				, 8, 0, 0, 0, 0);
 		if(tmp_rect) {
 			if(yuv.enabled) {
 				new_rect=tmp_rect;
@@ -1077,7 +1075,7 @@ void setup_surfaces(void)
 		sdl_setup_colours(new_rect);
 		sdl.mutexV(newrect_mutex);
 		sdl_setup_colours(win);
-		bitmap_request_pixels();
+		force_redraws++;
 	}
 	else if(sdl_init_good) {
 		ev.type=SDL_QUIT;
@@ -1096,9 +1094,7 @@ void sdl_add_key(unsigned int keyval)
 			cio_api.mode=fullscreen?CIOLIB_MODE_SDL_YUV_FULLSCREEN:CIOLIB_MODE_SDL_YUV;
 		else
 			cio_api.mode=fullscreen?CIOLIB_MODE_SDL_FULLSCREEN:CIOLIB_MODE_SDL;
-		pthread_rwlock_rdlock(&vstatlock);
 		setup_surfaces();
-		pthread_rwlock_unlock(&vstatlock);
 		return;
 	}
 	if(keyval <= 0xffff) {
@@ -1574,16 +1570,16 @@ int win_to_text_xpos(int winpos)
 	if(yuv.enabled) {
 
 		sdl.mutexP(win_mutex);
-		pthread_rwlock_rdlock(&vstatlock);
+		pthread_mutex_lock(&vstatlock);
 		ret = winpos*vstat.cols/win->w+1;
-		pthread_rwlock_unlock(&vstatlock);
+		pthread_mutex_unlock(&vstatlock);
 		sdl.mutexV(win_mutex);
 		return(ret);
 	}
 	else {
-		pthread_rwlock_rdlock(&vstatlock);
+		pthread_mutex_lock(&vstatlock);
 		ret = winpos/(vstat.charwidth*vstat.scaling)+1;
-		pthread_rwlock_unlock(&vstatlock);
+		pthread_mutex_unlock(&vstatlock);
 		return ret;
 	}
 }
@@ -1594,16 +1590,16 @@ int win_to_text_ypos(int winpos)
 
 	if(yuv.enabled) {
 		sdl.mutexP(win_mutex);
-		pthread_rwlock_rdlock(&vstatlock);
+		pthread_mutex_lock(&vstatlock);
 		ret = winpos*vstat.rows/win->h+1;
-		pthread_rwlock_unlock(&vstatlock);
+		pthread_mutex_unlock(&vstatlock);
 		sdl.mutexV(win_mutex);
 		return(ret);
 	}
 	else {
-		pthread_rwlock_rdlock(&vstatlock);
+		pthread_mutex_lock(&vstatlock);
 		ret = winpos/(vstat.charheight*vstat.scaling*vstat.vmultiplier)+1;
-		pthread_rwlock_unlock(&vstatlock);
+		pthread_mutex_unlock(&vstatlock);
 		return ret;
 	}
 }
@@ -1626,9 +1622,9 @@ int sdl_video_event_thread(void *data)
 		sdl.mutexV(bitmap_init_mutex);
 		SLEEP(1);
 	}
-	pthread_rwlock_rdlock(&vstatlock);
+	pthread_mutex_lock(&vstatlock);
 	old_scaling = vstat.scaling;
-	pthread_rwlock_unlock(&vstatlock);
+	pthread_mutex_unlock(&vstatlock);
 	
 	if(!init_sdl_video()) {
 		char	driver[16];
@@ -1651,7 +1647,7 @@ int sdl_video_event_thread(void *data)
 
 		while(1) {
 			if(sdl.PollEvent(&ev)!=1) {
-				if(pthread_rwlock_trywrlock(&vstatlock)==0) {
+				if(pthread_mutex_trylock(&vstatlock)==0) {
 					if (new_scaling != -1 || vstat.scaling != old_scaling) {
 						if (new_scaling == -1)
 							new_scaling = vstat.scaling;
@@ -1659,10 +1655,12 @@ int sdl_video_event_thread(void *data)
 						new_scaling = -1;
 						if(vstat.scaling < 1)
 							vstat.scaling=1;
+						pthread_mutex_unlock(&vstatlock);
 						setup_surfaces();
+						pthread_mutex_lock(&vstatlock);
 						old_scaling = vstat.scaling;
 					}
-					pthread_rwlock_unlock(&vstatlock);
+					pthread_mutex_unlock(&vstatlock);
 				}
 				SLEEP(1);
 			}
@@ -1724,16 +1722,16 @@ int sdl_video_event_thread(void *data)
 								new_scaling = 2;
 							}
 							else {
-								pthread_rwlock_rdlock(&vstatlock);
+								pthread_mutex_lock(&vstatlock);
 								new_scaling = (int)(ev.resize.w/(vstat.charwidth*vstat.cols));
-								pthread_rwlock_unlock(&vstatlock);
+								pthread_mutex_unlock(&vstatlock);
 							}
 						}
 						break;
 					case SDL_VIDEOEXPOSE:
 						{
 							if(yuv.enabled) {
-								bitmap_request_pixels();
+								force_redraws=1;
 							}
 							else {
 								if(upd_rects) {
@@ -1777,10 +1775,10 @@ int sdl_video_event_thread(void *data)
 										break;
 									}
 									sdl.mutexP(newrect_mutex);
-									pthread_rwlock_rdlock(&vstatlock);
+									pthread_mutex_lock(&vstatlock);
 									scaling = vstat.scaling;
 									vmultiplier = vstat.vmultiplier;
-									pthread_rwlock_unlock(&vstatlock);
+									pthread_mutex_unlock(&vstatlock);
 									for(y=0; y<rect->height; y++) {
 										offset=y*rect->width;
 										for(x=0; x<rect->width; x++) {
@@ -1800,6 +1798,7 @@ int sdl_video_event_thread(void *data)
 											free(rect);
 											sdl.mutexV(newrect_mutex);
 											sdl.mutexV(win_mutex);
+											pthread_mutex_unlock(&vstatlock);
 											break;
 										}
 										upd_rects[rectsused].x=rect->x*scaling;
@@ -1872,7 +1871,7 @@ int sdl_video_event_thread(void *data)
 								free(ev.user.data1);
 								break;
 							case SDL_USEREVENT_SETVIDMODE:
-								pthread_rwlock_rdlock(&vstatlock);
+								pthread_mutex_lock(&vstatlock);
 								if(!yuv.enabled) {
 									rectspace=vstat.cols*vstat.rows+vstat.cols;
 									rectsused=0;
@@ -1887,8 +1886,8 @@ int sdl_video_event_thread(void *data)
 								}
 								new_scaling = -1;
 								old_scaling = vstat.scaling;
+								pthread_mutex_unlock(&vstatlock);
 								setup_surfaces();
-								pthread_rwlock_unlock(&vstatlock);
 								sdl_ufunc_retval=0;
 								sdl.SemPost(sdl_ufunc_ret);
 								break;
