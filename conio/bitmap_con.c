@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.58 2018/01/31 16:52:53 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.59 2018/01/31 17:28:04 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -341,6 +341,7 @@ void bitmap_setvideoflags(int flags)
 	else
 		vstat.blink_altcharset=0;
 	pthread_mutex_unlock(&vstatlock);
+	force_redraws++;
 }
 
 int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
