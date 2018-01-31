@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.30 2018/02/01 09:06:31 deuce Exp $ */
+/* $Id: modem.c,v 1.29 2018/01/30 05:12:22 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -31,7 +31,7 @@ void modem_input_thread(void *args)
 			monitor_dsr=FALSE;
 	}
 	while(com != COM_HANDLE_INVALID && !conn_api.terminate) {
-		rd=comReadBuf(com, (char *)conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
+		rd=comReadBuf(com, conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -116,7 +116,7 @@ int modem_response(char *str, size_t maxlen, int timeout)
 			return(-1);
 		if(len >= maxlen)
 			return(-1);
-		if(!comReadByte(com, (unsigned char *)&ch)) {
+		if(!comReadByte(com, &ch)) {
 			YIELD();
 			continue;
 		}
