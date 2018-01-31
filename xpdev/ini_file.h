@@ -1,6 +1,6 @@
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.55 2018/03/30 08:35:15 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.52 2017/08/26 01:37:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -78,12 +78,6 @@ DLLEXPORT named_string_t** DLLCALL
 /* Return the supported Log Levels in a string list - for *LogLevel macros */
 DLLEXPORT str_list_t DLLCALL	iniLogLevelStringList(void);
 
-/* Return the unparsed/converted value */
-DLLEXPORT char* DLLCALL		iniReadValue(FILE*, const char* section, const char* key
-								,const char* deflt, char* value);
-DLLEXPORT char* DLLCALL		iniReadExistingValue(FILE*, const char* section, const char* key
-					,const char* deflt, char* value);
-
 /* These functions read a single key of the specified type */
 DLLEXPORT char* DLLCALL		iniReadString(FILE*, const char* section, const char* key
 					,const char* deflt, char* value);
@@ -112,8 +106,6 @@ DLLEXPORT unsigned DLLCALL	iniReadEnum(FILE*, const char* section, const char* k
 					,str_list_t names, unsigned deflt);
 DLLEXPORT unsigned* DLLCALL	iniReadEnumList(FILE*, const char* section, const char* key
 					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
-DLLEXPORT int* DLLCALL		iniReadIntList(FILE*, const char* section, const char* key
-					,unsigned* count, const char* sep, const char* deflt);
 DLLEXPORT long DLLCALL		iniReadNamedInt(FILE*, const char* section, const char* key
 					,named_long_t*, long deflt);
 DLLEXPORT ulong DLLCALL		iniReadNamedLongInt(FILE*, const char* section, const char* key
@@ -145,13 +137,6 @@ DLLEXPORT str_list_t DLLCALL	iniGetKeyList(str_list_t list, const char* section)
 DLLEXPORT named_string_t** DLLCALL
 			iniGetNamedStringList(str_list_t list, const char* section);
 
-/* Return the unparsed value (string literals not supported): */
-DLLEXPORT char* DLLCALL		iniGetValue(str_list_t, const char* section, const char* key
-					,const char* deflt, char* value /* may be NULL */);
-DLLEXPORT char* DLLCALL		iniGetExistingValue(str_list_t, const char* section, const char* key
-					,const char* deflt, char* value /* may be NULL */);
-
-/* Return the string value (potentially string literals separated by colon rather than equal): */
 DLLEXPORT char* DLLCALL		iniGetString(str_list_t, const char* section, const char* key
 					,const char* deflt, char* value /* may be NULL */);
 /* If the key doesn't exist, iniGetExistingString just returns NULL */
@@ -179,8 +164,6 @@ DLLEXPORT unsigned DLLCALL	iniGetEnum(str_list_t, const char* section, const cha
 					,str_list_t names, unsigned deflt);
 DLLEXPORT unsigned* DLLCALL	iniGetEnumList(str_list_t, const char* section, const char* key
 					,str_list_t names, unsigned* count, const char* sep, const char* deflt);
-DLLEXPORT int* DLLCALL		iniGetIntList(str_list_t, const char* section, const char* key
-					,unsigned* count, const char* sep, const char* deflt);
 DLLEXPORT long DLLCALL		iniGetNamedInt(str_list_t, const char* section, const char* key
 					,named_long_t*, long deflt);
 DLLEXPORT ulong DLLCALL		iniGetNamedLongInt(str_list_t, const char* section, const char* key
@@ -214,8 +197,6 @@ DLLEXPORT void DLLCALL		iniSetDefaultStyle(ini_style_t);
 DLLEXPORT char* DLLCALL		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetStringLiteral(str_list_t*, const char* section, const char* key, const char* value
-					,ini_style_t*);
-DLLEXPORT char* DLLCALL		iniSetValue(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetInteger(str_list_t*, const char* section, const char* key, long value
 					,ini_style_t*);
@@ -252,8 +233,6 @@ DLLEXPORT char* DLLCALL		iniSetBitField(str_list_t*, const char* section, const 
 DLLEXPORT char* DLLCALL		iniSetStringList(str_list_t*, const char* section, const char* key
 					,const char* sep, str_list_t value, ini_style_t*);
 #define		iniSetLogLevel(l,s,k,v,style) iniSetEnum(l,s,k,iniLogLevelStringList(),v,style)
-DLLEXPORT char*	DLLCALL		iniSetIntList(str_list_t*, const char* section, const char* key
-					,const char* sep, int* value, unsigned count, ini_style_t*);
 
 DLLEXPORT size_t DLLCALL		iniAddSection(str_list_t*, const char* section
 					,ini_style_t*);
@@ -265,7 +244,6 @@ DLLEXPORT BOOL DLLCALL		iniSectionExists(str_list_t, const char* section);
 DLLEXPORT BOOL DLLCALL		iniKeyExists(str_list_t, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniValueExists(str_list_t, const char* section, const char* key);
 DLLEXPORT char* DLLCALL		iniPopKey(str_list_t*, const char* section, const char* key, char* value);
-DLLEXPORT char* DLLCALL		iniPopString(str_list_t*, const char* section, const char* key, char* value);
 DLLEXPORT BOOL DLLCALL		iniRemoveKey(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveValue(str_list_t*, const char* section, const char* key);
 DLLEXPORT BOOL DLLCALL		iniRemoveSection(str_list_t*, const char* section);
@@ -276,7 +254,6 @@ DLLEXPORT BOOL DLLCALL		iniRenameSection(str_list_t*, const char* section, const
  * Too handy to leave internal
  */
 DLLEXPORT unsigned* DLLCALL parseEnumList(const char* values, const char* sep, str_list_t names, unsigned* count);
-DLLEXPORT int*		DLLCALL parseIntList(const char* values, const char* sep, unsigned* count);
 
 #if defined(__cplusplus)
 }
