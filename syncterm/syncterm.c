@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.202 2017/01/25 08:11:30 deuce Exp $ */
+/* $Id: syncterm.c,v 1.204 2018/01/30 05:12:23 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1612,7 +1612,6 @@ int main(int argc, char **argv)
 						}
 					}
 				}
-				free(bbs);
 			}
 			bbs=NULL;
 			break;
@@ -1667,7 +1666,11 @@ int main(int argc, char **argv)
 		if(i >= txtinfo.screenheight-1) {
 			textattr(WHITE);
 			cputs("<Press A Key>");
-			getch();
+			switch(getch()) {
+				case 0:
+				case 0xe0:
+					getch();
+			}
 			textattr(LIGHTGRAY);
 			gotoxy(1, txtinfo.screenheight);
 			delline();
@@ -1676,7 +1679,11 @@ int main(int argc, char **argv)
 	}
 	textattr(WHITE);
 	cputs("<Press A Key to Exit>");
-	getch();
+	switch(getch()) {
+		case 0:
+		case 0xe0:
+			getch();
+	}
 	textattr(LIGHTGRAY);
 	return(0);
 }
