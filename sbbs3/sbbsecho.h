@@ -1,8 +1,6 @@
-/* sbbsecho.h */
+/* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* Synchronet FidoNet Echomail tosser/scanner/areafix program */
-
-/* $Id: sbbsecho.h,v 1.31 2016/01/01 09:56:25 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.21 2017/11/24 22:06:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,232 +35,190 @@
 
 /* Portions written by Allen Christiansen 1994-1996 						*/
 
-#define SBBSECHO_VERSION_MAJOR		2
-#define SBBSECHO_VERSION_MINOR		31
+#include <str_list.h>
+#include <stdbool.h>
+#include <smbdefs.h>
+#include "sbbsdefs.h"
+#include "fidodefs.h"
+
+#define SBBSECHO_VERSION_MAJOR		3
+#define SBBSECHO_VERSION_MINOR		3
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
-#define IMPORT_NETMAIL  (1L<<0)
-#define IMPORT_PACKETS	(1L<<1)
-#define IMPORT_ECHOMAIL (1L<<2)
-#define EXPORT_ECHOMAIL (1L<<3)
-#define DELETE_NETMAIL	(1L<<4)
-#define DELETE_PACKETS	(1L<<5)
-#define STORE_SEENBY	(1L<<6) 		/* Store SEEN-BYs in SMB */
-#define STORE_PATH		(1L<<7) 		/* Store PATHs in SMB */
-#define STORE_KLUDGE	(1L<<8) 		/* Store unknown kludges in SMB */
-#define IGNORE_MSGPTRS	(1L<<9)
-#define UPDATE_MSGPTRS	(1L<<10)
-#define LEAVE_MSGPTRS	(1L<<11)
-#define STRIP_LF		(1L<<12)		/* Stripl line-feeds from outgoing messages */
-#define ASCII_ONLY		(1L<<13)
-#define LOGFILE 		(1L<<14)
-#define REPORT			(1L<<15)
-#define EXPORT_ALL		(1L<<16)
-#define UNKNOWN_NETMAIL (1L<<17)
-#define IGNORE_ADDRESS	(1L<<18)
-#define IGNORE_RECV 	(1L<<19)
-#define CONVERT_TEAR	(1L<<20)
-#define IMPORT_PRIVATE	(1L<<21)
-#define LOCAL_NETMAIL	(1L<<22)
-#define NOTIFY_RECEIPT	(1L<<23)
-#define FLO_MAILER		(1L<<24)		/* Binkley .FLO style mailer */
-#define PACK_NETMAIL	(1L<<25)		/* Pack *.MSG NetMail into packets */
-#define FUZZY_ZONE		(1L<<26)
-#define TRUNC_BUNDLES	(1L<<27)		/* Truncate bundles after sent (set TFS flag) */
-#define SECURE			(1L<<28)		/* Secure operation */
-#define ELIST_ONLY		(1L<<29)		/* Allow adding from AREAS.BBS */
-#define GEN_NOTIFY_LIST (1L<<30)		/* Generate Notify Lists */
-#define KILL_EMPTY_MAIL (1L<<31)		/* Kill empty netmail messages */
+#define SBBSECHO_AREAMGR_NAME		"AreaFix"
 
-#define ATTR_HOLD		(1<<0)			/* Hold */
-#define ATTR_CRASH		(1<<1)			/* Crash */
-#define ATTR_DIRECT 	(1<<2)			/* Direct */
-#define ATTR_PASSIVE	(1<<3)			/* Used to temp disconnect */
-#define SEND_NOTIFY 	(1<<4)			/* Send Notify Lists */
+#define DEFAULT_INBOUND				"../fido/nonsecure"
+#define DEFAULT_SECURE_INBOUND		"../fido/inbound"
+#define DEFAULT_OUTBOUND			"../fido/outbound"
+#define DEFAULT_AREA_FILE			"../data/areas.bbs"
+#define DEFAULT_BAD_AREA_FILE		"../data/badareas.lst"
+#define DEFAULT_ECHOSTATS_FILE		"../data/echostats.ini"
+#define DEFAULT_LOG_FILE			"../data/sbbsecho.log"
+#define DEFAULT_LOG_TIME_FMT		"%Y-%m-%d %H:%M:%S"
+#define DEFAULT_TEMP_DIR			"../temp/sbbsecho"
 
+enum mail_status {
+	 MAIL_STATUS_NORMAL
+	,MAIL_STATUS_HOLD
+	,MAIL_STATUS_CRASH
+};
 
-#define LOG_AREAFIX 	(1<<0) 		/* Log areafix messages */
-#define LOG_IMPORTED	(1<<1) 		/* Log imported netmail messages */
-#define LOG_PACKETS 	(1<<2) 		/* Log imported packet names/types */
-#define LOG_SECURE		(1<<3) 		/* Log security violations */
-#define LOG_GRUNGED 	(1<<4) 		/* Log grunged messages */
-#define LOG_PRIVATE 	(1<<5) 		/* Log disallowed private msgs */
-#define LOG_AREA_TOTALS (1<<6) 		/* Log totals for each area */
-#define LOG_TOTALS		(1<<7) 		/* Log over-all totals */
-#define LOG_PACKING 	(1<<8) 		/* Log packing of out-bound netmail */
-#define LOG_ROUTING 	(1<<9) 		/* Log routing of out-bound netmail */
-#define LOG_NETMAIL		(1<<10)		/* Log creation/export of netmail */
-#define LOG_BSO_FLO		(1<<11)		/* Log Binkley-Style-Outbound/FLO operations */
+enum pkt_type {
+	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
+	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
+	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
+	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
+	,PKT_TYPES_SUPPORTED
+};
 
-#define LOG_DUPES		(1<<24)		/* Log individual dupe messages */
-#define LOG_CIRCULAR	(1<<25)		/* Log individual circ paths */
-#define LOG_IGNORED 	(1<<26)		/* Log ignored netmail */
-#define LOG_UNKNOWN 	(1<<27)		/* Log netmail for unknown users */
+#define DFLT_PKT_SIZE   (250*1024L)
+#define DFLT_BDL_SIZE   (250*1024L)
 
-#define LOG_DEFAULTS	0xffffffL		/* Low 24 bits default to ON */
-
-#define MAX_OPEN_SMBS	2
-#define DFLT_OPEN_PKTS  4
-#define MAX_TOTAL_PKTS  100
-#define DFLT_PKT_SIZE   250*1024L
-#define DFLT_BDL_SIZE   250*1024L
-
-#define NOFWD			(1<<0)			/* Do not forward requests */
-
-typedef struct {                        /* Fidonet Packet Header */
-    short orignode,                     /* Origination Node of Packet */
-          destnode,                     /* Destination Node of Packet */
-          year,                         /* Year of Packet Creation e.g. 1995 */
-          month,                        /* Month of Packet Creation 0-11 */
-          day,                          /* Day of Packet Creation 1-31 */
-          hour,                         /* Hour of Packet Creation 0-23 */
-          min,                          /* Minute of Packet Creation 0-59 */
-          sec,                          /* Second of Packet Creation 0-59 */
-          baud,                         /* Max Baud Rate of Orig & Dest */
-          pkttype,                      /* Packet Type (-1 is obsolete) */
-          orignet,                      /* Origination Net of Packet */
-          destnet;                      /* Destination Net of Packet */
-    uchar prodcode,                     /* Product Code (00h is Fido) */
-          sernum,                       /* Binary Serial Number or NULL */
-          password[8];                  /* Session Password or NULL */
-    short origzone,                     /* Origination Zone of Packet or NULL */
-          destzone;                     /* Destination Zone of Packet or NULL */
-    uchar empty[20];                    /* Fill Characters */
-	} pkthdr_t;
-
-typedef struct {						/* Type 2+ Packet Header Info */
-	short auxnet,						/* Orig Net if Origin is a Point */
-		  cwcopy;						/* Must be Equal to cword */
-	uchar prodcode, 					/* Product Code */
-		  revision; 					/* Revision */
-	short cword,						/* Compatibility Word */
-		  origzone, 					/* Zone of Packet Sender or NULL */
-		  destzone, 					/* Zone of Packet Receiver or NULL */
-		  origpoint,					/* Origination Point of Packet */
-		  destpoint;					/* Destination Point of Packet */
-	uchar empty[4];
-	} two_plus_t;
-
-typedef struct {						/* Type 2.2 Packet Header Info */
-	char origdomn[8],					/* Origination Domain */
-		  destdomn[8];					/* Destination Domain */
-	uchar	  empty[4]; 					/* Product Specific Data */
-	} two_two_t;
+#define SBBSECHO_MAX_KEY_LEN	25	/* for AreaFix/EchoList keys (previously known as "flags") */
 
 typedef struct {
-    uint  sub;                  /* Set to INVALID_SUB if pass-thru */
-	ulong tag;					/* CRC-32 of tag name */
-    char *name;                 /* Area tag name */
-    uint  uplinks;              /* Total number of uplinks for this echo */
-	uint  imported; 			/* Total messages imported this run */
-	uint  exported; 			/* Total messages exported this run */
-	uint  circular; 			/* Total circular paths detected */
-	uint  dupes;				/* Total duplicate messages detected */
-    faddr_t *uplink;            /* Each uplink */
-    } areasbbs_t;
+    uint		sub;						/* Set to INVALID_SUB if pass-thru */
+    char*		tag;						/* AreaTag, a.k.a. 'EchoTag' */
+	uint		imported; 					/* Total messages imported this run */
+	uint		exported; 					/* Total messages exported this run */
+	uint		circular; 					/* Total circular paths detected */
+	uint		dupes;						/* Total duplicate messages detected */
+    uint		links;						/* Total number of links for this area */
+    fidoaddr_t*	link;						/* Each link */
+} area_t;
 
 typedef struct {
-	char flag[5];
-	} flag_t;
-
-typedef struct {
-	FILE *stream;				/* The stream associated with this packet (NULL if not-open) */
-	faddr_t uplink; 			/* The current uplink for this packet */
-	char filename[MAX_PATH+1];	/* Name of the file */
-    } outpkt_t;
-
-typedef struct {
-	uint addrs; 				/* Total number of uplinks */
-	faddr_t *addr;				/* Each uplink */
-	} addrlist_t;
+	uint			addrs; 		/* Total number of links */
+	fidoaddr_t *	addr;		/* Each link */
+} addrlist_t;
 
 typedef struct {
 	char name[26]				/* Short name of archive type */
 		,hexid[26]				/* Hexadecimal ID to search for */
-		,pack[81]				/* Pack command line */
-		,unpack[81];			/* Unpack command line */
+		,pack[MAX_PATH+1]		/* Pack command line */
+		,unpack[MAX_PATH+1];	/* Unpack command line */
 	uint byteloc;				/* Offset to Hex ID */
-	} arcdef_t;
+} arcdef_t;
 
 typedef struct {
-	faddr_t 	faddr				/* Fido address of this node */
-			   ,route;				/* Address to route FLO stuff through */
-	ushort		arctype 			/* De/archiver to use for this node */
-			   ,numflags			/* Number of flags defined for this node */
-			   ,pkt_type;			/* Packet type to use for outgoing PKTs */
-									/* Packet types for nodecfg_t.pkt_type value ONLY: */
-#define PKT_TWO_PLUS	0			/* Type 2+ Packet Header				*/
-#define PKT_TWO_TWO 	1			/* Type 2.2 Packet Header				*/
-#define PKT_TWO 		2			/* Old Type Packet Header				*/
-
-	ushort		attr;				/* Message bits to set for this node */
-	char		password[26];		/* Areafix password for this node */
-	char		pktpwd[9];			/* Packet password for this node */
-	flag_t		*flag;				/* Areafix flags for this node */
-	} nodecfg_t;
-
-typedef struct {
-	char		listpath[129];		/* Path to this echolist */
-	uint		numflags,misc;		/* Number of flags for this echolist */
-	flag_t		*flag;				/* Flags to access this echolist */
-	faddr_t 	forward;			/* Where to forward requests */
-	char		password[72];		/* Password to use for forwarding req's */
-	} echolist_t;
+	fidoaddr_t 	addr			/* Fido address of this node */
+			   ,route;			/* Address to route FLO stuff through */
+	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
+	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
+	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
+	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
+	char		comment[64];	/* Comment for this node */
+	char		name[FIDO_NAME_LEN];
+	char		inbox[MAX_PATH+1];
+	char		outbox[MAX_PATH+1];
+	str_list_t	keys;
+	bool		areafix;
+	bool		send_notify;
+	bool		passive;
+	bool		direct;
+	enum mail_status status;
+#define SBBSECHO_ARCHIVE_NONE	NULL
+	arcdef_t*	archive;
+	str_list_t	grphub;			/* This link is hub of these groups (short names */
+} nodecfg_t;
 
 typedef struct {
-	faddr_t 	dest;
-	char		fname[13];
-	} attach_t;
+	char		listpath[MAX_PATH+1];	/* Path to this echolist */
+	str_list_t	keys;
+	fidoaddr_t 	hub;			/* Where to forward requests */
+	bool		forward;
+	char		password[FIDO_SUBJ_LEN];	/* Password to use for forwarding req's */
+	char		areamgr[FIDO_NAME_LEN];		/* Destination name for Area Manager req's */
+} echolist_t;
 
 typedef struct {
-	char		inbound[82] 		/* Inbound directory */
-			   ,secure[82]			/* Secure Inbound directory */
-			   ,outbound[82]		/* Outbound directory */
-			   ,areafile[128]		/* AREAS.BBS path/filename */
-			   ,logfile[128]		/* LOG path/filename */
-			   ,cfgfile[128]		/* Configuration path/filename */
-			   ,sysop_alias[FIDO_NAME_LEN];
-	ulong		maxpktsize			/* Maximum size for packets */
-			   ,maxbdlsize			/* Maximum size for bundles */
-			   ,log					/* What do we log? */
-			   ,log_level;			/* Highest level (lowest severity) */
-	int 		badecho;			/* Area to store bad echomail msgs */
-	uint		arcdefs 			/* Number of archive definitions */
-			   ,nodecfgs			/* Number of nodes with configs */
-			   ,listcfgs			/* Number of echolists defined */
-			   ,areas				/* Number of areas defined */
-			   ,notify; 			/* User number (sysop) to notify */
-	arcdef_t   *arcdef; 			/* Each archive definition */
-	nodecfg_t  *nodecfg;			/* Each node configuration */
-	echolist_t *listcfg;			/* Each echolist configuration */
-	areasbbs_t *area;				/* Each area configuration */
-	BOOL		check_path;			/* Enable circular path detection */
-	BOOL		fwd_circular;		/* Allow the forwrarding of circular messages to links (defaults to true, only applicable if check_path is also true) */
-	BOOL		zone_blind;			/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
+	fidoaddr_t 	dest;
+	char		filename[MAX_PATH+1];	/* The full path to the attached file */
+} attach_t;
+
+struct zone_mapping {
+	uint16_t	zone;
+	char *		root;
+	char *		domain;
+	struct zone_mapping *next;
+};
+
+typedef struct {
+	char		inbound[MAX_PATH+1]; 	/* Inbound directory */
+	char		secure_inbound[MAX_PATH+1];		/* Secure Inbound directory */
+	char		outbound[MAX_PATH+1];	/* Outbound directory */
+	char		areafile[MAX_PATH+1];	/* Area file (default: data/areas.bbs) */
+	uint		areafile_backups;		/* Number of backups to keep of area file */
+	char		badareafile[MAX_PATH+1];/* Bad area file (default: data/badareas.lst) */
+	char		echostats[MAX_PATH+1];	/* Echo statistics (default: data/echostats.ini) */
+	char		logfile[MAX_PATH+1];	/* LOG path/filename */
+	char		logtime[64];			/* format of log timestamp */
+	char		cfgfile[MAX_PATH+1];	/* Configuration path/filename */
+	uint		cfgfile_backups;		/* Number of backups to keep of cfg file */
+	char		temp_dir[MAX_PATH+1];	/* Temporary file directory */
+	char		outgoing_sem[MAX_PATH+1];	/* Semaphore file to create/touch when there's outgoing data */
+	str_list_t	sysop_alias_list;		/* List of sysop aliases */
+	ulong		maxpktsize				/* Maximum size for packets */
+			   ,maxbdlsize;				/* Maximum size for bundles */
+	int			log_level;				/* Highest level (lowest severity) */
+	int 		badecho;				/* Area to store bad echomail msgs */
+	uint		arcdefs 				/* Number of archive definitions */
+			   ,nodecfgs				/* Number of nodes with configs */
+			   ,listcfgs				/* Number of echolists defined */
+			   ,areas					/* Number of areas defined */
+			   ;
+	uint		umask;
+	char		default_recipient[LEN_ALIAS+1];
+	char		areamgr[LEN_ALIAS+1];	/* User to notify of areafix activity */
+	arcdef_t*	arcdef; 				/* Each archive definition */
+	nodecfg_t*	nodecfg;				/* Each node configuration */
+	echolist_t*	listcfg;				/* Each echolist configuration */
+	area_t*		area;					/* Each area configuration */
+	bool		check_path;				/* Enable circular path detection */
+	bool		zone_blind;				/* Pretend zones don't matter when parsing and constructing PATH and SEEN-BY lines (per Wilfred van Velzen, 2:280/464) */
 	uint16_t	zone_blind_threshold;	/* Zones below this number (e.g. 4) will be treated as the same zone when zone_blind is enabled */
-	} config_t;
+	bool		secure_echomail;
+	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
+	bool		strip_lf;
+	bool		convert_tear;
+	bool		fuzzy_zone;
+	bool		flo_mailer;				/* Binkley-Style-Outbound / FLO mailer */
+	bool		add_from_echolists_only;
+	bool		trunc_bundles;
+	bool		kill_empty_netmail;
+	bool		delete_netmail;
+	bool		delete_packets;
+	bool		echomail_notify;
+	bool		ignore_netmail_dest_addr;
+	bool		ignore_netmail_sent_attr;
+	bool		ignore_netmail_kill_attr;
+	bool		ignore_netmail_recv_attr;
+	bool		ignore_netmail_local_attr;
+	bool		use_ftn_domains;
+	bool		relay_filtered_msgs;
+	bool		auto_add_subs;
+	ulong		bsy_timeout;
+	ulong		bso_lock_attempts;
+	ulong		bso_lock_delay;			/* in seconds */
+	ulong		max_netmail_age;
+	ulong		max_echomail_age;
+	struct zone_mapping *zone_map;	// 
+} sbbsecho_cfg_t;
 
-#ifdef __WATCOMC__
-struct	time	{
-    unsigned char   ti_min;     /* Minutes */
-    unsigned char   ti_hour;    /* Hours */
-    unsigned char   ti_hund;    /* Hundredths of seconds */
-    unsigned char   ti_sec;     /* Seconds */
-};
-
-struct  date    {
-	int 		da_year;	/* Year - 1980 */
-    char        da_day;     /* Day of the month */
-    char        da_mon;     /* Month (1 = Jan) */
-};
-#endif
+char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
+char* mailStatusStringList[4];
 
 /***********************/
 /* Function prototypes */
 /***********************/
-void read_echo_cfg(void);
+bool sbbsecho_read_ini(sbbsecho_cfg_t*);
+bool sbbsecho_read_ftn_domains(sbbsecho_cfg_t*, const char*);
+bool sbbsecho_write_ini(sbbsecho_cfg_t*);
 void bail(int code);
-faddr_t atofaddr(char *str);
-int  matchnode(faddr_t addr, int exact);
-void export_echomail(char *sub_code,faddr_t addr);
+fidoaddr_t atofaddr(const char *str);
+const char *faddrtoa(const fidoaddr_t*);
+bool faddr_contains_wildcard(const fidoaddr_t*);
+int  matchnode(sbbsecho_cfg_t*, fidoaddr_t, int exact);
+nodecfg_t* findnodecfg(sbbsecho_cfg_t*, fidoaddr_t, int exact);
+
