@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.28 2015/09/26 09:09:04 deuce Exp $ */
+/* $Id: js_conio.c,v 1.29 2017/11/24 23:05:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,9 +338,10 @@ js_conio_init(JSContext *cx, uintN argc, jsval *arglist)
 			ciolib_mode=CIOLIB_MODE_SDL_YUV;
 		else if(!stricmp(mode,"SDL_YUV_FULLSCREEN"))
 			ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
-		else
+		else {
 			JS_ReportError(cx, "Unhandled ciolib mode \"%s\"", mode);
 			return JS_FALSE;
+		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
