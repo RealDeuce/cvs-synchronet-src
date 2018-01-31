@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.168 2018/01/31 09:45:35 deuce Exp $ */
+/* $Id: cterm.c,v 1.169 2018/01/31 10:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1083,7 +1083,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						if(retbuf == NULL)
 							break;
 						tmp[0] = 0;
-						if ((strcmp(cterm->escbuf,"[=n") == 0) || (strcmp(cterm->escbuf,"[=1n"))) {
+						if ((strcmp(cterm->escbuf,"[=n") == 0) || (strcmp(cterm->escbuf,"[=1n") == 0)) {
 							sprintf(tmp, "\x1b[=1;%u;%u;%u;%u;%u;%un"
 								,CONIO_FIRST_FREE_FONT
 								,(uint8_t)cterm->setfont_result
@@ -1093,7 +1093,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								,(uint8_t)cterm->altfont[3]
 							);
 						}
-						if (!strcmp(cterm->escbuf,"[=2n")) {
+						else if (!strcmp(cterm->escbuf,"[=2n")) {
 							int vidflags = GETVIDEOFLAGS();
 							strcpy(tmp, "\x1b[=2");
 							if(cterm->origin_mode)
@@ -1116,7 +1116,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								strcat(tmp, ";");
 							}
 							strcat(tmp, "n");
-							break;
 						}
 						if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
 							strcat(retbuf, tmp);
@@ -2044,7 +2043,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.168 $";
+	char	*revision="$Revision: 1.169 $";
 	char *in;
 	char	*out;
 	int		i;
