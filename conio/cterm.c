@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.174 2018/02/01 02:53:59 deuce Exp $ */
+/* $Id: cterm.c,v 1.175 2018/02/01 03:02:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1152,7 +1152,11 @@ static enum {
 		size_t parameter_len;
 		size_t intermediate_len;
 
-		parameter_len = strspn(&seq[1], "0123456789:;<=>?");
+		if (seq[1] >= '<' && seq[1] <= '?')
+			parameter_len = strspn(&seq[1], "0123456789:;<=>?");
+		else
+			parameter_len = strspn(&seq[1], "0123456789:;");
+
 		if (seq[1+parameter_len] == 0)
 			goto incomplete;
 
@@ -2266,7 +2270,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.174 $";
+	char	*revision="$Revision: 1.175 $";
 	char *in;
 	char	*out;
 	int		i;
