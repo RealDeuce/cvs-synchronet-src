@@ -1,14 +1,13 @@
-/* $Id: vidmodes.c,v 1.22 2018/02/05 23:49:37 rswindell Exp $ */
+/* $Id: vidmodes.c,v 1.20 2018/01/31 19:58:49 deuce Exp $ */
 
 #include <stdlib.h>
-#include <stdbool.h>
 
 /* xpdev: */
 #include <gen_defs.h>	/* FREE_AND_NULL */
 
 #include "vidmodes.h"
 
-struct video_params vparams[] = {
+struct video_params vparams[49] = {
 	/* BW 40x25 */
 	{BW40, GREYSCALE_PALETTE, 40, 25, 14, 15, 16, 8, 1},
 	/* CO 40x25 */
@@ -37,8 +36,6 @@ struct video_params vparams[] = {
 	{C80X21, COLOUR_PALETTE, 80, 21, 14, 15, 16, 8, 1},
 	/* CO 80x28 */
 	{C80X28, COLOUR_PALETTE, 80, 28, 12, 13, 14, 8, 1},
-	/* CO 80x30 */
-	{C80X30, COLOUR_PALETTE, 80, 30, 14, 15, 16, 8, 1},
 	/* CO 80x43 */
 	{C80X43, COLOUR_PALETTE, 80, 43, 7, 7, 8, 8, 1},
 	/* CO 80x50 */
@@ -265,13 +262,11 @@ void release_vmem(struct vstat_vmem *vm)
 	vm->refcount--;
 	if (vm->refcount == 0) {
 		FREE_AND_NULL(vm->vmem);
-		FREE_AND_NULL(vm->fgvmem);
-		FREE_AND_NULL(vm->bgvmem);
 		FREE_AND_NULL(vm);
 	}
 }
 
-static struct vstat_vmem *new_vmem(int cols, int rows, bool palette)
+static struct vstat_vmem *new_vmem(int cols, int rows)
 {
 	struct vstat_vmem *ret = malloc(sizeof(struct vstat_vmem));
 
@@ -282,25 +277,6 @@ static struct vstat_vmem *new_vmem(int cols, int rows, bool palette)
 	if (ret->vmem == NULL) {
 		free(ret);
 		return NULL;
-	}
-	if (palette) {
-		ret->fgvmem = malloc(cols*rows*sizeof(ret->fgvmem[0]));
-		if (ret->fgvmem == NULL) {
-			free(ret->vmem);
-			free(ret);
-			return NULL;
-		}
-		ret->bgvmem = malloc(cols*rows*sizeof(ret->bgvmem[0]));
-		if (ret->bgvmem == NULL) {
-			free(ret->fgvmem);
-			free(ret->vmem);
-			free(ret);
-			return NULL;
-		}
-	}
-	else {
-		ret->fgvmem = NULL;
-		ret->bgvmem = NULL;
 	}
 	return ret;
 }
@@ -313,7 +289,7 @@ int load_vmode(struct video_stats *vs, int mode)
 	if(i==-1)
 		return(-1);
 	release_vmem(vs->vmem);
-	vs->vmem=new_vmem(vparams[i].cols, vparams[i].rows, vs->flags & VIDMODES_FLAG_PALETTE_VMEM);
+	vs->vmem=new_vmem(vparams[i].cols, vparams[i].rows);
 	if (vs->vmem == NULL)
 		return -1;
 	vs->rows=vparams[i].rows;
