@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.45 2016/01/29 20:02:22 deuce Exp $ */
+/* $Id: str_list.c,v 1.47 2017/06/09 02:02:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -343,15 +343,14 @@ char* DLLCALL strListCombine(str_list_t list, char* buf, size_t maxlen, const ch
 	if(maxlen<1)
 		return(NULL);
 
-	if(list==NULL)
-		return buf;
-
 	if(buf==NULL)
 		if((buf=(char*)malloc(maxlen))==NULL)
 			return(NULL);
 
 	memset(buf, 0, maxlen);
-	*buf=0;
+	if(list==NULL)
+		return buf;
+
 	end=buf+maxlen;
 	for(i=0, ptr=buf; list[i]!=NULL && buf<end; i++)
 		ptr += safe_snprintf(ptr, end-ptr, "%s%s", i ? delimit:"", list[i]);
@@ -631,4 +630,48 @@ void DLLCALL strListFreeBlock(char* block)
 {
 	if(block!=NULL)
 		free(block);	/* this must be done here for Windows-DLL reasons */
+}
+
+int DLLCALL strListTruncateTrailingWhitespaces(str_list_t list)
+{
+	size_t		i;
+
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++) {
+		truncsp(list[i]);
+	}
+	return i;
+}
+
+int DLLCALL strListTruncateTrailingLineEndings(str_list_t list)
+{
+	size_t		i;
+
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++) {
+		truncnl(list[i]);
+	}
+	return i;
+}
+
+
+/* Truncate strings in list at first occurrence of any char in 'set' */
+int DLLCALL	strListTruncateStrings(str_list_t list, const char* set)
+{
+	size_t		i;
+	char*		p;
+
+	if(list==NULL)
+		return(0);
+
+	for(i=0; list[i]!=NULL; i++) {
+		p=strpbrk(list[i], set);
+		if(p!=NULL && *p!=0)
+			*p=0;
+	}
+	return i;
 }

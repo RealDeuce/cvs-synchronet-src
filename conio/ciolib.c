@@ -1,10 +1,10 @@
-/* $Id: ciolib.c,v 1.135 2015/08/05 09:24:48 deuce Exp $ */
+/* $Id: ciolib.c,v 1.142 2018/02/01 23:41:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -103,7 +103,9 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_highvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_pputtext(int a,int b,int c,int d,void *e,uint32_t *f, uint32_t *g);
 CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
+CIOLIBEXPORT int CIOLIBCALL ciolib_pgettext(int a,int b,int c,int d,void *e, uint32_t *f, uint32_t *g);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);
@@ -118,6 +120,10 @@ CIOLIBEXPORT char * CIOLIBCALL ciolib_getcliptext(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int new_value);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
+CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
+CIOLIBEXPORT int CIOLIBCALL ciolib_cputch(uint32_t fg_palette, uint32_t bg_palette, int a);
+CIOLIBEXPORT int CIOLIBCALL ciolib_ccputs(uint32_t fg_palette, uint32_t bg_palette, const char *str);
+CIOLIBEXPORT int CIOLIBCALL ciolib_attr2palette(uint8_t attr, uint32_t *fg, uint32_t *bg);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -163,6 +169,8 @@ int try_sdl_init(int mode)
 		cio_api.get_window_info=sdl_get_window_info;
 		cio_api.setscaling=sdl_setscaling;
 		cio_api.getscaling=sdl_getscaling;
+		cio_api.setpalette=sdl_setpalette;
+		cio_api.attr2palette=bitmap_attr2palette;
 		return(1);
 	}
 	return(0);
@@ -209,6 +217,8 @@ int try_x_init(int mode)
 		cio_api.get_window_info=x_get_window_info;
 		cio_api.setscaling=bitmap_setscaling;
 		cio_api.getscaling=bitmap_getscaling;
+		cio_api.setpalette=x_setpalette;
+		cio_api.attr2palette=bitmap_attr2palette;
 		return(1);
 	}
 	return(0);
@@ -1270,6 +1280,26 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e)
 }
 
 /* Optional */
+CIOLIBEXPORT int CIOLIBCALL ciolib_pgettext(int a,int b,int c,int d,void *e,uint32_t *f, uint32_t *g)
+{
+	CIOLIB_INIT();
+
+	if (cio_api.pgettext == NULL)
+		return ciolib_gettext(a, b, c, d, e);
+	return cio_api.pgettext(a,b,c,d,e,f,g);
+}
+
+/* Optional */
+CIOLIBEXPORT int CIOLIBCALL ciolib_pputtext(int a,int b,int c,int d,void *e,uint32_t *f, uint32_t *g)
+{
+	CIOLIB_INIT();
+
+	if (cio_api.pputtext == NULL)
+		return ciolib_puttext(a, b, c, d, e);
+	return cio_api.pputtext(a,b,c,d,e,f,g);
+}
+
+/* Optional */
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a)
 {
 	CIOLIB_INIT();
@@ -1295,7 +1325,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a)
 }
 
 /* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
+CIOLIBEXPORT int CIOLIBCALL ciolib_cputch(uint32_t fg, uint32_t bg, int a)
 {
 	unsigned char a1=a;
 	unsigned char buf[2];
@@ -1399,6 +1429,48 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
 	
 }
 
+/* Optional */
+CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a)
+{
+	CIOLIB_INIT();
+
+	if (cio_api.putch == NULL) {
+		uint32_t fg,bg;
+
+		ciolib_attr2palette(cio_textinfo.attribute, &fg, &bg);
+		return ciolib_cputch(fg, bg, a);
+	}
+	return cio_api.putch(a);
+}
+
+CIOLIBEXPORT int CIOLIBCALL ciolib_ccputs(uint32_t fg_palette, uint32_t bg_palette, const char *s)
+{
+	CIOLIB_INIT();
+
+	if (cio_api.ccputs != NULL)
+		return cio_api.ccputs(fg_palette, bg_palette, s);
+	if (cio_api.cputch == NULL) {
+		int		pos;
+		int		ret=0;
+		int		olddmc;
+
+		olddmc=hold_update;
+		hold_update=1;
+		for(pos=0;s[pos];pos++)
+		{
+			ret=s[pos];
+			if(s[pos]=='\n')
+				ciolib_putch('\r');
+			ciolib_cputch(fg_palette, bg_palette, s[pos]);
+		}
+		hold_update=olddmc;
+		ciolib_gotoxy(ciolib_wherex(),ciolib_wherey());
+		return(ret);
+	}
+
+	return cio_api.cputs((char *)s);
+}
+
 /* **MUST** be implemented */
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcursortype(int a)
 {
@@ -1477,7 +1549,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num)
 	if(cio_api.setfont!=NULL)
 		return(cio_api.setfont(font,force,font_num));
 	else
-		return(-1);
+		return(CIOLIB_SETFONT_NOT_SUPPORTED);
 }
 
 /* Optional */
@@ -1573,4 +1645,23 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void)
 	if(cio_api.getscaling)
 		return(cio_api.getscaling());
 	return(1);
+}
+
+/* Optional */
+CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
+{
+	if(cio_api.setpalette)
+		return(cio_api.setpalette(entry, r, g, b));
+	return(1);
+}
+
+CIOLIBEXPORT int CIOLIBCALL ciolib_attr2palette(uint8_t attr, uint32_t *fg, uint32_t *bg)
+{
+	if (cio_api.attr2palette)
+		return cio_api.attr2palette(attr, fg, bg);
+	/*
+	 * TODO: If we want to be able to cross screens, we need some
+	 * mapping for non-plaette aware things.
+	 */
+	return -1;
 }
