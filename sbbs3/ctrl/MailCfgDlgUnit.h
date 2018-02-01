@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.h,v 1.21 2018/03/05 02:12:54 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.h,v 1.20 2014/03/11 08:01:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,6 +100,7 @@ __published:
     TCheckBox *SendMailCheckBox;
     TLabel *DefaultUserLabel;
     TEdit *DefaultUserEdit;
+	TCheckBox *AllowRelayCheckBox;
 	TTabSheet *DNSBLTabSheet;
 	TButton *DNSBLServersButton;
 	TLabel *Label1;
@@ -150,12 +151,6 @@ __published:
     TEdit *MaxMsgsWaitingEdit;
     TLabel *ConnectTimeoutLabel;
     TEdit *ConnectTimeoutEdit;
-    TLabel *TLSSubPortLabel;
-    TEdit *TLSSubPortEdit;
-    TCheckBox *TLSSubPortCheckBox;
-    TLabel *TLSPOP3PortLabel;
-    TEdit *TLSPOP3PortEdit;
-    TCheckBox *TLSPOP3EnabledCheckBox;
     void __fastcall InboundSoundButtonClick(TObject *Sender);
     void __fastcall OutboundSoundButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
@@ -167,9 +162,9 @@ __published:
 	void __fastcall DNSBLRadioButtonClick(TObject *Sender);
 	void __fastcall DNSBLServersButtonClick(TObject *Sender);
 	void __fastcall DNSBLExemptionsButtonClick(TObject *Sender);
+	void __fastcall AllowRelayCheckBoxClick(TObject *Sender);
     void __fastcall RelayAuthRadioButtonClick(TObject *Sender);
     void __fastcall UseSubPortCheckBoxClick(TObject *Sender);
-    void __fastcall TLSSubPortCheckBoxClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TMailCfgDlg(TComponent* AOwner);
