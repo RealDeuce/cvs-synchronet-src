@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.h,v 1.10 2018/02/14 04:37:26 deuce Exp $ */
+/* $Id: ansi_cio.h,v 1.9 2011/04/21 20:34:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,7 @@ void ansi_gettextinfo(struct text_info *info);
 void ansi_setcursortype(int type);
 int ansi_getch(void);
 int ansi_getche(void);
-void ansi_beep(void);
+int ansi_beep(void);
 void ansi_textmode(int mode);
 #ifdef __cplusplus
 }

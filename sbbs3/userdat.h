@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.68 2018/03/16 05:26:11 rswindell Exp $ */
+/* $Id: userdat.h,v 1.66 2017/10/12 09:11:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,11 +126,6 @@ DLLEXPORT BOOL	DLLCALL is_host_exempt(scfg_t*, const char* ip_addr, const char* 
 DLLEXPORT BOOL	DLLCALL filter_ip(scfg_t*, const char* prot, const char* reason, const char* host
 								  ,const char* ip_addr, const char* username, const char* fname);
 
-/* user .ini file access */
-DLLEXPORT BOOL DLLCALL user_get_property(scfg_t*, unsigned user_number, const char* section, const char* key, char* value);
-DLLEXPORT BOOL DLLCALL user_set_property(scfg_t*, unsigned user_number, const char* section, const char* key, const char* value);
-DLLEXPORT BOOL DLLCALL user_set_time_property(scfg_t*, unsigned user_number, const char* section, const char* key, time_t);
-
 /* New-message-scan pointer functions: */
 DLLEXPORT BOOL	DLLCALL getmsgptrs(scfg_t*, user_t*, subscan_t*, void (*progress)(void*, int, int), void* cbdata);
 DLLEXPORT BOOL	DLLCALL putmsgptrs(scfg_t*, user_t*, subscan_t*);
@@ -149,8 +144,6 @@ DLLEXPORT BOOL	DLLCALL user_adjust_minutes(scfg_t*, user_t*, long amount);
 DLLEXPORT time_t DLLCALL gettimeleft(scfg_t*, user_t*, time_t starttime);
 
 DLLEXPORT BOOL	DLLCALL check_name(scfg_t*, const char* name);
-DLLEXPORT BOOL	DLLCALL sysop_available(scfg_t*);
-DLLEXPORT BOOL	DLLCALL set_sysop_availability(scfg_t*, BOOL available);
 
 /* Login attempt/hack tracking */
 typedef struct {
