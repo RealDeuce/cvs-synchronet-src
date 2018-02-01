@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.54 2015/02/24 08:41:37 deuce Exp $ */
+/* $Id: menu.c,v 1.56 2018/02/01 09:06:31 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -19,7 +19,7 @@ void viewscroll(void)
 	int	top;
 	int key;
 	int i;
-	char	*scrollback;
+	unsigned char	*scrollback;
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
@@ -30,7 +30,7 @@ void viewscroll(void)
 	uifcbail();
     gettextinfo(&txtinfo);
 	/* too large for alloca() */
-	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	scrollback=(unsigned char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
 	if(scrollback==NULL)
 		return;
 	if(cterm->scrollback != NULL)
@@ -54,7 +54,7 @@ void viewscroll(void)
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
-			case 0xff:
+			case 0xe0:
 			case 0:
 				switch(key|getch()<<8) {
 					case CIO_KEY_QUIT:
