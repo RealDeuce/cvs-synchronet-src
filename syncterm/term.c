@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.318 2018/02/01 09:06:31 deuce Exp $ */
+/* $Id: term.c,v 1.319 2018/02/01 10:08:56 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2153,7 +2153,7 @@ void capture_control(struct bbslist *bbs)
 						check_exit(FALSE);
 						break;
 					case 0:
-						cterm->log=cterm->log |= CTERM_LOG_PAUSED;
+						cterm->log |= CTERM_LOG_PAUSED;
 						break;
 					case 1:
 						cterm_closelog(cterm);
