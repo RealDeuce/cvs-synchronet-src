@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.79 2018/02/01 23:22:43 deuce Exp $ */
+/* $Id: ciolib.h,v 1.80 2018/02/01 23:41:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,7 +259,9 @@ typedef struct {
 	int		mouse;
 	void	(*clreol)		(void);
 	int		(*puttext)		(int,int,int,int,void *);
+	int		(*pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	int		(*gettext)		(int,int,int,int,void *);
+	int		(*pgettext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*textattr)		(int);
 	int		(*kbhit)		(void);
 	void	(*delay)		(long);
