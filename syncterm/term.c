@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.313 2015/10/28 02:01:20 rswindell Exp $ */
+/* $Id: term.c,v 1.318 2018/02/01 09:06:31 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -21,6 +21,7 @@
 #include "zmodem.h"
 #include "xmodem.h"
 #include "telnet_io.h"
+#include "saucedefs.h"
 #ifdef WITH_WXWIDGETS
 #include "htmlwin.h"
 #endif
@@ -36,6 +37,10 @@
 #define	ANSI_REPLY_BUFSIZE	2048
 
 #define DUMP
+
+#ifndef MIN
+#define MIN(a,b)	((a) < (b) ? (a) : (b))
+#endif
 
 struct terminal term;
 struct cterminal	*cterm;
@@ -102,7 +107,7 @@ void mousedrag(unsigned char *scrollback)
 	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
-		if(key==0 || key==0xff)
+		if(key==0 || key==0xe0)
 			key|=getch()<<8;
 		switch(key) {
 			case CIO_KEY_MOUSE:
@@ -319,7 +324,7 @@ static BOOL zmodem_check_abort(void* vp)
 						zm->local_abort=TRUE;
 						break;
 					case 0:
-					case 0xff:
+					case 0xe0:
 						key |= (getch() << 8);
 						if(key==CIO_KEY_MOUSE)
 							getmouse(NULL);
@@ -1298,7 +1303,7 @@ static BOOL xmodem_check_abort(void* vp)
 					xm->cancelled=TRUE;
 					break;
 				case 0:
-				case 0xff:
+				case 0xe0:
 					key |= (getch() << 8);
 					if(key==CIO_KEY_MOUSE)
 						getmouse(NULL);
@@ -1728,7 +1733,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				}
 				file_bytes=total_bytes=0;
 				ftime=total_files=0;
-				i=sscanf(block+strlen(block)+1,"%"PRId64" %lo %lo %lo %d %"PRId64
+				i=sscanf(((char *)block)+strlen((char *)block)+1,"%"PRId64" %lo %lo %lo %d %"PRId64
 					,&file_bytes			/* file size (decimal) */
 					,&tmpftime 				/* file time (octal unix format) */
 					,&fmode 				/* file mode (not used) */
@@ -1737,8 +1742,8 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					,&total_bytes			/* remaining bytes to be sent */
 					);
 				ftime=tmpftime;
-				lprintf(LOG_DEBUG,"YMODEM header (%u fields): %s", i, block+strlen(block)+1);
-				SAFECOPY(fname,block);
+				lprintf(LOG_DEBUG,"YMODEM header (%u fields): %s", i, block+strlen((char *)block)+1);
+				SAFECOPY(fname,((char *)block));
 
 				if(!file_bytes)
 					file_bytes=0x7fffffff;
@@ -2019,6 +2024,7 @@ void font_control(struct bbslist *bbs)
 void capture_control(struct bbslist *bbs)
 {
 	char *buf;
+	char *cap;
 	struct	text_info txtinfo;
 	int i,j;
 
@@ -2027,28 +2033,82 @@ void capture_control(struct bbslist *bbs)
    	gettextinfo(&txtinfo);
 	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
 	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	cap=(char *)alloca(cterm->height*cterm->width*2);
+	gettext(cterm->x, cterm->y, cterm->x+cterm->width-1, cterm->y+cterm->height-1, cap);
+
 	init_uifc(FALSE, FALSE);
 
 	if(!cterm->log) {
 		struct file_pick fpick;
-		char *opts[3]={
+		char *opts[]={
 						 "ASCII"
 						,"Raw"
+						,"Binary"
+						,"Binary with SAUCE"
 						,""
 					  };
 
 		i=0;
-		uifc.helpbuf="`Capture Type`\n\n"
-					"~ ASCII ~ Strips out ANSI sequences\n"
-					"~ Raw ~   Leaves ANSI sequences in\n\n"
-					"Raw is useful for stealing ANSI screens from other systems.\n"
-					"Don't do that though.  :-)";
+		uifc.helpbuf="~ Capture Type ~\n\n"
+			"`ASCII`              ASCII only (no ANSI escape sequences)\n"
+			"`Raw`                Preserves ANSI sequences\n"
+			"`Binary`             Saves current screen in IBM-CGA/BinaryText format\n"
+			"`Binary with SAUCE`  Saves current screen in BinaryText format with SAUCE\n"
+			"\n"
+			"Raw is useful for stealing ANSI screens from other systems.\n"
+			"Don't do that though.  :-)";
 		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"Capture Type",opts)!=-1) {
-			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, NULL, UIFC_FP_ALLOWENTRY);
+			j=filepick(&uifc, "Capture File", &fpick, bbs->dldir, i >= 2 ? "*.bin" : NULL
+				, UIFC_FP_ALLOWENTRY|UIFC_FP_OVERPROMPT);
 			check_exit(FALSE);
 
-			if(j!=-1 && fpick.files>=1)
-				cterm_openlog(cterm, fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
+			if(j!=-1 && fpick.files>=1) {
+				if(i >= 2) {
+					FILE* fp = fopen(fpick.selected[0], "wb");
+					if(fp == NULL) {
+						char err[256];
+						sprintf(err, "Error %u opening file '%s'", errno, fpick.selected[0]);
+						uifc.msg(err);
+					} else {
+						char msg[256];
+						uifc.pop("Writing to file");
+						fwrite(cap, sizeof(uint8_t), cterm->width * cterm->height * 2, fp);
+						if(i > 2) {
+							time_t t = time(NULL);
+							struct tm* tm;
+							struct sauce sauce;
+
+							memset(&sauce, 0, sizeof(sauce));
+							memcpy(sauce.id, SAUCE_ID, sizeof(sauce.id));
+							memcpy(sauce.ver, SAUCE_VERSION, sizeof(sauce.ver));
+							memset(sauce.title, ' ', sizeof(sauce.title));
+							memset(sauce.author, ' ', sizeof(sauce.author));
+							memset(sauce.group, ' ', sizeof(sauce.group));
+							if(bbs != NULL) {
+								memcpy(sauce.title, bbs->name, MIN(strlen(bbs->name), sizeof(sauce.title)));
+								memcpy(sauce.author, bbs->user, MIN(strlen(bbs->user), sizeof(sauce.author)));
+							}
+							if((tm=localtime(&t)) != NULL)	// The null-terminator overwrites the first byte of filesize
+								sprintf(sauce.date, "%04u%02u%02u"
+									,1900 + tm->tm_year, 1 + tm->tm_mon, tm->tm_mday);
+							sauce.filesize = ftell(fp);	// LE
+							sauce.datatype = sauce_datatype_bin;
+							sauce.filetype = cterm->width / 2;
+							if(ciolib_getvideoflags() & CIOLIB_VIDEO_BGBRIGHT)
+								sauce.tflags |= sauce_ansiflag_nonblink;
+
+							fputc(SAUCE_SEPARATOR, fp);
+							/* No comment block (no comments) */
+							fwrite(&sauce, sizeof(sauce), 1, fp);
+						}
+						fclose(fp);
+						uifc.pop(NULL);
+						sprintf(msg, "Screen saved to '%s'", getfname(fpick.selected[0]));
+						uifc.msg(msg);
+					}
+				} else
+					cterm_openlog(cterm, fpick.selected[0], i?CTERM_LOG_RAW:CTERM_LOG_ASCII);
+			}
 			filepick_free(&fpick);
 		}
 		else
@@ -2208,7 +2268,7 @@ int html_urlredirect(const char *uri, char *buf, size_t bufsize, char *uribuf, s
 #ifdef WITH_WXWIDGETS
 #define WRITE_OUTBUF()	\
 	if(outbuf_size > 0) { \
-		cterm_write(cterm, outbuf, outbuf_size, prn, sizeof(prn), &speed); \
+		cterm_write(cterm, outbuf, outbuf_size, (char *)prn, sizeof(prn), &speed); \
 		outbuf_size=0; \
 		if(html_mode==HTML_MODE_RAISED) { \
 			if(html_startx != wherex() || html_starty != wherey()) { \
@@ -2217,16 +2277,16 @@ int html_urlredirect(const char *uri, char *buf, size_t bufsize, char *uribuf, s
 			} \
 		} \
 		if(prn[0]) \
-			conn_send(prn, strlen(prn), 0); \
+			conn_send(prn, strlen((char *)prn), 0); \
 		updated=TRUE; \
 	}
 #else
 #define WRITE_OUTBUF()	\
 	if(outbuf_size > 0) { \
-		cterm_write(cterm, outbuf, outbuf_size, prn, sizeof(prn), &speed); \
+		cterm_write(cterm, outbuf, outbuf_size, (char *)prn, sizeof(prn), &speed); \
 		outbuf_size=0; \
 		if(prn[0]) \
-			conn_send(prn, strlen(prn), 0); \
+			conn_send(prn, strlen((char *)prn), 0); \
 		updated=TRUE; \
 	}
 #endif
@@ -2427,13 +2487,13 @@ BOOL doterm(struct bbslist *bbs)
 							htmldet[0]=0;
 #endif
 
-						j=strlen(zrqbuf);
+						j=strlen((char *)zrqbuf);
 						if(inch == zrqinit[j] || inch == zrinit[j]) {
 							zrqbuf[j]=inch;
 							zrqbuf[++j]=0;
 							if(j==sizeof(zrqinit)-1) {	/* Have full sequence (Assumes zrinit and zrqinit are same length */
 								WRITE_OUTBUF();
-								if(!strcmp(zrqbuf, zrqinit))
+								if(!strcmp((char *)zrqbuf, (char *)zrqinit))
 									zmodem_download(bbs);
 								else
 									begin_upload(bbs, TRUE, inch);
@@ -2453,7 +2513,7 @@ BOOL doterm(struct bbslist *bbs)
 								}
 							}
 							else { /* Already have the start of the sequence */
-								j=strlen(ooii_buf);
+								j=strlen((char *)ooii_buf);
 								if(j+1 >= sizeof(ooii_buf))
 									j--;
 								ooii_buf[j++]=inch;
@@ -2465,19 +2525,19 @@ BOOL doterm(struct bbslist *bbs)
 										xptone_close();
 									}
 									if(prn[0])
-										conn_send(prn,strlen(prn),0);
+										conn_send(prn,strlen((char *)prn),0);
 									ooii_buf[0]=0;
 								}
 								continue;
 							}
 						}
 						else {
-							j=strlen(ooii_buf);
+							j=strlen((char *)ooii_buf);
 							if(inch==ooii_init1[j]) {
 								ooii_buf[j++]=inch;
 								ooii_buf[j]=0;
 								if(ooii_init1[j]==0) {
-									if(strcmp(ooii_buf, ooii_init1)==0) {
+									if(strcmp((char *)ooii_buf, (char *)ooii_init1)==0) {
 										ooii_mode=1;
 										xptone_open();
 									}
@@ -2488,7 +2548,7 @@ BOOL doterm(struct bbslist *bbs)
 								ooii_buf[j++]=inch;
 								ooii_buf[j]=0;
 								if(ooii_init2[j]==0) {
-									if(strcmp(ooii_buf, ooii_init2)==0) {
+									if(strcmp((char *)ooii_buf, (char *)ooii_init2)==0) {
 										ooii_mode=2;
 										xptone_open();
 									}
@@ -2528,7 +2588,7 @@ BOOL doterm(struct bbslist *bbs)
 				key = CIO_KEY_QUIT;
 			else {
 				key=getch();
-				if(key==0 || key==0xff) {
+				if(key==0 || key==0xe0) {
 					key|=getch()<<8;
 					if(cterm->doorway_mode && ((key & 0xff) == 0) && key != 0x2c00 /* ALT-Z */) {
 						ch[0]=0;
@@ -2552,7 +2612,7 @@ BOOL doterm(struct bbslist *bbs)
 							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
-							p=getcliptext();
+							p=(unsigned char *)getcliptext();
 							if(p!=NULL) {
 								for(p2=p; *p2; p2++) {
 									if(*p2=='\n') {
@@ -2588,7 +2648,7 @@ BOOL doterm(struct bbslist *bbs)
 					break;
 				case 0x1200:	/* ALT-E */
 					{
-						p=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+						p=(unsigned char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 						if(p) {
 							gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 							show_bbslist(bbs->name, TRUE);
@@ -2760,7 +2820,7 @@ BOOL doterm(struct bbslist *bbs)
 						case 13:
 #endif
 							{
-								p=(char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+								p=(unsigned char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
 								if(p) {
 									gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p);
 									show_bbslist(bbs->name, TRUE);
@@ -3040,6 +3100,6 @@ BOOL doterm(struct bbslist *bbs)
 /*
 	hidemouse();
 	hold_update=oldmc;
-	return(FALSE);
  */
+	return(FALSE);
 }
