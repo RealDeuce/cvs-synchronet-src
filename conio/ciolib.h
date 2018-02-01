@@ -1,10 +1,10 @@
-/* $Id: ciolib.h,v 1.72 2015/02/27 10:42:08 deuce Exp $ */
+/* $Id: ciolib.h,v 1.77 2018/02/01 21:11:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,6 +35,7 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
+#include "gen_defs.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -67,6 +68,16 @@
         #define CIOLIBEXPORT
         #define CIOLIBEXPORTVAR	extern
 #endif
+
+enum {
+	 CIOLIB_SETFONT_SUCCESS						= 0
+	,CIOLIB_SETFONT_NOT_SUPPORTED				= 1
+	,CIOLIB_SETFONT_NOT_INITIALIZED				= 2
+	,CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED	= 3
+	,CIOLIB_SETFONT_INVALID_FONT				= 4
+	,CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE		= 5
+	,CIOLIB_SETFONT_MALLOC_FAILURE				= 6
+};
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -255,6 +266,7 @@ typedef struct {
 	int		(*wherex)		(void);
 	int		(*wherey)		(void);
 	int		(*putch)		(int);
+	int		(*cputch)		(uint32_t, int);
 	void	(*gotoxy)		(int,int);
 	void	(*clrscr)		(void);
 	void	(*gettextinfo)	(struct text_info *);
@@ -277,6 +289,7 @@ typedef struct {
 	void	(*insline)		(void);
 	int		(*cprintf)		(const char *,...);
 	int		(*cputs)		(char *);
+	int		(*ccputs)		(uint32_t, const char *);
 	void	(*textbackground)	(int);
 	void	(*textcolor)	(int);
 	int		(*getmouse)		(struct mouse_event *mevent);
@@ -301,6 +314,7 @@ typedef struct {
 	void	(*setscaling)	(int new_value);
 	int		(*getscaling)	(void);
 	int		*ESCDELAY;
+	int		(*setpalette)	(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -334,6 +348,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gotoxy(int x, int y);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clreol(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_clrscr(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_cputs(char *str);
+CIOLIBEXPORT int CIOLIBCALL ciolib_ccputs(uint32_t palette_entry, const char *str);
 CIOLIBEXPORT int	CIOLIBCALL ciolib_cprintf(const char *fmat, ...);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textbackground(int colour);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textcolor(int colour);
@@ -345,6 +360,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textattr(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a);
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int a);
+CIOLIBEXPORT int CIOLIBCALL ciolib_cputch(uint32_t, int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcursortype(int a);
 CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode);
 CIOLIBEXPORT void CIOLIBCALL ciolib_window(int sx, int sy, int ex, int ey);
@@ -369,6 +385,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getvideoflags(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setscaling(int flags);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
+CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -394,6 +411,7 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define clreol()				ciolib_clreol()
 	#define clrscr()				ciolib_clrscr()
 	#define cputs(a)				ciolib_cputs(a)
+	#define ccputs(a,b)				ciolib_ccputs(a,b)
 	#define textbackground(a)		ciolib_textbackground(a)
 	#define textcolor(a)			ciolib_textcolor(a)
 	#define highvideo()				ciolib_highvideo()
@@ -404,6 +422,7 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define textattr(a)				ciolib_textattr(a)
 	#define delay(a)				ciolib_delay(a)
 	#define putch(a)				ciolib_putch(a)
+	#define cputch(a,b)				ciolib_cputch(a,b)
 	#define _setcursortype(a)		ciolib_setcursortype(a)
 	#define textmode(a)				ciolib_textmode(a)
 	#define window(a,b,c,d)			ciolib_window(a,b,c,d)
@@ -430,6 +449,7 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define getvideoflags()			ciolib_getvideoflags()
 	#define setscaling(a)			ciolib_setscaling(a)
 	#define getscaling()			ciolib_getscaling()
+	#define setpalette(e,r,g,b)		ciolib_setpalette(e,r,g,b)
 #endif
 
 #ifdef WITH_SDL
@@ -504,7 +524,7 @@ CIOLIBEXPORT int CIOLIBCALL mouse_wait(void);
 CIOLIBEXPORT int CIOLIBCALL mouse_pending(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getmouse(struct mouse_event *mevent);
 CIOLIBEXPORT int CIOLIBCALL ciolib_ungetmouse(struct mouse_event *mevent);
-CIOLIBEXPORT void CIOLIBCALL ciolib_mouse_thread(void *data);
+CIOLIBEXPORT void ciolib_mouse_thread(void *data);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_setevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_addevents(int events);
 CIOLIBEXPORT int CIOLIBCALL ciomouse_delevents(int events);
@@ -521,6 +541,10 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_F(x)      ((x<11)?((0x3a+x) << 8):((0x7a+x) << 8))
 #define CIO_KEY_IC        (0x52 << 8)
 #define CIO_KEY_DC        (0x53 << 8)
+#define CIO_KEY_SHIFT_IC  (0x30 << 8)	/* Shift-Insert */
+#define CIO_KEY_SHIFT_DC  (0x2e << 8)	/* Shift-Delete */
+#define CIO_KEY_CTRL_IC   (0x92 << 8)	/* Ctrl-Insert */
+#define CIO_KEY_CTRL_DC   (0x93 << 8)	/* Ctrl-Delete */
 #define CIO_KEY_LEFT      (0x4b << 8)
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)

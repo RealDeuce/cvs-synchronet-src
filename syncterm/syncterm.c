@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.199 2015/10/28 02:01:20 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.205 2018/02/01 08:27:00 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -951,6 +951,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 {
 	char	oldlst[MAX_PATH+1];
 
+	memset(fn, 0, fnlen);
 #ifdef _WIN32
 	char	*home;
 	static	dll_handle	shell32=NULL;
@@ -1021,11 +1022,15 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 					break;
 			}
 			if(we_got_this) {
-				if (type != SYNCTERM_DEFAULT_TRANSFER_PATH) {
+				// Convert unicode to string using snprintf()
+				if (type == SYNCTERM_DEFAULT_TRANSFER_PATH) {
+					if(snprintf(fn, fnlen, "%S", path) >= fnlen)
+						we_got_this=FALSE;
+				}
+				else {
 					if(snprintf(fn, fnlen, "%S\\SyncTERM", path) >= fnlen)
 						we_got_this=FALSE;
 				}
-				// Convert unicode to string.
 				CTMF(path);
 			}
 		}
@@ -1065,7 +1070,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	}
 
 	/* Create if it doesn't exist */
-	if(!isdir(fn)) {
+	if(*fn && !isdir(fn)) {
 		if(MKDIR(fn))
 			fn[0]=0;
 	}
@@ -1256,7 +1261,6 @@ int main(int argc, char **argv)
 	str_list_t	inifile;
 	FILE *listfile;
 	char	*inpath=NULL;
-	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
@@ -1330,10 +1334,12 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+#if !defined(WITHOUT_CRYPTLIB)
 	/* Cryptlib initialization MUST be done before ciolib init */
 	if(!crypt_loaded)
 		init_crypt();
 	atexit(exit_crypt);
+#endif
 
 	/* UIFC initialization */
     memset(&uifc,0,sizeof(uifc));
@@ -1605,7 +1611,6 @@ int main(int argc, char **argv)
 						}
 					}
 				}
-				free(bbs);
 			}
 			bbs=NULL;
 			break;
@@ -1660,7 +1665,11 @@ int main(int argc, char **argv)
 		if(i >= txtinfo.screenheight-1) {
 			textattr(WHITE);
 			cputs("<Press A Key>");
-			getch();
+			switch(getch()) {
+				case 0:
+				case 0xe0:
+					getch();
+			}
 			textattr(LIGHTGRAY);
 			gotoxy(1, txtinfo.screenheight);
 			delline();
@@ -1669,7 +1678,11 @@ int main(int argc, char **argv)
 	}
 	textattr(WHITE);
 	cputs("<Press A Key to Exit>");
-	getch();
+	switch(getch()) {
+		case 0:
+		case 0xe0:
+			getch();
+	}
 	textattr(LIGHTGRAY);
 	return(0);
 }
