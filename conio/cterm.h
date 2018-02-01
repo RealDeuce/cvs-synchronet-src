@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.43 2018/01/30 09:06:23 deuce Exp $ */
+/* $Id: cterm.h,v 1.44 2018/02/01 21:11:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -109,6 +109,8 @@ struct cterminal {
 	int					started;		// Indicates that conio functions are being called
 	int					c64reversemode;	// Commodore 64 reverse mode state
 	unsigned char		attr;			// Current attribute
+	uint32_t			fg_color;
+	uint32_t			bg_color;
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
