@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.264 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.265 2018/01/14 19:49:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,7 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef USE_LINUX_CAPS
+#if defined USE_LINUX_CAPS && !defined _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
 
