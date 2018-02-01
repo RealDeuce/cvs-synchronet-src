@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.59 2018/02/07 09:37:26 deuce Exp $ */
+/* $Id: menu.c,v 1.56 2018/02/01 09:06:31 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -20,13 +20,10 @@ void viewscroll(void)
 	int key;
 	int i;
 	unsigned char	*scrollback;
-	uint32_t	*scrollbackf;
-	uint32_t	*scrollbackb;
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
 	int old_xlat=ciolib_xlat;
-	struct ciolib_screen *savscrn;
 
 	x=wherex();
 	y=wherey();
@@ -35,24 +32,10 @@ void viewscroll(void)
 	/* too large for alloca() */
 	scrollback=(unsigned char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
 	if(scrollback==NULL)
-		
 		return;
-	scrollbackf=malloc((scrollback_fbuf==NULL?0:(term.width*sizeof(scrollback_fbuf[0])*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(scrollback_fbuf[0])));
-	if (scrollbackf == NULL) {
-		free(scrollback);
-		return;
-	}
-	scrollbackb=malloc((scrollback_bbuf==NULL?0:(term.width*sizeof(scrollback_bbuf[0])*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(scrollback_bbuf[0])));
-	if (scrollbackb == NULL) {
-		free(scrollbackf);
-		free(scrollback);
-		return;
-	}
-	memcpy(scrollback,cterm->scrollback,term.width*2*settings.backlines);
-	memcpy(scrollbackf,cterm->scrollbackf,term.width*sizeof(scrollbackf[0])*settings.backlines);
-	memcpy(scrollbackb,cterm->scrollbackb,term.width*sizeof(scrollbackb[0])*settings.backlines);
-	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2,scrollbackf+(cterm->backpos)*cterm->width,scrollbackb+(cterm->backpos)*cterm->width);
-	savscrn = savescreen();
+	if(cterm->scrollback != NULL)
+		memcpy(scrollback,cterm->scrollback,term.width*2*settings.backlines);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
 	drawwin();
 	top=cterm->backpos;
 	gotoxy(1,1);
@@ -62,8 +45,8 @@ void viewscroll(void)
 			top=1;
 		if(top>cterm->backpos)
 			top=cterm->backpos;
-		pputtext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top),scrollbackf+(term.width*top),scrollbackb+(term.width*top));
-		ciolib_xlat = CIOLIB_XLAT_CHARS;
+		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
+		ciolib_xlat = TRUE;
 		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
 		cputs("Scrollback");
@@ -81,7 +64,7 @@ void viewscroll(void)
 						getmouse(&mevent);
 						switch(mevent.event) {
 							case CIOLIB_BUTTON_1_DRAG_START:
-								mousedrag(scrollback,scrollbackf,scrollbackb);
+								mousedrag(scrollback);
 								break;
 						}
 						break;
@@ -132,12 +115,9 @@ void viewscroll(void)
 				break;
 		}
 	}
-	restorescreen(savscrn);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
 	gotoxy(x,y);
 	free(scrollback);
-	free(scrollbackf);
-	free(scrollbackb);
-	freescreen(savscrn);
 	return;
 }
 
@@ -164,11 +144,12 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	int		opt=0;
 	int		i,j;
 	struct	text_info txtinfo;
-	struct ciolib_screen *savscrn;
+	char	*buf;
 	int		ret;
 
     gettextinfo(&txtinfo);
-    savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
 			&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
@@ -205,7 +186,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				break;
 			case 0:		/* Scrollback */
 				uifcbail();
-				restorescreen(savscrn);
+				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 				viewscroll();
 				break;
 			case 1:		/* Disconnect */
@@ -259,14 +240,12 @@ int syncmenu(struct bbslist *bbs, int *speed)
 			default:
 				ret=i;
 				uifcbail();
-				restorescreen(savscrn);
-				freescreen(savscrn);
+				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 				return(ret);
 		}
 	}
 
 	uifcbail();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
 	return(ret);
 }

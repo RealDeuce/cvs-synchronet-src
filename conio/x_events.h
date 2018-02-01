@@ -6,6 +6,14 @@
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 
+struct update_rect {
+	int	x;
+	int	y;
+	int	width;
+	int	height;
+	uint32_t	*data;
+};
+
 enum x11_local_events {
 	 X11_LOCAL_SETMODE
 	,X11_LOCAL_SETNAME
@@ -31,7 +39,7 @@ struct x11_local_event {
 		int		mode;
 		char	name[81];
 		char	title[81];
-		struct	rectlist *rect;
+		struct	update_rect rect;
 		struct	x11_palette_entry palette;
 	} data;
 };
@@ -108,7 +116,6 @@ extern int x11_window_ypos;
 extern int x11_window_width;
 extern int x11_window_height;
 extern int x11_initialized;
-extern struct video_stats x_cvstat;
 
 void x11_event_thread(void *args);
 
