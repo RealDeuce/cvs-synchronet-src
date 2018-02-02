@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.25 2016/01/02 23:39:26 rswindell Exp $ */
+/* $Id: str_list.h,v 1.26 2017/06/09 02:02:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,10 @@ DLLEXPORT void DLLCALL		strListFree(str_list_t*);
 /* Frees the strings in the list */
 DLLEXPORT void DLLCALL		strListFreeStrings(str_list_t);
 
+/* Adds a string to the end of a string list (see strListPush) */
 /* Pass a pointer to a string list, the string to add (append) */
+/* The string to add is duplicated (using strdup) and the duplicate is added to the list */
+/* If you already know the index of the last string, pass it, otherwise pass STR_LIST_LAST_INDEX */
 /* Returns the updated list or NULL on error */
 DLLEXPORT char* DLLCALL		strListAppend(str_list_t*, const char* str, size_t index);
 
@@ -68,6 +71,8 @@ DLLEXPORT char* DLLCALL		strListAppend(str_list_t*, const char* str, size_t inde
 DLLEXPORT size_t DLLCALL	strListAppendList(str_list_t*, const str_list_t append_list);
 
 /* Inserts a string into the list at a specific index */
+/* Pass a pointer to a string list, the string to add (insert) */
+/* The string to add is duplicated (using strdup) and the duplicate is added to the list */
 DLLEXPORT char* DLLCALL		strListInsert(str_list_t*, const char* str, size_t index);
 
 /* Insert a string list into another string list */
@@ -134,11 +139,17 @@ DLLEXPORT str_list_t DLLCALL	strListDup(str_list_t list);
 /* Compares two lists */
 DLLEXPORT int DLLCALL			strListCmp(str_list_t list1, str_list_t list2);
 
+/* Modifies strings in list (returns count of items in list) */
+DLLEXPORT int DLLCALL			strListTruncateTrailingWhitespaces(str_list_t);
+DLLEXPORT int DLLCALL			strListTruncateTrailingLineEndings(str_list_t);
+/* Truncate strings in list at first occurrence of any char in 'set' */
+DLLEXPORT int DLLCALL			strListTruncateStrings(str_list_t, const char* set);
+
 /************/
 /* File I/O */
 /************/
 
-/* Read lines from file appending each line to string list */
+/* Read lines from file appending each line (with '\n' char) to string list */
 /* Pass NULL list to have list allocated for you */
 DLLEXPORT str_list_t DLLCALL	strListReadFile(FILE*, str_list_t*, size_t max_line_len);
 DLLEXPORT size_t DLLCALL		strListInsertFile(FILE*, str_list_t*, size_t index, size_t max_line_len);
