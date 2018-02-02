@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.46 2016/11/10 10:06:31 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.51 2016/11/20 22:15:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	FILE*	fp;
 	smbmsg_t	msg;
 	str_list_t	headers=NULL;
+	str_list_t	voting=NULL;
 	str_list_t	ip_can=NULL;
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
@@ -91,15 +92,27 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	}
 	size=(long)filelength(file);
 
-	SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
-	if(fexistcase(str)) {
-		if((fp=fopen(str,"r")) == NULL)
-			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
+	SAFEPRINTF(fname,"%sHEADERS.DAT",cfg.temp_dir);
+	if(fexistcase(fname)) {
+		lprintf(LOG_DEBUG, "Reading %s", fname);
+		if((fp=fopen(fname,"r")) == NULL)
+			errormsg(WHERE,ERR_OPEN,fname,O_RDONLY);
 		else {
 			headers=iniReadFile(fp);
 			fclose(fp);
 		}
-		remove(str);
+		remove(fname);
+	}
+	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
+	if(fexistcase(fname)) {
+		lprintf(LOG_DEBUG, "Reading %s", fname);
+		if((fp=fopen(fname,"r")) == NULL)
+			errormsg(WHERE,ERR_OPEN,fname,O_RDONLY);
+		else {
+			voting=iniReadFile(fp);
+			fclose(fp);
+		}
+		remove(fname);
 	}
 
 	/********************/
@@ -133,6 +146,10 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
 		if(blocks<2) {
+			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
+				qwk_voting(&voting, l, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
+				continue;
+			}
 			eprintf(LOG_NOTICE,"!Invalid number of QWK blocks (%d) at offset %lu in %s"
 				,blocks, l+116, packet);
 			blocks=1;
@@ -247,16 +264,11 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			continue;
 		}
 
-		for(j=0;j<cfg.qhub[hubnum]->subs;j++)
-			if(cfg.qhub[hubnum]->conf[j]==n)
-				break;
-		if(j>=cfg.qhub[hubnum]->subs) {	/* ignore messages for subs not in config */
+		if((j = resolve_qwkconf(n, hubnum)) == INVALID_SUB) {	/* ignore messages for subs not in config */
 			eprintf(LOG_NOTICE,"!Message from %s on UNKNOWN QWK CONFERENCE NUMBER: %u"
 				,cfg.qhub[hubnum]->id, n);
 			continue;
 		}
-
-		j=cfg.qhub[hubnum]->sub[j];
 
 		/* TWIT FILTER */
 		if(findstr_in_list(msg.from,twit_list) || findstr_in_list(msg.to,twit_list)) {
@@ -323,18 +335,15 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		}
 	}
 
+	qwk_handle_remaining_votes(&voting, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
+
 	update_qwkroute(NULL);		/* Write ROUTE.DAT */
 
 	smb_freemsgmem(&msg);
 	fclose(qwk);
 
 	iniFreeStringList(headers);
-
-	SAFEPRINTF(fname, "%sVOTING.DAT", cfg.temp_dir);
-	if(fexistcase(fname)) {
-		qwk_voting(fname, NET_QWK);
-		remove(fname);
-	}
+	iniFreeStringList(voting);
 
 	strListFree(&ip_can);
 	strListFree(&host_can);
