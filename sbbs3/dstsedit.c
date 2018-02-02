@@ -1,10 +1,10 @@
-/* $Id: dstsedit.c,v 1.7 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: dstsedit.c,v 1.6 2015/08/22 07:06:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
