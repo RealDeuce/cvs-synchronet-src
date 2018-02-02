@@ -1,8 +1,6 @@
-/* str.cpp */
-
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.72 2015/11/25 02:38:23 rswindell Exp $ */
+/* $Id: str.cpp,v 1.77 2018/01/12 22:15:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,11 +56,12 @@ void sbbs_t::userlist(long mode)
 	}
 	j=0;
 	k=lastuser(&cfg);
+	int userfile = openuserdat(&cfg, /* for_modify: */FALSE);
 	for(i=1;i<=k && !msgabort();i++) {
 		if(sort && (online==ON_LOCAL || !rioctl(TXBC)))
 			bprintf("%-4d\b\b\b\b",i);
 		user.number=i;
-		getuserdat(&cfg,&user);
+		fgetuserdat(&cfg, &user, userfile);
 		if(user.misc&(DELETED|INACTIVE))
 			continue;
 		users++;
@@ -72,8 +71,9 @@ void sbbs_t::userlist(long mode)
 			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user,/* client: */NULL))
 				continue;
 			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user,/* client: */NULL)
-				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
-				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
+				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar!=NULL 
+					&& cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
+					&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
 				continue; 
 		}
 		else if(mode==UL_DIR) {
@@ -108,6 +108,7 @@ void sbbs_t::userlist(long mode)
 		}
 		j++; 
 	}
+	close(userfile);
 	if(i<=k) {	/* aborted */
 		if(sort)
 			for(i=0;i<j;i++)
@@ -841,6 +842,11 @@ char* sbbs_t::timestr(time_t intime)
 	return(::timestr(&cfg,(time32_t)intime,timestr_output));
 }
 
+char* sbbs_t::datestr(time_t t)
+{
+	return unixtodstr(&cfg, (time32_t)t, datestr_output);
+}
+
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
@@ -914,7 +920,7 @@ void sbbs_t::user_info()
 		,useron.ptoday);
 	bprintf(text[UserEmails]
 		,useron.emails,useron.fbacks
-		,getmail(&cfg,useron.number,0),useron.etoday);
+		,getmail(&cfg,useron.number,/* Sent: */FALSE, /* SPAM: */FALSE),useron.etoday);
 	CRLF;
 	bprintf(text[UserUploads]
 		,ultoac(useron.ulb,tmp),useron.uls);
@@ -928,11 +934,8 @@ void sbbs_t::user_info()
 
 void sbbs_t::xfer_policy()
 {
-	char	str[MAX_PATH+1];
-
 	if(!usrlibs) return;
-	sprintf(str,"%smenu/tpolicy.*", cfg.text_dir);
-	if(fexist(str))
+	if(menu_exists("tpolicy"))
 		menu("tpolicy");
 	else {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
@@ -953,10 +956,7 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	char path[MAX_PATH+1];
-
-	sprintf(path,"%smenu/%s.*",cfg.text_dir,prot_menu_file[type]);
-	if(fexistcase(path)) {
+	if(menu_exists(prot_menu_file[type])) {
 		menu(prot_menu_file[type]);
 		return;
 	}
