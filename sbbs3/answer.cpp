@@ -1,6 +1,6 @@
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.95 2018/04/01 07:51:09 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.93 2018/01/22 04:01:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,7 +275,6 @@ bool sbbs_t::answer()
 	rioctl(IOFI);		/* flush input buffer */
 	putcom( "\r\n"		/* locate cursor at column 1 */
 			"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
-			"\x1b[0c"	/* Request CTerm version */
     		"\x1b[255B"	/* locate cursor as far down as possible */
 			"\x1b[255C"	/* locate cursor as far right as possible */
 			"\b_"		/* need a printable at this location to actually move cursor */
@@ -317,11 +316,24 @@ bool sbbs_t::answer()
 	str[l]=0;
 
     if(l) {
-		truncsp(str);
 		c_escape_str(str,tmp,sizeof(tmp)-1,TRUE);
 		lprintf(LOG_DEBUG,"Node %d received terminal auto-detection response: '%s'"
 			,cfg.node_num,tmp);
+        if(str[0]==ESC && str[1]=='[' && str[l-1]=='R') {
+			int	x,y;
 
+			if(terminal[0]==0)
+				SAFECOPY(terminal,"ANSI");
+			autoterm|=(ANSI|COLOR);
+			if(sscanf(str+2,"%u;%u",&y,&x)==2) {
+				lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
+					,cfg.node_num, x, y);
+				/* Sanity check the coordinates in the response: */
+				if(x>=40 && x<=255) cols=x; 
+				if(y>=10 && y<=255) rows=y;
+			}
+		}
+		truncsp(str);
 		if(strstr(str,"RIPSCRIP")) {
 			if(terminal[0]==0)
 				SAFECOPY(terminal,"RIP");
@@ -336,30 +348,6 @@ bool sbbs_t::answer()
 			autoterm|=HTML;
 		} 
 #endif
-
-		char* tokenizer = NULL;
-		char* p = strtok_r(str, "\x1b", &tokenizer);
-		while(p != NULL) {
-			int	x,y;
-
-			if(terminal[0]==0)
-				SAFECOPY(terminal,"ANSI");
-			autoterm|=(ANSI|COLOR);
-			if(sscanf(p, "[%u;%uR", &y, &x) == 2) {
-				lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
-					,cfg.node_num, x, y);
-				/* Sanity check the coordinates in the response: */
-				if(x>=40 && x<=255) cols=x; 
-				if(y>=10 && y<=255) rows=y;
-			} else if(sscanf(p, "[=67;84;101;114;109;%u;%u", &x, &y) == 2 && *lastchar(p) == 'c') {
-				lprintf(LOG_INFO,"Node %d received CTerm version report: %u.%u"
-					,cfg.node_num, x, y);
-				cterm_version = (x*1000) + y;
-				if(cterm_version >= 1061)
-					autoterm |= CTERM_FONTS;
-			}
-			p = strtok_r(NULL, "\x1b", &tokenizer);
-		}
 	}
 	else if(terminal[0]==0)
 		SAFECOPY(terminal,"DUMB");
@@ -423,13 +411,8 @@ bool sbbs_t::answer()
 	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
-	if(!useron.number 
-		&& rlogin_name[0]!=0 
-		&& !(cfg.sys_misc&SM_CLOSED) 
-		&& !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)
-		&& !::trashcan(&cfg, rlogin_name, "name")) {
-		lprintf(LOG_INFO, "Node %d UNKNOWN %s-specified username: '%s', starting new user signup"
-			,cfg.node_num,client.protocol,rlogin_name);
+	if(!useron.number && rlogin_name[0]!=0 && !(cfg.sys_misc&SM_CLOSED) && !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)) {
+		lprintf(LOG_INFO,"Node %d UNKNOWN %s-specified username: '%s', starting new user signup",cfg.node_num,client.protocol,rlogin_name);
 		bprintf("%s: %s\r\n", text[UNKNOWN_USER], rlogin_name);
 		newuser();
 	}
