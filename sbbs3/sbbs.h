@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.455 2017/11/24 21:35:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.465 2018/01/26 04:28:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,8 +105,16 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
+#if __GNUC__ > 5
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+	#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
 #include <jsversion.h>
 #include <jsapi.h>
+#if __GNUC_ > 5
+	#pragma GCC diagnostic pop
+#endif
 #define JS_DestroyScript(cx,script)
 
 #define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
@@ -443,6 +451,7 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
+	long	lastlinelen;	/* The previously displayed line length */
 	long 	autoterm;		/* Autodetected terminal type */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
@@ -454,6 +463,7 @@ public:
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
+			last_sysop_auth,/* Time sysop was last authenticated */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -511,6 +521,7 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
+	file_t*		current_file;	
 
 			/* Global command shell variables */
 	uint	global_str_vars;
@@ -580,6 +591,8 @@ public:
 	void	getusrdirs(void);
 	uint	getusrsub(uint subnum);
 	uint	getusrgrp(uint subnum);
+	uint	getusrdir(uint dirnum);
+	uint	getusrlib(uint dirnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del=false, bool next=false);
@@ -587,8 +600,10 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t intime);
+	char*	timestr(time_t);
+	char*	datestr(time_t);
     char	timestr_output[60];
+	char	datestr_output[60];
 	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
@@ -704,6 +719,7 @@ public:
 	void	printfile(char *str, long mode);
 	void	printtail(char *str, int lines, long mode);
 	void	menu(const char *code);
+	bool	menu_exists(const char *code);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -812,9 +828,9 @@ public:
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
-	bool	checkdszlog(file_t*);
+	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0);
+	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
 	bool	recvfile(char* fname, char prot=0);
 
 	/* file.cpp */
@@ -1003,6 +1019,10 @@ extern "C" {
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL sbbs_random(int);
 	DLLEXPORT void		DLLCALL sbbs_srand(void);
+
+	/* chat.cpp */
+	DLLEXPORT BOOL		DLLCALL sysop_available(scfg_t*);
+	DLLEXPORT BOOL		DLLCALL set_sysop_availability(scfg_t*, BOOL available);
 
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
