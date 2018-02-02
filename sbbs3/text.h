@@ -806,6 +806,11 @@ enum {
 	,BallotVoteWhich
 	,Only
 	,SPAMVisibilityIsNow
+	,VoteInThisPollNow
+	,MIMEDecodedPlainText
+	,MsgHdrBodySeparator
+	,FileHdrDescSeparator
+	,RemoveFileQ
 
 	,TOTAL_TEXT
 };
