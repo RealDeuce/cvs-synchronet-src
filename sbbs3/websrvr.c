@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.647 2018/02/15 05:47:21 deuce Exp $ */
+/* $Id: websrvr.c,v 1.646 2017/11/24 23:35:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6196,7 +6196,6 @@ void http_session_thread(void* arg)
 		}
 #endif
 		if (tls_context != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session);
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &session);
 		}
 		BOOL nodelay=TRUE;
@@ -6485,7 +6484,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.647 $", "%*s %s", revision);
+	sscanf("$Revision: 1.646 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
