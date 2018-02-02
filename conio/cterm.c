@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.183 2018/02/02 06:46:59 deuce Exp $ */
+/* $Id: cterm.c,v 1.184 2018/02/02 06:48:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1318,7 +1318,7 @@ void draw_sixel(struct cterminal *cterm, char *str)
 			// TODO: Check X
 			if (repeat)
 				repeat--;
-			else
+			if (!repeat)
 				p++;
 		}
 		else {
@@ -2524,7 +2524,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.183 $";
+	char	*revision="$Revision: 1.184 $";
 	char *in;
 	char	*out;
 	int		i;
