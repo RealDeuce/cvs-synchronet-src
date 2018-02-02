@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.71 2018/02/02 10:03:24 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.72 2018/02/02 10:12:32 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1103,6 +1103,9 @@ static int update_rect(int sx, int sy, int width, int height, int force)
 	memcpy(cvstat.vmem->fgvmem, vmem_ptr->fgvmem, vstat.cols*vstat.rows*sizeof(vmem_ptr->fgvmem[0]));
 	memcpy(cvstat.vmem->bgvmem, vmem_ptr->bgvmem, vstat.cols*vstat.rows*sizeof(vmem_ptr->bgvmem[0]));
 	pthread_mutex_unlock(&vmem_lock);
+
+	if (hold_update)
+		redraw_cursor = 0;
 
 	for(y=0;y<height;y++) {
 		pos=(sy+y-1)*cvstat.cols+(sx-1);
