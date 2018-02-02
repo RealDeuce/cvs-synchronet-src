@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.322 2018/02/03 13:20:56 deuce Exp $ */
+/* $Id: term.c,v 1.320 2018/02/02 03:40:12 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -92,6 +92,8 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	uint32_t *screenf;
 	uint32_t *screenb;
 	unsigned char *tscreen;
+	uint32_t *tscreenf;
+	uint32_t *tscreenb;
 	unsigned char *sbuffer;
 	uint32_t *sbufferf;
 	uint32_t *sbufferb;
@@ -103,7 +105,6 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	char *newcopybuf;
 	int lastchar;
 	int old_xlat = ciolib_xlat;
-	struct ciolib_screen *savscrn;
 
 	sbufsize=term.width*2*term.height;
 	sbufsizep=term.width*sizeof(screenf[0])*term.height;
@@ -114,10 +115,11 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	sbufferf=malloc(sbufsizep);
 	sbufferb=malloc(sbufsizep);
 	tscreen=(unsigned char*)malloc(sbufsize);
+	tscreenf=malloc(sbufsizep);
+	tscreenb=malloc(sbufsizep);
 	pgettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen,screenf,screenb);
 	ciolib_xlat = TRUE;
-	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
-	savscrn = savescreen();
+	pgettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen,tscreenf,tscreenb);
 	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
@@ -197,10 +199,10 @@ cleanup:
 	free(sbufferf);
 	free(sbufferb);
 	free(tscreen);
+	free(tscreenf);
+	free(tscreenb);
 	if(copybuf)
 		free(copybuf);
-	restorescreen(savscrn);
-	freescreen(savscrn);
 	return;
 }
 
@@ -738,10 +740,15 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 			,""
 		};
 	struct	text_info txtinfo;
-	struct ciolib_screen *savscrn;
+	char	*buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 
     gettextinfo(&txtinfo);
-    savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 
 	if(safe_mode)
 		return;
@@ -753,23 +760,21 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		check_exit(FALSE);
 		filepick_free(&fpick);
 		uifcbail();
-		restorescreen(savscrn);
-		freescreen(savscrn);
+		pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 		gotoxy(txtinfo.curx, txtinfo.cury);
 		setup_mouse_events();
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
 	filepick_free(&fpick);
-	restorescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 
 	if((fp=fopen(path,"rb"))==NULL) {
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("Error opening file",str);
 		uifcbail();
 		setup_mouse_events();
-		restorescreen(savscrn);
-		freescreen(savscrn);
+		pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 		gotoxy(txtinfo.curx, txtinfo.cury);
 		return;
 	}
@@ -800,8 +805,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	}
 	uifcbail();
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 }
 
@@ -817,14 +821,19 @@ void begin_download(struct bbslist *bbs)
 			,""
 		};
 	struct	text_info txtinfo;
+	char	*buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 	int old_hold=hold_update;
-	struct ciolib_screen *savscrn;
 
 	if(safe_mode)
 		return;
 
     gettextinfo(&txtinfo);
-    savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 
 	init_uifc(FALSE, FALSE);
 
@@ -852,8 +861,7 @@ void begin_download(struct bbslist *bbs)
 	hold_update=old_hold;
 	uifcbail();
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 }
 
@@ -1196,7 +1204,9 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 {
 	struct	text_info txtinfo;
-	struct ciolib_screen *savscrn;
+	char	*buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 	BOOL	ret=FALSE;
 	int		i;
 	char 	*opts[4]={
@@ -1212,7 +1222,10 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 	int			old_hold=hold_update;
 
     gettextinfo(&txtinfo);
-    savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 	init_uifc(FALSE, FALSE);
 	hold_update=FALSE;
@@ -1252,8 +1265,8 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 
 	uifcbail();
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	window(txtinfo.winleft, txtinfo.wintop, txtinfo.winright, txtinfo.winbottom);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	gotoxy(txtinfo.curx, txtinfo.cury);
 	hold_update=old_hold;
 	return(ret);
@@ -1578,7 +1591,9 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t pathsize, char *fname)
 {
 	struct	text_info txtinfo;
-	struct ciolib_screen *savscrn;
+	char	*buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 	BOOL	ret=FALSE;
 	int		i;
 	char 	*opts[4]={
@@ -1592,7 +1607,10 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 	int		old_hold=hold_update;
 
     gettextinfo(&txtinfo);
-    savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 
 	init_uifc(FALSE, FALSE);
@@ -1635,8 +1653,9 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 
 	uifcbail();
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
+	window(txtinfo.winleft, txtinfo.wintop, txtinfo.winright, txtinfo.winbottom);
+	gotoxy(txtinfo.curx, txtinfo.cury);
 	hold_update=old_hold;
 	return(ret);
 }
@@ -1933,8 +1952,10 @@ end:
 
 void music_control(struct bbslist *bbs)
 {
+	char *buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 	struct	text_info txtinfo;
-	struct ciolib_screen *savscrn;
 	int i;
 	char *opts[4]={
 			 "ESC[| ANSI Music only"
@@ -1943,7 +1964,10 @@ void music_control(struct bbslist *bbs)
 	};
 
    	gettextinfo(&txtinfo);
-   	savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	init_uifc(FALSE, FALSE);
 
 	i=cterm->music_enable;
@@ -1973,13 +1997,17 @@ void music_control(struct bbslist *bbs)
 		check_exit(FALSE);
 	uifcbail();
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
+	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
+	textattr(txtinfo.attribute);
+	gotoxy(txtinfo.curx,txtinfo.cury);
 }
 
 void font_control(struct bbslist *bbs)
 {
-	struct ciolib_screen *savscrn;
+	char *buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 	struct	text_info txtinfo;
 	int i,j,k;
 	int enable_xlat = 0;
@@ -1987,7 +2015,10 @@ void font_control(struct bbslist *bbs)
 	if(safe_mode)
 		return;
    	gettextinfo(&txtinfo);
-   	savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	init_uifc(FALSE, FALSE);
 
 	switch(cio_api.mode) {
@@ -2033,13 +2064,17 @@ void font_control(struct bbslist *bbs)
 	uifcbail();
 	ciolib_xlat = enable_xlat;
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
+	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
+	textattr(txtinfo.attribute);
+	gotoxy(txtinfo.curx,txtinfo.cury);
 }
 
 void capture_control(struct bbslist *bbs)
 {
-	struct ciolib_screen *savscrn;
+	char *buf;
+	uint32_t *fbuf;
+	uint32_t *bbuf;
 	char *cap;
 	struct	text_info txtinfo;
 	int i,j;
@@ -2047,7 +2082,10 @@ void capture_control(struct bbslist *bbs)
 	if(safe_mode)
 		return;
    	gettextinfo(&txtinfo);
-   	savscrn = savescreen();
+	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
+	fbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(fbuf[0]));
+	bbuf=alloca(txtinfo.screenheight*txtinfo.screenwidth*sizeof(bbuf[0]));
+	pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
 	cap=(char *)alloca(cterm->height*cterm->width*2);
 	gettext(cterm->x, cterm->y, cterm->x+cterm->width-1, cterm->y+cterm->height-1, cap);
 
@@ -2179,8 +2217,10 @@ void capture_control(struct bbslist *bbs)
 	}
 	uifcbail();
 	setup_mouse_events();
-	restorescreen(savscrn);
-	freescreen(savscrn);
+	pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf,fbuf,bbuf);
+	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
+	textattr(txtinfo.attribute);
+	gotoxy(txtinfo.curx,txtinfo.cury);
 }
 
 #ifdef WITH_WXWIDGETS
@@ -2313,7 +2353,7 @@ BOOL doterm(struct bbslist *bbs)
 	int	key;
 	int i,j;
 	unsigned char *p,*p2;
-	uint32_t *up;
+	uint32_t *up, *up2;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
 	BYTE zrqbuf[sizeof(zrqinit)];
@@ -2676,23 +2716,27 @@ BOOL doterm(struct bbslist *bbs)
 					break;
 				case 0x1200:	/* ALT-E */
 					{
-						struct ciolib_screen *savscrn;
-						savscrn = savescreen();
-						show_bbslist(bbs->name, TRUE);
-						uifcbail();
-						setup_mouse_events();
-						restorescreen(savscrn);
-						freescreen(savscrn);
-						if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
-							cterm->scrollback = scrollback_buf;
-							cterm->scrollbackf = scrollback_fbuf;
-							cterm->scrollbackb = scrollback_bbuf;
-							cterm->backlines = settings.backlines;
-							if(cterm->backpos>cterm->backlines)
-								cterm->backpos=cterm->backlines;
+						p=(unsigned char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+						up=malloc(txtinfo.screenheight*txtinfo.screenwidth*sizeof(up[0]));
+						up2=malloc(txtinfo.screenheight*txtinfo.screenwidth*sizeof(up2[0]));
+						if(p && up && up2) {
+							pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p,up,up2);
+							show_bbslist(bbs->name, TRUE);
+							uifcbail();
+							setup_mouse_events();
+							pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p,up,up2);
+							free(p);
+							if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
+								cterm->scrollback = scrollback_buf;
+								cterm->scrollbackf = scrollback_fbuf;
+								cterm->scrollbackb = scrollback_bbuf;
+								cterm->backlines = settings.backlines;
+								if(cterm->backpos>cterm->backlines)
+									cterm->backpos=cterm->backlines;
+							}
+							showmouse();
+							_setcursortype(_NORMALCURSOR);
 						}
-						showmouse();
-						_setcursortype(_NORMALCURSOR);
 					}
 					break;
 				case 0x2100:	/* ALT-F */
@@ -2848,12 +2892,15 @@ BOOL doterm(struct bbslist *bbs)
 						case 13:
 #endif
 							{
-								struct ciolib_screen *savscrn;
-
-								savscrn = savescreen();
-								show_bbslist(bbs->name, TRUE);
-								restorescreen(savscrn);
-								freescreen(savscrn);
+								p=(unsigned char *)malloc(txtinfo.screenheight*txtinfo.screenwidth*2);
+								up=malloc(txtinfo.screenheight*txtinfo.screenwidth*sizeof(up[0]));
+								up2=malloc(txtinfo.screenheight*txtinfo.screenwidth*sizeof(up2[0]));
+								if(p) {
+									pgettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p,up,up2);
+									show_bbslist(bbs->name, TRUE);
+									pputtext(1,1,txtinfo.screenwidth,txtinfo.screenheight,p,up,up2);
+									free(p);
+								}
 							}
 							break;
 					}
