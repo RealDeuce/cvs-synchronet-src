@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.187 2018/02/02 10:41:04 deuce Exp $ */
+/* $Id: cterm.c,v 1.188 2018/02/02 22:27:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1333,8 +1333,6 @@ void draw_sixel(struct cterminal *cterm, char *str)
 			break;
 	}
 	p++;
-	// TODO: It seems the official documentation is wrong?  Nobody gets this right.
-	trans=1;
 	repeat = 0;
 	/* DO IT! */
 	while (*p) {
@@ -2586,7 +2584,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.187 $";
+	char	*revision="$Revision: 1.188 $";
 	char *in;
 	char	*out;
 	int		i;
