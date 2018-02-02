@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.181 2018/02/02 02:57:33 deuce Exp $ */
+/* $Id: cterm.c,v 1.182 2018/02/02 03:10:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1122,7 +1122,7 @@ static void seq_default(struct esc_seq *seq, int index, uint64_t val)
 		if (np == NULL)
 			return;
 		seq->param_int = np;
-		for (; seq->param_count <= index+1; seq->param_count++) {
+		for (; seq->param_count <= index; seq->param_count++) {
 			if (seq->param_count == index) {
 				seq->param_int[index] = val;
 				sprintf(tmpnum, "%" PRIu64, val);
@@ -2383,7 +2383,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.181 $";
+	char	*revision="$Revision: 1.182 $";
 	char *in;
 	char	*out;
 	int		i;
