@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.47 2018/02/02 02:57:33 deuce Exp $ */
+/* $Id: cterm.h,v 1.48 2018/02/02 23:55:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,6 +150,23 @@ struct cterminal {
 	int					doorway_mode;
 	int					doorway_char;	// Indicates next char is a "doorway" mode char
 	int					cursor;			// Current cursor mode (Normal or None)
+
+	/* Sixel state */
+	int					sixel;			// Sixel status
+#define SIXEL_INACTIVE	0
+#define SIXEL_POSSIBLE	1
+#define SIXEL_STARTED	2
+	int					sx_iv;			// Vertical size
+	int					sx_ih;			// Horizontal size
+	int					sx_trans;		// "Transparent" background
+	unsigned long		sx_repeat;		// Repeat count
+	unsigned			sx_left;		// Left margin (0-based pixel offset)
+	unsigned			sx_x, sx_y;		// Current position
+	uint32_t			sx_fg, sx_bg;	// Current colour set
+	int					sx_pixels_sent;	/* If any pixels have been sent... 
+										   Raster Attributes are ignore if this is true. */
+	int					sx_first_pass;	// First pass through a line
+	int					sx_hold_update;	// hold_update value to restore on completion
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
