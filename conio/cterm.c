@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.180 2018/02/02 02:42:42 deuce Exp $ */
+/* $Id: cterm.c,v 1.181 2018/02/02 02:57:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,8 +188,8 @@ struct note_params {
 	#define GOTOXY(x,y)				cterm->ciolib_gotoxy(x, y)
 	#define WHEREX()				cterm->ciolib_wherex()
 	#define WHEREY()				cterm->ciolib_wherey()
-	#define PGETTEXT(a,b,c,d,e,f,g)		cterm->ciolib_pgettext(a,b,c,d,e,f,g)
 	#define GETTEXT(a,b,c,d,e)		cterm->ciolib_gettext(a,b,c,d,e)
+	#define PGETTEXT(a,b,c,d,e,f,g)		cterm->ciolib_pgettext(a,b,c,d,e,f,g)
 	#define GETTEXTINFO(a)			cterm->ciolib_gettextinfo(a)
 	#define TEXTATTR(a)				cterm->ciolib_textattr(a)
 	#define SETCURSORTYPE(a)		cterm->ciolib_setcursortype(a)
@@ -983,7 +983,10 @@ void CIOLIBCALL cterm_clearscreen(struct cterminal *cterm, char attr)
 			if (cterm->scrollbackb)
 				memmove(cterm->scrollbackb,cterm->scrollbackb+cterm->width*(cterm->backpos-cterm->backlines),cterm->width*(cterm->backlines-(cterm->backpos-cterm->backlines)));
 		}
-		PGETTEXT(cterm->x,cterm->y,cterm->x+cterm->width-1,cterm->y+cterm->height-1,cterm->scrollback+(cterm->backpos-cterm->height)*cterm->width*2,cterm->scrollbackf?cterm->scrollbackf+(cterm->backpos-cterm->height)*cterm->width:NULL,cterm->scrollbackb?cterm->scrollbackb+(cterm->backpos-cterm->height)*cterm->width:NULL);
+		PGETTEXT(cterm->x,cterm->y,cterm->x+cterm->width-1,cterm->y+cterm->height-1,
+		    cterm->scrollback + (cterm->backpos - cterm->height) * cterm->width * 2,
+		    cterm->scrollbackf ? cterm->scrollbackf + (cterm->backpos - cterm->height) * cterm->width : NULL,
+		    cterm->scrollbackb ? cterm->scrollbackb + (cterm->backpos - cterm->height) * cterm->width : NULL);
 	}
 	CLRSCR();
 	if(cterm->origin_mode)
@@ -2380,7 +2383,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.180 $";
+	char	*revision="$Revision: 1.181 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2460,6 +2463,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->ciolib_gotoxy=ciolib_gotoxy;
 	cterm->ciolib_wherex=ciolib_wherex;
 	cterm->ciolib_wherey=ciolib_wherey;
+	cterm->ciolib_pgettext=ciolib_pgettext;
 	cterm->ciolib_gettext=ciolib_gettext;
 	cterm->ciolib_gettextinfo=ciolib_gettextinfo;
 	cterm->ciolib_textattr=ciolib_textattr;
@@ -2474,6 +2478,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->ciolib_putch=ciolib_putch;
 	cterm->ciolib_cputch=ciolib_cputch;
 	cterm->ciolib_puttext=ciolib_puttext;
+	cterm->ciolib_pputtext=ciolib_pputtext;
 	cterm->ciolib_window=ciolib_window;
 	cterm->ciolib_cputs=ciolib_cputs;
 	cterm->ciolib_ccputs=ciolib_ccputs;
