@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.69 2018/02/02 08:33:42 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.70 2018/02/02 08:39:24 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -441,7 +441,6 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 		ssourcepos=((y-1)*vstat.charheight+screeny)*cio_textinfo.screenwidth*vstat.charwidth+(x-1)*vstat.charwidth;
 		memmove(&(screen[ssourcepos+sdestoffset]), &(screen[ssourcepos]), sizeof(screen[0])*width*vstat.charwidth);
 	}
-	bitmap_draw_cursor(&vstat);
 
 	unlock_vmem(vmem_ptr);
 	pthread_mutex_unlock(&screenlock);
