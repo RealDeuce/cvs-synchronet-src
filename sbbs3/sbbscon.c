@@ -1,13 +1,13 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.261 2016/11/19 11:04:15 sbbs Exp $ */
+/* $Id: sbbscon.c,v 1.265 2018/01/14 19:49:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * CopyrightRob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -34,7 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef USE_LINUX_CAPS
+#if defined USE_LINUX_CAPS && !defined _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
 
@@ -228,15 +228,14 @@ static int lputs(int level, char *str)
 
 #ifdef __unix__
 
-	if (is_daemon || syslog_always)  {
+	if (is_daemon)  {
 		if(str!=NULL) {
 			if (std_facilities)
 				syslog(level|LOG_AUTH,"%s",str);
 			else
 				syslog(level,"%s",str);
 		}
-		if(is_daemon)
-			return(0);
+		return(0);
 	}
 #endif
 	if(!mutex_initialized) {
@@ -558,7 +557,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
 	if(up)
 	    thread_count++;
     else if(thread_count>0)
-    	thread_count--;
+		thread_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
@@ -576,7 +575,7 @@ static void socket_open(void* p, BOOL open)
 	pthread_mutex_lock(&mutex);
 	if(open)
 	    socket_count++;
-    else if(socket_count>0)
+	else if(socket_count>0)
     	socket_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
@@ -946,6 +945,7 @@ static void terminate(void)
 {
 	ulong count=0;
 
+	prompt = "[Threads: %d  Sockets: %d  Clients: %d  Served: %lu  Errors: %lu] Terminating... ";
 	if(bbs_running)
 		bbs_terminate();
 	if(ftp_running)
@@ -966,11 +966,11 @@ static void terminate(void)
 			if(bbs_running)
 				lputs(LOG_INFO,"Terminal Server thread still running");
 			if(ftp_running)
-				lputs(LOG_INFO,"FTP Server thread still running");
+				lprintf(LOG_INFO,"FTP Server thread still running (inactivity timeout: %u seconds)", ftp_startup.max_inactivity);
 			if(web_running)
-				lputs(LOG_INFO,"Web Server thread still running");
+				lprintf(LOG_INFO,"Web Server thread still running (inactivity timeout: %u seconds)", web_startup.max_inactivity);
 			if(mail_running)
-				lputs(LOG_INFO,"Mail Server thread still running");
+				lprintf(LOG_INFO,"Mail Server thread still running (inactivity timeout: %u seconds)", mail_startup.max_inactivity);
 			if(services_running)
 				lputs(LOG_INFO,"Services thread still running");
 		}
@@ -998,6 +998,7 @@ static void read_startup_ini(BOOL recycle
 
 	/* We call this function to set defaults, even if there's no .ini file */
 	sbbs_read_ini(fp, 
+		ini_file,
 		NULL,			/* global_startup */
 		&run_bbs,		bbs,
 		&run_ftp,		ftp, 
@@ -2119,7 +2120,7 @@ int main(int argc, char** argv)
 						for(node=client_list.first; node!=NULL; node=node->next) {
 							client=node->data;
 							localtime32(&client->time,&tm);
-							printf("%04ld %s %s %s %s port %u since %u/%u %02u:%02u:%02u\n"
+							printf("%04ld %s %s [%s] %s port %u since %u/%u %02u:%02u:%02u\n"
 								,node->tag
 								,client->protocol
 								,client->user
