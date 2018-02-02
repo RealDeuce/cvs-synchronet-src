@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.693 2018/03/15 07:05:39 deuce Exp $ */
+/* $Id: main.cpp,v 1.664 2018/01/29 22:46:21 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -71,13 +71,7 @@
 #endif // _WIN32
 
 #ifdef USE_CRYPTLIB
-	#define SSH_END() do {                                  \
-		if(ssh) {                                       \
-			pthread_mutex_lock(&sbbs->ssh_mutex);   \
-			cryptDestroySession(sbbs->ssh_session); \
-			pthread_mutex_unlock(&sbbs->ssh_mutex); \
-		}                                               \
-	} while(0)
+	#define SSH_END()	if(ssh) { pthread_mutex_lock(&sbbs->ssh_mutex); cryptDestroySession(sbbs->ssh_session); pthread_mutex_unlock(&sbbs->ssh_mutex); }
 #else
 	#define	SSH_END()
 #endif
@@ -108,36 +102,6 @@ static	link_list_t current_connections;
 #ifdef _THREAD_SUID_BROKEN
 int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 #endif
-
-#define GCES(status, node, sess, action) do {                          \
-	char *GCES_estr;                                                    \
-	int GCES_level;                                                      \
-	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
-	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "Node %d SSH %s", node, GCES_estr);             \
-		free_crypt_attrstr(GCES_estr);                                       \
-	}                                                                         \
-} while (0)
-
-#define GCESNN(status, sess, action) do {                              \
-	char *GCES_estr;                                                    \
-	int GCES_level;                                                      \
-	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
-	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "SSH %s", GCES_estr);                           \
-		free_crypt_attrstr(GCES_estr);                                       \
-	}                                                                         \
-} while (0)
-
-#define GCESS(status, sock, sess, action) do {                         \
-	char *GCES_estr;                                                    \
-	int GCES_level;                                                      \
-	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
-	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "%04d SSH %s", sock, GCES_estr);                \
-		free_crypt_attrstr(GCES_estr);                                       \
-	}                                                                         \
-} while (0)
 
 extern "C" {
 
@@ -204,9 +168,6 @@ int lputs(int level, const char* str)
 
 int eputs(int level, const char *str)
 {
-	if(*str == 0)
-		return 0;
-
 	if(level <= LOG_ERR) {
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
@@ -243,7 +204,7 @@ int eprintf(int level, const char *fmt, ...)
 
 	strip_ctrl(sbuf, sbuf);
 
-    return(eputs(level,truncsp(sbuf)));
+    return(eputs(level,sbuf));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -290,34 +251,27 @@ void sock_close_cb(SOCKET sock, void *cb_data)
 		su->socket_open(su->cbdata, FALSE);
 }
 
-void call_socket_open_callback(BOOL open)
-{
-	if(startup!=NULL && startup->socket_open!=NULL) 
-		startup->socket_open(startup->cbdata, open);
-}
-
 SOCKET open_socket(int type, const char* protocol)
 {
 	SOCKET	sock;
 	char	error[256];
 
 	sock=socket(AF_INET, type, IPPROTO_IP);
-	if(sock!=INVALID_SOCKET)
-		call_socket_open_callback(TRUE);
+	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL) 
+		startup->socket_open(startup->cbdata,TRUE);
 	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
 		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
 	return(sock);
 }
 
-// Used by sbbs_t::ftp_put() and js_accept()
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
 
 	sock=accept(s,&addr->addr,addrlen);
-	if(sock!=INVALID_SOCKET)
-		call_socket_open_callback(TRUE);
+	if(sock!=INVALID_SOCKET && startup!=NULL && startup->socket_open!=NULL)
+		startup->socket_open(startup->cbdata,TRUE);
 
 	return(sock);
 }
@@ -331,7 +285,8 @@ int close_socket(SOCKET sock)
 
 	shutdown(sock,SHUT_RDWR);	/* required on Unix */
 	result=closesocket(sock);
-	call_socket_open_callback(FALSE);
+	if(startup!=NULL && startup->socket_open!=NULL)
+		startup->socket_open(startup->cbdata,FALSE);
 	if(result!=0 && ERROR_VALUE!=ENOTSOCK)
 		lprintf(LOG_WARNING,"!ERROR %d closing socket %d",ERROR_VALUE,sock);
 	return(result);
@@ -771,10 +726,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-			FREE_AND_NULL(line);
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		}
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
@@ -787,8 +740,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if(line != NULL)
-		free(line);
+	free(line);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -880,10 +832,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-			FREE_AND_NULL(cstr);
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		}
 		JSSTRING_TO_RASTRING(cx, str, cstr, &cstr_sz, NULL);
 		if(cstr==NULL)
 		    return(JS_FALSE);
@@ -894,7 +844,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	FREE_AND_NULL(cstr);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -923,14 +872,10 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_RASTRING(cx, argv[i], str, &str_sz, &len);
 		if(str==NULL)
 		    return(JS_FALSE);
-		if(len < 1)
-			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if (str != NULL)
-		free(str);
 
     return(JS_TRUE);
 }
@@ -1412,14 +1357,6 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
-		/* CryptKeyset Class */
-		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptCert Class */
-		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
-			break;
-
 		/* Area Objects */
 		if(!js_CreateUserObjects(js_cx, *glob, cfg, /* user: */NULL, client, /* html_index_fname: */NULL, /* subscan: */NULL)) 
 			break;
@@ -1748,47 +1685,6 @@ bool sbbs_t::request_telnet_opt(uchar cmd, uchar opt, unsigned waitforack)
 	return true;
 }
 
-static int crypt_pop_channel_data(sbbs_t *sbbs, char *inbuf, int want, int *got)
-{
-	int status;
-	int cid;
-	char *cname;
-	int ret;
-
-	*got=0;
-	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
-	    && node_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
-		ret = cryptPopData(sbbs->ssh_session, inbuf, want, got);
-		if (ret == CRYPT_OK) {
-			status = cryptGetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, &cid);
-			if (status == CRYPT_OK) {
-				if (cid != sbbs->session_channel) {
-					if (cryptStatusError(status = cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, cid))) {
-						GCESS(status, sbbs->client_socket, sbbs->ssh_session, "setting channel");
-						return status;
-					}
-					cname = get_crypt_attribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL_TYPE);
-					lprintf(LOG_ERR, "%04d SSH ERROR attempt to use channel '%s' (%d != %d)", sbbs->client_socket, cname ? cname : "<unknown>", cid, sbbs->session_channel);
-					if (cname)
-						free_crypt_attrstr(cname);
-					if (cryptStatusError(status = cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE, 0))) {
-						GCESS(status, sbbs->client_socket, sbbs->ssh_session, "closing channel");
-						return status;
-					}
-					continue;
-				}
-			}
-			else {
-				GCESS(status, sbbs->client_socket, sbbs->ssh_session, "getting channel id");
-			}
-		}
-		if (ret == CRYPT_ENVELOPE_RESOURCE)
-			return CRYPT_ERROR_TIMEOUT;
-		return ret;
-	}
-	return CRYPT_ERROR_TIMEOUT;
-}
-
 void input_thread(void *arg)
 {
 	BYTE		inbuf[4000];
@@ -1822,7 +1718,7 @@ void input_thread(void *arg)
 		FD_SET(sbbs->client_socket,&socket_set);
 		high_socket=sbbs->client_socket;
 #ifdef __unix__
-		if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET) {
+		if(uspy_socket[sbbs->cfg.node_num-1]!=INVALID_SOCKET)  {
 			FD_SET(uspy_socket[sbbs->cfg.node_num-1],&socket_set);
 			if(uspy_socket[sbbs->cfg.node_num-1] > high_socket)
 				high_socket=uspy_socket[sbbs->cfg.node_num-1];
@@ -1930,14 +1826,14 @@ void input_thread(void *arg)
 		if(sbbs->ssh_mode && sock==sbbs->client_socket) {
 			int err;
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if(cryptStatusError((err=crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i)))) {
+			if(!cryptStatusOK((err=cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))) {
 				pthread_mutex_unlock(&sbbs->ssh_mutex);
 				if(pthread_mutex_unlock(&sbbs->input_thread_mutex)!=0)
 					sbbs->errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
 				if(err==CRYPT_ERROR_TIMEOUT)
 					continue;
 				/* Handle the SSH error here... */
-				GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+				lprintf(LOG_WARNING,"Node %d SSH ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				break;
 			}
 			else {
@@ -2120,10 +2016,9 @@ void passthru_output_thread(void* arg)
 
 		if(sbbs->ssh_mode) {
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if(cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i)))
+			if(!cryptStatusOK(cryptPopData(sbbs->ssh_session, (char*)inbuf, rd, &i)))
 				rd=0;
 			else {
-				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
 				if(!i) {
 					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
@@ -2400,27 +2295,17 @@ void output_thread(void* arg)
 		if(sbbs->ssh_mode) {
 			int err;
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if (cryptStatusError((err=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, sbbs->session_channel)))) {
-				GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "setting channel");
-				ssh_errors++;
+			if(!cryptStatusOK((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
+				/* Handle the SSH error here... */
+				lprintf(ssh_errors++ ? LOG_DEBUG : LOG_WARNING,"%s SSH ERROR %d sending on Cryptlib session", node, err);
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
 			}
 			else {
-				if(cryptStatusError((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
-					/* Handle the SSH error here... */
-					GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "pushing data");
-					ssh_errors++;
+				if(!cryptStatusOK((err=cryptFlushData(sbbs->ssh_session)))) {
+					lprintf(ssh_errors++ ? LOG_DEBUG : LOG_WARNING,"%s SSH ERROR %d flushing Cryptlib session", node, err);
 					sbbs->online=FALSE;
 					i=buftop-bufbot;	// Pretend we sent it all
-				}
-				else {
-					if(cryptStatusError((err=cryptFlushData(sbbs->ssh_session)))) {
-						GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "flushing data");
-						ssh_errors++;
-						sbbs->online=FALSE;
-						i=buftop-bufbot;	// Pretend we sent it all
-					}
 				}
 			}
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
@@ -2429,15 +2314,15 @@ void output_thread(void* arg)
 #endif
 			i=sendsocket(sbbs->client_socket, (char*)buf+bufbot, buftop-bufbot);
 		if(i==SOCKET_ERROR) {
-			if(ERROR_VALUE == ENOTSOCK)
-				lprintf(LOG_NOTICE,"%s client socket closed on send", node);
-			else if(ERROR_VALUE==ECONNRESET) 
+        	if(ERROR_VALUE == ENOTSOCK)
+                lprintf(LOG_NOTICE,"%s client socket closed on send", node);
+            else if(ERROR_VALUE==ECONNRESET) 
 				lprintf(LOG_NOTICE,"%s connection reset by peer on send", node);
-			else if(ERROR_VALUE==ECONNABORTED) 
+            else if(ERROR_VALUE==ECONNABORTED) 
 				lprintf(LOG_NOTICE,"%s connection aborted by peer on send", node);
 			else
 				lprintf(LOG_WARNING,"%s !ERROR %d sending on socket %d"
-					,node, ERROR_VALUE, sbbs->client_socket);
+                	,node, ERROR_VALUE, sbbs->client_socket);
 			sbbs->online=FALSE;
 			/* was break; on 4/7/00 */
 			i=buftop-bufbot;	// Pretend we sent it all
@@ -2664,7 +2549,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed: %s", str);
+						eprintf(LOG_INFO,"Packing completed");
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
@@ -2970,7 +2855,6 @@ void event_thread(void* arg)
 
 		/* Timed Events */
 		for(i=0;i<sbbs->cfg.total_events && !sbbs->terminated;i++) {
-			char event_code[LEN_CODE+1];
 			if(!sbbs->cfg.event[i]->node 
 				|| sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes)
 				continue;	// ignore events for invalid nodes
@@ -2982,9 +2866,6 @@ void event_thread(void* arg)
 				|| sbbs->cfg.event[i]->node>last_node)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
-
-			SAFECOPY(event_code, sbbs->cfg.event[i]->code);
-			strupr(event_code);
 
 			tmptime=sbbs->cfg.event[i]->last;
 			if(localtime_r(&tmptime,&tm)==NULL)
@@ -3006,9 +2887,9 @@ void event_thread(void* arg)
 					if(sbbs->cfg.event[i]->node<first_node
 						|| sbbs->cfg.event[i]->node>last_node) {
 						eprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
-							,sbbs->cfg.event[i]->node, event_code);
+							,sbbs->cfg.event[i]->node,sbbs->cfg.event[i]->code);
 						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
-							,event_code
+							,sbbs->cfg.event[i]->code
 							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
@@ -3040,7 +2921,7 @@ void event_thread(void* arg)
 							if(now-sbbs->cfg.event[i]->last<(60*60))	/* event is done */
 								break; 
 							if(now-start>(90*60)) {
-								eprintf(LOG_WARNING,"!TIMEOUT waiting for event (%s) to complete", event_code);
+								eprintf(LOG_WARNING,"!TIMEOUT waiting for event to complete");
 								break;
 							}
 						}
@@ -3050,7 +2931,7 @@ void event_thread(void* arg)
 						sbbs->cfg.event[i]->last=(time32_t)now;
 					} else {	// Exclusive event to run on a node under our control
 						eprintf(LOG_INFO,"Waiting for all nodes to become inactive before "
-							"running timed event: %s", event_code);
+							"running timed event: %s",sbbs->cfg.event[i]->code);
 						lastnodechk=0;
 						start=time(NULL);
 						while(!sbbs->terminated) {
@@ -3087,11 +2968,9 @@ void event_thread(void* arg)
 							}
 							if(j>sbbs->cfg.sys_nodes) /* all nodes either offline or in limbo */
 								break;
-							eprintf(LOG_DEBUG,"Waiting for node %d (status=%d), event: %s"
-								,j, node.status, event_code);
+							eprintf(LOG_DEBUG,"Waiting for node %d (status=%d)",j,node.status);
 							if(now-start>(90*60)) {
-								eprintf(LOG_WARNING,"!TIMEOUT waiting for node %d to become inactive (status=%d), event: %s"
-									,j, node.status, event_code);
+								eprintf(LOG_WARNING,"!TIMEOUT waiting for node %d to become inactive",j);
 								break;
 							}
 						} 
@@ -3106,8 +2985,8 @@ void event_thread(void* arg)
 #endif
 				if(sbbs->cfg.event[i]->node<first_node 
 					|| sbbs->cfg.event[i]->node>last_node) {
-					eprintf(LOG_NOTICE,"Changing node status for nodes %d through %d to WFC, event: %s"
-						,first_node,last_node, event_code);
+					eprintf(LOG_NOTICE,"Changing node status for nodes %d through %d to WFC"
+						,first_node,last_node);
 					sbbs->cfg.event[i]->last=(time32_t)now;
 					for(j=first_node;j<=last_node;j++) {
 						node.status=NODE_INVALID_STATUS;
@@ -3140,10 +3019,11 @@ void event_thread(void* arg)
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
+					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Running %s%stimed event: %s"
 						,(ex_mode&EX_NATIVE)	? "native ":""
 						,(ex_mode&EX_BG)		? "background ":""
-						,event_code);
+						,strupr(str));
 					{
 						int result=
 							sbbs->external(
@@ -3151,7 +3031,7 @@ void event_thread(void* arg)
 								,ex_mode
 								,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
-							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d", event_code, result);
+							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d",strupr(str), result);
 					}
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
@@ -4029,37 +3909,13 @@ int sbbs_t::incom(unsigned long timeout)
 	return(ch);
 }
 
-// Steve's original implementation (in RCIOL) did not incorporate a retry
-// ... so this function does not either. :-P
-int sbbs_t::_outcom(uchar ch)
+int sbbs_t::outcom(uchar ch)
 {
 	if(!RingBufFree(&outbuf))
 		return(TXBOF);
     if(!RingBufWrite(&outbuf, &ch, 1))
 		return(TXBOF);
 	return(0);
-}
-
-// This outcom version retries - copied loop from sbbs_t::outchar()
-int sbbs_t::outcom(uchar ch, int max_attempts)
-{
-	int i = 0;
-	while(_outcom(ch) != 0) {
-		if(!online)
-			break;
-		i++;
-		if(i >= max_attempts) {			/* timeout - beep flush outbuf */
-			lprintf(LOG_NOTICE, "timeout(outcom) %04X %04X", rioctl(TXBC), rioctl(IOFO));
-			_outcom(BEL);
-			rioctl(IOCS|PAUSE); 
-			return TXBOF;
-		} 
-		if(sys_status&SS_SYSPAGE)
-			sbbs_beep(i, OUTCOM_RETRY_DELAY);
-		else
-			mswait(OUTCOM_RETRY_DELAY); 
-	}
-	return 0;	// Success
 }
 
 int sbbs_t::putcom(const char *str, size_t len)
@@ -4175,7 +4031,6 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
-	cterm_version = 0;
     lbuflen=0;
     slcnt=0;
     altul=0;
@@ -4782,7 +4637,7 @@ void DLLCALL bbs_thread(void* arg)
 	char*			p;
     char			str[MAX_PATH+1];
 	char			logstr[256];
-	union xp_sockaddr	server_addr={{0}};
+	union xp_sockaddr	server_addr={0};
 	union xp_sockaddr	client_addr;
 	socklen_t		client_addr_len;
 	SOCKET			client_socket=INVALID_SOCKET;
@@ -4808,6 +4663,7 @@ void DLLCALL bbs_thread(void* arg)
 	struct main_sock_cb_data	ssh_cb;
 	struct main_sock_cb_data	rlogin_cb;
 	void						*ts_cb;
+	int							err;
 
     if(startup==NULL) {
     	sbbs_beep(100,500);
@@ -5014,11 +4870,14 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
+	lprintf(LOG_INFO,"Telnet Server listening");
+
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
+		lprintf(LOG_INFO,"RLogin Server listening");
 	}
 
 #ifdef USE_CRYPTLIB
@@ -5034,43 +4893,42 @@ void DLLCALL bbs_thread(void* arg)
 		}
 		/* Get the private key... first try loading it from a file... */
 		SAFEPRINTF2(str,"%s%s",scfg.ctrl_dir,"cryptlib.key");
-		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_READONLY))) {
-			if(cryptStatusError(i=cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
-				GCESNN(i, ssh_keyset, "getting private key");
+		if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
+			if(!cryptStatusOK(cryptGetPrivateKey(ssh_keyset, &ssh_context, CRYPT_KEYID_NAME, "ssh_server", scfg.sys_pass))) {
+				lprintf(LOG_ERR, "SSH cryptGetPrivateKey failure");
 				goto NO_SSH;
 			}
 		}
 		else {
 			/* Couldn't do that... create a new context and use the key from there... */
 
-			if(cryptStatusError(i=cryptCreateContext(&ssh_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
-				GCESNN(i, CRYPT_UNUSED, "creating context");
+			if(!cryptStatusOK(i=cryptCreateContext(&ssh_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
+				lprintf(LOG_ERR,"SSH Cryptlib error %d creating context",i);
 				goto NO_SSH;
 			}
-			if(cryptStatusError(i=cryptSetAttributeString(ssh_context, CRYPT_CTXINFO_LABEL, "ssh_server", 10))) {
-				GCESNN(i, ssh_context, "setting label");
+			if(!cryptStatusOK(i=cryptSetAttributeString(ssh_context, CRYPT_CTXINFO_LABEL, "ssh_server", 10))) {
+				lprintf(LOG_ERR,"SSH Cryptlib error %d setting key label",i);
 				goto NO_SSH;
 			}
-			if(cryptStatusError(i=cryptGenerateKey(ssh_context))) {
-				GCESNN(i, ssh_context, "generating key");
+			if(!cryptStatusOK(i=cryptGenerateKey(ssh_context))) {
+				lprintf(LOG_ERR,"SSH Cryptlib error %d generating key",i);
 				goto NO_SSH;
 			}
 
-			/* Ok, now try saving this one... use the syspass to encrypt it. */
-			if(cryptStatusOK(i=cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
-				if(cryptStatusError(i=cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
-					GCESNN(i, ssh_keyset, "adding private key");
-				if(cryptStatusError(i=cryptKeysetClose(ssh_keyset)))
-					GCESNN(i, ssh_keyset, "closing keyset");
+			/* Ok, now try saving this one... use the syspass to enctrpy it. */
+			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
+				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
+					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
+				if(!cryptStatusOK(cryptKeysetClose(ssh_keyset)))
+					lprintf(LOG_ERR,"SSH Cryptlib error %d closing keyset",i);
 			}
-			else
-				GCESNN(i, CRYPT_UNUSED, "creating keyset");
 		}
 
 		/* open a socket and wait for a client */
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
+		lprintf(LOG_INFO,"SSH Server listening");
 	}
 NO_SSH:
 #endif
@@ -5301,9 +5159,6 @@ NO_SSH:
 			continue;
 		}
 
-		// Count the socket:
-		call_socket_open_callback(TRUE);
-
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
@@ -5387,29 +5242,26 @@ NO_SSH:
 #ifdef USE_CRYPTLIB
 		if(ssh) {
 			int	ssh_failed=0;
-			BOOL nodelay = TRUE;
-			ulong nb = 0;
-
-			if(cryptStatusError(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
-				GCESS(i, client_socket, CRYPT_UNUSED, "creating SSH session");
+			if(!cryptStatusOK(i=cryptCreateSession(&sbbs->ssh_session, CRYPT_UNUSED, CRYPT_SESSION_SSH_SERVER))) {
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d creating session", client_socket, i);
 				close_socket(client_socket);
 				continue;
 			}
 			lprintf(LOG_DEBUG, "%04d SSH Cryptlib Session: %d", client_socket, sbbs->ssh_session);
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 1)))
+				lprintf(LOG_ERR, "%04d SSH Error %d setting CRYPT_OPTION_NET_READTIMEOUT", client_socket, i);
 
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_CONNECTTIMEOUT, startup->ssh_connect_timeout)))
-				GCESS(i, client_socket, sbbs->ssh_session, "setting connect timeout");
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_CONNECTTIMEOUT, startup->ssh_connect_timeout)))
+				lprintf(LOG_ERR, "%04d SSH Error %d setting CRYPT_OPTION_NET_CONNECTTIMEOUT", client_socket, i);
 
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
-				GCESS(i, client_socket, sbbs->ssh_session, "setting private key");
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_PRIVATEKEY, ssh_context))) {
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting private key",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
 			}
-			setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
-			ioctlsocket(client_socket,FIONBIO,&nb);
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
-				GCESS(i, client_socket, sbbs->ssh_session, "setting network socket");
+			if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_NETWORKSOCKET, client_socket))) {
+				lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting socket",client_socket, i);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
@@ -5417,69 +5269,61 @@ NO_SSH:
 			for(ssh_failed=0; ssh_failed < 2; ssh_failed++) {
 				/* Accept any credentials */
 				lprintf(LOG_DEBUG, "%04d SSH Setting attribute: SESSINFO_AUTHRESPONSE", client_socket);
-				if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
-					GCESS(i, client_socket, sbbs->ssh_session, "setting auth response");
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_AUTHRESPONSE, 1))) {
 					ssh_failed=1;
 					break;
 				}
 				lprintf(LOG_DEBUG, "%04d SSH Setting attribute: SESSINFO_ACTIVE", client_socket);
-				if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
-					GCESS(i, client_socket, sbbs->ssh_session, "setting session active");
+				if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_ACTIVE, 1))) {
 					if(i != CRYPT_ENVELOPE_RESOURCE) {
 						ssh_failed=2;
 						break;
 					}
 				}
 				else {
-					int cid;
-					char tname[1024];
-					int tnamelen;
-
 					ssh_failed=0;
-					// Check the channel ID and name...
-					if (cryptStatusOK(i=cryptGetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, &cid))) {
-						if (i == CRYPT_OK) {
-							tnamelen = 0;
-							i=cryptGetAttributeString(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL_TYPE, tname, &tnamelen);
-							GCESS(i, client_socket, sbbs->ssh_session, "getting channel type");
-							if (tnamelen != 7 || strnicmp(tname, "session", 7)) {
-								lprintf(LOG_INFO, "%04d SSH active channel '%s' is not 'session', disconnecting.", client_socket, tname);
-								// Fail because there's no session.
-								ssh_failed = 3;
-							}
-							else
-								sbbs->session_channel = cid;
-						}
-					}
-					else {
-						GCESS(i, client_socket, sbbs->ssh_session, "getting channel id");
-						if (i == CRYPT_ERROR_PERMISSION)
-							lprintf(LOG_ERR, "!ERROR Your cryptlib build is obsolete, please update");
-					}
 					break;
 				}
 			}
-			if (!ssh_failed) {
-				if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_PROPERTY_OWNER, CRYPT_UNUSED))) {
-					GCESS(i, client_socket, sbbs->ssh_session, "clearing owner");
-					ssh_failed = 2;
-				}
+			switch(ssh_failed) {
+				case 0:
+					if(!cryptStatusOK(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_PROPERTY_OWNER, CRYPT_UNUSED))) {
+						lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d clearing owner",client_socket, i);
+						ssh_failed = 2;
+					}
+					break;
+				case 1:
+					lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting AUTHRESPONSE",client_socket, i);
+					break;
+				case 2:
+					switch(i) {
+						case CRYPT_ERROR_BADDATA:
+							lprintf(LOG_NOTICE,"%04d SSH Bad/unrecognized data format", client_socket);
+							break;
+						case CRYPT_ERROR_READ:
+							lprintf(LOG_WARNING,"%04d SSH Read failure", client_socket);
+							break;
+						case CRYPT_ERROR_WRITE:
+							lprintf(LOG_WARNING,"%04d SSH Write failure", client_socket);
+							break;
+						case CRYPT_ERROR_TIMEOUT:
+							lprintf(LOG_WARNING,"%04d SSH Connect timeout", client_socket);
+							break;
+						default:
+							lprintf(LOG_WARNING,"%04d SSH Cryptlib error %d setting session active",client_socket, i);
+							break;
+					}
+					break;
 			}
 			if(ssh_failed) {
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
 			}
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 0)))
-				GCESS(i, sbbs->client_socket, sbbs->ssh_session, "setting read timeout");
-			if(cryptStatusError(i=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_WRITETIMEOUT, 0)))
-				GCESS(i, sbbs->client_socket, sbbs->ssh_session, "setting write timeout");
-#if 0
-			if(cryptStatusError(err=crypt_pop_channel_data(sbbs, str, sizeof(str), &i))) {
-				GCES(i, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+			if(!cryptStatusOK(err=cryptPopData(sbbs->ssh_session, str, sizeof(str), &i))) {
+				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
-#endif
 			sbbs->online=ON_REMOTE;
 		}
 #endif
@@ -5583,10 +5427,9 @@ NO_SSH:
 
 		new_node->client=client;
 #ifdef USE_CRYPTLIB
-		if(ssh) {
+		if(ssh) {	
 			new_node->ssh_session=sbbs->ssh_session;	// This is done again later, after NO_PASSTHRU: Why?
 			new_node->ssh_mode=true;
-			new_node->session_channel = sbbs->session_channel;
 		}
 #endif
 
@@ -5672,7 +5515,7 @@ NO_SSH:
 				goto NO_PASSTHRU;
 			}
 
-			lprintf(LOG_DEBUG,"passthru connect socket %d opened",new_node->passthru_socket);
+    		lprintf(LOG_DEBUG,"passthru connect socket %d opened",new_node->passthru_socket);
 
 			tmp_addr_len=sizeof(tmp_addr);
 			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
@@ -5683,7 +5526,7 @@ NO_SSH:
 				goto NO_PASSTHRU;
 			}
 
-			result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
+		    result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
 
 			if(result != 0) {
 				lprintf(LOG_ERR,"!ERROR %d (%d) connecting to passthru socket", result, ERROR_VALUE);
@@ -5718,6 +5561,10 @@ NO_PASSTHRU:
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
+			if(!cryptStatusOK(err=cryptPopData(sbbs->ssh_session, str, sizeof(str), &i))) {
+				lprintf(LOG_WARNING,"Node %d SSH ERROR %d receiving on Cryptlib session", new_node->cfg.node_num, err);
+				i=0;
+			}
 			sbbs->ssh_mode=false;
 			sbbs->ssh_session=0; // Don't allow subsequent SSH connections to affect this one (!)
 		}
