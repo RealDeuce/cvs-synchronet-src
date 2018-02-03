@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.8 2016/11/18 10:00:38 rswindell Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.10 2017/08/09 20:05:48 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.8 2016/11/18 10:00:38 rswindell Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.10 2017/08/09 20:05:48 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 			}
 			fprintf(text_h, "\t%c%s\n", i==1?' ':',', macro);
 			fprintf(text_js, "var %s=%d;\n", macro, i);
-			fprintf(text_defaults_c, "\t%c%s\n", i==1?' ':',', cstr);
+			fprintf(text_defaults_c, "\t%c%s // %s\n", i==1?' ':',', cstr, comment);
 		}
 	} while(p != NULL);
 	fclose(text_dat);
@@ -266,8 +266,8 @@ int main(int argc, char **argv)
 	fputs("\n",text_h);
 	fputs("#endif\n",text_h);
 	fclose(text_h);
-	fputs("\n",text_h);
-	fprintf(text_h, "var TOTAL_TEXT=%d;\n",i);
+	fputs("\n",text_js);
+	fprintf(text_js, "var TOTAL_TEXT=%d;\n",i);
 	fclose(text_js);
 	fputs("};\n",text_defaults_c);
 	fclose(text_defaults_c);
