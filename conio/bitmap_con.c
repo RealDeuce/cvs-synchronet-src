@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.73 2018/02/02 22:20:52 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.74 2018/02/03 00:17:41 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1212,7 +1212,7 @@ struct ciolib_pixels *bitmap_getpixels(uint32_t sx, uint32_t sy, uint32_t ex, ui
 	if (sx > ex || sy > ey)
 		return NULL;
 
-	if (ex > screenwidth || ey > screenheight)
+	if (ex >= screenwidth || ey >= screenheight)
 		return NULL;
 
 	width = ex - sx + 1;

@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.83 2018/02/02 22:20:52 deuce Exp $ */
+/* $Id: ciolib.h,v 1.84 2018/02/03 00:17:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -261,8 +261,8 @@ struct ciolib_pixels {
 struct ciolib_screen {
 	struct ciolib_pixels	*pixels;
 	void			*vmem;
-	void			*foreground;
-	void			*background;
+	uint32_t		*foreground;
+	uint32_t		*background;
 	struct text_info	text_info;
 };
 
