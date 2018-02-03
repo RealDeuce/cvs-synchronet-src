@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.38 2018/01/28 20:26:30 deuce Exp $
+$Id: cterm.txt,v 1.44 2018/01/31 09:45:35 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -63,6 +63,41 @@ ESC M	(Disabled in current code)
 	current attribute
 	SOURCE: BANSI.TXT
 
+ESC _	Application Program String
+ESC P	Device Control String
+ESC ^	Privacy Message
+	Begins a string consisting of the characters 0x08 - 0x0d and
+	0x20-0x7e, terminated by a String Terminator (ST)
+	The string is currently ignored.
+ESC ]	Operating System Command
+	Begins a string consisting of the characters 0x08 - 0x0d and
+	0x20-0x7e, terminated by a String Terminator (ST)
+	Supported OSC values:
+		4;(pX;pY)...
+		Specifies one or more palette redefinitions.
+		pX is the palette index, and pY is the colour definition
+		Color format:
+			rgb:R/G/B
+			Where R, G, and B are a sequence of one to four
+			hex digits representing the value of the
+			red, green, and blue channels respectively.
+
+		SOURCE: xterm
+
+		104 [ ; Ps ... ]
+		Resets palette entry to default.  If the entire string
+		is "104", resets all colours.  Otherwise, only each index
+		separated by a semicolon is reset.
+
+		SOURCE: xterm
+
+ESC X	Start Of String
+	As the above strings, but may contain any characters except
+	a Start Of String sequence or a String Terminator sequence.
+	The string is currently ignored.
+
+ESC \	String Terminator
+
 Control Sequences:
 ------------------
 
@@ -107,7 +142,7 @@ CSI = [ p1 [ ; p2 ] ] {
 	of predefined fonts)  p2 indicates font size according to the
 	following table:
 		0 - 8x16 font, 4096 bytes.
-		1 - 8x14 font, 3586 bytes.
+		1 - 8x14 font, 3584 bytes.
 		2 - 8x8 font, 2048 bytes.
 
 	SOURCE: CTerm only.
@@ -646,9 +681,9 @@ CSI [ p1 ] n
 CSI ? [ p1 [ pX ... ] ] s
 	NON-STANDARD EXTENSION
 	Save Mode Setting
-	Saves the current mode states as specified by CSI l and CSI h.  If
+	Saves the current mode states as specified by CSI ? l and CSI ? h.  If
 	p1 is omitted, saves all such states.  If pX is included, saves only
-	the specified states (arguments to CSI l/h).
+	the specified states (arguments to CSI ? l/h).
 
 	SOURCE: SyncTERM only
 
@@ -664,9 +699,9 @@ CSI s
 CSI ? [ p1 [ pX ... ] ]  u
 	NON-STANDARD EXTENSION
 	Restore Mode Setting
-	Saves the current mode states as specified by CSI l and CSI h.  If
+	Saves the current mode states as specified by CSI ? l and CSI ? h.  If
 	p1 is omitted, saves all such states.  If pX is included, restores
-	all the specified states (arguments to CSI l/h)
+	all the specified states (arguments to CSI ? l/h)
 
 	SOURCE: SyncTERM only
 
