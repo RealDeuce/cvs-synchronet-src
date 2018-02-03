@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.21 2018/02/06 02:25:33 deuce Exp $ */
+/* $Id: x_cio.h,v 1.20 2018/01/31 19:58:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,8 +73,6 @@ int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 int x_get_window_info(int *width, int *height, int *xpos, int *ypos);
 void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data);
 void x11_flush(void);
-void x_setscaling(int newval);
-int x_getscaling(void);
 #ifdef __cplusplus
 }
 #endif

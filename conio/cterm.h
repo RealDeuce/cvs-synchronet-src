@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.53 2018/02/06 07:05:08 deuce Exp $ */
+/* $Id: cterm.h,v 1.49 2018/02/03 11:06:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,12 +170,6 @@ struct cterminal {
 	bool				sx_scroll_mode;	// Sixel scrolling mode
 	int					sx_start_x;		// Starting X position
 	int					sx_start_y;		// Starting Y position
-	int					sx_row_max_x;	// Max right size of this sixel line
-	struct ciolib_pixels *sx_pixels;
-	unsigned long		sx_width;		// Width from raster attributes
-	unsigned long		sx_height;		// REMAINING heigh from raster attributes
-	uint8_t				*sx_mask;
-	int					sx_orig_cursor;	// Original value of cterm->cursor
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
