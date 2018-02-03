@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.63 2015/11/24 11:05:07 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.65 2017/11/26 00:09:56 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -11,7 +11,6 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ars$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)atcodes$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)bat_xfer$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)base64$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)bulkmail$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)chat$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)chk_ar$(OFILE)\
@@ -130,12 +129,10 @@ MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)mxlookup$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)mime$(OFILE) \
  		  	$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
- 		  	$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)base64$(OFILE)
+ 		  	$(MTOBJODIR)$(DIRSEP)ars$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
 WEB_OBJS	= $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)base64$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE)
 			
@@ -182,6 +179,7 @@ SBBSECHO_OBJS = \
 			$(OBJODIR)$(DIRSEP)load_cfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib1$(OFILE) \
 			$(OBJODIR)$(DIRSEP)scfglib2$(OFILE) \
+			$(OBJODIR)$(DIRSEP)scfgsave$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
@@ -242,7 +240,6 @@ JSEXEC_OBJS = \
 
 JSDOOR_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)base64$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)date_str$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)dat_rec$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)jsdoor$(OFILE) \
