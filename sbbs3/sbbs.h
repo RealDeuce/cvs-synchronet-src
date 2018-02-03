@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.468 2018/02/18 02:57:46 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.465 2018/01/26 04:28:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -347,10 +347,7 @@ public:
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
 
-	#define OUTCOM_RETRY_DELAY		80		// milliseconds
-	#define OUTCOM_RETRY_ATTEMPTS	1000	// 80 seconds
-	int 	_outcom(uchar ch); 	   // send character, without retry (on buffer flow condition)
-	int		outcom(uchar ch, int max_attempts = OUTCOM_RETRY_ATTEMPTS);		// send character, with retry
+	int 	outcom(uchar ch); 	   // send character
 	int 	incom(unsigned long timeout=0);		   // receive character
 
 	void	spymsg(const char *msg);		// send message to active spies
@@ -455,8 +452,7 @@ public:
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
 	long	lastlinelen;	/* The previously displayed line length */
-	long 	autoterm;		/* Auto-detected terminal type */
-	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
+	long 	autoterm;		/* Autodetected terminal type */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
 	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
@@ -1205,6 +1201,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1216,14 +1213,11 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
-#ifdef USE_CRYPTLIB
 													,CRYPT_CONTEXT session		/* client */
-#else
-													,int unused
-#endif
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
+#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
