@@ -1,6 +1,6 @@
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.54 2018/03/16 05:24:04 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.53 2018/01/31 23:42:30 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -210,8 +210,6 @@ DLLEXPORT void DLLCALL		iniSetDefaultStyle(ini_style_t);
 DLLEXPORT char* DLLCALL		iniSetString(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetStringLiteral(str_list_t*, const char* section, const char* key, const char* value
-					,ini_style_t*);
-DLLEXPORT char* DLLCALL		iniSetValue(str_list_t*, const char* section, const char* key, const char* value
 					,ini_style_t*);
 DLLEXPORT char* DLLCALL		iniSetInteger(str_list_t*, const char* section, const char* key, long value
 					,ini_style_t*);
