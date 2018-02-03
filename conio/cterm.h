@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.53 2018/02/06 07:05:08 deuce Exp $ */
+/* $Id: cterm.h,v 1.48 2018/02/02 23:55:57 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,7 +100,7 @@ struct cterminal {
 #define	CTERM_SAVEMODE_ALTCHARS			0x004
 #define CTERM_SAVEMODE_NOBRIGHT			0x008
 #define CTERM_SAVEMODE_BGBRIGHT			0x010
-#define CTERM_SAVEMODE_SIXEL_SCROLL		0x020
+	// 0x010 was CTERM_SAVEMODE_DOORWAY
 #define CTERM_SAVEMODE_ORIGIN			0x040
 #define	CTERM_SAVEMODE_BLINKALTCHARS	0x080
 #define CTERM_SAVEMODE_NOBLINK			0x100
@@ -167,15 +167,6 @@ struct cterminal {
 										   Raster Attributes are ignore if this is true. */
 	int					sx_first_pass;	// First pass through a line
 	int					sx_hold_update;	// hold_update value to restore on completion
-	bool				sx_scroll_mode;	// Sixel scrolling mode
-	int					sx_start_x;		// Starting X position
-	int					sx_start_y;		// Starting Y position
-	int					sx_row_max_x;	// Max right size of this sixel line
-	struct ciolib_pixels *sx_pixels;
-	unsigned long		sx_width;		// Width from raster attributes
-	unsigned long		sx_height;		// REMAINING heigh from raster attributes
-	uint8_t				*sx_mask;
-	int					sx_orig_cursor;	// Original value of cterm->cursor
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
