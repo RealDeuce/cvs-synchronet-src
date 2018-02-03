@@ -1,6 +1,7 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.90 2016/11/15 21:50:43 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.100 2017/11/25 01:24:23 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,6 +101,7 @@
 #define US_ZONE 			0x4000		/* U.S. time zone */
 #define WESTERN_ZONE		0x2000		/* Non-standard zone west of UT */
 #define EASTERN_ZONE		0x1000		/* Non-standard zone east of UT */
+#define SMB_DST_OFFSET		60			/* Daylight Saving Time offset, in minutes */
 
 										/* US Time Zones (standard) */
 #define AST 				0x40F0		/* Atlantic 			(-04:00) */
@@ -131,9 +133,12 @@
 #define RIO 				0x20B4		/* Rio de Janeiro		(-03:00) */
 #define FER 				0x2078		/* Fernando de Noronha	(-02:00) */
 #define AZO 				0x203C		/* Azores				(-01:00) */
-#define LON 				0x1000		/* London				(+00:00) */
-#define BER 				0x103C		/* Berlin				(+01:00) */
-#define ATH 				0x1078		/* Athens				(+02:00) */
+#define WET 				0x1000		/* Western European		(+00:00) */
+#define WEST 				0x9000		/* WE Summer Time		(+01:00) AKA BST */
+#define CET 				0x103C		/* Central European		(+01:00) */
+#define CEST 				0x903C		/* CE Summer Time		(+02:00) */
+#define EET 				0x1078		/* Eastern European		(+02:00) */
+#define EEST				0x9078		/* EE Summer Time		(+03:00) */
 #define MOS 				0x10B4		/* Moscow				(+03:00) */
 #define DUB 				0x10F0		/* Dubai				(+04:00) */
 #define KAB 				0x110E		/* Kabul				(+04:30) */
@@ -149,6 +154,8 @@
 #define WEL 				0x12D0		/* Wellington			(+12:00) */
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
+
+#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET))
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
@@ -315,8 +322,11 @@
 #define MSG_UPVOTE			(1<<11)		/* This message is an upvote */
 #define MSG_DOWNVOTE		(1<<12)		/* This message is a downvote */
 #define MSG_POLL			(1<<13)		/* This message is a poll */
+#define MSG_SPAM			(1<<14)		/* This message has been flagged as SPAM */
 
-#define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* this message is a poll-vote */
+#define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* This message is a poll-vote */
+#define MSG_POLL_CLOSURE	(MSG_POLL|MSG_VOTE)			/* This message is a poll-closure */
+#define MSG_POLL_VOTE_MASK	MSG_POLL_CLOSURE
 
 #define MSG_POLL_MAX_ANSWERS	16
 
@@ -328,6 +338,13 @@
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
 #define MSG_NODISP			(1<<6)		/* Msg may not be displayed to user */
+#define POLL_CLOSED			(1<<24)		/* Closed to voting */
+#define POLL_RESULTS_MASK	(3U<<30)	/* 4 possible values: */
+#define POLL_RESULTS_SECRET	(3U<<30)	/* No one but pollster can see results */
+#define POLL_RESULTS_CLOSED	(2U<<30)	/* No one but pollster can see results until poll is closed */
+#define POLL_RESULTS_OPEN	(1U<<30)	/* Results are visible to everyone always */
+#define POLL_RESULTS_VOTERS	(0U<<30)	/* Voters can see results right away, everyone else when closed */
+#define POLL_RESULTS_SHIFT	30
 
 										/* Message network attributes */
 #define MSG_LOCAL			(1<<0)		/* Msg created locally */
@@ -426,12 +443,12 @@ typedef struct _PACK {		/* Index record */
 			uint16_t	subj;		/* 16-bit CRC of subject (lower case, w/o RE:) */
 		};
 		struct _PACK {
-			uint16_t	vote;		/* vote value */
+			uint16_t	votes;		/* votes value */
 			uint32_t	remsg;		/* number of message this vote is in response to */
 		};
 	};
 	uint16_t	attr;			/* attributes (read, permanent, etc.) */
-	uint32_t	offset; 		/* offset into header file */
+	uint32_t	offset; 		/* byte-offset of msghdr in header file */
 	uint32_t	number; 		/* number of message (1 based) */
 	uint32_t	time;			/* time/date message was imported/posted */
 
@@ -507,7 +524,8 @@ typedef struct _PACK {		/* Message base status header */
 enum smb_msg_type {
      SMB_MSG_TYPE_NORMAL		/* Classic message (for reading) */
 	,SMB_MSG_TYPE_POLL			/* A poll question  */
-	,SMB_MSG_TYPE_VOTE			/* Voter response to poll or normal message */
+	,SMB_MSG_TYPE_BALLOT		/* Voter response to poll or normal message */
+	,SMB_MSG_TYPE_POLL_CLOSURE	/* Closure of an existing poll */
 };
 
 typedef struct _PACK {		/* Message header */
@@ -526,7 +544,7 @@ typedef struct _PACK {		/* Message header */
     /* 28 */ uint32_t	thread_next;		/* Next message in thread */
     /* 2c */ uint32_t	thread_first;		/* First reply to this message */
 	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
-	/* 32 */ int16_t	vote;				/* Vote value (response to poll) */
+	/* 32 */ int16_t	votes;				/* Votes value (response to poll) or maximum votes per ballot (poll) */
 	/* 34 */ uint32_t	thread_id;			/* Number of original message in thread (or 0 if unknown) */
 	/* 38 */ uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
 	/* 3c */ uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
@@ -621,6 +639,7 @@ typedef struct {				/* Message */
 	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
+	uint16_t	user_voted;		/* How the current user viewing this message, voted on it */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
@@ -640,12 +659,13 @@ typedef struct {				/* Message base */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 		/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
+	BOOL		continue_on_error;			/* Attempt recovery after some normaly fatal errors */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
 	uint32_t	subnum;			/* Sub-board number */
 	uint32_t	msgs;			/* Number of messages loaded (for user) */
-	uint32_t	curmsg;			/* Current message number (for user) */
+	uint32_t	curmsg;			/* Current message number (for user, 0-based) */
 
 } smb_t;
 
