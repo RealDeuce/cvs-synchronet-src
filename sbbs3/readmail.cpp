@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.75 2018/06/08 21:59:54 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.74 2017/11/27 06:30:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -410,9 +410,9 @@ void sbbs_t::readmail(uint usernumber, int which)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRTU?<>[]{}-+/");
+		sprintf(str,"ADFLNQRT?<>[]{}-+/");
 		if(SYSOP)
-			strcat(str,"C!SPH");
+			strcat(str,"CUSPH");
 		if(which == MAIL_YOUR)
 			strcat(str,"K");	// kill all (visible)
 		else
@@ -785,7 +785,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				}
 				smb.curmsg=(u-1);
 				break;
-			case '!':   /* user edit */
+			case 'U':   /* user edit */
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
 				if((unum=(which==MAIL_SENT ? msg.idx.to : msg.idx.from)) == 0)
@@ -796,21 +796,6 @@ void sbbs_t::readmail(uint usernumber, int which)
 				} else
 					useredit(unum);
 				break;
-			case 'U':	/* View Unread-Only (toggle) */
-			{
-				domsg = false;
-				if(!(lm_mode&LM_UNREAD)) {
-					if(!getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */0)) {
-						bprintf(text[NoMailWaiting], "Un-read");
-						break;
-					}
-				}
-				lm_mode ^= LM_UNREAD;
-				bputs(text[DisplayUnreadMessagesOnlyQ]);
-				bputs((lm_mode&LM_UNREAD) ? text[On] : text[Off]);
-				CRLF;
-				break;
-			}
 			case 'V':	/* View SPAM (toggle) */
 			{
 				domsg = false;
@@ -823,7 +808,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 					bprintf(text[NoMailWaiting], "HAM");
 					break;
 				}
-				bputs(text[SPAMVisibilityIsNow]);
+				bprintf(text[SPAMVisibilityIsNow]);
 				switch(lm_mode&(LM_SPAMONLY | LM_NOSPAM)) {
 					case 0:
 						lm_mode |= LM_NOSPAM;
