@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.83 2018/02/16 09:01:01 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.79 2018/01/15 00:31:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,54 +177,21 @@ long sbbs_t::term_supports(long cmp_flags)
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
-	/*
-	 * outchar_esc values:
-	 * 0: No sequence
-	 * 1: ESC
-	 * 2: CSI
-	 * 3: Final byte
-     * 4: APS, DCS, PM, or OSC
-     * 5: SOS
-     * 6: ESC inside of SOS
-     */
+	int		i;
 
 	if(console&CON_ECHO_OFF)
 		return;
-	if(ch==ESC && outchar_esc < 4)
+	if(ch==ESC)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
 		if(ch=='[')
 			outchar_esc++;
-		else if(ch=='_' || ch=='P' || ch == '^' || ch == ']')
-			outchar_esc=4;
-		else if(ch=='X')
-			outchar_esc=5;
-		else if(ch >= 0x40 && ch <= 0x5f)
-			outchar_esc=3;
 		else
 			outchar_esc=0;
 	}
 	else if(outchar_esc==2) {
 		if(ch>='@' && ch<='~')
 			outchar_esc++;
-	}
-	else if(outchar_esc==4) {	// APS, DCS, PM, or OSC
-		if (ch == ESC)
-			outchar_esc = 1;
-		if (!((ch >= 0x08 && ch <= 0x0d) || (ch >= 0x20 && ch <= 0x7e)))
-			outchar_esc = 0;
-	}
-	else if(outchar_esc==5) {	// SOS
-		if (ch == ESC)
-			outchar_esc++;
-	}
-	else if(outchar_esc==6) {	// ESC inside SOS
-		if (ch == '\\')
-			outchar_esc = 1;
-		else if (ch == 'X')
-			outchar_esc = 0;
-		else
-			outchar_esc = 5;
 	}
 	else
 		outchar_esc=0;
@@ -251,7 +218,22 @@ void sbbs_t::outchar(char ch)
 		else {
 			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			outcom(ch);
+			i=0;
+			while(outcom(ch)&TXBOF && i<1440) { /* 3 minute pause delay */
+				if(!online)
+					break;
+				i++;
+				if(sys_status&SS_SYSPAGE)
+					sbbs_beep(i,80);
+				else
+					mswait(80); 
+			}
+			if(i==1440) {							/* timeout - beep flush outbuf */
+				i=rioctl(TXBC);
+				lprintf(LOG_NOTICE,"timeout(outchar) %04X %04X\r\n",i,rioctl(IOFO));
+				outcom(BEL);
+				rioctl(IOCS|PAUSE); 
+			} 
 		} 
 	}
 	if(!outchar_esc) {
@@ -564,12 +546,6 @@ void sbbs_t::ctrl_a(char x)
 		case 'I':	/* Blink */
 			atr|=BLINK;
 			attr(atr);
-			break;
-		case 'F':	/* Blink, only if alt Blink Font is loaded */
-			if(((atr&HIGH) && (console&CON_HBLINK_FONT)) || (!(atr&HIGH) && (console&CON_BLINK_FONT)))
-				attr(atr|BLINK);
-			else if(x == 'F' && !(atr&HIGH))	/* otherwise, set HIGH attribute (only if capital 'F') */
-				attr(atr|HIGH);
 			break;
 		case 'N': 	/* Normal */
 			attr(LIGHTGRAY);
