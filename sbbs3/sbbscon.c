@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.266 2018/03/16 18:32:09 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.265 2018/01/14 19:49:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1885,11 +1885,10 @@ int main(int argc, char** argv)
         }
 	}
 
-	if(!isatty(fileno(stdin))) {  			/* redirected */
-		while(1) {
-			select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
-			lputs(LOG_WARNING,"select(NULL) returned!");
-		}
+    if(!isatty(fileno(stdin)))  			/* redirected */
+	   	while(1) {
+	    	select(0,NULL,NULL,NULL,NULL);	/* Sleep forever - Should this just exit the thread? */
+		lputs(LOG_WARNING,"select(NULL) returned!");
 	}
 	else 								/* interactive */
 #endif
