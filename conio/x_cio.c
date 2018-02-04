@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.38 2018/01/31 00:19:01 deuce Exp $ */
+/* $Id: x_cio.c,v 1.39 2018/01/31 19:58:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -425,7 +425,7 @@ int x_init(void)
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *data)
+void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
 {
 	struct x11_local_event ev;
 
