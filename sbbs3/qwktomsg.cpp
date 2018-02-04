@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.63 2017/11/24 21:53:39 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.65 2018/01/31 23:44:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -302,7 +302,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			continue;
 		if(bodylen==0 
 			&& (qwkbuf[k]=='@' 
-				|| (((useron.qwk&QWK_EXT) || subnum==INVALID_SUB)
+				|| ((fromhub || (useron.qwk&QWK_EXT) || subnum==INVALID_SUB)
 					&& (strnicmp(qwkbuf+k,"To:",3)==0 
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
@@ -376,7 +376,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	/* Parse QWK Kludges (QWKE standard and SyncQNET legacy) here: */
 	if(useron.rest&FLAG('Q') || fromhub) {      /* QWK Net */
 		if((msg->from_net.type == NET_QWK && (p=(char*)msg->from_net.addr) != NULL)
-			|| (p=iniGetString(kludges,ROOT_SECTION,"@VIA",NULL,NULL)) != NULL) {
+			|| (p=iniGetValue(kludges,ROOT_SECTION,"@VIA",NULL,NULL)) != NULL) {
 			if(!fromhub && p != msg->from_net.addr)
 				set_qwk_flag(QWK_VIA);
 			if(route_circ(p,cfg.sys_id)) {
@@ -413,33 +413,33 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			SAFECOPY(from,useron.alias);
 		smb_hfield_str(msg,SENDER,from);
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@MSGID",NULL,NULL)) != NULL) {
+	if((p=iniGetValue(kludges,ROOT_SECTION,"@MSGID",NULL,NULL)) != NULL) {
 		if(!fromhub)
 			set_qwk_flag(QWK_MSGID);
 		truncstr(p," ");				/* Truncate at first space char */
 		if(msg->id==NULL)
 			smb_hfield_str(msg,RFC822MSGID,p);
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@REPLY",NULL,NULL)) != NULL) {
+	if((p=iniGetValue(kludges,ROOT_SECTION,"@REPLY",NULL,NULL)) != NULL) {
 		if(!fromhub)
 			set_qwk_flag(QWK_MSGID);
 		truncstr(p," ");				/* Truncate at first space char */
 		if(msg->reply_id==NULL)
 			smb_hfield_str(msg,RFC822REPLYID,p);
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@TZ",NULL,NULL)) != NULL) {
+	if((p=iniGetValue(kludges,ROOT_SECTION,"@TZ",NULL,NULL)) != NULL) {
 		if(!fromhub)
 			set_qwk_flag(QWK_TZ);
 		msg->hdr.when_written.zone=(short)ahtoul(p); 
 	}
-	if((p=iniGetString(kludges,ROOT_SECTION,"@REPLYTO",NULL,NULL)) != NULL) {
+	if((p=iniGetValue(kludges,ROOT_SECTION,"@REPLYTO",NULL,NULL)) != NULL) {
 		if(msg->replyto==NULL)
 			smb_hfield_str(msg,REPLYTO,p);
 	}
 	/* QWKE standard: */
-	if((p=iniGetString(kludges,ROOT_SECTION,"Subject",NULL,NULL)) != NULL)
+	if((p=iniGetValue(kludges,ROOT_SECTION,"Subject",NULL,NULL)) != NULL)
 		smb_hfield_replace_str(msg,SUBJECT,p);
-	if((p=iniGetString(kludges,ROOT_SECTION,"To",NULL,NULL)) != NULL)
+	if((p=iniGetValue(kludges,ROOT_SECTION,"To",NULL,NULL)) != NULL)
 		smb_hfield_replace_str(msg,RECIPIENT,p);
 	/* Don't use the From: kludge, for security reasons */
 

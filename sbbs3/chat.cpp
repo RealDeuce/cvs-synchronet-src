@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.72 2017/12/06 04:49:33 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.73 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -372,8 +372,7 @@ void sbbs_t::multinodechat(int channel)
 						done=1;
 						break;
 					case '*':
-						sprintf(str,"%smenu/chan.*",cfg.text_dir);
-						if(fexist(str))
+						if(menu_exists("chan"))
 							menu("chan");
 						else {
 							bputs(text[ChatChanLstHdr]);
