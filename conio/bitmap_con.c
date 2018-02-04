@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.82 2018/02/04 19:18:18 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.83 2018/02/04 19:18:56 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -140,7 +140,7 @@ static int check_pixels(void)
 	pthread_rwlock_rdlock(&screen.screenlock);
 	ret = update_pixels;
 	update_pixels = 0;
-	pthread_rwlock_lock(&screen.screenlock);
+	pthread_rwlock_unlock(&screen.screenlock);
 	return ret;
 }
 
