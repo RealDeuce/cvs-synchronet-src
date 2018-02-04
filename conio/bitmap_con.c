@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.80 2018/02/04 04:13:52 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.81 2018/02/04 19:10:45 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -113,8 +113,10 @@ static int check_redraw(void)
 	int ret;
 
 	pthread_mutex_lock(&redraw_lock);
+	pthread_rwlock_rdlock(&vmem_lock);
 	ret = force_redraws;
 	force_redraws = 0;
+	pthread_rwlock_unlock(&vmem_lock);
 	pthread_mutex_unlock(&redraw_lock);
 	return ret;
 }
@@ -123,7 +125,9 @@ static pthread_mutex_t pixels_lock;
 void request_pixels(void)
 {
 	pthread_mutex_lock(&pixels_lock);
+	pthread_rwlock_rdlock(&screen.screenlock);
 	update_pixels = 1;
+	pthread_rwlock_unlock(&screen.screenlock);
 	pthread_mutex_unlock(&pixels_lock);
 }
 
