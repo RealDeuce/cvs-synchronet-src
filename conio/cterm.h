@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.51 2018/02/05 09:38:03 deuce Exp $ */
+/* $Id: cterm.h,v 1.52 2018/02/05 20:18:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,6 +172,8 @@ struct cterminal {
 	int					sx_start_y;		// Starting Y position
 	int					sx_row_max_x;	// Max right size of this sixel line
 	struct ciolib_pixels *sx_pixels;
+	unsigned long		sx_width;		// Width from raster attributes
+	unsigned long		sx_height;		// REMAINING heigh from raster attributes
 	uint8_t				*sx_mask;
 
 	/* conio function pointers */
