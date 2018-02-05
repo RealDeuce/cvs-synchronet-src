@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.87 2018/03/02 00:31:48 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.86 2016/05/27 08:55:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,7 +373,6 @@ __published:	// IDE-managed Components
     void __fastcall ChatToggleExecute(TObject *Sender);
     void __fastcall ViewClientsExecute(TObject *Sender);
     void __fastcall UserEditExecute(TObject *Sender);
-	void __fastcall SetLogControls(void);
     void __fastcall SaveSettings(TObject *Sender);
     bool __fastcall SaveIniSettings(TObject* Sender);    
     void __fastcall SaveRegistrySettings(TObject* Sender);    

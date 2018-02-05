@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.163 2018/04/30 21:58:52 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.154 2018/01/31 23:42:30 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -430,12 +430,9 @@ BOOL DLLCALL iniRemoveSection(str_list_t* list, const char* section)
 
 BOOL DLLCALL iniRemoveSections(str_list_t* list, const char* prefix)
 {
-	str_list_t sections;
+	str_list_t sections = iniGetSectionList(*list, prefix);
 	const char* section;
 
-	if (list == NULL)
-		return FALSE;
-	sections = iniGetSectionList(*list, prefix);
 	while((section = strListPop(&sections)) != NULL)
 		if(!iniRemoveSection(list, section))
 			return(FALSE);
@@ -570,12 +567,6 @@ char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const c
 				 ,ini_style_t* style)
 {
 	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
-}
-
-char* DLLCALL iniSetValue(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	return ini_set_string(list, section, key, value, /* literal: */FALSE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
@@ -826,27 +817,6 @@ char* DLLCALL iniSetStringList(str_list_t* list, const char* section, const char
 		sep=",";
 
 	return iniSetString(list, section, key, strListCombine(val_list, value, sizeof(value), sep), style);
-}
-
-char* DLLCALL iniSetIntList(str_list_t* list, const char* section, const char* key
-					,const char* sep, int* val_list, unsigned count, ini_style_t* style)
-{
-	unsigned i;
-	char	value[INI_MAX_VALUE_LEN];
-
-	if(sep == NULL)
-		sep = ",";
-	for(i = 0; i < count; i++) {
-		if(i) {
-			int len = strlen(value);
-			if(len > INI_MAX_VALUE_LEN - 20)
-				return NULL;
-			sprintf(value + len, "%s%d", sep, *(val_list + i));
-		} else
-			sprintf(value, "%d", *val_list);
-	}
-
-	return iniSetString(list, section, key, value, style);
 }
 
 static char* default_value(const char* deflt, char* value)
@@ -1894,12 +1864,11 @@ time_t DLLCALL iniGetDateTime(str_list_t list, const char* section, const char* 
 	return(parseDateTime(vp));
 }
 
-static unsigned parseEnum(const char* value, str_list_t names, unsigned deflt)
+static unsigned parseEnum(const char* value, str_list_t names)
 {
 	unsigned i,count;
 	char val[INI_MAX_VALUE_LEN];
 	char* p=val;
-	char* endptr;
 
 	/* Strip trailing words (enums must be a single word with no white-space) */
 	/* to support comments following enum values */
@@ -1920,9 +1889,7 @@ static unsigned parseEnum(const char* value, str_list_t names, unsigned deflt)
 		if(strnicmp(names[i],val,strlen(val))==0)
 			return(i);
 
-    i=strtoul(val, &endptr, 0);
-	if(*endptr != 0 && !isspace(*endptr))
-		return deflt;
+    i=strtoul(val,NULL,0);
 	if(i>=count)
 		i=count-1;
 	return i;
@@ -1954,7 +1921,7 @@ unsigned* DLLCALL parseEnumList(const char* values, const char* sep, str_list_t 
 
 	if((enum_list=(unsigned *)malloc((*count)*sizeof(unsigned)))!=NULL) {
 		for(i=0;i<*count;i++)
-			enum_list[i]=parseEnum(list[i], names, /* default: */0);
+			enum_list[i]=parseEnum(list[i], names);
 	}
 
 	strListFree(&list);
@@ -1973,7 +1940,7 @@ unsigned DLLCALL iniReadEnum(FILE* fp, const char* section, const char* key, str
 	if(*value==0)		/* blank value */
 		return(deflt);
 
-	return(parseEnum(value,names,deflt));
+	return(parseEnum(value,names));
 }
 
 unsigned* DLLCALL iniReadEnumList(FILE* fp, const char* section, const char* key
@@ -2004,7 +1971,7 @@ unsigned DLLCALL iniGetEnum(str_list_t list, const char* section, const char* ke
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
 
-	return(parseEnum(vp,names, deflt));
+	return(parseEnum(vp,names));
 }
 
 unsigned* DLLCALL iniGetEnumList(str_list_t list, const char* section, const char* key
@@ -2220,79 +2187,6 @@ ulong DLLCALL iniGetBitField(str_list_t list, const char* section, const char* k
 	return(parseBitField(vp,bitdesc));
 }
 
-int* DLLCALL parseIntList(const char* values, const char* sep, unsigned* count)
-{
-	char*		vals;
-	str_list_t	list;
-	int*		int_list;
-	size_t		i;
-
-	*count = 0;
-
-	if(values == NULL)
-		return NULL;
-
-	if((vals = strdup(values)) == NULL)
-		return NULL;
-
-	list = splitList(vals, sep);
-
-	free(vals);
-
-	if((*count = strListCount(list)) < 1) {
-		strListFree(&list);
-		return NULL;
-	}
-
-	if((int_list = malloc((*count)*sizeof(int))) != NULL) {
-		for(i = 0; i < *count; i++)
-			int_list[i] = atoi(list[i]);
-	}
-
-	strListFree(&list);
-
-	return int_list;
-}
-
-int* DLLCALL iniGetIntList(str_list_t list, const char* section, const char* key
-						 ,unsigned* cp, const char* sep, const char* deflt)
-{
-	char*		vp=NULL;
-	unsigned	count;
-
-	if(cp == NULL)
-		cp = &count;
-
-	*cp=0;
-
-	get_value(list, section, key, NULL, &vp, /* literals_supported: */FALSE);
-
-	if(vp == NULL || *vp == 0 /* blank value or missing key */) {
-		if(deflt == NULL)
-			return NULL;
-		vp = (char*)deflt;
-	}
-	return parseIntList(vp, sep, cp);
-}
-
-int* DLLCALL iniReadIntList(FILE* fp, const char* section, const char* key
-						 ,unsigned* cp, const char* sep, const char* deflt)
-{
-	char*		value;
-	char		buf[INI_MAX_VALUE_LEN];
-	unsigned	count;
-
-	if(cp == NULL)
-		cp = &count;
-
-	*cp = 0;
-
-	if((value = read_value(fp, section, key, buf, /* literals_supported: */FALSE)) == NULL || *value == 0 /* blank */)
-		value = (char*)deflt;
-
-	return parseIntList(value, sep, cp);
-}
-
 FILE* DLLCALL iniOpenFile(const char* fname, BOOL create)
 {
 	char* mode="r+";
@@ -2361,10 +2255,11 @@ BOOL DLLCALL iniWriteFile(FILE* fp, const str_list_t list)
 	size_t		count;
 
 	rewind(fp);
-	count = strListWriteFile(fp,list,"\n");
-	fflush(fp);
-	if(chsize(fileno(fp), ftell(fp))!=0)	/* truncate */
+
+	if(chsize(fileno(fp),0)!=0)	/* truncate */
 		return(FALSE);
+
+	count = strListWriteFile(fp,list,"\n");
 
 	return(count == strListCount(list));
 }
