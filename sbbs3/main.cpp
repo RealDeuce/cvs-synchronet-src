@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.667 2018/02/19 21:25:43 deuce Exp $ */
+/* $Id: main.cpp,v 1.666 2018/02/05 06:07:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4940,7 +4940,7 @@ void DLLCALL bbs_thread(void* arg)
 				goto NO_SSH;
 			}
 
-			/* Ok, now try saving this one... use the syspass to encrypt it. */
+			/* Ok, now try saving this one... use the syspass to enctrpy it. */
 			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
 				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
 					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
