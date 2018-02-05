@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.107 2018/02/05 18:52:26 deuce Exp $ */
+/* $Id: win32cio.c,v 1.105 2018/02/05 17:56:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -639,9 +639,7 @@ void win32_textmode(int mode)
 	HANDLE	h;
 	COORD	sz;
 	SMALL_RECT	rc;
-#if 0
 	CONSOLE_SCREEN_BUFFER_INFOEX	bi;
-#endif
 
 	for(i=0;i<NUMMODES;i++) {
 		if(vparams[i].mode==mode)
@@ -676,16 +674,14 @@ void win32_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-#if 0
 	if (GetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
 		for (i = 0; i < 16; i++) {
-			bi.ColorTable[] = RGB(dac_default[palettes[vparams[modeidx]][i]].red, dac_default[palettes[vparams[modeidx].palette][i]].green, dac_default[palettes[vparams[modeidx]][i]].blue);
+			bi.ColorTable[] = RGB(dac_default[vparams[modeidx].palette[i].red, dac_default[vparams[modeidx].palette[i].green, dac_default[vparams[modeidx].palette[i].blue);
 		}
 		if (SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
 			cio_api.options |= CONIO_OPT_PALETTE_SETTING;
 		}
 	}
-#endif
 }
 
 int win32_gettext(int left, int top, int right, int bottom, void* buf)
@@ -899,7 +895,6 @@ int win32_getvideoflags(void)
 
 int win32_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
 {
-#if 0
 	CONSOLE_SCREEN_BUFFER_INFOEX	bi;
 
 	if (entry > 15)
@@ -911,7 +906,6 @@ int win32_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
 	bi.ColorTable[entry] = RGB(r >> 8, g >> 8, b >> 8);
 	if (!SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi))
 		return 0;
-#endif
 
 	return 1;
 }
