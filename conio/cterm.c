@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.194 2018/02/05 09:38:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.195 2018/02/05 10:01:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1298,7 +1298,8 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 				cterm->sx_pixels->pixels = malloc(sizeof(cterm->sx_pixels->pixels[0]) * cterm->sx_iv * ti.screenwidth * vparams[vmode].charwidth * 6);
 				cterm->sx_pixels->width = ti.screenwidth * vparams[vmode].charwidth;
 				cterm->sx_pixels->height = cterm->sx_iv * 6;
-				cterm->sx_mask = malloc((cterm->sx_iv * ti.screenwidth * vparams[vmode].charwidth * 6 + 7)/8);
+				cterm->sx_mask = malloc((cterm->sx_iv * 6 * ti.screenwidth * vparams[vmode].charwidth * 6 + 7)/8);
+				memset(cterm->sx_mask, 0, (cterm->sx_iv * 6 * ti.screenwidth * vparams[vmode].charwidth * 6 + 7)/8);
 			}
 			if (cterm->sx_x < ti.screenwidth * vparams[vmode].charwidth) {
 				for (i=0; i<6; i++) {
@@ -1364,6 +1365,13 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 							height = strtoul(p, &p, 10);
 						}
 						// TODO: If the image scrolls, the background isn't set
+						/*
+						 * Now that we're going by line, we can easily do this by
+						 * expanding each line to the width, and continuing until
+						 * height pixels are sent (or end of image).
+						 * 
+						 * This would also make animations better.
+						 */
 						if (height && width) {
 							struct ciolib_pixels px;
 
@@ -1374,7 +1382,7 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 								for (j = 0; j < width*cterm->sx_ih; j++)
 									px.pixels[i*width*cterm->sx_ih + j] = cterm->sx_bg;
 							}
-							setpixels(cterm->sx_x, cterm->sx_y, cterm->sx_x + width - 1, cterm->sx_y - 1, 0, 0, &px, NULL);
+							setpixels(cterm->sx_x, cterm->sx_y, cterm->sx_x + width - 1, cterm->sx_y + height - 1, 0, 0, &px, NULL);
 							free(px.pixels);
 						}
 					}
@@ -2632,7 +2640,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.194 $";
+	char	*revision="$Revision: 1.195 $";
 	char *in;
 	char	*out;
 	int		i;
