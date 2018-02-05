@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.204 2018/01/30 05:12:23 deuce Exp $ */
+/* $Id: syncterm.c,v 1.206 2018/02/02 03:40:12 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -94,6 +94,8 @@ int default_font=0;
 struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
+uint32_t *scrollback_fbuf=NULL;
+uint32_t *scrollback_bbuf=NULL;
 unsigned int  scrollback_lines=0;
 unsigned int  scrollback_mode=C80;
 unsigned int  scrollback_cols=80;
@@ -1261,7 +1263,6 @@ int main(int argc, char **argv)
 	str_list_t	inifile;
 	FILE *listfile;
 	char	*inpath=NULL;
-	BOOL	exit_now=FALSE;
 	int		conn_type=CONN_TYPE_TELNET;
 	int		text_mode;
 	BOOL	override_conn=FALSE;
