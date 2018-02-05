@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.192 2018/02/05 05:28:31 deuce Exp $ */
+/* $Id: cterm.c,v 1.193 2018/02/05 06:58:19 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1361,6 +1361,8 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 							struct ciolib_pixels px;
 
 							px.pixels = malloc(sizeof(px.pixels[0])*width*height*cterm->sx_iv*cterm->sx_ih);
+							px.height = height;
+							px.width = width;
 							for (i = 0; i<height*cterm->sx_iv; i++) {
 								for (j = 0; j < width*cterm->sx_ih; j++)
 									px.pixels[i*width*cterm->sx_ih + j] = cterm->sx_bg;
@@ -2617,7 +2619,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.192 $";
+	char	*revision="$Revision: 1.193 $";
 	char *in;
 	char	*out;
 	int		i;
