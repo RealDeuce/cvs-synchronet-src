@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.620 2018/02/20 02:17:17 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.619 2017/12/28 04:08:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1810,7 +1810,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(; i<argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], lstr, &lstr_sz, NULL);
-		HANDLE_PENDING(cx, lstr);
+		HANDLE_PENDING(cx);
 		if(lstr==NULL)
 			return(JS_TRUE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -5174,7 +5174,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.620 $", "%*s %s", revision);
+	sscanf("$Revision: 1.619 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

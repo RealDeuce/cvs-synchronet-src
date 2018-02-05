@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.195 2018/02/20 02:17:16 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.193 2018/01/12 22:31:09 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -549,7 +549,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
-	char	 *	cstr = NULL;
+	char	 *	cstr;
 	char     *	p;
 	jsrefcount	rc;
 	char		instr[81]="y";
@@ -560,7 +560,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx, cstr);
+	HANDLE_PENDING(cx);
 	if(cstr==NULL)
 		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
@@ -582,7 +582,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
-	char	 *	cstr = NULL;
+	char	 *	cstr;
 	char     *	p;
 	jsrefcount	rc;
 	char		instr[81];
@@ -593,7 +593,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx, cstr);
+	HANDLE_PENDING(cx);
 	if(cstr==NULL)
 		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
@@ -617,13 +617,13 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 	char		instr[256];
     JSString *	str;
 	jsrefcount	rc;
-	char		*prstr = NULL;
+	char		*prstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
 		JSVALUE_TO_MSTRING(cx, argv[0], prstr, NULL);
-		HANDLE_PENDING(cx, prstr);
+		HANDLE_PENDING(cx);
 		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -634,7 +634,7 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
-		HANDLE_PENDING(cx, NULL);
+		HANDLE_PENDING(cx);
 	} else
 		instr[0]=0;
 
@@ -659,12 +659,12 @@ static JSBool
 js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p = NULL;
+	char*		p;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx, p);
+	HANDLE_PENDING(cx);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
@@ -688,7 +688,7 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc) {
 		JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-		HANDLE_PENDING(cx, p);
+		HANDLE_PENDING(cx);
 	}
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
@@ -805,7 +805,7 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	return(TRUE);
 }
 
-static BOOL js_init(char** env)
+static BOOL js_init(char** environ)
 {
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
@@ -840,7 +840,7 @@ static BOOL js_init(char** env)
 	}
 
 	/* Environment Object (associative array) */
-	if(!js_CreateEnvObject(js_cx, js_glob, env)) {
+	if(!js_CreateEnvObject(js_cx, js_glob, environ)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -1112,7 +1112,7 @@ int parseLogLevel(const char* p)
 /*********************/
 /* Entry point (duh) */
 /*********************/
-int main(int argc, char **argv, char** env)
+int main(int argc, char **argv, char** environ)
 {
 #ifndef JSDOOR
 	char	error[512];
@@ -1148,7 +1148,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.195 $", "%*s %s", revision);
+	sscanf("$Revision: 1.193 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1376,7 +1376,7 @@ int main(int argc, char **argv, char** env)
 
 		recycled=FALSE;
 
-		if(!js_init(env)) {
+		if(!js_init(environ)) {
 			lprintf(LOG_ERR,"!JavaScript initialization failure");
 			return(do_bail(1));
 		}
