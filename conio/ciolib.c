@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.150 2018/02/05 00:04:01 deuce Exp $ */
+/* $Id: ciolib.c,v 1.151 2018/02/05 17:56:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -342,6 +342,7 @@ int try_conio_init(int mode)
 		cio_api.getcustomcursor=win32_getcustomcursor;
 		cio_api.setcustomcursor=win32_setcustomcursor;
 		cio_api.getvideoflags=win32_getvideoflags;
+		cio_api.setpalette=win32_setpalette;
 		return(1);
 	}
 	return(0);

@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.40 2018/02/05 02:15:17 deuce Exp $ */
+/* $Id: x_cio.c,v 1.41 2018/02/05 17:56:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -440,6 +440,7 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
+	cio_api.options |= CONIO_OPT_PALETTE_SETTING | CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
 
