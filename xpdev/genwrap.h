@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.111 2018/02/16 05:25:18 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.110 2017/11/05 04:20:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -276,7 +276,9 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#define tzname			_tzname
+	#if !(defined(_MSC_VER) || defined(__MSVCRT__))	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+		#define tzname			_tzname
+	#endif
 
 #elif defined(__OS2__)
 

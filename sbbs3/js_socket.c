@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.184 2018/02/20 02:17:16 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.182 2018/01/09 06:48:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,10 +140,8 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			do_js_close(p);
 			return -1;
 		}
-		if(!socket_check(p->sock,NULL,NULL,0))
-			break;
 	} while(len);
-	return total;
+	return total;	// Shouldn't happen...
 }
 
 static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, size_t len, int flush)
@@ -171,11 +169,9 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 			if(flush) do_CryptFlush(p);
 			return total;
 		}
-		if(!socket_check(p->sock,NULL,NULL,0))
-			break;
 	} while(len);
 	if(flush) do_CryptFlush(p);
-	return total;
+	return total; // shouldn't happen...
 }
 
 static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *offset, off_t count)
@@ -683,7 +679,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp = NULL;
+	char*		cp;
 	size_t		len;
 	JSString*	str;
 	js_socket_private_t*	p;
@@ -701,7 +697,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 
 	str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx, cp);
+	HANDLE_PENDING(cx);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -725,7 +721,7 @@ js_sendline(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp = NULL;
+	char*		cp;
 	size_t		len;
 	JSString*	str;
 	js_socket_private_t*	p;
@@ -742,7 +738,7 @@ js_sendline(JSContext *cx, uintN argc, jsval *arglist)
 
 	str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx, cp);
+	HANDLE_PENDING(cx);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -765,7 +761,7 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp = NULL;
+	char*		cp;
 	size_t		len;
 	ushort		port;
 	JSString*	data_str;
@@ -788,7 +784,7 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 	/* data */
 	data_str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, data_str, cp, &len);
-	HANDLE_PENDING(cx, cp);
+	HANDLE_PENDING(cx);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -847,7 +843,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		fname = NULL;
+	char*		fname;
 	long		len;
 	int			file;
 	js_socket_private_t*	p;
@@ -863,7 +859,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL);
-	HANDLE_PENDING(cx, fname);
+	HANDLE_PENDING(cx);
 	if(fname==NULL) {
 		JS_ReportError(cx,"Failure reading filename");
 		return(JS_FALSE);
@@ -1996,7 +1992,7 @@ static JSBool js_socket_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -2132,7 +2128,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			from_descriptor = TRUE;
 		else if(protocol==NULL) {
 			JSVALUE_TO_MSTRING(cx, argv[i], protocol, NULL);
-			HANDLE_PENDING(cx, protocol);
+			HANDLE_PENDING(cx);
 		}
 	}
 
