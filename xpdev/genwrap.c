@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.104 2017/11/06 06:57:09 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.106 2018/02/03 09:15:02 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -67,7 +67,8 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	va_start(argptr,fmt);
 	numchars= vsnprintf(dst,size,fmt,argptr);
 	va_end(argptr);
-	dst[size-1]=0;
+	if (size > 0)
+		dst[size-1]=0;
 #ifdef _MSC_VER
 	if(numchars==-1)
 		numchars=strlen(dst);
@@ -214,7 +215,7 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 			strncpy(d,e,maxlen-(d-dst));
 			d+=strlen(d);
 		} else if((uchar)*s < ' ') {
-			d += snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
+			d += safe_snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
 		} else *d++=*s;
 	}
 	*d=0;
