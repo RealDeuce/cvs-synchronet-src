@@ -1,4 +1,4 @@
-/* $Id: vidmodes.c,v 1.21 2018/02/01 21:11:30 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.22 2018/02/05 23:49:37 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -8,7 +8,7 @@
 
 #include "vidmodes.h"
 
-struct video_params vparams[49] = {
+struct video_params vparams[] = {
 	/* BW 40x25 */
 	{BW40, GREYSCALE_PALETTE, 40, 25, 14, 15, 16, 8, 1},
 	/* CO 40x25 */
@@ -37,6 +37,8 @@ struct video_params vparams[49] = {
 	{C80X21, COLOUR_PALETTE, 80, 21, 14, 15, 16, 8, 1},
 	/* CO 80x28 */
 	{C80X28, COLOUR_PALETTE, 80, 28, 12, 13, 14, 8, 1},
+	/* CO 80x30 */
+	{C80X30, COLOUR_PALETTE, 80, 30, 14, 15, 16, 8, 1},
 	/* CO 80x43 */
 	{C80X43, COLOUR_PALETTE, 80, 43, 7, 7, 8, 8, 1},
 	/* CO 80x50 */

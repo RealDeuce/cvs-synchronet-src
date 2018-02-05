@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.88 2018/02/05 17:56:52 deuce Exp $ */
+/* $Id: ciolib.h,v 1.89 2018/02/05 23:49:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,6 +156,7 @@ enum text_modes
     C80X14,
     C80X21,
     C80X28,
+    C80X30,
     C80X43,
     C80X50,
     C80X60,
