@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.74 2017/12/29 06:02:39 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.75 2018/01/07 23:11:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -119,9 +119,7 @@ BOOL read_node_cfg(scfg_t* cfg, char* error)
 	if(!cfg->node_sem_check) cfg->node_sem_check=60;
 	get_int(cfg->node_stat_check,instream);
 	if(!cfg->node_stat_check) cfg->node_stat_check=10;
-	get_str(cfg->scfg_cmd,instream);
-	if(!cfg->scfg_cmd[0])
-		strcpy(cfg->scfg_cmd,"%!scfg %k");
+	get_str(cfg->scfg_cmd,instream);	// unused
 	get_int(cfg->sec_warn,instream);
 	if(!cfg->sec_warn)
 		cfg->sec_warn=180;
