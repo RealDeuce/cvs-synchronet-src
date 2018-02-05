@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.39 2018/04/18 06:51:24 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.37 2018/02/02 22:21:35 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 		orig_x=wherex();
 		orig_y=wherey();
 		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
-		ciolib_xlat = CIOLIB_XLAT_CHARS;
+		ciolib_xlat = TRUE;
 		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
@@ -95,13 +95,8 @@ void uifcmsg(char *msg, char *helpbuf)
 	struct ciolib_screen *savscrn;
 
 	i=uifc_initialized;
-	if(!i) {
+	if(!i)
 		savscrn = savescreen();
-		setfont(0, FALSE, 1);
-		setfont(0, FALSE, 2);
-		setfont(0, FALSE, 3);
-		setfont(0, FALSE, 4);
-	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -123,13 +118,8 @@ void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 	struct ciolib_screen *savscrn;
 
 	i=uifc_initialized;
-	if(!i) {
+	if(!i)
 		savscrn = savescreen();
-		setfont(0, FALSE, 1);
-		setfont(0, FALSE, 2);
-		setfont(0, FALSE, 3);
-		setfont(0, FALSE, 4);
-	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -157,13 +147,8 @@ int confirm(char *msg, char *helpbuf)
 	int		copt=0;
 
 	i=uifc_initialized;
-	if(!i) {
+	if(!i)
 		savscrn = savescreen();
-		setfont(0, FALSE, 1);
-		setfont(0, FALSE, 2);
-		setfont(0, FALSE, 3);
-		setfont(0, FALSE, 4);
-	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
