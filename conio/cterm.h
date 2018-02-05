@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.49 2018/02/03 11:06:51 deuce Exp $ */
+/* $Id: cterm.h,v 1.50 2018/02/05 05:28:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,6 +170,8 @@ struct cterminal {
 	bool				sx_scroll_mode;	// Sixel scrolling mode
 	int					sx_start_x;		// Starting X position
 	int					sx_start_y;		// Starting Y position
+	struct ciolib_pixels *sx_pixels;
+	uint8_t				*sx_mask;
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
