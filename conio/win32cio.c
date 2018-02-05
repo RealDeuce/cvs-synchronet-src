@@ -1,10 +1,10 @@
-/* $Id: win32cio.c,v 1.108 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: win32cio.c,v 1.106 2018/02/05 18:14:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -679,7 +679,7 @@ void win32_textmode(int mode)
 #if 0
 	if (GetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
 		for (i = 0; i < 16; i++) {
-			bi.ColorTable[] = RGB(dac_default[palettes[vparams[modeidx]][i]].red, dac_default[palettes[vparams[modeidx].palette][i]].green, dac_default[palettes[vparams[modeidx]][i]].blue);
+			bi.ColorTable[] = RGB(dac_default[vparams[modeidx].palette[i].red, dac_default[vparams[modeidx].palette[i].green, dac_default[vparams[modeidx].palette[i].blue);
 		}
 		if (SetConsoleScreenBufferInfoEx(GetStdHandle(STD_OUTPUT_HANDLE), &bi)) {
 			cio_api.options |= CONIO_OPT_PALETTE_SETTING;
