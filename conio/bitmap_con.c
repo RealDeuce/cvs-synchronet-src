@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.92 2018/02/05 06:36:40 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.93 2018/02/05 06:57:47 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -210,9 +210,9 @@ static void blinker_thread(void *data)
 {
 	void *rect;
 	int count=0;
-	int ccol;
-	int crow;
-	int update;
+	int ccol = 0;
+	int crow = 0;
+	int update = 0;
 
 	SetThreadName("Blinker");
 	while(1) {
