@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.42 2018/02/06 02:25:33 deuce Exp $ */
+/* $Id: x_cio.c,v 1.43 2018/02/06 02:30:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -473,17 +473,17 @@ void x11_flush(void)
 
 void x_setscaling(int newval)
 {
-	pthread_rwlock_wrlock(&vstatlock);
+	pthread_mutex_lock(&vstatlock);
 	vstat.scaling = newval;
-	pthread_rwlock_unlock(&vstatlock);
+	pthread_mutex_unlock(&vstatlock);
 }
 
 int x_getscaling(void)
 {
 	int ret;
 
-	pthread_rwlock_rdlock(&vstatlock);
+	pthread_mutex_lock(&vstatlock);
 	ret = vstat.scaling;
-	pthread_rwlock_unlock(&vstatlock);
+	pthread_mutex_unlock(&vstatlock);
 	return ret;
 }
