@@ -1,14 +1,12 @@
-/* login.cpp */
-
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.23 2016/05/18 10:15:12 rswindell Exp $ */
+/* $Id: login.cpp,v 1.25 2017/08/09 19:53:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +36,7 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-int sbbs_t::login(char *username, char *pw)
+int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const char* sys_pw)
 {
 	char	str[128];
 	char 	tmp[512];
@@ -78,9 +76,9 @@ int sbbs_t::login(char *username, char *pw)
 	}
 
 	if(!useron.number) {
-		if(cfg.node_misc&NM_LOGON_P) {
+		if((cfg.node_misc&NM_LOGON_P) && pw_prompt != NULL) {
 			SAFECOPY(useron.alias,str);
-			bputs(pw);
+			bputs(pw_prompt);
 			console|=CON_R_ECHOX;
 			getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
@@ -94,6 +92,7 @@ int sbbs_t::login(char *username, char *pw)
 					,0,useron.alias);
 			logline(LOG_NOTICE,"+!",tmp); 
 		} else {
+			badlogin(str, NULL);
 			bputs(text[UnknownUser]);
 			sprintf(tmp,"Unknown User '%s'",str);
 			logline(LOG_NOTICE,"+!",tmp); 
@@ -108,10 +107,15 @@ int sbbs_t::login(char *username, char *pw)
 	}
 
 	if(useron.pass[0] || REALSYSOP) {
-		bputs(pw);
-		console|=CON_R_ECHOX;
-		getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
-		console&=~(CON_R_ECHOX|CON_L_ECHOX);
+		if(user_pw != NULL)
+			SAFECOPY(str, user_pw);
+		else {
+			if(pw_prompt != NULL)
+				bputs(pw_prompt);
+			console |= CON_R_ECHOX;
+			getstr(str, LEN_PASS * 2, K_UPPER | K_LOWPRIO | K_TAB);
+			console &= ~(CON_R_ECHOX | CON_L_ECHOX);
+		}
 		if(!online) {
 			useron.number=0;
 			return(LOGIC_FALSE); 
@@ -130,7 +134,7 @@ int sbbs_t::login(char *username, char *pw)
 			useron.misc=useron_misc;
 			return(LOGIC_FALSE); 
 		}
-		if(REALSYSOP && !chksyspass()) {
+		if(REALSYSOP && !chksyspass(sys_pw)) {
 			bputs(text[InvalidLogon]);
 			useron.number=0;
 			useron.misc=useron_misc;
