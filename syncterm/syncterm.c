@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.205 2018/02/01 08:27:00 deuce Exp $ */
+/* $Id: syncterm.c,v 1.207 2018/02/05 23:50:34 rswindell Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -94,6 +94,8 @@ int default_font=0;
 struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
 unsigned char *scrollback_buf=NULL;
+uint32_t *scrollback_fbuf=NULL;
+uint32_t *scrollback_bbuf=NULL;
 unsigned int  scrollback_lines=0;
 unsigned int  scrollback_mode=C80;
 unsigned int  scrollback_cols=80;
@@ -1436,6 +1438,9 @@ int main(int argc, char **argv)
             			case 28:
                 			text_mode=C80X28;
                 			break;
+				case 30:
+					text_mode=C80X30;
+					break;
             			case 43:
                 			text_mode=C80X43;
                 			break;
@@ -1699,6 +1704,8 @@ int screen_to_ciolib(int screen)
 			return(C80);
 		case SCREEN_MODE_80X28:
 			return(C80X28);
+		case SCREEN_MODE_80X30:
+			return(C80X30);
 		case SCREEN_MODE_80X43:
 			return(C80X43);
 		case SCREEN_MODE_80X50:
