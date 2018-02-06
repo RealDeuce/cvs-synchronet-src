@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.76 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: str.cpp,v 1.77 2018/01/12 22:15:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -840,6 +840,11 @@ bool sbbs_t::trashcan(const char *insearchof, const char *name)
 char* sbbs_t::timestr(time_t intime)
 {
 	return(::timestr(&cfg,(time32_t)intime,timestr_output));
+}
+
+char* sbbs_t::datestr(time_t t)
+{
+	return unixtodstr(&cfg, (time32_t)t, datestr_output);
 }
 
 void sbbs_t::sys_info()
