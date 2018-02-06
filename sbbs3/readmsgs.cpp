@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.98 2016/12/06 18:48:54 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.103 2017/11/13 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,17 +390,17 @@ post_t * sbbs_t::loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, u
 	return(post);
 }
 
-static int64_t get_start_msg(sbbs_t* sbbs, smb_t* smb)
+int64_t sbbs_t::get_start_msgnum(smb_t* smb, int next)
 {
-	uint32_t	j=smb->curmsg+1;
+	uint32_t	j=smb->curmsg + next;
 	int64_t		i;
 
 	if(j<smb->msgs)
 		j++;
 	else
 		j=1;
-	sbbs->bprintf(sbbs->text[StartWithN],j);
-	if((i=sbbs->getnum(smb->msgs))<0)
+	bprintf(text[StartWithN],j);
+	if((i = getnum(smb->msgs)) < 0)
 		return(i);
 	if(i==0)
 		return(j-1);
@@ -875,7 +875,16 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			lncntr--;
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
-		sprintf(str,"ABCDEFHILMNPQRTUVY?*<>[]{}-+()\x0a\x1d\x1e\05\06\02\b");
+		sprintf(str,"ABCDEFHILMNPQRTUVY?*<>[]{}-+()\b");
+		if(thread_mode)
+			sprintf(str+strlen(str),"%c%c%c%c%c%c"
+				,TERM_KEY_LEFT
+				,TERM_KEY_RIGHT
+				,TERM_KEY_UP
+				,TERM_KEY_DOWN
+				,TERM_KEY_HOME
+				,TERM_KEY_END
+				);
 		if(sub_op(subnum))
 			strcat(str,"O");
 		do_find=true;
@@ -1041,7 +1050,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			case 'F':   /* find text in messages */
 				domsg=0;
 				mode&=~SCAN_FIND;	/* turn off find mode */
-				if((i64=get_start_msg(this,&smb))<0)
+				if((i64=get_start_msgnum(&smb, 1))<0)
 					break;
 				i=(int)i64;
 				bputs(text[SearchStringPrompt]);
@@ -1076,7 +1085,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'L':   /* List messages */
 				domsg=0;
-				if((i64=get_start_msg(this,&smb))<0)
+				if((i64=get_start_msgnum(&smb, 1))<0)
 					break;
 				i=(int)i64;
 				listmsgs(subnum,0,post,i,smb.msgs);
@@ -1209,18 +1218,20 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 				ZERO_VAR(vote);
 				if(msg.hdr.type == SMB_MSG_TYPE_POLL) {
-					unsigned answers=0;
+					str_list_t answers = NULL;
 					for(i=0; i<msg.total_hfields; i++) {
-						if(msg.hfield[i].type != SMB_POLL_ANSWER)
-							continue;
-						uselect(1, answers++, msg.subj, (char*)msg.hfield_dat[i], NULL);
+						if(msg.hfield[i].type == SMB_POLL_ANSWER)
+							strListPush(&answers, (char*)msg.hfield_dat[i]);
 					}
-					i = uselect(0, 0, NULL, NULL, NULL);
-					if(i < 0) {
+					SAFEPRINTF(str, text[BallotHdr], msg.subj);
+					i = mselect(str, answers, msg.hdr.votes ? msg.hdr.votes : 1, text[BallotAnswerFmt]
+						,text[PollAnswerChecked], nulstr, text[BallotVoteWhich]);
+					strListFree(&answers);
+					if(i <= 0) {
 						domsg = false;
 						break;
 					}
-					vote.hdr.votes = (1<<i);
+					vote.hdr.votes = i;
 					vote.hdr.attr = MSG_VOTE;
 					notice = text[PollVoteNotice];
 				} else {
@@ -1392,7 +1403,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					break; 
 				}
 				break;
-			case '\x02':	/* Home */
+			case TERM_KEY_HOME:	/* Home */
 			{
 				uint32_t first = smb_first_in_thread(&smb, &msg, NULL);
 				if(first <= 0) {
@@ -1405,7 +1416,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				do_find=false;
 				break;
 			}
-			case '\x05':	/* End */
+			case TERM_KEY_END:	/* End */
 			{
 				uint32_t last = smb_last_in_thread(&smb, &msg);
 				if(last <= 0) {
@@ -1419,7 +1430,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			}
 			case ')':   /* Thread forward */
-			case LF:	/* down-arrow */
+			case TERM_KEY_DOWN:	/* down-arrow */
                 l=msg.hdr.thread_next;
                 if(!l) l=msg.hdr.thread_first;
                 if(!l) {
@@ -1441,7 +1452,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				do_find=false;
 				break;
-			case CTRL_F:	/* Right-arrow */
+			case TERM_KEY_RIGHT:	/* Right-arrow */
                 l=msg.hdr.thread_first;
                 if(!l) l=msg.hdr.thread_next;
                 if(!l) {
@@ -1461,7 +1472,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				do_find=false;
 				break;
 			case '(':   /* Thread backwards */
-			case '\x1d':	/* left arrow */
+			case TERM_KEY_LEFT:	/* left arrow */
 				if(!msg.hdr.thread_back) {
 					domsg=0;
 					outchar('\a');
@@ -1481,7 +1492,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				do_find=false;
 				break;
-			case '\x1e':	/* up arrow */
+			case TERM_KEY_UP:	/* up arrow */
 				if(!msg.hdr.thread_id) {
 					domsg=0;
 					bputs(text[NoMessagesFound]);
@@ -1663,6 +1674,8 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		lp_mode = 0;
 	if(mode&SCAN_UNREAD)
 		lp_mode |= LP_UNREAD;
+	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
+		lp_mode |= LP_POLLS;
 	post=loadposts(&posts,subnum,0,lp_mode,NULL,&total);
 	bprintf(text[SearchSubFmt]
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,total);
@@ -1681,7 +1694,7 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 }
 
 /****************************************************************************/
-/* Will search the messages pointed to by 'msg' for the occurance of the    */
+/* Will search the messages pointed to by 'msg' for the occurrence of the   */
 /* string 'search' and display any messages (number of message, author and  */
 /* title). 'msgs' is the total number of valid messages.                    */
 /* Returns number of messages found.                                        */
@@ -1711,7 +1724,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 		strupr(subj);
 		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found)
-				CRLF;
+				bputs(text[MailOnSystemLstHdr]);
 			bprintf(text[SubMsgLstFmt],l+1
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !sub_op(subnum) ? text[Anonymous]
 				: msg.from
