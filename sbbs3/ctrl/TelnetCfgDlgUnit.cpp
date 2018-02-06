@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: TelnetCfgDlgUnit.cpp,v 1.23 2016/05/27 08:55:04 rswindell Exp $ */
+/* $Id: TelnetCfgDlgUnit.cpp,v 1.25 2017/11/16 21:26:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
         strListCombine(MainForm->bbs_startup.ssh_interfaces, str, sizeof(str)-1, ",");
         SshInterfaceEdit->Text=AnsiString(str);
     }
+    SshConnTimeoutEdit->Text=AnsiString((int)MainForm->bbs_startup.ssh_connect_timeout);
 
 	TelnetPortEdit->Text=AnsiString((int)MainForm->bbs_startup.telnet_port);
 	RLoginPortEdit->Text=AnsiString((int)MainForm->bbs_startup.rlogin_port);
@@ -82,6 +83,7 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
 
 	FirstNodeEdit->Text=AnsiString((int)MainForm->bbs_startup.first_node);
 	LastNodeEdit->Text=AnsiString((int)MainForm->bbs_startup.last_node);
+    MaxConConEdit->Text=AnsiString((int)MainForm->bbs_startup.max_concurrent_connections);
     AutoStartCheckBox->Checked=MainForm->SysAutoStart;
     AnswerSoundEdit->Text=AnsiString(MainForm->bbs_startup.answer_sound);
     HangupSoundEdit->Text=AnsiString(MainForm->bbs_startup.hangup_sound);
@@ -92,8 +94,6 @@ void __fastcall TTelnetCfgDlg::FormShow(TObject *Sender)
     AutoLogonCheckBox->Checked=MainForm->bbs_startup.options&BBS_OPT_AUTO_LOGON;
     HostnameCheckBox->Checked
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_HOST_LOOKUP);
-    IdentityCheckBox->Checked
-        =MainForm->bbs_startup.options&BBS_OPT_GET_IDENT;
     DosSupportCheckBox->Checked
         =!(MainForm->bbs_startup.options&BBS_OPT_NO_DOS);
 
@@ -125,6 +125,7 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
 
     iniFreeStringList(MainForm->bbs_startup.ssh_interfaces);
     MainForm->bbs_startup.ssh_interfaces = strListSplitCopy(NULL, SshInterfaceEdit->Text.c_str(), ",");
+    MainForm->bbs_startup.ssh_connect_timeout=SshConnTimeoutEdit->Text.ToIntDef(0);
 
     MainForm->bbs_startup.telnet_port=TelnetPortEdit->Text.ToIntDef(23);
     MainForm->bbs_startup.rlogin_port=RLoginPortEdit->Text.ToIntDef(513);
@@ -132,6 +133,7 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
 
     MainForm->bbs_startup.first_node=FirstNodeEdit->Text.ToIntDef(1);
     MainForm->bbs_startup.last_node=LastNodeEdit->Text.ToIntDef(1);
+    MainForm->bbs_startup.max_concurrent_connections=MaxConConEdit->Text.ToIntDef(0);
 
     MainForm->SysAutoStart=AutoStartCheckBox->Checked;
     SAFECOPY(MainForm->bbs_startup.answer_sound
@@ -175,10 +177,6 @@ void __fastcall TTelnetCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->bbs_startup.options|=BBS_OPT_NO_HOST_LOOKUP;
     else
 	    MainForm->bbs_startup.options&=~BBS_OPT_NO_HOST_LOOKUP;
-	if(IdentityCheckBox->Checked==true)
-    	MainForm->bbs_startup.options|=BBS_OPT_GET_IDENT;
-    else
-	    MainForm->bbs_startup.options&=~BBS_OPT_GET_IDENT;
 
 	if(RLoginEnabledCheckBox->Checked==true)
     	MainForm->bbs_startup.options|=BBS_OPT_ALLOW_RLOGIN;
@@ -246,6 +244,7 @@ void __fastcall TTelnetCfgDlg::SshEnabledCheckBoxClick(TObject *Sender)
     SshInterfaceLabel->Enabled = SshEnabledCheckBox->Checked;
 }
 //---------------------------------------------------------------------------
+
 
 
 
