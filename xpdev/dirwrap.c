@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.101 2018/07/25 04:20:05 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.95 2018/01/13 06:11:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,7 +248,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 			SAFECOPY(path,pattern);
 			p=getfname(path);
 			*p=0;
-			SAFECAT(path,ff.name);
+			strcat(path,ff.name);
 
 			if((glob->gl_pathv[glob->gl_pathc]=(char*)malloc(strlen(path)+2))==NULL) {
 				globfree(glob);
@@ -315,9 +315,8 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 
 	SAFECOPY(match,path);
 	backslash(match);
-	SAFECAT(match,ALLFILES);
-	if (glob(match,GLOB_MARK,NULL,&g) != 0)
-		return 0;
+	strcat(match,ALLFILES);
+	glob(match,GLOB_MARK,NULL,&g);
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -722,13 +721,11 @@ int removecase(const char *path)
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
-long DLLCALL delfiles(const char *inpath, const char *spec)
+ulong DLLCALL delfiles(const char *inpath, const char *spec)
 {
 	char	*path;
 	char	lastch;
-	size_t	i;
-    long	files = 0;
-	long	errors = 0;
+    uint	i,files=0;
 	glob_t	g;
 	size_t	inpath_len=strlen(inpath);
 
@@ -749,16 +746,12 @@ long DLLCALL delfiles(const char *inpath, const char *spec)
 	for(i=0;i<g.gl_pathc;i++) {
 		if(isdir(g.gl_pathv[i]))
 			continue;
-		CHMOD(g.gl_pathv[i],S_IWRITE);	/* In case it's been marked RDONLY */
+		CHMOD(g.gl_pathv[i],S_IWRITE);	/* Incase it's been marked RDONLY */
 		if(remove(g.gl_pathv[i])==0)
 			files++;
-		else
-			errors++;
 	}
 	globfree(&g);
-	if(errors)
-		return -errors;
-	return files;
+	return(files);
 }
 
 /****************************************************************************/
@@ -774,7 +767,7 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 
 	SAFECOPY(path, inpath);
 	backslash(path);
-	SAFECAT(path, pattern);
+	strcat(path, pattern);
 	if(glob(path, GLOB_MARK, NULL, &g))
 		return 0;
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
@@ -975,8 +968,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(sb.st_mode&S_IFDIR)
 		strcat(target,"/"); */
 
-	for(;*out;out++) {
-		while(*out=='/') {
+	for(;*out;out++)  {
+		while(*out=='/')  {
 			if(*(out+1)=='/')
 				memmove(out,out+1,strlen(out));
 			else if(*(out+1)=='.' && (*(out+2)=='/' || *(out+2)==0))
@@ -993,8 +986,6 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 				out++;
 			}
 		}
-		if (!*out)
-			break;
 	}
 	return(target);
 }
@@ -1038,7 +1029,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || (isalpha(filename[0]) && filename[1]==':')
+		|| filename[0]=='\\' || filename[1]==':'
 #endif
 		);
 }
