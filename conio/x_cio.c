@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.41 2018/02/05 17:56:53 deuce Exp $ */
+/* $Id: x_cio.c,v 1.42 2018/02/06 02:25:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,9 @@
 #include "ciolib.h"
 #include "x_cio.h"
 #include "x_events.h"
+
+#define BITMAP_CIOLIB_DRIVER
+#include "bitmap_con.h"
 
 int x_kbhit(void)
 {
@@ -466,4 +469,21 @@ void x11_flush(void)
 	ev.type=X11_LOCAL_FLUSH;
 	if(x11_initialized)
 		write_event(&ev);
+}
+
+void x_setscaling(int newval)
+{
+	pthread_rwlock_wrlock(&vstatlock);
+	vstat.scaling = newval;
+	pthread_rwlock_unlock(&vstatlock);
+}
+
+int x_getscaling(void)
+{
+	int ret;
+
+	pthread_rwlock_rdlock(&vstatlock);
+	ret = vstat.scaling;
+	pthread_rwlock_unlock(&vstatlock);
+	return ret;
 }
