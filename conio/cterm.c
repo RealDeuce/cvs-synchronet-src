@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.196 2018/02/05 20:18:07 deuce Exp $ */
+/* $Id: cterm.c,v 1.197 2018/02/06 07:05:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1497,6 +1497,7 @@ all_done:
 	else {
 		GOTOXY(cterm->sx_start_x, cterm->sx_start_y);
 	}
+	cterm->cursor = cterm->sx_orig_cursor;
 	SETCURSORTYPE(cterm->cursor);
 	cterm->sixel = SIXEL_INACTIVE;
 	if (cterm->sx_pixels)
@@ -2651,7 +2652,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.196 $";
+	char	*revision="$Revision: 1.197 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2917,7 +2918,9 @@ static void parse_sixel_intro(struct cterminal *cterm)
 			cterm->sx_start_x = WHEREX();
 			cterm->sx_start_y = WHEREY();
 		}
-		SETCURSORTYPE(_NOCURSOR);
+		cterm->sx_orig_cursor = cterm->cursor;
+		cterm->cursor = _NOCURSOR;
+		SETCURSORTYPE(cterm->cursor);
 		GOTOXY(ti.winright - ti.winleft + 1, ti.winbottom - ti.wintop + 1);
 		*cterm->hold_update = 1;
 		ratio = cterm->sx_trans = hgrid = 0;
