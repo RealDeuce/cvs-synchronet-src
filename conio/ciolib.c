@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.153 2018/02/06 04:02:48 deuce Exp $ */
+/* $Id: ciolib.c,v 1.154 2018/02/06 04:47:10 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,6 +235,7 @@ int try_x_init(int mode)
 		cio_api.setpalette=x_setpalette;
 		cio_api.attr2palette=bitmap_attr2palette;
 		cio_api.setpixel=bitmap_setpixel;
+		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
 		return(1);
 	}
