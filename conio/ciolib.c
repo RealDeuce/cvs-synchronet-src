@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.163 2018/02/13 05:11:19 deuce Exp $ */
+/* $Id: ciolib.c,v 1.153 2018/02/06 04:02:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,8 +134,6 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *);
 CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
-CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(uint32_t p[16]);
-CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t p[16]);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -182,15 +180,11 @@ int try_sdl_init(int mode)
 		cio_api.get_window_info=sdl_get_window_info;
 		cio_api.setscaling=sdl_setscaling;
 		cio_api.getscaling=sdl_getscaling;
-		cio_api.setpalette=bitmap_setpalette;
+		cio_api.setpalette=sdl_setpalette;
 		cio_api.attr2palette=bitmap_attr2palette;
 		cio_api.setpixel=bitmap_setpixel;
 		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
-		cio_api.get_modepalette=bitmap_get_modepalette;
-		cio_api.set_modepalette=bitmap_set_modepalette;
-		cio_api.map_rgb = bitmap_map_rgb;
-		cio_api.replace_font = bitmap_replace_font;
 		return(1);
 	}
 	return(0);
@@ -238,15 +232,10 @@ int try_x_init(int mode)
 		cio_api.get_window_info=x_get_window_info;
 		cio_api.setscaling=x_setscaling;
 		cio_api.getscaling=x_getscaling;
-		cio_api.setpalette=bitmap_setpalette;
+		cio_api.setpalette=x_setpalette;
 		cio_api.attr2palette=bitmap_attr2palette;
 		cio_api.setpixel=bitmap_setpixel;
-		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
-		cio_api.get_modepalette=bitmap_get_modepalette;
-		cio_api.set_modepalette=bitmap_set_modepalette;
-		cio_api.map_rgb = bitmap_map_rgb;
-		cio_api.replace_font = bitmap_replace_font;
 		return(1);
 	}
 	return(0);
@@ -279,8 +268,6 @@ int try_curses_init(int mode)
 		cio_api.suspend=curs_suspend;
 		cio_api.resume=curs_resume;
 		cio_api.beep=curs_beep;
-		cio_api.setvideoflags=curs_setvideoflags;
-		cio_api.getvideoflags=curs_getvideoflags;
 #if defined(NCURSES_VERSION_MAJOR) || defined (__NetBSD__)
 		cio_api.ESCDELAY=&ESCDELAY;
 #endif
@@ -720,13 +707,14 @@ early_return:
 /* Optional */
 CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 {
+
 	CIOLIB_INIT()
 
 	if(cio_api.gettextinfo) {
 		cio_api.gettextinfo(&cio_textinfo);
 		return;
 	}
-
+	
 	if(info!=&cio_textinfo)
 		*info=cio_textinfo;
 }
@@ -1323,7 +1311,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e)
 	CIOLIB_INIT();
 
 	if(ciolib_xlat) {
-		font = ciolib_getfont(1);
+		font = ciolib_getfont();
 		if (font >= 0) {
 			buf=malloc((c-a+1)*(d-b+1)*2);
 			if(!buf)
@@ -1333,20 +1321,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_puttext(int a,int b,int c,int d,void *e)
 			}
 			else {
 				for (i=0; i<(c-a+1)*(d-b+1)*2; i+=2) {
-					if (ciolib_xlat & CIOLIB_XLAT_CHARS) {
-						if (((char *)e)[i] > 31 && ((char *)e)[i] < 127 && conio_fontdata[font].put_xlat != NULL)
-							buf[i] = conio_fontdata[font].put_xlat[((char *)e)[i]-32];
-						else
-							buf[i] = ((char *)e)[i];
-					}
+					if (((char *)e)[i] > 31 && ((char *)e)[i] < 127 && conio_fontdata[font].put_xlat != NULL)
+						buf[i] = conio_fontdata[font].put_xlat[((char *)e)[i]-32];
 					else
 						buf[i] = ((char *)e)[i];
-					if (ciolib_xlat & CIOLIB_XLAT_ATTR) {
-						if (cio_textinfo.currmode == C64_40X25)
-							buf[i+1]=c64_attr_xlat(((char *)e)[i+1]);
-						else
-							buf[i+1]=((char *)e)[i+1];
-					}
+					if (cio_textinfo.currmode == C64_40X25)
+						buf[i+1]=c64_attr_xlat(((char *)e)[i+1]);
 					else
 						buf[i+1]=((char *)e)[i+1];
 				}
@@ -1374,22 +1354,18 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_gettext(int a,int b,int c,int d,void *e)
 	else
 		ret = cio_api.gettext(a,b,c,d,e);
 	if(ciolib_xlat) {
-		font = ciolib_getfont(1);
+		font = ciolib_getfont();
 		if (font >= 0) {
 			if (conio_fontdata[font].put_xlat || cio_textinfo.currmode == C64_40X25) {
 				for (i=0; i<(c-a+1)*(d-b+1)*2; i+=2) {
-					if (ciolib_xlat & CIOLIB_XLAT_CHARS) {
-						if (conio_fontdata[font].put_xlat) {
-							xlat = ((char *)e)[i];
-							if ((ch = memchr(conio_fontdata[font].put_xlat, ((char *)e)[i], 128))!=NULL)
-								xlat = (char)(ch-conio_fontdata[font].put_xlat)+32;
-							((char *)e)[i] = xlat;
-						}
+					if (conio_fontdata[font].put_xlat) {
+						xlat = ((char *)e)[i];
+						if ((ch = memchr(conio_fontdata[font].put_xlat, ((char *)e)[i], 128))!=NULL)
+							xlat = (char)(ch-conio_fontdata[font].put_xlat)+32;
+						((char *)e)[i] = xlat;
 					}
-					if (ciolib_xlat & CIOLIB_XLAT_ATTR) {
-						if (cio_textinfo.currmode == C64_40X25) {
-								((char *)e)[i+1] = c64_attr_rev(((char *)e)[i+1]);;
-						}
+					if (cio_textinfo.currmode == C64_40X25) {
+							((char *)e)[i+1] = c64_attr_rev(((char *)e)[i+1]);;
 					}
 				}
 			}
@@ -1670,12 +1646,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num)
 }
 
 /* Optional */
-CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(int font_num)
+CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(void)
 {
 	CIOLIB_INIT();
 
 	if(cio_api.getfont!=NULL)
-		return(cio_api.getfont(font_num));
+		return(cio_api.getfont());
 	else
 		return(-1);
 }
@@ -1896,43 +1872,4 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg)
 {
 	ciolib_fg = fg;
 	ciolib_bg = bg;
-}
-
-CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(uint32_t p[16])
-{
-	CIOLIB_INIT();
-
-	if (cio_api.get_modepalette)
-		return cio_api.get_modepalette(p);
-	return NULL;
-}
-
-CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t p[16])
-{
-	CIOLIB_INIT();
-
-	if (cio_api.set_modepalette)
-		return cio_api.set_modepalette(p);
-	return 0;
-}
-
-CIOLIBEXPORT uint32_t CIOLIBCALL ciolib_map_rgb(uint16_t r, uint16_t g, uint16_t b)
-{
-	CIOLIB_INIT();
-
-	if (cio_api.map_rgb)
-		return cio_api.map_rgb(r,g,b);
-	return UINT32_MAX;
-}
-
-CIOLIBEXPORT void CIOLIBCALL ciolib_replace_font(uint8_t id, char *name, void *data, size_t size)
-{
-	CIOLIB_INIT();
-
-	if (cio_api.replace_font) {
-		cio_api.replace_font(id, name, data, size);
-		return;
-	}
-	free(name);
-	free(data);
 }
