@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.152 2018/02/06 02:25:33 deuce Exp $ */
+/* $Id: ciolib.c,v 1.153 2018/02/06 04:02:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1859,12 +1859,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 	if (ti.currmode != scrn->text_info.currmode)
 		ciolib_textmode(scrn->text_info.currmode);
 	ciolib_pputtext(1, 1, scrn->text_info.screenwidth, scrn->text_info.screenheight, scrn->vmem, scrn->foreground, scrn->background);
-	ciolib_gotoxy(scrn->text_info.curx, scrn->text_info.cury);
 	ciolib_textcolor(scrn->text_info.attribute);
 	ciolib_window(scrn->text_info.winleft, scrn->text_info.wintop, scrn->text_info.winright, scrn->text_info.winbottom);
 	vmode = find_vmode(scrn->text_info.currmode);
 	ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
 	ciolib_setcolour(scrn->fg_colour, scrn->bg_colour);
+	ciolib_gotoxy(scrn->text_info.curx, scrn->text_info.cury);
 	return 1;
 }
 
