@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.96 2018/02/10 08:20:40 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.95 2018/01/13 06:11:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -968,8 +968,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(sb.st_mode&S_IFDIR)
 		strcat(target,"/"); */
 
-	for(;*out;out++) {
-		while(*out=='/') {
+	for(;*out;out++)  {
+		while(*out=='/')  {
 			if(*(out+1)=='/')
 				memmove(out,out+1,strlen(out));
 			else if(*(out+1)=='.' && (*(out+2)=='/' || *(out+2)==0))
@@ -986,8 +986,6 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 				out++;
 			}
 		}
-		if (!*out)
-			break;
 	}
 	return(target);
 }
