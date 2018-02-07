@@ -1,9 +1,8 @@
 /* xtrn.cpp */
-// vi: tabstop=4
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.231 2018/04/06 07:08:37 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.228 2018/01/13 09:07:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +34,7 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-#define XTERN_LOG_STDERR
+
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
@@ -1306,6 +1305,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	char	fullpath[MAX_PATH+1];
 	char	fullcmdline[MAX_PATH+1];
 	char*	argv[MAX_ARGS];
+	char*	p;
 	BYTE*	bp;
 	BYTE	buf[XTRN_IO_BUF_LEN];
     BYTE 	output_buf[XTRN_IO_BUF_LEN*2];
@@ -1423,8 +1423,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		FILE *dosemubat;
 		int setup_override;
 		char tok[MAX_PATH+1];
- 		char* p;
-
+ 
 		char dosemuconf[MAX_PATH+1];
 		char dosemubinloc[MAX_PATH+1];
 		char virtualconf[75];
@@ -2066,7 +2065,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
+    for(i=j=0;i<len && j<(int)sizeof(cmdstr_output);i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2230,7 +2229,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-    for(i=j=0; i<len && j < (int)sizeof(buf)-1; i++) {
+    for(i=j=0;i<len && j<MAX_PATH;i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;

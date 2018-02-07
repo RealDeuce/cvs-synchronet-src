@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.47 2018/04/06 02:42:37 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.46 2017/10/23 03:38:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			smb_freemsgmem(&msg); 
 			YIELD();	/* yield */
 		}
-		eprintf(LOG_INFO,"Packed %ld NetMail messages",packedmail); 
+		eprintf(LOG_INFO,"Packed %d NetMail messages",packedmail); 
 	}
 	smb_close(&smb);					/* Close the e-mail */
 	if(mailmsgs)
@@ -353,7 +353,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 		smb_close(&smb);
 		if(mailmsgs)
 			free(mail); 
-		eprintf(LOG_INFO,"Deleted %ld sent NetMail messages",deleted); 
+		eprintf(LOG_INFO,"Deleted %d sent NetMail messages",deleted); 
 	}
 
 	return(true);
