@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.164 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.160 2017/11/15 10:39:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -399,7 +399,7 @@ void sbbs_read_ini(
 			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
 		bbs->options
 			=iniGetBitField(list,section,strOptions,bbs_options
-				,BBS_OPT_XTRN_MINIMIZED);
+				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
 
 		bbs->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
@@ -502,15 +502,11 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
 		mail->submission_port
 			=iniGetShortInt(list,section,"SubmissionPort",IPPORT_SUBMISSION);
-		mail->submissions_port
-			=iniGetShortInt(list,section,"TLSSubmissionPort",IPPORT_SUBMISSIONS);
 		iniFreeStringList(mail->pop3_interfaces);
 		mail->pop3_interfaces
 			=iniGetStringList(list,section,"POP3Interface",",",global_interfaces);
 		mail->pop3_port
 			=iniGetShortInt(list,section,"POP3Port",IPPORT_POP3);
-		mail->pop3s_port
-			=iniGetShortInt(list,section,"TLSPOP3Port",IPPORT_POP3S);
 		mail->relay_port
 			=iniGetShortInt(list,section,"RelayPort",IPPORT_SMTP);
 		mail->max_clients
@@ -931,7 +927,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(ftp->host_name,global->host_name)==0
-            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
+            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,ftp->host_name,&style))
 			break;
@@ -1003,13 +999,7 @@ BOOL sbbs_write_ini(
 
 		if(!iniSetShortInt(lp,section,"SMTPPort",mail->smtp_port,&style))
 			break;
-		if(!iniSetShortInt(lp,section,"SubmissionPort",mail->submission_port,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"TLSSubmissionPort",mail->submissions_port,&style))
-			break;
 		if(!iniSetShortInt(lp,section,"POP3Port",mail->pop3_port,&style))
-			break;
-		if(!iniSetShortInt(lp,section,"TLSPOP3Port",mail->pop3s_port,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"RelayPort",mail->relay_port,&style))
 			break;
@@ -1033,7 +1023,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(mail->host_name,global->host_name)==0
-            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
+            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,mail->host_name,&style))
 			break;
@@ -1131,7 +1121,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(services->host_name,global->host_name)==0
-            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
+            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,services->host_name,&style))
 			break;
@@ -1201,7 +1191,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(web->host_name,global->host_name)==0
-            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
+            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,web->host_name,&style))
 			break;
