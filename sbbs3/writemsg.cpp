@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.123 2018/07/25 00:40:30 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.119 2018/01/12 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,10 +174,8 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 	if((buf=(char*)malloc(len+1))==NULL)
 		return -2;
 
-	if((fp=fopen(src,"rb"))==NULL) {
-		free(buf);
+	if((fp=fopen(src,"rb"))==NULL)
 		return -3;
-	}
 
 	memset(buf,0,len+1);
 	fread(buf,len,sizeof(char),fp);
@@ -222,10 +220,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(editor!=NULL)
 		*editor=NULL;
 
-	if((buf=(char*)malloc((cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) + 1))
+	if((buf=(char*)malloc(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN))
 		==NULL) {
 		errormsg(WHERE,ERR_ALLOC,fname
-			,(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) +1);
+			,cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
 		return(false); 
 	}
 
@@ -827,14 +825,14 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		if(sys_status&SS_ABORT) {
 			if(line==lines)
 				free(str[line]);
-			continue;
+			continue; 
 		}
 		if(strin[0]=='/' && strlen(strin)<8) {
 			if(!stricmp(strin,"/DEBUG") && SYSOP) {
 				if(line==lines)
 					free(str[line]);
-				bprintf("\r\nline=%d lines=%d rows=%ld\r\n",line,lines,rows);
-				continue;
+				bprintf("\r\nline=%d lines=%d rows=%d\r\n",line,lines,rows);
+				continue; 
 			}
 			else if(!stricmp(strin,"/ABT")) {
 				if(line==lines) 		/* delete a line */
@@ -842,7 +840,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				for(i=0;i<lines;i++)
 					free(str[i]);
 				free(str);
-				return(0);
+				return(0); 
 			}
 			else if(toupper(strin[1])=='D') {
 				if(line==lines)         /* delete a line */
@@ -1061,7 +1059,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 			return false;
 		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
 		if(l>0) {
-			SAFEPRINTF4(str,"%s created or edited file: %s (%ld bytes, %u lines)"
+			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 				,useron.alias, path, l, lines);
 			logline(LOG_NOTICE,nulstr,str);
 		}
@@ -1109,7 +1107,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
-	SAFEPRINTF4(str,"%s created or edited file: %s (%ld bytes, %u lines)"
+	SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 		,useron.alias, fname, l, lines);
 	logline(nulstr,str);
 	return true;
