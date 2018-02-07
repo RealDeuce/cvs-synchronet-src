@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.90 2018/02/07 06:06:30 deuce Exp $ */
+/* $Id: ciolib.h,v 1.91 2018/02/07 09:34:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -368,6 +368,11 @@ CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
 CIOLIBEXPORTVAR int ciolib_xlat;
+#define CIOLIB_XLAT_NONE	0
+#define CIOLIB_XLAT_CHARS	1
+#define CIOLIB_XLAT_ATTR	2
+#define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
+
 CIOLIBEXPORTVAR int ciolib_reaper;
 
 #define _conio_kbhit()		kbhit()
