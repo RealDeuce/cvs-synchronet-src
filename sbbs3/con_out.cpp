@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.76 2016/12/10 08:02:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.80 2018/02/05 06:07:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,36 +218,37 @@ void sbbs_t::outchar(char ch)
 		else {
 			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			i=0;
-			while(outcom(ch)&TXBOF && i<1440) { /* 3 minute pause delay */
-				if(!online)
-					break;
-				i++;
-				if(sys_status&SS_SYSPAGE)
-					sbbs_beep(i,80);
-				else
-					mswait(80); 
-			}
-			if(i==1440) {							/* timeout - beep flush outbuf */
-				i=rioctl(TXBC);
-				lprintf(LOG_NOTICE,"timeout(outchar) %04X %04X\r\n",i,rioctl(IOFO));
-				outcom(BEL);
-				rioctl(IOCS|PAUSE); 
-			} 
+			outcom(ch);
 		} 
 	}
 	if(!outchar_esc) {
-		if((uchar)ch>=' ')
+		if((uchar)ch>=' ') {
 			column++;
-		else if(ch=='\r')
+			if(column >= cols) {	// assume terminal has/will auto-line-wrap
+				lncntr++;
+				lbuflen = 0;
+				tos = 0;
+				lastlinelen = column;
+				column = 0;
+			}
+		}
+		else if(ch=='\r') {
+			lastlinelen = column;
 			column=0;
+		}
 		else if(ch=='\b') {
 			if(column)
 				column--;
 		}
+		else if(ch=='\t') {
+			column++;
+			while(column%8)
+				column++;
+		}
 	}
-	if(ch==LF || column>=cols) {
-		lncntr++;
+	if(ch==LF) {
+		if(lncntr || lastlinelen)
+			lncntr++;
 		lbuflen=0;
 		tos=0;
 		column=0;
@@ -504,6 +505,16 @@ void sbbs_t::ctrl_a(char x)
 		case '<':   /* Non-destructive backspace */
 			outchar(BS);
 			break;
+		case '/':	/* Conditional new-line */
+			if(column > 0)
+				CRLF;
+			break;
+		case '?':	/* Conditional blank-line */
+			if(column > 0)
+				CRLF;
+			if(lastlinelen)
+				CRLF;
+			break;
 		case '[':   /* Carriage return */
 			outchar(CR);
 			break;
@@ -520,6 +531,12 @@ void sbbs_t::ctrl_a(char x)
 		case 'I':	/* Blink */
 			atr|=BLINK;
 			attr(atr);
+			break;
+		case 'F':	/* Blink, only if alt Blink Font is loaded */
+			if(((atr&HIGH) && (console&CON_HBLINK_FONT)) || (!(atr&HIGH) && (console&CON_BLINK_FONT)))
+				attr(atr|BLINK);
+			else if(x == 'F' && !(atr&HIGH))	/* otherwise, set HIGH attribute (only if capital 'F') */
+				attr(atr|HIGH);
 			break;
 		case 'N': 	/* Normal */
 			attr(LIGHTGRAY);
