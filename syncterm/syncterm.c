@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.207 2018/02/05 23:50:34 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.208 2018/02/07 06:06:46 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1712,6 +1712,10 @@ int screen_to_ciolib(int screen)
 			return(C80X50);
 		case SCREEN_MODE_80X60:
 			return(C80X60);
+		case SCREEN_MODE_132X37:
+			return ST132X37_16_9;
+		case SCREEN_MODE_132x52:
+			return ST132X52_5_4;
 		case SCREEN_MODE_132X25:
 			return(VESA_132X25);
 		case SCREEN_MODE_132X28:
