@@ -174,8 +174,8 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
 char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
-char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37", "132x52", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
+char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -256,15 +256,17 @@ void viewofflinescroll(void)
 			top=1;
 		if(top>(int)scrollback_lines)
 			top=scrollback_lines;
-		vmem_puttext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
+		pputtext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
 				,(sbtxtinfo.screenwidth-scrollback_cols)/2+scrollback_cols
 				,sbtxtinfo.screenheight
-				,scrollback_buf+(scrollback_cols*top));
-		ciolib_xlat=CIOLIB_XLAT_CHARS;
+				,scrollback_buf+(scrollback_cols*2*top)
+				,scrollback_fbuf?scrollback_fbuf+(scrollback_cols*top):NULL
+				,scrollback_bbuf?scrollback_bbuf+(scrollback_cols*top):NULL);
+		ciolib_xlat=TRUE;
 		cputs("Scrollback");
 		gotoxy(scrollback_cols-9,1);
 		cputs("Scrollback");
-		ciolib_xlat=CIOLIB_XLAT_NONE;
+		ciolib_xlat=FALSE;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -280,7 +282,7 @@ void viewofflinescroll(void)
 						getmouse(&mevent);
 						switch(mevent.event) {
 							case CIOLIB_BUTTON_1_DRAG_START:
-								mousedrag(scrollback_buf);
+								mousedrag(scrollback_buf,scrollback_fbuf, scrollback_bbuf);
 								break;
 						}
 						break;
@@ -1375,7 +1377,9 @@ void change_settings(void)
 							 "        This value MUST be greater than zero\n";
 				sprintf(str,"%d",settings.backlines);
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER|K_EDIT)!=-1) {
-					struct vmem_cell *tmpscroll;
+					unsigned char *tmpscroll;
+					uint32_t *tmpscrollf;
+					uint32_t *tmpscrollb;
 
 					j=atoi(str);
 					if(j<1) {
@@ -1384,9 +1388,13 @@ void change_settings(void)
 						check_exit(FALSE);
 					}
 					else {
-						tmpscroll=realloc(scrollback_buf,80*sizeof(*scrollback_buf)*j);
+						tmpscroll=(unsigned char *)realloc(scrollback_buf,80*2*j);
+						tmpscrollf=realloc(scrollback_fbuf,80*sizeof(tmpscrollf[0])*j);
+						tmpscrollb=realloc(scrollback_bbuf,80*sizeof(tmpscrollb[0])*j);
 						scrollback_buf = tmpscroll ? tmpscroll : scrollback_buf;
-						if(tmpscroll == NULL) {
+						scrollback_fbuf = tmpscrollf ? tmpscrollf : scrollback_fbuf;
+						scrollback_bbuf = tmpscrollb ? tmpscrollb : scrollback_bbuf;
+						if(tmpscroll == NULL || tmpscrollf == NULL || tmpscrollb == NULL) {
 							uifc.helpbuf="The selected scrollback size is too large.\n"
 										 "Please reduce the number of lines.";
 							uifc.msg("Cannot allocate space for scrollback.");
