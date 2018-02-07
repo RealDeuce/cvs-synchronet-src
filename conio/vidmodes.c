@@ -1,4 +1,4 @@
-/* $Id: vidmodes.c,v 1.23 2018/02/06 06:58:48 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.24 2018/02/07 06:06:30 deuce Exp $ */
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -109,6 +109,9 @@ struct video_params vparams[] = {
 	{VESA_132X50, COLOUR_PALETTE, 132, 50, 7, 7, 8, 8, 1},
 	/* VESA 60x132 mode */
 	{VESA_132X60, COLOUR_PALETTE, 132, 60, 7, 7, 8, 8, 1},
+	/* Awesome modes */
+	{ST132X37_16_9, COLOUR_PALETTE, 132, 40, 14, 15, 16, 8, 1},
+	{ST132X52_5_4, COLOUR_PALETTE, 132, 40, 14, 15, 16, 8, 1},
 };
 
 uint32_t palettes[5][16] = {

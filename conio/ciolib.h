@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.89 2018/02/05 23:49:37 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.90 2018/02/07 06:06:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,9 +184,16 @@ enum text_modes
     MONO28,
     MONO43,
     MONO50,
-    MONO60,
+    MONO60,		// 38
 
-    C4350    = C80X50,	/* this is actually "64" in the "real" conio */
+	/* New modes we've added 'cause they're cool */
+
+	ST132X37_16_9,
+	ST132X52_5_4,
+
+	/* Cruft... */
+
+	C4350    = C80X50,	/* this is actually "64" in the "real" conio */
 
     _ORIGMODE = 65,      /* original mode at program startup */
 
