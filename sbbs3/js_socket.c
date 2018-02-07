@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.182 2018/01/09 06:48:26 deuce Exp $ */
+/* $Id: js_socket.c,v 1.183 2018/02/07 02:32:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,8 +140,10 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			do_js_close(p);
 			return -1;
 		}
+		if(!socket_check(p->sock,NULL,NULL,0))
+			break;
 	} while(len);
-	return total;	// Shouldn't happen...
+	return total;
 }
 
 static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, size_t len, int flush)
@@ -169,9 +171,11 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 			if(flush) do_CryptFlush(p);
 			return total;
 		}
+		if(!socket_check(p->sock,NULL,NULL,0))
+			break;
 	} while(len);
 	if(flush) do_CryptFlush(p);
-	return total; // shouldn't happen...
+	return total;
 }
 
 static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *offset, off_t count)
