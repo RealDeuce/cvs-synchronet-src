@@ -1,6 +1,6 @@
 /* Synchronet string input routines */
 
-/* $Id: getstr.cpp,v 1.32 2018/07/29 04:53:09 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.30 2016/12/08 07:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,14 +43,13 @@
 /* a word, ^X backspaces a line, ^Gs, BSs, TABs are processed, LFs ignored. */
 /* ^N non-destructive BS, ^V center line. Valid keys are echoed.            */
 /****************************************************************************/
-size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t history)
+size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode)
 {
     size_t	i,l,x,z;    /* i=current position, l=length, j=printed chars */
                     /* x&z=misc */
 	char	str1[256],str2[256],undo[256];
     uchar	ch;
 	uchar	atr;
-	int		hidx = -1;
 
 	console&=~(CON_UPARROW|CON_DOWNARROW|CON_LEFTARROW|CON_BACKSPACE|CON_DELETELINE);
 	if(!(mode&K_WRAP))
@@ -154,7 +153,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 						l++;
 					for(x=l;x>i;x--)
 						str1[x]=str1[x-1];
-					column+=rprintf("%.*s",(int)(l-i),str1+i);
+					column+=rprintf("%.*s",l-i,str1+i);
 					cursor_left(l-i);
 #if 0
 					if(i==maxlen-1)
@@ -437,40 +436,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 					i--; 
 				}
 				break;
-			case TERM_KEY_DOWN:
-				if(history != NULL) {
-					if(hidx < 0) {
-						outchar(BEL);
-						break;
-					}
-					hidx--;
-					if(hidx < 0)
-						SAFECOPY(str1, undo);
-					else
-						SAFECOPY(str1, history[hidx]);
-					while(i--)
-						backspace();
-					i=l=strlen(str1);
-					rputs(str1);
-					cleartoeol();
-					break;
-				}
-				break;
 			case TERM_KEY_UP:  /* Ctrl-^/Up Arrow */
-				if(history != NULL) {
-					if(history[hidx + 1] == NULL) {
-						outchar(BEL);
-						break;
-					}
-					hidx++;
-					while(i--)
-						backspace();
-					SAFECOPY(str1, history[hidx]);
-					i=l=strlen(str1);
-					rputs(str1);
-					cleartoeol();
-					break;
-				}
 				if(!(mode&K_EDIT))
 					break;
 #if 1
@@ -560,7 +526,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 							l++;
 						for(x=l;x>i;x--)
 							str1[x]=str1[x-1];
-						column+=rprintf("%.*s",(int)(l-i),str1+i);
+						column+=rprintf("%.*s",l-i,str1+i);
 						cursor_left(l-i);
 #if 0
 						if(i==maxlen-1) {
