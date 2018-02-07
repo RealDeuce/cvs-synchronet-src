@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.621 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.619 2017/12/28 04:08:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1810,7 +1810,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(; i<argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], lstr, &lstr_sz, NULL);
-		HANDLE_PENDING(cx, lstr);
+		HANDLE_PENDING(cx);
 		if(lstr==NULL)
 			return(JS_TRUE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -2208,13 +2208,11 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 			ai.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV|AI_PASSIVE;
 			if(getaddrinfo(p, NULL, &ai, &res)!=0)
 				break;
-			if(res->ai_family == AF_INET6) {
+			if(res->ai_family == AF_INET6)
 				memcpy(&addr, res->ai_addr, res->ai_addrlen);
-				freeaddrinfo(res);
-			} else {
-				freeaddrinfo(res);
+			else
 				break;
-			}
+			freeaddrinfo(res);
 		}
 		else {
 			strncpy(ip,p,16);
@@ -5176,7 +5174,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.621 $", "%*s %s", revision);
+	sscanf("$Revision: 1.619 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
