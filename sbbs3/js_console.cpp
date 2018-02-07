@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.111 2018/01/12 22:23:06 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.113 2018/02/03 23:42:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,12 +47,14 @@ enum {
 	 CON_PROP_STATUS
 	,CON_PROP_LNCNTR 
 	,CON_PROP_COLUMN
+	,CON_PROP_LASTLINELEN
 	,CON_PROP_ATTR
 	,CON_PROP_TOS
 	,CON_PROP_ROWS
 	,CON_PROP_COLUMNS
 	,CON_PROP_AUTOTERM
 	,CON_PROP_TERMINAL
+	,CON_PROP_CTERM_VERSION
 	,CON_PROP_WORDWRAP
 	,CON_PROP_QUESTION
 	,CON_PROP_INACTIV_WARN
@@ -95,6 +97,9 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case CON_PROP_COLUMN:
 			val=sbbs->column;
 			break;
+		case CON_PROP_LASTLINELEN:
+			val=sbbs->lastlinelen;
+			break;
 		case CON_PROP_ATTR:
 			val=sbbs->curatr;
 			break;
@@ -115,6 +120,9 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			return(JS_TRUE);
+		case CON_PROP_CTERM_VERSION:
+			val=sbbs->cterm_version;
+			break;
 
 		case CON_PROP_INACTIV_WARN:
 			val=sbbs->cfg.sec_warn;
@@ -206,6 +214,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 		case CON_PROP_COLUMN:
 			sbbs->column=val;
 			break;
+		case CON_PROP_LASTLINELEN:
+			sbbs->lastlinelen=val;
+			break;
 		case CON_PROP_ATTR:
 			if(JSVAL_IS_STRING(*vp)) {
 				JSVALUE_TO_MSTRING(cx, *vp, sval, NULL);
@@ -236,6 +247,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 				break;
 			SAFECOPY(sbbs->terminal,sval);
 			free(sval);
+			break;
+		case CON_PROP_CTERM_VERSION:
+			sbbs->cterm_version = val;
 			break;
 		case CON_PROP_INACTIV_WARN:
 			sbbs->cfg.sec_warn = (uint16_t)val;
@@ -302,12 +316,14 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"status"			,CON_PROP_STATUS			,CON_PROP_FLAGS	,310},
 	{	"line_counter"		,CON_PROP_LNCNTR 			,CON_PROP_FLAGS	,310},
 	{	"current_column"	,CON_PROP_COLUMN			,CON_PROP_FLAGS ,315},
+	{	"last_line_length"	,CON_PROP_LASTLINELEN		,CON_PROP_FLAGS	,317},
 	{	"attributes"		,CON_PROP_ATTR				,CON_PROP_FLAGS	,310},
 	{	"top_of_screen"		,CON_PROP_TOS				,CON_PROP_FLAGS	,310},
 	{	"screen_rows"		,CON_PROP_ROWS				,CON_PROP_FLAGS	,310},
 	{	"screen_columns"	,CON_PROP_COLUMNS			,CON_PROP_FLAGS	,311},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
+	{	"cterm_version"		,CON_PROP_CTERM_VERSION		,CON_PROP_FLAGS ,317},
 	{	"inactivity_warning",CON_PROP_INACTIV_WARN		,CON_PROP_FLAGS, 31401},
 	{	"inactivity_hangup"	,CON_PROP_INACTIV_HANGUP	,CON_PROP_FLAGS, 31401},
 	{	"timeout"			,CON_PROP_TIMEOUT			,CON_PROP_FLAGS	,310},
@@ -328,14 +344,15 @@ static jsSyncPropertySpec js_console_properties[] = {
 
 #ifdef BUILD_JSDOCS
 static char* con_prop_desc[] = {
-	 "status bitfield (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
+	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
+	,"length of last line sent to terminal (before a carriage-return or line-wrap)"
 	,"current display attributes (set with number or string value)"
 	,"set to <i>true</i> if the terminal cursor is already at the top of the screen"
 	,"number of remote terminal screen rows (in lines)"
 	,"number of remote terminal screen columns (in character cells)"
-	,"bitfield of automatically detected terminal settings "
+	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
@@ -344,11 +361,11 @@ static char* con_prop_desc[] = {
 	,"number of low time-left (5 or fewer minutes remaining) warnings displayed to user"
 	,"input/output has been aborted"
 	,"remote output can be asynchronously aborted with Ctrl-C"
-	,"current Telnet mode bitfield (see <tt>TELNET_MODE_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
+	,"current Telnet mode bit-field (see <tt>TELNET_MODE_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"word-wrap buffer (used by getstr) - <small>READ ONLY</small>"
 	,"current yes/no question (set by yesno and noyes)"
 	,"cursor position offset for use with <tt>getstr(K_USEOFFSET)</tt>"
-	,"control key pass-through bitmask, set bits represent control key combinations "
+	,"control key pass-through bit-mask, set bits represent control key combinations "
 		"<i>not</i> handled by <tt>inkey()</tt> method "
 		"This may optionally be specified as a string of characters. "
 		"The format of this string is [+-][@-_]. If neither plus nor minus is "
@@ -1654,6 +1671,7 @@ js_telnet_cmd(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	int32		cmd,opt=0;
+	int32		wait=0;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -1667,9 +1685,20 @@ js_telnet_cmd(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&opt))
 			return JS_FALSE;
 	}
+	if(argc>2) {
+		if(!JS_ValueToInt32(cx,argv[2],&wait))
+			return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->send_telnet_cmd((uchar)cmd,(uchar)opt);
+	if(wait) {
+		if(sbbs->request_telnet_opt((uchar)cmd, (uchar)opt, wait) == true) {
+			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		} else {
+			JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+		}
+	} else
+		sbbs->send_telnet_cmd((uchar)cmd, (uchar)opt);
 	JS_RESUMEREQUEST(cx, rc);
 
     return(JS_TRUE);
@@ -1890,9 +1919,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("lock the user input thread (allowing direct client socket access)")
 	,310
 	},
-	{"telnet_cmd",		js_telnet_cmd,		2, JSTYPE_VOID,		JSDOCSTR("command [,option=<tt>0</tt>]")
-	,JSDOCSTR("send Telnet command (with optional command option) to remote client")
-	,310
+	{"telnet_cmd",		js_telnet_cmd,		3, JSTYPE_BOOLEAN,		JSDOCSTR("command [,option=<tt>0</tt>] [,timeout=<tt>0</tt>]")
+	,JSDOCSTR("send Telnet command (with optional command option) to remote client"
+		", if the optional timeout is specified (in milliseconds, added in v3.17), then an acknowledgment will be expected and"
+		" the return value will indicate whether or not one was received")
+	,317
 	},
 	{"handle_ctrlkey",	js_handle_ctrlkey,	1, JSTYPE_BOOLEAN,	JSDOCSTR("key [,mode=<tt>K_NONE</tt>]")
 	,JSDOCSTR("call internal control key handler for specified control key, returns <tt>true</tt> if handled")
