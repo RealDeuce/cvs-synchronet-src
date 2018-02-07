@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.66 2018/02/20 11:18:36 rswindell Exp $ */
+/* $Id: email.cpp,v 1.65 2017/11/24 21:53:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		for(x=0;x<cfg.total_prots;x++)
 			if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
 				sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
-				SAFECAT(str,tmp); 
+				strcat(str,tmp); 
 			}
 		ch=(char)getkeys(str,0);
 		if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
