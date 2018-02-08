@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.204 2018/02/08 22:26:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.205 2018/02/08 22:27:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2683,7 +2683,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.204 $";
+	char	*revision="$Revision: 1.205 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -2763,7 +2763,6 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 
 	/* Set up a shadow palette */
 	gettextinfo(&ti);
-	vmode = find_vmode(ti.currmode);
 	for (i=0; i < sizeof(dac_default)/sizeof(struct dac_colors); i++)
 		setpalette(i+16, dac_default[i].red << 8 | dac_default[i].red, dac_default[i].green << 8 | dac_default[i].green, dac_default[i].blue << 8 | dac_default[i].blue);
 
