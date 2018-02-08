@@ -174,8 +174,8 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
 char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
-char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
+char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37", "132x52", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -262,11 +262,11 @@ void viewofflinescroll(void)
 				,scrollback_buf+(scrollback_cols*2*top)
 				,scrollback_fbuf?scrollback_fbuf+(scrollback_cols*top):NULL
 				,scrollback_bbuf?scrollback_bbuf+(scrollback_cols*top):NULL);
-		ciolib_xlat=TRUE;
+		ciolib_xlat=CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(scrollback_cols-9,1);
 		cputs("Scrollback");
-		ciolib_xlat=FALSE;
+		ciolib_xlat=CIOLIB_XLAT_NONE;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -1394,7 +1394,7 @@ void change_settings(void)
 						scrollback_buf = tmpscroll ? tmpscroll : scrollback_buf;
 						scrollback_fbuf = tmpscrollf ? tmpscrollf : scrollback_fbuf;
 						scrollback_bbuf = tmpscrollb ? tmpscrollb : scrollback_bbuf;
-						if(tmpscroll == NULL | tmpscrollf == NULL | tmpscrollb == NULL) {
+						if(tmpscroll == NULL || tmpscrollf == NULL || tmpscrollb == NULL) {
 							uifc.helpbuf="The selected scrollback size is too large.\n"
 										 "Please reduce the number of lines.";
 							uifc.msg("Cannot allocate space for scrollback.");
