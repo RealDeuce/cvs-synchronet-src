@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.82 2018/02/02 03:58:55 deuce Exp $ */
+/* $Id: ciolib.h,v 1.92 2018/02/08 04:15:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,6 +156,7 @@ enum text_modes
     C80X14,
     C80X21,
     C80X28,
+    C80X30,
     C80X43,
     C80X50,
     C80X60,
@@ -183,9 +184,16 @@ enum text_modes
     MONO28,
     MONO43,
     MONO50,
-    MONO60,
+    MONO60,		// 38
 
-    C4350    = C80X50,	/* this is actually "64" in the "real" conio */
+	/* New modes we've added 'cause they're cool */
+
+	ST132X37_16_9,
+	ST132X52_5_4,
+
+	/* Cruft... */
+
+	C4350    = C80X50,	/* this is actually "64" in the "real" conio */
 
     _ORIGMODE = 65,      /* original mode at program startup */
 
@@ -231,6 +239,8 @@ struct text_info {
 };
 
 CIOLIBEXPORTVAR struct text_info cio_textinfo;
+CIOLIBEXPORTVAR uint32_t ciolib_fg;
+CIOLIBEXPORTVAR uint32_t ciolib_bg;
 
 struct mouse_event {
 	int event;
@@ -252,11 +262,40 @@ struct conio_font_data_struct {
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
 
+struct ciolib_pixels {
+	uint32_t	*pixels;
+	uint32_t	width;
+	uint32_t	height;
+};
+
+struct ciolib_screen {
+	uint32_t		fg_colour;
+	uint32_t		bg_colour;
+	struct ciolib_pixels	*pixels;
+	void			*vmem;
+	uint32_t		*foreground;
+	uint32_t		*background;
+	struct text_info	text_info;
+};
+
 #define CONIO_FIRST_FREE_FONT	43
 
 typedef struct {
 	int		mode;
 	int		mouse;
+	uint64_t	options;
+#define	CONIO_OPT_LOADABLE_FONTS	1
+#define CONIO_OPT_BLINK_ALT_FONT	2
+#define CONIO_OPT_BOLD_ALT_FONT		4
+#define CONIO_OPT_BRIGHT_BACKGROUND	8
+#define CONIO_OPT_PALETTE_SETTING	16
+#define CONIO_OPT_SET_PIXEL			32
+#define CONIO_OPT_CUSTOM_CURSOR		64
+#define CONIO_OPT_FONT_SELECT		128
+#define CONIO_OPT_SET_TITLE			256
+#define CONIO_OPT_SET_NAME			512
+#define CONIO_OPT_SET_ICON			1024
+#define CONIO_OPT_EXTENDED_PALETTE	2048
 	void	(*clreol)		(void);
 	int		(*puttext)		(int,int,int,int,void *);
 	int		(*pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
@@ -319,6 +358,9 @@ typedef struct {
 	int		(*setpalette)	(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 	int		(*attr2palette)	(uint8_t attr, uint32_t *fg, uint32_t *bg);
 	int		(*setpixel)	(uint32_t x, uint32_t y, uint32_t colour);
+	struct ciolib_pixels *(*getpixels)(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey);
+	int		(*setpixels)(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t x_off, uint32_t y_off, struct ciolib_pixels *pixels, void *mask);
+	uint32_t 	*(*get_modepalette)(void);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -327,6 +369,11 @@ CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
 CIOLIBEXPORTVAR int ciolib_xlat;
+#define CIOLIB_XLAT_NONE	0
+#define CIOLIB_XLAT_CHARS	1
+#define CIOLIB_XLAT_ATTR	2
+#define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
+
 CIOLIBEXPORTVAR int ciolib_reaper;
 
 #define _conio_kbhit()		kbhit()
@@ -394,6 +441,14 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_getscaling(void);
 CIOLIBEXPORT int CIOLIBCALL ciolib_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 CIOLIBEXPORT int CIOLIBCALL ciolib_attr2palette(uint8_t attr, uint32_t *fg, uint32_t *bg);
 CIOLIBEXPORT int CIOLIBCALL ciolib_setpixel(uint32_t x, uint32_t y, uint32_t colour);
+CIOLIBEXPORT struct ciolib_pixels * CIOLIBCALL ciolib_getpixels(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey);
+CIOLIBEXPORT int CIOLIBCALL ciolib_setpixels(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t x_off, uint32_t y_off, struct ciolib_pixels *pixels, void *mask);
+CIOLIBEXPORT void CIOLIBCALL ciolib_freepixels(struct ciolib_pixels *pixels);
+CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void);
+CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *);
+CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
+CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -462,6 +517,14 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define setpalette(e,r,g,b)		ciolib_setpalette(e,r,g,b)
 	#define attr2palette(a,b,c)		ciolib_attr2palette(a,b,c)
 	#define setpixel(a,b,c)			ciolib_setpixel(a,b,c)
+	#define getpixels(a,b,c,d)		ciolib_getpixels(a,b,c,d)
+	#define setpixels(a,b,c,d,e,f,g,h)	ciolib_setpixels(a,b,c,d,e,f,g,h)
+	#define freepixles(a)			ciolib_freepixels(a)
+	#define savescreen()			ciolib_savescreen()
+	#define freescreen(a)			ciolib_freescreen(a)
+	#define restorescreen(a)		ciolib_restorescreen(a)
+	#define setcolour(a,b)			ciolib_setcolour(a,b)
+	#define get_modepalette()		ciolib_get_modepalette()
 #endif
 
 #ifdef WITH_SDL
