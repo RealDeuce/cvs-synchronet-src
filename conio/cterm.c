@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.203 2018/02/08 21:54:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.204 2018/02/08 22:26:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -932,12 +932,10 @@ static void dellines(struct cterminal * cterm, int lines)
 	int top = cterm->y+cterm->top_margin-1;
 	int height = cterm->bottom_margin-cterm->top_margin+1;
 	int i;
-	int linestomove;
 	int x,y;
 
 	if(lines<1)
 		return;
-	linestomove=cterm->height-WHEREY();
 	MOVETEXT(cterm->x,top+WHEREY()-1+lines,cterm->x+cterm->width-1,top+height-1,cterm->x,top+WHEREY()-1);
 	x=WHEREX();
 	y=WHEREY();
@@ -2685,13 +2683,12 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.203 $";
+	char	*revision="$Revision: 1.204 $";
 	char *in;
 	char	*out;
 	int		i;
 	struct cterminal *cterm;
 	struct text_info ti;
-	int vmode;
 
 	if((cterm=malloc(sizeof(struct cterminal)))==NULL)
 		return cterm;
