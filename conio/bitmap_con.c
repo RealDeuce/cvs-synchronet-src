@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.109 2018/02/07 06:56:05 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.110 2018/02/08 04:15:11 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1570,6 +1570,16 @@ struct ciolib_pixels *bitmap_getpixels(uint32_t sx, uint32_t sy, uint32_t ex, ui
 	pthread_mutex_unlock(&blinker_lock);
 
 	return pixels;
+}
+
+uint32_t *bitmap_get_modepalette(void)
+{
+	uint32_t *ret;
+
+	pthread_mutex_lock(&vstatlock);
+	ret = vstat.palette;
+	pthread_mutex_unlock(&vstatlock);
+	return ret;
 }
 
 /***********************/

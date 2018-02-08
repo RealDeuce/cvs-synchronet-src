@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.155 2018/02/07 09:34:52 deuce Exp $ */
+/* $Id: ciolib.c,v 1.156 2018/02/08 04:15:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,7 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *);
 CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
+CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(void);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -185,6 +186,7 @@ int try_sdl_init(int mode)
 		cio_api.setpixel=bitmap_setpixel;
 		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
+		cio_api.get_modepalette=bitmap_get_modepalette;
 		return(1);
 	}
 	return(0);
@@ -237,6 +239,7 @@ int try_x_init(int mode)
 		cio_api.setpixel=bitmap_setpixel;
 		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
+		cio_api.get_modepalette=bitmap_get_modepalette;
 		return(1);
 	}
 	return(0);
@@ -1885,4 +1888,13 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg)
 {
 	ciolib_fg = fg;
 	ciolib_bg = bg;
+}
+
+CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(void)
+{
+	CIOLIB_INIT();
+
+	if (cio_api.get_modepalette)
+		return cio_api.get_modepalette();
+	return NULL;
 }

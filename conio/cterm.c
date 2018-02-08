@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.200 2018/02/07 23:29:06 deuce Exp $ */
+/* $Id: cterm.c,v 1.201 2018/02/08 04:15:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2685,7 +2685,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.200 $";
+	char	*revision="$Revision: 1.201 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3023,15 +3023,18 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	struct text_info	ti;
 	int	olddmc;
 	int oldptnm;
+	uint32_t *mpalette;
 
 	if(!cterm->started)
 		cterm_start(cterm);
 
 	/* Now rejigger the current modes palette... */
 	/* TODO: We need a way to remap instead of fuckery */
-extern struct video_stats vstat;
-	for (i=0; i < 16; i++) {
-		vstat.palette[i] += 16;
+	mpalette = get_modepalette();
+	if (mpalette) {
+		for (i=0; i < 16; i++) {
+			mpalette[i] += 16;
+		}
 	}
 
 	oldptnm=*cterm->puttext_can_move;
@@ -3758,8 +3761,10 @@ extern struct video_stats vstat;
 
 	/* Now rejigger the current modes palette... */
 	/* TODO: We need a way to remap instead of fuckery */
-	for (i=0; i < 16; i++)
-		vstat.palette[i] -= 16;
+	if (mpalette) {
+		for (i=0; i < 16; i++)
+			mpalette[i] -= 16;
+	}
 
 	return(retbuf);
 }
