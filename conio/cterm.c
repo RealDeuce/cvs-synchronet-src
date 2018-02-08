@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.202 2018/02/08 21:37:17 deuce Exp $ */
+/* $Id: cterm.c,v 1.203 2018/02/08 21:54:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -912,9 +912,9 @@ static void scrollup(struct cterminal *cterm)
 		if(cterm->backpos>cterm->backlines) {
 			memmove(cterm->scrollback,cterm->scrollback+cterm->width*2,cterm->width*2*(cterm->backlines-1));
 			if (cterm->scrollbackf)
-				memmove(cterm->scrollbackf,cterm->scrollbackf+cterm->width,cterm->width*(cterm->backlines-1));
+				memmove(cterm->scrollbackf,cterm->scrollbackf+cterm->width,cterm->width*(cterm->backlines-1)*sizeof(cterm->scrollbackf[0]));
 			if (cterm->scrollbackb)
-				memmove(cterm->scrollbackb,cterm->scrollbackb+cterm->width,cterm->width*(cterm->backlines-1));
+				memmove(cterm->scrollbackb,cterm->scrollbackb+cterm->width,cterm->width*(cterm->backlines-1)*sizeof(cterm->scrollbackb[0]));
 			cterm->backpos--;
 		}
 		PGETTEXT(cterm->x, top, cterm->x+cterm->width-1, top, cterm->scrollback+(cterm->backpos-1)*cterm->width*2, cterm->scrollbackf?cterm->scrollbackf+(cterm->backpos-1)*cterm->width:NULL, cterm->scrollbackb?cterm->scrollbackb+(cterm->backpos-1)*cterm->width:NULL);
@@ -979,9 +979,9 @@ void CIOLIBCALL cterm_clearscreen(struct cterminal *cterm, char attr)
 			cterm->backpos=cterm->backlines;
 
 			if (cterm->scrollbackf)
-				memmove(cterm->scrollbackf,cterm->scrollbackf+cterm->width*(cterm->backpos-cterm->backlines),cterm->width*(cterm->backlines-(cterm->backpos-cterm->backlines)));
+				memmove(cterm->scrollbackf,cterm->scrollbackf+cterm->width*(cterm->backpos-cterm->backlines),cterm->width*sizeof(cterm->scrollbackf[0])*(cterm->backlines-(cterm->backpos-cterm->backlines)));
 			if (cterm->scrollbackb)
-				memmove(cterm->scrollbackb,cterm->scrollbackb+cterm->width*(cterm->backpos-cterm->backlines),cterm->width*(cterm->backlines-(cterm->backpos-cterm->backlines)));
+				memmove(cterm->scrollbackb,cterm->scrollbackb+cterm->width*(cterm->backpos-cterm->backlines),cterm->width*sizeof(cterm->scrollbackb[0])*(cterm->backlines-(cterm->backpos-cterm->backlines)));
 		}
 		PGETTEXT(cterm->x,cterm->y,cterm->x+cterm->width-1,cterm->y+cterm->height-1,
 		    cterm->scrollback + (cterm->backpos - cterm->height) * cterm->width * 2,
@@ -2685,7 +2685,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.202 $";
+	char	*revision="$Revision: 1.203 $";
 	char *in;
 	char	*out;
 	int		i;
