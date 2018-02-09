@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.668 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: main.cpp,v 1.666 2018/02/05 06:07:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -726,10 +726,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
-			FREE_AND_NULL(line);
+		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			return(JS_FALSE);
-		}
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
@@ -742,8 +740,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if(line != NULL)
-		free(line);
+	free(line);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -847,7 +844,6 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	FREE_AND_NULL(cstr);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -880,8 +876,6 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	if (str != NULL)
-		free(str);
 
     return(JS_TRUE);
 }
@@ -4946,7 +4940,7 @@ void DLLCALL bbs_thread(void* arg)
 				goto NO_SSH;
 			}
 
-			/* Ok, now try saving this one... use the syspass to encrypt it. */
+			/* Ok, now try saving this one... use the syspass to enctrpy it. */
 			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
 				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
 					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
