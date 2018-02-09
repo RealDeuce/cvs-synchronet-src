@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.209 2018/02/09 06:28:40 deuce Exp $ */
+/* $Id: cterm.c,v 1.210 2018/02/09 06:47:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1455,8 +1455,7 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 	return;
 
 all_done:
-	GETTEXTINFO(&ti);
-	vmode = find_vmode(ti.currmode);
+	vmode = find_vmode(cio_api.mode);
 
 	if (cterm->sx_row_max_x)
 		setpixels(cterm->sx_left, cterm->sx_y, cterm->sx_row_max_x, cterm->sx_y + 6 * cterm->sx_iv - 1, cterm->sx_left, 0, cterm->sx_pixels, cterm->sx_mask);
@@ -1738,8 +1737,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								case 3:	/* Query font char dimensions */
 								{
 									int vmode;
-									GETTEXTINFO(&ti);
-									vmode = find_vmode(ti.currmode);
+									vmode = find_vmode(cio_api.mode);
 									sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
 									break;
 								}
@@ -2720,7 +2718,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.209 $";
+	char	*revision="$Revision: 1.210 $";
 	char *in;
 	char	*out;
 	int		i;
