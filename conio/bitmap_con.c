@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.114 2018/02/09 01:37:33 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.115 2018/02/09 01:45:01 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -553,7 +553,7 @@ static void blinker_thread(void *data)
 				request_redraw();
 		}
 		else {
-			if (count==50)
+			if (count==0)
 				if (update_from_vmem(FALSE))
 					request_redraw();
 		}
