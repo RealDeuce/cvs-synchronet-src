@@ -1,12 +1,14 @@
+/* ntsvcs.c */
+
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.49 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.46 2016/11/28 02:59:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -218,7 +220,17 @@ static void svc_ctrl_handler(sbbs_ntsvc_t* svc, DWORD dwCtrlCode)
 /* Service-specific control handler stub functions */
 static void WINAPI bbs_ctrl_handler(DWORD dwCtrlCode)
 {
-	svc_ctrl_handler(&bbs, dwCtrlCode);
+	switch(dwCtrlCode) {
+		case SERVICE_CONTROL_SYSOP_AVAILABLE:
+			bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		case SERVICE_CONTROL_SYSOP_UNAVAILABLE:
+			bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		default:
+			svc_ctrl_handler(&bbs, dwCtrlCode);
+			break;
+	}
 }
 
 static void WINAPI ftp_ctrl_handler(DWORD dwCtrlCode)
@@ -283,7 +295,6 @@ static int svc_lputs(void* p, int level, const char* str)
 	len = strlen(str);
 	SAFECOPY(msg.buf, str);
 	msg.level = level;
-	msg.repeated = 0;
 	GetLocalTime(&msg.time);
 
 	/* Mailslot Logging (for sbbsctrl) */

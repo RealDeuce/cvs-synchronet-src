@@ -1,6 +1,6 @@
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.35 2018/08/15 19:38:06 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.34 2018/01/04 08:33:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
 	int		defered_pause=FALSE;
-	uint	lines_printed = 0;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -92,9 +91,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				break;
 			else {
 				ctrl_a(str[l+1]);
-				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
-					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
-				l+=2;
+				l+=2; 
 			} 
 		}
 		else if((str[l]=='`' || str[l]=='ú') && str[l+1]=='[') {   
@@ -230,7 +227,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					attr(LIGHTGRAY);
 				if(l==0 || str[l-1]!='\r')	/* expand sole LF to CR/LF */
 					outchar('\r');
-				lines_printed++;
 			}
 
 			/* ansi escape sequence */
@@ -263,8 +259,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				}
 				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
-				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
-					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				if(i)					/* if valid string, go to top */
 					continue; 
 			}
