@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.33 2016/11/24 02:56:33 rswindell Exp $ */
+/* $Id: smbhash.c,v 1.35 2016/11/29 10:09:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -312,7 +312,7 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	if(smb_findhash(smb, hashes, &found, SMB_HASH_SOURCE_DUPE, update)==SMB_SUCCESS && !update) {
 		retval=SMB_DUPE_MSG;
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"duplicate %s: %s found in message #%lu"
+			,"%s duplicate %s: %s found in message #%lu", __FUNCTION__
 			,smb_hashsourcetype(found.source)
 			,smb_hashsource(msg,found.source)
 			,found.number);
