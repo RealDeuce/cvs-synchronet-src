@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.206 2018/02/09 00:39:00 deuce Exp $ */
+/* $Id: cterm.c,v 1.207 2018/02/09 04:52:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1543,6 +1543,34 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							}
 						}
 						break;
+					case 'c':
+						/* SyncTERM Device Attributes */
+						if (seq->param_str[0] == '<' && parse_parameters(seq)) {
+							seq_default(seq, 0, 0);
+							tmp[0] = 0;
+							for (i=0; i<seq->param_count; i++) {
+								switch (seq->param_int[i]) {
+									case 0:		/* Advanced features */
+										strcpy(tmp, "\x1b[<0");
+										if (cio_api.options & CONIO_OPT_LOADABLE_FONTS)
+											strcat(tmp, ";1");
+										if (cio_api.options & CONIO_OPT_BRIGHT_BACKGROUND)
+											strcat(tmp, ";2");
+										if (cio_api.options & CONIO_OPT_PALETTE_SETTING)
+											strcat(tmp, ";3");
+										if (cio_api.options & CONIO_OPT_SET_PIXEL)
+											strcat(tmp, ";4");
+										if (cio_api.options & CONIO_OPT_FONT_SELECT)
+											strcat(tmp, ";5");
+										if (cio_api.options & CONIO_OPT_EXTENDED_PALETTE)
+											strcat(tmp, ";6");
+										strcat(tmp, "n");
+								}
+							}
+							if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
+								strcat(retbuf, tmp);
+						}
+						break;
 					case 'h':
 						if (seq->param_str[0] == '?' && parse_parameters(seq)) {
 							attr2palette(cterm->attr, &oldfg, &oldbg);
@@ -2683,7 +2711,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.206 $";
+	char	*revision="$Revision: 1.207 $";
 	char *in;
 	char	*out;
 	int		i;
