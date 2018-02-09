@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.207 2018/02/09 04:52:14 deuce Exp $ */
+/* $Id: cterm.c,v 1.208 2018/02/09 05:28:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1543,6 +1543,15 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							}
 						}
 						break;
+					case 'S':		// XTerm graphics query
+						if (seq->param_str[0] == '?' && parse_parameters(seq)) {
+							if (seq->param_int[0] == 2 && seq->param_int[1] == 1) {
+								int vmode = find_vmode(cio_api.mode);
+								sprintf(tmp, "\x1b[?2;0;%u;%uS", vparams[vmode].charwidth*cterm->width, vparams[vmode].charheight*cterm->height);
+								if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
+									strcat(retbuf, tmp);
+							}
+						}
 					case 'c':
 						/* SyncTERM Device Attributes */
 						if (seq->param_str[0] == '<' && parse_parameters(seq)) {
@@ -2711,7 +2720,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.207 $";
+	char	*revision="$Revision: 1.208 $";
 	char *in;
 	char	*out;
 	int		i;
