@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.42 2018/02/21 02:08:54 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.41 2017/11/28 06:41:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -108,7 +108,6 @@ int fixsmb(char* sub)
 	uint32_t*	numbers = NULL;
 	uint32_t	total = 0;
 	BOOL		dupe_msgnum;
-	uint32_t	highest = 0;
 
 	memset(&smb,0,sizeof(smb));
 
@@ -248,8 +247,6 @@ int fixsmb(char* sub)
 			msg.offset=n;
 			if(renumber)
 				msg.hdr.number=n+1;
-			if(msg.hdr.number > highest)
-				highest = msg.hdr.number;
 			if(msg.hdr.netattr&MSG_INTRANSIT) {
 				printf("Removing 'in transit' attribute\n");
 				msg.hdr.netattr&=~MSG_INTRANSIT;
@@ -285,12 +282,9 @@ int fixsmb(char* sub)
 	printf("\r%79s\r100%%\n","");
 	smb.status.total_msgs=n;
 	if(renumber)
-		smb.status.last_msg = highest;
-	else {
-		if(highest > smb.status.last_msg)
-			smb.status.last_msg = highest;
+		smb.status.last_msg=n;
+	else
 		sort_index(&smb);
-	}
 	printf("Saving message base status (%lu total messages).\n",n);
 	if((i=smb_putstatus(&smb))!=0)
 		printf("\nsmb_putstatus returned %d: %s\n",i,smb.last_error);
@@ -310,7 +304,7 @@ int main(int argc, char **argv)
 	str_list_t	list;
 	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.42 $", "%*s %s", revision);
+	sscanf("$Revision: 1.41 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
