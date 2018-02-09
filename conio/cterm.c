@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.211 2018/02/09 23:20:54 deuce Exp $ */
+/* $Id: cterm.c,v 1.212 2018/02/09 23:30:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1550,7 +1550,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								int vmode;
 
 								GETTEXTINFO(&ti);
-								vmode = find_vmode(ti.currmode)
+								vmode = find_vmode(ti.currmode);
 								sprintf(tmp, "\x1b[?2;0;%u;%uS", vparams[vmode].charwidth*cterm->width, vparams[vmode].charheight*cterm->height);
 								if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
 									strcat(retbuf, tmp);
@@ -1745,7 +1745,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									int vmode;
 
 									GETTEXTINFO(&ti);
-									vmode = find_vmode(ti.currmode)
+									vmode = find_vmode(ti.currmode);
 									sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
 									break;
 								}
@@ -2726,7 +2726,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.211 $";
+	char	*revision="$Revision: 1.212 $";
 	char *in;
 	char	*out;
 	int		i;
