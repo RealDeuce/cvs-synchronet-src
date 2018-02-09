@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.105 2018/02/03 08:36:41 deuce Exp $ */
+/* $Id: genwrap.c,v 1.106 2018/02/03 09:15:02 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -215,7 +215,7 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 			strncpy(d,e,maxlen-(d-dst));
 			d+=strlen(d);
 		} else if((uchar)*s < ' ') {
-			d += snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
+			d += safe_snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
 		} else *d++=*s;
 	}
 	*d=0;
