@@ -1,4 +1,4 @@
-/* $Id: xptime.c,v 1.4 2018/02/14 20:44:00 deuce Exp $ */
+/* $Id: xptime.c,v 1.2 2008/02/23 22:18:37 rswindell Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 
 	printf("\n");
 	DESCRIBE_COMPILER(str);
-	sscanf("$Revision: 1.4 $", "%*s %s", revision);
+	sscanf("$Revision: 1.2 $", "%*s %s", revision);
 
 	printf("Rev %s Built " __DATE__ " " __TIME__ " with %s\n\n", revision, str);
 
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 	}
 	printf("%-8s %-10ld  (0x%08lX)    ISO %s\n"
 		,"time_t"
-		,(long)t, (long)t
+		,t, t
 		,xpDateTime_to_isoDateTimeStr(xpDateTime
 			,NULL, " ", NULL
 			,/* precision: */3
