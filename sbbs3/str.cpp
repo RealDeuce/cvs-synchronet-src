@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.80 2018/07/25 00:40:30 rswindell Exp $ */
+/* $Id: str.cpp,v 1.77 2018/01/12 22:15:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,7 +159,6 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 	}
 	if(lread(file,buf,length)!=length) {
 		close(file);
-		free(buf);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
 		return; 
@@ -329,7 +328,6 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 		close(file);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
-		free(buf);
 		return; 
 	}
 	close(file);
@@ -852,7 +850,6 @@ char* sbbs_t::datestr(time_t t)
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
-	char	path[MAX_PATH+1];
 	uint	i;
 	stats_t stats;
 
@@ -878,13 +875,12 @@ void sbbs_t::sys_info()
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	SAFEPRINTF(path, "%ssystem.msg", cfg.text_dir);
-	if(fexistcase(path) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	if(text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
-		printfile(path,0); 
+		sprintf(tmp,"%ssystem.msg", cfg.text_dir);
+		printfile(tmp,0); 
 	}
-	SAFEPRINTF(path, "%smenu/logon.asc", cfg.text_dir);
-	if(fexistcase(path) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	if(text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
 		menu("logon"); 
 	}
@@ -1067,7 +1063,7 @@ bool sbbs_t::spy(uint i /* node_num */)
 		return(false);
 	}
 	if(spy_socket[i-1]!=INVALID_SOCKET) {
-		bprintf("Node %d already being spied (%x)\r\n",i,spy_socket[i-1]);
+		bprintf("Node %d already being spied (%lx)\r\n",i,spy_socket[i-1]);
 		return(false);
 	}
 	bprintf("*** Synchronet Remote Spy on Node %d: Ctrl-C to Abort ***"
