@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.26 2018/02/13 08:11:18 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.24 2018/02/07 06:06:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,9 @@ struct  video_params {
 
 struct vstat_vmem {
 	unsigned refcount;
-	struct vmem_cell *vmem;
+	unsigned short *vmem;
+	uint32_t *fgvmem;
+	uint32_t *bgvmem;
 };
 
 struct video_stats {
