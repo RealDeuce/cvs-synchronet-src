@@ -1,6 +1,6 @@
 /* Synchronet user create/post public message routine */
 
-/* $Id: postmsg.cpp,v 1.109 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.108 2017/11/24 21:53:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -364,8 +364,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	user_posted_msg(&cfg, &useron, 1);
 	bprintf(text[Posted],cfg.grp[cfg.sub[subnum]->grp]->sname
 		,cfg.sub[subnum]->lname);
-	sprintf(str,"posted on %s %s"
-		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
+	sprintf(str,"%s posted on %s %s"
+		,useron.alias,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 	logline("P+",str);
 
 	signal_sub_sem(&cfg,subnum);
