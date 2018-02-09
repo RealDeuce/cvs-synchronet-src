@@ -1,6 +1,6 @@
 /* Synchronet answer "caller" function */
 
-/* $Id: answer.cpp,v 1.95 2018/04/01 07:51:09 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.94 2018/02/03 23:39:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -423,13 +423,8 @@ bool sbbs_t::answer()
 	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
-	if(!useron.number 
-		&& rlogin_name[0]!=0 
-		&& !(cfg.sys_misc&SM_CLOSED) 
-		&& !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)
-		&& !::trashcan(&cfg, rlogin_name, "name")) {
-		lprintf(LOG_INFO, "Node %d UNKNOWN %s-specified username: '%s', starting new user signup"
-			,cfg.node_num,client.protocol,rlogin_name);
+	if(!useron.number && rlogin_name[0]!=0 && !(cfg.sys_misc&SM_CLOSED) && !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)) {
+		lprintf(LOG_INFO,"Node %d UNKNOWN %s-specified username: '%s', starting new user signup",cfg.node_num,client.protocol,rlogin_name);
 		bprintf("%s: %s\r\n", text[UNKNOWN_USER], rlogin_name);
 		newuser();
 	}
