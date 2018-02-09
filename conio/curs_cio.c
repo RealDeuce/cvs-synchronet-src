@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.39 2018/02/14 04:37:27 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.35 2018/02/05 17:56:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -54,7 +54,6 @@ static unsigned char curs_nextgetch=0;
 
 static int lastattr=0;
 static long mode;
-static int vflags=0;
 
 static short curses_color(short color)
 {
@@ -77,21 +76,21 @@ static short curses_color(short color)
 		case 7 :
 			return(COLOR_WHITE);
 		case 8 :
-			return(COLOR_BLACK+8);
+			return(COLOR_BLACK);
 		case 9 :
-			return(COLOR_BLUE+8);
+			return(COLOR_BLUE);
 		case 10 :
-			return(COLOR_GREEN+8);
+			return(COLOR_GREEN);
 		case 11 :
-			return(COLOR_CYAN+8);
+			return(COLOR_CYAN);
 		case 12 :
-			return(COLOR_RED+8);
+			return(COLOR_RED);
 		case 13 :
-			return(COLOR_MAGENTA+8);
+			return(COLOR_MAGENTA);
 		case 14 :
-			return(COLOR_YELLOW+8);
+			return(COLOR_YELLOW);
 		case 15 :
-			return(COLOR_WHITE+8);
+			return(COLOR_WHITE);
 	}
 	return(0);
 }
@@ -575,10 +574,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 				attrib |= 128;
 			}
 			colour=PAIR_NUMBER(attr&A_COLOR)-1;
-			if (COLORS >= 16)
-				colour=colour&0x7f;
-			else
-				colour=((colour&56)<<1)|(colour&7);
+			colour=((colour&56)<<1)|(colour&7);
 			fill[fillpos++]=colour|attrib;
 		}
 	}
@@ -590,37 +586,20 @@ void curs_textattr(int attr)
 {
 	chtype   attrs=A_NORMAL;
 	int	colour;
-	int	fg,bg;
 
 	if (lastattr==attr)
 		return;
 
 	lastattr=attr;
-
-	fg = attr & 0x0f;
-	bg = attr & 0xf0;
-
-	if (vflags & CIOLIB_VIDEO_NOBRIGHT)
-		fg &= 0x07;
-
-	if (!(vflags & CIOLIB_VIDEO_BGBRIGHT))
-		bg &= 0x70;
-
+	
+	if (attr & 8)  {
+		attrs |= A_BOLD;
+	}
 	if (attr & 128)
 	{
-		if (!(vflags & CIOLIB_VIDEO_NOBLINK))
-			attrs |= A_BLINK;
+		attrs |= A_BLINK;
 	}
-
-	if (COLORS >= 16) {
-		colour = COLOR_PAIR( ((fg|bg)+1) );
-	}
-	else {
-		if (fg & 8)  {
-			attrs |= A_BOLD;
-		}
-		colour = COLOR_PAIR( ((fg&7)|((bg&0x70)>>1))+1 );
-	}
+	colour = COLOR_PAIR( ((attr&7)|((attr>>1)&56))+1 );
 #ifdef NCURSES_VERSION_MAJOR
 	attrset(attrs);
 	color_set(colour,NULL);
@@ -713,18 +692,9 @@ int curs_initciolib(long inmode)
 	atexit(curs_suspend);
 
 	/* Set up color pairs */
-	if (COLORS >= 16) {
-		for(bg=0;bg<16;bg++)  {
-			for(fg=0;fg<16;fg++) {
-				init_pair(++pair,curses_color(fg),curses_color(bg));
-			}
-		}
-	}
-	else {
-		for(bg=0;bg<8;bg++)  {
-			for(fg=0;fg<8;fg++) {
-				init_pair(++pair,curses_color(fg),curses_color(bg));
-			}
+	for(bg=0;bg<8;bg++)  {
+		for(fg=0;fg<8;fg++) {
+			init_pair(++pair,curses_color(fg),curses_color(bg));
 		}
 	}
 	mode = inmode;
@@ -737,8 +707,6 @@ int curs_initciolib(long inmode)
 			mousemask(0,NULL);
 #endif
 
-	if (COLORS >= 16)
-		cio_api.options = CONIO_OPT_BRIGHT_BACKGROUND;
 	curs_textmode(0);
 	return(1);
 }
@@ -1033,19 +1001,7 @@ int curs_showmouse(void)
 	return(-1);
 }
 
-void curs_beep(void)
+int curs_beep(void)
 {
-	beep();
-}
-
-int curs_getvideoflags(void)
-{
-	return vflags;
-}
-
-void curs_setvideoflags(int flags)
-{
-	flags &= (CIOLIB_VIDEO_NOBRIGHT|CIOLIB_VIDEO_BGBRIGHT|CIOLIB_VIDEO_NOBLINK);
-	if (COLORS < 16)
-		flags &= ~CIOLIB_VIDEO_BGBRIGHT;
+	return(beep());
 }
