@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.168 2018/02/20 11:32:32 rswindell Exp $ */
+/* $Id: js_system.c,v 1.166 2017/11/16 09:41:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -709,7 +709,7 @@ static JSBool js_sysstats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -899,7 +899,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		can = NULL;
+	char*		can;
 	JSString*	js_str;
 	JSString*	js_can;
 	scfg_t*		cfg;
@@ -922,7 +922,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_can, can, NULL);
-	HANDLE_PENDING(cx, can);
+	HANDLE_PENDING(cx);
 	if(can==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -953,7 +953,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		fname = NULL;
+	char*		fname;
 	JSString*	js_str;
 	JSString*	js_fname;
 	jsrefcount	rc;
@@ -970,7 +970,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_fname, fname, NULL);
-	HANDLE_PENDING(cx, fname);
+	HANDLE_PENDING(cx);
 	if(fname==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -1125,7 +1125,7 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		p=NULL;
+	char*		p;
 	char*		prot=NULL;
 	char*		action=NULL;
 	char*		reason=NULL;
@@ -1162,29 +1162,27 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 					free(to);
 				if(from)
 					free(from);
-				if(p)
-					free(p);
 				return JS_FALSE;
 			}
-			if(p==NULL)
-				continue;
-			if(prot==NULL)
-				prot=p;
-			else if(action==NULL)
-				action=p;
-			else if(reason==NULL)
-				reason=p;
-			else if(host==NULL)
-				host=p;
-			else if(ip_addr==NULL)
-				ip_addr=p;
-			else if(to==NULL)
-				to=p;
-			else if(from==NULL)
-				from=p;
-			else
-				free(p);
 		}
+		if(p==NULL)
+			continue;
+		if(prot==NULL)
+			prot=p;
+		else if(action==NULL)
+			action=p;
+		else if(reason==NULL)
+			reason=p;
+		else if(host==NULL)
+			host=p;
+		else if(ip_addr==NULL)
+			ip_addr=p;
+		else if(to==NULL)
+			to=p;
+		else if(from==NULL)
+			from=p;
+		else
+			free(p);
 	}
 	rc=JS_SUSPENDREQUEST(cx);
 	ret=spamlog(cfg,prot,action,reason,host,ip_addr,to,from);
@@ -1214,7 +1212,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	int32		i32=0;
-	char*		p=NULL;
+	char*		p;
 	char*		prot=NULL;
 	char*		user=NULL;
 	char*		text=NULL;
@@ -1252,8 +1250,6 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 					free(text);
 				if(host)
 					free(host);
-				if(p)
-					free(p);
 				return JS_FALSE;
 			}
 		}
@@ -1289,7 +1285,7 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		p=NULL;
+	char*		p;
 	char*		prot=NULL;
 	char*		reason=NULL;
 	char*		host=NULL;
@@ -1323,8 +1319,6 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 					free(from);
 				if(fname)
 					free(fname);
-				if(p)
-					free(p);
 				return JS_FALSE;
 			}
 		}
@@ -1406,7 +1400,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		node=1;
 	JSString*	js_msg;
-	char*		msg = NULL;
+	char*		msg;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1424,7 +1418,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx, msg);
+	HANDLE_PENDING(cx)
 	if(msg==NULL) 
 		return(JS_TRUE);
 
@@ -1479,7 +1473,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		usernumber=1;
 	JSString*	js_msg;
-	char*		msg = NULL;
+	char*		msg;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1497,7 +1491,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx, msg);
+	HANDLE_PENDING(cx);
 	if(msg==NULL)
 		return(JS_TRUE);
 
@@ -1656,11 +1650,11 @@ js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
-	char	*cmd = NULL;
+	char	*cmd;
 	int		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx, cmd);
+	HANDLE_PENDING(cx);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
@@ -1684,7 +1678,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
-	char*		cmd = NULL;
+	char*		cmd;
 	FILE*		fp;
 	jsint		line=0;
 	jsval		val;
@@ -1701,7 +1695,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx, cmd);
+	HANDLE_PENDING(cx);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
@@ -2142,7 +2136,7 @@ static JSBool js_node_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -2247,7 +2241,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
