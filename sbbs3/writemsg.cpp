@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.120 2018/02/20 11:44:52 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.119 2018/01/12 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,10 +174,8 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 	if((buf=(char*)malloc(len+1))==NULL)
 		return -2;
 
-	if((fp=fopen(src,"rb"))==NULL) {
-		free(buf);
+	if((fp=fopen(src,"rb"))==NULL)
 		return -3;
-	}
 
 	memset(buf,0,len+1);
 	fread(buf,len,sizeof(char),fp);
@@ -222,10 +220,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(editor!=NULL)
 		*editor=NULL;
 
-	if((buf=(char*)malloc((cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) + 1))
+	if((buf=(char*)malloc(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN))
 		==NULL) {
 		errormsg(WHERE,ERR_ALLOC,fname
-			,(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) +1);
+			,cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
 		return(false); 
 	}
 
