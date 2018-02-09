@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.157 2018/02/08 21:37:17 deuce Exp $ */
+/* $Id: ciolib.c,v 1.158 2018/02/09 00:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -188,6 +188,7 @@ int try_sdl_init(int mode)
 		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
 		cio_api.get_modepalette=bitmap_get_modepalette;
+		cio_api.set_modepalette=bitmap_set_modepalette;
 		return(1);
 	}
 	return(0);
@@ -241,6 +242,7 @@ int try_x_init(int mode)
 		cio_api.getpixels=bitmap_getpixels;
 		cio_api.setpixels=bitmap_setpixels;
 		cio_api.get_modepalette=bitmap_get_modepalette;
+		cio_api.set_modepalette=bitmap_set_modepalette;
 		return(1);
 	}
 	return(0);

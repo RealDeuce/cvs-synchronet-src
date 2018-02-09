@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.205 2018/02/08 22:27:33 deuce Exp $ */
+/* $Id: cterm.c,v 1.206 2018/02/09 00:39:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2683,7 +2683,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.205 $";
+	char	*revision="$Revision: 1.206 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3026,12 +3026,11 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 		cterm_start(cterm);
 
 	/* Now rejigger the current modes palette... */
-	/* TODO: We need a way to remap instead of fuckery */
 	mpalette = get_modepalette(palette);
 	if (mpalette) {
-		for (i=0; i < 16; i++) {
+		for (i=0; i < 16; i++)
 			mpalette[i] += 16;
-		}
+		set_modepalette(mpalette);
 	}
 
 	oldptnm=*cterm->puttext_can_move;
@@ -3757,7 +3756,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	SETCURSORTYPE(cterm->cursor);
 
 	/* Now rejigger the current modes palette... */
-	/* TODO: We need a way to remap instead of fuckery */
 	if (mpalette) {
 		for (i=0; i < 16; i++)
 			mpalette[i] -= 16;
