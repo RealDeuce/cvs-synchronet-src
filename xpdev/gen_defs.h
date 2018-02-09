@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.71 2016/12/08 07:16:45 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.73 2017/12/08 01:58:16 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -400,6 +400,8 @@ typedef struct {
 #define FIND_CHAR(p,c)                  while(*(p) && *(p)!=c)                                  (p)++;
 #define SKIP_CHARSET(p,s)               while(*(p) && strchr(s,*(p))!=NULL)                     (p)++;
 #define FIND_CHARSET(p,s)               while(*(p) && strchr(s,*(p))==NULL)                     (p)++;
+#define SKIP_CRLF(p)					SKIP_CHARSET(p, "\r\n")
+#define FIND_CRLF(p)					FIND_CHARSET(p, "\r\n")
 #define SKIP_ALPHA(p)                   while(*(p) && isalpha((unsigned char)*(p)))             (p)++;
 #define FIND_ALPHA(p)                   while(*(p) && !isalpha((unsigned char)*(p)))            (p)++;
 #define SKIP_ALPHANUMERIC(p)            while(*(p) && isalnum((unsigned char)*(p)))             (p)++;
@@ -408,6 +410,13 @@ typedef struct {
 #define FIND_DIGIT(p)                   while(*(p) && !isdigit((unsigned char)*(p)))            (p)++;
 #define SKIP_HEXDIGIT(p)                while(*(p) && isxdigit((unsigned char)*(p)))            (p)++;
 #define FIND_HEXDIGIT(p)                while(*(p) && !isxdigit((unsigned char)*(p)))           (p)++;
+
+#define HEX_CHAR_TO_INT(ch) 			(((ch)&0xf)+(((ch)>>6)&1)*9)
+#define DEC_CHAR_TO_INT(ch)				((ch)&0xf)
+#define OCT_CHAR_TO_INT(ch)				((ch)&0x7)
+#ifndef isodigit
+#define isodigit(ch)					((ch) >= '0' && (ch) <= '7')
+#endif
 
 /* Variable/buffer initialization (with zeros) */
 #define ZERO_VAR(var)                           memset(&(var),0,sizeof(var))

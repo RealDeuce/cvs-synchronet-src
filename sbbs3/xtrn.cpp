@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.225 2015/11/24 11:05:08 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.228 2018/01/13 09:07:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -528,6 +528,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "SBBSDATA=%s\n", data_dir);
 		fprintf(fp, "SBBSEXEC=%s\n", exec_dir);
         fprintf(fp, "SBBSNNUM=%d\n", cfg.node_num);
+		fprintf(fp, "PCBNODE=%d\n", cfg.node_num);
 		/* date/time env vars */
 		fprintf(fp, "DAY=%02u\n", tm.tm_mday);
 		fprintf(fp, "WEEKDAY=%s\n",wday[tm.tm_wday]);
@@ -1409,6 +1410,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(doscmdrc,"SBBSDATA=E:\\data\\\n");
 		fprintf(doscmdrc,"SBBSEXEC=E:\\exec\\\n");
 		fprintf(doscmdrc,"SBBSNNUM=%d\n",cfg.node_num);
+		fprintf(doscmdrc,"PCBNODE=%d\n",cfg.node_num);
 
 		fclose(doscmdrc);
 		SAFECOPY(str,fullcmdline);
@@ -1542,6 +1544,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"set SBBSCTRL=%s\r\n",ctrldrive);
 		fprintf(dosemubat,"set SBBSDATA=%s\r\n",datadrive);
 		fprintf(dosemubat,"set SBBSEXEC=%s\r\n",execdrive);
+		fprintf(dosemubat,"set PCBNODE=%d\r\n",cfg.node_num);
 
 		/* clear existing redirections on dos side */
 		fprintf(dosemubat,"lredir del %s\r\nlredir del %s\r\nlredir del %s\r\nlredir del %s\r\n",xtrndrive,ctrldrive,datadrive,execdrive);
@@ -1555,27 +1558,20 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* change to the drive where the parent of the startup_dir is mounted */
 		fprintf(dosemubat,"%s\r\n",xtrndrive);
 
+		const char* gamedir = "";
 		if(startup_dir!=NULL && startup_dir[0]) {
-
-			SAFECOPY(str,startup_dir);
-
-		/* if theres a trailing slash, dump it */
-
-			p=lastchar(str);
-			if (*p=='/') *p=0;
-
-			if ((p=strrchr(str, '/'))!=NULL)
-				SAFECOPY(str,p+1);  /* str = game's starting dir */
-
-			else str[0] = '\0';
+			SAFECOPY(str, startup_dir);
+			*lastchar(str) = 0;
+			gamedir = getfname(str);
 		}
-
-		else str[0] = '\0';
-
-		fprintf(dosemubat,"cd %s\r\n",str);  /* startup_dir  */
+		if(*gamedir == 0) {
+			lprintf(LOG_ERR, "No startup directory configured for: %s", cmdline);
+			return -1;
+		}
+		fprintf(dosemubat,"cd %s\r\n", gamedir);
 
 		if (setup_override == 1)
-			fprintf(dosemubat,"call %s\\%s\\emusetup.bat %s\r\n",xtrndrive,str,cmdline);
+			fprintf(dosemubat,"call %s\\%s\\emusetup.bat %s\r\n",xtrndrive,gamedir,cmdline);
 		else if (setup_override == 0)
 			fprintf(dosemubat,"call %s\\emusetup.bat\r\n",ctrldrive);
 		/* if (setup_override == -1) do_nothing */
