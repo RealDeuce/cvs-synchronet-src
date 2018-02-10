@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.33 2015/02/12 05:44:13 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.35 2018/02/05 17:56:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -654,6 +654,7 @@ void curs_resume(void)
 	raw();
 	timeout(10);
 	refresh();
+	getch();
 }
 
 int curs_initciolib(long inmode)
@@ -667,6 +668,8 @@ int curs_initciolib(long inmode)
 #else
 	char *term;
 	SCREEN *tst;
+
+	cio_api.options = 0;
 
 	term=getenv("TERM");
 	if(term==NULL)
