@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.64 2016/11/28 10:11:41 rswindell Exp $ */
+/* $Id: userdat.h,v 1.66 2017/10/12 09:11:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,6 +76,7 @@ extern char* crlf;
 extern char* nulstr;
 
 DLLEXPORT int	DLLCALL openuserdat(scfg_t*, BOOL for_modify);
+DLLEXPORT int	DLLCALL closeuserdat(int);
 DLLEXPORT int	DLLCALL readuserdat(scfg_t*, unsigned user_number, char* userdat, int infile);
 DLLEXPORT int	DLLCALL parseuserdat(scfg_t*, char* userdat, user_t*);
 DLLEXPORT int	DLLCALL getuserdat(scfg_t*, user_t*); 	/* Fill userdat struct with user data   */
@@ -104,7 +105,7 @@ DLLEXPORT char* DLLCALL getnmsg(scfg_t*, int node_num);
 DLLEXPORT int	DLLCALL putnmsg(scfg_t*, int num, char *strin);
 
 DLLEXPORT uint	DLLCALL userdatdupe(scfg_t*, uint usernumber, uint offset, uint datlen, char *dat
-							,BOOL del, BOOL next);
+							,BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata);
 
 DLLEXPORT BOOL	DLLCALL chk_ar(scfg_t*, uchar* str, user_t*, client_t*); /* checks access requirements */
 
