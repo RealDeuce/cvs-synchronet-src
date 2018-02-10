@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.54 2018/02/10 01:26:14 deuce Exp $ */
+/* $Id: cterm.h,v 1.55 2018/02/10 21:30:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,6 +176,10 @@ struct cterminal {
 	unsigned long		sx_height;		// REMAINING heigh from raster attributes
 	uint8_t				*sx_mask;
 	int					sx_orig_cursor;	// Original value of cterm->cursor
+
+	/* APC Handler */
+	void				(*apc_handler)(char *strbuf, size_t strlen, void *cbdata);
+	void				*apc_handler_data;
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
