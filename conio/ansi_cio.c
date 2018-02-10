@@ -1,10 +1,10 @@
-/* $Id: ansi_cio.c,v 1.84 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: ansi_cio.c,v 1.81 2018/02/05 17:56:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -464,7 +464,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 				j=0;	/* Can use clrtoeol? */
 				for(cx=x; cx<ti.screenwidth; cx++) {
 					/* First, make sure that the rest are spaces or NULLs */
-					if(out[(cx-x)*2] != ' ' && out[(cx-x)*2] != 0)
+					if(out[(cx-x)*2] != ' ' || out[(cx-x)*2] != 0)
 						break;
 					/* Next, make sure that the attribute is the same */
 					if(out[(cx-x)*2+1] != out[cx*2+1])
@@ -859,9 +859,10 @@ int ansi_getch(void)
 	return(ch);
 }
 
-void ansi_beep(void)
+int ansi_beep(void)
 {
 	ansi_sendstr("\7",1);
+	return(0);
 }
 
 #if defined(__BORLANDC__)
