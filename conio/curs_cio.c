@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.36 2018/02/10 10:10:32 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.37 2018/02/10 10:31:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -616,7 +616,7 @@ void curs_textattr(int attr)
 		if (fg & 8)  {
 			attrs |= A_BOLD;
 		}
-		colour = COLOR_PAIR( ((fg&7)|(bg&0x70))+1 );
+		colour = COLOR_PAIR( ((fg&7)|((bg&0x70)>>1))+1 );
 	}
 #ifdef NCURSES_VERSION_MAJOR
 	attrset(attrs);
