@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.325 2018/02/10 22:56:11 deuce Exp $ */
+/* $Id: term.c,v 1.326 2018/02/10 23:17:04 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2314,7 +2314,7 @@ static int get_cache_fn_base(struct bbslist *bbs, char *fn, size_t fnsz)
 	strcat(fn, bbs->name);
 	backslash(fn);
 	if (!isdir(fn))
-		MKDIR(fn);
+		mkpath(fn);
 	if (!isdir(fn))
 		return 0;
 	return 1;
