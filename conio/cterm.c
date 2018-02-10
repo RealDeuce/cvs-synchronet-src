@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.213 2018/02/10 01:26:14 deuce Exp $ */
+/* $Id: cterm.c,v 1.214 2018/02/10 04:56:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2378,6 +2378,11 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										attr2palette(cterm->attr, NULL, &cterm->bg_color);
 									break;
 								case 7:
+									j=cterm->attr&112;
+									cterm->attr = (cterm->attr << 4) & 0x70;
+									cterm->attr |= j>>4;
+									attr2palette(cterm->attr, &cterm->fg_color, &cterm->bg_color);
+									break;
 								case 8:
 									j=cterm->attr&112;
 									cterm->attr&=112;
@@ -2768,7 +2773,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.213 $";
+	char	*revision="$Revision: 1.214 $";
 	char *in;
 	char	*out;
 	int		i;
