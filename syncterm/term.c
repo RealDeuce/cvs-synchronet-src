@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.321 2018/02/02 22:21:35 deuce Exp $ */
+/* $Id: term.c,v 1.323 2018/02/07 09:37:26 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -92,8 +92,6 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	uint32_t *screenf;
 	uint32_t *screenb;
 	unsigned char *tscreen;
-	uint32_t *tscreenf;
-	uint32_t *tscreenb;
 	unsigned char *sbuffer;
 	uint32_t *sbufferf;
 	uint32_t *sbufferb;
@@ -105,6 +103,7 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	char *newcopybuf;
 	int lastchar;
 	int old_xlat = ciolib_xlat;
+	struct ciolib_screen *savscrn;
 
 	sbufsize=term.width*2*term.height;
 	sbufsizep=term.width*sizeof(screenf[0])*term.height;
@@ -115,11 +114,10 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	sbufferf=malloc(sbufsizep);
 	sbufferb=malloc(sbufsizep);
 	tscreen=(unsigned char*)malloc(sbufsize);
-	tscreenf=malloc(sbufsizep);
-	tscreenb=malloc(sbufsizep);
 	pgettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen,screenf,screenb);
-	ciolib_xlat = TRUE;
-	pgettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen,tscreenf,tscreenb);
+	ciolib_xlat = CIOLIB_XLAT_CHARS;
+	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
+	savscrn = savescreen();
 	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
@@ -199,10 +197,10 @@ cleanup:
 	free(sbufferf);
 	free(sbufferb);
 	free(tscreen);
-	free(tscreenf);
-	free(tscreenb);
 	if(copybuf)
 		free(copybuf);
+	restorescreen(savscrn);
+	freescreen(savscrn);
 	return;
 }
 
@@ -239,7 +237,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	now=time(NULL);
 	if(now==lastupd && speed==oldspeed)
 		return;
-	ciolib_xlat = TRUE;
+	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	lastupd=now;
 	oldspeed=speed;
 	timeon=now - bbs->connected;
@@ -1984,7 +1982,7 @@ void font_control(struct bbslist *bbs)
 	struct ciolib_screen *savscrn;
 	struct	text_info txtinfo;
 	int i,j,k;
-	int enable_xlat = 0;
+	int enable_xlat = CIOLIB_XLAT_NONE;
 
 	if(safe_mode)
 		return;
@@ -2023,9 +2021,9 @@ void font_control(struct bbslist *bbs)
 				else {
 					setfont(i,FALSE,1);
 					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
-						enable_xlat = TRUE;
+						enable_xlat = CIOLIB_XLAT_CHARS;
 					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
-						enable_xlat = TRUE;
+						enable_xlat = CIOLIB_XLAT_CHARS;
 				}
 			}
 			else
