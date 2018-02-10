@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.39 2018/02/14 04:37:27 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.36 2018/02/10 10:10:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,10 +575,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 				attrib |= 128;
 			}
 			colour=PAIR_NUMBER(attr&A_COLOR)-1;
-			if (COLORS >= 16)
-				colour=colour&0x7f;
-			else
-				colour=((colour&56)<<1)|(colour&7);
+			colour=((colour&56)<<1)|(colour&7);
 			fill[fillpos++]=colour|attrib;
 		}
 	}
@@ -619,7 +616,7 @@ void curs_textattr(int attr)
 		if (fg & 8)  {
 			attrs |= A_BOLD;
 		}
-		colour = COLOR_PAIR( ((fg&7)|((bg&0x70)>>1))+1 );
+		colour = COLOR_PAIR( ((fg&7)|(bg&0x70))+1 );
 	}
 #ifdef NCURSES_VERSION_MAJOR
 	attrset(attrs);
@@ -1033,9 +1030,9 @@ int curs_showmouse(void)
 	return(-1);
 }
 
-void curs_beep(void)
+int curs_beep(void)
 {
-	beep();
+	return(beep());
 }
 
 int curs_getvideoflags(void)
