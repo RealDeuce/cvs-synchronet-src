@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.76 2018/07/28 22:27:27 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.73 2017/12/29 06:02:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,7 +341,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	int32_t	l;
 	FILE	*stream;
 	smb_t	smb;
-	BOOL	result = TRUE;
 
 	if(cfg->prepped)
 		return(FALSE);
@@ -448,15 +447,14 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 				else
 					SAFECOPY(smb.file,cfg->sub[i]->data_dir);
 				prep_dir(cfg->ctrl_dir,smb.file,sizeof(smb.file));
-				md(smb.file);
 				SAFEPRINTF2(str,"%s%s"
 					,cfg->grp[cfg->sub[i]->grp]->code_prefix
 					,cfg->sub[i]->code_suffix);
 				strlwr(str);
 				strcat(smb.file,str);
-				if(smb_open(&smb) != SMB_SUCCESS) {
-					result = FALSE;
-					continue;
+				if(smb_open(&smb)!=0) {
+					/* errormsg(WHERE,ERR_OPEN,smb.file,x); */
+					continue; 
 				}
 				if(!filelength(fileno(smb.shd_fp))) {
 					smb.status.max_crcs=cfg->sub[i]->maxcrcs;
@@ -596,7 +594,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	if(!no_msghdr) {
 		strcpy(dir,cfg->data_dir);
 		prep_dir(cfg->ctrl_dir,dir,sizeof(dir));
-		md(dir);
 		SAFEPRINTF(smb.file,"%smail",dir);
 		if(smb_open(&smb)!=0) {
 			return(FALSE); 
@@ -628,7 +625,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		smb_close(&smb); 
 	}
 
-	return result;
+	return(TRUE);
 }
 
 
@@ -663,7 +660,6 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->cdt_up_pct,stream);
 	put_int(cfg->cdt_dn_pct,stream);
 	put_int(l,stream);					/* unused */
-	memset(cmd, 0, sizeof(cmd));
 	put_str(cmd,stream);
 	put_int(cfg->leech_pct,stream);
 	put_int(cfg->leech_sec,stream);
@@ -817,8 +813,8 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
-						safe_snprintf(path, sizeof(path), "%s%s/"
-							, cfg->dir[i]->data_dir
+						safe_snprintf(path, sizeof(path), "%sdirs/%s/"
+							, cfg->data_dir
 							, str);
 					}
 					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
