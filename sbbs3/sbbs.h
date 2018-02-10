@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.469 2018/02/20 02:17:17 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.467 2018/02/05 06:07:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -217,13 +217,9 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
 }
 
-#define HANDLE_PENDING(cx, p ) \
-	if(JS_IsExceptionPending(cx)) { \
-		if(p != NULL) \
-			free(p); \
-		p = NULL; \
-		return JS_FALSE; \
-	}
+#define HANDLE_PENDING(cx) \
+	if(JS_IsExceptionPending(cx)) \
+		return JS_FALSE;
 
 #define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
 { \
@@ -1209,6 +1205,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1220,14 +1217,11 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
-#ifdef USE_CRYPTLIB
 													,CRYPT_CONTEXT session		/* client */
-#else
-													,int unused
-#endif
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
+#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
