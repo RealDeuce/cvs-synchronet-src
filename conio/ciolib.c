@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.159 2018/02/09 23:20:54 deuce Exp $ */
+/* $Id: ciolib.c,v 1.160 2018/02/10 10:10:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -275,6 +275,8 @@ int try_curses_init(int mode)
 		cio_api.suspend=curs_suspend;
 		cio_api.resume=curs_resume;
 		cio_api.beep=curs_beep;
+		cio_api.setvideoflags=curs_setvideoflags;
+		cio_api.getvideoflags=curs_getvideoflags;
 #if defined(NCURSES_VERSION_MAJOR) || defined (__NetBSD__)
 		cio_api.ESCDELAY=&ESCDELAY;
 #endif
