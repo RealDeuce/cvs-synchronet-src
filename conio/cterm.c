@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.212 2018/02/09 23:30:33 deuce Exp $ */
+/* $Id: cterm.c,v 1.213 2018/02/10 01:26:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,6 +50,7 @@
 
 #include "cterm.h"
 #include "vidmodes.h"
+#include "base64.h"
 
 #define	BUFSIZE	2048
 
@@ -2635,6 +2636,47 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				case CTERM_STRING_DCS:
 					if (cterm->sixel == SIXEL_STARTED)
 						parse_sixel_string(cterm, true);
+					else {
+						if (strncmp(cterm->strbuf, "CTerm:Font:", 11) == 0) {
+							cterm->font_slot = strtoul(cterm->strbuf+11, &p, 10);
+							if (p && *p == ':') {
+								p++;
+								i = b64_decode(cterm->fontbuf, sizeof(cterm->fontbuf), p, 0);
+								switch (i) {
+									case 4096:
+										p2 = malloc(i);
+										if (p2) {
+											memcpy(p2, cterm->fontbuf, i);
+											FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_sixteen);
+											conio_fontdata[cterm->font_slot].eight_by_sixteen=p2;
+											FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
+											conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
+										}
+										break;
+									case 3584:
+										p2 = malloc(i);
+										if (p2) {
+											memcpy(p2, cterm->fontbuf, i);
+											FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_fourteen);
+											conio_fontdata[cterm->font_slot].eight_by_fourteen=p2;
+											FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
+											conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
+										}
+										break;
+									case 2048:
+										p2 = malloc(i);
+										if (p2) {
+											memcpy(p2, cterm->fontbuf, i);
+											FREE_AND_NULL(conio_fontdata[cterm->font_slot].eight_by_eight);
+											conio_fontdata[cterm->font_slot].eight_by_eight=p2;
+											FREE_AND_NULL(conio_fontdata[cterm->font_slot].desc);
+											conio_fontdata[cterm->font_slot].desc=strdup("Remote Defined Font");
+										}
+										break;
+								}
+							}
+						}
+					}
 					cterm->sixel = SIXEL_INACTIVE;
 					break;
 				case CTERM_STRING_OSC:
@@ -2726,7 +2768,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.212 $";
+	char	*revision="$Revision: 1.213 $";
 	char *in;
 	char	*out;
 	int		i;

@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.53 2018/02/06 07:05:08 deuce Exp $ */
+/* $Id: cterm.h,v 1.54 2018/02/10 01:26:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -143,7 +143,7 @@ struct cterminal {
 	int					ypos;
 	cterm_log_t			log;
 	FILE*				logfile;
-	char				fontbuf[4096];	// Remote font
+	char				fontbuf[4097];	// Remote font
 	int					font_read;		// Current position in fontbuf
 	int					font_slot;
 	int					font_size;		// Bytes
