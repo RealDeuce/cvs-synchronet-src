@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.159 2018/02/20 02:17:15 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.158 2018/01/12 22:15:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -772,7 +772,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 		if((js_str = JS_ValueToString(cx, *vp))==NULL)
 			return(JS_FALSE);
 		JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
-		HANDLE_PENDING(cx, p);
+		HANDLE_PENDING(cx);
 	}
 
 	switch(tiny) {
@@ -4000,7 +4000,7 @@ static JSBool js_bbs_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
