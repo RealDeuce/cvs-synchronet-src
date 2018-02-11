@@ -11,7 +11,7 @@ struct update_rect {
 	int	y;
 	int	width;
 	int	height;
-	unsigned char *data;
+	uint32_t	*data;
 };
 
 enum x11_local_events {
@@ -116,6 +116,7 @@ extern int x11_window_ypos;
 extern int x11_window_width;
 extern int x11_window_height;
 extern int x11_initialized;
+extern struct video_stats x_cvstat;
 
 void x11_event_thread(void *args);
 

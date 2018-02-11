@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.664 2018/01/29 22:46:21 deuce Exp $ */
+/* $Id: main.cpp,v 1.666 2018/02/05 06:07:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3909,13 +3909,37 @@ int sbbs_t::incom(unsigned long timeout)
 	return(ch);
 }
 
-int sbbs_t::outcom(uchar ch)
+// Steve's original implementation (in RCIOL) did not incorporate a retry
+// ... so this function does not either. :-P
+int sbbs_t::_outcom(uchar ch)
 {
 	if(!RingBufFree(&outbuf))
 		return(TXBOF);
     if(!RingBufWrite(&outbuf, &ch, 1))
 		return(TXBOF);
 	return(0);
+}
+
+// This outcom version retries - copied loop from sbbs_t::outchar()
+int sbbs_t::outcom(uchar ch, int max_attempts)
+{
+	int i = 0;
+	while(_outcom(ch) != 0) {
+		if(!online)
+			break;
+		i++;
+		if(i >= max_attempts) {			/* timeout - beep flush outbuf */
+			lprintf(LOG_NOTICE, "timeout(outcom) %04X %04X", rioctl(TXBC), rioctl(IOFO));
+			_outcom(BEL);
+			rioctl(IOCS|PAUSE); 
+			return TXBOF;
+		} 
+		if(sys_status&SS_SYSPAGE)
+			sbbs_beep(i, OUTCOM_RETRY_DELAY);
+		else
+			mswait(OUTCOM_RETRY_DELAY); 
+	}
+	return 0;	// Success
 }
 
 int sbbs_t::putcom(const char *str, size_t len)
@@ -4031,6 +4055,7 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
+	cterm_version = 0;
     lbuflen=0;
     slcnt=0;
     altul=0;
