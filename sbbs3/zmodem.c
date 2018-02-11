@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.121 2018/02/20 05:31:09 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.120 2018/02/01 08:20:19 deuce Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -2013,10 +2013,6 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_re
 				break;
 			}
 			start_bytes=filelength(fileno(fp));
-			if(start_bytes < 0) {
-				lprintf(zm,LOG_ERR,"Invalid file length %"PRId64": %s", start_bytes, fpath);
-				break;
-			}
 
 			skip=FALSE;
 			errors=zmodem_recv_file_data(zm,fp,start_bytes);
@@ -2304,7 +2300,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.121 $", "%*s %s", buf);
+	sscanf("$Revision: 1.120 $", "%*s %s", buf);
 
 	return(buf);
 }
