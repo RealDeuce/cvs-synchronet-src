@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.41 2018/02/05 17:56:53 deuce Exp $ */
+/* $Id: x_cio.c,v 1.45 2018/02/12 06:38:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,9 @@
 #include "ciolib.h"
 #include "x_cio.h"
 #include "x_events.h"
+
+#define BITMAP_CIOLIB_DRIVER
+#include "bitmap_con.h"
 
 int x_kbhit(void)
 {
@@ -444,17 +447,13 @@ int x_init(void)
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
+void x11_drawrect(struct rectlist *data)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
 	if(x11_initialized) {
-		ev.data.rect.x=xoffset;
-		ev.data.rect.y=yoffset;
-		ev.data.rect.width=width;
-		ev.data.rect.height=height;
-		ev.data.rect.data=data;
+		ev.data.rect=data;
 		write_event(&ev);
 	}
 }
@@ -466,4 +465,16 @@ void x11_flush(void)
 	ev.type=X11_LOCAL_FLUSH;
 	if(x11_initialized)
 		write_event(&ev);
+}
+
+void x_setscaling(int newval)
+{
+	pthread_mutex_lock(&vstatlock);
+	x_cvstat.scaling = vstat.scaling = newval;
+	pthread_mutex_unlock(&vstatlock);
+}
+
+int x_getscaling(void)
+{
+	return x_cvstat.scaling;
 }
