@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.44 2018/02/06 03:00:52 deuce Exp $ */
+/* $Id: x_cio.c,v 1.45 2018/02/12 06:38:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -447,17 +447,13 @@ int x_init(void)
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
+void x11_drawrect(struct rectlist *data)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
 	if(x11_initialized) {
-		ev.data.rect.x=xoffset;
-		ev.data.rect.y=yoffset;
-		ev.data.rect.width=width;
-		ev.data.rect.height=height;
-		ev.data.rect.data=data;
+		ev.data.rect=data;
 		write_event(&ev);
 	}
 }
