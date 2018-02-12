@@ -2,7 +2,7 @@
 
 /* Synchronet DNS MX-record lookup routines */
 
-/* $Id: mxlookup.c,v 1.29 2018/03/19 16:36:33 deuce Exp $ */
+/* $Id: mxlookup.c,v 1.28 2015/08/29 20:53:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,6 @@ int dns_getmx(char* name, char* mx, char* mx2
 	dns_rr_t*		rr;
 	struct timeval	tv;
 	fd_set			socket_set;
-	int				sess = -1;
 
 	mx[0]=0;
 	mx2[0]=0;
@@ -204,7 +203,7 @@ int dns_getmx(char* name, char* mx, char* mx2
     result = bind(sock,(struct sockaddr *)&addr, sizeof(addr));
 
 	if(result != 0) {
-		mail_close_socket(&sock, &sess);
+		mail_close_socket(sock);
 		return(ERROR_VALUE);
 	}
 
@@ -214,7 +213,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 	addr.sin_port   = htons(53);
 	
 	if((result=connect(sock, (struct sockaddr *)&addr, sizeof(addr)))!=0) {
-		mail_close_socket(&sock, &sess);
+		mail_close_socket(sock);
 		return(ERROR_VALUE);
 	}
 
@@ -268,7 +267,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 			result=ERROR_VALUE;
 		else 
 			result=-1;
-		mail_close_socket(&sock, &sess);
+		mail_close_socket(sock);
 		return(result);
 	}
 
@@ -283,7 +282,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 			result=ERROR_VALUE;
 		else
 			result=-2;
-		mail_close_socket(&sock, &sess);
+		mail_close_socket(sock);
 		return(result);
 	}
 
@@ -300,7 +299,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 			result=ERROR_VALUE;
 		else 
 			result=-1;
-		mail_close_socket(&sock, &sess);
+		mail_close_socket(sock);
 		return(result);
 	}
 
@@ -371,7 +370,7 @@ int dns_getmx(char* name, char* mx, char* mx2
 #endif
 		strcpy(mx,name);
 	}
-	mail_close_socket(&sock, &sess);
+	mail_close_socket(sock);
 	return(0);
 }
 
