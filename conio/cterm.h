@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.56 2018/02/13 08:11:18 deuce Exp $ */
+/* $Id: cterm.h,v 1.55 2018/02/10 21:30:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,9 @@ struct cterminal {
 	int					top_margin;
 	int					bottom_margin;
 	int					quiet;			// No sounds are made
-	struct vmem_cell	*scrollback;
+	unsigned char		*scrollback;
+	uint32_t			*scrollbackf;
+	uint32_t			*scrollbackb;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
 	bool				autowrap;
@@ -185,6 +187,7 @@ struct cterminal {
 	int		(*ciolib_wherex)		(struct cterminal *);
 	int		(*ciolib_wherey)		(struct cterminal *);
 	int		(*ciolib_gettext)		(struct cterminal *,int,int,int,int,void *);
+	int		(*ciolib_pgettext)		(struct cterminal *,int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*ciolib_gettextinfo)	(struct cterminal *,struct text_info *);
 	void	(*ciolib_textattr)		(struct cterminal *,int);
 	void	(*ciolib_setcursortype)	(struct cterminal *,int);
@@ -196,16 +199,19 @@ struct cterminal {
 	void	(*ciolib_setscaling)	(struct cterminal *,int new_value);
 	int		(*ciolib_getscaling)	(struct cterminal *);
 	int		(*ciolib_putch)			(struct cterminal *,int);
+	int		(*ciolib_cputch)		(struct cterminal *,uint32_t,uint32_t,int);
 	int		(*ciolib_puttext)		(struct cterminal *,int,int,int,int,void *);
+	int		(*ciolib_pputtext)		(struct cterminal *,int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	(*ciolib_window)		(struct cterminal *,int,int,int,int);
 	int		(*ciolib_cputs)			(struct cterminal *,char *);
+	int		(*ciolib_ccputs)		(struct cterminal *,uint32_t,uint32_t,const char *);
 	int		(*ciolib_setfont)		(struct cterminal *,int font, int force, int font_num);
 #else
 	void	CIOLIBCALL (*ciolib_gotoxy)		(int,int);
 	int		CIOLIBCALL (*ciolib_wherex)		(void);
 	int		CIOLIBCALL (*ciolib_wherey)		(void);
 	int		CIOLIBCALL (*ciolib_gettext)		(int,int,int,int,void *);
-	int		CIOLIBCALL (*ciolib_vmem_gettext)	(int,int,int,int,struct vmem_cell *);
+	int		CIOLIBCALL (*ciolib_pgettext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	CIOLIBCALL (*ciolib_gettextinfo)	(struct text_info *);
 	void	CIOLIBCALL (*ciolib_textattr)		(int);
 	void	CIOLIBCALL (*ciolib_setcursortype)	(int);
@@ -217,10 +223,12 @@ struct cterminal {
 	void	CIOLIBCALL (*ciolib_setscaling)		(int new_value);
 	int		CIOLIBCALL (*ciolib_getscaling)		(void);
 	int		CIOLIBCALL (*ciolib_putch)			(int);
+	int		CIOLIBCALL (*ciolib_cputch)			(uint32_t, uint32_t, int);
 	int		CIOLIBCALL (*ciolib_puttext)		(int,int,int,int,void *);
-	int		CIOLIBCALL (*ciolib_vmem_puttext)	(int,int,int,int,struct vmem_cell *);
+	int		CIOLIBCALL (*ciolib_pputtext)		(int,int,int,int,void *,uint32_t *,uint32_t *);
 	void	CIOLIBCALL (*ciolib_window)		(int,int,int,int);
 	int		CIOLIBCALL (*ciolib_cputs)			(char *);
+	int		CIOLIBCALL (*ciolib_ccputs)			(uint32_t, uint32_t, const char *);
 	int		CIOLIBCALL (*ciolib_setfont)		(int font, int force, int font_num);
 #endif
 	int 	*_wscroll;
@@ -233,7 +241,7 @@ struct cterminal {
 extern "C" {
 #endif
 
-CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation);
+CIOLIBEXPORT struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation);
 CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal *cterm, const void *buf, int buflen, char *retbuf, size_t retsize, int *speed);
 CIOLIBEXPORT int CIOLIBCALL cterm_openlog(struct cterminal *cterm, char *logfile, int logtype);
 CIOLIBEXPORT void CIOLIBCALL cterm_closelog(struct cterminal *cterm);
