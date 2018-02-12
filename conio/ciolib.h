@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.94 2018/02/12 05:49:00 deuce Exp $ */
+/* $Id: ciolib.h,v 1.95 2018/02/12 07:39:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -363,6 +363,7 @@ typedef struct {
 	uint32_t 	*(*get_modepalette)(uint32_t[16]);
 	int	(*set_modepalette)(uint32_t[16]);
 	uint32_t	(*map_rgb)(uint16_t r, uint16_t g, uint16_t b);
+	void	(*replace_font)(uint8_t id, char *name, void *data, size_t size);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -453,6 +454,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
 CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(uint32_t[16]);
 CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t[16]);
 CIOLIBEXPORT uint32_t CIOLIBCALL ciolib_map_rgb(uint16_t r, uint16_t g, uint16_t b);
+CIOLIBEXPORT void CIOLIBCALL ciolib_replace_font(uint8_t id, char *name, void *data, size_t size);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -531,6 +533,7 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define get_modepalette(a)		ciolib_get_modepalette(a)
 	#define set_modepalette(a)		ciolib_set_modepalette(a)
 	#define map_rgb(a,b,c)			ciolib_map_rgb(a,b,c)
+	#define replace_font(a,b,c,d)	ciolib_replace_font(a,b,c,d);
 #endif
 
 #ifdef WITH_SDL

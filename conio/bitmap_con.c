@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.124 2018/02/12 07:02:55 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.125 2018/02/12 07:39:50 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1495,6 +1495,46 @@ uint32_t bitmap_map_rgb(uint16_t r, uint16_t g, uint16_t b)
 	ciolib_setpalette(i + TOTAL_DAC_SIZE + 512, r<<8 | r, g<<8 | g, b<<8 | b);
 	truecolour_palette[i].allocated = now;
 	return i + TOTAL_DAC_SIZE + 512;
+}
+
+void bitmap_replace_font(uint8_t id, char *name, void *data, size_t size)
+{
+	pthread_mutex_lock(&blinker_lock);
+
+	if (id < CONIO_FIRST_FREE_FONT) {
+		free(name);
+		free(data);
+		return;
+	}
+
+	pthread_mutex_lock(&screen.screenlock);
+	switch (size) {
+		case 4096:
+			FREE_AND_NULL(conio_fontdata[id].eight_by_sixteen);
+			conio_fontdata[id].eight_by_sixteen=data;
+			FREE_AND_NULL(conio_fontdata[id].desc);
+			conio_fontdata[id].desc=name;
+			update_pixels = 1;
+			break;
+		case 3584:
+			FREE_AND_NULL(conio_fontdata[id].eight_by_fourteen);
+			conio_fontdata[id].eight_by_fourteen=data;
+			FREE_AND_NULL(conio_fontdata[id].desc);
+			conio_fontdata[id].desc=name;
+			break;
+		case 2048:
+			FREE_AND_NULL(conio_fontdata[id].eight_by_eight);
+			conio_fontdata[id].eight_by_eight=data;
+			FREE_AND_NULL(conio_fontdata[id].desc);
+			conio_fontdata[id].desc=name;
+			break;
+		default:
+			free(name);
+			free(data);
+	}
+	update_pixels = 1;
+	pthread_mutex_unlock(&screen.screenlock);
+	pthread_mutex_unlock(&blinker_lock);
 }
 
 /***********************/
