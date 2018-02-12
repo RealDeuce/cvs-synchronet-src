@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.58 2018/02/02 22:21:35 deuce Exp $ */
+/* $Id: menu.c,v 1.59 2018/02/07 09:37:26 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -63,7 +63,7 @@ void viewscroll(void)
 		if(top>cterm->backpos)
 			top=cterm->backpos;
 		pputtext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top),scrollbackf+(term.width*top),scrollbackb+(term.width*top));
-		ciolib_xlat = TRUE;
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
 		cputs("Scrollback");
