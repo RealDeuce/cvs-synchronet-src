@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.9 2018/02/20 02:17:15 rswindell Exp $ */
+/* $Id: js_cryptcon.c,v 1.8 2018/01/03 06:41:48 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -88,7 +88,7 @@ js_set_key(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv;
 	size_t len;
-	char* key = NULL;
+	char* key;
 	int status;
 	jsrefcount rc;
 
@@ -98,7 +98,7 @@ js_set_key(JSContext *cx, uintN argc, jsval *arglist)
 	argv = JS_ARGV(cx, arglist);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], key, &len);
-	HANDLE_PENDING(cx, key);
+	HANDLE_PENDING(cx);
 
 	obj = JS_THIS_OBJECT(cx, arglist);
 	if ((p=(struct private_data *)JS_GetPrivate(cx,obj))==NULL) {
@@ -127,7 +127,7 @@ js_derive_key(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv;
 	size_t len;
-	char* key = NULL;
+	char* key;
 	int status;
 	jsrefcount rc;
 
@@ -137,7 +137,7 @@ js_derive_key(JSContext *cx, uintN argc, jsval *arglist)
 	argv = JS_ARGV(cx, arglist);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], key, &len);
-	HANDLE_PENDING(cx, key);
+	HANDLE_PENDING(cx);
 
 	if (len < 8 || len > CRYPT_MAX_HASHSIZE) {
 		free(key);
@@ -172,7 +172,7 @@ js_do_encrption(JSContext *cx, uintN argc, jsval *arglist, int encrypt)
 	JSObject *obj;
 	jsval *argv;
 	size_t len;
-	char *cipherText = NULL;
+	char *cipherText;
 	int status;
 	jsrefcount rc;
 	JSString* str;
@@ -189,7 +189,7 @@ js_do_encrption(JSContext *cx, uintN argc, jsval *arglist, int encrypt)
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cipherText, &len);
-	HANDLE_PENDING(cx, cipherText);
+	HANDLE_PENDING(cx);
 
 	rc = JS_SUSPENDREQUEST(cx);
 	if (encrypt)
@@ -306,11 +306,11 @@ static JSBool
 js_cryptcon_attrstr_set(JSContext *cx, jsval *vp, CRYPT_CONTEXT ctx, CRYPT_ATTRIBUTE_TYPE type)
 {
 	int status;
-	char *val = NULL;
+	char *val;
 	size_t len;
 
 	JSVALUE_TO_MSTRING(cx, *vp, val, &len);
-	HANDLE_PENDING(cx, val);
+	HANDLE_PENDING(cx);
 
 	status = cryptSetAttributeString(ctx, type, val, len);
 	if (cryptStatusError(status)) {
@@ -518,7 +518,7 @@ static JSBool js_cryptcon_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
