@@ -6,14 +6,6 @@
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 
-struct update_rect {
-	int	x;
-	int	y;
-	int	width;
-	int	height;
-	unsigned char *data;
-};
-
 enum x11_local_events {
 	 X11_LOCAL_SETMODE
 	,X11_LOCAL_SETNAME
@@ -23,6 +15,14 @@ enum x11_local_events {
 	,X11_LOCAL_DRAWRECT
 	,X11_LOCAL_FLUSH
 	,X11_LOCAL_BEEP
+	,X11_LOCAL_SETPALETTE
+};
+
+struct x11_palette_entry {
+	uint32_t	index;
+	uint16_t	r;
+	uint16_t	g;
+	uint16_t	b;
 };
 
 struct x11_local_event {
@@ -31,7 +31,8 @@ struct x11_local_event {
 		int		mode;
 		char	name[81];
 		char	title[81];
-		struct	update_rect rect; 
+		struct	rectlist *rect;
+		struct	x11_palette_entry palette;
 	} data;
 };
 
@@ -83,6 +84,7 @@ struct x11 {
 	void	(*XSetWMProperties) (Display*, Window, XTextProperty*, XTextProperty*, char**, int, XSizeHints*, XWMHints*, XClassHint*);
 	Status	(*XSetWMProtocols) (Display*, Window, Atom *, int);
 	Atom	(*XInternAtom) (Display *, char *, Bool);
+	int		(*XFreeColors) (Display*, Colormap, unsigned long *, int, unsigned long);
 };
 
 
@@ -106,6 +108,7 @@ extern int x11_window_ypos;
 extern int x11_window_width;
 extern int x11_window_height;
 extern int x11_initialized;
+extern struct video_stats x_cvstat;
 
 void x11_event_thread(void *args);
 
