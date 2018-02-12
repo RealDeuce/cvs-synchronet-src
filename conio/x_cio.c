@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.40 2018/02/05 02:15:17 deuce Exp $ */
+/* $Id: x_cio.c,v 1.44 2018/02/06 03:00:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,6 +51,9 @@
 #include "ciolib.h"
 #include "x_cio.h"
 #include "x_events.h"
+
+#define BITMAP_CIOLIB_DRIVER
+#include "bitmap_con.h"
 
 int x_kbhit(void)
 {
@@ -440,6 +443,7 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
+	cio_api.options |= CONIO_OPT_PALETTE_SETTING | CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
 
@@ -465,4 +469,16 @@ void x11_flush(void)
 	ev.type=X11_LOCAL_FLUSH;
 	if(x11_initialized)
 		write_event(&ev);
+}
+
+void x_setscaling(int newval)
+{
+	pthread_mutex_lock(&vstatlock);
+	x_cvstat.scaling = vstat.scaling = newval;
+	pthread_mutex_unlock(&vstatlock);
+}
+
+int x_getscaling(void)
+{
+	return x_cvstat.scaling;
 }
