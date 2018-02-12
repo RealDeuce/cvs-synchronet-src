@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.45 2018/02/12 06:38:17 deuce Exp $ */
+/* $Id: x_cio.c,v 1.46 2018/02/12 08:59:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -176,6 +176,12 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
 {
 	struct x11_local_event ev;
+
+	if (entry > 1000000)
+		return 1;
+
+	if (entry > color_max)
+		color_max = entry;
 
 	ev.type=X11_LOCAL_SETPALETTE;
 	ev.data.palette.index = entry;
