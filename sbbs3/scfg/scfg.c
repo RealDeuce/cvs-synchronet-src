@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.96 2018/07/29 02:05:01 rswindell Exp $ */
+/* $Id: scfg.c,v 1.93 2017/12/29 06:04:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 						"-m  =  force monochrome mode\r\n"
                         "-e# =  set escape delay to #msec\r\n"
 						"-import=<filename> = import a message area list file\r\n"
-						"-g# =  set group number (or name) to import into\r\n"
+						"-g# =  set group number to import into\r\n"
 						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
 #ifdef __unix__
 						"       X = X11 mode\r\n"
@@ -351,27 +351,25 @@ int main(int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 
-		printf("Reading main.cnf ... ");
+		printf("Reading MAIN.CNF...\n");
 		if(!read_main_cfg(&cfg,error)) {
 			printf("ERROR: %s",error);
 			return EXIT_FAILURE;
 		}
-		printf("\n");
-		printf("Reading msgs.cnf ... ");
+		printf("Reading MSGS.CNF...");
 		if(!read_msgs_cfg(&cfg,error)) {
 			printf("ERROR: %s",error);
 			return EXIT_FAILURE;
 		}
-		printf("\n");
 
 		if(grpname != NULL)
 			grpnum = group_num_from_name(grpname);
 
 		if(grpnum >= cfg.total_grps) {
-			printf("!Invalid message group name specified: %s\n", grpname);
+			printf("!Invalid group specified!\n");
 			return EXIT_FAILURE;
 		}
-		printf("Importing %s from %s ...", "Areas", fname);
+		printf("Importing %s from %s\n", "Areas", fname);
 		long ported = 0;
 		long added = 0;
 		switch(base) {
@@ -388,14 +386,11 @@ int main(int argc, char **argv)
 			}
 		}
 		fclose(fp);
-		printf("\n");
 		if(ported < 0)
 			printf("!ERROR %ld importing areas from %s\n", ported, fname);
 		else {
 			printf("Imported %ld areas (%ld added) from %s\n", ported, added, fname);
-			printf("Saving configuration (%lu message areas) ... ", cfg.total_subs);
 			write_msgs_cfg(&cfg,backup_level);
-			printf("done.\n");
 			refresh_cfg(&cfg);
 		}
 		free_msgs_cfg(&cfg);
@@ -491,7 +486,7 @@ int main(int argc, char **argv)
 		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ESC|WIN_ACT,0,0,30,&main_dflt,0
 			,"Configure",mopt)) {
 			case 0:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -503,14 +498,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 1:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading xtrn.cnf ...");
+				uifc.pop("Reading XTRN.CNF...");
 				if(!read_xtrn_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -523,14 +518,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 2:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading msgs.cnf ...");
+				uifc.pop("Reading MSGS.CNF...");
 				if(!read_msgs_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -543,14 +538,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 3:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading file.cnf ...");
+				uifc.pop("Reading FILE.CNF...");
 				if(!read_file_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -563,14 +558,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 4:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading file.cnf ...");
+				uifc.pop("Reading FILE.CNF...");
 				if(!read_file_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -583,7 +578,7 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 5:
-				uifc.pop("Reading chat.cnf ...");
+				uifc.pop("Reading CHAT.CNF...");
 				if(!read_chat_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -632,14 +627,14 @@ int main(int argc, char **argv)
 				free_chat_cfg(&cfg);
 				break;
 			case 6:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading msgs.cnf ...");
+				uifc.pop("Reading MSGS.CNF...");
 				if(!read_msgs_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -652,14 +647,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 7:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading msgs.cnf ...");
+				uifc.pop("Reading MSGS.CNF...");
 				if(!read_msgs_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -672,7 +667,7 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 8:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -684,14 +679,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 9:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading xtrn.cnf ...");
+				uifc.pop("Reading XTRN.CNF...");
 				if(!read_xtrn_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -704,14 +699,14 @@ int main(int argc, char **argv)
 				free_main_cfg(&cfg);
 				break;
 			case 10:
-				uifc.pop("Reading main.cnf ...");
+				uifc.pop("Reading MAIN.CNF...");
 				if(!read_main_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading file.cnf ...");
+				uifc.pop("Reading FILE.CNF...");
 				if(!read_file_cfg(&cfg,error)) {
 					uifc.pop(0);
 					sprintf(errormsg,"ERROR: %s",error);
@@ -734,7 +729,7 @@ int main(int argc, char **argv)
 					"If you want to exit the Synchronet configuration utility, select `Yes`.\n"
 					"Otherwise, select `No` or hit ~ ESC ~.\n"
 				;
-				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Exit SCFG",opt);
+				i=uifc.list(WIN_MID,0,0,0,&i,0,"Exit SCFG",opt);
 				if(!i)
 					bail(0);
 				break; 
@@ -2163,18 +2158,15 @@ void bail(int code)
         read_file_cfg(&cfg,error);
         read_chat_cfg(&cfg,error);
         read_xtrn_cfg(&cfg,error);
-		uifc.pop(NULL);
-        uifc.pop("Writing Configs...");
+        uifc.pop(0);
 		cfg.new_install=new_install;
         write_main_cfg(&cfg,backup_level);
         write_msgs_cfg(&cfg,backup_level);
         write_file_cfg(&cfg,backup_level);
         write_chat_cfg(&cfg,backup_level);
         write_xtrn_cfg(&cfg,backup_level); 
-		uifc.pop(NULL);
 	}
 
-	uifc.pop("Exiting");
     uifc.bail();
 
     exit(code);
