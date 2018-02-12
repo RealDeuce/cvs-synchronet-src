@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.294 2016/11/19 09:44:04 sbbs Exp $ */
+/* $Id: services.c,v 1.302 2018/01/15 02:23:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -291,8 +291,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-    if(startup==NULL || startup->lputs==NULL)
-        return(JS_FALSE);
+	if(startup==NULL || startup->lputs==NULL)
+		return(JS_FALSE);
 
 	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
 		if(!JS_ValueToInt32(cx,argv[i++],&level))
@@ -429,7 +429,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 	}
 	if(client->subscan!=NULL) {
-		getmsgptrs(&scfg,&client->user,client->subscan);
+		getmsgptrs(&scfg,&client->user,client->subscan,NULL,NULL);
 	}
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -615,7 +615,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
 	client.time=time32(NULL);
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -668,7 +668,7 @@ js_client_update(JSContext *cx, uintN argc, jsval *arglist)
 	memset(&client,0,sizeof(client));
 	client.size=sizeof(client);
 	client.protocol=service_client->service->protocol;
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -979,7 +979,7 @@ static void js_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s JavaScript service thread started", socket, service->protocol);
 
-	SetThreadName("sbbs/JS Service");
+	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1064,7 +1064,7 @@ static void js_service_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 	service_client.client=&client;
 
 	/* Initialize client display */
@@ -1182,7 +1182,7 @@ static void js_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%s static JavaScript service thread started", service->protocol);
 
-	SetThreadName("sbbs/JS Static Service");
+	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1281,7 +1281,7 @@ static void native_static_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s static service thread started", inst.socket, inst.service->protocol);
 
-	SetThreadName("sbbs/Static Service");
+	SetThreadName("sbbs/static");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1344,7 +1344,7 @@ static void native_service_thread(void* arg)
 
 	lprintf(LOG_DEBUG,"%04d %s service thread started", socket, service->protocol);
 
-	SetThreadName("sbbs/Native Service");
+	SetThreadName("sbbs/native");
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
@@ -1401,7 +1401,7 @@ static void native_service_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
-	client.user="<unknown>";
+	client.user=STR_UNKNOWN_USER;
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.294 $", "%*s %s", revision);
+	sscanf("$Revision: 1.302 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1729,19 +1729,18 @@ void DLLCALL services_thread(void* arg)
 		startup->seteuid(TRUE);
 #endif
 
-	/* Setup intelligent defaults */
-	if(startup->sem_chk_freq==0)			startup->sem_chk_freq=2;
-	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
-	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
-
 	uptime=0;
 	served=0;
 	startup->recycle_now=FALSE;
 	startup->shutdown_now=FALSE;
 
-	SetThreadName("sbbs/Services");
+	SetThreadName("sbbs/services");
 
 	do {
+		/* Setup intelligent defaults */
+		if(startup->sem_chk_freq==0)			startup->sem_chk_freq=DEFAULT_SEM_CHK_FREQ;
+		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
+		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
 		thread_up(FALSE /* setuid */);
 
@@ -1820,10 +1819,6 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 
-		tls_context = get_ssl_cert(&scfg, ssl_estr);
-		if (tls_context == -1)
-			lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-
 		update_clients();
 
 		/* Open and Bind Listening Sockets */
@@ -1831,8 +1826,6 @@ void DLLCALL services_thread(void* arg)
 
 		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
 			if (service[i].options & SERVICE_OPT_TLS) {
-				if (tls_context == -1)
-					continue;
 				if (service[i].options & SERVICE_OPT_UDP) {
 					lprintf(LOG_ERR, "Option error, TLS and UDP specified for %s", service[i].protocol);
 					continue;
@@ -1844,6 +1837,13 @@ void DLLCALL services_thread(void* arg)
 				if (service[i].options & SERVICE_OPT_STATIC) {
 					lprintf(LOG_ERR, "Option error, TLS not yet supported for static services (%s)", service[i].protocol);
 					continue;
+				}
+				if(tls_context == -1) {
+					tls_context = get_ssl_cert(&scfg, ssl_estr);
+					if (tls_context == -1) {
+						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+						continue;
+					}
 				}
 			}
 			service[i].set=xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
@@ -1894,6 +1894,7 @@ void DLLCALL services_thread(void* arg)
 		/* Setup recycle/shutdown semaphore file lists */
 		shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","services");
 		recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","services");
+		semfile_list_add(&recycle_semfiles,startup->ini_fname);
 		SAFEPRINTF(path,"%sservices.rec",scfg.ctrl_dir);	/* legacy */
 		semfile_list_add(&recycle_semfiles,path);
 		semfile_list_add(&recycle_semfiles,services_ini);
@@ -2107,7 +2108,7 @@ void DLLCALL services_thread(void* arg)
 						if(banned) {
 							char ban_duration[128];
 							lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
-								,client_socket, host_ip, attempted.count, attempted.user, seconds_to_str(banned, ban_duration));
+								,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 						} else
 							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);
