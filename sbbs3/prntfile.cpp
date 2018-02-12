@@ -1,9 +1,8 @@
 /* prntfile.cpp */
-// vi: tabstop=4
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.27 2018/10/01 01:56:31 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.22 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +79,6 @@ void sbbs_t::printfile(char *str, long mode)
 		CRLF;
 	}
 
-	fexistcase(str);
 	if((stream=fnopen(&file,str,O_RDONLY|O_DENYNONE))==NULL) {
 		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
 			,cfg.node_num,errno,strerror(errno),str);
@@ -92,12 +90,12 @@ void sbbs_t::printfile(char *str, long mode)
 
 	length=(long)filelength(file);
 	if(length<0) {
-		fclose(stream);
+		close(file);
 		errormsg(WHERE,ERR_CHK,str,length);
 		return;
 	}
 	if((buf=(char*)malloc(length+1L))==NULL) {
-		fclose(stream);
+		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
 		return; 
 	}
@@ -137,7 +135,6 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 	if(!tos) {
 		CRLF; 
 	}
-	fexistcase(str);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1) {
 		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
 			,cfg.node_num,errno,strerror(errno),str);
@@ -184,7 +181,10 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 }
 
 /****************************************************************************/
-/* Displays a menu file (e.g. from the text/menu directory)                 */
+/* Prints the menu number 'menunum' from the text directory. Checks for ^A  */
+/* ,ANSI sequences, pauses and aborts. Usually accessed by user inputing '?'*/
+/* Called from every function that has an available menu.                   */
+/* The code definitions are as follows:                                     */
 /****************************************************************************/
 void sbbs_t::menu(const char *code)
 {
@@ -211,7 +211,7 @@ void sbbs_t::menu(const char *code)
 		} 
 	}
 
-	long mode = P_OPENCLOSE | P_CPM_EOF;
+	long mode = P_OPENCLOSE;
 	if(column == 0)
 		mode |= P_NOCRLF;
 	printfile(path, mode);
