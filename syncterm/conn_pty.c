@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.30 2018/02/20 21:04:18 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.27 2018/02/10 21:39:22 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -443,11 +443,11 @@ int pty_connect(struct bbslist *bbs)
 			":k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:k5=\\EOt:k6=\\E[17~"
 			":k7=\\E[18~:k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:kD=\\177:kI=\\E[@"
 			":kN=\\E[U:kP=\\E[V:kb=^H:kd=\\E[B:kh=\\E[H:kl=\\E[D:kr=\\E[C"
-			":ku=\\E[A:le=\\E[D:ll=\\E[255H:mb=\\E[5m:md=\\E[1m:me=\\E[m"
+			":ku=\\E[A:le=\\E[D:ll=\\E[255H:mb=\\E[5m:md=\\E[1m:me=\\E[0m"
 			":nd=\\E[C:nw=^M^J:DC=\\E[%%dP"
-			":r1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[m\\E[?s"
+			":r1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[0m\\E[?s"
 			":rc=\\E[u"
-			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:se=\\E[m:sr=\\E[T:ta=^I:up=\\E[A"
+			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:sr=\\E[T:ta=^I:up=\\E[A"
 			":ve=\\E[?25h:vi=\\E[?25l:",ws.ws_col,ws.ws_row
 				,cio_api.options & CONIO_OPT_PALETTE_SETTING ? ":Co#256:pa#32762:AB=\\E[48;5;%dm:AF=\\E[38;5;%dm" : ":Co#8:pa#64:AB=\\E[4%dm:AF=\\E[3%dm");
 		setenv("TERMCAP",termcap,1);
@@ -460,10 +460,8 @@ int pty_connect(struct bbslist *bbs)
 		xp_asprintf_free(termcap);
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
-		else {
-			if (getenv("SHELL"))
-				execl(getenv("SHELL"), getenv("SHELL"), (char *)0);
-		}
+		else
+			execl(getenv("SHELL"), getenv("SHELL"), (char *)0);
 		exit(1);
 	}
 
