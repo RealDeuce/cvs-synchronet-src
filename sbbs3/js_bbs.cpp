@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.164 2018/06/10 08:53:13 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.158 2018/01/12 22:15:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -772,7 +772,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 		if((js_str = JS_ValueToString(cx, *vp))==NULL)
 			return(JS_FALSE);
 		JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
-		HANDLE_PENDING(cx, p);
+		HANDLE_PENDING(cx);
 	}
 
 	switch(tiny) {
@@ -1222,10 +1222,8 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, cmd, cstr, NULL);
-	if(cstr==NULL) {
-		FREE_AND_NULL(p_startup_dir);
+	if(cstr==NULL)
 		return JS_FALSE;
-	}
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->external(cstr,mode,p_startup_dir)));
 	free(cstr);
@@ -1416,7 +1414,6 @@ js_replace_text(JSContext *cx, uintN argc, jsval *arglist)
 	if(!len) {
 		sbbs->text[i]=nulstr;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
-		free(p);
 	} else {
 		sbbs->text[i]=p;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
@@ -1699,7 +1696,7 @@ js_finduser(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->finduser(p, /* silent_failure: */true)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->finduser(p)));
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
@@ -2478,7 +2475,6 @@ js_readmail(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		readwhich=MAIL_YOUR;
 	int32		usernumber;
-	int32		lm_mode = 0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2496,13 +2492,9 @@ js_readmail(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&usernumber))
 			return JS_FALSE;
 	}
-	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
-		if(!JS_ValueToInt32(cx, argv[2], &lm_mode))
-			return JS_FALSE;
-	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->readmail(usernumber, readwhich, lm_mode);
+	sbbs->readmail(usernumber,readwhich);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2551,11 +2543,8 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 	if(js_subj!=NULL)
 		JSSTRING_TO_MSTRING(cx, js_subj, subj, NULL);
-	if(subj==NULL) {
-		if(top != def)
-			free(top);
+	if(subj==NULL)
 		return JS_FALSE;
-	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->email(usernumber,top,subj,mode)));
@@ -3063,7 +3052,7 @@ static JSBool
 js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p = NULL;
+	char*		p;
 	const char	*def="";
 	char*		fpath=(char *)def;
 	char*		fspec=(char *)def;
@@ -3084,43 +3073,32 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
  		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
-	if(p == NULL)
-		return JS_FALSE;
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
 			if(fpath==def) {
 				JSSTRING_TO_MSTRING(cx, js_str, fpath, NULL);
-				if(fpath==NULL) {
-					if(fspec != def)
-						free(fspec);
-					free(p);
+				if(fpath==NULL)
 					return JS_FALSE;
-				}
 			}
 			else if(fspec==def) {
 				JSSTRING_TO_MSTRING(cx, js_str, fspec, NULL);
-				if(fspec==NULL) {
-					if(fpath != def)
-						free(fpath);
-					free(p);
+				if(fspec==NULL)
 					return JS_FALSE;
-				}
 			}
 		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	char* cmd = sbbs->cmdstr(p, fpath, fspec, NULL);
-	free(p);
+	p=sbbs->cmdstr(p,fpath,fspec,NULL);
 	if(fpath != def)
 		free(fpath);
 	if(fspec != def)
 		free(fspec);
 	JS_RESUMEREQUEST(cx, rc);
 
-	if((js_str=JS_NewStringCopyZ(cx, cmd))==NULL)
+	if((js_str=JS_NewStringCopyZ(cx, p))==NULL)
 		return(JS_FALSE);
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
@@ -3182,16 +3160,11 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode)) {
-				if(fspec != def)
-					FREE_AND_NULL(fspec);
+			if(!JS_ValueToInt32(cx,argv[i],&mode))
 				return JS_FALSE;
-			}
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			if(fspec != def)
-				FREE_AND_NULL(fspec);
 			JSSTRING_TO_MSTRING(cx, js_str, afspec, NULL);
 			if(afspec==NULL)
 				return JS_FALSE;
@@ -3243,8 +3216,6 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			if(fspec != def && fspec != NULL)
-				free(fspec);
 			JSSTRING_TO_MSTRING(cx, js_str, fspec, NULL);
 			if(fspec==NULL)
 				return JS_FALSE;
@@ -3463,11 +3434,8 @@ js_scanposts(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode)) {
-				if(find != def)
-					free(find);
+			if(!JS_ValueToInt32(cx,argv[i],&mode))
 				return JS_FALSE;
-			}
 		}
 		else if(JSVAL_IS_STRING(argv[i]) && find==def) {
 			JSVALUE_TO_MSTRING(cx, argv[i], find, NULL);
@@ -3804,7 +3772,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display the logon list")
 	,310
 	},		
-	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>] [,loadmail_mode=<tt>0</tt>]")
+	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>]")
 	,JSDOCSTR("read private e-mail"
 	"(see <tt>MAIL_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>which</i> values)")
 	,310
@@ -4032,7 +4000,7 @@ static JSBool js_bbs_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
