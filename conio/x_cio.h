@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.24 2018/02/14 04:37:27 deuce Exp $ */
+/* $Id: x_cio.h,v 1.22 2018/02/12 06:38:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,7 @@ void x_gettextinfo(struct text_info *info);
 void x_setcursortype(int type);
 int x_getch(void);
 int x_getche(void);
-void x_beep(void);
+int x_beep(void);
 void x_textmode(int mode);
 void x_setname(const char *name);
 void x_settitle(const char *title);
@@ -70,6 +70,7 @@ char *x_getcliptext(void);
 int x_setfont(int font, int force);
 int x_getfont(void);
 int x_loadfont(char *filename);
+int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 int x_get_window_info(int *width, int *height, int *xpos, int *ypos);
 void x11_drawrect(struct rectlist *data);
 void x11_flush(void);
