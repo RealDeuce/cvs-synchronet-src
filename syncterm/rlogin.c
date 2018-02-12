@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: rlogin.c,v 1.33 2015/05/01 04:05:49 deuce Exp $ */
+/* $Id: rlogin.c,v 1.34 2018/02/03 01:38:47 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -161,7 +161,7 @@ int rlogin_connect(struct bbslist *bbs)
 			conn_send(sbuf, strlen(sbuf)+1,1000);
 		}
 		else
-			conn_send("ansi-bbs/115200",15,1000);
+			conn_send("ansi-bbs/115200",16,1000);
 	}
 
 	_beginthread(rlogin_output_thread, 0, NULL);
