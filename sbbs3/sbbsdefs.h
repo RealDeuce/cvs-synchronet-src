@@ -1,6 +1,7 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.207 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.220 2018/02/03 23:39:28 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,11 +54,11 @@
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
-#define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
+#define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2015 Rob Swindell"
-#define COPYRIGHT_CRC		0x24F092F2
+#define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
+#define COPYRIGHT_CRC		0x5891b729
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -67,6 +68,8 @@
 
 #define BIND_FAILURE_HELP	"!Another application or service may be using this port"
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
+
+#define STR_UNKNOWN_USER	"<unknown user>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
@@ -97,6 +100,9 @@ typedef struct js_callback {
 /************/
 
 #define MAX_NODES		250
+#define MAX_SUBS		65534
+#define MAX_DIRS		65534
+#define MAX_XTRNS		65534
 
 #define MAX_FILES	  10000 /* Maximum number of files per dir			*/
 #define MAX_USERXFER	500 /* Maximum number of dest. users of usrxfer */
@@ -186,18 +192,7 @@ typedef struct js_callback {
 #define NM_7BITONLY		(1L<<16)	/* Except 7-bit input only (E71 terminals)	*/
 #define NM_NOPAUSESPIN	(1L<<18)	/* No spinning cursor at pause prompt		*/
 #define NM_CLOSENODEDAB	(1L<<19)	/* Keep node.dab file closed (for Samba)	*/
-
-									/* Miscellaneous Modem Settings (mdm_misc)  */
-#define MDM_CTS 		(1<<0)		/* Use hardware send flow control			*/
-#define MDM_RTS 		(1<<1)		/* Use hardware recv flow control			*/
-#define MDM_STAYHIGH	(1<<2)		/* Stay at highest DTE rate 				*/
-#define MDM_CALLERID	(1<<3)		/* Supports Caller ID						*/
-#define MDM_DUMB		(1<<4)		/* Just watch DCD for answer - dumb modem	*/
-#define MDM_NODTR		(1<<5)		/* Don't drop DTR for hang-up               */
-#define MDM_KNOWNRES	(1<<6)		/* Allow known result codes only			*/
-#define MDM_VERBAL		(1<<7)		/* Use verbal result codes					*/
-
-						
+					
 									/* Bit values for level_misc[x] 	*/
 #define LEVEL_EXPTOLVL	(1<<0)		/* Expire to level_expireto[x]		*/
 #define LEVEL_EXPTOVAL	(1<<1)		/* Expire to val[level_expireto[x]] */
@@ -225,6 +220,7 @@ typedef struct js_callback {
 
 									/* Bit values for sub[x].misc */
 #define SUB_NOVOTING	(1L<<0)		/* No voting allowed in this sub-board */
+#define SUB_TEMPLATE	(1L<<1)		/* Use this sub as template for new subs (in this group) */
 #define SUB_QNET		(1L<<3) 	/* Sub-board is netted via QWK network */
 #define SUB_PNET		(1L<<4) 	/* Sub-board is netted via PostLink */
 #define SUB_FIDO		(1L<<5) 	/* Sub-board is netted via FidoNet */
@@ -255,27 +251,32 @@ typedef struct js_callback {
 #define SUB_NOUSERSIG	(1L<<30)	/* Suppress user signatures */
 #define SUB_HDRMOD		(1L<<31)	/* Modified sub-board header info (SCFG) */
 
+                                    /* Bit values for lib[x].misc */
+#define LIB_DIRS	(1<<0) 			/* Local directory (sub-directory of lib parent) access */
+
                                     /* Bit values for dir[x].misc */
-#define DIR_FCHK	(1<<0) 			/* Check for file existence */
-#define DIR_RATE	(1<<1) 			/* Force uploads to be rated G,R, or X */
-#define DIR_MULT	(1<<2) 			/* Ask for multi-disk numbering */
-#define DIR_DUPES	(1<<3) 			/* Search this dir for upload dupes */
-#define DIR_FREE	(1<<4) 			/* Free downloads */
-#define DIR_TFREE	(1<<5) 			/* Time to download is free */
-#define DIR_CDTUL	(1<<6) 			/* Credit Uploads */
-#define DIR_CDTDL	(1<<7) 			/* Credit Downloads */
-#define DIR_ANON	(1<<8) 			/* Anonymous uploads */
-#define DIR_AONLY	(1<<9) 			/* Anonymous only */
-#define DIR_ULDATE	(1<<10)			/* Include upload date in listing */
-#define DIR_DIZ 	(1<<11)			/* FILE_ID.DIZ and DESC.SDI support */
-#define DIR_NOSCAN	(1<<12)			/* Don't new-scan this directory */
-#define DIR_NOAUTO	(1<<13)			/* Don't auto-add this directory */
-#define DIR_ULTIME	(1<<14)			/* Deduct time during uploads */
-#define DIR_CDTMIN	(1<<15)			/* Give uploader minutes instead of cdt */
-#define DIR_SINCEDL (1<<16)			/* Purge based on days since last dl */
-#define DIR_MOVENEW (1<<17)			/* Files marked as new when moved */
-#define DIR_QUIET	(1<<18)			/* Do not notify uploader of downloads */
-#define DIR_NOSTAT	(1<<19)			/* Do not include transfers in system stats */
+#define DIR_FCHK		(1<<0) 		/* Check for file existence */
+#define DIR_RATE		(1<<1) 		/* Force uploads to be rated G,R, or X */
+#define DIR_MULT		(1<<2) 		/* Ask for multi-disk numbering */
+#define DIR_DUPES		(1<<3) 		/* Search this dir for upload dupes */
+#define DIR_FREE		(1<<4) 		/* Free downloads */
+#define DIR_TFREE		(1<<5) 		/* Time to download is free */
+#define DIR_CDTUL		(1<<6) 		/* Credit Uploads */
+#define DIR_CDTDL		(1<<7) 		/* Credit Downloads */
+#define DIR_ANON		(1<<8) 		/* Anonymous uploads */
+#define DIR_AONLY		(1<<9) 		/* Anonymous only */
+#define DIR_ULDATE		(1<<10)		/* Include upload date in listing */
+#define DIR_DIZ 		(1<<11)		/* FILE_ID.DIZ and DESC.SDI support */
+#define DIR_NOSCAN		(1<<12)		/* Don't new-scan this directory */
+#define DIR_NOAUTO		(1<<13)		/* Don't auto-add this directory */
+#define DIR_ULTIME		(1<<14)		/* Deduct time during uploads */
+#define DIR_CDTMIN		(1<<15)		/* Give uploader minutes instead of cdt */
+#define DIR_SINCEDL		(1<<16)		/* Purge based on days since last dl */
+#define DIR_MOVENEW		(1<<17)		/* Files marked as new when moved */
+#define DIR_QUIET		(1<<18)		/* Do not notify uploader of downloads */
+#define DIR_NOSTAT		(1<<19)		/* Do not include transfers in system stats */
+#define DIR_FILES		(1<<20)		/* List/access files not in database */
+#define DIR_TEMPLATE	(1<<21)		/* Use this dir as template for new dirs (in this lib) */
 
                                     /* Bit values for file_t.misc */
 #define FM_EXTDESC  (1<<0)          /* Extended description exists */
@@ -313,6 +314,15 @@ enum {                              /* Values for dir[x].sort */
     ,SORT_DATE_A                    /* Sort by upload date, ascending */
     ,SORT_DATE_D                    /* Sort by upload date, descending */
     };
+
+/* Values for grp[x].sort */
+enum area_sort {
+	AREA_SORT_NONE,
+	AREA_SORT_LNAME,
+	AREA_SORT_SNAME,
+	AREA_SORT_CODE,
+	AREA_SORT_TYPES,
+};
 
 enum {
 	 clr_mnehigh
@@ -454,9 +464,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 																			
 																			
 #define EDIT_TABSIZE 4		/* Tab size for internal message/line editor	*/
-																			
-#define SWAP_NONE	0x80	/* Allow no swapping for executables			*/
-																			
+																		
 #define DSTSDABLEN	50		/* Length of dsts.dab file						*/
 																			
 								/* Console I/O Bits	(console)				*/
@@ -475,6 +483,10 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_LEFTARROW	(1<<15)	/* Left arrow hit, exiting from getstr()	*/
 #define CON_INSERT		(1<<16)	/* Insert mode, for getstr()				*/
 #define CON_DELETELINE	(1<<17)	/* Deleted line, exiting from getstr()		*/
+#define CON_NORM_FONT	(1<<18)	/* Alt normal font set activated			*/
+#define CON_HIGH_FONT	(1<<19)	/* Alt high-intensity font activated		*/
+#define CON_BLINK_FONT	(1<<20)	/* Alt blink attribute font activated		*/
+#define CON_HBLINK_FONT	(1<<21)	/* Alt high-blink attribute font activated	*/
 																			
 							/* Number of milliseconds						*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
@@ -638,12 +650,24 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOHANG	(1L<<20)		/* Auto-hang-up after transfer			*/
 #define WIP 		(1L<<21)		/* Supports WIP terminal emulation		*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
-#define HTML		(1L<<23)		/* Using Deuce's HTML terminal			*/
+#define HTML		(1L<<23)		/* Using Zuul/HTML terminal				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
+#define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML)
-																			
-#define CLREOL      256     /* Character to erase to end of line 			*/
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS)
+
+									/* Special terminal key mappings */
+#define TERM_KEY_HOME	CTRL_B
+#define TERM_KEY_END	CTRL_E
+#define TERM_KEY_UP		CTRL_CARET
+#define TERM_KEY_DOWN	CTRL_J
+#define TERM_KEY_LEFT	CTRL_CLOSE_BRACKET
+#define TERM_KEY_RIGHT	CTRL_F
+#define TERM_KEY_INSERT	CTRL_V
+#define TERM_KEY_DELETE	DEL
+#define TERM_KEY_ABORT	CTRL_C
+#define TERM_KEY_PAGEUP	CTRL_P
+#define TERM_KEY_PAGEDN	CTRL_N
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
@@ -717,6 +741,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_HTML		(1<<5)		/* Message is HTML							*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
 #define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
+#define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
 								
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -753,6 +778,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 								/* Bits in the mode of loadmail()			*/
 #define LM_UNREAD	(1<<0)		/* Include un-read mail only				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
+#define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
+#define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
 								
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
@@ -796,6 +823,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define TG_NOTERMTYPE	(1<<8)	/* Request client "DONT TERM_TYPE"			*/
 #define TG_SENDPASS		(1<<9)	/* Send password instead of real name (RLogin) - DEPRECATED	(it sent the password as the server user name) */
 #define TG_NOLF			(1<<10)	/* Do not send line-feeds (opposite of TG_CRLF) */
+#define TG_RLOGINSWAP	(1<<11)	/* Swap the RLogin alias/real-names			*/
 								
 enum {							/* Values for 'mode' in listfileinfo        */
 	 FI_INFO            		/* Just list file information               */
