@@ -1,6 +1,7 @@
 /* Synchronet user data-related routines (exported) */
+// vi: tabstop=4
 
-/* $Id: userdat.c,v 1.177 2016/11/28 10:11:41 rswindell Exp $ */
+/* $Id: userdat.c,v 1.183 2017/11/24 23:35:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,8 +49,8 @@ static const char* strIpFilterExemptConfigFile = "ipfilter_exempt.cfg";
 #define VALID_CFG(cfg)	(cfg!=NULL && cfg->size==sizeof(scfg_t))
 
 /****************************************************************************/
-/* Looks for a perfect match amoung all usernames (not deleted users)		*/
-/* Makes dots and underscores synomynous with spaces for comparisions		*/
+/* Looks for a perfect match among all usernames (not deleted users)		*/
+/* Makes dots and underscores synonymous with spaces for comparisons		*/
 /* Returns the number of the perfect matched username or 0 if no match		*/
 /****************************************************************************/
 uint DLLCALL matchuser(scfg_t* cfg, const char *name, BOOL sysop_alias)
@@ -202,6 +203,11 @@ int DLLCALL openuserdat(scfg_t* cfg, BOOL for_modify)
 
 	SAFEPRINTF(path,"%suser/user.dat",cfg->data_dir);
 	return nopen(path, for_modify ? (O_RDWR|O_CREAT|O_DENYNONE) : (O_RDONLY|O_DENYNONE)); 
+}
+
+int DLLCALL closeuserdat(int file)
+{
+	return close(file);
 }
 
 /****************************************************************************/
@@ -1123,8 +1129,8 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             strcat(str,"C");
         strcat(str,"]"); 
 	}
-    if(node->errors)
-        sprintf(str+strlen(str)
+	if(node->errors)
+		sprintf(str+strlen(str)
 			," %d error%c",node->errors, node->errors>1 ? 's' : '\0' );
 
 	strncpy(buf,str,buflen);
@@ -1144,7 +1150,7 @@ void DLLCALL printnodedat(scfg_t* cfg, uint number, node_t* node)
 
 /****************************************************************************/
 uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
-						 ,char *dat, BOOL del, BOOL next)
+						 ,char *dat, BOOL del, BOOL next, void (*progress)(void*, int, int), void* cbdata)
 {
     char	str[MAX_PATH+1];
     uint	i;
@@ -1163,7 +1169,11 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 		l=((long)usernumber) * U_LEN;
 	else
 		l=0;
+	if(progress != NULL)
+		progress(cbdata, l, length);
 	for(;l<length;l+=U_LEN) {
+		if(progress != NULL)
+			progress(cbdata, l, length);
 		if(usernumber && l/U_LEN==(long)usernumber-1) 
 			continue;
 		lseek(file,l+offset,SEEK_SET);
@@ -1201,6 +1211,8 @@ uint DLLCALL userdatdupe(scfg_t* cfg, uint usernumber, uint offset, uint datlen
 			unlock(file,l,U_LEN); 
 	}
 	close(file);
+	if(progress != NULL)
+		progress(cbdata, l, length);
 	return(0);
 }
 
@@ -2681,7 +2693,7 @@ BOOL DLLCALL is_user_subop(scfg_t* cfg, uint subnum, user_t* user, client_t* cli
 	if(user->level>=SYSOP_LEVEL)
 		return TRUE;
 
-	return cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
+	return cfg->sub[subnum]->op_ar!=NULL && cfg->sub[subnum]->op_ar[0]!=0 && chk_ar(cfg,cfg->sub[subnum]->op_ar,user,client);
 }
 
 /****************************************************************************/
