@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.21 2018/01/31 19:58:49 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.24 2018/02/07 06:06:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,8 @@ struct  video_params {
 struct vstat_vmem {
 	unsigned refcount;
 	unsigned short *vmem;
+	uint32_t *fgvmem;
+	uint32_t *bgvmem;
 };
 
 struct video_stats {
@@ -92,6 +94,8 @@ struct video_stats {
 	int currattr;
 	int scaling;
 	int	vmultiplier;
+	uint32_t flags;
+#define VIDMODES_FLAG_PALETTE_VMEM	1
 	uint32_t palette[16];
 	struct vstat_vmem *vmem;
 };
@@ -104,7 +108,7 @@ enum {
 	,ATARI_PALETTE
 };
 
-extern struct video_params vparams[49];
+extern struct video_params vparams[52];
 #define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
 extern uint32_t palettes[5][16];
 extern struct dac_colors dac_default[TOTAL_DAC_SIZE];
