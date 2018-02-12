@@ -76,6 +76,9 @@ int	sdl_init_good=0;
 SDL_mutex *sdl_keylock;
 SDL_sem *sdl_key_pending;
 static unsigned int sdl_pending_mousekeys=0;
+static SDL_Color *sdl_co = NULL;
+static Uint32	*sdl_dac_default = NULL;
+static size_t sdl_dac_defaultsz = 0;
 static int sdl_using_directx=0;
 static int sdl_using_quartz=0;
 static int sdl_using_x11=0;
@@ -92,9 +95,11 @@ struct yuv_settings {
 	int			changed;
 	int			best_format;
 	SDL_Overlay	*overlay;
+	Uint8		(*colours)[3];
+	size_t		colourssz;
 };
 
-static struct yuv_settings yuv={0,0,0,0,0,0,0,NULL};
+static struct yuv_settings yuv={0,0,0,0,0,0,0,NULL, NULL, 0};
 
 struct sdl_keyvals {
 	int	keysym
@@ -108,6 +113,13 @@ static SDL_mutex *sdl_headlock;
 static struct rectlist *update_list = NULL;
 static struct rectlist *update_list_tail = NULL;
 
+struct sdl_palette {
+	uint32_t	index;
+	uint8_t	r;
+	uint8_t	g;
+	uint8_t	b;
+};
+
 enum {
 	 SDL_USEREVENT_FLUSH
 	,SDL_USEREVENT_SETTITLE
@@ -120,6 +132,7 @@ enum {
 	,SDL_USEREVENT_COPY
 	,SDL_USEREVENT_PASTE
 	,SDL_USEREVENT_QUIT
+	,SDL_USEREVENT_SETPALETTE
 };
 
 const struct sdl_keyvals sdl_keyval[] =
@@ -242,22 +255,38 @@ struct x11 {
 struct x11 sdl_x11;
 #endif
 
-static void RGBtoYUV(Uint8 r, Uint8 g, Uint8 b, Uint8 *yuv_array)
+void RGBtoYUV(Uint8 r, Uint8 g, Uint8 b, Uint8 *yuv_array, int monochrome, int luminance)
 {
-	int i;
+    if (monochrome)
+    {
+#if 0 /* these are the two formulas that I found on the FourCC site... */
+        yuv_array[0] = 0.299*r + 0.587*g + 0.114*b;
+        yuv_array[1] = 128;
+        yuv_array[2] = 128;
+#else
+        yuv_array[0] = (Uint8)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
+        yuv_array[1] = 128;
+        yuv_array[2] = 128;
+#endif
+    }
+    else
+    {
+#if 0 /* these are the two formulas that I found on the FourCC site... */
+        yuv_array[0] = 0.299*r + 0.587*g + 0.114*b;
+        yuv_array[1] = (b-yuv[0])*0.565 + 128;
+        yuv_array[2] = (r-yuv[0])*0.713 + 128;
+#else
+        yuv_array[0] = (Uint8)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
+        yuv_array[1] = (Uint8)(128 - (0.148 * r) - (0.291 * g) + (0.439 * b));
+        yuv_array[2] = (Uint8)(128 + (0.439 * r) - (0.368 * g) - (0.071 * b));
+#endif
+    }
 
-	//yuv_array[0] = (Uint8)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);
-	i = (r*263+g*516+b*100+16384);
-	yuv_array[0] = i >> 10;
-	//yuv_array[1] = (Uint8)(128 - (0.148 * r) - (0.291 * g) + (0.439 * b));
-	i = 131072 - 152*r - 298*g + 450*b;
-	yuv_array[1] = i >> 10;
-	//yuv_array[2] = (Uint8)(128 + (0.439 * r) - (0.368 * g) - (0.071 * b));
-	i = 131072 + 450*r - 377*g - 73*b;
-	yuv_array[2] = i >> 10;
+    if (luminance!=100)
+        yuv_array[0]=yuv_array[0]*luminance/100;
 }
 
-static void yuv_fillrect(SDL_Overlay *restrict overlay, SDL_Rect *restrict r, Uint8 *restrict yuvc)
+void yuv_fillrect(SDL_Overlay *overlay, SDL_Rect *r, int dac_entry)
 {
 	int uplane,vplane;					/* Planar formats */
 	int y0pack, y1pack, u0pack, v0pack;	/* Packed formats */
@@ -322,7 +351,7 @@ planar:
 
 		for(y=0; y<r->h; y++)
 		{
-			memset(Y, yuvc[0], r->w);
+			memset(Y, yuv.colours[dac_entry][0], r->w);
 			/* Increment every line */
 			Y+=overlay->pitches[0];
 			if(odd_line) {
@@ -331,8 +360,8 @@ planar:
 				V+=overlay->pitches[vplane];
 			}
 			else {
-				memset(U, yuvc[1], uvlen);
-				memset(V, yuvc[2], uvlen);
+				memset(U, yuv.colours[dac_entry][1], uvlen);
+				memset(V, yuv.colours[dac_entry][2], uvlen);
 			}
 			odd_line = !odd_line;
 		}
@@ -347,10 +376,10 @@ packed:
 		Uint8 *colour_array=(Uint8 *)&colour;
 		Uint32 *offset;
 
-		colour_array[y0pack]=yuvc[0];
-		colour_array[y1pack]=yuvc[0];
-		colour_array[u0pack]=yuvc[1];
-		colour_array[v0pack]=yuvc[2];
+		colour_array[y0pack]=yuv.colours[dac_entry][0];
+		colour_array[y1pack]=yuv.colours[dac_entry][0];
+		colour_array[u0pack]=yuv.colours[dac_entry][1];
+		colour_array[v0pack]=yuv.colours[dac_entry][2];
 		offset=(Uint32 *)(overlay->pixels[0]+overlay->pitches[0]*(r->y));
 		offset+=(r->x>>1);
 		for(y=0; y<r->h; y++)
@@ -364,11 +393,12 @@ packed:
 	return;
 }
 
-static void sdl_user_func(int func, ...)
+void sdl_user_func(int func, ...)
 {
 	va_list argptr;
 	SDL_Event	ev;
 	int rv;
+	struct sdl_palette *pal;
 
 	ev.type=SDL_USEREVENT;
 	ev.user.data1=NULL;
@@ -398,6 +428,18 @@ static void sdl_user_func(int func, ...)
 					return;
 				}
 				break;
+			case SDL_USEREVENT_SETPALETTE:
+				if ((ev.user.data1=malloc(sizeof(struct sdl_palette)))==NULL) {
+					sdl.mutexV(sdl_ufunc_mtx);
+					va_end(argptr);
+					return;
+				}
+				pal = (struct sdl_palette *)ev.user.data1;
+				pal->index = va_arg(argptr, uint32_t);
+				pal->r = (va_arg(argptr, int) >> 8) & 0xffff;
+				pal->g = (va_arg(argptr, int) >> 8) & 0xffff;
+				pal->b = (va_arg(argptr, int) >> 8) & 0xffff;
+				break;
 			case SDL_USEREVENT_COPY:
 			case SDL_USEREVENT_PASTE:
 			case SDL_USEREVENT_SHOWMOUSE:
@@ -405,13 +447,12 @@ static void sdl_user_func(int func, ...)
 			case SDL_USEREVENT_FLUSH:
 				break;
 			default:
-				va_end(argptr);
 				return;
 		}
 		va_end(argptr);
 		while((rv = sdl.PeepEvents(&ev, 1, SDL_ADDEVENT, 0xffffffff))!=1)
 			YIELD();
-		if (func != SDL_USEREVENT_FLUSH) {
+		if (func != SDL_USEREVENT_FLUSH && func != SDL_USEREVENT_SETPALETTE) {
 			if(sdl_x11available && sdl_using_x11)
 				if ((rv = sdl.SemWaitTimeout(sdl_ufunc_rec, 2000)) != 0)
 					continue;
@@ -422,7 +463,7 @@ static void sdl_user_func(int func, ...)
 }
 
 /* Called from main thread only */
-static int sdl_user_func_ret(int func, ...)
+int sdl_user_func_ret(int func, ...)
 {
 	int rv;
 	va_list argptr;
@@ -447,7 +488,6 @@ static int sdl_user_func_ret(int func, ...)
 				break;
 			default:
 				sdl.mutexV(sdl_ufunc_mtx);
-				va_end(argptr);
 				return -1;
 		}
 		/*
@@ -468,7 +508,7 @@ static int sdl_user_func_ret(int func, ...)
 	return(sdl_ufunc_retval);
 }
 
-static void exit_sdl_con(void)
+void exit_sdl_con(void)
 {
 	sdl_user_func_ret(SDL_USEREVENT_QUIT);
 }
@@ -588,12 +628,23 @@ void sdl_drawrect(struct rectlist *data)
 		bitmap_drv_free_rect(data);
 }
 
+int sdl_setpalette(uint32_t index, uint16_t r, uint16_t g, uint16_t b)
+{
+	if (index > 1000000)
+		return 1;
+
+	if (index > color_max)
+		color_max = index;
+	sdl_user_func(SDL_USEREVENT_SETPALETTE, index, r, g, b);
+	return 0;
+}
+
 void sdl_flush(void)
 {
 	sdl_user_func(SDL_USEREVENT_FLUSH);
 }
 
-static int sdl_init_mode(int mode)
+int sdl_init_mode(int mode)
 {
     int oldcols;
 
@@ -819,11 +870,76 @@ int sdl_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	if(ypos)
 		*ypos=-1;
 	sdl.mutexV(win_mutex);
-
-	return(1);
+	
+	return(0);
 }
 
-static void setup_surfaces(void)
+/* Called from events thread only */
+int sdl_setup_colours(SDL_Surface *surf)
+{
+	int i;
+	int ret=0;
+
+	if (sdl_dac_defaultsz < sizeof(dac_default)/sizeof(struct dac_colors)) {
+		Uint32 *newdd;
+		SDL_Color *newco;
+		size_t newsz = sizeof(dac_default)/sizeof(struct dac_colors);
+
+		newdd = realloc(sdl_dac_default, newsz * sizeof(sdl_dac_default[0]));
+		if (newdd == NULL)
+			return -1;
+		newco = realloc(sdl_co, newsz * sizeof(sdl_co[0]));
+		if (newco == NULL) {
+			free(newdd);
+			return -1;
+		}
+		sdl_co = newco;
+		sdl_dac_default = newdd;
+
+		for(i=sdl_dac_defaultsz; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+			sdl_co[i].r=dac_default[i].red;
+			sdl_co[i].g=dac_default[i].green;
+			sdl_co[i].b=dac_default[i].blue;
+		}
+
+		sdl.SetColors(surf, sdl_co, 0, sdl_dac_defaultsz);
+
+		for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+			sdl_dac_default[i]=sdl.MapRGB(win->format, sdl_co[i].r, sdl_co[i].g, sdl_co[i].b);
+		}
+
+		sdl_dac_defaultsz = newsz;
+	}
+	else
+		sdl.SetColors(surf, sdl_co, 0, sdl_dac_defaultsz);
+
+	return(ret);
+}
+
+int sdl_setup_yuv_colours(void)
+{
+	int i;
+	int ret=0;
+
+	if(yuv.enabled) {
+		if (yuv.colourssz < sizeof(dac_default)/sizeof(struct dac_colors)) {
+			size_t newsz = sizeof(dac_default)/sizeof(struct dac_colors);
+			Uint8 (*newc)[3];
+
+			newc = realloc(yuv.colours, newsz * sizeof(yuv.colours[0]));
+			if (newc == NULL)
+				return -1;
+			yuv.colours = newc;
+			yuv.colourssz = newsz;
+		}
+		for(i=0; i<(sizeof(dac_default)/sizeof(struct dac_colors)); i++) {
+			RGBtoYUV(dac_default[i].red, dac_default[i].green, dac_default[i].blue, yuv.colours[i], 0, 100);
+		}
+	}
+	return(ret);
+}
+
+void setup_surfaces(void)
 {
 	int		char_width;
 	int		char_height;
@@ -932,9 +1048,12 @@ static void setup_surfaces(void)
 					sdl.FreeYUVOverlay(yuv.overlay);
 			}
 			yuv.overlay=sdl.CreateYUVOverlay(char_width,char_height, yuv.best_format, win);
+			sdl_setup_yuv_colours();
 		}
 		sdl.mutexP(newrect_mutex);
+		sdl_setup_colours(new_rect);
 		sdl.mutexV(newrect_mutex);
+		sdl_setup_colours(win);
 		bitmap_drv_request_pixels();
 	}
 	else if(sdl_init_good) {
@@ -946,7 +1065,7 @@ static void setup_surfaces(void)
 }
 
 /* Called from event thread only */
-static void sdl_add_key(unsigned int keyval)
+void sdl_add_key(unsigned int keyval)
 {
 	if(keyval==0xa600) {
 		fullscreen=!fullscreen;
@@ -982,7 +1101,7 @@ static void sdl_add_key(unsigned int keyval)
 	}
 }
 
-static unsigned int cp437_convert(unsigned int unicode)
+unsigned int cp437_convert(unsigned int unicode)
 {
 	if(unicode < 0x80)
 		return(unicode);
@@ -1248,7 +1367,7 @@ static unsigned int cp437_convert(unsigned int unicode)
 }
 
 /* Called from event thread only */
-static unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned int unicode)
+unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, unsigned int unicode)
 {
 	int expect;
 	int i;
@@ -1414,7 +1533,7 @@ static unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, uns
 }
 
 /* Mouse event/keyboard thread */
-static int sdl_mouse_thread(void *data)
+int sdl_mouse_thread(void *data)
 {
 	SetThreadName("SDL Mouse");
 	while(1) {
@@ -1423,7 +1542,7 @@ static int sdl_mouse_thread(void *data)
 	}
 }
 
-static int win_to_text_xpos(int winpos)
+int win_to_text_xpos(int winpos)
 {
 	int ret;
 
@@ -1440,7 +1559,7 @@ static int win_to_text_xpos(int winpos)
 	}
 }
 
-static int win_to_text_ypos(int winpos)
+int win_to_text_ypos(int winpos)
 {
 	int ret;
 
@@ -1456,7 +1575,7 @@ static int win_to_text_ypos(int winpos)
 	}
 }
 
-static int sdl_video_event_thread(void *data)
+int sdl_video_event_thread(void *data)
 {
 	SDL_Event	ev;
 	int			new_scaling = -1;
@@ -1633,23 +1752,17 @@ static int sdl_video_event_thread(void *data)
 									sdl.mutexP(newrect_mutex);
 									scaling = cvstat.scaling;
 									vmultiplier = cvstat.vmultiplier;
-									r.w=scaling;
-									r.h=scaling*vmultiplier;
 									for(y=0; y<list->rect.height; y++) {
 										offset=y*list->rect.width;
-										r.y=(list->rect.y+y)*scaling*vmultiplier;
 										for(x=0; x<list->rect.width; x++) {
+											r.w=scaling;
+											r.h=scaling*vmultiplier;
 											r.x=(list->rect.x+x)*scaling;
-											if(yuv.enabled) {
-												Uint8 yuvc[3];
-
-												RGBtoYUV(list->data[offset] >> 16 & 0xff, list->data[offset] >> 8 & 0xff, list->data[offset] & 0xff, yuvc);
-												yuv_fillrect(yuv.overlay, &r, yuvc);
-											}
-											else {
-												sdl.FillRect(new_rect, &r, sdl.MapRGB(win->format, list->data[offset] >> 16 & 0xff, list->data[offset] >> 8 & 0xff, list->data[offset] & 0xff));
-											}
-											offset++;
+											r.y=(list->rect.y+y)*scaling*vmultiplier;
+											if(yuv.enabled)
+												yuv_fillrect(yuv.overlay, &r, list->data[offset++]);
+											else
+												sdl.FillRect(new_rect, &r, sdl_dac_default[list->data[offset++]]);
 										}
 									}
 									if(!yuv.enabled) {
@@ -1796,6 +1909,82 @@ static int sdl_video_event_thread(void *data)
 									}
 								}
 #endif
+								break;
+							case SDL_USEREVENT_SETPALETTE: {
+									struct sdl_palette *pal=(struct sdl_palette *)ev.user.data1;
+									int i;
+									int oldsz;
+									uint32_t first;
+									uint32_t count;
+
+									if(yuv.enabled) {
+										oldsz = yuv.colourssz;
+										if(yuv.enabled) {
+											if (yuv.colourssz < pal->index+1) {
+												size_t newsz = pal->index+1;
+												Uint8 (*newc)[3];
+
+												newc = realloc(yuv.colours, newsz * sizeof(yuv.colours[0]));
+												if (newc == NULL) {
+													free(pal);
+													break;
+												}
+												yuv.colours = newc;
+												yuv.colourssz = newsz;
+												for(i=oldsz; i<pal->index; i++)
+													RGBtoYUV(0, 0, 0, yuv.colours[i], 0, 100);
+											}
+											RGBtoYUV(pal->r, pal->g, pal->b, yuv.colours[pal->index], 0, 100);
+										}
+									}
+									else {
+										oldsz = sdl_dac_defaultsz;
+										if (sdl_dac_defaultsz < pal->index+1) {
+											Uint32 *newdd;
+											SDL_Color *newco;
+											size_t newsz = pal->index+1;
+
+											newdd = realloc(sdl_dac_default, newsz * sizeof(sdl_dac_default[0]));
+											if (newdd == NULL) {
+												free(pal);
+												break;
+											}
+											newco = realloc(sdl_co, newsz * sizeof(sdl_co[0]));
+											if (newco == NULL) {
+												free(newdd);
+												free(pal);
+												break;
+											}
+											sdl_co = newco;
+											sdl_dac_default = newdd;
+											sdl_dac_defaultsz = newsz;
+											first = oldsz;
+											count = pal->index + 1 - oldsz;
+											for(i=oldsz; i<pal->index; i++) {
+												sdl_co[i].r=0;
+												sdl_co[i].g=0;
+												sdl_co[i].b=0;
+											}
+										}
+										else {
+											first = pal->index;
+											count = 1;
+										}
+
+										sdl_co[pal->index].r = pal->r;
+										sdl_co[pal->index].g = pal->g;
+										sdl_co[pal->index].b = pal->b;
+										sdl.SetColors(win, sdl_co, first, count);
+										sdl.SetColors(new_rect, sdl_co, first, count);
+
+										for(i=0; i<count; i++) {
+											sdl_dac_default[i+first]=sdl.MapRGB(win->format, sdl_co[i+first].r, sdl_co[i+first].g, sdl_co[i+first].b);
+										}
+									}
+									bitmap_drv_request_pixels();
+									free(pal);
+								}
+
 								break;
 						}
 						break;
