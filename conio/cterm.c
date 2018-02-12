@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.221 2018/02/12 09:11:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.222 2018/02/12 20:44:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2466,7 +2466,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									else if (i+5 < seq->param_count && seq->param_int[i+1] == 2) {
 										uint32_t nc;
 
-										nc = map_rgb(seq->param_int[i+3]<<8, seq->param_int[i+4]<<8, seq->param_int[i+5]<<8);
+										nc = map_rgb(seq->param_int[i+2]<<8, seq->param_int[i+3]<<8, seq->param_int[i+4]<<8);
 										if (nc != UINT32_MAX)
 											cterm->fg_color = nc;
 									}
@@ -2801,7 +2801,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb, int emulation)
 {
-	char	*revision="$Revision: 1.221 $";
+	char	*revision="$Revision: 1.222 $";
 	char *in;
 	char	*out;
 	int		i;
