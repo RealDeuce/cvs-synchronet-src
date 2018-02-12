@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.23 2018/02/20 11:56:27 rswindell Exp $ */
+/* $Id: qwknodes.c,v 1.22 2015/08/22 07:03:40 deuce Exp $ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -6,7 +6,7 @@
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.23 $", "%*s %s", revision);
+	sscanf("$Revision: 1.22 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
