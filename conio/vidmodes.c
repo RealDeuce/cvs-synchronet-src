@@ -1,4 +1,4 @@
-/* $Id: vidmodes.c,v 1.21 2018/02/01 21:11:30 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.25 2018/02/07 07:26:21 deuce Exp $ */
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -8,7 +8,7 @@
 
 #include "vidmodes.h"
 
-struct video_params vparams[49] = {
+struct video_params vparams[] = {
 	/* BW 40x25 */
 	{BW40, GREYSCALE_PALETTE, 40, 25, 14, 15, 16, 8, 1},
 	/* CO 40x25 */
@@ -37,6 +37,8 @@ struct video_params vparams[49] = {
 	{C80X21, COLOUR_PALETTE, 80, 21, 14, 15, 16, 8, 1},
 	/* CO 80x28 */
 	{C80X28, COLOUR_PALETTE, 80, 28, 12, 13, 14, 8, 1},
+	/* CO 80x30 */
+	{C80X30, COLOUR_PALETTE, 80, 30, 14, 15, 16, 8, 1},
 	/* CO 80x43 */
 	{C80X43, COLOUR_PALETTE, 80, 43, 7, 7, 8, 8, 1},
 	/* CO 80x50 */
@@ -107,6 +109,9 @@ struct video_params vparams[49] = {
 	{VESA_132X50, COLOUR_PALETTE, 132, 50, 7, 7, 8, 8, 1},
 	/* VESA 60x132 mode */
 	{VESA_132X60, COLOUR_PALETTE, 132, 60, 7, 7, 8, 8, 1},
+	/* Awesome modes */
+	{ST132X37_16_9, COLOUR_PALETTE, 132, 37, 14, 15, 16, 8, 1},
+	{ST132X52_5_4, COLOUR_PALETTE, 132, 52, 14, 15, 16, 8, 1},
 };
 
 uint32_t palettes[5][16] = {
@@ -322,6 +327,8 @@ int load_vmode(struct video_stats *vs, int mode)
 	vs->default_curs_end=vparams[i].curs_end;
 	vs->curs_blink=1;
 	vs->curs_visible=1;
+	vs->curs_row=1;
+	vs->curs_col=1;
 	vs->bright_background=0;
 	vs->no_bright=0;
 	vs->bright_altcharset=0;
