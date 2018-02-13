@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.99 2018/02/14 19:24:49 deuce Exp $ */
+/* $Id: ciolib.h,v 1.97 2018/02/13 08:11:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,6 +68,16 @@
         #define CIOLIBEXPORT
         #define CIOLIBEXPORTVAR	extern
 #endif
+
+enum {
+	 CIOLIB_SETFONT_SUCCESS						= 0
+	,CIOLIB_SETFONT_NOT_SUPPORTED				= 1
+	,CIOLIB_SETFONT_NOT_INITIALIZED				= 2
+	,CIOLIB_SETFONT_CHARHEIGHT_NOT_SUPPORTED	= 3
+	,CIOLIB_SETFONT_INVALID_FONT				= 4
+	,CIOLIB_SETFONT_ILLEGAL_VIDMODE_CHANGE		= 5
+	,CIOLIB_SETFONT_MALLOC_FAILURE				= 6
+};
 
 enum {
 	 CIOLIB_MODE_AUTO
@@ -311,7 +321,7 @@ typedef struct {
 	void	(*setcursortype)(int);
 	int		(*getch)		(void);
 	int		(*getche)		(void);
-	void	(*beep)			(void);
+	int		(*beep)			(void);
 	void	(*highvideo)	(void);
 	void	(*lowvideo)		(void);
 	void	(*normvideo)	(void);
@@ -356,11 +366,10 @@ typedef struct {
 	int		(*setpixel)	(uint32_t x, uint32_t y, uint32_t colour);
 	struct ciolib_pixels *(*getpixels)(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey);
 	int		(*setpixels)(uint32_t sx, uint32_t sy, uint32_t ex, uint32_t ey, uint32_t x_off, uint32_t y_off, struct ciolib_pixels *pixels, void *mask);
-	int 	(*get_modepalette)(uint32_t[16]);
+	uint32_t 	*(*get_modepalette)(uint32_t[16]);
 	int	(*set_modepalette)(uint32_t[16]);
 	uint32_t	(*map_rgb)(uint16_t r, uint16_t g, uint16_t b);
 	void	(*replace_font)(uint8_t id, char *name, void *data, size_t size);
-	int	(*checkfont)(int font_num);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -429,7 +438,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_setfont(int font, int force, int font_num);
 CIOLIBEXPORT int CIOLIBCALL ciolib_getfont(int font_num);
 CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos);
-CIOLIBEXPORT void CIOLIBCALL ciolib_beep(void);
+CIOLIBEXPORT int CIOLIBCALL ciolib_beep(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_getcustomcursor(int *startline, int *endline, int *range, int *blink, int *visible);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcustomcursor(int startline, int endline, int range, int blink, int visible);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setvideoflags(int flags);
@@ -446,12 +455,11 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void);
 CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *);
 CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
-CIOLIBEXPORT int CIOLIBCALL ciolib_get_modepalette(uint32_t[16]);
+CIOLIBEXPORT uint32_t * CIOLIBCALL ciolib_get_modepalette(uint32_t[16]);
 CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t[16]);
 CIOLIBEXPORT uint32_t CIOLIBCALL ciolib_map_rgb(uint16_t r, uint16_t g, uint16_t b);
 CIOLIBEXPORT void CIOLIBCALL ciolib_replace_font(uint8_t id, char *name, void *data, size_t size);
 CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr);
-CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int font_num);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -530,7 +538,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define map_rgb(a,b,c)			ciolib_map_rgb(a,b,c)
 	#define replace_font(a,b,c,d)	ciolib_replace_font(a,b,c,d)
 	#define attrfont(a)				ciolib_attrfont(a)
-	#define checkfont(a)			ciolib_checkfont(a)
 #endif
 
 #ifdef WITH_SDL
