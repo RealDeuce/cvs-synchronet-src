@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.48 2018/02/14 04:37:27 deuce Exp $ */
+/* $Id: x_cio.c,v 1.47 2018/02/13 05:11:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,12 +92,13 @@ static void write_event(struct x11_local_event *ev)
 	}
 }
 
-void x_beep(void)
+int x_beep(void)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_BEEP;
 	write_event(&ev);
+	return(0);
 }
 
 void x_textmode(int mode)
@@ -169,7 +170,7 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	if(ypos)
 		*ypos=x11_window_ypos;
 	
-	return(1);
+	return(0);
 }
 
 /* Mouse event/keyboard thread */
