@@ -1,6 +1,6 @@
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.56 2018/02/23 23:51:03 rswindell Exp $ */
+/* $Id: uedit.c,v 1.55 2017/11/13 20:07:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1472,10 +1472,9 @@ int edit_personal(scfg_t *cfg, user_t *user)
 				/* Alias */
 				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Alias",user->alias,LEN_ALIAS,K_EDIT);
-				if(uifc.changes) {
+				if(uifc.changes)
 					putuserrec(cfg,user->number,U_ALIAS,LEN_ALIAS,user->alias);
 					putusername(cfg,user->number,user->alias);
-				}
 				break;
 			case 2:
 				/* Handle */
@@ -1910,7 +1909,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.56 $", "%*s %s", revision);
+	sscanf("$Revision: 1.55 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
