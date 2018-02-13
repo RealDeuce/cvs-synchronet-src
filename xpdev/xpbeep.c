@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.97 2018/03/09 05:50:12 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.96 2018/02/01 09:10:45 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -826,10 +826,6 @@ error_return:
 	sample_thread_running=FALSE;
 }
 
-/*
- * This MUST not return false after sample goes into the sample buffer in the background.
- * If it does, the caller won't be able to free() it.
- */
 BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t size, BOOL background)
 {
 	if(!sample_initialized) {
@@ -989,7 +985,6 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 {
 	unsigned char	*wave;
 	int samples;
-	BOOL ret;
 
 	wave=(unsigned char *)malloc(S_RATE*15/2+1);
 	if(!wave)
@@ -1009,17 +1004,13 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 			;
 		sample_len++;
 		while(samples > S_RATE*15/2) {
-			if(!xp_play_sample(wave, sample_len, TRUE)) {
-				free(wave);
+			if(!xp_play_sample(wave, sample_len, TRUE))
 				return FALSE;
-			}
 			samples -= sample_len;
 		}
 	}
 	makewave(freq,wave,samples,shape);
-	ret = xp_play_sample(wave, samples, FALSE);
-	free(wave);
-	return ret;
+	return(xp_play_sample(wave, samples, FALSE));
 }
 
 #ifdef __unix__
