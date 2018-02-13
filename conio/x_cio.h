@@ -1,10 +1,10 @@
-/* $Id: x_cio.h,v 1.25 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: x_cio.h,v 1.23 2018/02/13 05:11:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -61,7 +61,7 @@ void x_gettextinfo(struct text_info *info);
 void x_setcursortype(int type);
 int x_getch(void);
 int x_getche(void);
-void x_beep(void);
+int x_beep(void);
 void x_textmode(int mode);
 void x_setname(const char *name);
 void x_settitle(const char *title);

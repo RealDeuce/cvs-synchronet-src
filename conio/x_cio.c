@@ -1,10 +1,10 @@
-/* $Id: x_cio.c,v 1.50 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: x_cio.c,v 1.47 2018/02/13 05:11:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -92,12 +92,13 @@ static void write_event(struct x11_local_event *ev)
 	}
 }
 
-void x_beep(void)
+int x_beep(void)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_BEEP;
 	write_event(&ev);
+	return(0);
 }
 
 void x_textmode(int mode)
@@ -169,7 +170,7 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	if(ypos)
 		*ypos=x11_window_ypos;
 	
-	return(1);
+	return(0);
 }
 
 /* Mouse event/keyboard thread */
@@ -430,6 +431,7 @@ int x_init(void)
 	}
 
 	_beginthread(x11_event_thread,1<<16,NULL);
+	_beginthread(x11_mouse_thread,1<<16,NULL);
 	sem_wait(&init_complete);
 	if(!x11_initialized) {
 		xp_dlclose(dl);
@@ -440,7 +442,6 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
-	_beginthread(x11_mouse_thread,1<<16,NULL);
 	cio_api.options |= CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
