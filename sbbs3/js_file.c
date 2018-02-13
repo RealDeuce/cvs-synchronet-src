@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.170 2018/02/20 11:25:55 rswindell Exp $ */
+/* $Id: js_file.c,v 1.168 2018/01/12 22:23:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	BOOL		shareable=FALSE;
-	int			file = -1;
+	int			file;
 	uintN		i;
 	jsint		bufsize=2*1024;
 	JSString*	str;
@@ -196,8 +196,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 			setvbuf(p->fp,NULL,_IOFBF,bufsize);
 		}
-	} else if(file >= 0)
-		close(file);
+	}
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -1006,17 +1005,10 @@ js_iniRemoveKey(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
+	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx, section);
-	}
 	JSVALUE_TO_MSTRING(cx, argv[1], key, NULL);
-	if(JS_IsExceptionPending(cx)) {
-		FREE_AND_NULL(key);
-		FREE_AND_NULL(section);
-		return JS_FALSE;
-	}
-	
+	HANDLE_PENDING(cx);
 	if(key==NULL) {
 		JS_ReportError(cx, "Invalid NULL key specified");
 		FREE_AND_NULL(section);
@@ -1065,7 +1057,7 @@ js_iniRemoveSection(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx, section);
+		HANDLE_PENDING(cx);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1111,7 +1103,7 @@ js_iniGetSections(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc) {
 		JSVALUE_TO_MSTRING(cx, argv[0], prefix, NULL);
-		HANDLE_PENDING(cx, prefix);
+		HANDLE_PENDING(cx);
 	}
 
     array = JS_NewArrayObject(cx, 0, NULL);
@@ -1159,7 +1151,7 @@ js_iniGetKeys(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx, section);
+		HANDLE_PENDING(cx);
 	}
     array = JS_NewArrayObject(cx, 0, NULL);
 
@@ -1205,7 +1197,7 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>0 && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx, section);
+		HANDLE_PENDING(cx);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1347,7 +1339,7 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc)
 		JSVALUE_TO_MSTRING(cx, argv[0], name, NULL);
-	HANDLE_PENDING(cx, name);
+	HANDLE_PENDING(cx);
 	if(name == NULL) {
 		JS_ReportError(cx, "Invalid NULL name property");
 		return JS_FALSE;
@@ -1492,7 +1484,7 @@ js_iniSetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1)
 		JSVALUE_TO_MSTRING(cx, argv[1], name, NULL);
-	HANDLE_PENDING(cx, name);
+	HANDLE_PENDING(cx);
 	if(name==NULL) {
 		JS_ReportError(cx, "Invalid NULL name property");
 		return JS_FALSE;
@@ -1509,8 +1501,6 @@ js_iniSetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((list=iniReadFile(p->fp))==NULL) {
 		JS_RESUMEREQUEST(cx, rc);
-		if(name != name_def)
-			free(name);
 		return JS_TRUE;
 	}
 	JS_RESUMEREQUEST(cx, rc);
@@ -1578,7 +1568,7 @@ js_raw_write(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp = NULL;
+	char*		cp;
 	size_t		len;	/* string length */
 	JSString*	str;
 	private_t*	p;
@@ -1598,7 +1588,7 @@ js_raw_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx, cp);
+	HANDLE_PENDING(cx);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -1622,7 +1612,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp = NULL;
+	char*		cp;
 	char*		uubuf=NULL;
 	size_t		len;	/* string length */
 	int		decoded_len;
@@ -1646,7 +1636,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx, cp);
+	HANDLE_PENDING(cx);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -1740,7 +1730,7 @@ js_writeln_internal(JSContext *cx, JSObject *obj, jsval *arg, jsval *rval)
 			return(JS_FALSE);
 		}
 		JSSTRING_TO_MSTRING(cx, str, cp, NULL);
-		HANDLE_PENDING(cx, cp);
+		HANDLE_PENDING(cx);
 		if(cp==NULL)
 			cp=(char *)cp_def;
 	}

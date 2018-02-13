@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.308 2018/03/03 02:02:32 deuce Exp $ */
+/* $Id: services.c,v 1.302 2018/01/15 02:23:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -178,6 +178,8 @@ static BOOL winsock_startup(void)
 
 #endif
 
+static CRYPT_CONTEXT tls_context = -1;
+
 static ulong active_clients(void)
 {
 	ulong i;
@@ -282,7 +284,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	int32		level=LOG_INFO;
 	service_client_t* client;
 	jsrefcount	rc;
-	char		*line = NULL;
+	char		*line;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -300,7 +302,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
 		JSVALUE_TO_MSTRING(cx, argv[i], line, NULL);
-		HANDLE_PENDING(cx, line);
+		HANDLE_PENDING(cx);
 		if(line==NULL)
 		    return(JS_FALSE);
 		strncat(str,line,sizeof(str)/2);
@@ -357,7 +359,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name or number */
-	JSVALUE_TO_ASTRING(cx, argv[0], user, 128, NULL);
+	JSVALUE_TO_ASTRING(cx, argv[0], user, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
 	if(user==NULL)
 		return(JS_FALSE);
 
@@ -626,7 +628,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
-		HANDLE_PENDING(cx, cstr);
+		HANDLE_PENDING(cx);
 		client.user=cstr;
 	}
 
@@ -799,14 +801,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptKeyset Class */
-		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptCert Class */
-		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* user-specific objects */
@@ -1034,8 +1028,8 @@ static void js_service_thread(void* arg)
 			}
 		}
 #endif
-		if (scfg.tls_certificate != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &service_client);
+		if (tls_context != -1) {
+			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &service_client);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
@@ -1583,7 +1577,6 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
-			iniFreeStringList(sec_list);
 			return(service);
 		}
 		service=np;
@@ -1613,6 +1606,11 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
+	if (tls_context != -1) {
+		cryptDestroyContext(tls_context);
+		tls_context = -1;
+	}
+
 	update_clients();
 
 #ifdef _WINSOCKAPI_	
@@ -1638,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.308 $", "%*s %s", revision);
+	sscanf("$Revision: 1.302 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1840,9 +1838,9 @@ void DLLCALL services_thread(void* arg)
 					lprintf(LOG_ERR, "Option error, TLS not yet supported for static services (%s)", service[i].protocol);
 					continue;
 				}
-				if(scfg.tls_certificate == -1) {
-					get_ssl_cert(&scfg, ssl_estr);
-					if (scfg.tls_certificate == -1) {
+				if(tls_context == -1) {
+					tls_context = get_ssl_cert(&scfg, ssl_estr);
+					if (tls_context == -1) {
 						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
 						continue;
 					}
