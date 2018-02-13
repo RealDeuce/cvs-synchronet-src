@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.25 2018/02/13 05:11:20 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.26 2018/02/13 08:11:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,14 +62,6 @@ struct  video_params {
 	int charheight;
 	int charwidth;
 	int	vmultiplier;
-};
-
-struct vmem_cell {
-	uint8_t legacy_attr;
-	uint8_t ch;
-	uint8_t font;
-	uint32_t fg;	// RGB 00RRGGBB High bit indicates palette colour
-	uint32_t bg;	// RGB 00RRGGBB High bit indicates palette colour
 };
 
 struct vstat_vmem {

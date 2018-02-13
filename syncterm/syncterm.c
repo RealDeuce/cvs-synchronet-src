@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.210 2018/02/10 09:07:33 deuce Exp $ */
+/* $Id: syncterm.c,v 1.211 2018/02/13 08:11:35 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -93,9 +93,7 @@ char *inpath=NULL;
 int default_font=0;
 struct syncterm_settings settings;
 char *font_names[sizeof(conio_fontdata)/sizeof(struct conio_font_data_struct)];
-unsigned char *scrollback_buf=NULL;
-uint32_t *scrollback_fbuf=NULL;
-uint32_t *scrollback_bbuf=NULL;
+struct vmem_cell *scrollback_buf=NULL;
 unsigned int  scrollback_lines=0;
 unsigned int  scrollback_mode=C80;
 unsigned int  scrollback_cols=80;
