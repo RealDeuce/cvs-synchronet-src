@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.37 2015/04/30 00:14:39 deuce Exp $ */
+/* $Id: x_cio.c,v 1.47 2018/02/13 05:11:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,9 @@
 #include "x_cio.h"
 #include "x_events.h"
 
+#define BITMAP_CIOLIB_DRIVER
+#include "bitmap_con.h"
+
 int x_kbhit(void)
 {
 	fd_set	rfd;
@@ -71,12 +74,30 @@ int x_getch(void)
 	return(ch);
 }
 
+static void write_event(struct x11_local_event *ev)
+{
+	size_t sent = 0;
+	char *buf = (char *)ev;
+	fd_set	wfd;
+	int rv;
+
+	FD_ZERO(&wfd);
+	FD_SET(local_pipe[1], &wfd);
+
+	while (sent < sizeof(*ev)) {
+		select(local_pipe[1]+1, NULL, &wfd, NULL, NULL);
+		rv = write(local_pipe[1], buf + sent, sizeof(*ev) - sent);
+		if (rv > 0)
+			sent += rv;
+	}
+}
+
 int x_beep(void)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_BEEP;
-	while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+	write_event(&ev);
 	return(0);
 }
 
@@ -86,7 +107,7 @@ void x_textmode(int mode)
 
 	ev.type=X11_LOCAL_SETMODE;
 	ev.data.mode = mode;
-	while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+	write_event(&ev);
 	sem_wait(&mode_set);
 }
 
@@ -96,7 +117,7 @@ void x_setname(const char *name)
 
 	ev.type=X11_LOCAL_SETNAME;
 	SAFECOPY(ev.data.name, name);
-	while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+	write_event(&ev);
 }
 
 void x_settitle(const char *title)
@@ -105,7 +126,7 @@ void x_settitle(const char *title)
 
 	ev.type=X11_LOCAL_SETTITLE;
 	SAFECOPY(ev.data.title, title);
-	while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+	write_event(&ev);
 }
 
 void x_copytext(const char *text, size_t buflen)
@@ -118,7 +139,7 @@ void x_copytext(const char *text, size_t buflen)
 	copybuf=strdup(text);
 	if(copybuf) {
 		ev.type=X11_LOCAL_COPY;
-		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+		write_event(&ev);
 	}
 	pthread_mutex_unlock(&copybuf_mutex);
 	return;
@@ -130,7 +151,7 @@ char *x_getcliptext(void)
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_PASTE;
-	while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+	write_event(&ev);
 	sem_wait(&pastebuf_set);
 	if(pastebuf!=NULL)
 		ret=strdup(pastebuf);
@@ -360,6 +381,22 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
+	if((x11.XFreeColors=xp_dlsym(dl,XFreeColors))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XGetVisualInfo=xp_dlsym(dl,XGetVisualInfo))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateWindow=xp_dlsym(dl,XCreateWindow))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateColormap=xp_dlsym(dl,XCreateColormap))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
 
 	if(sem_init(&pastebuf_set, 0, 0)) {
 		xp_dlclose(dl);
@@ -405,21 +442,18 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
+	cio_api.options |= CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *data)
+void x11_drawrect(struct rectlist *data)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
 	if(x11_initialized) {
-		ev.data.rect.x=xoffset;
-		ev.data.rect.y=yoffset;
-		ev.data.rect.width=width;
-		ev.data.rect.height=height;
-		ev.data.rect.data=data;
-		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+		ev.data.rect=data;
+		write_event(&ev);
 	}
 }
 
@@ -429,5 +463,17 @@ void x11_flush(void)
 
 	ev.type=X11_LOCAL_FLUSH;
 	if(x11_initialized)
-		while(write(local_pipe[1], &ev, sizeof(ev))==-1);
+		write_event(&ev);
+}
+
+void x_setscaling(int newval)
+{
+	pthread_mutex_lock(&vstatlock);
+	x_cvstat.scaling = vstat.scaling = newval;
+	pthread_mutex_unlock(&vstatlock);
+}
+
+int x_getscaling(void)
+{
+	return x_cvstat.scaling;
 }
