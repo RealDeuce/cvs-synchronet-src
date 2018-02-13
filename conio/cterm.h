@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.52 2018/02/05 20:18:08 deuce Exp $ */
+/* $Id: cterm.h,v 1.55 2018/02/10 21:30:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -143,7 +143,7 @@ struct cterminal {
 	int					ypos;
 	cterm_log_t			log;
 	FILE*				logfile;
-	char				fontbuf[4096];	// Remote font
+	char				fontbuf[4097];	// Remote font
 	int					font_read;		// Current position in fontbuf
 	int					font_slot;
 	int					font_size;		// Bytes
@@ -175,6 +175,11 @@ struct cterminal {
 	unsigned long		sx_width;		// Width from raster attributes
 	unsigned long		sx_height;		// REMAINING heigh from raster attributes
 	uint8_t				*sx_mask;
+	int					sx_orig_cursor;	// Original value of cterm->cursor
+
+	/* APC Handler */
+	void				(*apc_handler)(char *strbuf, size_t strlen, void *cbdata);
+	void				*apc_handler_data;
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
