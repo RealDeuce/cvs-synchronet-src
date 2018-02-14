@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.211 2018/02/13 08:11:35 deuce Exp $ */
+/* $Id: syncterm.c,v 1.212 2018/02/14 04:49:37 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1290,7 +1290,7 @@ int main(int argc, char **argv)
 				"	rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,\n"
 				"	ht=\t,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
 				"	sgr=\\E[0%?%p1%p6%|%t;1%;%?%p4%|%t;5%;%?%p1%p3%|%t;7%;%?%p7%|%t;8%;m,\n"
-				"	smso=\\E[0;1;7m,\n"
+				"	smso=\\E[0;1;7m,rmso=\\E[m,\n"
 				"syncterm-24|SyncTERM 80x25,\n"
 				"	lines#24,use=syncterm,\n"
 				"syncterm-25|SyncTERM No Status Line,\n"

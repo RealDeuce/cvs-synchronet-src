@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.27 2018/02/10 21:39:22 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.28 2018/02/14 04:49:37 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -447,7 +447,7 @@ int pty_connect(struct bbslist *bbs)
 			":nd=\\E[C:nw=^M^J:DC=\\E[%%dP"
 			":r1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[0m\\E[?s"
 			":rc=\\E[u"
-			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:sr=\\E[T:ta=^I:up=\\E[A"
+			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:se=\\E[m:sr=\\E[T:ta=^I:up=\\E[A"
 			":ve=\\E[?25h:vi=\\E[?25l:",ws.ws_col,ws.ws_row
 				,cio_api.options & CONIO_OPT_PALETTE_SETTING ? ":Co#256:pa#32762:AB=\\E[48;5;%dm:AF=\\E[38;5;%dm" : ":Co#8:pa#64:AB=\\E[4%dm:AF=\\E[3%dm");
 		setenv("TERMCAP",termcap,1);
