@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.233 2018/02/20 19:43:39 deuce Exp $ */
+/* $Id: cterm.c,v 1.226 2018/02/14 04:37:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1303,8 +1303,6 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 			cterm->sx_pixels_sent = 1;
 			GETTEXTINFO(&ti);
 			vmode = find_vmode(ti.currmode);
-			if (vmode == -1)
-				return;
 			if (cterm->sx_pixels == NULL) {
 				cterm->sx_pixels = malloc(sizeof(struct ciolib_pixels));
 				cterm->sx_pixels->pixels = malloc(sizeof(cterm->sx_pixels->pixels[0]) * cterm->sx_iv * ti.screenwidth * vparams[vmode].charwidth * 6);
@@ -1435,8 +1433,6 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 						GETTEXTINFO(&ti);
 						vmode = find_vmode(ti.currmode);
 
-						if (vmode == -1)
-							return;
 						setpixels(cterm->sx_left, cterm->sx_y, cterm->sx_row_max_x, cterm->sx_y + 6 * cterm->sx_iv - 1, cterm->sx_left, 0, cterm->sx_pixels, cterm->sx_mask);
 						cterm->sx_row_max_x = 0;
 
@@ -1501,15 +1497,13 @@ all_done:
 	}
 
 	if (cterm->sx_scroll_mode) {
-		if (vmode != -1) {
-			cterm->sx_x = cterm->sx_x / vparams[vmode].charwidth + 1;
-			cterm->sx_x -= (cterm->x - 1);
+		cterm->sx_x = cterm->sx_x / vparams[vmode].charwidth + 1;
+		cterm->sx_x -= (cterm->x - 1);
 
-			cterm->sx_y = (cterm->sx_y - 1) / vparams[vmode].charheight + 1;
-			cterm->sx_y -= (cterm->y - 1);
+		cterm->sx_y = (cterm->sx_y - 1) / vparams[vmode].charheight + 1;
+		cterm->sx_y -= (cterm->y - 1);
 
-			GOTOXY(cterm->sx_x,cterm->sx_y);
-		}
+		GOTOXY(cterm->sx_x,cterm->sx_y);
 	}
 	else {
 		GOTOXY(cterm->sx_start_x, cterm->sx_start_y);
@@ -1837,9 +1831,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									break;
 								}
 							}
-							if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
-								strcat(retbuf, tmp);
 						}
+						if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
+							strcat(retbuf, tmp);
 						break;
 					case 's':
 						if (seq->param_str[0] == '?' && parse_parameters(seq)) {
@@ -2081,7 +2075,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->setfont_result = 1;
 							else
 								cterm->setfont_result = 0;
-							if(cterm->setfont_result == 0)
+							if(cterm->setfont_result == 1)
 								cterm->altfont[seq->param_int[0]] = seq->param_int[1];
 							break;
 					}
@@ -2858,7 +2852,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.233 $";
+	char	*revision="$Revision: 1.226 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3111,10 +3105,6 @@ static void parse_sixel_intro(struct cterminal *cterm)
 
 		GETTEXTINFO(&ti);
 		vmode = find_vmode(ti.currmode);
-		if (vmode == -1) {
-			cterm->sixel = SIXEL_INACTIVE;
-			return;
-		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->sx_scroll_mode) {
 			cterm->sx_x = cterm->sx_left = (cterm->x + WHEREX() - 2) * vparams[vmode].charwidth;
@@ -3189,7 +3179,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	int oldptnm;
 	uint32_t palette[16];
 	int mpalette;
-	struct vmem_cell tmpvc[1];
+	struct vmem_cell tmpvc;
 	int orig_fonts[4];
 
 	if(!cterm->started)
@@ -3334,8 +3324,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 												FREE_AND_NULL(cterm->strbuf);
 												cterm->strbuflen = cterm->strbufsize = 0;
 											}
-											else
-												cterm->strbuf = p;
 										}
 									}
 								}
@@ -3850,12 +3838,12 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 					else {	/* ANSI-BBS */
 						if(cterm->doorway_char) {
 							uctputs(cterm, prn);
-							tmpvc[0].ch = ch[0];
-							tmpvc[0].legacy_attr=cterm->attr;
-							tmpvc[0].fg = cterm->fg_color;
-							tmpvc[0].bg = cterm->bg_color;
-							tmpvc[0].font = ciolib_attrfont(cterm->attr);
-							vmem_puttext(cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,tmpvc);
+							tmpvc.ch = ch[0];
+							tmpvc.legacy_attr=cterm->attr;
+							tmpvc.fg = cterm->fg_color;
+							tmpvc.bg = cterm->bg_color;
+							tmpvc.font = ciolib_attrfont(cterm->attr);
+							vmem_puttext(cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,&tmpvc);
 							ch[1]=0;
 							if(WHEREX()==cterm->width) {
 								if(WHEREY()==cterm->bottom_margin) {

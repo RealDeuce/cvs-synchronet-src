@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.30 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.29 2015/11/30 09:07:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ void sbbs_t::logout()
 	if(usrlibs>0)
 		putuserrec(&cfg,useron.number,U_CURDIR,0,cfg.dir[usrdir[curlib][curdir[curlib]]]->code);
 	hhmmtostr(&cfg,&tm,str);
-	SAFECAT(str,"  ");
+	strcat(str,"  ");
 	if(sys_status&SS_USERON)
 		safe_snprintf(tmp,sizeof(tmp),"T:%3u   R:%3lu   P:%3lu   E:%3lu   F:%3lu   "
 			"U:%3luk %lu   D:%3luk %lu"
@@ -159,8 +159,8 @@ void sbbs_t::logout()
 			,logon_dlb/1024UL,logon_dls);
 	else
 		SAFEPRINTF(tmp,"T:%3u sec",(uint)(now-answertime));
-	SAFECAT(str,tmp);
-	SAFECAT(str,"\r\n");
+	strcat(str,tmp);
+	strcat(str,"\r\n");
 	logline("@-",str);
 	sys_status&=~SS_USERON;
 	answertime=now; // Incase we're relogging on
