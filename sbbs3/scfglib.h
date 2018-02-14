@@ -1,6 +1,6 @@
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.23 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.22 2017/11/24 21:35:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,6 @@
 							  offset+=sizeof(var); }
 #define get_str(var,stream) { if(!fread(var,1,sizeof(var),stream)) \
 								memset(var,0,sizeof(var)); \
- 							  else var[sizeof(var)-1] = 0; \
                               offset+=sizeof(var); }
 
 #ifdef __cplusplus
