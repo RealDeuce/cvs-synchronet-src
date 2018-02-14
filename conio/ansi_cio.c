@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.81 2018/02/05 17:56:52 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.82 2018/02/14 04:37:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -859,10 +859,9 @@ int ansi_getch(void)
 	return(ch);
 }
 
-int ansi_beep(void)
+void ansi_beep(void)
 {
 	ansi_sendstr("\7",1);
-	return(0);
 }
 
 #if defined(__BORLANDC__)

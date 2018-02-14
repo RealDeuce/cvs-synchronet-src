@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.38 2018/02/13 20:11:49 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.39 2018/02/14 04:37:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1033,9 +1033,9 @@ int curs_showmouse(void)
 	return(-1);
 }
 
-int curs_beep(void)
+void curs_beep(void)
 {
-	return(beep());
+	beep();
 }
 
 int curs_getvideoflags(void)
