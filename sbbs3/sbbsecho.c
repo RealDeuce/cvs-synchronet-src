@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.41 2017/10/19 05:56:52 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.67 2018/01/21 22:46:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -75,6 +75,7 @@ bool opt_update_msgptrs		= false;
 bool opt_ignore_msgptrs		= false;
 bool opt_leave_msgptrs		= false;
 bool opt_dump_area_file		= false;
+bool opt_retoss_badmail		= false;	/* Re-toss from the badecho/unknown msg sub */
 
 /* statistics */
 ulong netmail=0;	/* imported */
@@ -105,8 +106,42 @@ bool terminated=false;
 
 str_list_t	locked_bso_nodes;
 
+int lprintf(int level, char *fmt, ...);
 int mv(const char *insrc, const char *indest, bool copy);
+time32_t fmsgtime(const char *str);
 void export_echomail(const char *sub_code, const nodecfg_t*, bool rescan);
+const char* area_desc(const char* areatag);
+
+/* FTN-compliant "Program Identifier"/PID (also used as a "Tosser Identifier"/TID) */
+const char* sbbsecho_pid(void)
+{
+	static char str[256];
+	
+	sprintf(str, "SBBSecho %u.%02u-%s r%s %s %s"
+		,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision,__DATE__,compiler);
+
+	return str;
+}
+
+/* for *.bsy file contents: */
+const char* program_id(void)
+{
+	static char str[256];
+	
+	SAFEPRINTF2(str, "%u %s", getpid(), sbbsecho_pid());
+
+	return str;
+}
+
+const char* tear_line(void)
+{
+	static char str[256];
+
+	sprintf(str,"--- SBBSecho %u.%02u-%s\r"
+		,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC);
+
+	return str;
+}
 
 const char default_domain[] = "fidonet";
 
@@ -138,25 +173,345 @@ const char* zone_root_outbound(uint16_t zone)
 	return cfg.outbound;
 }
 
-/* FTN-compliant "Program Identifier"/PID (also used as a "Tosser Identifier"/TID) */
-const char* sbbsecho_pid(void)
+/* Allocates the buffer and returns the data (or NULL) */
+char* parse_control_line(const char* fmsgbuf, const char* kludge)
 {
-	static char str[256];
-	
-	sprintf(str, "SBBSecho %u.%02u-%s r%s %s %s"
-		,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision,__DATE__,compiler);
+	char*	p;
+	char	str[128];
 
-	return str;
+	if(fmsgbuf == NULL)
+		return NULL;
+	sprintf(str, "\1%s", kludge);
+	p = strstr(fmsgbuf, str);
+	if(p == NULL)
+		return NULL;
+	if(p != fmsgbuf && *(p-1) != '\r' && *(p-1) != '\n')	/* Kludge must start new-line */
+		return NULL;
+	SAFECOPY(str, p);
+
+	/* Terminate at the CR */
+	p = strchr(str, '\r');
+	if(p == NULL)
+		return NULL;
+	*p = 0;
+
+	/* Only return the data portion */
+	p = str + strlen(kludge) + 1;
+	SKIP_WHITESPACE(p);
+	return strdup(p);
 }
 
-/* for *.bsy file contents: */
-const char* program_id(void)
+/* Write an FTS-4009 compliant "Via" control line to the (netmail) file */
+int fwrite_via_control_line(FILE* fp, fidoaddr_t* addr)
 {
-	static char str[256];
-	
-	SAFEPRINTF2(str, "%u %s", getpid(), sbbsecho_pid());
+	time_t t = time(NULL);
+	struct tm* tm = gmtime(&t);
+	return fprintf(fp,"\1Via %s @%04u%02u%02u.%02u%02u%02u.UTC "
+		"SBBSecho %u.%02u-%s r%s\r"
+		,smb_faddrtoa(addr, NULL)
+		,tm->tm_year+1900
+		,tm->tm_mon+1
+		,tm->tm_mday
+		,tm->tm_hour
+		,tm->tm_min
+		,tm->tm_sec
+		,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision);
+}
 
-	return str;
+int fwrite_intl_control_line(FILE* fp, fmsghdr_t* hdr)
+{
+	return fprintf(fp,"\1INTL %hu:%hu/%hu %hu:%hu/%hu\r"
+		,hdr->destzone,hdr->destnet,hdr->destnode
+		,hdr->origzone,hdr->orignet,hdr->orignode);
+}
+
+typedef struct echostat_msg {
+	char msg_id[128];
+	char reply_id[128];
+	char pid[128];
+	char tid[128];
+	char to[FIDO_NAME_LEN];
+	char from[FIDO_NAME_LEN];
+	char subj[FIDO_SUBJ_LEN];
+	char msg_tz[128];
+	time_t msg_time;
+	time_t localtime;
+	size_t length;
+	fidoaddr_t origaddr;
+	fidoaddr_t pkt_orig;
+} echostat_msg_t;
+
+enum echostat_msg_type {
+	ECHOSTAT_MSG_RECEIVED,
+	ECHOSTAT_MSG_IMPORTED,
+	ECHOSTAT_MSG_EXPORTED,
+	ECHOSTAT_MSG_DUPLICATE,
+	ECHOSTAT_MSG_CIRCULAR,
+	ECHOSTAT_MSG_TYPES
+};
+
+const char* echostat_msg_type[ECHOSTAT_MSG_TYPES] = {
+	"Received",
+	"Imported",
+	"Exported",
+	"Duplicate",
+	"Circular",
+};
+
+typedef struct echostat {
+	char tag[FIDO_AREATAG_LEN + 1];
+	bool known;	// listed in Area File
+	echostat_msg_t last[ECHOSTAT_MSG_TYPES];
+	echostat_msg_t first[ECHOSTAT_MSG_TYPES];
+	ulong total[ECHOSTAT_MSG_TYPES];
+} echostat_t;
+
+echostat_t* echostat;
+size_t echostat_count;
+
+int echostat_compare(const void* c1, const void* c2)
+{
+	echostat_t* stat1 = (echostat_t*)c1;
+	echostat_t* stat2 = (echostat_t*)c2;
+
+	return stricmp(stat1->tag, stat2->tag);
+}
+
+echostat_msg_t parse_echostat_msg(str_list_t ini, const char* section, const char* prefix)
+{
+	char str[128];
+	char key[128];
+	echostat_msg_t msg = {{0}};
+
+	sprintf(key, "%s.to", prefix),			iniGetString(ini, section, key, NULL, msg.to);
+	sprintf(key, "%s.from", prefix),		iniGetString(ini, section, key, NULL, msg.from);
+	sprintf(key, "%s.subj", prefix),		iniGetString(ini, section, key, NULL, msg.subj);
+	sprintf(key, "%s.msg_id", prefix),		iniGetString(ini, section, key, NULL, msg.msg_id);
+	sprintf(key, "%s.reply_id", prefix),	iniGetString(ini, section, key, NULL, msg.reply_id);
+	sprintf(key, "%s.pid", prefix),			iniGetString(ini, section, key, NULL, msg.pid);
+	sprintf(key, "%s.tid", prefix),			iniGetString(ini, section, key, NULL, msg.tid);
+	sprintf(key, "%s.msg_tz", prefix),		iniGetString(ini, section, key, NULL, msg.msg_tz);
+	sprintf(key, "%s.msg_time", prefix),	msg.msg_time = iniGetDateTime(ini, section, key, 0);
+	sprintf(key, "%s.localtime", prefix),	msg.localtime = iniGetDateTime(ini, section, key, 0);
+	sprintf(key, "%s.length", prefix),		msg.length = (size_t)iniGetBytes(ini, section, key, 1, 0);
+	sprintf(key, "%s.origaddr", prefix),	iniGetString(ini, section, key, NULL, str);
+	if(str[0])	 msg.origaddr = atofaddr(str);
+	sprintf(key, "%s.pkt_orig", prefix),	iniGetString(ini, section, key, NULL, str);
+	if(str[0])	 msg.pkt_orig = atofaddr(str);
+
+	return msg;
+}
+
+echostat_msg_t fidomsg_to_echostat_msg(fmsghdr_t fmsghdr, fidoaddr_t* pkt_orig, const char* fmsgbuf)
+{
+	char* p;
+	echostat_msg_t msg = {{0}};
+
+	SAFECOPY(msg.to		, fmsghdr.to);
+	SAFECOPY(msg.from	, fmsghdr.from);
+	SAFECOPY(msg.subj	, fmsghdr.subj);
+	msg.msg_time		= fmsgtime(fmsghdr.time);
+	msg.localtime		= time(NULL);
+	msg.origaddr.zone	= fmsghdr.origzone;
+	msg.origaddr.net	= fmsghdr.orignet;
+	msg.origaddr.node	= fmsghdr.orignode;
+	msg.origaddr.point	= fmsghdr.origpoint;
+	if(pkt_orig != NULL)
+		msg.pkt_orig	= *pkt_orig;
+	if((p = parse_control_line(fmsgbuf, "MSGID:")) != NULL) {
+		SAFECOPY(msg.msg_id, p);
+		free(p);
+	}
+	if((p = parse_control_line(fmsgbuf, "REPLY:")) != NULL) {
+		SAFECOPY(msg.reply_id, p);
+		free(p);
+	}
+	if((p = parse_control_line(fmsgbuf, "PID:")) != NULL) {
+		SAFECOPY(msg.pid, p);
+		free(p);
+	}
+	if((p = parse_control_line(fmsgbuf, "TID:")) != NULL) {
+		SAFECOPY(msg.tid, p);
+		free(p);
+	}
+	if((p = parse_control_line(fmsgbuf, "TZUTC:")) != NULL
+		|| (p = parse_control_line(fmsgbuf, "TZUTCINFO:")) != NULL) {
+		SAFECOPY(msg.msg_tz, p);
+		free(p);
+	}
+	if(fmsgbuf != NULL)
+		msg.length = strlen(fmsgbuf);
+
+	return msg;
+}
+
+echostat_msg_t smsg_to_echostat_msg(smbmsg_t smsg, size_t msglen, fidoaddr_t addr)
+{
+	char* p;
+	echostat_msg_t emsg = {{0}};
+
+	SAFECOPY(emsg.to	, smsg.to);
+	SAFECOPY(emsg.from	, smsg.from);
+	SAFECOPY(emsg.subj	, smsg.subj);
+	emsg.msg_time		= smsg.hdr.when_written.time;
+	emsg.localtime		= time(NULL);
+	SAFECOPY(emsg.msg_tz, smb_zonestr(smsg.hdr.when_written.zone, NULL));
+	if(smsg.from_net.type == NET_FIDO && smsg.from_net.addr != NULL)
+		emsg.origaddr	= atofaddr(smsg.from_net.addr);
+	if((p = smsg.ftn_msgid) != NULL)
+		SAFECOPY(emsg.msg_id, p);
+	if((p = smsg.ftn_reply) != NULL)
+		SAFECOPY(emsg.reply_id, p);
+	if((p = smsg.ftn_pid) != NULL)
+		SAFECOPY(emsg.pid, p);
+	if((p = smsg.ftn_tid) != NULL)
+		SAFECOPY(emsg.tid, p);
+	else
+		SAFECOPY(emsg.tid, sbbsecho_pid());
+	emsg.length = msglen;
+	emsg.pkt_orig = addr;
+
+	return emsg;
+}
+
+void new_echostat_msg(echostat_t* stat, enum echostat_msg_type type, echostat_msg_t msg)
+{
+	stat->last[type] = msg;
+	if(stat->first[type].localtime == 0)
+		stat->first[type] = msg;
+	stat->total[type]++;
+}
+
+size_t read_echostats(const char* fname, echostat_t **echostat)
+{
+	str_list_t ini;
+	FILE* fp = iniOpenFile(fname, FALSE);
+	if(fp == NULL)
+		return 0;
+
+	ini = iniReadFile(fp);
+	iniCloseFile(fp);
+
+	str_list_t echoes = iniGetSectionList(ini, NULL);
+	if(echoes == NULL) {
+		iniFreeStringList(ini);
+		return 0;
+	}
+
+	size_t echo_count = strListCount(echoes);
+	*echostat = malloc(sizeof(echostat_t) * echo_count);
+	if(*echostat == NULL) {
+		iniFreeStringList(echoes);
+		iniFreeStringList(ini);
+		return 0;
+	}
+	for(unsigned i = 0; i < echo_count; i++) {
+		echostat_t* stat = &(*echostat)[i];
+		SAFECOPY(stat->tag, echoes[i]);
+		str_list_t keys = iniGetSection(ini, stat->tag);
+		if(keys == NULL)
+			continue;
+		for(int type = 0; type < ECHOSTAT_MSG_TYPES; type++) {
+			char prefix[32];
+			sprintf(prefix, "First%s", echostat_msg_type[type])
+				,stat->first[type]	= parse_echostat_msg(keys, NULL, prefix);
+			sprintf(prefix, "Last%s", echostat_msg_type[type])
+				,stat->last[type]	= parse_echostat_msg(keys, NULL, prefix);
+			sprintf(prefix, "Total%s", echostat_msg_type[type])
+				,stat->total[type] = iniGetLongInt(keys, NULL, prefix, 0);
+		}
+		stat->known = iniGetBool(keys, NULL, "Known", false);
+		iniFreeStringList(keys);
+	}
+	iniFreeStringList(echoes);
+	iniFreeStringList(ini);
+
+	lprintf(LOG_DEBUG, "Read %u echo statistics from %s", echo_count, fname);
+	return echo_count;
+}
+
+/* Mimic iniSetDateTime() */
+const char* iniTimeStr(time_t t)
+{
+	static char	tstr[32];
+	char	tmp[32];
+	char*	p;
+
+	if(t == 0)
+		return "Never";
+	if((p = ctime_r(&t, tmp)) == NULL)
+		sprintf(tstr, "0x%lx", (ulong)t);
+	else
+		sprintf(tstr, "%.3s %.2s %.4s %.8s", p+4, p+8, p+20, p+11);
+	
+	return tstr;
+}
+
+void fwrite_echostat_msg(FILE* fp, echostat_msg_t msg, const char* prefix)
+{
+	echostat_msg_t zero = {{0}};
+	if(memcmp(&msg, &zero, sizeof(msg)) == 0)
+		return;
+	if(msg.to[0])		fprintf(fp, "%s.to = %s\n"			, prefix, msg.to);
+	if(msg.from[0])		fprintf(fp, "%s.from = %s\n"		, prefix, msg.from);
+	if(msg.subj[0])		fprintf(fp, "%s.subj = %s\n"		, prefix, msg.subj);
+	if(msg.msg_id[0])	fprintf(fp, "%s.msg_id = %s\n"		, prefix, msg.msg_id);
+	if(msg.reply_id[0])	fprintf(fp, "%s.reply_id = %s\n"	, prefix, msg.reply_id);
+	if(msg.pid[0])		fprintf(fp, "%s.pid = %s\n"			, prefix, msg.pid);
+	if(msg.tid[0])		fprintf(fp, "%s.tid = %s\n"			, prefix, msg.tid);
+	fprintf(fp, "%s.length = %lu\n"							, prefix, msg.length);
+	fprintf(fp, "%s.msg_time = %s\n"						, prefix, iniTimeStr(msg.msg_time));
+	if(msg.msg_tz[0])	fprintf(fp, "%s.msg_tz = %s\n"		, prefix, msg.msg_tz);
+	fprintf(fp, "%s.localtime = %s\n"						, prefix, iniTimeStr(msg.localtime));
+	if(msg.origaddr.zone)
+		fprintf(fp, "%s.origaddr = %s\n"					, prefix, faddrtoa(&msg.origaddr));
+	fprintf(fp, "%s.pkt_orig = %s\n"						, prefix, faddrtoa(&msg.pkt_orig));
+}
+
+void fwrite_echostat(FILE* fp, echostat_t* stat)
+{
+	fprintf(fp, "[%s]\n"						, stat->tag);
+	fprintf(fp,	"Known = %s\n"					, stat->known ? "true" : "false");
+	for(int type = 0; type < ECHOSTAT_MSG_TYPES; type++) {
+		char prefix[32];
+		sprintf(prefix, "First%s", echostat_msg_type[type])	, fwrite_echostat_msg(fp, stat->first[type], prefix);
+		sprintf(prefix, "Last%s", echostat_msg_type[type])	, fwrite_echostat_msg(fp, stat->last[type], prefix);
+		if(stat->total[type] != 0)
+			fprintf(fp,	"Total%s = %lu\n"					, echostat_msg_type[type], stat->total[type]);
+	}
+}
+
+bool write_echostats(const char* fname, echostat_t* echostat, size_t echo_count)
+{
+	FILE* fp;
+
+	qsort(echostat, echo_count, sizeof(echostat_t), echostat_compare);
+
+	if((fp=fopen(fname, "w"))==NULL)
+		return false;
+
+	for(unsigned i = 0; i < echo_count; i++) {
+		fwrite_echostat(fp, &echostat[i]);
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+	return true;
+}
+
+echostat_t* get_echostat(const char* tag)
+{
+	for(unsigned int i = 0; i < echostat_count; i++) {
+		if(stricmp(echostat[i].tag, tag) == 0)
+			return &echostat[i];
+	}
+	echostat_t* new_echostat = realloc(echostat, sizeof(echostat_t) * (echostat_count + 1));
+	if(new_echostat == NULL)
+		return NULL;
+	echostat = new_echostat;
+	memset(&echostat[echostat_count], 0, sizeof(echostat_t));
+	SAFECOPY(echostat[echostat_count].tag, tag);
+
+	return &echostat[echostat_count++];
 }
 
 /**********************/
@@ -416,14 +771,18 @@ bool bso_lock_node(fidoaddr_t dest)
 	return true;
 }
 
-const char* bso_flo_filename(fidoaddr_t dest)
+const char* bso_flo_filename(fidoaddr_t dest, uint16_t attr)
 {
 	nodecfg_t* nodecfg;
 	char ch='f';
 	const char* outbound;
 	static char filename[MAX_PATH+1];
 
-	if((nodecfg=findnodecfg(&cfg, dest, /* exact: */false)) != NULL) {
+	if(attr&FIDO_CRASH)
+		ch='c';
+	else if(attr&FIDO_HOLD)
+		ch='h';
+	else if((nodecfg=findnodecfg(&cfg, dest, /* exact: */false)) != NULL) {
 		switch(nodecfg->status) {
 			case MAIL_STATUS_CRASH:	ch='c';	break;
 			case MAIL_STATUS_HOLD:	ch='h';	break;
@@ -442,19 +801,12 @@ const char* bso_flo_filename(fidoaddr_t dest)
 	return filename;
 }
 
-bool bso_file_attached_to_flo(const char* attachment, fidoaddr_t dest, bool bundle)
-{
-	char searchstr[MAX_PATH+1];
-	SAFEPRINTF2(searchstr,"%c%s",(bundle && cfg.trunc_bundles) ? '#':'^', attachment);
-	return findstr(searchstr, bso_flo_filename(dest));
-}
-
 /******************************************************************************
  This function creates or appends on existing Binkley compatible .?LO file
  attach file.
  Returns 0 on success.
 ******************************************************************************/
-int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_outbox)
+int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_outbox, uint16_t attr)
 {
 	const char* flo_filename;
 	char attachment[MAX_PATH+1];
@@ -470,7 +822,7 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	if(!bso_lock_node(dest))
 		return 1;
 
-	flo_filename = bso_flo_filename(dest);
+	flo_filename = bso_flo_filename(dest, attr);
 	SAFECOPY(attachment, infile);
 	if(!fexistcase(attachment))	{ /* just in-case it's the wrong case for a Unix file system */
 		lprintf(LOG_ERR, "ERROR line %u, attachment file not found: %s", __LINE__, attachment);
@@ -500,12 +852,12 @@ size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 	for(i=0;i<len;i++) {
 		ch=*buf++;
 		if(ch=='\n' && last_ch!='\r') {
-			if(fputc('\r',fp)==EOF)
-				return(wr);
+			if(fputc('\r', fp) == EOF)
+				break;
 			wr++;
 		}
 		if(fputc(ch,fp)==EOF)
-			return(wr);
+			break;
 		wr++;
 		last_ch=ch;
 	}
@@ -705,7 +1057,7 @@ bool new_pkthdr(fpkthdr_t* hdr, fidoaddr_t orig, fidoaddr_t dest, const nodecfg_
 }
 
 /******************************************************************************
- This function will create a netmail message (.MSG format).
+ This function will create a netmail message (FTS-1 "stored message" format).
  If file is non-zero, will set file attachment bit (for bundles).
  Returns 0 on success.
 ******************************************************************************/
@@ -733,9 +1085,15 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		from = msg->from;
 		when_written = msg->hdr.when_written;
 	}
-	if(from==NULL)
+	if(from==NULL || *from==0) {
 		from="SBBSecho";
-	if(to==NULL)
+		if(to != NULL && stricmp(to, "SBBSecho") == 0) {
+			lprintf(LOG_NOTICE, "Refusing to create netmail-loop msg from %s to %s", from, to);
+			return -42;	// Refuse to create mail-loop between 2 SBBSecho-bots
+		}
+	}
+
+	if(to==NULL || *to==0)
 		to="Sysop";
 	if(!startmsg) startmsg=1;
 	if((nodecfg=findnodecfg(&cfg, dest, 0)) != NULL) {
@@ -794,9 +1152,7 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	SAFECOPY(hdr.subj,subject);
 
 	fwrite(&hdr,sizeof(fmsghdr_t),1,fp);
-	fprintf(fp,"\1INTL %hu:%hu/%hu %hu:%hu/%hu\r"
-		,hdr.destzone,hdr.destnet,hdr.destnode
-		,hdr.origzone,hdr.orignet,hdr.orignode);
+	fwrite_intl_control_line(fp, &hdr);
 
 	if(!fidoctrl_line_exists(msg, "TZUTC:")) {
 		/* TZUTC (FSP-1001) */
@@ -808,17 +1164,19 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		}
 		fprintf(fp,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
 	}
-	/* Add FSC-53 FLAGS kludge */
-	fprintf(fp,"\1FLAGS");
-	if(direct)
-		fprintf(fp," DIR");
-	if(file_attached) {
-		if(cfg.trunc_bundles)
-			fprintf(fp," TFS");
-		else
-			fprintf(fp," KFS");
+	if(!cfg.flo_mailer) {
+		/* Add FSC-53 FLAGS kludge */
+		fprintf(fp,"\1FLAGS");
+		if(direct)
+			fprintf(fp," DIR");
+		if(file_attached) {
+			if(cfg.trunc_bundles)
+				fprintf(fp," TFS");
+			else
+				fprintf(fp," KFS");
+		}
+		fprintf(fp,"\r");
 	}
-	fprintf(fp,"\r");
 
 	if(hdr.destpoint)
 		fprintf(fp,"\1TOPT %hu\r",hdr.destpoint);
@@ -830,11 +1188,23 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
 				fprintf(fp,"\1%.512s\r",(char*)msg->hfield_dat[i]);
+		/* comment headers are part of text */
+		for(i=0; i<msg->total_hfields; i++)
+			if(msg->hfield[i].type == SMB_COMMENT)
+				fprintf(fp, "%s\r", (char*)msg->hfield_dat[i]);
+		if(subject != msg->subj)
+			fprintf(fp, "Subject: %s\r\r", msg->subj);
 	}
-	if(!file_attached || (!direct && file_attached))
-		fwrite_crlf(body,strlen(body)+1,fp);	/* Write additional NULL */
-	else
-		fwrite("\0",1,1,fp);               /* Write NULL */
+	/* Write the body text */
+	if(body != NULL) {
+		int bodylen = strlen(body);
+		fwrite_crlf(body, bodylen, fp);
+		/* Write the tear line */
+		if(bodylen > 0 && body[bodylen-1] != '\r' && body[bodylen-1] != '\n')
+			fputc('\r', fp);
+		fprintf(fp, "%s", tear_line());
+	}
+	fputc(FIDO_STORED_MSG_TERMINATOR, fp);
 	lprintf(LOG_INFO, "Created NetMail (%s)%s from %s (%s) to %s (%s), attr: %04hX, subject: %s"
 		,getfname(fname), file_attached ? " with attachment" : ""
 		,from, smb_faddrtoa(&faddr, tmp), to, smb_faddrtoa(&dest, NULL), hdr.attr, subject);
@@ -842,21 +1212,23 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 }
 
 /******************************************************************************
- This function takes the contents of 'infile' and puts it into a netmail
- message bound for addr.
+ This function takes the contents of 'infile' and puts it into netmail
+ message(s) bound for addr.
 ******************************************************************************/
-void file_to_netmail(FILE* infile, const char* title, fidoaddr_t dest, const char* to)
+int file_to_netmail(FILE* infile, const char* title, fidoaddr_t dest, const char* to)
 {
 	char *buf,*p;
 	long l,m,len;
+	int netmails_created = 0;
 
+	fseek(infile, 0, SEEK_END);
 	l=len=ftell(infile);
 	if(len>8192L)
 		len=8192L;
 	rewind(infile);
 	if((buf=(char *)malloc(len+1))==NULL) {
 		lprintf(LOG_ERR,"ERROR line %d allocating %lu for file to netmail buf",__LINE__,len);
-		return; 
+		return 0; 
 	}
 	while((m=fread(buf,1,(len>8064L) ? 8064L:len,infile))>0) {
 		buf[m]=0;
@@ -874,9 +1246,34 @@ void file_to_netmail(FILE* infile, const char* title, fidoaddr_t dest, const cha
 		}
 		if(ftell(infile)<l)
 			strcat(buf,"\r\nContinued in next message...\r\n");
-		create_netmail(to, /* msg: */NULL, title, buf, dest, /* attachment: */false); 
+		if(create_netmail(to, /* msg: */NULL, title, buf, dest, /* attachment: */false) == 0)
+			netmails_created++;
 	}
 	free(buf);
+	return netmails_created;
+}
+
+bool new_area(const char* tag, uint subnum, fidoaddr_t* link)
+{
+	area_t* area_list;
+	if((area_list = realloc(cfg.area, sizeof(area_t) * (cfg.areas+1))) == NULL)
+		return false;
+	cfg.area = area_list;
+	memset(&cfg.area[cfg.areas], 0 ,sizeof(area_t));
+	cfg.area[cfg.areas].sub = subnum;
+	if(tag != NULL) {
+		if((cfg.area[cfg.areas].tag = strdup(tag)) == NULL)
+			return false;
+	}
+	if(link != NULL) {
+		if((cfg.area[cfg.areas].link = malloc(sizeof(fidoaddr_t))) == NULL)
+			return false;
+		cfg.area[cfg.areas].link[0] = *link;
+		cfg.area[cfg.areas].links++;
+	}
+	cfg.areas++;
+
+	return true;
 }
 
 /* Returns true if area is linked with specified node address */
@@ -895,7 +1292,7 @@ uint find_area(const char* echotag)
 	unsigned u;
 
 	for(u=0; u < cfg.areas; u++)
-		if(stricmp(cfg.area[u].name, echotag) == 0)
+		if(cfg.area[u].tag != NULL && stricmp(cfg.area[u].tag, echotag) == 0)
 			break;
 
 	return u;
@@ -904,6 +1301,22 @@ uint find_area(const char* echotag)
 bool area_is_valid(uint areanum)
 {
 	return areanum < cfg.areas;
+}
+
+uint find_sysfaddr(faddr_t addr)
+{
+	unsigned u;
+
+	for(u=0; u < scfg.total_faddrs; u++)
+		if(memcmp(&scfg.faddr[u], &addr, sizeof(addr)) == 0)
+			break;
+
+	return u;
+}
+
+bool sysfaddr_is_valid(uint faddr_num)
+{
+	return faddr_num < scfg.total_faddrs;
 }
 
 /* Returns subnum (INVALID_SUB if pass-through) or SUB_NOT_FOUND */
@@ -923,13 +1336,16 @@ uint find_linked_area(const char* echotag, fidoaddr_t addr)
  settings configured for the node, as well as a list of areas the node is
  connected to.
 ******************************************************************************/
-void gen_notify_list(void)
+void gen_notify_list(nodecfg_t* nodecfg)
 {
 	FILE *	tmpf;
 	char	str[256];
 	uint	i,k;
 
 	for(k=0;k<cfg.nodecfgs && !terminated;k++) {
+
+		if(nodecfg != NULL && &cfg.nodecfg[k] != nodecfg)
+			continue;
 
 		if(!cfg.nodecfg[k].send_notify)
 			continue;
@@ -942,18 +1358,20 @@ void gen_notify_list(void)
 		fprintf(tmpf,"Following are the options set for your system and a list "
 			"of areas\r\nyou are connected to.  Please make sure everything "
 			"is correct.\r\n\r\n");
+		fprintf(tmpf,"Name              %s\r\n", cfg.nodecfg[k].name);
 		fprintf(tmpf,"Packet Type       %s\r\n", pktTypeStringList[cfg.nodecfg[k].pkt_type]);
 		fprintf(tmpf,"Archive Type      %s\r\n"
 			,cfg.nodecfg[k].archive == SBBSECHO_ARCHIVE_NONE ? "None" : cfg.nodecfg[k].archive->name);
 		fprintf(tmpf,"Mail Status       %s\r\n", mailStatusStringList[cfg.nodecfg[k].status]);
 		fprintf(tmpf,"Direct            %s\r\n", cfg.nodecfg[k].direct ? "Yes":"No");
 		fprintf(tmpf,"Passive (paused)  %s\r\n", cfg.nodecfg[k].passive ? "Yes":"No");
+		fprintf(tmpf,"Notifications     %s\r\n", cfg.nodecfg[k].send_notify ? "Yes":"No");
 		fprintf(tmpf,"Remote AreaMgr    %s\r\n\r\n"
-			,cfg.nodecfg[k].password[0] ? "Yes" : "No");
+			,cfg.nodecfg[k].areafix ? "Yes" : "No");
 
 		fprintf(tmpf,"Connected Areas\r\n---------------\r\n");
 		for(i=0;i<cfg.areas;i++) {
-			sprintf(str,"%s\r\n",cfg.area[i].name);
+			sprintf(str,"%s\r\n",cfg.area[i].tag);
 			if(str[0]=='*')
 				continue;
 			if(area_is_linked(i,&cfg.nodecfg[k].addr))
@@ -961,7 +1379,7 @@ void gen_notify_list(void)
 		}
 
 		if(ftell(tmpf))
-			file_to_netmail(tmpf,"SBBSecho Notify List",cfg.nodecfg[k].addr, /* To: */NULL);
+			file_to_netmail(tmpf,"SBBSecho Notify List",cfg.nodecfg[k].addr, /* To: */cfg.nodecfg[k].name);
 		fclose(tmpf); 
 	}
 }
@@ -996,11 +1414,13 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 
 	/* Include relevant areas from the area file (e.g. areas.bbs): */
 	for(u=0;u<cfg.areas;u++) {
+		if(u == cfg.badecho)
+			continue;
 		if((type == AREALIST_CONNECTED || cfg.add_from_echolists_only) && !area_is_linked(u,&addr))
 			continue;
 		if(type == AREALIST_UNLINKED && area_is_linked(u,&addr))
 			continue;
-		strListPush(&area_list, cfg.area[u].name); 
+		strListPush(&area_list, cfg.area[u].tag); 
 	} 
 
 	if(type != AREALIST_CONNECTED) {
@@ -1054,12 +1474,14 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		if((fp=tmpfile())==NULL) {
 			lprintf(LOG_ERR,"ERROR line %d couldn't open tmpfile",__LINE__);
 		} else {
-			strListWriteFile(fp, area_list, "\r\n");
+			for(u = 0; area_list[u] != NULL; u++)
+				fprintf(fp, "%-*s %s\r\n", FIDO_AREATAG_LEN, area_list[u], area_desc(area_list[u]));
 			file_to_netmail(fp,title,addr,to);
 			fclose(fp);
 		}
 	}
-	lprintf(LOG_INFO,"Created AreaFix response netmail with %s (%u areas)", title, strListCount(area_list));
+	lprintf(LOG_INFO,"AreaFix (for %s) Created response netmail with %s (%u areas)"
+		, smb_faddrtoa(&addr, NULL), title, strListCount(area_list));
 	strListFree(&area_list);
 }
 
@@ -1117,21 +1539,16 @@ int check_elists(const char *areatag, fidoaddr_t addr)
 void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, const char* to)
 {
 	FILE *nmfile,*afilein,*afileout,*fwdfile;
-	char str[1024],fields[1024],field1[256],field2[256],field3[256]
+	char str[1024],fields[1024],code[LEN_EXTCODE+1],echotag[FIDO_AREATAG_LEN+1],comment[256]
 		,outpath[MAX_PATH+1]
 		,*outname,*p,*tp,nomatch=0,match=0;
 	unsigned j,k,x,y;
 	unsigned u;
-	size_t add_count;
-	size_t del_count;
+	size_t add_count, added = 0;
+	size_t del_count, deleted = 0;
 
-	if((add_count = strListCount(add_area)) !=0 )
-		lprintf(LOG_DEBUG,"Adding %u areas for %s to %s"
-			,add_count, smb_faddrtoa(&addr,NULL), cfg.areafile);
-
-	if((del_count = strListCount(del_area)) != 0)
-		lprintf(LOG_DEBUG,"Removing %u areas for %s from %s"
-			,del_count, smb_faddrtoa(&addr,NULL), cfg.areafile);
+	add_count = strListCount(add_area);
+	del_count = strListCount(del_area);
 
 	SAFECOPY(outpath,cfg.areafile);
 	*getfname(outpath)=0;
@@ -1167,38 +1584,39 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 			fprintf(afileout,"%s\n",fields);
 			continue; 
 		}
-		SAFECOPY(field1,p);         /* Internal Code Field */
-		truncstr(field1," \t\r\n");
+		SAFECOPY(code,p);         /* Internal Code Field */
+		truncstr(code," \t\r\n");
 		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
-		SAFECOPY(field2,p);         /* Areatag Field */
-		truncstr(field2," \t\r\n");
+		SAFECOPY(echotag,p);         /* Areatag Field */
+		truncstr(echotag," \t\r\n");
 		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
 		if((tp=strchr(p,';'))!=NULL) {
-			SAFECOPY(field3,p);     /* Comment Field (if any) */
-			FIND_WHITESPACE(tp);
-			*tp=0; 
+			SAFECOPY(comment,tp);     /* Comment Field (if any), follows links */
 		}
 		else
-			field3[0]=0;
+			comment[0]=0;
 		if(del_count) { 				/* Check for areas to remove */
 			for(u=0;del_area[u]!=NULL;u++) {
-				if(!stricmp(del_area[u],field2) ||
+				if(!stricmp(del_area[u],echotag) ||
 					!stricmp(del_area[0],"-ALL"))     /* Match Found */
 					break; 
 			}
 			if(del_area[u]!=NULL) {
 				for(u=0;u<cfg.areas;u++) {
-					if(!stricmp(field2,cfg.area[u].name)) {
-						lprintf(LOG_DEBUG,"Unlinking area (%s) for %s in %s", field2, smb_faddrtoa(&addr,NULL), cfg.areafile);
+					if(!stricmp(echotag,cfg.area[u].tag)) {
 						if(!area_is_linked(u,&addr)) {
 							fprintf(afileout,"%s\n",fields);
 							/* bugfix here Mar-25-2004 (wasn't breaking for "-ALL") */
-							if(stricmp(del_area[0],"-ALL"))
-								fprintf(nmfile,"%s not connected.\r\n",field2);
+							if(stricmp(del_area[0],"-ALL")) {
+								fprintf(nmfile,"%s not connected.\r\n",echotag);
+								lprintf(LOG_NOTICE, "AreaFix (for %s) Unlink-requested area already unlinked: %s"
+									,smb_faddrtoa(&addr,NULL), echotag);
+							}
 							break; 
 						}
+						lprintf(LOG_INFO,"AreaFix (for %s) Unlinking area: %s", smb_faddrtoa(&addr,NULL), echotag);
 
 						/* Added 12/4/95 to remove link from connected link */
 
@@ -1208,20 +1626,11 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 						--cfg.area[u].links;
 						if(cfg.area[u].links==0) {
 							FREE_AND_NULL(cfg.area[u].link);
-						} else {
-							if((cfg.area[u].link=(fidoaddr_t *)
-								realloc(cfg.area[u].link,sizeof(fidoaddr_t)
-								*(cfg.area[u].links)))==NULL) {
-								lprintf(LOG_ERR,"ERROR line %d allocating memory for area "
-									"#%u links.",__LINE__,u+1);
-								bail(1); 
-								return;
-							}
 						}
 
 						fprintf(afileout,"%-*s %-*s "
-							,LEN_EXTCODE, field1
-							,FIDO_AREATAG_LEN, field2);
+							,LEN_EXTCODE, code
+							,FIDO_AREATAG_LEN, echotag);
 						for(j=0;j<cfg.area[u].links;j++) {
 							if(!memcmp(&cfg.area[u].link[j],&addr
 								,sizeof(fidoaddr_t)))
@@ -1229,10 +1638,11 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 							fprintf(afileout,"%s "
 								,smb_faddrtoa(&cfg.area[u].link[j],NULL)); 
 						}
-						if(field3[0])
-							fprintf(afileout,"%s",field3);
+						if(comment[0])
+							fprintf(afileout,"%s",comment);
 						fprintf(afileout,"\n");
-						fprintf(nmfile,"%s removed.\r\n",field2);
+						fprintf(nmfile,"%s removed.\r\n",echotag);
+						deleted++;
 						break; 
 					} 
 				}
@@ -1243,24 +1653,29 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 		}
 		if(add_count) { 				/* Check for areas to add */
 			for(u=0;add_area[u]!=NULL;u++)
-				if(!stricmp(add_area[u],field2) ||
+				if(!stricmp(add_area[u],echotag) ||
 					!stricmp(add_area[0],"+ALL"))      /* Match Found */
 					break;
 			if(add_area[u]!=NULL) {
 				if(stricmp(add_area[u],"+ALL"))
 					add_area[u][0]=0;  /* So we can check other lists */
 				for(u=0;u<cfg.areas;u++) {
-					if(!stricmp(field2,cfg.area[u].name)) {
-						lprintf(LOG_DEBUG,"Linking area (%s) for %s in %s", field2, smb_faddrtoa(&addr,NULL), cfg.areafile);
+					if(!stricmp(echotag,cfg.area[u].tag)) {
 						if(area_is_linked(u,&addr)) {
 							fprintf(afileout,"%s\n",fields);
-							fprintf(nmfile,"%s already connected.\r\n",field2);
+							fprintf(nmfile,"%s already connected.\r\n",echotag);
+							lprintf(LOG_NOTICE, "AreaFix (for %s) Link-requested area is already connected: %s"
+								,smb_faddrtoa(&addr,NULL), echotag);
 							break; 
 						}
-						if(cfg.add_from_echolists_only && !check_elists(field2,addr)) {
+						if(cfg.add_from_echolists_only && !check_elists(echotag,addr)) {
 							fprintf(afileout,"%s\n",fields);
+							lprintf(LOG_NOTICE, "AreaFix (for %s) Link-requested area not found in EchoLists: %s"
+								,smb_faddrtoa(&addr,NULL), echotag);
 							break; 
 						}
+
+						lprintf(LOG_INFO,"AreaFix (for %s) Linking area: %s", smb_faddrtoa(&addr,NULL), echotag);
 
 						/* Added 12/4/95 to add link to connected links */
 
@@ -1276,15 +1691,16 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 						memcpy(&cfg.area[u].link[cfg.area[u].links-1],&addr,sizeof(fidoaddr_t));
 
 						fprintf(afileout,"%-*s %-*s "
-							,LEN_EXTCODE, field1
-							,FIDO_AREATAG_LEN, field2);
+							,LEN_EXTCODE, code
+							,FIDO_AREATAG_LEN, echotag);
 						for(j=0;j<cfg.area[u].links;j++)
 							fprintf(afileout,"%s "
 								,smb_faddrtoa(&cfg.area[u].link[j],NULL));
-						if(field3[0])
-							fprintf(afileout,"%s",field3);
+						if(comment[0])
+							fprintf(afileout,"%s",comment);
 						fprintf(afileout,"\n");
-						fprintf(nmfile,"%s added.\r\n",field2);
+						fprintf(nmfile,"%s added.\r\n",echotag);
+						added++;
 						break; 
 					} 
 				}
@@ -1297,7 +1713,7 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 		fprintf(afileout,"%s\n",fields);	/* No match so write back line */
 	}
 	fclose(afilein);
-	if(nomatch || (strListCount(add_area) && !stricmp(add_area[0],"+ALL"))) {
+	if(nomatch || (add_area[0] != NULL && stricmp(add_area[0],"+ALL") == 0)) {
 		nodecfg_t* nodecfg=findnodecfg(&cfg, addr,0);
 		if(nodecfg != NULL) {
 			for(j=0;j<cfg.listcfgs;j++) {
@@ -1330,35 +1746,39 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 								tp=p;
 								FIND_WHITESPACE(tp);
 								*tp=0;
+								SAFECOPY(echotag, p);
 								if(add_area[0]!=NULL && stricmp(add_area[0],"+ALL")==0) {
 									if(area_is_valid(find_area(p)))
 										continue; 
 								}
 								for(y=0;add_area[y]!=NULL;y++)
-									if((!stricmp(add_area[y],str) &&
+									if((!stricmp(add_area[y], echotag) &&
 										add_area[y][0]) ||
 										!stricmp(add_area[0],"+ALL"))
 										break;
 								if(add_area[y]!=NULL) {
 									fprintf(afileout,"%-*s %-*s"
 										,LEN_EXTCODE, "P"
-										,FIDO_AREATAG_LEN, str);
+										,FIDO_AREATAG_LEN, echotag);
 									if(cfg.listcfg[j].hub.zone)
 										fprintf(afileout," %s"
 											,smb_faddrtoa(&cfg.listcfg[j].hub,NULL));
 									fprintf(afileout," %s\n",smb_faddrtoa(&addr,NULL));
-									fprintf(nmfile,"%s added.\r\n",str);
+									fprintf(nmfile,"%s added.\r\n", echotag);
 									if(stricmp(add_area[0],"+ALL"))
 										add_area[y][0]=0;
 									if(cfg.listcfg[j].forward
 										&& cfg.listcfg[j].hub.zone)
-										fprintf(fwdfile,"%s\r\n",str); 
+										fprintf(fwdfile,"%s\r\n", echotag); 
+									added++;
+									lprintf(LOG_NOTICE, "AreaFix (for %s) Adding area from EchoList (%s): %s"
+										, smb_faddrtoa(&addr,NULL), cfg.listcfg[j].listpath, echotag);
 								} 
 							}
 							fclose(afilein);
 							if(cfg.listcfg[j].forward && ftell(fwdfile)>0)
 								file_to_netmail(fwdfile,cfg.listcfg[j].password
-									,cfg.listcfg[j].hub,/* To: */"Areafix");
+									,cfg.listcfg[j].hub,/* To: */cfg.listcfg[j].areamgr);
 							fclose(fwdfile);
 							match=1;
 							break; 
@@ -1370,27 +1790,84 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 	}
 	if(strListCount(add_area) && stricmp(add_area[0],"+ALL")) {
 		for(u=0;add_area[u]!=NULL;u++)
-			if(add_area[u][0])
+			if(add_area[u][0]) {
 				fprintf(nmfile,"%s not found.\r\n",add_area[u]); 
+				lprintf(LOG_NOTICE, "AreaFix (for %s) Link-requested echo not found: %s", smb_faddrtoa(&addr,NULL), add_area[u]);
+			}
 	}
-	if(!ftell(nmfile))
-		create_netmail(to,/* msg: */NULL,"Area Change Request","No changes made.",addr,/* attachment: */false);
-	else
-		file_to_netmail(nmfile,"Area Change Request",addr,to);
+	if (to != NULL) {
+		if (!ftell(nmfile))
+			create_netmail(to,/* msg: */NULL, "Area Management Request", "No changes made.", addr,/* attachment: */false);
+		else
+			file_to_netmail(nmfile, "Area Management Request", addr, to);
+	}
 	fclose(nmfile);
 	fclose(afileout);
-	if(cfg.areafile_backups == 0 || !backup(cfg.areafile, cfg.areafile_backups, /* ren: */TRUE))
-		delfile(cfg.areafile, __LINE__);					/* Delete AREAS.BBS */
-	if(rename(outname,cfg.areafile))		   /* Rename new AREAS.BBS file */
-		lprintf(LOG_ERR,"ERROR line %d renaming %s to %s",__LINE__,outname,cfg.areafile);
+	if(added)
+		lprintf(LOG_DEBUG, "AreaFix (for %s) Added links to %u areas in %s"
+			,smb_faddrtoa(&addr,NULL), added, cfg.areafile);
+	if(deleted)
+		lprintf(LOG_DEBUG, "AreaFix (for %s) Removed links to %u areas in %s"
+			,smb_faddrtoa(&addr,NULL), deleted, cfg.areafile);
+	if(added || deleted) {
+		if(cfg.areafile_backups == 0 || !backup(cfg.areafile, cfg.areafile_backups, /* ren: */TRUE))
+			delfile(cfg.areafile, __LINE__);					/* Delete AREAS.BBS */
+		if(rename(outname,cfg.areafile))		   /* Rename new AREAS.BBS file */
+			lprintf(LOG_ERR,"ERROR line %d renaming %s to %s",__LINE__,outname,cfg.areafile);
+	}
 	free(outname);
 }
+
+bool add_sub_to_areafile(sub_t* sub, fidoaddr_t uplink)
+{
+	FILE* fp;
+
+	lprintf(LOG_INFO, "Adding sub-board to Area File with uplink (%s): %s"
+		,smb_faddrtoa(&uplink, NULL), sub->code);
+
+	/* Back-up Area File (at most, once per invocation) */
+	static ulong added;
+	if(added++ == 0)
+		backup(cfg.areafile, cfg.areafile_backups, /* ren: */FALSE);
+
+	fp = fopen(cfg.areafile, "r+");
+	if(fp == NULL) {
+		lprintf(LOG_ERR, "Error %d opening %s", errno, cfg.areafile);
+		return false;
+	}
+	/* Make sure the line we add is on a line of its own: */
+	int ch = EOF;
+	int last_ch = '\n';
+	while(!feof(fp)) {
+		if((ch = fgetc(fp)) != EOF)
+			last_ch = ch;
+	}
+	if(last_ch != '\n')
+		fputc('\n', fp);
+
+	/* Replace spaces in the sub short-name with underscores (for use as the echotag) */
+	char echotag[FIDO_AREATAG_LEN+1];
+	SAFECOPY(echotag, sub->sname);
+	char* p;
+	REPLACE_CHARS(echotag, ' ', '_', p);
+	strupr(echotag);
+	fprintf(fp, "%-*s %-*s %s\n"
+		,LEN_EXTCODE, sub->code, FIDO_AREATAG_LEN, echotag, smb_faddrtoa(&uplink, NULL));
+	fclose(fp);
+
+	return new_area(echotag, sub->subnum, &uplink);
+}
+
 /******************************************************************************
  Used by AREAFIX to add/remove/change link info in the configuration file
 ******************************************************************************/
 bool alter_config(fidoaddr_t addr, const char* key, const char* value)
 {
 	FILE* fp;
+
+	static ulong alterations;
+	if(alterations++ == 0)
+		backup(cfg.cfgfile, cfg.cfgfile_backups, /* ren: */false);
 
 	if((fp=iniOpenFile(cfg.cfgfile, false)) == NULL) {
 		lprintf(LOG_ERR, "ERROR %d (%s) opening %s for altering configuration of node %s"
@@ -1406,7 +1883,7 @@ bool alter_config(fidoaddr_t addr, const char* key, const char* value)
 	}
 	char section[128];
 	SAFEPRINTF(section, "node:%s", smb_faddrtoa(&addr,NULL));
-	ini_style_t style = { 0, "\t" };
+	ini_style_t style = {  .key_prefix = "\t", .value_separator = " = " };
 	iniSetString(&ini, section, key, value, &style);
 	iniWriteFile(fp, ini);
 	iniCloseFile(fp);
@@ -1417,52 +1894,51 @@ bool alter_config(fidoaddr_t addr, const char* key, const char* value)
 /******************************************************************************
  Used by AREAFIX to process any '%' commands that come in via netmail
 ******************************************************************************/
-void areafix_command(char* instr, fidoaddr_t addr, const char* to)
+bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 {
 	FILE *stream,*tmpf;
-	char str[MAX_PATH+1],*buf;
+	char str[MAX_PATH+1];
 	int  file;
-	long l;
 	unsigned u;
+	faddr_t addr = nodecfg->addr;
 
-	nodecfg_t* nodecfg=findnodecfg(&cfg, addr,0);
-	if(nodecfg == NULL)
-		return;
+	lprintf(LOG_DEBUG, "AreaFix (for %s) Received command: %s", faddrtoa(&addr), instr);
 
 	if(stricmp(instr, "HELP") == 0) {
 		SAFEPRINTF(str,"%sAREAMGR.HLP",scfg.exec_dir);
-		if(!fexistcase(str))
-			return;
+		if(!fexistcase(str)) {
+			lprintf(LOG_ERR, "AreaFix (for %s) Help file not found: %s", faddrtoa(&addr), str);
+			return true;
+		}
 		if((stream=fnopen(&file,str,O_RDONLY))==NULL) {
 			lprintf(LOG_ERR,"ERROR %u (%s) line %d opening %s",errno,strerror(errno),__LINE__,str);
-			return; 
+			return false; 
 		}
-		l=filelength(file);
-		if((buf=(char *)malloc(l+1L))==NULL) {
-			lprintf(LOG_CRIT,"ERROR line %d allocating %lu bytes for %s",__LINE__,l,str);
-			return; 
-		}
-		fread(buf,l,1,stream);
+		bool result = file_to_netmail(stream, "Area Manager Help", addr, to) > 0;
+		if(!result)
+			lprintf(LOG_ERR,"ERROR converting file to netmail(s)");
 		fclose(stream);
-		buf[l]=0;
-		create_netmail(to,/* msg: */NULL,"Area Manager Help",buf,addr,/* attachment: */false);
-		free(buf);
-		return; 
+		return result; 
 	}
 
 	if(stricmp(instr, "LIST") == 0) {
 		netmail_arealist(AREALIST_ALL,addr,to);
-		return; 
+		return true; 
 	}
 
 	if(stricmp(instr, "QUERY") == 0) {
 		netmail_arealist(AREALIST_CONNECTED,addr,to);
-		return; 
+		return true; 
 	}
 
 	if(stricmp(instr, "UNLINKED") == 0) {
 		netmail_arealist(AREALIST_UNLINKED,addr,to);
-		return; 
+		return true; 
+	}
+
+	if(stricmp(nodecfg->name, to) != 0) {
+		lprintf(LOG_INFO, "AreaFix (for %s) Changing name to: %s", faddrtoa(&addr), to);
+		alter_config(addr, "Name", to);
 	}
 
 	if(strnicmp(instr, "COMPRESSION ", 12) == 0 || strnicmp(instr, "COMPRESS ", 9) == 0) {
@@ -1478,22 +1954,26 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 			if(u==cfg.arcdefs) {
 				if((tmpf=tmpfile())==NULL) {
 					lprintf(LOG_ERR,"ERROR line %d opening tmpfile()",__LINE__);
-					return; 
+					return false; 
 				}
-				fprintf(tmpf,"Compression type unavailable.\r\n\r\n"
-					"Available types are:\r\n");
+				SAFEPRINTF(str, "Compression type unavailable: %s", p);
+				lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
+				fprintf(tmpf,"Compression type unavailable: %s\r\n\r\n"
+					"Available types are:\r\n", p);
 				for(u=0;u<cfg.arcdefs;u++)
 					fprintf(tmpf,"                     %s\r\n",cfg.arcdef[u].name);
-				file_to_netmail(tmpf,"Compression Type Change",addr,to);
+				if(!file_to_netmail(tmpf,"Compression Type Change",addr,to))
+					lprintf(LOG_ERR,"ERROR converting file to netmail(s)");
 				fclose(tmpf);
-				return; 
+				return true; 
 			}
 			nodecfg->archive = &cfg.arcdef[u];
 		}
 		alter_config(addr,"archive",p);
-		SAFEPRINTF(str, "Compression type changed to %s.", p);
+		SAFEPRINTF(str, "Compression type changed to: %s", p);
+		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 		create_netmail(to,/* msg: */NULL,"Compression Type Change",str,addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
 	if(strnicmp(instr, "PASSWORD ", 9) == 0 || strnicmp(instr, "PWD ", 4) == 0) {
@@ -1505,18 +1985,20 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		if(!stricmp(password, nodecfg->password)) {
 			sprintf(str,"Your AreaMgr password was already set to '%s'."
 				,nodecfg->password);
+			lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 			create_netmail(to,/* msg: */NULL,"AreaMgr Password Change Request",str,addr,/* attachment: */false);
-			return; 
+			return true; 
 		}
-		if(alter_config(addr,"AreafixPwd", password)) {
+		if(alter_config(addr,"AreaFixPwd", password)) {
 			SAFEPRINTF2(str,"Your AreaMgr password has been changed from '%s' to '%s'."
 				,nodecfg->password,password);
 			SAFECOPY(nodecfg->password, password);
 		} else {
 			SAFECOPY(str,"Error changing AreaMgr password");
 		}
+		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 		create_netmail(to,/* msg: */NULL,"AreaMgr Password Change Request",str,addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
 	if(strnicmp(instr, "PKTPWD ", 7) == 0) {
@@ -1528,8 +2010,9 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		if(!stricmp(pktpwd, nodecfg->pktpwd)) {
 			sprintf(str,"Your packet password was already set to '%s'."
 				,nodecfg->pktpwd);
+			lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 			create_netmail(to,/* msg: */NULL,"Packet Password Change Request",str,addr,/* attachment: */false);
-			return; 
+			return true; 
 		}
 		if(alter_config(addr,"PacketPwd", pktpwd)) {
 			SAFEPRINTF2(str,"Your packet password has been changed from '%s' to '%s'."
@@ -1538,8 +2021,9 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		} else {
 			SAFECOPY(str,"Error changing packet password");
 		}
+		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 		create_netmail(to,/* msg: */NULL,"Packet Password Change Request",str,addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
 	if(strnicmp(instr, "TICPWD ", 7) == 0) {
@@ -1551,8 +2035,9 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		if(!stricmp(ticpwd, nodecfg->ticpwd)) {
 			sprintf(str,"Your TIC File password was already set to '%s'."
 				,nodecfg->ticpwd);
+			lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 			create_netmail(to,/* msg: */NULL,"TIC File Password Change Request",str,addr,/* attachment: */false);
-			return; 
+			return true; 
 		}
 		if(alter_config(addr,"TicFilePwd", ticpwd)) {
 			SAFEPRINTF2(str,"Your TIC File password has been changed from '%s' to '%s'."
@@ -1561,17 +2046,33 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		} else {
 			SAFECOPY(str,"Error changing TIC File password");
 		}
+		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 		create_netmail(to,/* msg: */NULL,"TIC File Password Change Request",str,addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
+	if(strnicmp(instr, "NOTIFY ", 7) == 0) {
+		char* p = instr;
+		FIND_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
+		if(alter_config(addr,"Notify", p)) {
+			SAFEPRINTF2(str,"Your Notification Messages have been changed from '%s' to '%s'."
+				,nodecfg->send_notify ? "ON" : "OFF", p);
+		} else {
+			SAFECOPY(str,"Error changing Notify Setting");
+		}
+		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
+		create_netmail(to,/* msg: */NULL,"Notification Messages Change Request",str,addr,/* attachment: */false);
+		return true; 
+	}
 
 	if(stricmp(instr, "RESCAN") == 0) {
+		lprintf(LOG_INFO, "AreaFix (for %s) Rescanning all areas", faddrtoa(&addr));
 		export_echomail(NULL, nodecfg, true);
 		create_netmail(to,/* msg: */NULL, "Rescan Areas"
 			,"All connected areas carried by your hub have been rescanned."
 			,addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
 	if(strnicmp(instr, "RESCAN ", 7) == 0) {
@@ -1587,35 +2088,57 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 			export_echomail(scfg.sub[subnum]->code, nodecfg, true);
 			SAFEPRINTF(str, "Connected area '%s' has been rescanned.", p);
 		}
+		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 		create_netmail(to,/* msg: */NULL, "Rescan Area"
 			,str, addr, /* attachment: */false);
-		return; 
+		return true; 
+	}
+
+	if(strnicmp(instr, "ECHOSTATS ", 10) == 0) {
+		char* p = instr;
+		FIND_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
+		echostat_t* stat = get_echostat(p);
+		if(stat == NULL) {
+			lprintf(LOG_INFO, "AreaFix (for %s) EchoStats request for unknown echo: %s", faddrtoa(&addr), p);
+		} else {
+			FILE* fp;
+			if((fp=tmpfile())==NULL) {
+				lprintf(LOG_ERR,"ERROR line %d couldn't open tmpfile",__LINE__);
+			} else {
+				fwrite_echostat(fp, stat);
+				if(!file_to_netmail(fp,"Echo Statistics",addr,to))
+					lprintf(LOG_ERR,"ERROR converting file to netmail(s)");
+				fclose(fp);
+			}
+		}
+		return true;
 	}
 
 	if(stricmp(instr, "ACTIVE") == 0 || stricmp(instr, "RESUME") == 0) {
 		if(!nodecfg->passive) {
 			create_netmail(to,/* msg: */NULL,"Reconnect Disconnected (paused) Areas"
 				,"Your areas are already connected.",addr,/* attachment: */false);
-			return; 
+			return true; 
 		}
 		nodecfg->passive = false;
 		alter_config(addr,"passive","false");
 		create_netmail(to,/* msg: */NULL,"Reconnect Disconnected (paused) Areas"
 			,"Temporarily disconnected areas have been reconnected.",addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
 	if(stricmp(instr, "PASSIVE") == 0 || stricmp(instr, "PAUSE") == 0) {
 		if(nodecfg->passive) {
 			create_netmail(to,/* msg: */NULL,"Temporarily Disconnect (pause) Areas"
 				,"Your areas are already temporarily disconnected.",addr,/* attachment: */false);
-			return; 
+			return true; 
 		}
 		nodecfg->passive = true;
 		alter_config(addr,"passive","true");
 		create_netmail(to,/* msg: */NULL,"Temporarily Disconnect (pause) Areas"
 			,"Your areas have been temporarily disconnected.",addr,/* attachment: */false);
-		return; 
+		return true; 
 	}
 
 	if(stricmp(instr, "+ALL") == 0) {
@@ -1623,7 +2146,7 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		strListPush(&add_area, instr);
 		alter_areas(add_area,NULL,addr,to);
 		strListFree(&add_area);
-		return; 
+		return true; 
 	}
 
 	if(stricmp(instr, "-ALL") == 0) {
@@ -1631,23 +2154,27 @@ void areafix_command(char* instr, fidoaddr_t addr, const char* to)
 		strListPush(&del_area, instr);
 		alter_areas(NULL,del_area,addr,to);
 		strListFree(&del_area);
-		return; 
+		return true; 
 	}
+
+	return false;
 }
 /******************************************************************************
- This is where we're gonna process any netmail that comes in for areafix.
- Returns text for message body for the local sysop if necessary.
+ This is where we're gonna process any netmail that comes in for AreaFix.
+ Returns text for message body for the local Area Mgr (sysop) upon failure.
 ******************************************************************************/
-char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const char* to)
+char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const char* name)
 {
-	static char body[512];
+	static char body[1024];
 	char str[128];
-	char *p,*tp,action,percent=0;
+	char *p,*tp,action,cmds=0;
 	ulong l,m;
 	str_list_t add_area,del_area;
 
-	lprintf(LOG_INFO,"Areafix Request received from %s"
-			,smb_faddrtoa(&addr,NULL));
+	lprintf(LOG_INFO,"AreaFix (for %s) Request received from %s"
+			,smb_faddrtoa(&addr,NULL), name);
+
+	sprintf(body,"%s (%s) attempted an Area Management (AreaFix) request.\r\n", name, faddrtoa(&addr));
 	
 	p=(char *)inbuf;
 
@@ -1667,33 +2194,25 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 	if(!strnicmp(p,"%FROM",5)) {    /* Remote Remote Maintenance (must be first) */
 		SAFECOPY(str,p+6);
 		truncstr(str,"\r\n");
-		lprintf(LOG_NOTICE,"Remote maintenance for %s requested via %s",str
+		lprintf(LOG_NOTICE,"AreaFix (for %s) Remote/proxy management requested via %s",str
 			,smb_faddrtoa(&addr,NULL));
 		addr=atofaddr(str); 
 	}
 
 	nodecfg_t* nodecfg = findnodecfg(&cfg, addr,0);
-	if(nodecfg==NULL) {
-		lprintf(LOG_NOTICE,"Areafix not configured for %s", smb_faddrtoa(&addr,NULL));
-		create_netmail(to,/* msg: */NULL,"Areafix Request"
-			,"Your node is not configured for Areafix, please contact your hub.\r\n",addr,/* attachment: */false);
-		SAFEPRINTF(body,"An areafix request was made by node %s.\r\nThis node "
-			"is not currently configured for areafix.\r\n"
-			,smb_faddrtoa(&addr,NULL));
-		lprintf(LOG_DEBUG,"areafix debug, nodes=%u",cfg.nodecfgs);
-		{
-			unsigned u;
-			for(u=0;u<cfg.nodecfgs;u++)
-				lprintf(LOG_DEBUG,smb_faddrtoa(&cfg.nodecfg[u].addr,NULL));
-		}
+	if(nodecfg==NULL || !nodecfg->areafix) {
+		lprintf(LOG_NOTICE,"AreaFix (for %s) Request received, but AreaFix not enabled for this node!", smb_faddrtoa(&addr,NULL));
+		create_netmail(name,/* msg: */NULL,"Area Management Request"
+			,"Your node is not configured for AreaFix, please contact your hub sysop.\r\n",addr,/* attachment: */false);
+		strcat(body,"This node is not configured for AreaFix operations.\r\n");
 		return(body); 
 	}
 
 	if(stricmp(nodecfg->password,password)) {
-		create_netmail(to,/* msg: */NULL,"Areafix Request","Invalid Password.",addr,/* attachment: */false);
-		sprintf(body,"Node %s attempted an areafix request using an invalid "
-			"password.\r\nThe password attempted was %s.\r\nThe correct password "
-			"for this node is %s.\r\n",smb_faddrtoa(&addr,NULL),password
+		create_netmail(name,/* msg: */NULL,"Area Management Request","Invalid Password.",addr,/* attachment: */false);
+		sprintf(body+strlen(body), "An invalid password (%s) was supplied in the message subject.\r\n"
+			"The correct Area Manager password for this node is: %s\r\n"
+			,password
 			,(nodecfg->password[0]) ? nodecfg->password
 			 : "[None Defined]");
 		return(body); 
@@ -1726,24 +2245,25 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 				strListPush(&del_area, str);
 				break;
 			case '%':                       /* Process Command */
-				areafix_command(str,addr,to);
-				percent++;
+				if(areafix_command(str, nodecfg, name))
+					cmds++;
 				break; 
 		}
 
 		while(*(p+l) && *(p+l)!='\r') l++; 
 	}
 
-	if(!percent && !strListCount(add_area) && !strListCount(del_area)) {
-		create_netmail(to,/* msg: */NULL,"Areafix Request","No commands to process.",addr,/* attachment: */false);
-		sprintf(body,"Node %s attempted an areafix request with an empty message "
-			"body or with no valid commands.\r\n",smb_faddrtoa(&addr,NULL));
+	if(!cmds && !strListCount(add_area) && !strListCount(del_area)) {
+		create_netmail(name,/* msg: */NULL,"Area Management Request"
+			,"No commands to process.\r\nSend %HELP for help.\r\n"
+			,addr,/* attachment: */false);
+		strcat(body, "No valid AreaFix commands were detected.\r\n");
 		strListFree(&add_area);
 		strListFree(&del_area);
 		return(body); 
 	}
 	if(strListCount(add_area) || strListCount(del_area))
-		alter_areas(add_area,del_area,addr,to);
+		alter_areas(add_area,del_area,addr,name);
 	strListFree(&add_area);
 	strListFree(&del_area);
 
@@ -1832,7 +2352,7 @@ enum attachment_mode {
 };
 
 /* bundlename is the full path to the attached bundle file */
-/* Returns 0 on succes */
+/* Returns 0 on success */
 int attachment(const char *bundlename, fidoaddr_t dest, enum attachment_mode mode)
 {
 #if 1
@@ -1849,7 +2369,7 @@ int attachment(const char *bundlename, fidoaddr_t dest, enum attachment_mode mod
 	if(cfg.flo_mailer) { 
 		switch(mode) {
 			case ATTACHMENT_ADD:
-				return write_flofile(bundlename,dest,/* bundle: */true,/* use_outbox: */true);
+				return write_flofile(bundlename,dest,/* bundle: */true,/* use_outbox: */true,/* attr: */0);
 			case ATTACHMENT_NETMAIL:
 				return 0; /* Do nothing */
 		}
@@ -2027,7 +2547,7 @@ bool pack_bundle(const char *tmp_pkt, fidoaddr_t orig, fidoaddr_t dest)
 	if(nodecfg != NULL)
 		if(nodecfg->archive==SBBSECHO_ARCHIVE_NONE) {    /* Uncompressed! */
 			if(cfg.flo_mailer)
-				i=write_flofile(packet,dest,/* bundle: */true,/* use_outbox: */true);
+				i=write_flofile(packet,dest,/* bundle: */true,/* use_outbox: */true,/* attr: */0);
 			else
 				i=create_netmail(/* To: */NULL,/* msg: */NULL,packet
 					,(cfg.trunc_bundles) ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
@@ -2288,37 +2808,36 @@ long getlastmsg(uint subnum, uint32_t *ptr, /* unused: */time_t *t)
 }
 
 
-ulong loadmsgs(post_t** post, ulong ptr)
+ulong loadmsgs(smb_t* smb, post_t** post, ulong ptr)
 {
 	int i;
 	long l,total;
 	idxrec_t idx;
 
-
-	if((i=smb_locksmbhdr(&smb[cur_smb]))!=SMB_SUCCESS) {
-		lprintf(LOG_ERR,"ERROR %d (%s) line %d locking %s",i,smb[cur_smb].last_error,__LINE__,smb[cur_smb].file);
+	if((i=smb_locksmbhdr(smb))!=SMB_SUCCESS) {
+		lprintf(LOG_ERR,"ERROR %d (%s) line %d locking %s",i,smb->last_error,__LINE__,smb->file);
 		return(0); 
 	}
 
 	/* total msgs in sub */
-	total=filelength(fileno(smb[cur_smb].sid_fp))/sizeof(idxrec_t);
+	total=filelength(fileno(smb->sid_fp))/sizeof(idxrec_t);
 
 	if(!total) {			/* empty */
-		smb_unlocksmbhdr(&smb[cur_smb]);
+		smb_unlocksmbhdr(smb);
 		return(0); 
 	}
 
 	if(((*post)=(post_t*)malloc(sizeof(post_t)*total))    /* alloc for max */
 		==NULL) {
-		smb_unlocksmbhdr(&smb[cur_smb]);
+		smb_unlocksmbhdr(smb);
 		lprintf(LOG_ERR,"ERROR line %d allocating %lu bytes for %s",__LINE__
-			,sizeof(post_t *)*total,smb[cur_smb].file);
+			,sizeof(post_t *)*total,smb->file);
 		return(0); 
 	}
 
-	fseek(smb[cur_smb].sid_fp,0L,SEEK_SET);
-	for(l=0;l<total && !feof(smb[cur_smb].sid_fp); ) {
-		if(smb_fread(&smb[cur_smb], &idx,sizeof(idx),smb[cur_smb].sid_fp) != sizeof(idx))
+	fseek(smb->sid_fp,0L,SEEK_SET);
+	for(l=0;l<total && !feof(smb->sid_fp); ) {
+		if(smb_fread(smb, &idx,sizeof(idx),smb->sid_fp) != sizeof(idx))
 			break;
 
 		if(idx.number==0)	/* invalid message number, ignore */
@@ -2335,7 +2854,7 @@ ulong loadmsgs(post_t** post, ulong ptr)
 
 		(*post)[l++].idx=idx;
 	}
-	smb_unlocksmbhdr(&smb[cur_smb]);
+	smb_unlocksmbhdr(smb);
 	if(!l)
 		FREE_AND_NULL(*post);
 	return(l);
@@ -2346,7 +2865,7 @@ const char* area_desc(const char* areatag)
 	char tag[FIDO_AREATAG_LEN+1];
 	static char desc[128];
 
-	for(int i=0; i<cfg.listcfgs; i++) {
+	for(uint i=0; i<cfg.listcfgs; i++) {
 		FILE* fp = fopen(cfg.listcfg[i].listpath, "r");
 		if(fp == NULL) {
 			lprintf(LOG_ERR, "ERROR %d (%s) opening %s", errno, strerror(errno), cfg.listcfg[i].listpath);
@@ -2422,14 +2941,14 @@ void bail(int error_level)
 		char signoff[1024];
 		sprintf(signoff, "SBBSecho exiting with error level %d", error_level);
 		if(bundles_unpacked || bundles_sent)
-			sprintf(signoff+strlen(signoff), ", Bundles(%u unpacked, %u sent)", bundles_unpacked, bundles_sent);
+			sprintf(signoff+strlen(signoff), ", Bundles(%lu unpacked, %lu sent)", bundles_unpacked, bundles_sent);
 		if(packets_imported || packets_sent)
-			sprintf(signoff+strlen(signoff), ", Packets(%u imported, %u sent)", packets_imported, packets_sent);
+			sprintf(signoff+strlen(signoff), ", Packets(%lu imported, %lu sent)", packets_imported, packets_sent);
 		if(netmail || exported_netmail || packed_netmail)
-			sprintf(signoff+strlen(signoff), ", NetMail(%u imported, %u exported, %u packed)"
+			sprintf(signoff+strlen(signoff), ", NetMail(%lu imported, %lu exported, %lu packed)"
 				,netmail, exported_netmail, packed_netmail);
 		if(echomail || exported_echomail)
-			sprintf(signoff+strlen(signoff), ", EchoMail(%u imported, %u exported)"
+			sprintf(signoff+strlen(signoff), ", EchoMail(%lu imported, %lu exported)"
 				,echomail, exported_echomail);
 		lprintf(LOG_INFO, "%s", signoff);
 	}
@@ -2662,7 +3181,7 @@ static short fmsgzone(const char* p)
 
 char* getfmsg(FILE* stream, ulong* outlen)
 {
-	char* fbuf;
+	uchar* fbuf;
 	int ch;
 	ulong l,length,start;
 
@@ -2675,7 +3194,7 @@ char* getfmsg(FILE* stream, ulong* outlen)
 		length++;	 							/* Increment the Length */
 	}
 
-	if((fbuf=(char *)malloc(length+1))==NULL) {
+	if((fbuf = malloc(length+1)) == NULL) {
 		lprintf(LOG_ERR,"ERROR line %d allocating %lu bytes of memory",__LINE__,length+1);
 		bail(1); 
 		return(NULL);
@@ -2717,7 +3236,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	uchar	ch,stail[MAX_TAILLEN+1],*sbody;
 	char	msg_id[256],str[128],*p;
 	bool	done,esc,cr;
-	int 	i,storage=SMB_SELFPACK;
+	int 	i;
 	uint	col;
 	ushort	xlat=XLAT_NONE,net;
 	ulong	l,m,length,bodylen,taillen;
@@ -2740,22 +3259,25 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 
 	memset(&msg,0,sizeof(smbmsg_t));
 	if(fmsghdr.attr&FIDO_PRIVATE)
-		msg.idx.attr|=MSG_PRIVATE;
-	msg.hdr.attr=msg.idx.attr;
-
+		msg.hdr.attr|=MSG_PRIVATE;
+	if(scfg.sys_misc&SM_DELREADM)
+		msg.hdr.attr|=MSG_KILLREAD;
 	if(fmsghdr.attr&FIDO_FILE)
 		msg.hdr.auxattr|=MSG_FILEATTACH;
 
 	msg.hdr.when_imported.time=now;
 	msg.hdr.when_imported.zone=sys_timezone(&scfg);
-	msg.hdr.when_written.time=fmsgtime(fmsghdr.time);
-	if(max_msg_age && (time32_t)msg.hdr.when_written.time < now
-		&& (now - msg.hdr.when_written.time) > max_msg_age) {
-		lprintf(LOG_INFO, "Filtering message from %s due to age: %1.1f days"
-			,fmsghdr.from
-			,(now - msg.hdr.when_written.time) / (24.0*60.0*60.0));
-		return IMPORT_FILTERED_AGE;
-	}
+	if(fmsghdr.time[0]) {
+		msg.hdr.when_written.time=fmsgtime(fmsghdr.time);
+		if(max_msg_age && (time32_t)msg.hdr.when_written.time < now
+			&& (now - msg.hdr.when_written.time) > max_msg_age) {
+			lprintf(LOG_INFO, "Filtering message from %s due to age: %1.1f days"
+				,fmsghdr.from
+				,(now - msg.hdr.when_written.time) / (24.0*60.0*60.0));
+			return IMPORT_FILTERED_AGE;
+		}
+	} else
+		msg.hdr.when_written = msg.hdr.when_imported;
 
 	origaddr.zone=fmsghdr.origzone; 	/* only valid if NetMail */
 	origaddr.net=fmsghdr.orignet;
@@ -2836,7 +3358,6 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOMSGID,(ushort)(m-l),fbuf+l); 
 			}
@@ -2846,7 +3367,6 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOREPLYID,(ushort)(m-l),fbuf+l); 
 			}
@@ -3013,17 +3533,11 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 		smbfile->status.attr = SMB_EMAIL;
 		smbfile->status.max_age = scfg.mail_maxage;
 		smbfile->status.max_crcs = scfg.mail_maxcrcs;
-		if(scfg.sys_misc&SM_FASTMAIL)
-			storage= SMB_FASTALLOC;
 	} else {
 		smbfile=&smb[cur_smb];
 		smbfile->status.max_age	 = scfg.sub[subnum]->maxage;
 		smbfile->status.max_crcs = scfg.sub[subnum]->maxcrcs;
 		smbfile->status.max_msgs = scfg.sub[subnum]->maxmsgs;
-		if(scfg.sub[subnum]->misc&SUB_HYPER)
-			storage = smbfile->status.attr = SMB_HYPERALLOC;
-		else if(scfg.sub[subnum]->misc&SUB_FAST)
-			storage = SMB_FASTALLOC;
 		if(scfg.sub[subnum]->misc&SUB_LZH)
 			xlat=XLAT_LZH;
 
@@ -3040,7 +3554,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t fmsghdr, uint user, uint subnum)
 	if(cfg.badecho>=0 && subnum==cfg.area[cfg.badecho].sub)
 		dupechk_hashes=SMB_HASH_SOURCE_NONE;
 
-	i=smb_addmsg(smbfile, &msg, storage, dupechk_hashes, xlat, sbody, stail);
+	i=smb_addmsg(smbfile, &msg, smb_storage_mode(&scfg, smbfile), dupechk_hashes, xlat, sbody, stail);
 
 	if(i!=SMB_SUCCESS) {
 		lprintf(LOG_ERR,"ERROR smb_addmsg(%s) returned %d: %s"
@@ -3094,20 +3608,6 @@ void getzpt(FILE* stream, fmsghdr_t* hdr)
 	}
 	fseek(stream,pos,SEEK_SET);
 }
-/******************************************************************************
- This function will seek to the next NULL found in stream
-******************************************************************************/
-void seektonull(FILE* stream)
-{
-	char ch;
-
-	while(!feof(stream)) {
-		if(!fread(&ch,1,1,stream))
-			break;
-		if(!ch)
-			break; 
-	}
-}
 
 bool foreign_zone(uint16_t zone1, uint16_t zone2)
 {
@@ -3128,9 +3628,7 @@ void putfmsg(FILE* stream, const char* fbuf, fmsghdr_t fmsghdr, area_t area
 	unsigned u,j;
 	fidoaddr_t addr,sysaddr,lasthop={0,0,0,0};
 	fpkdmsg_t pkdmsg;
-	time_t t;
 	size_t len;
-	struct tm* tm;
 
 	addr=getsysfaddr(fmsghdr.destzone);
 
@@ -3151,31 +3649,22 @@ void putfmsg(FILE* stream, const char* fbuf, fmsghdr_t fmsghdr, area_t area
 	fwrite(fmsghdr.from	,strlen(fmsghdr.from)+1	,1,stream);
 	fwrite(fmsghdr.subj	,strlen(fmsghdr.subj)+1	,1,stream);
 
+	if(area.tag == NULL && strstr(fbuf, "\1INTL ") == NULL)	/* NetMail, so add FSC-0004 INTL kludge */
+		fwrite_intl_control_line(stream, &fmsghdr);			/* If not already present */
+
 	len = strlen((char *)fbuf);
 
 	/* Write message body */
-	if(area.name)
+	if(area.tag)
 		if(strncmp((char *)fbuf,"AREA:",5))                     /* No AREA: Line */
-			fprintf(stream,"AREA:%s\r",area.name);              /* So add one */
+			fprintf(stream,"AREA:%s\r",area.tag);				/* So add one */
 	fwrite(fbuf,len,1,stream);
 	lastlen=9;
 	if(len && fbuf[len-1]!='\r')
 		fputc('\r',stream);
 
-	if(area.name==NULL)	{ /* NetMail, so add FSP-1010 Via kludge line */
-		t = time(NULL);
-		tm = gmtime(&t);
-		fprintf(stream,"\1Via %s @%04u%02u%02u.%02u%02u%02u.UTC "
-			"SBBSecho %u.%02u-%s r%s\r"
-			,smb_faddrtoa(&addr,NULL)
-			,tm->tm_year+1900
-			,tm->tm_mon+1
-			,tm->tm_mday
-			,tm->tm_hour
-			,tm->tm_min
-			,tm->tm_sec
-			,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC,revision);
-
+	if(area.tag==NULL)	{ /* NetMail, so add FTS-4009 Via kludge line */
+		fwrite_via_control_line(stream, &addr);
 	} else { /* EchoMail, Not NetMail */
 
 		if(foreign_zone(addr.zone, fmsghdr.destzone))	/* Zone Gate */
@@ -3649,7 +4138,7 @@ void pkt_to_pkt(const char *fbuf, area_t area, const fidoaddr_t* faddr
 		fmsghdr.destnet		= area.link[u].net;
 		fmsghdr.destzone	= area.link[u].zone;
 		lprintf(LOG_DEBUG, "Adding %s message from %s (%s) to packet for %s: %s"
-			,area.name, fmsghdr.from, fmsghdr_srcaddr_str(&fmsghdr), smb_faddrtoa(&area.link[u], NULL), pkt->filename);
+			,area.tag, fmsghdr.from, fmsghdr_srcaddr_str(&fmsghdr), smb_faddrtoa(&area.link[u], NULL), pkt->filename);
 		putfmsg(pkt->fp, fbuf, fmsghdr, area, seenbys, paths); 
 	}
 }
@@ -3706,7 +4195,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, const char* info, const char* inbo
 /**************************************/
 /* Send netmail, returns 0 on success */
 /**************************************/
-int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* inbound)
+int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inbound)
 {
 	char info[512],str[256],tmp[256],subj[256]
 		,*fmsgbuf=NULL,*p,*tp,*sp;
@@ -3716,7 +4205,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 
 	hdr.destzone=sys_faddr.zone;
 	hdr.destpoint=hdr.origpoint=0;
-	getzpt(fidomsg,&hdr);				/* use kludge if found */
+	getzpt(fp,&hdr);				/* use kludge if found */
 	for(match=0;match<scfg.total_faddrs;match++)
 		if((hdr.destzone==scfg.faddr[match].zone || (cfg.fuzzy_zone))
 			&& hdr.destnet==scfg.faddr[match].net
@@ -3743,18 +4232,18 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 		printf("Ignored");
 		if(!path[0]) {
 			printf(" - ");
-			pkt_to_msg(fidomsg,&hdr,info,inbound);
+			pkt_to_msg(fp,&hdr,info,inbound);
 		} else
 			lprintf(LOG_INFO,"%s Ignored",info);
 
 		return(-1); 
 	}
 
-	if(match>=scfg.total_faddrs && !cfg.ignore_netmail_dest_addr) {
+	if(!sysfaddr_is_valid(match) && !cfg.ignore_netmail_dest_addr) {
 		printf("Foreign address");
 		if(!path[0]) {
 			printf(" - ");
-			pkt_to_msg(fidomsg,&hdr,info,inbound);
+			pkt_to_msg(fp,&hdr,info,inbound);
 		}
 		return(2); 
 	}
@@ -3800,18 +4289,18 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 		} 
 	}
 
-	if(!stricmp(hdr.to,"AREAFIX") || !stricmp(hdr.to,"SBBSECHO")) {
-		fmsgbuf=getfmsg(fidomsg,NULL);
+	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 || stricmp(hdr.to, FIDO_PING_NAME) == 0) {
+		fmsgbuf=getfmsg(fp,NULL);
 		if(path[0]) {
 			if(cfg.delete_netmail && opt_delete_netmail) {
-				fclose(fidomsg);
+				fclose(fp);
 				delfile(path, __LINE__);
 			}
 			else {
 				hdr.attr|=FIDO_RECV;
-				fseek(fidomsg,0L,SEEK_SET);
-				fwrite(&hdr,sizeof(fmsghdr_t),1,fidomsg);
-				fclose(fidomsg); /* Gotta close it here for areafix stuff */
+				fseek(fp,0L,SEEK_SET);
+				fwrite(&hdr,sizeof(fmsghdr_t),1,fp);
+				fclose(fp); /* Gotta close it here for areafix stuff */
 			}
 		}
 		addr.zone=hdr.origzone;
@@ -3819,17 +4308,60 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 		addr.node=hdr.orignode;
 		addr.point=hdr.origpoint;
 		lprintf(LOG_INFO, info);
-		p=process_areafix(addr,fmsgbuf,/* Password: */hdr.subj, /* To: */hdr.from);
-		if(p) {
-			uint notify = matchuser(&scfg, cfg.areamgr, TRUE);
-			if(notify) {
-				SAFECOPY(hdr.to,scfg.sys_op);
-				SAFECOPY(hdr.from,"SBBSecho");
-				SAFECOPY(hdr.subj,"Areafix Request");
-				hdr.origzone=hdr.orignet=hdr.orignode=hdr.origpoint=0;
-				if(fmsgtosmsg(p,hdr,notify,INVALID_SUB) == IMPORT_SUCCESS) {
-					sprintf(str,"\7\1n\1hSBBSecho \1n\1msent you mail\r\n");
-					putsmsg(&scfg,notify,str); 
+		if(stricmp(hdr.from, FIDO_PING_NAME) == 0
+			|| stricmp(hdr.from, FIDO_AREAMGR_NAME) == 0
+			)
+			lprintf(LOG_NOTICE, "Refusing to auto-reply to NetMail from %s", hdr.from);
+		else {
+			if(stricmp(hdr.to, FIDO_PING_NAME) == 0) {
+
+				lprintf(LOG_INFO, "PING (for %s) Request received from %s", faddrtoa(&addr), hdr.from);
+
+				char subj[FIDO_SUBJ_LEN];
+
+				REPLACE_CHARS(fmsgbuf, '\1', '@', tp);
+
+				int bodylen = 0;
+				char* body = malloc(strlen(fmsgbuf) + 4000);
+				if(body == NULL)
+					body = fmsgbuf;
+				else {
+					bodylen += sprintf(body, "Your PING request was received: %s %s\r"
+						,timestr(&scfg, time32(NULL), tmp), smb_zonestr(sys_timezone(&scfg),NULL));
+					time_t t = (time_t)fmsgtime(hdr.time);
+					bodylen += sprintf(body+bodylen, "\rThe received message header contained:\r\r"
+						"Subj: %s\r"
+						"Attr: %04hX\r"
+						"To  : %s (%s)\r"
+						"From: %s (%s)\r"
+						"Date: %s (parsed: 0x%08lX, %.24s)\r"
+						,hdr.subj
+						,hdr.attr
+						,hdr.to, smb_faddrtoa(&scfg.faddr[match], NULL)
+						,hdr.from, faddrtoa(&addr)
+						,hdr.time, (ulong)t, ctime(&t));
+					bodylen += sprintf(body+bodylen,"\r======[ Received message text ]======\r%s"
+													"\r======[ End received msg text ]======\r", fmsgbuf);
+				}
+				SAFEPRINTF(subj, "Pong: %s", hdr.subj);
+				create_netmail(/* to: */hdr.from, /* msg: */NULL, subj, body, addr, /* file_attached: */false);
+				FREE_AND_NULL(body);
+			} else {	/* AreaFix */
+				p=process_areafix(addr,fmsgbuf,/* Password: */hdr.subj, /* To: */hdr.from);
+				if(p != NULL && cfg.areamgr[0] != 0) {
+					uint notify = matchuser(&scfg, cfg.areamgr, TRUE);
+					if(notify) {
+						SAFEPRINTF(hdr.subj, "FAILED Area Management Request from %s", faddrtoa(&addr));
+						SAFECOPY(hdr.to, cfg.areamgr);
+						SAFECOPY(hdr.from, "SBBSecho");
+						hdr.origzone=hdr.orignet=hdr.orignode=hdr.origpoint=0;
+						hdr.time[0] = 0;	/* Generate a new timestamp */
+						if(fmsgtosmsg(p,hdr,notify,INVALID_SUB) == IMPORT_SUCCESS) {
+							sprintf(str,"\7\1n\1hSBBSecho \1n\1msent you mail\r\n");
+							putsmsg(&scfg,notify,str); 
+						}
+					} else
+						lprintf(LOG_ERR, "Configured Area Manager, user not found: %s", cfg.areamgr);
 				}
 			}
 		}
@@ -3849,7 +4381,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 
 		if(!path[0]) {
 			printf(" - ");
-			pkt_to_msg(fidomsg,&hdr,info,inbound);
+			pkt_to_msg(fp,&hdr,info,inbound);
 		}
 		return(2); 
 	}
@@ -3858,7 +4390,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 	/* Importing NetMail */
 	/*********************/
 
-	fmsgbuf=getfmsg(fidomsg,&length);
+	fmsgbuf=getfmsg(fp,&length);
 
 	switch(i=fmsgtosmsg(fmsgbuf,hdr,usernumber,INVALID_SUB)) {
 		case IMPORT_SUCCESS:			/* success */
@@ -3885,9 +4417,10 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 	addr.net=hdr.orignet;
 	addr.node=hdr.orignode;
 	addr.point=hdr.origpoint;
-	sprintf(str,"\7\1n\1hSBBSecho: \1m%.*s \1n\1msent you NetMail from \1h%s\1n\r\n"
+	sprintf(str,"\7\1n\1hSBBSecho: \1m%.*s \1n\1msent you NetMail%s from \1h%s\1n\r\n"
 		,FIDO_NAME_LEN-1
 		,hdr.from
+		,hdr.attr&FIDO_FILE ? " with attachment" : ""
 		,smb_faddrtoa(&addr,NULL));
 	putsmsg(&scfg,usernumber,str);
 
@@ -3928,8 +4461,8 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fidomsg, const char* i
 	/***	NOT packet compatible
 	if(!(misc&DONT_SET_RECV)) {
 		hdr.attr|=FIDO_RECV;
-		fseek(fidomsg,0L,SEEK_SET);
-		fwrite(&hdr,sizeof(fmsghdr_t),1,fidomsg); }
+		fseek(fp,0L,SEEK_SET);
+		fwrite(&hdr,sizeof(fmsghdr_t),1,fp); }
 	***/
 	lprintf(LOG_INFO,"%s Imported",info);
 	return(0);
@@ -3997,7 +4530,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 	ulong	fmsgbuflen;
 	int		tzone;
 	unsigned area;
-	int		i,j,k=0;
 	ulong	f,l,m,exp,exported=0;
 	uint32_t ptr,lastmsg,posts;
 	long	msgs;
@@ -4009,6 +4541,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 	area_t fakearea;
 	addrlist_t msg_seen,msg_path;
 	time_t	tt;
+	time_t now = time(NULL);
 
 	memset(&msg_seen,0,sizeof(addrlist_t));
 	memset(&msg_path,0,sizeof(addrlist_t));
@@ -4018,91 +4551,96 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 	printf("\nScanning for Outbound EchoMail...");
 
 	for(area=0; area<cfg.areas && !terminated; area++) {
-		const char* tag=cfg.area[area].name;
+		const char* tag=cfg.area[area].tag;
 		if(area==cfg.badecho)		/* Don't scan the bad-echo area */
 			continue;
 		if(!cfg.area[area].links)
 			continue;
-		i=cfg.area[area].sub;
-		if(i<0 || i>=scfg.total_subs)	/* Don't scan pass-through areas */
+		int subnum = cfg.area[area].sub;
+		if(subnum < 0 || subnum >= scfg.total_subs)	/* Don't scan pass-through areas */
 			continue;
 		if(nodecfg != NULL ) { 		/* Skip areas not meant for this address */
 			if(!area_is_linked(area,&nodecfg->addr))
 				continue; 
 		}
-		if(sub_code!=NULL && *sub_code && stricmp(sub_code,scfg.sub[i]->code))
+		if(sub_code!=NULL && *sub_code && stricmp(sub_code,scfg.sub[subnum]->code))
 			continue;
 		printf("\rScanning %-*.*s -> %-*s "
-			,LEN_EXTCODE,LEN_EXTCODE,scfg.sub[i]->code
+			,LEN_EXTCODE,LEN_EXTCODE,scfg.sub[subnum]->code
 			,FIDO_AREATAG_LEN, tag);
 		ptr=0;
 		if(!rescan)
-			ptr=read_export_ptr(i, tag);
+			ptr=read_export_ptr(subnum, tag);
 
-		msgs=getlastmsg(i,&lastmsg,0);
+		msgs=getlastmsg(subnum, &lastmsg,0);
 		if(msgs<1 || (!rescan && ptr>=lastmsg)) {
 			if(msgs>=0 && ptr>lastmsg && !rescan && !opt_leave_msgptrs) {
 				lprintf(LOG_DEBUG,"Fixing new-scan pointer (%u, lastmsg=%u).", ptr, lastmsg);
-				write_export_ptr(i, lastmsg, tag);
+				write_export_ptr(subnum, lastmsg, tag);
 			}
 			continue; 
 		}
 
-		sprintf(smb[cur_smb].file,"%s%s"
-			,scfg.sub[i]->data_dir,scfg.sub[i]->code);
-		smb[cur_smb].retry_time=scfg.smb_retry_time;
-		if((j=smb_open(&smb[cur_smb]))!=SMB_SUCCESS) {
-			lprintf(LOG_ERR,"ERROR %d (%s) line %d opening %s",j,smb[cur_smb].last_error,__LINE__
-				,smb[cur_smb].file);
+		int retval;
+		smb_t smb;
+		if((retval = smb_open_sub(&scfg, &smb, subnum)) != SMB_SUCCESS) {
+			lprintf(LOG_ERR,"ERROR %d (%s) line %d opening sub: %s", retval, smb.last_error, __LINE__, smb.file);
 			continue; 
 		}
 
 		post=NULL;
-		posts=loadmsgs(&post,ptr);
+		posts=loadmsgs(&smb, &post, ptr);
 
 		if(!posts)	{ /* no new messages */
-			smb_close(&smb[cur_smb]);
+			smb_close(&smb);
 			FREE_AND_NULL(post);
 			continue; 
 		}
+		
+		echostat_t* stat = get_echostat(tag);
+		if(stat == NULL) {
+			lprintf(LOG_CRIT, "Failed to allocated memory for echostats!");
+			break;
+		}
+		stat->known = true;
 
 		for(m=exp=0;m<posts && !terminated;m++) {
 			printf("\r%*s %5lu of %-5"PRIu32"  "
-				,LEN_EXTCODE,scfg.sub[i]->code,m+1,posts);
+				,LEN_EXTCODE,scfg.sub[subnum]->code,m+1,posts);
 			memset(&msg,0,sizeof(msg));
 			msg.idx=post[m].idx;
-			if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
+			if((retval = smb_lockmsghdr(&smb, &msg))!=SMB_SUCCESS) {
 				lprintf(LOG_ERR,"ERROR %d (%s) line %d locking %s msghdr"
-					,k,smb[cur_smb].last_error,__LINE__,smb[cur_smb].file);
+					,retval, smb.last_error,__LINE__,smb.file);
 				continue; 
 			}
-			k=smb_getmsghdr(&smb[cur_smb],&msg);
-			if(k || msg.hdr.number!=post[m].idx.number) {
-				smb_unlockmsghdr(&smb[cur_smb],&msg);
+			retval = smb_getmsghdr(&smb, &msg);
+			if(retval != SMB_SUCCESS || msg.hdr.number!=post[m].idx.number) {
+				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
 
 				msg.hdr.number=post[m].idx.number;
-				if((k=smb_getmsgidx(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-					lprintf(LOG_ERR,"ERROR %d line %d reading %s index",k,__LINE__
-						,smb[cur_smb].file);
+				if((retval=smb_getmsgidx(&smb, &msg)) != SMB_SUCCESS) {
+					lprintf(LOG_ERR,"ERROR %d line %d reading %s index",retval,__LINE__
+						,smb.file);
 					continue; 
 				}
-				if((k=smb_lockmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-					lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr",k,__LINE__
-						,smb[cur_smb].file);
+				if((retval = smb_lockmsghdr(&smb, &msg))!=SMB_SUCCESS) {
+					lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr",retval ,__LINE__
+						,smb.file);
 					continue; 
 				}
-				if((k=smb_getmsghdr(&smb[cur_smb],&msg))!=SMB_SUCCESS) {
-					smb_unlockmsghdr(&smb[cur_smb],&msg);
-					lprintf(LOG_ERR,"ERROR %d line %d reading %s msghdr",k,__LINE__
-						,smb[cur_smb].file);
+				if((retval = smb_getmsghdr(&smb, &msg))!=SMB_SUCCESS) {
+					smb_unlockmsghdr(&smb, &msg);
+					lprintf(LOG_ERR,"ERROR %d line %d reading %s msghdr",retval ,__LINE__
+						,smb.file);
 					continue; 
 				} 
 			}
 
 			if((!rescan && !(opt_export_ftn_echomail) && (msg.from_net.type==NET_FIDO))	
 				|| !strnicmp(msg.subj,"NE:",3)) {   /* no echo */
-				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
 				continue;   /* From a Fido node, ignore it */
 			}
@@ -4110,20 +4648,31 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			if(msg.from_net.type!=NET_NONE 
 				&& msg.from_net.type!=NET_FIDO
 				&& msg.from_net.type!=NET_FIDO_ASCII
-				&& !(scfg.sub[i]->misc&SUB_GATE)) {
-				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				&& !(scfg.sub[subnum]->misc&SUB_GATE)) {
+				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
 				continue; 
 			}
 
-			if(msg.hdr.type != SMB_MSG_TYPE_NORMAL)
+			if(msg.hdr.type != SMB_MSG_TYPE_NORMAL) {
+				smb_unlockmsghdr(&smb, &msg);
+				smb_freemsgmem(&msg);
 				continue;
+			}
+
+			if(!rescan && cfg.max_echomail_age != 0 
+				&& ((now > msg.hdr.when_written.time && (now - msg.hdr.when_written.time) > cfg.max_echomail_age)
+				|| (now > msg.hdr.when_imported.time && (now - msg.hdr.when_imported.time) > cfg.max_echomail_age))) {
+				smb_unlockmsghdr(&smb, &msg);
+				smb_freemsgmem(&msg);
+				continue;
+			}
 
 			memset(&hdr,0,sizeof(fmsghdr_t));	 /* Zero the header */
-			hdr.origzone=scfg.sub[i]->faddr.zone;
-			hdr.orignet=scfg.sub[i]->faddr.net;
-			hdr.orignode=scfg.sub[i]->faddr.node;
-			hdr.origpoint=scfg.sub[i]->faddr.point;
+			hdr.origzone=scfg.sub[subnum]->faddr.zone;
+			hdr.orignet=scfg.sub[subnum]->faddr.net;
+			hdr.orignode=scfg.sub[subnum]->faddr.node;
+			hdr.origpoint=scfg.sub[subnum]->faddr.point;
 
 			hdr.attr=FIDO_LOCAL;
 			if(msg.hdr.attr&MSG_PRIVATE)
@@ -4141,21 +4690,22 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			SAFECOPY(hdr.subj,msg.subj);
 
-			buf=smb_getmsgtxt(&smb[cur_smb],&msg,GETMSGTXT_ALL);
+			buf=smb_getmsgtxt(&smb, &msg,GETMSGTXT_ALL);
 			if(!buf) {
-				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
 				continue; 
 			}
 			lprintf(LOG_DEBUG,"Exporting %s message #%u from %s to %s in area: %s"
-				,scfg.sub[i]->code, msg.hdr.number, msg.from, msg.to, tag);
+				,scfg.sub[subnum]->code, msg.hdr.number, msg.from, msg.to, tag);
 			fmsgbuflen=strlen((char *)buf)+4096; /* over alloc for kludge lines */
 			fmsgbuf=malloc(fmsgbuflen);
 			if(!fmsgbuf) {
 				lprintf(LOG_ERR,"ERROR line %d allocating %lu bytes for fmsgbuf"
 					,__LINE__,fmsgbuflen);
-				smb_unlockmsghdr(&smb[cur_smb],&msg);
+				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
+				free(buf);
 				continue; 
 			}
 			fmsgbuflen-=1024;	/* give us a bit of a guard band here */
@@ -4177,19 +4727,19 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
 
 			f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
-				,ftn_msgid(scfg.sub[i],&msg,msgid,sizeof(msgid)));
+				,ftn_msgid(scfg.sub[subnum],&msg,msgid,sizeof(msgid)));
 
 			if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 				f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
 			else if(msg.hdr.thread_back) {	/* generate REPLYID (from original message's MSG-ID, if it had one) */
 				memset(&orig_msg,0,sizeof(orig_msg));
 				orig_msg.hdr.number=msg.hdr.thread_back;
-				if(smb_getmsgidx(&smb[cur_smb], &orig_msg))
-					f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb[cur_smb].last_error);
+				if(smb_getmsgidx(&smb, &orig_msg))
+					f+=sprintf(fmsgbuf+f,"\1REPLY: <%s>\r",smb.last_error);
 				else {
-					smb_lockmsghdr(&smb[cur_smb],&orig_msg);
-					smb_getmsghdr(&smb[cur_smb],&orig_msg);
-					smb_unlockmsghdr(&smb[cur_smb],&orig_msg);
+					smb_lockmsghdr(&smb, &orig_msg);
+					smb_getmsghdr(&smb, &orig_msg);
+					smb_unlockmsghdr(&smb, &orig_msg);
 					if(orig_msg.ftn_msgid != NULL && orig_msg.ftn_msgid[0])
 						f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r",orig_msg.ftn_msgid);	
 				}
@@ -4234,7 +4784,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 						else
 							tear=1; 
 					}
-					else if(!(scfg.sub[i]->misc&SUB_NOTAG) && !strncmp(tp," * Origin: ",11))
+					else if(!(scfg.sub[subnum]->misc&SUB_NOTAG) && !strncmp(tp," * Origin: ",11))
 						*(tp+1)='#'; 
 				} /* Convert * Origin into # Origin */
 
@@ -4242,7 +4792,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 					cr=1;
 				else
 					cr=0;
-				if((scfg.sub[i]->misc&SUB_ASCII)) {
+				if((scfg.sub[subnum]->misc&SUB_ASCII)) {
 					if(buf[l]<' ' && buf[l]>=0 && buf[l]!='\r'
 						&& buf[l]!='\n')			/* Ctrl ascii */
 						buf[l]='.';             /* converted to '.' */
@@ -4256,54 +4806,217 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			FREE_AND_NULL(buf);
 			fmsgbuf[f]=0;
 
-			if(!(scfg.sub[i]->misc&SUB_NOTAG)) {
+			if(!(scfg.sub[subnum]->misc&SUB_NOTAG)) {
 				if(!tear) {  /* No previous tear line */
-					sprintf(str,"--- SBBSecho %u.%02u-%s\r"
-						,SBBSECHO_VERSION_MAJOR,SBBSECHO_VERSION_MINOR,PLATFORM_DESC);
-					strcat((char *)fmsgbuf,str); 
+					strcat((char *)fmsgbuf,tear_line()); 
 				}
 
 				sprintf(str," * Origin: %s (%s)\r"
-					,scfg.sub[i]->origline[0] ? scfg.sub[i]->origline : scfg.origline
-					,smb_faddrtoa(&scfg.sub[i]->faddr,NULL));
+					,scfg.sub[subnum]->origline[0] ? scfg.sub[subnum]->origline : scfg.origline
+					,smb_faddrtoa(&scfg.sub[subnum]->faddr,NULL));
 				strcat((char *)fmsgbuf,str); 
 			}
 
-			for(k=0;k<cfg.areas;k++)
-				if(cfg.area[k].sub==i) {
-					cfg.area[k].exported++;
-					pkt_to_pkt(fmsgbuf,cfg.area[k]
-						,nodecfg ? &nodecfg->addr : NULL,hdr,msg_seen
-						,msg_path);
+			for(uint u=0; u < cfg.areas; u++) {
+				if(cfg.area[u].sub == subnum) {
+					cfg.area[u].exported++;
+					pkt_to_pkt(fmsgbuf, cfg.area[u]
+						,nodecfg ? &nodecfg->addr : NULL, hdr, msg_seen, msg_path);
 					break; 
 				}
-			FREE_AND_NULL(fmsgbuf);
+			}
 			exported++;
 			exp++;
+			new_echostat_msg(stat, ECHOSTAT_MSG_EXPORTED
+				,smsg_to_echostat_msg(msg, strlen(fmsgbuf), scfg.sub[subnum]->faddr));
+			FREE_AND_NULL(fmsgbuf);
 			printf("Exp: %lu ",exp);
-			smb_unlockmsghdr(&smb[cur_smb],&msg);
+			smb_unlockmsghdr(&smb, &msg);
 			smb_freemsgmem(&msg); 
 		}
 
-		smb_close(&smb[cur_smb]);
+		smb_close(&smb);
 		FREE_AND_NULL(post);
 
 		if(!rescan && !opt_leave_msgptrs && lastmsg>ptr)
-			write_export_ptr(i, lastmsg, tag);
+			write_export_ptr(subnum, lastmsg, tag);
 	}
 
 	printf("\r%*s\r", 70, "");
 
-	for(i=0;i<cfg.areas;i++)
-		if(cfg.area[i].exported)
+	for(unsigned u=0; u<cfg.areas; u++)
+		if(cfg.area[u].exported)
 			lprintf(LOG_INFO,"Exported: %5u msgs %*s -> %s"
-				,cfg.area[i].exported,LEN_EXTCODE,scfg.sub[cfg.area[i].sub]->code
-				,cfg.area[i].name);
+				,cfg.area[u].exported,LEN_EXTCODE,scfg.sub[cfg.area[u].sub]->code
+				,cfg.area[u].tag);
 
 	if(exported)
 		lprintf(LOG_INFO,"Exported: %5lu msgs total", exported);
 	exported_echomail += exported;
 }
+
+bool retoss_bad_echomail(void)
+{
+	area_t* badarea;
+
+	if(cfg.badecho < 0 || (uint)cfg.badecho >= cfg.areas)
+		return false;
+
+	badarea = &cfg.area[cfg.badecho];
+
+	int badsub = badarea->sub;
+	if(badsub < 0 || badsub >= scfg.total_subs)
+		return false;
+
+	printf("\nRe-tossing Bad EchoMail from %s...\n", scfg.sub[badsub]->code);
+
+	smb_t badsmb;
+	int retval = smb_open_sub(&scfg, &badsmb, badsub);
+	if(retval != SMB_SUCCESS) {
+		lprintf(LOG_ERR,"ERROR %d (%s) line %d opening %s", retval, badsmb.last_error,__LINE__
+			,badsmb.file);
+		return false; 
+	}
+
+	post_t *post = NULL;
+	ulong posts	= loadmsgs(&badsmb, &post, /* ptr: */0);
+
+	if(posts < 1) { /* no messages */
+		smb_close(&badsmb);
+		FREE_AND_NULL(post);
+		return false; 
+	}
+	
+	ulong retossed = 0;
+	for(ulong m=0; m<posts && !terminated; m++) {
+		printf("\r%*s %5lu of %-5lu  "
+			,LEN_EXTCODE,scfg.sub[badsub]->code,m+1,posts);
+		smbmsg_t badmsg;
+		memset(&badmsg, 0, sizeof(badmsg));
+		badmsg.idx = post[m].idx;
+		if((retval=smb_lockmsghdr(&badsmb, &badmsg))!=SMB_SUCCESS) {
+			lprintf(LOG_ERR,"ERROR %d (%s) line %d locking %s msghdr"
+				,retval,badsmb.last_error,__LINE__,badsmb.file);
+			continue; 
+		}
+		retval = smb_getmsghdr(&badsmb, &badmsg);
+		if(retval || badmsg.hdr.number != post[m].idx.number) {
+			smb_unlockmsghdr(&badsmb,&badmsg);
+			smb_freemsgmem(&badmsg);
+
+			badmsg.hdr.number=post[m].idx.number;
+			if((retval=smb_getmsgidx(&badsmb, &badmsg))!=SMB_SUCCESS) {
+				lprintf(LOG_ERR,"ERROR %d line %d reading %s index",retval,__LINE__
+					,badsmb.file);
+				continue; 
+			}
+			if((retval=smb_lockmsghdr(&badsmb,&badmsg))!=SMB_SUCCESS) {
+				lprintf(LOG_ERR,"ERROR %d line %d locking %s msghdr",retval,__LINE__
+					,badsmb.file);
+				continue; 
+			}
+			if((retval=smb_getmsghdr(&badsmb,&badmsg))!=SMB_SUCCESS) {
+				smb_unlockmsghdr(&badsmb,&badmsg);
+				lprintf(LOG_ERR,"ERROR %d line %d reading %s msghdr",retval,__LINE__
+					,badsmb.file);
+				continue; 
+			} 
+		}
+
+		if(badmsg.from_net.type != NET_FIDO 
+			|| badmsg.ftn_area == NULL
+			|| badmsg.hdr.type != SMB_MSG_TYPE_NORMAL) {
+			smb_unlockmsghdr(&badsmb,&badmsg);
+			smb_freemsgmem(&badmsg);
+			continue; 
+		}
+
+		uint areanum = find_area(badmsg.ftn_area);
+		if(!area_is_valid(areanum) || cfg.area[areanum].sub >= scfg.total_subs) {
+			smb_unlockmsghdr(&badsmb,&badmsg);
+			smb_freemsgmem(&badmsg);
+			continue; 
+		}
+		int subnum = cfg.area[areanum].sub;
+		printf("-> %s\n", scfg.sub[subnum]->code);
+		lprintf(LOG_DEBUG,"Moving %s message #%u to sub-board %s"
+			,scfg.sub[badsub]->code, badmsg.hdr.number, scfg.sub[subnum]->code);
+
+		smbmsg_t newmsg;
+		if((retval = smb_copymsgmem(NULL, &newmsg, &badmsg)) != SMB_SUCCESS) {
+			smb_unlockmsghdr(&badsmb,&badmsg);
+			smb_freemsgmem(&badmsg);
+			continue; 
+		}
+
+		char* body = smb_getmsgtxt(&badsmb, &badmsg, GETMSGTXT_BODY_ONLY);
+		if(body == NULL) {
+			smb_unlockmsghdr(&badsmb,&badmsg);
+			smb_freemsgmem(&badmsg);
+			smb_freemsgmem(&newmsg);
+			continue;
+		}
+		truncsp(body);
+		char* tail = smb_getmsgtxt(&badsmb, &badmsg, GETMSGTXT_TAIL_ONLY);
+		if(tail != NULL)
+			truncsp(tail);
+
+		/* Target sub-board: */
+		{
+			smb_t smb;
+			retval = smb_open_sub(&scfg, &smb, subnum);
+			if(retval != SMB_SUCCESS) {
+				lprintf(LOG_ERR,"ERROR %d (%s) line %d opening %s", retval, smb.last_error,__LINE__
+					,smb.file);
+				smb_unlockmsghdr(&badsmb,&badmsg);
+				smb_freemsgmem(&badmsg);
+				smb_freemsgmem(&newmsg);
+				FREE_AND_NULL(body);
+				FREE_AND_NULL(tail);
+				continue;
+			}
+
+			long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
+			if(smb.status.max_crcs == 0)
+				dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+			char* body_start = body;
+			if(strncmp(body_start, "AREA:", 5) == 0) {
+				FIND_CHAR(body_start, '\r');
+				SKIP_CHARSET(body_start, "\r\n");
+			}
+			retval = smb_addmsg(&smb, &newmsg, smb.status.attr&SMB_HYPERALLOC, dupechk_hashes, XLAT_NONE
+				,(uchar*)body_start, (uchar*)tail);
+			FREE_AND_NULL(body);
+			FREE_AND_NULL(tail);
+
+			if(retval != SMB_SUCCESS)
+				lprintf(LOG_ERR,"ERROR smb_addmsg(%s) returned %d: %s"
+					,scfg.sub[subnum]->code, retval, smb.last_error);
+			if(retval == SMB_SUCCESS || retval == SMB_DUPE_MSG) {
+				badmsg.hdr.attr |= MSG_DELETE;
+				if((retval = smb_updatemsg(&badsmb, &badmsg)) != SMB_SUCCESS)
+					lprintf(LOG_ERR,"!ERROR %d (%s) deleting msg #%u in bad echo sub"
+						,retval, badsmb.last_error, badmsg.hdr.number);
+				if(badmsg.hdr.auxattr&MSG_FILEATTACH)
+					delfattach(&scfg,&badmsg);
+				retossed++;
+			}
+			smb_close(&smb);
+		}
+		smb_unlockmsghdr(&badsmb,&badmsg);
+		smb_freemsgmem(&badmsg);
+		smb_freemsgmem(&newmsg);
+	}
+
+	smb_close(&badsmb);
+	FREE_AND_NULL(post);
+
+	printf("\r%*s\r", 70, "");
+	if(retossed)
+		lprintf(LOG_INFO, "Re-tossed (moved) %lu messages successfully from the bad-echo area", retossed);
+	return true;
+}
+
 
 /* New Feature (as of Nov-22-2015):
    Export NetMail from SMB (data/mail) to .msg format
@@ -4354,21 +5067,53 @@ int export_netmail(void)
 			continue;
 		}
 
-		if((txt=smb_getmsgtxt(email,&msg,GETMSGTXT_ALL)) == NULL) {
+		char* msg_subj = msg.subj;
+		bool file_attached = false;
+		if((txt=smb_getmsgtxt(email, &msg, GETMSGTXT_BODY_ONLY)) != NULL) {
+			char filename[MAX_PATH+1] = {0};
+			uint32_t filelen = 0;
+			uint8_t* filedata;
+			if((filedata = smb_getattachment(&msg, txt, filename, &filelen, /* attachment_index */0)) != NULL 
+				&& filename[0] != 0 && filelen > 0) {
+				lprintf(LOG_DEBUG, "MIME attachment decoded: %s (%lu bytes)", filename, (ulong)filelen);
+				char outdir[MAX_PATH+1];
+				SAFEPRINTF2(outdir, "%sfile/%04u.out", scfg.data_dir, msg.idx.from);
+				MKDIR(outdir);
+				char fpath[MAX_PATH+1];
+				SAFEPRINTF2(fpath, "%s/%s", outdir, filename);
+				FILE* fp = fopen(fpath, "wb");
+				if(fp == NULL)
+					lprintf(LOG_ERR, "!ERROR %d (%s) opening/creating %s", errno, strerror(errno), fpath);
+				else {
+					int result = fwrite(filedata, filelen, 1, fp);
+					fclose(fp);
+					if(!result)
+						lprintf(LOG_ERR, "!ERROR %d (%s) writing %lu bytes to %s", errno, strerror(errno), filelen, fpath);
+					else {
+						lprintf(LOG_DEBUG, "Decoded MIME attachment stored as: %s", fpath);
+						file_attached = true;
+						msg_subj = fpath;
+					}
+				}
+			}
+			smb_freemsgtxt(txt);
+		}
+
+		if((txt=smb_getmsgtxt(email,&msg,GETMSGTXT_ALL|GETMSGTXT_PLAIN)) == NULL) {
 			lprintf(LOG_ERR,"!ERROR %d getting message text for mail msg #%u"
 				, email->last_error, msg.hdr.number);
 			continue;
 		}
 
-		create_netmail(msg.to, &msg, msg.subj, txt, *(fidoaddr_t*)msg.to_net.addr,/* file_attached */false);
+		create_netmail(msg.to, &msg, msg_subj, txt, *(fidoaddr_t*)msg.to_net.addr, file_attached);
 		FREE_AND_NULL(txt);
 
 		if(cfg.delete_netmail || (msg.hdr.netattr&MSG_KILLSENT)) {
 			/* Delete exported netmail */
 			msg.hdr.attr |= MSG_DELETE;
-			if(smb_updatemsg(email, &msg) != SMB_SUCCESS)
-				lprintf(LOG_ERR,"!ERROR %d deleting mail msg #%u"
-					,email->last_error, msg.hdr.number);
+			if((i = smb_updatemsg(email, &msg)) != SMB_SUCCESS)
+				lprintf(LOG_ERR,"!ERROR %d (%s) deleting mail msg #%u"
+					,i, email->last_error, msg.hdr.number);
 			if(msg.hdr.auxattr&MSG_FILEATTACH)
 				delfattach(&scfg,&msg);
 			fseek(email->sid_fp, (msg.offset+1)*sizeof(msg.idx), SEEK_SET);
@@ -4403,6 +5148,8 @@ char* freadstr(FILE* fp, char* str, size_t maxlen)
 			str[len++]=ch;
 		rd++;
 	}
+	if(ch != 0)	/* Must be NUL-terminated */
+		return NULL;
 
 	str[maxlen-1]=0;	/* Force terminator */
 
@@ -4429,7 +5176,7 @@ bool netmail_sent(const char* fname)
 	rewind(fp);
 	fwrite(&hdr, sizeof(hdr), 1, fp);
 	fclose(fp);
-	if(hdr.attr&FIDO_KILLSENT)
+	if(!cfg.ignore_netmail_kill_attr && (hdr.attr&FIDO_KILLSENT))
 		return delfile(fname, __LINE__);
 	return true;
 }
@@ -4442,7 +5189,6 @@ void pack_netmail(void)
 	const char*	outbound;
 	char*	fmsgbuf=NULL;
 	char	ch;
-	int		i;
 	int		file;
 	int		fmsg;
 	size_t	f;
@@ -4492,10 +5238,7 @@ void pack_netmail(void)
 		addr.net		= hdr.destnet;
 		addr.node		= hdr.destnode;
 		addr.point		= hdr.destpoint;
-		for(i=0;i<scfg.total_faddrs;i++)
-			if(!memcmp(&addr,&scfg.faddr[i],sizeof(fidoaddr_t)))
-				break;
-		if(i<scfg.total_faddrs)	{				  /* In-bound, so ignore */
+		if(sysfaddr_is_valid(find_sysfaddr(addr)))	{				  /* In-bound, so ignore */
 			fclose(fidomsg);
 			continue;
 		}
@@ -4525,7 +5268,7 @@ void pack_netmail(void)
 			else {
 				fprintf(fp,"%s\n",getfname(hdr.subj));
 				fclose(fp);
-				if(write_flofile(req, addr,/* bundle: */false,/* use_outbox: */true))
+				if(write_flofile(req, addr,/* bundle: */false,/* use_outbox: */true, hdr.attr))
 					bail(1);
 				netmail_sent(path);
 			}
@@ -4547,7 +5290,8 @@ void pack_netmail(void)
 		}
 
 		nodecfg=findnodecfg(&cfg, addr, 0);
-		if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL) {
+		if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL 
+			&& !(hdr.attr&(FIDO_CRASH|FIDO_HOLD))) {
 			addr=nodecfg->route;		/* Routed */
 			lprintf(LOG_INFO, "Routing NetMail (%s) to %s",getfname(path),smb_faddrtoa(&addr,NULL));
 			nodecfg=findnodecfg(&cfg, addr,0); 
@@ -4561,7 +5305,11 @@ void pack_netmail(void)
 				SAFECOPY(packet, pktname(outbound));
 			else {
 				ch='o';
-				if(nodecfg!=NULL) {
+				if(hdr.attr&FIDO_CRASH)
+					ch='c';
+				else if(hdr.attr&FIDO_HOLD)
+					ch='h';
+				else if(nodecfg!=NULL) {
 					switch(nodecfg->status) {
 						case MAIL_STATUS_CRASH:	ch='c';	break;
 						case MAIL_STATUS_HOLD:	ch='h'; break;
@@ -4577,8 +5325,9 @@ void pack_netmail(void)
 					SAFEPRINTF4(packet,"%s%04x%04x.%cut",outbound,addr.net,addr.node,ch);
 			}
 			if(hdr.attr&FIDO_FILE) {
-				if(write_flofile(hdr.subj,addr,/* bundle: */false,/* use_outbox: */false))
+				if(write_flofile(hdr.subj,addr,/* bundle: */false,/* use_outbox: */false, hdr.attr))
 					bail(1);
+				SAFECOPY(hdr.subj, getfname(hdr.subj));	/* Don't include the file path in the subject */
 			}
 		}
 		else {
@@ -4595,7 +5344,7 @@ void pack_netmail(void)
 			newpkt="new ";
 			chsize(file,0);
 			rewind(stream);
-			new_pkthdr(&pkthdr, fmsghdr_srcaddr(&hdr), addr, nodecfg);
+			new_pkthdr(&pkthdr, getsysfaddr(addr.zone), addr, nodecfg);
 			fwrite(&pkthdr,sizeof(pkthdr),1,stream); 
 		} else
 			fseek(stream,find_packet_terminator(stream),SEEK_SET);
@@ -4674,8 +5423,12 @@ void find_stray_packets(void)
 			delfile(packet, __LINE__);
 			continue;
 		}
-		lprintf(LOG_WARNING,"Stray Outbound Packet (type %s) found, from %s to %s: %s"
-			,pktTypeStringList[pkt_type], smb_faddrtoa(&pkt_orig, NULL), smb_faddrtoa(&pkt_dest, str), packet); 
+		uint sysfaddr = find_sysfaddr(pkt_orig);
+		lprintf(LOG_WARNING,"Stray Outbound Packet (type %s) found, from %s address %s to %s: %s"
+			,pktTypeStringList[pkt_type], sysfaddr_is_valid(sysfaddr) ? "local" : "FOREIGN"
+			,smb_faddrtoa(&pkt_orig, NULL), smb_faddrtoa(&pkt_dest, str), packet);
+		if(!sysfaddr_is_valid(sysfaddr))
+			continue;
 		outpkt_t* pkt;
 		if((pkt = calloc(1, sizeof(outpkt_t))) == NULL)
 			continue;
@@ -4824,13 +5577,18 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 
 			FREE_AND_NULL(fmsgbuf);
 
-			bool grunged=false;
 			off_t msg_offset = ftell(fidomsg);
 			/* Read fixed-length header fields */
-			if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg)!=sizeof(pkdmsg))
+			if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fidomsg) != sizeof(pkdmsg))
 				continue;
-				
-			if(pkdmsg.type == 2) { /* Recognized type, copy fields */
+	
+			if(pkdmsg.type == 2 /* Recognized type */
+				&& pkdmsg.time[0] != 0
+				&& pkdmsg.time[sizeof(pkdmsg.time)-1] == 0
+				&& freadstr(fidomsg, hdr.to, sizeof(hdr.to)) != NULL
+				&& freadstr(fidomsg, hdr.from, sizeof(hdr.from)) != NULL
+				&& freadstr(fidomsg, hdr.subj, sizeof(hdr.subj)) != NULL
+				) { /* Recognized type, copy fields */
 				hdr.orignode	= pkdmsg.orignode;
 				hdr.destnode	= pkdmsg.destnode;
 				hdr.orignet		= pkdmsg.orignet;
@@ -4838,78 +5596,68 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 				hdr.attr		= pkdmsg.attr;
 				hdr.cost		= pkdmsg.cost;
 				SAFECOPY(hdr.time,pkdmsg.time);
-			} else
-				grunged=true;
-
-			/* Read variable-length header fields */
-			if(!grunged) {
-				freadstr(fidomsg,hdr.to,sizeof(hdr.to));
-				freadstr(fidomsg,hdr.from,sizeof(hdr.from));
-				freadstr(fidomsg,hdr.subj,sizeof(hdr.subj));
-			}
-			hdr.attr&=~FIDO_LOCAL;	/* Strip local bit, obviously not created locally */
-
-			str[0]=0;
-			for(i=0;!grunged && i<sizeof(str);i++)	/* Read in the 'AREA' Field */
-				if(!fread(str+i,1,1,fidomsg) || str[i]=='\r')
-					break;
-			if(i<sizeof(str))
-				str[i]=0;
-			else
-				grunged=1;
-
-			if(grunged) {
+			} else {
 				lprintf(LOG_NOTICE, "Grunged message (type %d) from %s at offset %u in packet: %s"
-					,pkdmsg.type, smb_faddrtoa(&pkt_orig,NULL), msg_offset, packet);
-				seektonull(fidomsg);
+					, pkdmsg.type, smb_faddrtoa(&pkt_orig, NULL), msg_offset, packet);
 				printf("Grunged message!\n");
 				bad_packet = true;
-				continue; 
+				break;
 			}
+			msg_offset = ftell(fidomsg);	// Save offset to msg body
+			fmsgbuf = getfmsg(fidomsg, NULL);
+			off_t next_msg = ftell(fidomsg);
 
-			if(i)
-				fseek(fidomsg,(long)-(i+1),SEEK_CUR);
+			hdr.attr&=~FIDO_LOCAL;	/* Strip local bit, obviously not created locally */
 
-			truncsp(str);
-			p=strstr(str,"AREA:");
-			if(p!=str) {					/* Netmail */
-				long pos = ftell(fidomsg);
+			if(strncmp(fmsgbuf, "AREA:", 5) != 0) {					/* Netmail */
+				fseek(fidomsg, msg_offset, SEEK_SET);
 				import_netmail("", hdr, fidomsg, inbound);
-				fseek(fidomsg, pos, SEEK_SET);
-				seektonull(fidomsg);
+				fseek(fidomsg, next_msg, SEEK_SET);
 				printf("\n");
 				continue; 
 			}
+
+			p = fmsgbuf + 5;					/* Skip "AREA:" */
+			SKIP_WHITESPACE(p);					/* Skip any white space */
+			SAFECOPY(areatag, p);
+			truncstr(areatag, " \t\r\n");
+			printf("%21s: ", areatag);          /* Show areatag/echotag: */
+
+			echostat_t* stat = get_echostat(areatag);
+			if(stat == NULL) {
+				lprintf(LOG_CRIT, "Failed to allocate memory for echostats!");
+				break;
+			}
+
+			if(!parse_origin(fmsgbuf, &hdr))
+				lprintf(LOG_WARNING, "%s: Failed to parse Origin Line in message from %s (%s) in packet from %s: %s"
+					, areatag, hdr.from, fmsghdr_srcaddr_str(&hdr), smb_faddrtoa(&pkt_orig, NULL), packet);
+
+			new_echostat_msg(stat, ECHOSTAT_MSG_RECEIVED, fidomsg_to_echostat_msg(hdr, &pkt_orig, fmsgbuf));
 
 			if(!opt_import_echomail) {
 				printf("EchoMail Ignored");
-				seektonull(fidomsg);
 				printf("\n");
 				continue; 
 			}
-
-			p+=5;								/* Skip "AREA:" */
-			SKIP_WHITESPACE(p);					/* Skip any white space */
-			printf("%21s: ",p);                 /* Show areaname: */
-			SAFECOPY(areatag,p);
 
 			if(!secure && (nodecfg == NULL || nodecfg->pktpwd[0] == 0)) {
 				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s ignored"
 					,areatag, smb_faddrtoa(&pkt_orig, NULL));
-				seektonull(fidomsg);
 				printf("\n");
 				bad_packet = true;
 				continue; 
 			}
 
 			if(area_is_valid(i = find_area(areatag))) {				/* Do we carry this area? */
+				stat->known = true;
 				if(cfg.area[i].sub!=INVALID_SUB)
 					printf("%s ",scfg.sub[cfg.area[i].sub]->code);
 				else
 					printf("(Passthru) ");
-				fmsgbuf=getfmsg(fidomsg,NULL);
 				gen_psb(&msg_seen,&msg_path,fmsgbuf,pkt_orig.zone);	/* was destzone */
 			} else {
+				stat->known = false;
 				printf("(Unknown) ");
 				if(bad_areas != NULL && strListFind(bad_areas, areatag, /* case_sensitive: */false) < 0)
 					strListPush(&bad_areas, areatag);
@@ -4919,26 +5667,19 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 						printf("%s ",scfg.sub[cfg.area[i].sub]->code);
 					else
 						printf("(Passthru) ");
-					fmsgbuf=getfmsg(fidomsg,NULL);
 					gen_psb(&msg_seen,&msg_path,fmsgbuf,pkt_orig.zone);	/* was destzone */
 				}
 				else {
 					printf("Skipped\n");
-					seektonull(fidomsg);
 					continue; 
 				}
 			}
 
-			if(!parse_origin(fmsgbuf, &hdr))
-				lprintf(LOG_WARNING, "%s: Failed to parse Origin Line in message from %s (%s) in packet from %s: %s"
-					,areatag, hdr.from, fmsghdr_srcaddr_str(&hdr), smb_faddrtoa(&pkt_orig,NULL), packet);
-
 			if(cfg.secure_echomail && cfg.area[i].sub!=INVALID_SUB) {
 				if(!area_is_linked(i,&pkt_orig)) {
-					lprintf(LOG_WARNING, "%s: Security violation - %s not in AREAS.BBS"
-						,areatag,smb_faddrtoa(&pkt_orig,NULL));
-					printf("Security Violation (Not in AREAS.BBS)\n");
-					seektonull(fidomsg);
+					lprintf(LOG_WARNING, "%s: Security violation - %s not in Area File"
+						,areatag, smb_faddrtoa(&pkt_orig,NULL));
+					printf("Security Violation (Not in %s)\n", cfg.areafile);
 					bad_packet = true;
 					continue; 
 				} 
@@ -4947,7 +5688,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			/* From here on out, i = area number and area[i].sub = sub number */
 
 			memcpy(&curarea,&cfg.area[i],sizeof(area_t));
-			curarea.name=areatag;
+			curarea.tag=areatag;
 
 			if(cfg.area[i].sub==INVALID_SUB) {			/* Passthru */
 				strip_psb(fmsgbuf);
@@ -4967,6 +5708,8 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 					lprintf(LOG_NOTICE, "%s: Circular path detected for %s in message from %s (%s)"
 						,areatag,smb_faddrtoa(&scfg.faddr[j],NULL), hdr.from, fmsghdr_srcaddr_str(&hdr));
 					printf("\n");
+					new_echostat_msg(stat, ECHOSTAT_MSG_CIRCULAR
+						,fidomsg_to_echostat_msg(hdr, &pkt_orig, fmsgbuf));
 					continue; 
 				}
 			}
@@ -5039,6 +5782,8 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 				lprintf(LOG_NOTICE, "%s Duplicate message from %s (%s) to %s, subject: %s"
 					,areatag, hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, hdr.subj);
 				cfg.area[i].dupes++; 
+				new_echostat_msg(stat, ECHOSTAT_MSG_DUPLICATE
+					,fidomsg_to_echostat_msg(hdr, &pkt_orig, fmsgbuf));
 			}
 			else if(result==IMPORT_SUCCESS || (result==IMPORT_FILTERED_AGE && cfg.relay_filtered_msgs)) {	   /* Not a dupe */
 				strip_psb(fmsgbuf);
@@ -5060,10 +5805,13 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 				} 
 				echomail++;
 				cfg.area[i].imported++;
+				new_echostat_msg(stat, ECHOSTAT_MSG_IMPORTED
+					,fidomsg_to_echostat_msg(hdr, &pkt_orig, fmsgbuf));
 			}
 			printf("\n");
 		}
 		fclose(fidomsg);
+		FREE_AND_NULL(fmsgbuf);
 
 		if(bad_packet)
 			rename_bad_packet(packet);
@@ -5115,9 +5863,10 @@ int main(int argc, char **argv)
 	"sbbsecho, by default, will NOT:\n\n"
 	" * Export echomail previously imported from FTN (-h to enable)\n"
 	" * Update echomail export pointers without exporting messages (-u to enable)\n"
+	" * Import echomail (re-toss) from the 'bad echo' sub-board (-r to enable)\n"
 	" * Generate AreaFix netmail reports/notifications for links (-g to enable)\n"
 	" * Display the parsed area file (e.g. AREAS.BBS) for debugging (-a to enable)\n"
-	" * Prompt for key-press upon normal exit (-@ to enable)\n"
+	" * Prompt for key-press upon exit (-@ to enable)\n"
 	" * Prompt for key-press upon abnormal exit (-w to enable)\n"
 	;
 
@@ -5138,7 +5887,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.41 $", "%*s %s", revision);
+	sscanf("$Revision: 3.67 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5205,6 +5954,9 @@ int main(int argc, char **argv)
 					case 'A':
 						opt_dump_area_file=true;
 						break;
+					case 'R':
+						opt_retoss_badmail=true;
+						break;
 					default:
 						fprintf(stderr, "Unsupported option: %c\n", argv[i][j]);
 					case '?':
@@ -5215,7 +5967,6 @@ int main(int argc, char **argv)
 					case 'J':
 					case 'L':
 					case 'O':
-					case 'R':
 					case 'S':
 					case 'X':
 					case 'Y':
@@ -5336,14 +6087,15 @@ int main(int argc, char **argv)
 		SAFECOPY(cfg.outbound, outbound);
 		free(outbound);
 	}
-	for(i=0; i<cfg.nodecfgs; i++) {
-		if(cfg.nodecfg[i].inbox[0])
-			backslash(cfg.nodecfg[i].inbox);
+	for(uint u=0; u<cfg.nodecfgs; u++) {
+		if(cfg.nodecfg[u].inbox[0])
+			backslash(cfg.nodecfg[u].inbox);
 	}
 	
 	truncsp(cmdline);
 	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
 	lprintf(LOG_DEBUG,"Configured: %u archivers, %u linked-nodes, %u echolists", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
+	lprintf(LOG_DEBUG,"NetMail directory: %s", scfg.netmail_dir);
 	lprintf(LOG_DEBUG,"Secure Inbound directory: %s", cfg.secure_inbound);
 	lprintf(LOG_DEBUG,"Non-secure Inbound directory: %s", cfg.inbound);
 	lprintf(LOG_DEBUG,"Outbound (BSO root) directory: %s", cfg.outbound);
@@ -5377,16 +6129,12 @@ int main(int argc, char **argv)
 		SKIP_WHITESPACE(p);	/* Find first printable char */
 		if(*p==';' || !*p)          /* Ignore blank lines or start with ; */
 			continue;
-		if((cfg.area=(area_t *)realloc(cfg.area,sizeof(area_t)*(cfg.areas+1)))==NULL) {
-			printf("\n");
-			lprintf(LOG_ERR,"ERROR allocating memory for area #%u.",cfg.areas+1);
+		int areanum = cfg.areas;
+		if(!new_area(/* tag: */NULL, /* Pass-through by default: */INVALID_SUB, /* link: */NULL)) {
+			lprintf(LOG_ERR,"ERROR allocating memory for area #%u.",cfg.areas + 1);
 			bail(1); 
 			return -1;
 		}
-		memset(&cfg.area[cfg.areas],0,sizeof(area_t));
-
-		cfg.area[cfg.areas].sub=INVALID_SUB;	/* Default to passthru */
-
 		sprintf(tmp_code,"%-.*s",LEN_EXTCODE,p);
 		tp=tmp_code;
 		FIND_WHITESPACE(tp);
@@ -5395,7 +6143,7 @@ int main(int argc, char **argv)
 			if(!stricmp(tmp_code,scfg.sub[i]->code))
 				break;
 		if(i<scfg.total_subs)
-			cfg.area[cfg.areas].sub=i;
+			cfg.area[areanum].sub = i;
 		else if(stricmp(tmp_code,"P")) {
 			printf("\n");
 			lprintf(LOG_WARNING,"%s: Unrecognized internal code, assumed passthru",tmp_code); 
@@ -5407,16 +6155,17 @@ int main(int argc, char **argv)
 		truncstr(area_tag,"\t ");
 		strupr(area_tag);
 		if(area_tag[0]=='*')         /* UNKNOWN-ECHO area */
-			cfg.badecho=cfg.areas;
-		if(area_is_valid(find_area(area_tag))) {
+			cfg.badecho=areanum;
+		if(areanum > 0 && area_is_valid(find_area(area_tag))) {
 			printf("\n");
 			lprintf(LOG_WARNING, "DUPLICATE AREA (%s) in area file (%s), IGNORED!", area_tag, cfg.areafile);
+			cfg.areas--;
 			continue;
 		}
-		if((cfg.area[cfg.areas].name=strdup(area_tag))==NULL) {
+		if((cfg.area[areanum].tag=strdup(area_tag))==NULL) {
 			printf("\n");
-			lprintf(LOG_ERR,"ERROR allocating memory for area #%u tag name."
-				,cfg.areas+1);
+			lprintf(LOG_ERR,"ERROR allocating memory for area #%u tag."
+				,areanum+1);
 			bail(1); 
 			return -1;
 		}
@@ -5430,41 +6179,67 @@ int main(int argc, char **argv)
 				lprintf(LOG_WARNING, "Invalid Area File line, expected link address(es) after echo-tag: '%s'", str);
 				break;
 			}
-			if((cfg.area[cfg.areas].link=(fidoaddr_t *)
-				realloc(cfg.area[cfg.areas].link
-				,sizeof(fidoaddr_t)*(cfg.area[cfg.areas].links+1)))==NULL) {
+			if((cfg.area[areanum].link=(fidoaddr_t *)
+				realloc(cfg.area[areanum].link
+				,sizeof(fidoaddr_t)*(cfg.area[areanum].links+1)))==NULL) {
 				printf("\n");
 				lprintf(LOG_ERR,"ERROR allocating memory for area #%u links."
-					,cfg.areas+1);
+					,areanum+1);
 				bail(1); 
 				return -1;
 			}
 			fidoaddr_t link = atofaddr(p);
-			cfg.area[cfg.areas].link[cfg.area[cfg.areas].links] = link;
+			cfg.area[areanum].link[cfg.area[areanum].links] = link;
 			if(findnodecfg(&cfg, link, /* exact: */false) == NULL) {
 				printf("\n");
 				lprintf(LOG_WARNING, "Configuration for %s-linked-node (%s) not found in %s"
-					,cfg.area[cfg.areas].name, faddrtoa(&link), cfg.cfgfile);
+					,cfg.area[areanum].tag, faddrtoa(&link), cfg.cfgfile);
 			} else
-				cfg.area[cfg.areas].links++; 
+				cfg.area[areanum].links++; 
 			FIND_WHITESPACE(p);	/* Skip address */
 			SKIP_WHITESPACE(p);	/* Skip white space */
 		}
 
-		if(cfg.area[cfg.areas].sub!=INVALID_SUB || cfg.area[cfg.areas].links)
+#if 0
+		if(cfg.area[areanum].sub!=INVALID_SUB || cfg.area[areanum].links)
 			cfg.areas++;		/* Don't allocate if no tossing */
+#endif
 	}
 	fclose(stream);
 
 	printf("\n");
 	lprintf(LOG_DEBUG, "Read %u areas from %s", cfg.areas, cfg.areafile);
+	if(cfg.badecho >= 0)
+		lprintf(LOG_DEBUG, "Bad-echo area: %s", scfg.sub[cfg.area[cfg.badecho].sub]->code);
+
+	if(cfg.auto_add_subs) {
+		for(unsigned subnum = 0; subnum < scfg.total_subs; subnum++) {
+			if(cfg.badecho >=0 && cfg.area[cfg.badecho].sub == subnum)
+				continue;	/* No need to auto-add the badecho sub */
+			if(!(scfg.sub[subnum]->misc&SUB_FIDO))
+				continue;
+			unsigned area;
+			for(area = 0; area < cfg.areas; area++)
+				if(cfg.area[area].sub == subnum)
+					break;
+			if(area < cfg.areas) /* Sub-board already listed in area file */
+				continue;
+			unsigned hub;
+			for(hub = 0; hub < cfg.nodecfgs; hub++)
+				if(strListFind(cfg.nodecfg[hub].grphub, scfg.grp[scfg.sub[subnum]->grp]->sname
+					,/* Case-sensitive: */false) >= 0)
+					break;
+			if(hub < cfg.nodecfgs)
+				add_sub_to_areafile(scfg.sub[subnum], cfg.nodecfg[hub].addr);
+		}
+	}
 
 	if(opt_dump_area_file) {
 		printf("Area file dump (%u areas):\n", cfg.areas);
 		for(unsigned u=0; u < cfg.areas && !terminated; u++) {
 			printf("%-*s %-*s "
 				,LEN_EXTCODE, cfg.area[u].sub == INVALID_SUB ? "P" : scfg.sub[cfg.area[u].sub]->code
-				,FIDO_AREATAG_LEN, cfg.area[u].name);
+				,FIDO_AREATAG_LEN, cfg.area[u].tag);
 			for(unsigned l=0; l < cfg.area[u].links && !terminated; l++)
 				printf("%s ", faddrtoa(&cfg.area[u].link[l]));
 			printf("\n");
@@ -5483,6 +6258,7 @@ int main(int argc, char **argv)
 		lprintf(LOG_DEBUG, "Read %u areas from %s", before, cfg.badareafile);
 		if(fp!=NULL)
 			fclose(fp);
+//		lprintf(LOG_DEBUG, "Checking bad areas for areas we now carry - begin");
 		strListTruncateStrings(bad_areas, " \t\r\n");
 		for(i=0; bad_areas[i] != NULL; i++) {
 			if(area_is_valid(find_area(bad_areas[i]))) {			/* Do we carry this area? */
@@ -5491,6 +6267,7 @@ int main(int argc, char **argv)
 				i--;
 			}
 		}
+//		lprintf(LOG_DEBUG, "Checking bad areas for areas we now carry - end");
 		after = strListCount(bad_areas);
 		if(before != after)
 			lprintf(LOG_NOTICE, "Removed %d areas from bad area file: %s", before-after, cfg.badareafile);
@@ -5498,8 +6275,14 @@ int main(int argc, char **argv)
 
 	if(opt_gen_notify_list && !terminated) {
 		lprintf(LOG_DEBUG,"Generating AreaFix Notifications...");
-		gen_notify_list(); 
+		gen_notify_list(nodecfg); 
 	}
+
+	if(cfg.echostats[0])
+		echostat_count = read_echostats(cfg.echostats, &echostat);
+
+	if(opt_retoss_badmail)
+		retoss_bad_echomail();
 
 	find_stray_packets();
 
@@ -5511,13 +6294,13 @@ int main(int argc, char **argv)
 		/* to take care of any packets that may already be hanging around for some	 */
 		/* reason or another (thus the do/while loop) */
 
-		for(i=0; i<cfg.nodecfgs && !terminated; i++) {
-			if(cfg.nodecfg[i].inbox[0] == 0)
+		for(uint u=0; u<cfg.nodecfgs && !terminated; u++) {
+			if(cfg.nodecfg[u].inbox[0] == 0)
 				continue;
-			printf("Scanning %s inbox: %s\n", faddrtoa(&cfg.nodecfg[i].addr), cfg.nodecfg[i].inbox);
+			printf("Scanning %s inbox: %s\n", faddrtoa(&cfg.nodecfg[u].addr), cfg.nodecfg[u].inbox);
 			do {
-				import_packets(cfg.nodecfg[i].inbox, &cfg.nodecfg[i], /* secure: */true);
-			} while(unpack_bundle(cfg.nodecfg[i].inbox));
+				import_packets(cfg.nodecfg[u].inbox, &cfg.nodecfg[u], /* secure: */true);
+			} while(unpack_bundle(cfg.nodecfg[u].inbox));
 		}
 		if(cfg.secure_inbound[0] && !terminated) {
 			printf("Scanning secure inbound: %s\n", cfg.secure_inbound);
@@ -5538,21 +6321,21 @@ int main(int argc, char **argv)
 
 		/******* END OF IMPORT PKT ROUTINE *******/
 
-		for(i=0;i<cfg.areas;i++) {
-			if(cfg.area[i].imported)
+		for(uint u=0; u<cfg.areas; u++) {
+			if(cfg.area[u].imported)
 				lprintf(LOG_INFO,"Imported: %5u msgs %*s <- %s"
-					,cfg.area[i].imported,LEN_EXTCODE,scfg.sub[cfg.area[i].sub]->code
-					,cfg.area[i].name); 
+					,cfg.area[u].imported,LEN_EXTCODE,scfg.sub[cfg.area[u].sub]->code
+					,cfg.area[u].tag); 
 		}
-		for(i=0;i<cfg.areas;i++) {
-			if(cfg.area[i].circular)
+		for(uint u=0; u<cfg.areas; u++) {
+			if(cfg.area[u].circular)
 				lprintf(LOG_INFO,"Circular: %5u detected in %s"
-					,cfg.area[i].circular,cfg.area[i].name); 
+					,cfg.area[u].circular, cfg.area[u].tag); 
 		}
-		for(i=0;i<cfg.areas;i++) {
-			if(cfg.area[i].dupes)
+		for(uint u=0; u<cfg.areas; u++) {
+			if(cfg.area[u].dupes)
 				lprintf(LOG_INFO,"Duplicate: %4u detected in %s"
-					,cfg.area[i].dupes,cfg.area[i].name); 
+					,cfg.area[u].dupes, cfg.area[u].tag); 
 		} 
 
 		if(echomail)
@@ -5625,23 +6408,26 @@ int main(int argc, char **argv)
 
 		lprintf(LOG_DEBUG,"Updating Message Pointers to Last Posted Message...");
 
-		for(j=0; j<cfg.areas; j++) {
+		for(uint u=0; u<cfg.areas; u++) {
 			uint32_t lastmsg;
-			if(j==cfg.badecho)	/* Don't scan the bad-echo area */
+			if(u==cfg.badecho)	/* Don't scan the bad-echo area */
 				continue;
-			i=cfg.area[j].sub;
+			i=cfg.area[u].sub;
 			if(i<0 || i>=scfg.total_subs)	/* Don't scan pass-through areas */
 				continue;
 			lprintf(LOG_DEBUG,"\n%-*.*s -> %s"
-				,LEN_EXTCODE, LEN_EXTCODE, scfg.sub[i]->code, cfg.area[j].name);
+				,LEN_EXTCODE, LEN_EXTCODE, scfg.sub[i]->code, cfg.area[u].tag);
 			if(getlastmsg(i,&lastmsg,0) >= 0)
-				write_export_ptr(i, lastmsg, cfg.area[j].name);
+				write_export_ptr(i, lastmsg, cfg.area[u].tag);
 		}
 	}
 
 	move_echomail_packets();
 	if(nodecfg != NULL)
 		attachment(NULL,nodecfg->addr,ATTACHMENT_NETMAIL);
+
+	if(cfg.echostats[0])
+		write_echostats(cfg.echostats, echostat, echostat_count);
 
 	if(email->shd_fp)
 		smb_close(email);
