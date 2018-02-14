@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.30 2018/02/13 05:11:38 deuce Exp $ */
+/* $Id: js_conio.c,v 1.31 2018/02/14 18:29:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,8 @@ js_conio_beep(JSContext *cx, uintN argc, jsval *arglist)
 	jsrefcount	rc;
 
 	rc=JS_SUSPENDREQUEST(cx);
-    JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(beep()));
+    	beep();
+	JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
