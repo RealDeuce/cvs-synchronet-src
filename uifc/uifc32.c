@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.235 2018/02/20 21:20:05 deuce Exp $ */
+/* $Id: uifc32.c,v 1.234 2018/02/13 05:12:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2293,7 +2293,6 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					continue;
 				case CIO_KEY_QUIT:
 					api->exit_flags |= UIFC_XF_QUIT;
-					/* Fall-through */
 				case CIO_KEY_ABORTED:
 				case ESC:
 					{
