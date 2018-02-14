@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.83 2018/02/16 09:01:01 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.81 2018/02/10 00:22:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,6 +177,8 @@ long sbbs_t::term_supports(long cmp_flags)
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
+	int		i;
+
 	/*
 	 * outchar_esc values:
 	 * 0: No sequence
@@ -190,7 +192,7 @@ void sbbs_t::outchar(char ch)
 
 	if(console&CON_ECHO_OFF)
 		return;
-	if(ch==ESC && outchar_esc < 4)
+	if(ch==ESC)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
 		if(ch=='[')
@@ -199,8 +201,6 @@ void sbbs_t::outchar(char ch)
 			outchar_esc=4;
 		else if(ch=='X')
 			outchar_esc=5;
-		else if(ch >= 0x40 && ch <= 0x5f)
-			outchar_esc=3;
 		else
 			outchar_esc=0;
 	}
