@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.226 2018/02/14 04:37:26 deuce Exp $ */
+/* $Id: cterm.c,v 1.227 2018/02/14 21:21:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2075,7 +2075,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								cterm->setfont_result = 1;
 							else
 								cterm->setfont_result = 0;
-							if(cterm->setfont_result == 1)
+							if(cterm->setfont_result == 0)
 								cterm->altfont[seq->param_int[0]] = seq->param_int[1];
 							break;
 					}
@@ -2852,7 +2852,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.226 $";
+	char	*revision="$Revision: 1.227 $";
 	char *in;
 	char	*out;
 	int		i;
