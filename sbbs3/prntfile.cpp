@@ -2,7 +2,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.23 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.22 2018/01/07 23:00:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -90,12 +90,12 @@ void sbbs_t::printfile(char *str, long mode)
 
 	length=(long)filelength(file);
 	if(length<0) {
-		fclose(stream);
+		close(file);
 		errormsg(WHERE,ERR_CHK,str,length);
 		return;
 	}
 	if((buf=(char*)malloc(length+1L))==NULL) {
-		fclose(stream);
+		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
 		return; 
 	}
