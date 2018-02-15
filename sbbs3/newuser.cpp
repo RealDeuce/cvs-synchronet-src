@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.73 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.71 2015/10/31 00:09:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,18 +373,20 @@ BOOL sbbs_t::newuser()
 
 		c=0;
 		while(online) {
-			bputs(text[NewUserPasswordVerify]);
+			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
 			str[0]=0;
 			getstr(str,LEN_PASS*2,K_UPPER);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
 			if(cfg.sys_misc&SM_ECHO_PW) 
-				SAFEPRINTF2(tmp,"FAILED Password verification: '%s' instead of '%s'"
+				SAFEPRINTF3(tmp,"%s FAILED Password verification: '%s' instead of '%s'"
+					,useron.alias
 					,str
 					,useron.pass);
 			else
-				SAFECOPY(tmp,"FAILED Password verification");
+				SAFEPRINTF(tmp,"%s FAILED Password verification"
+					,useron.alias);
 			logline(LOG_NOTICE,nulstr,tmp);
 			if(++c==4) {
 				logline(LOG_NOTICE,"N!","Couldn't figure out password.");
@@ -402,7 +404,7 @@ BOOL sbbs_t::newuser()
 		getstr(str,50,K_UPPER);
 		if(strcmp(str,cfg.new_magic)) {
 			bputs(text[FailedMagicWord]);
-			SAFEPRINTF(tmp,"failed magic word: '%s'",str);
+			SAFEPRINTF2(tmp,"%s failed magic word: '%s'",useron.alias,str);
 			logline("N!",tmp);
 			hangup(); 
 		}
