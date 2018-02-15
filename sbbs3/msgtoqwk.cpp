@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.52 2018/10/15 04:08:57 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.50 2017/11/24 23:35:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -204,8 +204,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 		/* Synchronet */
 		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_EDITOR,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
-		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_TAGS,NULL))!=NULL)	
-			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 
 		/* USENET */
 		if((p=(char*)smb_get_hfield(msg,hfield_type=USENETPATH,NULL))!=NULL)
@@ -379,7 +377,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 
 			if(ch==CTRL_A) {
 				ch=buf[++l];
-				if(ch==0)
+				if(ch==0 || toupper(ch)=='Z')		/* EOF */
 					break;
 				if((asc=ctrl_a_to_ascii_char(ch)) != 0) {
 					fputc(asc,qwk_fp);
