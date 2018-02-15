@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.648 2018/02/15 08:55:22 deuce Exp $ */
+/* $Id: websrvr.c,v 1.649 2018/02/15 18:17:54 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -638,8 +638,6 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						if(!cryptStatusOK(status=cryptPopData(session->tls_sess, "", 0, &status))) {
 							if (status != CRYPT_ERROR_TIMEOUT && status != CRYPT_ERROR_PARAM2)
 								lprintf(LOG_NOTICE,"%04d Cryptlib error %d popping data after timeout",session->socket, status);
-							if (failed)
-								*failed=TRUE;
 						}
 						status = CRYPT_OK;
 					}
@@ -664,8 +662,6 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 #endif
 						else
 							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
-						if(failed)
-							*failed=TRUE;
 						return(sent);
 					}
 				}
@@ -6505,7 +6501,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.648 $", "%*s %s", revision);
+	sscanf("$Revision: 1.649 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
