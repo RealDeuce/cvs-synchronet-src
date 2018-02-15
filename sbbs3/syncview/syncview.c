@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 	char	buf[BUF_SIZE*2];	/* Room for lfexpand */
 	int		len;
 	int		speed=0;
-	unsigned char	*scrollbuf;
+	struct vmem_cell	*scrollbuf;
 	char	*infile=NULL;
 	char	title[MAX_PATH+1];
 	int		expand=0;
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 
 	textmode(C80);
 	gettextinfo(&ti);
-	if((scrollbuf=malloc(SCROLL_LINES*ti.screenwidth*2))==NULL) {
+	if((scrollbuf=malloc(SCROLL_LINES*ti.screenwidth*sizeof(*scrollbuf)))==NULL) {
 		cprintf("Cannot allocate memory\n\n\rPress any key to exit.");
 		getch();
 		return(-1);
@@ -164,11 +164,11 @@ int main(int argc, char **argv)
 	if(ansi) {
 		puts("");
 		puts("END OF ANSI");
-		gettext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
+		vmem_gettext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
 		puttext_can_move=1;
 		puts("START OF SCREEN DUMP...");
 		clrscr();
-		puttext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
+		vmem_puttext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
 	}
 	else
 		viewscroll();
