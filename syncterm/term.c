@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.342 2018/10/25 09:08:29 rswindell Exp $ */
+/* $Id: term.c,v 1.331 2018/02/15 18:58:40 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -23,6 +23,10 @@
 #include "xmodem.h"
 #include "telnet_io.h"
 #include "saucedefs.h"
+
+#ifdef GUTS_BUILTIN
+#include "gutsz.h"
+#endif
 
 #ifndef WITHOUT_OOII
 #include "ooii.h"
@@ -303,8 +307,6 @@ static BOOL zmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
-	if (zm == NULL)
-		return TRUE;
 	if (quitting) {
 		zm->cancelled=TRUE;
 		zm->local_abort=TRUE;
@@ -312,26 +314,28 @@ static BOOL zmodem_check_abort(void* vp)
 	}
 	if(last_check != now) {
 		last_check=now;
-		while(kbhit()) {
-			switch((key=getch())) {
-				case ESC:
-				case CTRL_C:
-				case CTRL_X:
-					zm->cancelled=TRUE;
-					zm->local_abort=TRUE;
-					break;
-				case 0:
-				case 0xe0:
-					key |= (getch() << 8);
-					if(key==CIO_KEY_MOUSE)
-						getmouse(NULL);
-					if (key==CIO_KEY_QUIT) {
-						if (check_exit(FALSE)) {
-							zm->cancelled=TRUE;
-							zm->local_abort=TRUE;
+		if(zm!=NULL) {
+			while(kbhit()) {
+				switch((key=getch())) {
+					case ESC:
+					case CTRL_C:
+					case CTRL_X:
+						zm->cancelled=TRUE;
+						zm->local_abort=TRUE;
+						break;
+					case 0:
+					case 0xe0:
+						key |= (getch() << 8);
+						if(key==CIO_KEY_MOUSE)
+							getmouse(NULL);
+						if (key==CIO_KEY_QUIT) {
+							if (check_exit(FALSE)) {
+								zm->cancelled=TRUE;
+								zm->local_abort=TRUE;
+							}
 						}
-					}
-					break;
+						break;
+				}
 			}
 		}
 	}
@@ -366,12 +370,10 @@ static int lputs(void* cbdata, int level, const char* str)
 	gotoxy(log_ti.curx, log_ti.cury);
 	textbackground(BLUE);
 	switch(level) {
-#if 0	// Not possible because of above level > LOG_INFO check
 		case LOG_DEBUG:
 			textcolor(LIGHTCYAN);
 			SAFEPRINTF(msg,"%s\r\n",str);
 			break;
-#endif
 		case LOG_INFO:
 			textcolor(WHITE);
 			SAFEPRINTF(msg,"%s\r\n",str);
@@ -715,27 +717,13 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	struct	text_info txtinfo;
 	struct ciolib_screen *savscrn;
 
+    gettextinfo(&txtinfo);
+    savscrn = savescreen();
+
 	if(safe_mode)
 		return;
 
-    gettextinfo(&txtinfo);
-    savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
-
 	init_uifc(FALSE, FALSE);
-	if(!isdir(bbs->uldir)) {
-		SAFEPRINTF(str, "Invalid upload directory: %s", bbs->uldir);
-		uifcmsg(str, "An invalid `UploadPath` was specified in the `syncterm.lst` file");
-		uifcbail();
-		setup_mouse_events();
-		restorescreen(savscrn);
-		freescreen(savscrn);
-		gotoxy(txtinfo.curx, txtinfo.cury);
-		return;
-	}
 	result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
 	
 	if(result==-1 || fpick.files<1) {
@@ -785,9 +773,6 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 			case 4:
 				raw_upload(fp);
 				break;
-			default:
-				fclose(fp);
-				break;
 		}
 	}
 	uifcbail();
@@ -817,10 +802,6 @@ void begin_download(struct bbslist *bbs)
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
-		setfont(0, FALSE, 1);
-		setfont(0, FALSE, 2);
-		setfont(0, FALSE, 3);
-		setfont(0, FALSE, 4);
 
 	init_uifc(FALSE, FALSE);
 
@@ -862,6 +843,207 @@ static BOOL is_connected(void* unused)
 		return TRUE;
 	return(conn_connected());
 }
+
+#ifdef GUTS_BUILTIN
+static int guts_lputs(void* cbdata, int level, const char* str)
+{
+	struct GUTS_info *gi=cbdata;
+	/* ToDo: Do something useful here. */
+	/* fprintf(stderr,"%s\n",str); */
+	return(0);
+}
+
+void guts_zmodem_progress(void* cbdata, ulong current_pos)
+{
+	struct GUTS_info *gi=cbdata;
+	/* ToDo: Do something useful here. */
+	return;
+}
+
+static int guts_send_byte(void* cbdata, uchar ch, unsigned timeout)
+{
+	int	i;
+	struct GUTS_info *gi=cbdata;
+
+	if(!socket_check(gi->oob_socket, NULL, &i, timeout*1000))
+		return(-1);
+
+	if(!i)
+		return(-1);
+
+	if(send(gi->oob_socket,&ch,1,0)==-1)
+		return(-1);
+
+	return(0);
+}
+
+static int guts_recv_byte(void* cbdata, unsigned timeout)
+{
+	BOOL	data_is_waiting;
+	BYTE	ch;
+	struct GUTS_info *gi=cbdata;
+
+	if(!socket_check(gi->oob_socket, &data_is_waiting, NULL, timeout*1000))
+		return(-1);
+
+	if(!data_is_waiting)
+		return(-1);
+
+	if(recv(gi->oob_socket,&ch,1,0)!=1)
+		return(-1);
+
+	return(ch);
+}
+
+static BOOL guts_is_connected(void* cbdata)
+{
+	struct GUTS_info *gi=cbdata;
+	return socket_check(gi->oob_socket,NULL,NULL,0);
+}
+
+BOOL guts_data_waiting(void* cbdata, unsigned timeout)
+{
+	BOOL rd;
+	struct GUTS_info *gi=cbdata;
+
+	if(!socket_check(gi->oob_socket,&rd,NULL,timeout*1000))
+		return(FALSE);
+	return(rd);
+}
+
+void guts_background_download(void *cbdata)
+{
+	struct GUTS_info gi=*(struct GUTS_info *)cbdata;
+
+	zmodem_t	zm;
+	ulong		bytes_received;
+
+	SetThreadName("GUTS Download");
+	zmodem_mode=ZMODEM_MODE_RECV;
+
+	transfer_buf_len=0;
+	zmodem_init(&zm
+		,&gi
+		,guts_lputs, guts_zmodem_progress
+		,guts_send_byte,guts_recv_byte,guts_is_connected
+		,NULL /* is_cancelled */
+		,guts_data_waiting
+		,guts_flush_send);
+	zm.log_level=&log_level;
+
+	/* ToDo: This would be a good time to detach or something. */
+	zmodem_recv_files(&zm,gi.files[0],&bytes_received);
+
+	oob_close(&gi);
+}
+
+void guts_background_upload(void *cbdata)
+{
+	struct GUTS_info gi=*(struct GUTS_info *)cbdata;
+
+	zmodem_t	zm;
+	ulong	fsize;
+	FILE*	fp;
+
+	SetThreadName("GUTS Upload");
+	if((fp=fopen(gi.files[0],"rb"))==NULL) {
+		fprintf(stderr,"Error %d opening %s for read",errno,gi.files[0]);
+		return;
+	}
+
+	setvbuf(fp,NULL,_IOFBF,0x10000);
+
+
+	zmodem_mode=ZMODEM_MODE_SEND;
+
+	transfer_buf_len=0;
+	zmodem_init(&zm
+		,&gi
+		,guts_lputs, guts_zmodem_progress
+		,guts_send_byte,guts_recv_byte,guts_is_connected
+		,NULL /* is_cancelled */
+		,guts_data_waiting
+		,guts_flush_send);
+	zm.log_level=&log_level;
+
+	zm.current_file_num = zm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
+
+	fsize=filelength(fileno(fp));
+
+	if(zmodem_send_file(&zm, gi.files[0], fp
+		,/* ZRQINIT? */TRUE, /* start_time */NULL, /* sent_bytes */ NULL))
+		zmodem_get_zfin(&zm);
+
+	fclose(fp);
+
+	oob_close(&gi);
+}
+
+void guts_transfer(struct bbslist *bbs)
+{
+	struct GUTS_info gi;
+
+	if(safe_mode)
+		return;
+	setup_defaults(&gi);
+	gi.socket=conn_socket;
+	gi.telnet=bbs->conn_type==CONN_TYPE_TELNET;
+	gi.server=FALSE;
+	gi.use_daemon=FALSE;
+	gi.orig=FALSE;
+
+	if(negotiation(&gi)) {
+		oob_close(&gi);
+		return;
+	}
+
+	/* Authentication Phase */
+	if(!gi.inband) {
+		if(authenticate(&gi)) {
+			oob_close(&gi);
+			return;
+		}
+	}
+
+	if(gi.inband) {
+		if(gi.direction==UPLOAD)
+			begin_upload(bbs, TRUE);
+		else
+			zmodem_download(bbs);
+		oob_close(&gi);
+	}
+	else {
+		if(gi.direction==UPLOAD) {
+			int		result;
+			struct file_pick fpick;
+
+			init_uifc(FALSE, FALSE);
+			result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
+
+			if(result==-1 || fpick.files<1) {
+				check_exit(FALSE);
+				filepick_free(&fpick);
+				uifcbail();
+				setup_mouse_events();
+				return;
+			}
+			strListPush(&gi.files, fpick.selected[0]);
+			filepick_free(&fpick);
+
+			uifcbail();
+			setup_mouse_events();
+
+			_beginthread(guts_background_upload, 0, &gi);
+		}
+		else {
+			strListPush(&gi.files, bbs->dldir);
+			_beginthread(guts_background_download, 0, &gi);
+		}
+	}
+
+	return;
+}
+#endif
 
 void raw_upload(FILE *fp)
 {
@@ -908,8 +1090,7 @@ void ascii_upload(FILE *fp)
 				}
 			}
 			lastwascr=FALSE;
-			if (p != NULL)
-				p=strchr(p,0);
+			p=strchr(p,0);
 			if(p!=NULL && p>linebuf) {
 				if(*(p-1)=='\r')
 					lastwascr=TRUE;
@@ -1009,10 +1190,6 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 	init_uifc(FALSE, FALSE);
 	hold_update=FALSE;
@@ -1393,10 +1570,6 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 
 	init_uifc(FALSE, FALSE);
@@ -1558,7 +1731,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					goto end; 
 				}
 				file_bytes=total_bytes=0;
-				total_files=0;
+				ftime=total_files=0;
 				i=sscanf(((char *)block)+strlen((char *)block)+1,"%"PRId64" %lo %lo %lo %d %"PRId64
 					,&file_bytes			/* file size (decimal) */
 					,&tmpftime 				/* file time (octal unix format) */
@@ -1697,7 +1870,6 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		} else
 			file_bytes = filelength(fileno(fp));
 		fclose(fp);
-		fp = NULL;
 		
 		t=time(NULL)-startfile;
 		if(!t) t=1;
@@ -1710,10 +1882,8 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		if(!(mode&XMODEM) && ftime)
 			setfdate(str,ftime); 
 
-		if(!success && file_bytes==0) {	/* remove 0-byte files */
-			if (remove(str) == -1)
-				lprintf(LOG_ERR, "Unable to remove empty file %s\n", str);
-		}
+		if(!success && file_bytes==0)	/* remove 0-byte files */
+			remove(str);
 
 		if(mode&XMODEM)	/* maximum of one file */
 			break;
@@ -1751,10 +1921,6 @@ void music_control(struct bbslist *bbs)
 
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 
 	i=cterm->music_enable;
@@ -1799,10 +1965,6 @@ void font_control(struct bbslist *bbs)
 		return;
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 
 	switch(cio_api.mode) {
@@ -1863,10 +2025,6 @@ void capture_control(struct bbslist *bbs)
 		return;
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	cap=(char *)alloca(cterm->height*cterm->width*2);
 	gettext(cterm->x, cterm->y, cterm->x+cterm->width-1, cterm->y+cterm->height-1, cap);
 
@@ -2227,6 +2385,10 @@ BOOL doterm(struct bbslist *bbs)
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
 	BYTE zrqbuf[sizeof(zrqinit)];
+#ifdef GUTS_BUILTIN
+	BYTE gutsinit[] = { ESC, '[', '{' };	/* For GUTS auto-transfers */
+	BYTE gutsbuf[sizeof(gutsinit)];
+#endif
 	int	inch;
 	long double nextchar=0;
 	long double lastchar=0;
@@ -2276,6 +2438,7 @@ BOOL doterm(struct bbslist *bbs)
 	}
 	cterm=cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf, emulation);
 	if(!cterm) {
+		FREE_AND_NULL(cterm);
 		return FALSE;
 	}
 	cterm->apc_handler = apc_handler;
@@ -2286,6 +2449,9 @@ BOOL doterm(struct bbslist *bbs)
 	zrqbuf[0]=0;
 #ifndef WITHOUT_OOII
 	ooii_buf[0]=0;
+#endif
+#ifdef GUTS_BUILTIN
+	gutsbuf[0]=0;
 #endif
 
 	/* Main input loop */
@@ -2314,7 +2480,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							return(FALSE);
@@ -2326,6 +2491,20 @@ BOOL doterm(struct bbslist *bbs)
 							nextchar = lastchar + 1/(long double)(speed/10);
 						}
 
+#ifdef GUTS_BUILTIN
+						j=strlen(gutsbuf);
+						if(inch == gutsinit[j]) {
+							gutsbuf[j]=inch;
+							gutsbuf[++j]=0;
+							if(j==sizeof(gutsinit)) { /* Have full sequence */
+								WRITE_OUTBUF();
+								guts_transfer(bbs);
+								remain=1;
+							}
+						}
+						else
+							gutsbuf[0]=0;
+#endif
 						j=strlen((char *)zrqbuf);
 						if(inch == zrqinit[j] || inch == zrinit[j]) {
 							zrqbuf[j]=inch;
@@ -2433,6 +2612,7 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=0;
 						ch[1]=key>>8;
 						conn_send(ch,2,0);
+						key=0;
 						continue;
 					}
 				}
@@ -2446,6 +2626,7 @@ BOOL doterm(struct bbslist *bbs)
 					switch(mevent.event) {
 						case CIOLIB_BUTTON_1_DRAG_START:
 							mousedrag(scrollback_buf);
+							key = 0;
 							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
@@ -2462,6 +2643,7 @@ BOOL doterm(struct bbslist *bbs)
 								}
 								free(p);
 							}
+							key = 0;
 							break;
 					}
 
@@ -2486,10 +2668,6 @@ BOOL doterm(struct bbslist *bbs)
 					{
 						struct ciolib_screen *savscrn;
 						savscrn = savescreen();
-						setfont(0, FALSE, 1);
-						setfont(0, FALSE, 2);
-						setfont(0, FALSE, 3);
-						setfont(0, FALSE, 4);
 						show_bbslist(bbs->name, TRUE);
 						uifcbail();
 						setup_mouse_events();
@@ -2555,17 +2733,12 @@ BOOL doterm(struct bbslist *bbs)
 					{
 						struct ciolib_screen *savscrn;
 						savscrn = savescreen();
-						setfont(0, FALSE, 1);
-						setfont(0, FALSE, 2);
-						setfont(0, FALSE, 3);
-						setfont(0, FALSE, 4);
 						if(quitting || confirm("Disconnect... Are you sure?", "Selecting Yes closes the connection\n")) {
 							freescreen(savscrn);
 							setup_mouse_events();
 							cterm_clearscreen(cterm,cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2593,7 +2766,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2634,7 +2806,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2648,10 +2819,6 @@ BOOL doterm(struct bbslist *bbs)
 								struct ciolib_screen *savscrn;
 
 								savscrn = savescreen();
-								setfont(0, FALSE, 1);
-								setfont(0, FALSE, 2);
-								setfont(0, FALSE, 3);
-								setfont(0, FALSE, 4);
 								show_bbslist(bbs->name, TRUE);
 								restorescreen(savscrn);
 								freescreen(savscrn);
@@ -2748,10 +2915,6 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=19;
 						conn_send(ch,1,0);
 						break;
-					case CIO_KEY_END:
-						ch[0]=147;			/* Clear / Shift-Home */
-						conn_send(ch,1,0);
-						break;
 					case '\b':
 					case CIO_KEY_DC:		/* "Delete" key */
 						ch[0]=20;
@@ -2808,7 +2971,10 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<65) {
+							if(key<32) {
+								break;
+							}
+							else if(key<65) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
