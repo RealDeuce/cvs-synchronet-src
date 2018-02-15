@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.59 2018/02/21 02:09:32 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.58 2017/11/16 06:17:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.59 $", "%*s %s", revision);
+	sscanf("$Revision: 1.58 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -1078,7 +1078,7 @@ int main(int argc, char **argv)
 	}
 
 	if(errors)
-		printf("\n'fixsmb' can be used to repair many message base problems.\n");
+		printf("\n'fixsmb' can be used to repair most message base problems.\n");
 
 	return(errors);
 }
