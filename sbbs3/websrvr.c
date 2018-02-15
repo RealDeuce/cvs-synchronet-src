@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.656 2018/03/07 07:50:27 deuce Exp $ */
+/* $Id: websrvr.c,v 1.648 2018/02/15 08:55:22 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -294,6 +294,8 @@ typedef struct  {
 	BOOL			peeked_valid;
 	char			peeked;
 } http_session_t;
+
+static CRYPT_CONTEXT tls_context = -1;
 
 enum {
 	 HTTP_0_9
@@ -636,6 +638,8 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						if(!cryptStatusOK(status=cryptPopData(session->tls_sess, "", 0, &status))) {
 							if (status != CRYPT_ERROR_TIMEOUT && status != CRYPT_ERROR_PARAM2)
 								lprintf(LOG_NOTICE,"%04d Cryptlib error %d popping data after timeout",session->socket, status);
+							if (failed)
+								*failed=TRUE;
 						}
 						status = CRYPT_OK;
 					}
@@ -655,12 +659,12 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						else if(ERROR_VALUE==ECONNABORTED) 
 							lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",session->socket);
 #ifdef EPIPE
-						else if(ERROR_VALUE==EPIPE)
+						else if(ERROR_VALUE==EPIPE) 
 							lprintf(LOG_NOTICE,"%04d Unable to send to peer",session->socket);
 #endif
 						else
 							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
-						if (failed)
+						if(failed)
 							*failed=TRUE;
 						return(sent);
 					}
@@ -1407,7 +1411,6 @@ static int sock_sendfile(http_session_t *session,char *path,unsigned long start,
 		if(start || end) {
 			if(lseek(file, start, SEEK_SET)==-1) {
 				lprintf(LOG_WARNING,"%04d !ERROR %d seeking to position %lu in %s",session->socket,ERROR_VALUE,start,path);
-				close(file);
 				return(0);
 			}
 			remain=end-start+1;
@@ -1418,7 +1421,6 @@ static int sock_sendfile(http_session_t *session,char *path,unsigned long start,
 		while((i=read(file, buf, remain>sizeof(buf)?sizeof(buf):remain))>0) {
 			if(writebuf(session,buf,i)!=i) {
 				lprintf(LOG_WARNING,"%04d !ERROR sending %s",session->socket,path);
-				close(file);
 				return(0);
 			}
 			ret+=i;
@@ -2330,7 +2332,6 @@ static void js_add_header(http_session_t * session, char *key, char *value)
 		return;
 	strlwr(lckey);
 	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL) {
-		free(lckey);
 		return;
 	}
 	JS_DefineProperty(session->js_cx, session->js_header, lckey, STRING_TO_JSVAL(js_str)
@@ -3321,7 +3322,7 @@ static BOOL exec_js_webctrl(http_session_t* session, char *name, char* script, c
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling %s", session->socket, name);
 		if(!JS_EvaluateScript(session->js_cx, session->js_glob, script, strlen(script), name, 1, &rval)) {
-			lprintf(LOG_WARNING,"%04d !JavaScript FAILED to compile rewrite %s:%s"
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile rewrite %s:%s"
 				,session->socket,name,script);
 			JS_ReportPendingException(session->js_cx);
 			JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
@@ -3351,18 +3352,9 @@ static void read_webctrl_section(FILE *file, char *section, http_session_t *sess
 	int i;
 	char str[MAX_PATH+1];
 	named_string_t **values;
-	char *p;
 
-	p = iniReadExistingString(file, section, "AccessRequirements", session->req.ars, str);
-	/*
-	 * If p == NULL, the key doesn't exist, retain default 
-	 * If p == default, zero-length string present, truncate req.ars
-	 * Otherwise, p is new value and is updated
-	 */
-	if (p == session->req.ars)
-		session->req.ars[0] = 0;
-	else if (p != NULL)
-		SAFECOPY(session->req.ars,p);
+	if(iniReadString(file, section, "AccessRequirements", session->req.ars,str)==str)
+		SAFECOPY(session->req.ars,str);
 	if(iniReadString(file, section, "Realm", scfg.sys_name,str)==str) {
 		FREE_AND_NULL(session->req.realm);
 		/* FREE()d in close_request() */
@@ -3722,7 +3714,6 @@ static SOCKET fastcgi_connect(const char *orig_path, SOCKET client_sock)
 	// TODO: UNIX-domain sockets...
 	if (strncmp(path, "unix:", 5) == 0) {
 		lprintf(LOG_ERR, "%04d UNIX-domain FastCGI sockets not supported (yet)", client_sock);
-		free(path);
 		return INVALID_SOCKET;
 	}
 
@@ -3733,7 +3724,6 @@ static SOCKET fastcgi_connect(const char *orig_path, SOCKET client_sock)
 	result = getaddrinfo(path, port, &hints, &res);
 	if(result != 0) {
 		lprintf(LOG_ERR, "%04d ERROR resolving FastCGI address %s port %s", client_sock, path, port);
-		free(path);
 		return INVALID_SOCKET;
 	}
 	for(cur=res,result=1; result && cur; cur=cur->ai_next) {
@@ -3764,13 +3754,11 @@ static SOCKET fastcgi_connect(const char *orig_path, SOCKET client_sock)
 	freeaddrinfo(res);
 	if(sock == INVALID_SOCKET) {
 		lprintf(LOG_ERR, "%04d ERROR unable to make FastCGI connection to %s", client_sock, orig_path);
-		free(path);
 		return sock;
 	}
 
 	val = 0;
 	ioctlsocket(sock,FIONBIO,&val);
-	free(path);
 	return sock;
 }
 
@@ -3857,7 +3845,6 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 	for(i=0; env[i]; i++) {
 		if (!fastcgi_add_param(&msg, &end, &size, env[i])) {
 			free(msg);
-			strListFree(&env);
 			return FALSE;
 		}
 		if (end > 32000) {
@@ -3865,13 +3852,11 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 			if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 				lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 				free(msg);
-				strListFree(&env);
 				return FALSE;
 			}
 			end = 0;
 		}
 	}
-	strListFree(&env);
 	if (end) {
 		msg->head.len = htons(end);
 		if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
@@ -5104,7 +5089,7 @@ js_writefunc(JSContext *cx, uintN argc, jsval *arglist, BOOL writeln)
 		if((str=JS_ValueToString(cx, argv[i]))==NULL)
 			continue;
 		JSSTRING_TO_RASTRING(cx, str, cstr, &cstr_sz, &len);
-		HANDLE_PENDING(cx, cstr);
+		HANDLE_PENDING(cx);
 		rc=JS_SUSPENDREQUEST(cx);
 		js_writebuf(session, cstr, len);
 		if(writeln)
@@ -5144,7 +5129,7 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char	header_buf[8192];
 	char	*header;
-	char	*p = NULL;
+	char	*p;
 	int32	i;
 	JSBool	b;
 	struct tm tm;
@@ -5161,17 +5146,17 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 
 	header=header_buf;
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx, p);
+	HANDLE_PENDING(cx);
 	if(!p)
 		return(JS_FALSE);
 	header+=sprintf(header,"Set-Cookie: %s=",p);
-	FREE_AND_NULL(p);
+	free(p);
 	JSVALUE_TO_MSTRING(cx, argv[1], p, NULL);
-	HANDLE_PENDING(cx, p);
+	HANDLE_PENDING(cx);
 	if(!p)
 		return(JS_FALSE);
 	header+=sprintf(header,"%s",p);
-	FREE_AND_NULL(p);
+	free(p);
 	if(argc>2) {
 		if(!JS_ValueToInt32(cx,argv[2],&i))
 			return JS_FALSE;
@@ -5183,15 +5168,15 @@ js_set_cookie(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_MSTRING(cx, argv[3], p, NULL);
 		if(p!=NULL && *p) {
 			header += sprintf(header,"; domain=%s",p);
+			free(p);
 		}
-		FREE_AND_NULL(p);
 	}
 	if(argc>4) {
 		JSVALUE_TO_MSTRING(cx, argv[4], p, NULL);
 		if(p!=NULL && *p) {
 			header += sprintf(header,"; path=%s",p);
+			free(p);
 		}
-		FREE_AND_NULL(p);
 	}
 	if(argc>5) {
 		JS_ValueToBoolean(cx, argv[5], &b);
@@ -6229,20 +6214,20 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		if (scfg.tls_certificate != -1) {
+		if (tls_context != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session);
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session);
+			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &session);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session);
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session);
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session)) {
 			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session);
 	}
 
 	/* Start up the output buffer */
@@ -6482,6 +6467,11 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 	
+	if (tls_context != -1) {
+		cryptDestroyContext(tls_context);
+		tls_context = -1;
+	}
+
 	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
 		xpms_destroy(ws_set, close_socket_cb, NULL);
 		ws_set=NULL;
@@ -6515,7 +6505,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.656 $", "%*s %s", revision);
+	sscanf("$Revision: 1.648 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6787,8 +6777,8 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->options&WEB_OPT_ALLOW_TLS) {
 			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-			get_ssl_cert(&scfg, ssl_estr);
-			if (scfg.tls_certificate == -1)
+			tls_context = get_ssl_cert(&scfg, ssl_estr);
+			if (tls_context == -1)
 				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
 		}
 
@@ -6834,7 +6824,7 @@ void DLLCALL web_server(void* arg)
 		 * Add interfaces
 		 */
 		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(scfg.tls_certificate != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
+		if(tls_context != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
 			if(do_cryptInit())
 				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
 		}
