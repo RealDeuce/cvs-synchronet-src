@@ -45,6 +45,11 @@ ifeq ($(os),linux)
  endif
 endif
 
+ifdef USE_GUTS
+ CFLAGS +=	-I../guts -DGUTS_BUILTIN
+ OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
+endif
+
 DESTDIR	?=
 PREFIX	?= /usr/local
 DESKTOPDIR ?= $(PREFIX)/share/applications
@@ -62,7 +67,7 @@ CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) -I../sbbs3 -I../smblib -I../comio
 LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CRYPT_LDFLAGS)
 
-vpath %.c ../sbbs3 ../smblib ../uifc ../comio
+vpath %.c ../sbbs3 ../smblib ../uifc ../guts ../comio
 
 ifdef DEBUG
  INSTALL_EXE	?=	install

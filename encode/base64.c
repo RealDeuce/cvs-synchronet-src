@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.26 2018/02/20 04:48:45 rswindell Exp $ */
+/* $Id: base64.c,v 1.25 2017/11/26 00:58:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -156,15 +156,12 @@ int b64_encode(char *target, size_t tlen, const char *source, size_t slen)  {
 	}
 	if(outp<outend)
 		*outp=0;
-	int result;
 	if(target==source) {
 		memcpy(target,tmpbuf,tlen);
-		result = outp - tmpbuf;
 		free(tmpbuf);
-	} else
-		result = outp - target;
+	}
 
-	return result;
+	return(outp-target);
 }
 
 #ifdef BASE64_TEST
