@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.26 2018/02/13 08:11:18 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.27 2018/02/15 20:23:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,7 @@ struct video_stats {
 	int curs_col;
 	int curs_start;
 	int curs_end;
-	int curs_blink;
+	int curs_blinks;
 	int curs_visible;
 	int default_curs_start;
 	int default_curs_end;
