@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.30 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: js_com.c,v 1.28 2016/12/01 21:42:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -170,7 +170,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp = NULL;
+	char*		cp;
 	size_t		len;
 	private_t*	p;
 	jsrefcount	rc;
@@ -188,7 +188,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cp, &len);
-	HANDLE_PENDING(cx, cp);
+	HANDLE_PENDING(cx);
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if(cp && comWriteBuf(p->com,(uint8_t *)cp,len)==len) {
@@ -212,7 +212,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	long		len;
 	int			file;
-	char*		fname = NULL;
+	char*		fname;
 	private_t*	p;
 	jsrefcount	rc;
 	char		*buf;
@@ -230,7 +230,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL);
-	HANDLE_PENDING(cx, fname);
+	HANDLE_PENDING(cx);
 	if(fname==NULL) {
 		JS_ReportError(cx,"Failure reading filename");
 		return(JS_FALSE);
@@ -766,7 +766,7 @@ static JSBool js_com_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -802,13 +802,13 @@ js_com_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	private_t* p;
-	char*		fname = NULL;
+	char*		fname;
 
 	obj=JS_NewObject(cx, &js_com_class, NULL, NULL);
 	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
 	if(argc > 0) {
 		JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL);
-		HANDLE_PENDING(cx, fname);
+		HANDLE_PENDING(cx);
 	}
 	if(argc==0 || fname==NULL) {
 		JS_ReportError(cx,"Failure reading port name");
