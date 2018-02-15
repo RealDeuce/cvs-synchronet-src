@@ -1623,12 +1623,11 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(!connected) {
 								viewofflinescroll();
 								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
-									,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
+									,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 							}
 							break;
 						case -2-CIO_KEY_MOUSE:	/* Clicked outside of window... */
 							getmouse(&mevent);
-							/* Fall-through */
 						case -2-0x0f00:	/* Backtab */
 						case -2-0x4b00:	/* Left Arrow */
 						case -2-0x4d00:	/* Right Arrow */
@@ -1761,7 +1760,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(settings.list_path,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
 								oldopt=-1;
 							}
 							break;
@@ -1832,7 +1831,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							check_exit(FALSE);
 						}
 						else if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 							oldopt=-1;
 						}
 					}
@@ -1879,7 +1878,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case -2-CIO_KEY_MOUSE:
 						getmouse(&mevent);
-						/* Fall-through */
 					case -2-0x0f00:	/* Backtab */
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
