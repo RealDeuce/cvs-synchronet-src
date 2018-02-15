@@ -1,6 +1,6 @@
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.82 2018/10/22 04:18:06 rswindell Exp $ */
+/* $Id: startup.h,v 1.80 2017/11/15 10:39:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -91,8 +91,6 @@ typedef struct {
     WORD	last_node;
 	WORD	telnet_port;
 	WORD	rlogin_port;
-	WORD	pet40_port;			// 40-column PETSCII terminal server
-	WORD	pet80_port;			// 80-column PETSCII terminal server
 	WORD	ssh_port;
 	WORD	ssh_connect_timeout;
 	WORD	outbuf_highwater_mark;	/* output block size control */
@@ -179,7 +177,7 @@ static struct init_field {
 #define BBS_OPT_XTRN_MINIMIZED		(1<<1)	/* Run externals minimized			*/
 #define BBS_OPT_AUTO_LOGON			(1<<2)	/* Auto-logon via IP				*/
 #define BBS_OPT_DEBUG_TELNET		(1<<3)	/* Debug telnet commands			*/
-#define BBS_OPT_SYSOP_AVAILABLE		(1<<4)	/* Available for chat - DEPRECATED (controlled via semfile) */
+#define BBS_OPT_SYSOP_AVAILABLE		(1<<4)	/* Available for chat				*/
 #define BBS_OPT_ALLOW_RLOGIN		(1<<5)	/* Allow logins via BSD RLogin		*/
 #define BBS_OPT_USE_2ND_RLOGIN		(1<<6)	/* Use 2nd username in BSD RLogin - DEPRECATED (Always enabled)	*/
 #define BBS_OPT_NO_QWK_EVENTS		(1<<7)	/* Don't run QWK-related events		*/
