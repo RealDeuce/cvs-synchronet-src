@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.137 2018/04/18 06:33:39 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.131 2018/02/15 20:28:49 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -302,8 +302,6 @@ static void set_vmem_cell(struct vstat_vmem *vmem_ptr, size_t pos, uint16_t cell
 	if (!vstat.blink_altcharset)
 		altfont &= ~0x02;
 	font=current_font[altfont];
-	if (font == -99)
-		font = default_font;
 	if (font < 0 || font > 255)
 		font = 0;
 
@@ -467,10 +465,9 @@ static uint32_t color_value(uint32_t col)
 static struct rectlist *get_full_rectangle_locked(void)
 {
 	size_t i;
-	struct rectlist *rect;
+	struct rectlist *rect = alloc_full_rect();
 
 	if(callbacks.drawrect) {
-		rect = alloc_full_rect();
 		if (!rect)
 			return rect;
 		for (i=0; i<screen.screenwidth*screen.screenheight; i++)
@@ -507,7 +504,6 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 	WORD	sch;
 	struct vstat_vmem *vmem_ptr;
 	BOOL	changed = FALSE;
-	BOOL	draw_fg = TRUE;
 
 	if(!bitmap_initialized) {
 		return(-1);
@@ -545,28 +541,26 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 		case 16:
 			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_sixteen;
 			break;
-		default:
-			pthread_mutex_unlock(&screen.screenlock);
-			return(-1);
 	}
 	if (this_font == NULL)
 		this_font = font[0];
 	fontoffset=(sch&0xff)*vstat.charheight;
 
-	draw_fg = ((!((sch & 0x8000) && !vstat.blink)) || vstat.no_blink);
 	for(y=0; y<vstat.charheight; y++) {
-		for(x=0; x<vstat.charwidth; x++) {
-			if(this_font[fontoffset] & (0x80 >> x) && draw_fg) {
-				if (screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]!=fg) {
-					changed=TRUE;
-					screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]=fg;
+		if ((!((sch & 0x8000) && !vstat.blink)) || vstat.no_blink) {
+			for(x=0; x<vstat.charwidth; x++) {
+				if(this_font[fontoffset] & (0x80 >> x)) {
+					if (screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]!=fg) {
+						changed=TRUE;
+						screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]=fg;
+					}
 				}
+				else
+					if (screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]!=bg) {
+						changed=TRUE;
+						screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]=bg;
+					}
 			}
-			else
-				if (screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]!=bg) {
-					changed=TRUE;
-					screen.screen[PIXEL_OFFSET(screen, xoffset+x, yoffset+y)]=bg;
-				}
 		}
 		fontoffset++;
 	}
@@ -682,6 +676,7 @@ static int update_from_vmem(int force)
 	unsigned int pos;
 
 	int	redraw_cursor=0;
+	int	lastcharupdated=0;
 	int bright_attr_changed=0;
 	int blink_attr_changed=0;
 
@@ -755,6 +750,7 @@ static int update_from_vmem(int force)
 			}
 			pos++;
 		}
+		lastcharupdated=0;
 	}
 	release_vmem(vmem_ptr);
 
@@ -989,8 +985,6 @@ int bitmap_setfont(int font, int force, int font_num)
 			new=malloc(ti.screenwidth*ti.screenheight*sizeof(*new));
 			if(!new) {
 				free(old);
-				pthread_mutex_unlock(&vstatlock);
-				pthread_mutex_unlock(&blinker_lock);
 				return 0;
 			}
 			pold=old;
@@ -1461,7 +1455,6 @@ void bitmap_replace_font(uint8_t id, char *name, void *data, size_t size)
 	if (id < CONIO_FIRST_FREE_FONT) {
 		free(name);
 		free(data);
-		pthread_mutex_unlock(&blinker_lock);
 		return;
 	}
 
@@ -1610,13 +1603,11 @@ int bitmap_drv_init(void (*drawrect_cb) (struct rectlist *data)
 	pthread_mutex_lock(&vstatlock);
 	vstat.vmem=NULL;
 	vstat.flags = VIDMODES_FLAG_PALETTE_VMEM;
-	pthread_mutex_lock(&screen.screenlock);
 	for (i = 0; i < sizeof(dac_default)/sizeof(struct dac_colors); i++) {
 		palette[i].red = dac_default[i].red;
 		palette[i].green = dac_default[i].green;
 		palette[i].blue = dac_default[i].blue;
 	}
-	pthread_mutex_unlock(&screen.screenlock);
 	pthread_mutex_unlock(&vstatlock);
 
 	callbacks.drawrect=drawrect_cb;
