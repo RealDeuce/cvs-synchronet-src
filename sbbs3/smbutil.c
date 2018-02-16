@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.118 2018/02/21 03:38:47 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.117 2017/11/25 01:38:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -135,9 +135,6 @@ char *usage=
 "      -e<s> = set 'from' user number for imported message\n"
 "      -s<s> = set 'subject' for imported message\n"
 "      -z[n] = set time zone (n=min +/- from UT or 'EST','EDT','CST',etc)\n"
-#ifdef __unix__
-"      -U[n] = set umask to specified value\n"
-#endif
 "      -#    = set number of messages to view/list (e.g. -1)\n"
 ;
 
@@ -1538,7 +1535,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.118 $", "%*s %s", revision);
+	sscanf("$Revision: 1.117 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1607,11 +1604,6 @@ int main(int argc, char **argv)
 						j=strlen(argv[x])-1;
 						break;
 					case 'U':
-#if defined(__unix__)
-						umask(strtol(argv[x]+j+1, NULL, 0));
-						j=strlen(argv[x])-1;
-						break;
-#endif
 					case 'u':
 						to_number=argv[x]+j+1;
 						j=strlen(argv[x])-1;
