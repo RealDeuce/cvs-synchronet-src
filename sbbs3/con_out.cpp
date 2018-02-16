@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.81 2018/02/10 00:22:39 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.82 2018/02/16 05:46:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -192,7 +192,7 @@ void sbbs_t::outchar(char ch)
 
 	if(console&CON_ECHO_OFF)
 		return;
-	if(ch==ESC)
+	if(ch==ESC && outchar_esc < 4)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
 		if(ch=='[')
@@ -201,6 +201,8 @@ void sbbs_t::outchar(char ch)
 			outchar_esc=4;
 		else if(ch=='X')
 			outchar_esc=5;
+		else if(ch >= 0x40 && ch <= 0x5f)
+			outchar_esc=3;
 		else
 			outchar_esc=0;
 	}
