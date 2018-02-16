@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.82 2018/02/16 05:46:44 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.83 2018/02/16 09:01:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,8 +177,6 @@ long sbbs_t::term_supports(long cmp_flags)
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
-	int		i;
-
 	/*
 	 * outchar_esc values:
 	 * 0: No sequence
