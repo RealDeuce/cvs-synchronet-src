@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.193 2018/01/12 22:31:09 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.194 2018/02/14 07:55:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,7 +805,7 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	return(TRUE);
 }
 
-static BOOL js_init(char** environ)
+static BOOL js_init(char** env)
 {
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
@@ -840,7 +840,7 @@ static BOOL js_init(char** environ)
 	}
 
 	/* Environment Object (associative array) */
-	if(!js_CreateEnvObject(js_cx, js_glob, environ)) {
+	if(!js_CreateEnvObject(js_cx, js_glob, env)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -1112,7 +1112,7 @@ int parseLogLevel(const char* p)
 /*********************/
 /* Entry point (duh) */
 /*********************/
-int main(int argc, char **argv, char** environ)
+int main(int argc, char **argv, char** env)
 {
 #ifndef JSDOOR
 	char	error[512];
@@ -1148,7 +1148,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.193 $", "%*s %s", revision);
+	sscanf("$Revision: 1.194 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1376,7 +1376,7 @@ int main(int argc, char **argv, char** environ)
 
 		recycled=FALSE;
 
-		if(!js_init(environ)) {
+		if(!js_init(env)) {
 			lprintf(LOG_ERR,"!JavaScript initialization failure");
 			return(do_bail(1));
 		}
