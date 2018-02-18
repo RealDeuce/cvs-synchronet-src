@@ -53,6 +53,7 @@ static bool get_error_string(int status, CRYPT_SESSION sess, char estr[SSL_ESTR_
 
 static pthread_once_t crypt_init_once = PTHREAD_ONCE_INIT;
 static pthread_mutex_t ssl_cert_mutex;
+static bool cryptlib_initialized;
 
 static void do_cryptEnd(void)
 {
@@ -66,6 +67,7 @@ static void internal_do_cryptInit(void)
 	if((ret=cryptInit())==CRYPT_OK) {
 		cryptAddRandom(NULL,CRYPT_RANDOM_SLOWPOLL);
 		atexit(do_cryptEnd);
+		cryptlib_initialized = true;
 	}
 	else {
 		lprintf(LOG_ERR,"cryptInit() returned %d", ret);
@@ -79,6 +81,11 @@ int DLLCALL do_cryptInit(void)
 	if(pthread_once(&crypt_init_once, internal_do_cryptInit) == 0)
 		return 1;
 	return 0;
+}
+
+bool DLLCALL is_crypt_initialized(void)
+{
+	return cryptlib_initialized;
 }
 
 #define DO(x)	get_error_string(x, ssl_context, estr, __FILE__, __LINE__)
@@ -123,18 +130,35 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN])
 			goto failure_return_2;
 		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO, ssl_context)))
 			goto failure_return_3;
-		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_XYZZY, 1 )))
+		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_SELFSIGNED, 1)))
+			goto failure_return_3;
+		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_OPTION_CERT_VALIDITY, 3650)))
+			goto failure_return_3;
+		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COUNTRYNAME, "ZZ", 2)))
+			goto failure_return_3;
+		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_ORGANIZATIONNAME, cfg->sys_name, strlen(cfg->sys_name))))
+			goto failure_return_3;
+		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_DNSNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
 			goto failure_return_3;
 		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COMMONNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
 			goto failure_return_3;
-		sprintf(sysop_email, "sysop@%s", scfg.sys_inetaddr);
-		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_RFC822NAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
+		sprintf(sysop_email, "sysop@%s", cfg->sys_inetaddr);
+		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_RFC822NAME, sysop_email, strlen(sysop_email))))
 			goto failure_return_3;
 		if(!DO(cryptSignCert(ssl_cert, ssl_context)))
 			goto failure_return_3;
 		if(!DO(cryptAddPublicKey(ssl_keyset, ssl_cert)))
 			goto failure_return_3;
 		cryptDestroyCert(ssl_cert);
+		cryptKeysetClose(ssl_keyset);
+		cryptDestroyContext(ssl_context);
+		// Finally, load it from the file.
+		if(cryptStatusOK(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_NONE))) {
+			if(!DO(cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass))) {
+				pthread_mutex_unlock(&ssl_cert_mutex);
+				return -1;
+			}
+		}
 	}
 
 	cryptKeysetClose(ssl_keyset);
