@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.300 2017/06/04 00:57:04 rswindell Exp $ */
+/* $Id: services.c,v 1.303 2018/02/18 02:18:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -291,8 +291,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	if((client=(service_client_t*)JS_GetContextPrivate(cx))==NULL)
 		return(JS_FALSE);
 
-    if(startup==NULL || startup->lputs==NULL)
-        return(JS_FALSE);
+	if(startup==NULL || startup->lputs==NULL)
+		return(JS_FALSE);
 
 	if(argc > 1 && JSVAL_IS_NUMBER(argv[i])) {
 		if(!JS_ValueToInt32(cx,argv[i++],&level))
@@ -359,7 +359,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name or number */
-	JSVALUE_TO_ASTRING(cx, argv[0], user, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	JSVALUE_TO_ASTRING(cx, argv[0], user, 128, NULL);
 	if(user==NULL)
 		return(JS_FALSE);
 
@@ -1636,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.300 $", "%*s %s", revision);
+	sscanf("$Revision: 1.303 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1819,10 +1819,6 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 
-		tls_context = get_ssl_cert(&scfg, ssl_estr);
-		if (tls_context == -1)
-			lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-
 		update_clients();
 
 		/* Open and Bind Listening Sockets */
@@ -1830,8 +1826,6 @@ void DLLCALL services_thread(void* arg)
 
 		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
 			if (service[i].options & SERVICE_OPT_TLS) {
-				if (tls_context == -1)
-					continue;
 				if (service[i].options & SERVICE_OPT_UDP) {
 					lprintf(LOG_ERR, "Option error, TLS and UDP specified for %s", service[i].protocol);
 					continue;
@@ -1843,6 +1837,13 @@ void DLLCALL services_thread(void* arg)
 				if (service[i].options & SERVICE_OPT_STATIC) {
 					lprintf(LOG_ERR, "Option error, TLS not yet supported for static services (%s)", service[i].protocol);
 					continue;
+				}
+				if(tls_context == -1) {
+					tls_context = get_ssl_cert(&scfg, ssl_estr);
+					if (tls_context == -1) {
+						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+						continue;
+					}
 				}
 			}
 			service[i].set=xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
