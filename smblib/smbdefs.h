@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.97 2017/07/08 02:38:39 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.100 2017/11/25 01:24:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -101,6 +101,7 @@
 #define US_ZONE 			0x4000		/* U.S. time zone */
 #define WESTERN_ZONE		0x2000		/* Non-standard zone west of UT */
 #define EASTERN_ZONE		0x1000		/* Non-standard zone east of UT */
+#define SMB_DST_OFFSET		60			/* Daylight Saving Time offset, in minutes */
 
 										/* US Time Zones (standard) */
 #define AST 				0x40F0		/* Atlantic 			(-04:00) */
@@ -132,10 +133,12 @@
 #define RIO 				0x20B4		/* Rio de Janeiro		(-03:00) */
 #define FER 				0x2078		/* Fernando de Noronha	(-02:00) */
 #define AZO 				0x203C		/* Azores				(-01:00) */
-#define LON 				0x1000		/* London				(+00:00) */
+#define WET 				0x1000		/* Western European		(+00:00) */
+#define WEST 				0x9000		/* WE Summer Time		(+01:00) AKA BST */
 #define CET 				0x103C		/* Central European		(+01:00) */
 #define CEST 				0x903C		/* CE Summer Time		(+02:00) */
-#define ATH 				0x1078		/* Athens				(+02:00) */
+#define EET 				0x1078		/* Eastern European		(+02:00) */
+#define EEST				0x9078		/* EE Summer Time		(+03:00) */
 #define MOS 				0x10B4		/* Moscow				(+03:00) */
 #define DUB 				0x10F0		/* Dubai				(+04:00) */
 #define KAB 				0x110E		/* Kabul				(+04:30) */
@@ -152,7 +155,7 @@
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
 
-#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==CET))
+#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET))
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
@@ -319,6 +322,7 @@
 #define MSG_UPVOTE			(1<<11)		/* This message is an upvote */
 #define MSG_DOWNVOTE		(1<<12)		/* This message is a downvote */
 #define MSG_POLL			(1<<13)		/* This message is a poll */
+#define MSG_SPAM			(1<<14)		/* This message has been flagged as SPAM */
 
 #define MSG_VOTE			(MSG_UPVOTE|MSG_DOWNVOTE)	/* This message is a poll-vote */
 #define MSG_POLL_CLOSURE	(MSG_POLL|MSG_VOTE)			/* This message is a poll-closure */
@@ -655,6 +659,7 @@ typedef struct {				/* Message base */
 	uint32_t	retry_delay;	/* Time-slice yield (milliseconds) while retrying */
 	smbstatus_t status; 		/* Status header record */
 	BOOL		locked;			/* SMB header is locked */
+	BOOL		continue_on_error;			/* Attempt recovery after some normaly fatal errors */
 	char		last_error[MAX_PATH*2];		/* Last error message */
 
 	/* Private member variables (not initialized by or used by smblib) */
