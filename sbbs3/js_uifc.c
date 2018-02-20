@@ -2,13 +2,13 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.43 2018/02/20 11:32:32 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.44 2018/02/20 11:56:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
