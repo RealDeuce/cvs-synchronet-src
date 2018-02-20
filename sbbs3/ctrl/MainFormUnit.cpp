@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.197 2018/03/02 00:31:48 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.196 2017/12/06 04:51:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -805,7 +805,6 @@ static void recycle(void* cbdata)
         );
     if(fp!=NULL)
         fclose(fp);
-	MainForm->SetLogControls();
 }
 //---------------------------------------------------------------------------
 __fastcall TMainForm::TMainForm(TComponent* Owner)
@@ -1655,20 +1654,6 @@ void __fastcall TMainForm::WriteFont(AnsiString subkey, TFont* Font)
     Registry->CloseKey();
     delete Registry;
 }
-
-void __fastcall TMainForm::SetLogControls(void)
-{
-    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
-    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
-    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
-    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
-    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
-    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
-    WebForm->LogLevelUpDown->Position=web_startup.log_level;
-    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
-    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
-    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
-}
 void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 {
     bool	TelnetFormFloating=false;
@@ -2365,9 +2350,17 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
                 
     ServiceStatusTimer->Enabled=true;
 
+    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
+    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
+    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
+    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
+    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
+    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
+    WebForm->LogLevelUpDown->Position=web_startup.log_level;
+    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
+    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
+    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
 
-	SetLogControls();
-	
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
 
@@ -3388,7 +3381,6 @@ void __fastcall TMainForm::reload_config(void)
     	SoundToggle->Checked=false;
     else
     	SoundToggle->Checked=true;
-	SetLogControls();
 }
 //---------------------------------------------------------------------------
 

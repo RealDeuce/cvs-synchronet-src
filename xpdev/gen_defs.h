@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.76 2018/03/09 02:23:38 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.75 2018/02/20 05:25:47 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -252,7 +252,7 @@ typedef int32_t         time32_t;
 #    define PRIuOFF     "lu"
 #  endif
 #elif defined(__linux__) || defined(__sun__)
-#  if (defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)) || defined(__LP64__)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
 #    define PRIdOFF     PRId64
 #    define PRIuOFF     PRIu64
 #  else

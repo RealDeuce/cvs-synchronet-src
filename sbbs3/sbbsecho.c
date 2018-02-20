@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.71 2018/02/22 20:59:03 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.68 2018/02/20 05:35:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4367,10 +4367,8 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 				if(body == NULL)
 					body = fmsgbuf;
 				else {
-					bodylen += sprintf(body, "Your PING request was received at: %s %s\r"
+					bodylen += sprintf(body, "Your PING request was received: %s %s\r"
 						,timestr(&scfg, time32(NULL), tmp), smb_zonestr(sys_timezone(&scfg),NULL));
-					bodylen += sprintf(body+bodylen, "by: %s (sysop: %s) @ %s\r"
-						,scfg.sys_name, scfg.sys_op, smb_faddrtoa(&scfg.faddr[match], NULL));
 					time_t t = (time_t)fmsgtime(hdr.time);
 					bodylen += sprintf(body+bodylen, "\rThe received message header contained:\r\r"
 						"Subj: %s\r"
@@ -5931,7 +5929,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.71 $", "%*s %s", revision);
+	sscanf("$Revision: 3.68 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5943,8 +5941,7 @@ int main(int argc, char **argv)
 
 	cmdline[0]=0;
 	for(i=1;i<argc;i++) {
-		SAFECAT(cmdline, argv[i]);
-		SAFECAT(cmdline, " ");
+		sprintf(cmdline+strlen(cmdline), "%s ", argv[i]);
 		if(argv[i][0]=='-'
 #if !defined(__unix__)
 			|| argv[i][0]=='/'
