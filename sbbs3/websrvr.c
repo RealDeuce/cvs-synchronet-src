@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.655 2018/03/06 08:05:12 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.651 2018/02/20 11:44:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -294,6 +294,8 @@ typedef struct  {
 	BOOL			peeked_valid;
 	char			peeked;
 } http_session_t;
+
+static CRYPT_CONTEXT tls_context = -1;
 
 enum {
 	 HTTP_0_9
@@ -3319,7 +3321,7 @@ static BOOL exec_js_webctrl(http_session_t* session, char *name, char* script, c
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling %s", session->socket, name);
 		if(!JS_EvaluateScript(session->js_cx, session->js_glob, script, strlen(script), name, 1, &rval)) {
-			lprintf(LOG_WARNING,"%04d !JavaScript FAILED to compile rewrite %s:%s"
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile rewrite %s:%s"
 				,session->socket,name,script);
 			JS_ReportPendingException(session->js_cx);
 			JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
@@ -3349,18 +3351,9 @@ static void read_webctrl_section(FILE *file, char *section, http_session_t *sess
 	int i;
 	char str[MAX_PATH+1];
 	named_string_t **values;
-	char *p;
 
-	p = iniReadExistingString(file, section, "AccessRequirements", session->req.ars, str);
-	/*
-	 * If p == NULL, the key doesn't exist, retain default 
-	 * If p == default, zero-length string present, truncate req.ars
-	 * Otherwise, p is new value and is updated
-	 */
-	if (p == session->req.ars)
-		session->req.ars[0] = 0;
-	else if (p != NULL)
-		SAFECOPY(session->req.ars,p);
+	if(iniReadString(file, section, "AccessRequirements", session->req.ars,str)==str)
+		SAFECOPY(session->req.ars,str);
 	if(iniReadString(file, section, "Realm", scfg.sys_name,str)==str) {
 		FREE_AND_NULL(session->req.realm);
 		/* FREE()d in close_request() */
@@ -6227,20 +6220,20 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		if (scfg.tls_certificate != -1) {
+		if (tls_context != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session);
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session);
+			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &session);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session);
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session);
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session)) {
 			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session);
 	}
 
 	/* Start up the output buffer */
@@ -6480,6 +6473,11 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 	
+	if (tls_context != -1) {
+		cryptDestroyContext(tls_context);
+		tls_context = -1;
+	}
+
 	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
 		xpms_destroy(ws_set, close_socket_cb, NULL);
 		ws_set=NULL;
@@ -6513,7 +6511,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.655 $", "%*s %s", revision);
+	sscanf("$Revision: 1.651 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6785,8 +6783,8 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->options&WEB_OPT_ALLOW_TLS) {
 			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-			get_ssl_cert(&scfg, ssl_estr);
-			if (scfg.tls_certificate == -1)
+			tls_context = get_ssl_cert(&scfg, ssl_estr);
+			if (tls_context == -1)
 				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
 		}
 
@@ -6832,7 +6830,7 @@ void DLLCALL web_server(void* arg)
 		 * Add interfaces
 		 */
 		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(scfg.tls_certificate != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
+		if(tls_context != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
 			if(do_cryptInit())
 				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
 		}
