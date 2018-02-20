@@ -1,7 +1,6 @@
 /* Synchronet message/menu display routine */
-// vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.39 2018/10/16 01:17:25 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.34 2018/01/04 08:33:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,14 +37,14 @@
 #include "wordwrap.h"
 
 /****************************************************************************/
-/* Outputs a NULL terminated string with @-code parsing,                    */
+/* Outputs a NULL terminated string locally and remotely (if applicable)	*/
 /* checking for message aborts, pauses, ANSI escape and ^A sequences.		*/
-/* Changes local text attributes if necessary.                              */
+/* Changes local text attributes if necessary. Max length of str is 4 gig	*/
 /* Returns the last char of the buffer access.. 0 if not aborted.           */
 /* If P_SAVEATR bit is set in mode, the attributes set by the message       */
 /* will be the current attributes after the message is displayed, otherwise */
-/* the attributes prior to displaying the message are always restored.      */
-/* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
+/* the attributes prior to diplaying the message are always restored.       */
+/* Ignores Ctrl-Z's  (only in P_CPM_EOF mode)                               */
 /****************************************************************************/
 char sbbs_t::putmsg(const char *buf, long mode)
 {
@@ -56,7 +55,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
 	int		defered_pause=FALSE;
-	uint	lines_printed = 0;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -83,19 +81,17 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				i=0;
 				while(i<(int)sizeof(tmp2)-1 && isprint((unsigned char)str[l]) && str[l]!='\\' && str[l]!='/')
 					tmp2[i++]=str[l++];
-				if(i > 0) {
-					tmp2[i]=0;
-					sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
-					SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
-					printfile(tmp3,0);
-					sys_status&=~SS_NEST_PF; 
-				}
+				tmp2[i]=0;
+				sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
+				SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
+				printfile(tmp3,0);
+				sys_status&=~SS_NEST_PF; 
 			}
+			else if(toupper(str[l+1])=='Z')             /* Ctrl-AZ==EOF */
+				break;
 			else {
 				ctrl_a(str[l+1]);
-				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
-					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
-				l+=2;
+				l+=2; 
 			} 
 		}
 		else if((str[l]=='`' || str[l]=='ú') && str[l+1]=='[') {   
@@ -231,7 +227,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					attr(LIGHTGRAY);
 				if(l==0 || str[l-1]!='\r')	/* expand sole LF to CR/LF */
 					outchar('\r');
-				lines_printed++;
 			}
 
 			/* ansi escape sequence */
@@ -249,8 +244,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			if(str[l]==ESC && str[l+1]=='$')    /* WIP command */
 				lncntr=0;
 			if(str[l]=='@' && !(mode&P_NOATCODES)) {
-				if(memcmp(str+l, "@EOF@", 5) == 0)
-					break;
 				/* In HTML mode, defer PAUSE and MORE to end and supress message */
 				if(mode&P_HTML) {
 					if(!memcmp(str+l,"@MORE@",6)) {
@@ -266,8 +259,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				}
 				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
-				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
-					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				if(i)					/* if valid string, go to top */
 					continue; 
 			}
