@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.213 2018/02/14 04:50:55 deuce Exp $ */
+/* $Id: syncterm.c,v 1.214 2018/02/20 19:17:52 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1536,8 +1536,10 @@ int main(int argc, char **argv)
 		}
 		if(addr_family != ADDRESS_FAMILY_UNSPEC)
 			bbs->address_family=addr_family;
-		if(bbs->port==0)
+		if(bbs->port==0) {
+			free(bbs);
 			goto USAGE;
+		}
 	}
 
 	if(!winsock_startup())
