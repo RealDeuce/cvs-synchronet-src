@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.80 2014/02/10 02:18:18 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.82 2018/02/14 04:37:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -859,10 +859,9 @@ int ansi_getch(void)
 	return(ch);
 }
 
-int ansi_beep(void)
+void ansi_beep(void)
 {
 	ansi_sendstr("\7",1);
-	return(0);
 }
 
 #if defined(__BORLANDC__)
@@ -955,6 +954,8 @@ int ansi_initciolib(long inmode)
 	int i;
 	char *init="\033[s\033[99B\033[99B\033[99B_\033[99C\033[99C\033[99C_\033[6n\033[u\033[0m_\033[2J\033[H";
 	time_t start;
+
+	cio_api.options = 0;
 
 	ansi_textmode(1);
 	cio_textinfo.screenheight=24;
