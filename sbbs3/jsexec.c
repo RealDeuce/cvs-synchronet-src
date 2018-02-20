@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.196 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.195 2018/02/20 02:17:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1016,8 +1016,6 @@ long js_exec(const char *fname, char** args)
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
 			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
 				,js_buflen+len);
-			if(fp!=stdin)
-				fclose(fp);
 			return(-1);
 		}
 		memcpy(js_buf+js_buflen,line,len);
@@ -1150,7 +1148,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.196 $", "%*s %s", revision);
+	sscanf("$Revision: 1.195 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
