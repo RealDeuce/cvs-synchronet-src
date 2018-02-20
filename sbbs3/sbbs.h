@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.473 2018/02/25 23:01:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.469 2018/02/20 02:17:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,6 +221,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	if(JS_IsExceptionPending(cx)) { \
 		if(p != NULL) \
 			free(p); \
+		p = NULL; \
 		return JS_FALSE; \
 	}
 
@@ -1027,6 +1028,10 @@ extern "C" {
 	DLLEXPORT int		DLLCALL sbbs_random(int);
 	DLLEXPORT void		DLLCALL sbbs_srand(void);
 
+	/* chat.cpp */
+	DLLEXPORT BOOL		DLLCALL sysop_available(scfg_t*);
+	DLLEXPORT BOOL		DLLCALL set_sysop_availability(scfg_t*, BOOL available);
+
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
@@ -1329,12 +1334,6 @@ extern "C" {
 
 	/* js_cryptcon.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
-
-	/* js_cryptkeyset.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateCryptKeysetClass(JSContext* cx, JSObject* parent);
-
-	/* js_cryptcert.c */
-	DLLEXPORT JSObject* DLLCALL js_CreateCryptCertClass(JSContext* cx, JSObject* parent);
 
 #endif
 
