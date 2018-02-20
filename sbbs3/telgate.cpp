@@ -1,6 +1,6 @@
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.43 2016/12/08 07:43:08 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.45 2018/02/20 11:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,11 +117,15 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 		console|=CON_RAW_IN;
 
 	if(mode&TG_RLOGIN) {
+		if (client_user_name == NULL)
+			client_user_name = (mode&TG_RLOGINSWAP) ? useron.name : useron.alias;
+		if (server_user_name == NULL)
+			server_user_name = (mode&TG_RLOGINSWAP) ? useron.alias : useron.name;
 		p=(char*)buf;
 		*(p++)=0;
-		p+=sprintf(p,"%s",client_user_name==NULL ? useron.alias : client_user_name);
+		p+=sprintf(p,"%s",client_user_name);
 		p++;	// Add NULL
-		p+=sprintf(p,"%s",server_user_name==NULL ? useron.name : server_user_name);
+		p+=sprintf(p,"%s",server_user_name);
 		p++;	// Add NULL
 		if(term_type!=NULL)
 			p+=sprintf(p,"%s",term_type);
@@ -146,7 +150,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 	while(online) {
 		if(!(mode&TG_NOCHKTIME))
 			gettimeleft();
-		rd=RingBufRead(&inbuf,buf,sizeof(buf));
+		rd=RingBufRead(&inbuf,buf,sizeof(buf)-1);
 		if(rd) {
 #if 0
 			if(memchr(buf,TELNET_IAC,rd)) {
