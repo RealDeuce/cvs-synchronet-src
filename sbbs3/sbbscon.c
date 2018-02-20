@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.263 2017/06/04 00:54:14 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.265 2018/01/14 19:49:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,7 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef USE_LINUX_CAPS
+#if defined USE_LINUX_CAPS && !defined _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
 
@@ -557,7 +557,7 @@ static void thread_up(void* p, BOOL up, BOOL setuid)
 	if(up)
 	    thread_count++;
     else if(thread_count>0)
-    	thread_count--;
+		thread_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
 }
@@ -575,7 +575,7 @@ static void socket_open(void* p, BOOL open)
 	pthread_mutex_lock(&mutex);
 	if(open)
 	    socket_count++;
-    else if(socket_count>0)
+	else if(socket_count>0)
     	socket_count--;
 	pthread_mutex_unlock(&mutex);
 	lputs(LOG_INFO,NULL); /* update displayed stats */
