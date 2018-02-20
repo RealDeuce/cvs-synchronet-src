@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.85 2018/07/01 09:40:27 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.83 2018/02/16 09:01:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,7 +230,7 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 	if(term_supports(NO_EXASCII) && ch&0x80)
 		ch=exascii_to_ascii_char(ch);  /* seven bit table */
-	if(ch==FF && lncntr > 0 && !tos) {
+	if(ch==FF && lncntr>1 && !tos) {
 		lncntr=0;
 		CRLF;
 		if(!(sys_status&SS_PAUSEOFF)) {
@@ -710,8 +710,6 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 {
 	char str[128];
 
-	if(cfg.node_num == 0)
-		return;	// Don't output this for events
 	if((count%interval) != 0)
 		return;
 	if(text == NULL) text = "";
