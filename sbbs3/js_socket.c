@@ -1,14 +1,12 @@
-/* js_socket.c */
-
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.180 2016/05/13 16:25:47 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.184 2018/02/20 02:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,7 +43,7 @@
 
 #ifdef JAVASCRIPT
 
-static const char* getprivate_failure = "line %d %s JS_GetPrivate failed";
+static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
 
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val)
 {
@@ -77,21 +75,26 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 	return ret;
 }
 
-static void do_CryptFlush(const CRYPT_CONTEXT session)
+static void do_CryptFlush(js_socket_private_t *p)
 {
-	int ret=cryptFlushData(session);
+	int ret;
 	char	*estr;
 
-	ret = cryptFlushData(session);
+	if (p->unflushed) {
+		ret = cryptFlushData(p->session);
 
-	if(ret!=CRYPT_OK) {
-		estr = get_crypt_error(session);
-		if (estr) {
-			lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
-			free_crypt_attrstr(estr);
+		if(ret==CRYPT_OK) {
+			p->unflushed = 0;
 		}
-		else
-			lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
+		else {
+			estr = get_crypt_error(p->session);
+			if (estr) {
+				lprintf(LOG_WARNING, "cryptFlushData() returned %d (%s)", ret, estr);
+				free_crypt_attrstr(estr);
+			}
+			else
+				lprintf(LOG_WARNING, "cryptFlushData() returned %d", ret);
+		}
 	}
 }
 
@@ -137,8 +140,10 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			do_js_close(p);
 			return -1;
 		}
+		if(!socket_check(p->sock,NULL,NULL,0))
+			break;
 	} while(len);
-	return total;	// Shouldn't happen...
+	return total;
 }
 
 static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, size_t len, int flush)
@@ -150,26 +155,27 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 		return sendsocket(p->sock, msg, len);
 	do {
 		if((ret=cryptPushData(p->session, msg, len, &copied))==CRYPT_OK) {
-			if(p->nonblocking) {
-				if(flush) do_CryptFlush(p->session);
+			p->unflushed += copied;
+			if(flush) do_CryptFlush(p);
+			if(p->nonblocking)
 				return copied;
-			}
 			total += copied;
-			if(total >= (ptrdiff_t)len) {
-				if(flush) do_CryptFlush(p->session);
+			if(total >= (ptrdiff_t)len)
 				return total;
-			}
+			do_CryptFlush(p);
 			len -= copied;
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
 			lprintf(LOG_WARNING,"cryptPushData() returned %d", ret);
-			if(flush) do_CryptFlush(p->session);
+			if(flush) do_CryptFlush(p);
 			return total;
 		}
+		if(!socket_check(p->sock,NULL,NULL,0))
+			break;
 	} while(len);
-	if(flush) do_CryptFlush(p->session);
-	return total; // shouldn't happen...
+	if(flush) do_CryptFlush(p);
+	return total;
 }
 
 static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *offset, off_t count)
@@ -203,7 +209,7 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 	while(total<count) {
 		rd=read(file,buf,sizeof(buf));
 		if(rd==-1) {
-			do_CryptFlush(p->session);
+			do_CryptFlush(p);
 			return(-1);
 		}
 		if(rd==0)
@@ -217,11 +223,11 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 				SLEEP(1);
 				continue;
 			}
-			do_CryptFlush(p->session);
+			do_CryptFlush(p);
 			return(wr);
 		}
 		if(i!=rd) {
-			do_CryptFlush(p->session);
+			do_CryptFlush(p);
 			return(-1);
 		}
 		total+=rd;
@@ -230,7 +236,7 @@ static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *off
 	if(offset!=NULL)
 		(*offset)+=total;
 
-	do_CryptFlush(p->session);
+	do_CryptFlush(p);
 	return(total);
 }
 
@@ -677,7 +683,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp;
+	char*		cp = NULL;
 	size_t		len;
 	JSString*	str;
 	js_socket_private_t*	p;
@@ -695,7 +701,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 
 	str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cp);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -719,7 +725,7 @@ js_sendline(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp;
+	char*		cp = NULL;
 	size_t		len;
 	JSString*	str;
 	js_socket_private_t*	p;
@@ -736,7 +742,7 @@ js_sendline(JSContext *cx, uintN argc, jsval *arglist)
 
 	str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cp);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -759,7 +765,7 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp;
+	char*		cp = NULL;
 	size_t		len;
 	ushort		port;
 	JSString*	data_str;
@@ -782,7 +788,7 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 	/* data */
 	data_str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, data_str, cp, &len);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cp);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -841,7 +847,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		fname;
+	char*		fname = NULL;
 	long		len;
 	int			file;
 	js_socket_private_t*	p;
@@ -857,7 +863,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, fname);
 	if(fname==NULL) {
 		JS_ReportError(cx,"Failure reading filename");
 		return(JS_FALSE);
@@ -1990,7 +1996,7 @@ static JSBool js_socket_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -2073,6 +2079,7 @@ JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock,
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
 	p->session=session;
+	p->unflushed = 0;
 
 	if (p->sock != INVALID_SOCKET) {
 		len=sizeof(p->remote_addr);
@@ -2125,7 +2132,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			from_descriptor = TRUE;
 		else if(protocol==NULL) {
 			JSVALUE_TO_MSTRING(cx, argv[i], protocol, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, protocol);
 		}
 	}
 
@@ -2151,6 +2158,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->type = type;
 	p->network_byte_order = TRUE;
 	p->session=-1;
+	p->unflushed = 0;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2235,6 +2243,7 @@ JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent, 
 	p->external = TRUE;
 	p->network_byte_order = TRUE;
 	p->session=-1;
+	p->unflushed = 0;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
