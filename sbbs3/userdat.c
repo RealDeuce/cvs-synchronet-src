@@ -1,6 +1,7 @@
 /* Synchronet user data-related routines (exported) */
+// vi: tabstop=4
 
-/* $Id: userdat.c,v 1.182 2017/10/12 09:11:57 rswindell Exp $ */
+/* $Id: userdat.c,v 1.184 2018/02/20 11:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1128,8 +1129,8 @@ char* DLLCALL nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             strcat(str,"C");
         strcat(str,"]"); 
 	}
-    if(node->errors)
-        sprintf(str+strlen(str)
+	if(node->errors)
+		sprintf(str+strlen(str)
 			," %d error%c",node->errors, node->errors>1 ? 's' : '\0' );
 
 	strncpy(buf,str,buflen);
@@ -2038,8 +2039,13 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		return(-4);
 	}
 
-	if(length==0)	/* auto-length */
+	if(length==0) {	/* auto-length */
 		length=user_rec_len(start);
+		if((long)length < 0) {
+			close(file);
+			return -2;
+		}
+	}
 
 	strcpy(str2,str);
 	if(strlen(str2)<length) {
@@ -2057,8 +2063,10 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		i++; 
 	}
 
-	if(i>=LOOP_NODEDAB) 
+	if(i>=LOOP_NODEDAB) {
+		close(file);
 		return(-3);
+	}
 
 	write(file,str2,length);
 	unlock(file,(long)((long)(usernumber-1)*U_LEN)+start,length);
