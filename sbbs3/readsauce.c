@@ -130,11 +130,11 @@ struct fontinfo finfo[] = {
 	{"IBM VGA25G","8x19","640x480","4:3","1:1","0%","Custom font for emulating 80x25 in VGA graphics mode 12 (640x480 16 color) (code page 437).",false},
 	{"IBM EGA","8x14","640x350","4:3","35:48 (1:1.3714)","37.14%","Standard hardware font on EGA cards for 80x25 text mode (code page 437)",false},
 	{"IBM EGA43","8x8","640x350","4:3","35:48 (1:1.3714)","37.14%","Standard hardware font on EGA cards for condensed 80x43 text mode (code page 437)",false},
-	{"IBM VGA ### [8]","9x16","720x400","4:3","20:27 (1:1.35)","35%","Software installed code page font for VGA 80x25 text mode",false},
-	{"IBM VGA50 ### [8]","9x8","720x400","4:3","20:27 (1:1.35)","35%","Software installed code page font for VGA condensed 80x50 text mode",false},
-	{"IBM VGA25G ### [8]","8x19","640x480","4:3","1:1","0%","Custom font for emulating 80x25 in VGA graphics mode 12 (640x480 16 color).",false},
-	{"IBM EGA ### [8]","8x14","640x350","4:3","35:48 (1:1.3714)","37.14%","Software installed code page font for EGA 80x25 text mode",false},
-	{"IBM EGA43 ### [8]","8x8","640x350","4:3","35:48 (1:1.3714)","37.14%","Software installed code page font for EGA condensed 80x43 text mode",false},
+	{"IBM VGA ###","9x16","720x400","4:3","20:27 (1:1.35)","35%","Software installed code page font for VGA 80x25 text mode",false},
+	{"IBM VGA50 ###","9x8","720x400","4:3","20:27 (1:1.35)","35%","Software installed code page font for VGA condensed 80x50 text mode",false},
+	{"IBM VGA25G ###","8x19","640x480","4:3","1:1","0%","Custom font for emulating 80x25 in VGA graphics mode 12 (640x480 16 color).",false},
+	{"IBM EGA ###","8x14","640x350","4:3","35:48 (1:1.3714)","37.14%","Software installed code page font for EGA 80x25 text mode",false},
+	{"IBM EGA43 ###","8x8","640x350","4:3","35:48 (1:1.3714)","37.14%","Software installed code page font for EGA condensed 80x43 text mode",false},
 	{"Amiga Topaz 1","8x8","640x200","4:3","5:12 (1:2.4)","140%","Original Amiga Topaz Kickstart 1.x font. (A500, A1000, A2000)",false},
 	{"Amiga Topaz 1+","8x8","640x200","4:3","5:12 (1:2.4)","140%","Modified Amiga Topaz Kickstart 1.x font. (A500, A1000, A2000)",false},
 	{"Amiga Topaz 2","8x8","640x200","4:3","5:12 (1:2.4)","140%","Original Amiga Topaz Kickstart 2.x font (A600, A1200, A4000)",false},
@@ -148,12 +148,44 @@ struct fontinfo finfo[] = {
 	{"Atari ATASCII","8x8","320x192","4:3","4:5 (1:1.25)","25%","Original ATASCII font (Atari 400, 800, XL, XE)",false},
 };
 
+struct codepages {
+	char *code;
+	char *name;
+};
+
+struct codepages cpages[] = {
+	{"437","The character set of the original IBM PC. Also known as 'MS-DOS Latin US'."},
+	{"720","Arabic. Also known as 'Windows-1256'."},
+	{"737","Greek. Also known as 'MS-DOS Greek'."},
+	{"775","Baltic Rim (Estonian, Lithuanian and Latvian). Also known as 'MS-DOS Baltic Rim'."},
+	{"819","Latin-1 Supplemental. Also known as 'Windows-28591' and 'ISO/IEC 8859-1'."},
+	{"850","Western Europe. Also known as 'MS-DOS Latin 1'."},
+	{"852","Central Europe (Bosnian, Croatian, Czech, Hungarian, Polish, Romanian, Serbian and Slovak). Also known as 'MS-DOS Latin 2'."},
+	{"855","Cyrillic (Serbian, Macedonian Bulgarian, Russian). Also known as 'MS-DOS Cyrillic'."},
+	{"857","Turkish. Also known as 'MS-DOS Turkish'."},
+	{"858","Western Europe."},
+	{"860","Portuguese. Also known as 'MS-DOS Portuguese'."},
+	{"861","Icelandic. Also known as 'MS-DOS Icelandic'."},
+	{"862","Hebrew. Also known as 'MS-DOS Hebrew'."},
+	{"863","French Canada. Also known as 'MS-DOS French Canada'."},
+	{"864","Arabic."},
+	{"865","Nordic."},
+	{"866","Cyrillic."},
+	{"869","Greek 2. Also known as 'MS-DOS Greek 2'."},
+	{"872","Cyrillic."},
+	{"KAM","'Kamenicky' encoding. Also known as 'KEYBCS2'."},
+	{"MAZ","'Mazovia' encoding."},
+	{"MIK","Cyrillic."},
+};
+
 int main(int argc, char **argv)
 {
 	FILE *f;
-	int i, j, k;
+	int i, j, k, l;
 	struct sauce sauce;
 	char *buf;
+	char *cpp;
+	size_t namelen;
 
 	for (i=1; i<argc; i++) {
 		if (!fexist(argv[i])) {
@@ -189,7 +221,7 @@ int main(int argc, char **argv)
 			fclose(f);
 			continue;
 		}
-		fprintf(stdout, "--- %s ---\n", argv[i]);
+		fprintf(stdout, "\n--- %s ---\n", argv[i]);
 		if (sauce.title[0])
 			fprintf(stdout, "Title: %.35s\n", sauce.title);
 		if (sauce.author[0])
@@ -242,9 +274,23 @@ int main(int argc, char **argv)
 					if (sauce.tinfos[0]) {
 						fprintf(stdout, "FontName: %.22s\n", sauce.tinfos);
 						for (k = 0; k<sizeof(finfo)/sizeof(finfo[0]); k++) {
-							if (strncmp(sauce.tinfos, finfo[k].name, 22) == 0) {
+							namelen = 22;
+							cpp = strstr(finfo[k].name, "###");
+							if (cpp != NULL)
+								namelen = (cpp-finfo[k].name);
+							if (strncmp(sauce.tinfos, finfo[k].name, namelen) == 0) {
 								if (finfo[k].has_8px && (sauce.tflags & sauce_ansiflag_spacing_8pix))
 									k++;
+								if (cpp) {
+									for (l=0; l<sizeof(cpages)/sizeof(cpages[0]); l++) {
+										if (strcmp(cpages[l].code, sauce.tinfos + (cpp-finfo[k].name)) == 0) {
+											fprintf(stdout, "\tCode Page: %.*s - %s\n", (int)strlen(cpp), sauce.tinfos + (cpp-finfo[k].name), cpages[l].name);
+											break;
+										}
+									}
+								}
+								if (l == sizeof(cpages)/sizeof(cpages[0]))
+									fprintf(stdout, "\tCode Page: %.*s - Invalid/Unsupported\n", (int)strlen(cpp), sauce.tinfos + (cpp-finfo[k].name));
 								fprintf(stdout,"\tFont Size: %s\n", finfo[k].size);
 								fprintf(stdout,"\tResolution: %s\n", finfo[k].resolution);
 								fprintf(stdout,"\tDisplay Aspect Ratio: %s\n", finfo[k].dar);
