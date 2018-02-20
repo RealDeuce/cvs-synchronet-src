@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.171 2018/03/09 06:28:28 deuce Exp $ */
+/* $Id: ciolib.c,v 1.169 2018/02/20 19:44:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -534,6 +534,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 	int width;
 	int height;
 	void *buf;
+	uint32_t *fgb = NULL;
+	uint32_t *bgb = NULL;
 
 	CIOLIB_INIT();
 
@@ -565,6 +567,10 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 
 fail:
 	free(buf);
+	if (fgb)
+		free(fgb);
+	if (bgb)
+		free(bgb);
 	return 0;
 }
 
@@ -720,8 +726,10 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 {
 	CIOLIB_INIT()
 
-	if(cio_api.gettextinfo)
+	if(cio_api.gettextinfo) {
 		cio_api.gettextinfo(&cio_textinfo);
+		return;
+	}
 
 	if(info!=&cio_textinfo)
 		*info=cio_textinfo;
