@@ -1,10 +1,10 @@
-/* $Id: WebFormUnit.cpp,v 1.3 2009/01/24 22:23:49 rswindell Exp $ */
+/* $Id: WebFormUnit.cpp,v 1.4 2017/11/28 05:21:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -57,7 +57,6 @@ void __fastcall TWebForm::LogLevelUpDownChangingEx(TObject *Sender,
     else {
         MainForm->web_startup.log_level = NewValue;
         LogLevelText->Caption = LogLevelDesc[NewValue];
-        MainForm->SaveIniSettings(Sender);
     }
 }
 //---------------------------------------------------------------------------
