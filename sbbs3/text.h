@@ -801,6 +801,16 @@ enum {
 	,PollAnswerNumber
 	,PollAnswerFmt
 	,PollAnswerChecked
+	,BallotHdr
+	,BallotAnswerFmt
+	,BallotVoteWhich
+	,Only
+	,SPAMVisibilityIsNow
+	,VoteInThisPollNow
+	,MIMEDecodedPlainText
+	,MsgHdrBodySeparator
+	,FileHdrDescSeparator
+	,RemoveFileQ
 
 	,TOTAL_TEXT
 };
