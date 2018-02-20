@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.333 2018/02/20 19:10:23 deuce Exp $ */
+/* $Id: term.c,v 1.334 2018/02/20 19:24:25 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -713,11 +713,11 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	struct	text_info txtinfo;
 	struct ciolib_screen *savscrn;
 
-    gettextinfo(&txtinfo);
-    savscrn = savescreen();
-
 	if(safe_mode)
 		return;
+
+    gettextinfo(&txtinfo);
+    savscrn = savescreen();
 
 	init_uifc(FALSE, FALSE);
 	result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
