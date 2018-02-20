@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.230 2018/02/20 19:34:17 deuce Exp $ */
+/* $Id: cterm.c,v 1.231 2018/02/20 19:37:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2852,7 +2852,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.230 $";
+	char	*revision="$Revision: 1.231 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3105,6 +3105,10 @@ static void parse_sixel_intro(struct cterminal *cterm)
 
 		GETTEXTINFO(&ti);
 		vmode = find_vmode(ti.currmode);
+		if (vmode == -1) {
+			cterm->sixel = SIXEL_INACTIVE;
+			return;
+		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->sx_scroll_mode) {
 			cterm->sx_x = cterm->sx_left = (cterm->x + WHEREX() - 2) * vparams[vmode].charwidth;
