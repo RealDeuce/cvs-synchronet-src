@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.332 2018/02/15 19:00:24 deuce Exp $ */
+/* $Id: term.c,v 1.333 2018/02/20 19:10:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -768,6 +768,9 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 				break;
 			case 4:
 				raw_upload(fp);
+				break;
+			default:
+				fclose(fp);
 				break;
 		}
 	}
