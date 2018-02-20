@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.115 2016/11/27 23:03:03 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.119 2018/01/12 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -726,7 +726,6 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	int		i,j,line,lines=0,maxlines;
 	char	strin[256],**str,done=0;
 	char 	tmp[512];
-	char	path[MAX_PATH+1];
     ulong	l,m;
 
 	rioctl(IOCM|ABORT);
@@ -779,8 +778,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
 
-	SAFEPRINTF(path,"%smenu/msgtabs.*", cfg.text_dir);
-	if(fexist(path))
+	if(menu_exists("msgtabs"))
 		menu("msgtabs");
 	else {
 		for(i=0;i<79;i++) {
@@ -1207,7 +1205,7 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 	smb_close_da(&smb);
 
 
-	if((i=smb_addmsghdr(&smb,msg,SMB_SELFPACK))!=SMB_SUCCESS) {
+	if((i=smb_addmsghdr(&smb,msg,smb_storage_mode(&cfg, &smb)))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 		smb_freemsg_dfields(&smb,msg,1);
 		return; 
@@ -1549,6 +1547,9 @@ ushort sbbs_t::chmsgattr(smbmsg_t msg)
 		switch(ch) {
 			case 'P':
 				msg.hdr.attr^=MSG_PRIVATE;
+				break;
+			case 'S':
+				msg.hdr.attr^=MSG_SPAM;
 				break;
 			case 'R':
 				msg.hdr.attr^=MSG_READ;
