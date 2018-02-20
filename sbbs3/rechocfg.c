@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.29 2018/03/02 04:30:49 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.28 2018/02/20 11:41:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -503,7 +503,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetString(&ini,		ROOT_SECTION, "LogTimeFormat"			,cfg->logtime					,NULL);
 	if(cfg->temp_dir[0])
 	iniSetString(&ini,		ROOT_SECTION, "TempDirectory"			,cfg->temp_dir					,NULL);
-	iniSetString(&ini,		ROOT_SECTION, "OutgoingSemaphore"		,cfg->outgoing_sem				,NULL);
 	iniSetBytes(&ini,		ROOT_SECTION, "BundleSize"				,1,cfg->maxbdlsize				,NULL);
 	iniSetBytes(&ini,		ROOT_SECTION, "PacketSize"				,1,cfg->maxpktsize				,NULL);
 	iniSetStringList(&ini,	ROOT_SECTION, "SysopAliasList", ","		,cfg->sysop_alias_list			,NULL);
