@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.233 2017/12/06 05:42:01 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.234 2018/02/13 05:12:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,7 +263,7 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
 
     api=uifcapi;
     if (api->chars == NULL) {
-		switch(getfont()) {
+		switch(getfont(1)) {
 			case -1:
 			case 0:
 			case 17:
