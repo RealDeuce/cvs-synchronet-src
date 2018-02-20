@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.74 2015/02/27 10:44:47 deuce Exp $ */
+/* $Id: conn.c,v 1.76 2018/02/20 20:35:31 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -404,7 +404,6 @@ enum failure_reason {
 	,FAILURE_CANT_CREATE
 	,FAILURE_CONNECT_ERROR
 	,FAILURE_ABORTED
-	,FAILURE_GENERAL
 	,FAILURE_DISCONNECTED
 };
 
@@ -537,6 +536,8 @@ connected:
 		failcode=FAILURE_DISCONNECTED;
 		goto connect_failed;
 	}
+	int keepalives = TRUE;
+	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepalives, sizeof(keepalives));
 
 	uifc.pop(NULL);
 	return(sock);
@@ -574,12 +575,6 @@ connect_failed:
 				uifcmsg("Connection Aborted.",	"`Connection Aborted`\n\n"
 								"Connection to the remote system aborted by keystroke.");
 				break;
-			case FAILURE_GENERAL:
-				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
-				uifcmsg(str
-								,"`SyncTERM failed to connect`\n\n"
-								 "The call to select() returned an unexpected error code.");
-				break;
 			case FAILURE_DISCONNECTED:
 				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
 				uifcmsg(str
@@ -588,6 +583,7 @@ connect_failed:
 				break;
 		}
 		conn_close();
+		if (sock != INVALID_SOCKET)
 		closesocket(sock);
 		return(INVALID_SOCKET);
 	}
