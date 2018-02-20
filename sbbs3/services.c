@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.307 2018/02/23 08:24:23 deuce Exp $ */
+/* $Id: services.c,v 1.304 2018/02/20 02:17:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -803,14 +803,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
-		/* CryptKeyset Class */
-		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptCert Class */
-		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
-			break;
-
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -1585,7 +1577,6 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
-			iniFreeStringList(sec_list);
 			return(service);
 		}
 		service=np;
@@ -1645,7 +1636,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.307 $", "%*s %s", revision);
+	sscanf("$Revision: 1.304 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
