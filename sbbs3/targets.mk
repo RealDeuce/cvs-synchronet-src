@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.44 2018/02/24 00:08:12 rswindell Exp $
+# $Id: targets.mk,v 1.43 2018/02/12 05:09:12 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -47,7 +47,7 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
 			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE)
 
-all:	dlls utils console scfg uedit umonitor
+all:	dlls utils console
 
 console:	$(JS_DEPS) xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
@@ -65,19 +65,6 @@ dlls:	$(JS_DEPS) smblib xpdev-mt \
 mono:	xpdev-mt smblib \
 		$(MTOBJODIR) $(EXEODIR) \
 		$(SBBSMONO)
-
-.PHONY: scfg
-scfg:
-	$(MAKE) -C scfg $(MAKEFLAGS)
-
-.PHONY: uedit
-uedit:
-	$(MAKE) -C uedit $(MAKEFLAGS)
-
-.PHONY: umonitor
-umonitor:
-	$(MAKE) -C umonitor $(MAKEFLAGS)
-
 
 ifdef SBBSEXEC
 .PHONY: install
