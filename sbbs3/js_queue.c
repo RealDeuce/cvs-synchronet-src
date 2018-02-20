@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.52 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.53 2018/02/20 02:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,7 +256,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	if(argn < argc) {
 		JSVALUE_TO_MSTRING(cx, argv[argn], name, NULL);
 		argn++;
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, name);
 	}
 
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(js_enqueue_value(cx, q, val, name)));
@@ -377,7 +377,7 @@ static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
