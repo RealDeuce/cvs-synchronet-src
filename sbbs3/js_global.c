@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.375 2018/10/15 04:08:57 rswindell Exp $ */
+/* $Id: js_global.c,v 1.367 2018/02/20 02:17:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -672,7 +672,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
  * It does assume the args are always last though (which seems reasonable
  * since it's variable length)
  */
-#define JS_ARGS_OFFSET	((unsigned long)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
+#define JS_ARGS_OFFSET	((unsigned)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
 
 static JSBool
 js_require(JSContext *cx, uintN argc, jsval *arglist)
@@ -931,7 +931,6 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	ulong		sum=0;
 	char*		p = NULL;
-	char*		sp;
 	size_t		len;
 	jsrefcount	rc;
 
@@ -946,8 +945,7 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);	/* 3.8 seconds on Deuce's computer when len==UINT_MAX/8 */
-	sp = p;
-	while(len--) sum+=*(sp++);
+	while(len--) sum+=*(p++);
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1144,8 +1142,8 @@ js_lfexpand(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	if((outbuf=(char*)malloc((strlen(inbuf)*2)+1))==NULL) {
-		JS_ReportError(cx, "Error allocating %lu bytes at %s:%d", (strlen(inbuf)*2)+1, getfname(__FILE__), __LINE__);
 		free(inbuf);
+		JS_ReportError(cx, "Error allocating %lu bytes at %s:%d", (strlen(inbuf)*2)+1, getfname(__FILE__), __LINE__);
 		return(JS_FALSE);
 	}
 
@@ -1270,10 +1268,10 @@ js_quote_msg(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	if((outbuf=(char*)malloc((strlen(inbuf)*(strlen(prefix)+1))+1))==NULL) {
-		JS_ReportError(cx, "Error allocating %lu bytes at %s:%d", (strlen(inbuf)*(strlen(prefix)+1))+1, getfname(__FILE__), __LINE__);
 		free(inbuf);
 		if(prefix != prefix_def)
 			free(prefix);
+		JS_ReportError(cx, "Error allocating %lu bytes at %s:%d", (strlen(inbuf)*(strlen(prefix)+1))+1, getfname(__FILE__), __LINE__);
 		return(JS_FALSE);
 	}
 
@@ -2188,7 +2186,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 						hpos=0;
 						break;
 					case 'Z':
-						outbuf[j++]=CTRL_Z;
+						outbuf[j++]=0;
 						break;
 					case 'A':
 					default:
@@ -2421,7 +2419,7 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = (char)249;
+			outbuf[j++] = 249;
 			continue;
 		}
 
@@ -2531,7 +2529,6 @@ js_b64_decode(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((outbuf=(char*)malloc(len))==NULL) {
 		JS_ReportError(cx, "Error allocating %lu bytes at %s:%d", len, getfname(__FILE__), __LINE__);
-		free(inbuf);
 		return(JS_FALSE);
 	}
 
@@ -2704,13 +2701,10 @@ js_truncstr(JSContext *cx, uintN argc, jsval *arglist)
 	JSVALUE_TO_MSTRING(cx, argv[1], set, NULL);
 	if(JS_IsExceptionPending(cx)) {
 		free(str);
-		FREE_AND_NULL(set);
 		return JS_FALSE;
 	}
-	if(set==NULL) {
-		free(str);
+	if(set==NULL)
 		return(JS_TRUE);
-	}
 
 	truncstr(str,set);
 	free(set);
@@ -2844,7 +2838,7 @@ js_cfgfname(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc < 2 || JSVAL_IS_VOID(argv[0]))
+	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], path, NULL);
@@ -3008,7 +3002,6 @@ js_fcopy(JSContext *cx, uintN argc, jsval *arglist)
 	JSVALUE_TO_MSTRING(cx, argv[1], dest, NULL);
 	if(JS_IsExceptionPending(cx)) {
 		free(src);
-		FREE_AND_NULL(dest);
 		return JS_FALSE;
 	}
 	if(dest==NULL) {
@@ -3341,17 +3334,13 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_MSTRING(cx, argv[argn], text, NULL);
 		argn++;
 		if(JS_IsExceptionPending(cx)) {
-			FREE_AND_NULL(text);
 			free(fname);
 			return JS_FALSE;
 		}
 	}
 	if(argc > argn && JSVAL_IS_NUMBER(argv[argn])) {
-		if(!JS_ValueToInt32(cx, argv[argn++], &max_age)) {
-			FREE_AND_NULL(text);
-			free(fname);
+		if(!JS_ValueToInt32(cx, argv[argn++], &max_age))
 			return JS_FALSE;
-		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -3485,8 +3474,6 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 		argn++;
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
-			if(spec != NULL && spec != spec_def)
-				free(spec);
 			return JS_FALSE;
 		}
 		if(spec==NULL) {
@@ -3834,10 +3821,8 @@ js_resolve_ip(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(want_array) {
 		JS_RESUMEREQUEST(cx, rc);
-		if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL) {
-			freeaddrinfo(res);
+		if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
 			return(JS_FALSE);
-		}
 		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(rarray));
 		for(cur=res; cur; cur=cur->ai_next) {
 			inet_addrtop((void *)cur->ai_addr, ip_str, sizeof(ip_str));
@@ -3898,7 +3883,6 @@ js_resolve_host(JSContext *cx, uintN argc, jsval *arglist)
 	hints.ai_flags = NI_NAMEREQD;
 	if(getnameinfo(res->ai_addr, res->ai_addrlen, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0) {
 		JS_RESUMEREQUEST(cx, rc);
-		freeaddrinfo(res);
 		return(JS_TRUE);
 	}
 	JS_RESUMEREQUEST(cx, rc);
@@ -4514,37 +4498,29 @@ BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec*
 	p->startup = startup;
 	p->exit_func=NULL;
 
-	if((*glob = JS_NewCompartmentAndGlobalObject(cx, &js_global_class, NULL)) ==NULL) {
-		free(p);
+	if((*glob = JS_NewCompartmentAndGlobalObject(cx, &js_global_class, NULL)) ==NULL)
 		return(FALSE);
-	}
-	if(!JS_AddObjectRoot(cx, glob)) {
-		free(p);
+	if(!JS_AddObjectRoot(cx, glob))
 		return(FALSE);
-	}
 
 	if(!JS_SetPrivate(cx, *glob, p)) {	/* Store a pointer to scfg_t and the new methods */
 		JS_RemoveObjectRoot(cx, glob);
-		free(p);
 		return(FALSE);
 	}
 
 	if (!JS_InitStandardClasses(cx, *glob)) {
 		JS_RemoveObjectRoot(cx, glob);
-		free(p);
 		return(FALSE);
 	}
 
 	p->bg_count=0;
 	if(sem_init(&p->bg_sem, 0, 0)==-1) {
 		JS_RemoveObjectRoot(cx, glob);
-		free(p);
 		return(FALSE);
 	}
 
 	if (!JS_SetReservedSlot(cx, *glob, 0, INT_TO_JSVAL(0))) {
 		JS_RemoveObjectRoot(cx, glob);
-		free(p);
 		return(FALSE);
 	}
 
