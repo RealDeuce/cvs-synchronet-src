@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.53 2018/02/20 02:17:16 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.54 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,10 +206,13 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name)
 	if(name!=NULL)
 		SAFECOPY(v->name,name);
 
-	if(!JS_WriteStructuredClone(cx, val, &serialized, &v->size, NULL, NULL))
+	if(!JS_WriteStructuredClone(cx, val, &serialized, &v->size, NULL, NULL)) {
+		free(v);
 		return NULL;
+	}
 	if((v->value=(uint64 *)malloc(v->size))==NULL) {
 		JS_free(cx, serialized);
+		free(v);
 		return NULL;
 	}
 	memcpy(v->value, serialized, v->size);
