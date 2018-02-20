@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.70 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: email.cpp,v 1.65 2017/11/24 21:53:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,15 +121,14 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
+	if(!writemsg(msgpath,top, /* subj: */title,mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
 
-	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM)) {
-		bputs(text[EmailFilesNotAllowed]);
+	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM))
 		mode&=~WM_FILE;
-	}
+
 
 	if(mode&WM_FILE) {
 		if(!checkfname(title)) {
@@ -151,7 +150,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		for(x=0;x<cfg.total_prots;x++)
 			if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
 				sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
-				SAFECAT(str,tmp); 
+				strcat(str,tmp); 
 			}
 		ch=(char)getkeys(str,0);
 		if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
@@ -322,7 +321,6 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -343,8 +341,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		logon_emails++;
 	user_sent_email(&cfg, &useron, 1, usernumber==1);
 	bprintf(text[Emailed],username(&cfg,usernumber,tmp),usernumber);
-	safe_snprintf(str,sizeof(str),"sent e-mail to %s #%d"
-		,username(&cfg,usernumber,tmp),usernumber);
+	safe_snprintf(str,sizeof(str),"%s sent e-mail to %s #%d"
+		,useron.alias,username(&cfg,usernumber,tmp),usernumber);
 	logline("E+",str);
 	if(mode&WM_FILE && online==ON_REMOTE)
 		autohangup();
