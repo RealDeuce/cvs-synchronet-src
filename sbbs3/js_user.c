@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.100 2015/08/20 05:19:42 deuce Exp $ */
+/* $Id: js_user.c,v 1.102 2018/02/20 02:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -374,10 +374,10 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			val=scfg->level_freecdtperday[p->user->level];
 			break;
 		case USER_PROP_MAIL_WAITING:
-			val=getmail(scfg,p->user->number,/* sent? */FALSE);
+			val=getmail(scfg,p->user->number,/* sent? */FALSE, /* SPAM: */FALSE);
 			break;
 		case USER_PROP_MAIL_PENDING:
-			val=getmail(scfg,p->user->number,/* sent? */TRUE);
+			val=getmail(scfg,p->user->number,/* sent? */TRUE, /* SPAM: */FALSE);
 			break;
 
 		case USER_PROP_CACHED:
@@ -409,7 +409,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
 	jsval idval;
-	char*		str;
+	char*		str = NULL;
 	char		tmp[64];
 	jsint		val;
 	ulong		usermisc;
@@ -425,7 +425,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		return(JS_TRUE);
 
 	JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, str);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -971,7 +971,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 	uchar*		ar;
 	private_t*	p;
 	jsrefcount	rc;
-	char		*ars;
+	char		*ars = NULL;
 	scfg_t*		scfg;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
@@ -982,7 +982,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 
 	JSVALUE_TO_MSTRING(cx,argv[0], ars, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, ars);
 	if(ars==NULL)
 		return JS_FALSE;
 
@@ -1281,7 +1281,7 @@ static JSBool js_user_stats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1307,7 +1307,7 @@ static JSBool js_user_security_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1333,7 +1333,7 @@ static JSBool js_user_limits_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1403,7 +1403,7 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
