@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.308 2018/03/03 02:02:32 deuce Exp $ */
+/* $Id: services.c,v 1.305 2018/02/20 11:44:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -177,6 +177,8 @@ static BOOL winsock_startup(void)
 #define SOCKLIB_DESC NULL
 
 #endif
+
+static CRYPT_CONTEXT tls_context = -1;
 
 static ulong active_clients(void)
 {
@@ -801,14 +803,6 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
-		/* CryptKeyset Class */
-		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptCert Class */
-		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
-			break;
-
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -1034,8 +1028,8 @@ static void js_service_thread(void* arg)
 			}
 		}
 #endif
-		if (scfg.tls_certificate != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &service_client);
+		if (tls_context != -1) {
+			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &service_client);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
@@ -1613,6 +1607,11 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
+	if (tls_context != -1) {
+		cryptDestroyContext(tls_context);
+		tls_context = -1;
+	}
+
 	update_clients();
 
 #ifdef _WINSOCKAPI_	
@@ -1638,7 +1637,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.308 $", "%*s %s", revision);
+	sscanf("$Revision: 1.305 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1840,9 +1839,9 @@ void DLLCALL services_thread(void* arg)
 					lprintf(LOG_ERR, "Option error, TLS not yet supported for static services (%s)", service[i].protocol);
 					continue;
 				}
-				if(scfg.tls_certificate == -1) {
-					get_ssl_cert(&scfg, ssl_estr);
-					if (scfg.tls_certificate == -1) {
+				if(tls_context == -1) {
+					tls_context = get_ssl_cert(&scfg, ssl_estr);
+					if (tls_context == -1) {
 						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
 						continue;
 					}
