@@ -1,8 +1,7 @@
-/* con_hi.cpp */
-
 /* Synchronet hi-level console routines */
+// vi: tabstop=4
 
-/* $Id: con_hi.cpp,v 1.24 2017/08/14 10:17:01 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.25 2018/01/26 04:28:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,6 +154,8 @@ bool sbbs_t::chksyspass(const char* sys_pw)
 		logline(LOG_NOTICE,"S!","Remote sysop access disabled");
 		return(false);
 	}
+	if(time(NULL) - last_sysop_auth < 15*60)
+		return true;
 	if(sys_pw != NULL)
 		SAFECOPY(str, sys_pw);
 	else {
@@ -172,5 +173,6 @@ bool sbbs_t::chksyspass(const char* sys_pw)
 		logline(LOG_NOTICE,"S!",str2);
 		return(false); 
 	}
+	last_sysop_auth = time(NULL);
 	return(true);
 }
