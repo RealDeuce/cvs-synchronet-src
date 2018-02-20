@@ -405,7 +405,6 @@ static void sdl_user_func(int func, ...)
 			case SDL_USEREVENT_FLUSH:
 				break;
 			default:
-				va_end(argptr);
 				return;
 		}
 		va_end(argptr);
@@ -447,7 +446,6 @@ static int sdl_user_func_ret(int func, ...)
 				break;
 			default:
 				sdl.mutexV(sdl_ufunc_mtx);
-				va_end(argptr);
 				return -1;
 		}
 		/*

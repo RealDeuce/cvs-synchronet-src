@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.136 2018/03/09 06:57:05 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.134 2018/02/20 19:33:10 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -680,6 +680,7 @@ static int update_from_vmem(int force)
 	unsigned int pos;
 
 	int	redraw_cursor=0;
+	int	lastcharupdated=0;
 	int bright_attr_changed=0;
 	int blink_attr_changed=0;
 
@@ -753,6 +754,7 @@ static int update_from_vmem(int force)
 			}
 			pos++;
 		}
+		lastcharupdated=0;
 	}
 	release_vmem(vmem_ptr);
 
@@ -987,8 +989,6 @@ int bitmap_setfont(int font, int force, int font_num)
 			new=malloc(ti.screenwidth*ti.screenheight*sizeof(*new));
 			if(!new) {
 				free(old);
-				pthread_mutex_unlock(&vstatlock);
-				pthread_mutex_unlock(&blinker_lock);
 				return 0;
 			}
 			pold=old;
@@ -1459,7 +1459,6 @@ void bitmap_replace_font(uint8_t id, char *name, void *data, size_t size)
 	if (id < CONIO_FIRST_FREE_FONT) {
 		free(name);
 		free(data);
-		pthread_mutex_unlock(&blinker_lock);
 		return;
 	}
 
@@ -1608,13 +1607,11 @@ int bitmap_drv_init(void (*drawrect_cb) (struct rectlist *data)
 	pthread_mutex_lock(&vstatlock);
 	vstat.vmem=NULL;
 	vstat.flags = VIDMODES_FLAG_PALETTE_VMEM;
-	pthread_mutex_lock(&screen.screenlock);
 	for (i = 0; i < sizeof(dac_default)/sizeof(struct dac_colors); i++) {
 		palette[i].red = dac_default[i].red;
 		palette[i].green = dac_default[i].green;
 		palette[i].blue = dac_default[i].blue;
 	}
-	pthread_mutex_unlock(&screen.screenlock);
 	pthread_mutex_unlock(&vstatlock);
 
 	callbacks.drawrect=drawrect_cb;

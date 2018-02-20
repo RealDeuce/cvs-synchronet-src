@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.163 2018/03/10 03:19:01 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.161 2018/02/20 11:25:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1416,11 +1416,11 @@ js_replace_text(JSContext *cx, uintN argc, jsval *arglist)
 	if(!len) {
 		sbbs->text[i]=nulstr;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
-		free(p);
 	} else {
 		sbbs->text[i]=p;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	}
+	free(p);
 
 	return(JS_TRUE);
 }
@@ -3090,7 +3090,6 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
 				if(fpath==NULL) {
 					if(fspec != def)
 						free(fspec);
-					free(p);
 					return JS_FALSE;
 				}
 			}
@@ -3099,7 +3098,6 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
 				if(fspec==NULL) {
 					if(fpath != def)
 						free(fpath);
-					free(p);
 					return JS_FALSE;
 				}
 			}
@@ -3177,11 +3175,8 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode)) {
-				if(fspec != def)
-					FREE_AND_NULL(fspec);
+			if(!JS_ValueToInt32(cx,argv[i],&mode))
 				return JS_FALSE;
-			}
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
