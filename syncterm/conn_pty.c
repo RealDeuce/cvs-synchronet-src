@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.26 2018/02/10 09:07:33 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.29 2018/02/14 04:50:55 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -428,9 +428,10 @@ int pty_connect(struct bbslist *bbs)
 	case 0:		/* Child */
 		setenv("TERM",settings.TERM,1);
 		termcap=xp_asprintf("syncterm|SyncTERM"
-			":co#%d:li#%d:ND:am:da:mi:ms:ut"
-			":Co#256:pa#32762:it#8"	// Pairs is a signed 16-bit value
-			":@7=\\E[K:AB=\\E[48;5;%%dm:AF=\\E[38;5;%%dm:AL=\\E[%%dL:DL=\\E[%%dM"
+			":am:da:mi:ms:ND:ut"
+			":co#%d:it#8:li#%d"
+			"%s"
+			":@7=\\E[K:AL=\\E[%%dL:DL=\\E[%%dM"
 			":DO=\\E[%%dB:F1=\\E[23~:F2=\\E[24~:IC=\\E[%%d@"
 			":ic=\\E[@"
 			":LE=\\E[%%dD:RA=\\E[7l:RI=\\E[%%dC:SA=\\E[?7h:SF=\\E[%%dS"
@@ -442,12 +443,13 @@ int pty_connect(struct bbslist *bbs)
 			":k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:k5=\\EOt:k6=\\E[17~"
 			":k7=\\E[18~:k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:kD=\\177:kI=\\E[@"
 			":kN=\\E[U:kP=\\E[V:kb=^H:kd=\\E[B:kh=\\E[H:kl=\\E[D:kr=\\E[C"
-			":ku=\\E[A:le=\\E[D:ll=\\E[255H:mb=\\E[5m:md=\\E[1m:me=\\E[0m"
+			":ku=\\E[A:le=\\E[D:ll=\\E[255H:mb=\\E[5m:md=\\E[1m:me=\\E[m"
 			":nd=\\E[C:nw=^M^J:DC=\\E[%%dP"
-			":r1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[0m\\E[?s"
+			":r1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[m\\E[?s"
 			":rc=\\E[u"
-			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:sr=\\E[T:ta=^I:up=\\E[A"
-			":ve=\\E[?25h:vi=\\E[?25l:",ws.ws_col,ws.ws_row);
+			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:se=\\E[m:sr=\\E[T:ta=^I:up=\\E[A"
+			":ve=\\E[?25h:vi=\\E[?25l:",ws.ws_col,ws.ws_row
+				,cio_api.options & CONIO_OPT_PALETTE_SETTING ? ":Co#256:pa#32762:AB=\\E[48;5;%dm:AF=\\E[38;5;%dm" : ":Co#8:pa#64:AB=\\E[4%dm:AF=\\E[3%dm");
 		setenv("TERMCAP",termcap,1);
 		xp_asprintf_free(termcap);
 		termcap=xp_asprintf("%d",ws.ws_col);
