@@ -2,7 +2,7 @@
 
 /* Base64 encoding/decoding routines */
 
-/* $Id: base64.c,v 1.28 2018/02/23 02:27:41 deuce Exp $ */
+/* $Id: base64.c,v 1.26 2018/02/20 04:48:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,31 +131,22 @@ int b64_encode(char *target, size_t tlen, const char *source, size_t slen)  {
 			FREE_AND_NULL(tmpbuf);
 			return(-1);
 		}
-		if (inp>=inend)
-			enc=buf;
-		else
-			enc=buf|((*inp & 0xF0) >> 4);
+		enc=buf|((*inp & 0xF0) >> 4);
 		if(add_char(outp++, enc, done, outend)) {
 			FREE_AND_NULL(tmpbuf);
 			return(-1);
 		}
 		if(inp==inend)
 			done=1;
-		if (!done) {
-			buf=(*(inp++)<<2)&0x3C;
-			if (inp == inend)
-				enc=buf;
-			else
-				enc=buf|((*inp & 0xC0)>>6);
-		}
+		buf=(*(inp++)<<2)&0x3C;
+		enc=buf|((*inp & 0xC0)>>6);
 		if(add_char(outp++, enc, done, outend)) {
 			FREE_AND_NULL(tmpbuf);
 			return(-1);
 		}
 		if(inp==inend)
 			done=1;
-		if (!done)
-			enc=((int)*(inp++))&0x3F;
+		enc=((int)*(inp++))&0x3F;
 		if(add_char(outp++, enc, done, outend)) {
 			FREE_AND_NULL(tmpbuf);
 			return(-1);
