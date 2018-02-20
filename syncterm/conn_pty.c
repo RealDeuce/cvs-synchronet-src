@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.30 2018/02/20 21:04:18 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.29 2018/02/14 04:50:55 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -460,10 +460,8 @@ int pty_connect(struct bbslist *bbs)
 		xp_asprintf_free(termcap);
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
-		else {
-			if (getenv("SHELL"))
-				execl(getenv("SHELL"), getenv("SHELL"), (char *)0);
-		}
+		else
+			execl(getenv("SHELL"), getenv("SHELL"), (char *)0);
 		exit(1);
 	}
 
