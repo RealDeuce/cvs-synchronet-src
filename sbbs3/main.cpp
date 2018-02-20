@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.665 2018/02/03 23:39:27 rswindell Exp $ */
+/* $Id: main.cpp,v 1.667 2018/02/19 21:25:43 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3909,13 +3909,37 @@ int sbbs_t::incom(unsigned long timeout)
 	return(ch);
 }
 
-int sbbs_t::outcom(uchar ch)
+// Steve's original implementation (in RCIOL) did not incorporate a retry
+// ... so this function does not either. :-P
+int sbbs_t::_outcom(uchar ch)
 {
 	if(!RingBufFree(&outbuf))
 		return(TXBOF);
     if(!RingBufWrite(&outbuf, &ch, 1))
 		return(TXBOF);
 	return(0);
+}
+
+// This outcom version retries - copied loop from sbbs_t::outchar()
+int sbbs_t::outcom(uchar ch, int max_attempts)
+{
+	int i = 0;
+	while(_outcom(ch) != 0) {
+		if(!online)
+			break;
+		i++;
+		if(i >= max_attempts) {			/* timeout - beep flush outbuf */
+			lprintf(LOG_NOTICE, "timeout(outcom) %04X %04X", rioctl(TXBC), rioctl(IOFO));
+			_outcom(BEL);
+			rioctl(IOCS|PAUSE); 
+			return TXBOF;
+		} 
+		if(sys_status&SS_SYSPAGE)
+			sbbs_beep(i, OUTCOM_RETRY_DELAY);
+		else
+			mswait(OUTCOM_RETRY_DELAY); 
+	}
+	return 0;	// Success
 }
 
 int sbbs_t::putcom(const char *str, size_t len)
@@ -4916,7 +4940,7 @@ void DLLCALL bbs_thread(void* arg)
 				goto NO_SSH;
 			}
 
-			/* Ok, now try saving this one... use the syspass to enctrpy it. */
+			/* Ok, now try saving this one... use the syspass to encrypt it. */
 			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
 				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
 					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
