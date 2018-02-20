@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.71 2018/10/08 00:07:17 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.66 2018/02/12 05:09:12 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -45,9 +45,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_client$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_com$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_console$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_cryptcert$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_cryptcon$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)js_cryptkeyset$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file_area$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_global$(OFILE)\
@@ -120,7 +118,6 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 
 # Must add new additions to MONO_OBJS too!
 CON_OBJS	= $(MTOBJODIR)$(DIRSEP)sbbscon$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)sbbs_status$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
@@ -138,6 +135,7 @@ MAIL_OBJS	= $(MTOBJODIR)$(DIRSEP)mailsrvr$(OFILE) \
 WEB_OBJS	= $(MTOBJODIR)$(DIRSEP)websrvr$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ars$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)ringbuf$(OFILE)
+			
 
 # Must add new additions to MONO_OBJS too!
 SERVICE_OBJS	= $(MTOBJODIR)$(DIRSEP)services$(OFILE) \
@@ -188,7 +186,6 @@ SBBSECHO_OBJS = \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
 			$(OBJODIR)$(DIRSEP)rechocfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)msg_id$(OFILE) \
-			$(OBJODIR)$(DIRSEP)msgdate$(OFILE) \
 			$(OBJODIR)$(DIRSEP)getmail$(OFILE) \
 			$(SMB_OBJS)
 
@@ -210,7 +207,6 @@ ADDFILES_OBJS = \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
-			$(OBJODIR)$(DIRSEP)msgdate$(OFILE) \
 			$(OBJODIR)$(DIRSEP)filedat$(OFILE)
 
 FILELIST_OBJS = \
@@ -235,8 +231,7 @@ MAKEUSER_OBJS = \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
-			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
-			$(OBJODIR)$(DIRSEP)msgdate$(OFILE)
+			$(OBJODIR)$(DIRSEP)userdat$(OFILE)
 
 JSEXEC_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)jsexec$(OFILE) \
@@ -342,11 +337,4 @@ DSTSEDIT_OBJS = \
 
 READSAUCE_OBJS = \
 			$(OBJODIR)$(DIRSEP)readsauce$(OFILE)
-
-SHOWSTAT_OBJS = \
-			$(OBJODIR)$(DIRSEP)showstat$(OFILE)
-
-PKTDUMP_OBJS =		$(OBJODIR)$(DIRSEP)pktdump$(OFILE)
-
-FMSGDUMP_OBJS = 	$(OBJODIR)$(DIRSEP)fmsgdump$(OFILE)
 
