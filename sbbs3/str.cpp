@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.79 2018/02/20 11:43:08 rswindell Exp $ */
+/* $Id: str.cpp,v 1.78 2018/02/20 05:23:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,7 +159,6 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 	}
 	if(lread(file,buf,length)!=length) {
 		close(file);
-		free(buf);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
 		return; 
@@ -329,7 +328,6 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 		close(file);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
-		free(buf);
 		return; 
 	}
 	close(file);
