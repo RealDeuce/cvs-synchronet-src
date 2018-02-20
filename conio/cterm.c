@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.236 2018/02/20 21:36:24 deuce Exp $ */
+/* $Id: cterm.c,v 1.235 2018/02/20 21:16:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1392,7 +1392,7 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 					break;
 				case '!':	// Repeat
 					p++;
-					if (!*p)
+					if (!p)
 						continue;
 					cterm->sx_repeat = strtoul(p, &p, 10);
 					break;
@@ -2862,7 +2862,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.236 $";
+	char	*revision="$Revision: 1.235 $";
 	char *in;
 	char	*out;
 	int		i;
