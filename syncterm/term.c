@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.327 2018/02/11 01:43:57 rswindell Exp $ */
+/* $Id: term.c,v 1.332 2018/02/15 19:00:24 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -23,13 +23,6 @@
 #include "xmodem.h"
 #include "telnet_io.h"
 #include "saucedefs.h"
-#ifdef WITH_WXWIDGETS
-#include "htmlwin.h"
-#endif
-
-#ifdef GUTS_BUILTIN
-#include "gutsz.h"
-#endif
 
 #ifndef WITHOUT_OOII
 #include "ooii.h"
@@ -51,29 +44,9 @@ struct cterminal	*cterm;
 
 #define TRANSFER_WIN_WIDTH	66
 #define TRANSFER_WIN_HEIGHT	18
-static char winbuf[(TRANSFER_WIN_WIDTH + 2) * (TRANSFER_WIN_HEIGHT + 1) * 2];	/* Save buffer for transfer window */
-static uint32_t winbuff[(TRANSFER_WIN_WIDTH + 2) * (TRANSFER_WIN_HEIGHT + 1)];	/* Save buffer for transfer window */
-static uint32_t winbufb[(TRANSFER_WIN_WIDTH + 2) * (TRANSFER_WIN_HEIGHT + 1)];	/* Save buffer for transfer window */
+static struct vmem_cell winbuf[(TRANSFER_WIN_WIDTH + 2) * (TRANSFER_WIN_HEIGHT + 1) * 2];	/* Save buffer for transfer window */
 static struct text_info	trans_ti;
 static struct text_info	log_ti;
-#ifdef WITH_WXWIDGETS
-enum html_mode {
-	 HTML_MODE_HIDDEN
-	,HTML_MODE_ICONIZED
-	,HTML_MODE_RAISED
-	,HTML_MODE_READING
-};
-static enum html_mode html_mode=HTML_MODE_HIDDEN;
-enum {
-	 HTML_SUPPORT_UNKNOWN
-	,HTML_NOTSUPPORTED
-	,HTML_SUPPORTED
-};
-
-static int html_supported=HTML_SUPPORT_UNKNOWN;
-
-char *html_addr=NULL;
-#endif
 
 void setup_mouse_events(void)
 {
@@ -88,19 +61,14 @@ void setup_mouse_events(void)
 #if defined(__BORLANDC__)
 	#pragma argsused
 #endif
-void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrollbackb)
+void mousedrag(struct vmem_cell *scrollback)
 {
 	int	key;
 	struct mouse_event mevent;
-	unsigned char *screen;
-	uint32_t *screenf;
-	uint32_t *screenb;
+	struct vmem_cell *screen;
 	unsigned char *tscreen;
-	unsigned char *sbuffer;
-	uint32_t *sbufferf;
-	uint32_t *sbufferb;
+	struct vmem_cell *sbuffer;
 	int sbufsize;
-	size_t sbufsizep;
 	int pos, startpos,endpos, lines;
 	int outpos;
 	char *copybuf=NULL;
@@ -109,16 +77,11 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 	int old_xlat = ciolib_xlat;
 	struct ciolib_screen *savscrn;
 
-	sbufsize=term.width*2*term.height;
-	sbufsizep=term.width*sizeof(screenf[0])*term.height;
-	screen=(unsigned char*)malloc(sbufsize);
-	screenf=malloc(sbufsizep);
-	screenb=malloc(sbufsizep);
-	sbuffer=(unsigned char*)malloc(sbufsize);
-	sbufferf=malloc(sbufsizep);
-	sbufferb=malloc(sbufsizep);
-	tscreen=(unsigned char*)malloc(sbufsize);
-	pgettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen,screenf,screenb);
+	sbufsize=term.width*sizeof(*screen)*term.height;
+	screen=malloc(sbufsize);
+	sbuffer=malloc(sbufsize);
+	tscreen=malloc(term.width*2*term.height);
+	vmem_gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
 	savscrn = savescreen();
@@ -144,19 +107,17 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 				switch(mevent.event) {
 					case CIOLIB_BUTTON_1_DRAG_MOVE:
 						memcpy(sbuffer,screen,sbufsize);
-						memcpy(sbufferf,screenf,sbufsizep);
-						memcpy(sbufferb,screenb,sbufsizep);
 						for(pos=startpos;pos<=endpos;pos++) {
-							if((sbuffer[pos*2+1]&0x70)!=0x10)
-								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x10;
+							if((sbuffer[pos].legacy_attr&0x70)!=0x10)
+								sbuffer[pos].legacy_attr=(sbuffer[pos].legacy_attr&0x8F)|0x10;
 							else
-								sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x60;
-							if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
-								sbuffer[pos*2+1]|=0x08;
+								sbuffer[pos].legacy_attr=(sbuffer[pos].legacy_attr&0x8F)|0x60;
+							if(((sbuffer[pos].legacy_attr&0x70)>>4) == (sbuffer[pos].legacy_attr&0x0F)) {
+								sbuffer[pos].legacy_attr|=0x08;
 							}
-							attr2palette(sbuffer[pos*2+1], &sbufferf[pos], &sbufferb[pos]);
+							attr2palette(sbuffer[pos].legacy_attr, &sbuffer[pos].fg, &sbuffer[pos].bg);
 						}
-						pputtext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,sbuffer,sbufferf,sbufferb);
+						vmem_puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,sbuffer);
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
@@ -182,12 +143,12 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 						}
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
-						pputtext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen,screenf,screenb);
+						vmem_puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 						goto cleanup;
 				}
 				break;
 			default:
-				pputtext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen,screenf,screenb);
+				vmem_puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
 				ungetch(key);
 				goto cleanup;
 		}
@@ -195,11 +156,7 @@ void mousedrag(unsigned char *scrollback, uint32_t *scrollbackf, uint32_t *scrol
 
 cleanup:
 	free(screen);
-	free(screenf);
-	free(screenb);
 	free(sbuffer);
-	free(sbufferf);
-	free(sbufferb);
 	free(tscreen);
 	if(copybuf)
 		free(copybuf);
@@ -221,8 +178,14 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	int	timeon;
 	char sep;
 	int old_xlat = ciolib_xlat;
+	int oldfont_norm;
+	int oldfont_bright;
 
-	switch(getfont()) {
+	oldfont_norm=getfont(1);
+	oldfont_bright=getfont(2);
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	switch(getfont(1)) {
 			case 0:
 			case 17:
 			case 18:
@@ -239,8 +202,11 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 				sep = '|';
 	}
 	now=time(NULL);
-	if(now==lastupd && speed==oldspeed)
+	if(now==lastupd && speed==oldspeed) {
+		setfont(oldfont_norm,0,1);
+		setfont(oldfont_bright,0,2);
 		return;
+	}
 	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	lastupd=now;
 	oldspeed=speed;
@@ -273,6 +239,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 		strcat(nbuf, " (OOTerm2)");
 		break;
 	}
+	ciolib_setcolour(11, 4);
 	switch(cio_api.mode) {
 		case CIOLIB_MODE_CURSES:
 		case CIOLIB_MODE_CURSES_IBM:
@@ -292,6 +259,8 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	if(wherex()>=80)
 		clreol();
 	_wscroll=oldscroll;
+	setfont(oldfont_norm,0,1);
+	setfont(oldfont_bright,0,2);
 	textattr(txtinfo.attribute);
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
@@ -615,7 +584,7 @@ void draw_transfer_window(char* title)
 	left=(trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2;
 	window(1, 1, trans_ti.screenwidth, trans_ti.screenheight);
 
-	pgettext(left, top, left + TRANSFER_WIN_WIDTH + 1, top + TRANSFER_WIN_HEIGHT, winbuf, winbuff, winbufb);
+	vmem_gettext(left, top, left + TRANSFER_WIN_WIDTH + 1, top + TRANSFER_WIN_HEIGHT, winbuf);
 	memset(outline, YELLOW | (BLUE<<4), sizeof(outline));
 	for(i=2;i < sizeof(outline) - 2; i+=2) {
 		outline[i] = (char)0xcd;	/* Double horizontal line */
@@ -705,12 +674,12 @@ void draw_transfer_window(char* title)
 }
 
 void erase_transfer_window(void) {
-	pputtext(
+	vmem_puttext(
 		  ((trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2)
 		, ((trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2)
 		, ((trans_ti.screenwidth-TRANSFER_WIN_WIDTH)/2) + TRANSFER_WIN_WIDTH + 1
 		, ((trans_ti.screenheight-TRANSFER_WIN_HEIGHT)/2) + TRANSFER_WIN_HEIGHT
-		, winbuf, winbuff, winbufb);
+		, winbuf);
 	window(trans_ti.winleft, trans_ti.wintop, trans_ti.winright, trans_ti.winbottom);
 	gotoxy(trans_ti.curx, trans_ti.cury);
 	textattr(trans_ti.attribute);
@@ -870,207 +839,6 @@ static BOOL is_connected(void* unused)
 		return TRUE;
 	return(conn_connected());
 }
-
-#ifdef GUTS_BUILTIN
-static int guts_lputs(void* cbdata, int level, const char* str)
-{
-	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something useful here. */
-	/* fprintf(stderr,"%s\n",str); */
-	return(0);
-}
-
-void guts_zmodem_progress(void* cbdata, ulong current_pos)
-{
-	struct GUTS_info *gi=cbdata;
-	/* ToDo: Do something useful here. */
-	return;
-}
-
-static int guts_send_byte(void* cbdata, uchar ch, unsigned timeout)
-{
-	int	i;
-	struct GUTS_info *gi=cbdata;
-
-	if(!socket_check(gi->oob_socket, NULL, &i, timeout*1000))
-		return(-1);
-
-	if(!i)
-		return(-1);
-
-	if(send(gi->oob_socket,&ch,1,0)==-1)
-		return(-1);
-
-	return(0);
-}
-
-static int guts_recv_byte(void* cbdata, unsigned timeout)
-{
-	BOOL	data_is_waiting;
-	BYTE	ch;
-	struct GUTS_info *gi=cbdata;
-
-	if(!socket_check(gi->oob_socket, &data_is_waiting, NULL, timeout*1000))
-		return(-1);
-
-	if(!data_is_waiting)
-		return(-1);
-
-	if(recv(gi->oob_socket,&ch,1,0)!=1)
-		return(-1);
-
-	return(ch);
-}
-
-static BOOL guts_is_connected(void* cbdata)
-{
-	struct GUTS_info *gi=cbdata;
-	return socket_check(gi->oob_socket,NULL,NULL,0);
-}
-
-BOOL guts_data_waiting(void* cbdata, unsigned timeout)
-{
-	BOOL rd;
-	struct GUTS_info *gi=cbdata;
-
-	if(!socket_check(gi->oob_socket,&rd,NULL,timeout*1000))
-		return(FALSE);
-	return(rd);
-}
-
-void guts_background_download(void *cbdata)
-{
-	struct GUTS_info gi=*(struct GUTS_info *)cbdata;
-
-	zmodem_t	zm;
-	ulong		bytes_received;
-
-	SetThreadName("GUTS Download");
-	zmodem_mode=ZMODEM_MODE_RECV;
-
-	transfer_buf_len=0;
-	zmodem_init(&zm
-		,&gi
-		,guts_lputs, guts_zmodem_progress
-		,guts_send_byte,guts_recv_byte,guts_is_connected
-		,NULL /* is_cancelled */
-		,guts_data_waiting
-		,guts_flush_send);
-	zm.log_level=&log_level;
-
-	/* ToDo: This would be a good time to detach or something. */
-	zmodem_recv_files(&zm,gi.files[0],&bytes_received);
-
-	oob_close(&gi);
-}
-
-void guts_background_upload(void *cbdata)
-{
-	struct GUTS_info gi=*(struct GUTS_info *)cbdata;
-
-	zmodem_t	zm;
-	ulong	fsize;
-	FILE*	fp;
-
-	SetThreadName("GUTS Upload");
-	if((fp=fopen(gi.files[0],"rb"))==NULL) {
-		fprintf(stderr,"Error %d opening %s for read",errno,gi.files[0]);
-		return;
-	}
-
-	setvbuf(fp,NULL,_IOFBF,0x10000);
-
-
-	zmodem_mode=ZMODEM_MODE_SEND;
-
-	transfer_buf_len=0;
-	zmodem_init(&zm
-		,&gi
-		,guts_lputs, guts_zmodem_progress
-		,guts_send_byte,guts_recv_byte,guts_is_connected
-		,NULL /* is_cancelled */
-		,guts_data_waiting
-		,guts_flush_send);
-	zm.log_level=&log_level;
-
-	zm.current_file_num = zm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
-
-	fsize=filelength(fileno(fp));
-
-	if(zmodem_send_file(&zm, gi.files[0], fp
-		,/* ZRQINIT? */TRUE, /* start_time */NULL, /* sent_bytes */ NULL))
-		zmodem_get_zfin(&zm);
-
-	fclose(fp);
-
-	oob_close(&gi);
-}
-
-void guts_transfer(struct bbslist *bbs)
-{
-	struct GUTS_info gi;
-
-	if(safe_mode)
-		return;
-	setup_defaults(&gi);
-	gi.socket=conn_socket;
-	gi.telnet=bbs->conn_type==CONN_TYPE_TELNET;
-	gi.server=FALSE;
-	gi.use_daemon=FALSE;
-	gi.orig=FALSE;
-
-	if(negotiation(&gi)) {
-		oob_close(&gi);
-		return;
-	}
-
-	/* Authentication Phase */
-	if(!gi.inband) {
-		if(authenticate(&gi)) {
-			oob_close(&gi);
-			return;
-		}
-	}
-
-	if(gi.inband) {
-		if(gi.direction==UPLOAD)
-			begin_upload(bbs, TRUE);
-		else
-			zmodem_download(bbs);
-		oob_close(&gi);
-	}
-	else {
-		if(gi.direction==UPLOAD) {
-			int		result;
-			struct file_pick fpick;
-
-			init_uifc(FALSE, FALSE);
-			result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
-
-			if(result==-1 || fpick.files<1) {
-				check_exit(FALSE);
-				filepick_free(&fpick);
-				uifcbail();
-				setup_mouse_events();
-				return;
-			}
-			strListPush(&gi.files, fpick.selected[0]);
-			filepick_free(&fpick);
-
-			uifcbail();
-			setup_mouse_events();
-
-			_beginthread(guts_background_upload, 0, &gi);
-		}
-		else {
-			strListPush(&gi.files, bbs->dldir);
-			_beginthread(guts_background_download, 0, &gi);
-		}
-	}
-
-	return;
-}
-#endif
 
 void raw_upload(FILE *fp)
 {
@@ -2005,7 +1773,7 @@ void font_control(struct bbslist *bbs)
 			check_exit(FALSE);
 			break;
 		default:
-			i=j=getfont();
+			i=j=getfont(1);
 			uifc.helpbuf="`Font Setup`\n\n"
 						"Change the current font.  Font must support the current video mode:\n\n"
 						"`8x8`  Used for screen modes with 35 or more lines and all C64/C128 modes\n"
@@ -2202,117 +1970,8 @@ void capture_control(struct bbslist *bbs)
 	freescreen(savscrn);
 }
 
-#ifdef WITH_WXWIDGETS
-void html_send(const char *buf)
-{
-	conn_send((char *)buf,strlen(buf),0);
-}
-
-static char cachedir[MAX_PATH+6];
-static int cachedirlen=0;
-
-void html_cleanup(void)
-{
-	if(cachedirlen)
-		delfiles(cachedir+5,ALLFILES);
-}
-
-int html_urlredirect(const char *uri, char *buf, size_t bufsize, char *uribuf, size_t uribufsize)
-{
-	char *in;
-	size_t out;
-
-	if(!cachedirlen) {
-		strcpy(cachedir,"file:");
-		get_syncterm_filename(cachedir+5, sizeof(cachedir)-5, SYNCTERM_PATH_CACHE, FALSE);
-		cachedirlen=strlen(cachedir);
-		html_cleanup();
-	}
-
-	if(!memcmp(uri, cachedir, cachedirlen)) {
-		/* Reading from the cache... no redirect */
-		return(URL_ACTION_ISGOOD);
-	}
-
-	strncpy(buf, cachedir, bufsize);
-	buf[bufsize-1]=0;
-	backslash(buf);
-	/* Append mangledname */
-	in=(char *)uri;
-	out=strlen(buf);
-	while(*in && out < bufsize-1) {
-		char ch;
-		ch=*(in++);
-		if(ch < ' ')
-			ch='^';
-		if(ch > 126)
-			ch='~';
-		switch(ch) {
-			case '*':
-			case '?':
-			case ':':
-			case '[':
-			case ']':
-			case '"':
-			case '<':
-			case '>':
-			case '|':
-			case '(':
-			case ')':
-			case '{':
-			case '}':
-			case '/':
-			case '\\':
-				buf[out++]='_';
-				break;
-			default:
-				buf[out++]=ch;
-		}
-	}
-	buf[out]=0;
-
-	/* We now have the cache filename... does it already exist? */
-	if(fexist(buf+5))
-		return(URL_ACTION_REDIRECT);
-
-	/* If not, we need to fetch it... convert relative URIs */
-	if(strstr(uri,"://")) {
-		/* Good URI */
-		strncpy(uribuf, uri, uribufsize);
-		uribuf[uribufsize-1]=0;
-		return(URL_ACTION_DOWNLOAD);
-	}
-
-	strcpy(uribuf, "http://");
-	if(html_addr)
-		strcat(uribuf, html_addr);
-	if(uri[0]!='/')
-		strcat(uribuf, "/");
-	strcat(uribuf,uri);
-
-	return(URL_ACTION_DOWNLOAD);
-}
-
-#endif
-
 #define OUTBUF_SIZE	2048
 
-#ifdef WITH_WXWIDGETS
-#define WRITE_OUTBUF()	\
-	if(outbuf_size > 0) { \
-		cterm_write(cterm, outbuf, outbuf_size, (char *)ansi_replybuf, sizeof(ansi_replybuf), &speed); \
-		outbuf_size=0; \
-		if(html_mode==HTML_MODE_RAISED) { \
-			if(html_startx != wherex() || html_starty != wherey()) { \
-				iconize_html(); \
-				html_mode=HTML_MODE_ICONIZED; \
-			} \
-		} \
-		if(ansi_replybuf[0]) \
-			conn_send(ansi_replybuf, strlen((char *)ansi_replybuf), 0); \
-		updated=TRUE; \
-	}
-#else
 #define WRITE_OUTBUF()	\
 	if(outbuf_size > 0) { \
 		cterm_write(cterm, outbuf, outbuf_size, (char *)ansi_replybuf, sizeof(ansi_replybuf), &speed); \
@@ -2321,7 +1980,6 @@ int html_urlredirect(const char *uri, char *buf, size_t bufsize, char *uribuf, s
 			conn_send(ansi_replybuf, strlen((char *)ansi_replybuf), 0); \
 		updated=TRUE; \
 	}
-#endif
 
 static int get_cache_fn_base(struct bbslist *bbs, char *fn, size_t fnsz)
 {
@@ -2518,22 +2176,10 @@ BOOL doterm(struct bbslist *bbs)
 	int	key;
 	int i,j;
 	unsigned char *p,*p2;
-	uint32_t *up;
+	struct vmem_cell *vc;
 	BYTE zrqinit[] = { ZDLE, ZHEX, '0', '0', 0 };	/* for Zmodem auto-downloads */
 	BYTE zrinit[] = { ZDLE, ZHEX, '0', '1', 0 };	/* for Zmodem auto-uploads */
 	BYTE zrqbuf[sizeof(zrqinit)];
-#ifdef GUTS_BUILTIN
-	BYTE gutsinit[] = { ESC, '[', '{' };	/* For GUTS auto-transfers */
-	BYTE gutsbuf[sizeof(gutsinit)];
-#endif
-#ifdef WITH_WXWIDGETS
-	BYTE htmldetect[]="\2\2?HTML?";
-	BYTE htmlresponse[]="\2\2!HTML!";
-	BYTE htmlstart[]="\2\2<HTML>";
-	BYTE htmldet[sizeof(htmldetect)];
-	int html_startx;
-	int html_starty;
-#endif
 	int	inch;
 	long double nextchar=0;
 	long double lastchar=0;
@@ -2561,27 +2207,13 @@ BOOL doterm(struct bbslist *bbs)
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
 	setup_mouse_events();
-	p=(unsigned char *)realloc(scrollback_buf, term.width*2*settings.backlines);
-	if(p != NULL) {
-		scrollback_buf=p;
-		memset(scrollback_buf,0,term.width*2*settings.backlines);
+	vc=realloc(scrollback_buf, term.width*sizeof(*vc)*settings.backlines);
+	if(vc != NULL) {
+		scrollback_buf=vc;
+		memset(scrollback_buf,0,term.width*sizeof(*vc)*settings.backlines);
 	}
 	else
 		FREE_AND_NULL(scrollback_buf);
-	up=realloc(scrollback_fbuf, term.width*sizeof(scrollback_fbuf[0])*settings.backlines);
-	if(up != NULL) {
-		scrollback_fbuf=up;
-		memset(scrollback_fbuf,0,term.width*sizeof(scrollback_fbuf[0])*settings.backlines);
-	}
-	else
-		FREE_AND_NULL(scrollback_fbuf);
-	up=realloc(scrollback_bbuf, term.width*sizeof(scrollback_bbuf[0])*settings.backlines);
-	if(up != NULL) {
-		scrollback_bbuf=up;
-		memset(scrollback_bbuf,0,term.width*sizeof(scrollback_bbuf[0])*settings.backlines);
-	}
-	else
-		FREE_AND_NULL(scrollback_bbuf);
 	scrollback_lines=0;
 	scrollback_mode=txtinfo.currmode;
 	switch(bbs->screen_mode) {
@@ -2595,7 +2227,7 @@ BOOL doterm(struct bbslist *bbs)
 			emulation = CTERM_EMULATION_ATASCII;
 			break;
 	}
-	cterm=cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf,scrollback_fbuf,scrollback_bbuf, emulation);
+	cterm=cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf, emulation);
 	if(!cterm) {
 		FREE_AND_NULL(cterm);
 		return FALSE;
@@ -2608,12 +2240,6 @@ BOOL doterm(struct bbslist *bbs)
 	zrqbuf[0]=0;
 #ifndef WITHOUT_OOII
 	ooii_buf[0]=0;
-#endif
-#ifdef GUTS_BUILTIN
-	gutsbuf[0]=0;
-#endif
-#ifdef WITH_WXWIDGETS
-	htmldet[0]=0;
 #endif
 
 	/* Main input loop */
@@ -2637,13 +2263,6 @@ BOOL doterm(struct bbslist *bbs)
 						if(!is_connected(NULL)) {
 							WRITE_OUTBUF();
 							hold_update=oldmc;
-#ifdef WITH_WXWIDGETS
-							if(html_mode != HTML_MODE_HIDDEN) {
-								hide_html();
-								html_cleanup();
-								html_mode=HTML_MODE_HIDDEN;
-							}
-#endif
 							uifcmsg("Disconnected","`Disconnected`\n\nRemote host dropped connection");
 							check_exit(FALSE);
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
@@ -2659,68 +2278,6 @@ BOOL doterm(struct bbslist *bbs)
 							lastchar = xp_timer();
 							nextchar = lastchar + 1/(long double)(speed/10);
 						}
-
-#ifdef GUTS_BUILTIN
-						j=strlen(gutsbuf);
-						if(inch == gutsinit[j]) {
-							gutsbuf[j]=inch;
-							gutsbuf[++j]=0;
-							if(j==sizeof(gutsinit)) { /* Have full sequence */
-								WRITE_OUTBUF();
-								guts_transfer(bbs);
-								remain=1;
-							}
-						}
-						else
-							gutsbuf[0]=0;
-#endif
-#ifdef WITH_WXWIDGETS
-						if(html_mode==HTML_MODE_READING) {
-							if(inch==2) {
-								html_startx=wherex();
-								html_starty=wherey();
-								html_commit();
-								raise_html();
-								html_mode=HTML_MODE_RAISED;
-							}
-							else {
-								add_html_char(inch);
-							}
-							continue;
-						}
-
-						j=strlen(htmldet);
-						if(inch == htmldetect[j] || toupper(inch)==htmlstart[j]) {
-							htmldet[j]=inch;
-							htmldet[++j]=0;
-							if(j==sizeof(htmldetect)-1) {
-								WRITE_OUTBUF();
-								if(!strcmp(htmldet, htmldetect)) {
-									if(html_supported==HTML_SUPPORT_UNKNOWN) {
-										int width,height,xpos,ypos;
-										html_addr=bbs->addr;
-
-										get_window_info(&width, &height, &xpos, &ypos);
-										if(!run_html(width, height, xpos, ypos, html_send, html_urlredirect))
-											html_supported=HTML_SUPPORTED;
-										else
-											html_supported=HTML_NOTSUPPORTED;
-									}
-									if(html_supported==HTML_SUPPORTED) {
-										conn_send(htmlresponse, sizeof(htmlresponse)-1, 0);
-										hide_html();
-									}
-								}
-								else {
-									show_html("");
-									html_mode=HTML_MODE_READING;
-								}
-								htmldet[0]=0;
-							}
-						}
-						else
-							htmldet[0]=0;
-#endif
 
 						j=strlen((char *)zrqbuf);
 						if(inch == zrqinit[j] || inch == zrinit[j]) {
@@ -2842,7 +2399,7 @@ BOOL doterm(struct bbslist *bbs)
 					getmouse(&mevent);
 					switch(mevent.event) {
 						case CIOLIB_BUTTON_1_DRAG_START:
-							mousedrag(scrollback_buf, scrollback_fbuf, scrollback_bbuf);
+							mousedrag(scrollback_buf);
 							key = 0;
 							break;
 						case CIOLIB_BUTTON_2_CLICK:
@@ -2892,8 +2449,6 @@ BOOL doterm(struct bbslist *bbs)
 						freescreen(savscrn);
 						if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
 							cterm->scrollback = scrollback_buf;
-							cterm->scrollbackf = scrollback_fbuf;
-							cterm->scrollbackb = scrollback_bbuf;
 							cterm->backlines = settings.backlines;
 							if(cterm->backpos>cterm->backlines)
 								cterm->backpos=cterm->backlines;
@@ -2950,14 +2505,10 @@ BOOL doterm(struct bbslist *bbs)
 					// Fallthrough
 				case 0x2300:	/* Alt-H - Hangup */
 					{
+						struct ciolib_screen *savscrn;
+						savscrn = savescreen();
 						if(quitting || confirm("Disconnect... Are you sure?", "Selecting Yes closes the connection\n")) {
-#ifdef WITH_WXWIDGETS
-							if(html_mode != HTML_MODE_HIDDEN) {
-								hide_html();
-								html_cleanup();
-								html_mode=HTML_MODE_HIDDEN;
-							}
-#endif
+							freescreen(savscrn);
 							setup_mouse_events();
 							cterm_clearscreen(cterm,cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
@@ -2967,10 +2518,9 @@ BOOL doterm(struct bbslist *bbs)
 							hold_update=oldmc;
 							return(key==0x2d00 /* Alt-X? */ || key == CIO_KEY_QUIT);
 						}
+						restorescreen(savscrn);
+						freescreen(savscrn);
 						setup_mouse_events();
-						window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
-						textattr(txtinfo.attribute);
-						gotoxy(txtinfo.curx,txtinfo.cury);
 						showmouse();
 					}
 					key = 0;
@@ -2987,13 +2537,6 @@ BOOL doterm(struct bbslist *bbs)
 					j=wherey();
 					switch(syncmenu(bbs, &speed)) {
 						case -1:
-#ifdef WITH_WXWIDGETS
-							if(html_mode != HTML_MODE_HIDDEN) {
-								hide_html();
-								html_cleanup();
-								html_mode=HTML_MODE_HIDDEN;
-							}
-#endif
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
@@ -3033,14 +2576,6 @@ BOOL doterm(struct bbslist *bbs)
 								xptone_open();
 							break;
 						case 12:
-#endif
-				
-#ifdef WITH_WXWIDGETS
-							if(html_mode != HTML_MODE_HIDDEN) {
-								hide_html();
-								html_cleanup();
-								html_mode=HTML_MODE_HIDDEN;
-							}
 #endif
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
