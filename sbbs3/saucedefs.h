@@ -1,7 +1,7 @@
 // ANSI/Block/RIP artwork file SAUCE record definitions
 // Derived from here: http://www.acid.org/info/sauce/sauce.htm
 // vi: tabstop=4
-// $Id: saucedefs.h,v 1.1 2018/01/18 03:46:09 rswindell Exp $
+// $Id: saucedefs.h,v 1.2 2018/02/12 04:03:34 rswindell Exp $
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,7 @@ enum sauce_datatype {
 };
 
 enum sauce_char_filetype {
-	 sauce_char_filetype_none
-	,sauce_char_filetype_ascii
+	 sauce_char_filetype_ascii
 	,sauce_char_filetype_ansi
 	,sauce_char_filetype_ansimation
 	,sauce_char_filetype_rip
