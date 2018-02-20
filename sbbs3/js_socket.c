@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.192 2018/03/03 02:02:31 deuce Exp $ */
+/* $Id: js_socket.c,v 1.185 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,8 +117,6 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 	ptrdiff_t	total=0;
 	int	copied,ret;
 	
-	if (len == 0)
-		return total;
 	if(p->session==-1)
 		return(recv(p->sock, buf, len, flags));	/* Blocked here, indefinitely, in MSP-UDP service */
 #if 0
@@ -136,8 +134,7 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			buf=((uint8_t *)buf) + copied;
 		}
 		else {
-			if (ret != CRYPT_ERROR_COMPLETE)
-				lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
+			lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
 			if (total > 0)
 				return total;
 			do_js_close(p);
@@ -408,10 +405,8 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 					}
 				}
 				else {
-					if (p->sock != INVALID_SOCKET) {
-						if(FD_ISSET(p->sock, fds))
-							return TRUE;
-					}
+					if(FD_ISSET(p->sock, fds))
+						return TRUE;
 				}
 			}
 		}
@@ -1612,7 +1607,6 @@ enum {
 	,SOCK_PROP_TYPE
 	,SOCK_PROP_NETWORK_ORDER
 	,SOCK_PROP_SSL_SESSION
-	,SOCK_PROP_SSL_SERVER
 
 };
 
@@ -1637,7 +1631,6 @@ static char* socket_prop_desc[] = {
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
 	,"set to <i>true</i> to enable SSL as a client on the socket"
-	,"set to <i>true</i> to enable SSL as a server on the socket"
 	,NULL
 };
 #endif
@@ -1650,8 +1643,6 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 	jsrefcount	rc;
 	BOOL		b;
 	int32		i;
-	char ssl_estr[SSL_ESTR_LEN];
-	scfg_t *scfg;
 
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		// Prototype access
@@ -1696,59 +1687,37 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 			if(!b)
 				shutdown(p->sock,SHUT_WR);
 			break;
-		case SOCK_PROP_SSL_SERVER:
 		case SOCK_PROP_SSL_SESSION:
 			JS_ValueToBoolean(cx,*vp,&b);
 			rc=JS_SUSPENDREQUEST(cx);
 			if(b) {
 				if(p->session==-1) {
-					int ret = CRYPT_ERROR_NOTINITED;
+					int ret;
 
 					if(do_cryptInit()) {
-						if((ret=cryptCreateSession(&p->session, CRYPT_UNUSED, tiny == SOCK_PROP_SSL_SESSION ? CRYPT_SESSION_SSL: CRYPT_SESSION_SSL_SERVER))==CRYPT_OK) {
+						if((ret=cryptCreateSession(&p->session, CRYPT_UNUSED, CRYPT_SESSION_SSL))==CRYPT_OK) {
 							ulong nb=0;
 							ioctlsocket(p->sock,FIONBIO,&nb);
 							nb=1;
 							setsockopt(p->sock,IPPROTO_TCP,TCP_NODELAY,(char*)&nb,sizeof(nb));
 							if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_NETWORKSOCKET, p->sock))==CRYPT_OK) {
-								// Reduced compliance checking... required for acme-staging-v02.api.letsencrypt.org
-								do_cryptAttribute(p->session, CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_REDUCED);
-								if (tiny == SOCK_PROP_SSL_SESSION) {
-									ret=do_cryptAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname));
-									p->tls_server = FALSE;
-								}
-								else {
-									scfg = JS_GetRuntimePrivate(JS_GetRuntime(cx));
-
-									if (scfg == NULL) {
-										ret = CRYPT_ERROR_NOTAVAIL;
-									}
-									else {
-										get_ssl_cert(scfg, ssl_estr);
-										if (scfg->tls_certificate == -1)
-											ret = CRYPT_ERROR_NOTAVAIL;
-										else {
-											ret = cryptSetAttribute(p->session, CRYPT_SESSINFO_PRIVATEKEY, scfg->tls_certificate);
+//								if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_VERSION, 0))==CRYPT_OK) {
+									if((ret=do_cryptAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname)))==CRYPT_OK) {
+										if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK) {
+											cryptDestroySession(p->session);
+											p->session=-1;
+											ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
 										}
 									}
-								}
-								if(ret==CRYPT_OK) {
-									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK) {
-										char *estr = get_crypt_error(p->session);
-										lprintf(LOG_ERR, "Error setting session active: %s\n", estr);
-										free_crypt_attrstr(estr);
-									}
-								}
+//								}
+							}
+							else {
+								cryptDestroySession(p->session);
+								p->session=-1;
+								ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
 							}
 						}
-					}
-					if (ret != CRYPT_OK) {
-						if (p->session != -1)
-							cryptDestroySession(p->session);
-						p->session=-1;
-						ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-						closesocket(p->sock);
-						p->sock = INVALID_SOCKET;
+						else lprintf(LOG_ERR,"cryptCreateSession() Error %d",ret);
 					}
 				}
 			}
@@ -1757,8 +1726,6 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 					cryptDestroySession(p->session);
 					p->session=-1;
 					ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-					closesocket(p->sock);
-					p->sock = INVALID_SOCKET;
 				}
 			}
 			JS_RESUMEREQUEST(cx, rc);
@@ -1892,9 +1859,6 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SOCK_PROP_SSL_SESSION:
 			*vp = BOOLEAN_TO_JSVAL(p->session != -1);
 			break;
-		case SOCK_PROP_SSL_SERVER:
-			*vp = BOOLEAN_TO_JSVAL(p->session != -1 && p->tls_server);
-			break;
 	}
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -1923,7 +1887,6 @@ static jsSyncPropertySpec js_socket_properties[] = {
 	{	"type"				,SOCK_PROP_TYPE			,SOCK_PROP_FLAGS,	310 },
 	{	"network_byte_order",SOCK_PROP_NETWORK_ORDER,JSPROP_ENUMERATE,	311 },
 	{	"ssl_session"		,SOCK_PROP_SSL_SESSION	,JSPROP_ENUMERATE,	316	},
-	{	"ssl_server"		,SOCK_PROP_SSL_SERVER	,JSPROP_ENUMERATE,	316	},
 	{0}
 };
 
