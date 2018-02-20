@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.75 2018/03/07 02:48:29 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.73 2017/12/29 06:02:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -660,7 +660,6 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	put_int(cfg->cdt_up_pct,stream);
 	put_int(cfg->cdt_dn_pct,stream);
 	put_int(l,stream);					/* unused */
-	memset(cmd, 0, sizeof(cmd));
 	put_str(cmd,stream);
 	put_int(cfg->leech_pct,stream);
 	put_int(cfg->leech_sec,stream);
@@ -814,8 +813,8 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
-						safe_snprintf(path, sizeof(path), "%s%s/"
-							, cfg->dir[i]->data_dir
+						safe_snprintf(path, sizeof(path), "%sdirs/%s/"
+							, cfg->data_dir
 							, str);
 					}
 					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
