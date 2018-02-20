@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.101 2018/07/25 04:20:05 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.97 2018/02/20 05:05:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,8 +316,7 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 	SAFECOPY(match,path);
 	backslash(match);
 	SAFECAT(match,ALLFILES);
-	if (glob(match,GLOB_MARK,NULL,&g) != 0)
-		return 0;
+	glob(match,GLOB_MARK,NULL,&g);
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -722,13 +721,11 @@ int removecase(const char *path)
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
 /* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
-long DLLCALL delfiles(const char *inpath, const char *spec)
+ulong DLLCALL delfiles(const char *inpath, const char *spec)
 {
 	char	*path;
 	char	lastch;
-	size_t	i;
-    long	files = 0;
-	long	errors = 0;
+    uint	i,files=0;
 	glob_t	g;
 	size_t	inpath_len=strlen(inpath);
 
@@ -749,16 +746,12 @@ long DLLCALL delfiles(const char *inpath, const char *spec)
 	for(i=0;i<g.gl_pathc;i++) {
 		if(isdir(g.gl_pathv[i]))
 			continue;
-		CHMOD(g.gl_pathv[i],S_IWRITE);	/* In case it's been marked RDONLY */
+		CHMOD(g.gl_pathv[i],S_IWRITE);	/* Incase it's been marked RDONLY */
 		if(remove(g.gl_pathv[i])==0)
 			files++;
-		else
-			errors++;
 	}
 	globfree(&g);
-	if(errors)
-		return -errors;
-	return files;
+	return(files);
 }
 
 /****************************************************************************/
@@ -1038,7 +1031,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || (isalpha(filename[0]) && filename[1]==':')
+		|| filename[0]=='\\' || filename[1]==':'
 #endif
 		);
 }
