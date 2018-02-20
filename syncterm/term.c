@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.337 2018/03/09 07:02:38 deuce Exp $ */
+/* $Id: term.c,v 1.335 2018/02/20 20:30:18 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -303,35 +303,35 @@ static BOOL zmodem_check_abort(void* vp)
 	time_t					now=time(NULL);
 	int						key;
 
-	if (zm == NULL)
-		return TRUE;
-	if (quitting) {
+	if (quitting || zm == NULL) {
 		zm->cancelled=TRUE;
 		zm->local_abort=TRUE;
 		return TRUE;
 	}
 	if(last_check != now) {
 		last_check=now;
-		while(kbhit()) {
-			switch((key=getch())) {
-				case ESC:
-				case CTRL_C:
-				case CTRL_X:
-					zm->cancelled=TRUE;
-					zm->local_abort=TRUE;
-					break;
-				case 0:
-				case 0xe0:
-					key |= (getch() << 8);
-					if(key==CIO_KEY_MOUSE)
-						getmouse(NULL);
-					if (key==CIO_KEY_QUIT) {
-						if (check_exit(FALSE)) {
-							zm->cancelled=TRUE;
-							zm->local_abort=TRUE;
+		if(zm!=NULL) {
+			while(kbhit()) {
+				switch((key=getch())) {
+					case ESC:
+					case CTRL_C:
+					case CTRL_X:
+						zm->cancelled=TRUE;
+						zm->local_abort=TRUE;
+						break;
+					case 0:
+					case 0xe0:
+						key |= (getch() << 8);
+						if(key==CIO_KEY_MOUSE)
+							getmouse(NULL);
+						if (key==CIO_KEY_QUIT) {
+							if (check_exit(FALSE)) {
+								zm->cancelled=TRUE;
+								zm->local_abort=TRUE;
+							}
 						}
-					}
-					break;
+						break;
+				}
 			}
 		}
 	}
@@ -1532,7 +1532,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					goto end; 
 				}
 				file_bytes=total_bytes=0;
-				total_files=0;
+				ftime=total_files=0;
 				i=sscanf(((char *)block)+strlen((char *)block)+1,"%"PRId64" %lo %lo %lo %d %"PRId64
 					,&file_bytes			/* file size (decimal) */
 					,&tmpftime 				/* file time (octal unix format) */
@@ -2395,6 +2395,7 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=0;
 						ch[1]=key>>8;
 						conn_send(ch,2,0);
+						key=0;
 						continue;
 					}
 				}
@@ -2408,6 +2409,7 @@ BOOL doterm(struct bbslist *bbs)
 					switch(mevent.event) {
 						case CIOLIB_BUTTON_1_DRAG_START:
 							mousedrag(scrollback_buf);
+							key = 0;
 							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
@@ -2424,6 +2426,7 @@ BOOL doterm(struct bbslist *bbs)
 								}
 								free(p);
 							}
+							key = 0;
 							break;
 					}
 
