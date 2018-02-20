@@ -1,6 +1,6 @@
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.64 2018/10/26 03:22:24 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.60 2016/12/01 21:42:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,6 +170,36 @@ void sbbs_t::log(char *str)
 		logcol+=strlen(str);
 }
 
+bool sbbs_t::syslog(const char* code, const char *entry)
+{		
+	char	fname[MAX_PATH+1];
+	char	tmp[64];
+	FILE*	fp;
+	struct tm tm;
+
+	now=time(NULL);
+	if(localtime_r(&now,&tm)==NULL)
+		return false;
+	safe_snprintf(fname, sizeof(fname), "%slogs/%2.2d%2.2d%2.2d.log"
+		,cfg.logs_dir
+		,tm.tm_mon+1
+		,tm.tm_mday
+		,TM_YEAR(tm.tm_year));
+	if((fp = fnopen(NULL, fname,O_WRONLY|O_APPEND|O_CREAT)) == NULL) {
+		lprintf(LOG_ERR,"!ERRROR %d opening/creating %s",errno,fname); 
+		return false;
+	}
+	fprintf(fp, "%-2.2s %s  %s%s%s"
+		,code
+		,hhmmtostr(&cfg,&tm,tmp)
+		,entry
+		,log_line_ending
+		,log_line_ending);
+	fclose(fp);
+
+	return true;
+}
+
 /****************************************************************************/
 /* Writes 'str' on it's own line in node.log (using LOG_INFO level)			*/
 /****************************************************************************/
@@ -183,8 +213,12 @@ void sbbs_t::logline(const char *code, const char *str)
 /****************************************************************************/
 void sbbs_t::logline(int level, const char *code, const char *str)
 {
-	if(strchr(str,'\n')==NULL) 	// Keep the console log pretty
-		lputs(level, str);
+	if(strchr(str,'\n')==NULL) {	// Keep the console log pretty
+		if(online==ON_LOCAL)
+			eprintf(level,"%s",str);
+		else
+			lprintf(level,"Node %d %s", cfg.node_num, str);
+	}
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
 		fputs(log_line_ending, logfile_fp);
@@ -251,11 +285,13 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 		,src, line, function, action, object, access
 		,extinfo==NULL ? "":"info="
 		,extinfo==NULL ? "":extinfo);
-	if(online==ON_LOCAL) {
+	if(online==ON_LOCAL)
 		eprintf(LOG_ERR,"%s",str);
-	} else {
+	else {
 		int savatr=curatr;
-		lprintf(LOG_ERR, "!%s", str);
+		if(useron.number)
+			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
+		lprintf(LOG_ERR,"Node %d !%s",cfg.node_num, str);
 		attr(cfg.color[clr_err]);
 		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
 		bputs("\r\nThe sysop has been notified.\r\n");
