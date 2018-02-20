@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.165 2018/02/14 04:37:26 deuce Exp $ */
+/* $Id: ciolib.c,v 1.169 2018/02/20 19:44:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1396,9 +1396,10 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_vmem_gettext(int a,int b,int c,int d,struct v
 		buf = malloc((c-a+1)*(d-b+1)*sizeof(*buf));
 		if (buf == NULL)
 			return 0;
-		ret = ciolib_gettext(a, b, c, d, e);
+		ret = ciolib_gettext(a, b, c, d, buf);
 		if (ret) {
 			for (i=0; i<(c-a+1)*(d-b+1); i++) {
+				memset(&e[i], 0, sizeof(e[0]));
 				e[i].ch = buf[i] & 0xff;
 				e[i].legacy_attr = buf[i] >> 8;
 			}
@@ -1462,7 +1463,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a)
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 {
 	unsigned char a1=ch;
-	struct vmem_cell buf;
+	struct vmem_cell buf[1];
 	int i;
 	int old_puttext_can_move=puttext_can_move;
 
@@ -1473,11 +1474,11 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 
 	puttext_can_move=1;
 
-	buf.ch=a1;
-	buf.legacy_attr=cio_textinfo.attribute;
-	buf.fg = ciolib_fg;
-	buf.bg = ciolib_bg;
-	buf.font = ciolib_attrfont(cio_textinfo.attribute);
+	buf[0].ch=a1;
+	buf[0].legacy_attr=cio_textinfo.attribute;
+	buf[0].fg = ciolib_fg;
+	buf[0].bg = ciolib_bg;
+	buf[0].font = ciolib_attrfont(cio_textinfo.attribute);
 
 	switch(a1) {
 		case '\r':
@@ -1492,12 +1493,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 		case '\b':
 			if(cio_textinfo.curx>1) {
 				ciolib_gotoxy(cio_textinfo.curx-1,cio_textinfo.cury);
-				buf.ch=' ';
+				buf[0].ch=' ';
 				ciolib_vmem_puttext(cio_textinfo.curx+cio_textinfo.winleft-1
 						,cio_textinfo.cury+cio_textinfo.wintop-1
 						,cio_textinfo.curx+cio_textinfo.winleft-1
 						,cio_textinfo.cury+cio_textinfo.wintop-1
-						,&buf);
+						,buf);
 			}
 			break;
 		case 7:		/* Bell */
@@ -1506,13 +1507,13 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 		case '\t':
 			for(i=0;i<(sizeof(tabs)/sizeof(int));i++) {
 				if(tabs[i]>cio_textinfo.curx) {
-					buf.ch=' ';
+					buf[0].ch=' ';
 					while(cio_textinfo.curx<tabs[i]) {
 						ciolib_vmem_puttext(cio_textinfo.curx+cio_textinfo.winleft-1
 								,cio_textinfo.cury+cio_textinfo.wintop-1
 								,cio_textinfo.curx+cio_textinfo.winleft-1
 								,cio_textinfo.cury+cio_textinfo.wintop-1
-								,&buf);
+								,buf);
 						ciolib_gotoxy(cio_textinfo.curx+1,cio_textinfo.cury);
 						if(cio_textinfo.curx==cio_textinfo.screenwidth)
 							break;
@@ -1535,7 +1536,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 						,ciolib_wherey()+cio_textinfo.wintop-1
 						,ciolib_wherex()+cio_textinfo.winleft-1
 						,ciolib_wherey()+cio_textinfo.wintop-1
-						,&buf);
+						,buf);
 				ciolib_wscroll();
 				ciolib_gotoxy(1, cio_textinfo.winbottom-cio_textinfo.wintop+1);
 			}
@@ -1545,7 +1546,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 							,ciolib_wherey()+cio_textinfo.wintop-1
 							,ciolib_wherex()+cio_textinfo.winleft-1
 							,ciolib_wherey()+cio_textinfo.wintop-1
-							,&buf);
+							,buf);
 					ciolib_gotoxy(1,cio_textinfo.cury+1);
 				}
 				else {
@@ -1553,7 +1554,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 							,ciolib_wherey()+cio_textinfo.wintop-1
 							,ciolib_wherex()+cio_textinfo.winleft-1
 							,ciolib_wherey()+cio_textinfo.wintop-1
-							,&buf);
+							,buf);
 					ciolib_gotoxy(cio_textinfo.curx+1, cio_textinfo.cury);
 				}
 			}
@@ -1843,18 +1844,18 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 
 	ciolib_gettextinfo(&ret->text_info);
 	vmode = find_vmode(ret->text_info.currmode);
-	ret->vmem = malloc(vparams[vmode].cols * vparams[vmode].rows * sizeof(struct vmem_cell));
+	ret->vmem = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(struct vmem_cell));
 	if (ret->vmem == NULL) {
 		free(ret);
 		return NULL;
 	}
-	ret->foreground = malloc(vparams[vmode].cols * vparams[vmode].rows * sizeof(ret->foreground[0]));
+	ret->foreground = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->foreground[0]));
 	if (ret->foreground == NULL) {
 		free(ret->vmem);
 		free(ret);
 		return NULL;
 	}
-	ret->background = malloc(vparams[vmode].cols * vparams[vmode].rows * sizeof(ret->background[0]));
+	ret->background = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->background[0]));
 	if (ret->background == NULL) {
 		free(ret->foreground);
 		free(ret->vmem);
@@ -1862,8 +1863,10 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 		return NULL;
 	}
 
-	ret->pixels = ciolib_getpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1);
-	ciolib_vmem_gettext(1, 1, vparams[vmode].cols, vparams[vmode].rows, ret->vmem);
+	if (vmode != -1) {
+		ret->pixels = ciolib_getpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1);
+	}
+	ciolib_vmem_gettext(1, 1, ret->text_info.screenwidth, ret->text_info.screenheight, ret->vmem);
 	ret->fg_colour = ciolib_fg;
 	ret->bg_colour = ciolib_bg;
 
@@ -1898,7 +1901,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 	ciolib_textcolor(scrn->text_info.attribute);
 	ciolib_window(scrn->text_info.winleft, scrn->text_info.wintop, scrn->text_info.winright, scrn->text_info.winbottom);
 	vmode = find_vmode(scrn->text_info.currmode);
-	ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
+	if (vmode != -1)
+		ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
 	ciolib_setcolour(scrn->fg_colour, scrn->bg_colour);
 	ciolib_gotoxy(scrn->text_info.curx, scrn->text_info.cury);
 	return 1;
@@ -1964,4 +1968,49 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr)
 	if ((flags * CIOLIB_VIDEO_BLINKALTCHARS) && (attr & 0x80))
 		font |= 2;
 	return ciolib_getfont(font+1);
+}
+
+/* Returns non-zero if fontnum is supported in this mode */
+CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int fontnum)
+{
+	int vmode;
+	struct text_info ti;
+
+	CIOLIB_INIT();
+
+	if (fontnum < 0 || fontnum > 255)
+		return 0;
+
+	// Font 0 is always supported.
+	if (fontnum == 0)
+		return 1;
+
+	ciolib_gettextinfo(&ti);
+	vmode = find_vmode(ti.currmode);
+
+	if (cio_api.checkfont != NULL)
+		return cio_api.checkfont(fontnum);
+	if (vmode == -1)
+		return 0;
+
+	if (cio_api.options & CONIO_OPT_FONT_SELECT) {
+		switch (vparams[vmode].charheight) {
+			case 8:
+				if (conio_fontdata[fontnum].eight_by_eight)
+					return 1;
+				return 0;
+			case 14:
+				if (conio_fontdata[fontnum].eight_by_fourteen)
+					return 1;
+				return 0;
+			case 16:
+				if (conio_fontdata[fontnum].eight_by_sixteen)
+					return 1;
+				return 0;
+			default:
+				return 0;
+		}
+	}
+	return 0;
+
 }
