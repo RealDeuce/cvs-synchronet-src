@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.77 2018/01/12 22:15:43 rswindell Exp $ */
+/* $Id: str.cpp,v 1.78 2018/02/20 05:23:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -850,6 +850,7 @@ char* sbbs_t::datestr(time_t t)
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
+	char	path[MAX_PATH+1];
 	uint	i;
 	stats_t stats;
 
@@ -875,12 +876,13 @@ void sbbs_t::sys_info()
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	if(text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	SAFEPRINTF(path, "%ssystem.msg", cfg.text_dir);
+	if(fexistcase(path) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
-		sprintf(tmp,"%ssystem.msg", cfg.text_dir);
-		printfile(tmp,0); 
+		printfile(path,0); 
 	}
-	if(text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	SAFEPRINTF(path, "%smenu/logon.asc", cfg.text_dir);
+	if(fexistcase(path) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
 		menu("logon"); 
 	}
