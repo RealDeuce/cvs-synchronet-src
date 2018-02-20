@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.109 2016/11/19 09:21:37 sbbs Exp $ */
+/* $Id: genwrap.h,v 1.111 2018/02/16 05:25:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -276,9 +276,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#if !(defined(_MSC_VER) || defined(__MSVCRT__))	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
-		#define tzname			_tzname
-	#endif
+	#define tzname			_tzname
 
 #elif defined(__OS2__)
 
@@ -370,6 +368,7 @@ DLLEXPORT char		DLLCALL c_unescape_char(char ch);
 DLLEXPORT int64_t	DLLCALL	parse_byte_count(const char*, ulong unit);
 DLLEXPORT double	DLLCALL parse_duration(const char*);
 DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
+DLLEXPORT char*		DLLCALL duration_to_vstr(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
