@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.133 2018/02/20 19:30:57 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.134 2018/02/20 19:33:10 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -543,6 +543,9 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 		case 16:
 			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_sixteen;
 			break;
+		default:
+			pthread_mutex_unlock(&screen.screenlock);
+			return(-1);
 	}
 	if (this_font == NULL)
 		this_font = font[0];
