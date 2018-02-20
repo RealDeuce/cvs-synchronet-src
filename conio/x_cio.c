@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.41 2018/02/05 17:56:53 deuce Exp $ */
+/* $Id: x_cio.c,v 1.48 2018/02/14 04:37:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,9 @@
 #include "x_cio.h"
 #include "x_events.h"
 
+#define BITMAP_CIOLIB_DRIVER
+#include "bitmap_con.h"
+
 int x_kbhit(void)
 {
 	fd_set	rfd;
@@ -89,13 +92,12 @@ static void write_event(struct x11_local_event *ev)
 	}
 }
 
-int x_beep(void)
+void x_beep(void)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_BEEP;
 	write_event(&ev);
-	return(0);
 }
 
 void x_textmode(int mode)
@@ -167,20 +169,7 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	if(ypos)
 		*ypos=x11_window_ypos;
 	
-	return(0);
-}
-
-int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
-{
-	struct x11_local_event ev;
-
-	ev.type=X11_LOCAL_SETPALETTE;
-	ev.data.palette.index = entry;
-	ev.data.palette.r = r;
-	ev.data.palette.g = g;
-	ev.data.palette.b = b;
-	write_event(&ev);
-	return(0);
+	return(1);
 }
 
 /* Mouse event/keyboard thread */
@@ -395,6 +384,18 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
+	if((x11.XGetVisualInfo=xp_dlsym(dl,XGetVisualInfo))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateWindow=xp_dlsym(dl,XCreateWindow))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateColormap=xp_dlsym(dl,XCreateColormap))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
 
 	if(sem_init(&pastebuf_set, 0, 0)) {
 		xp_dlclose(dl);
@@ -440,21 +441,17 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
-	cio_api.options |= CONIO_OPT_PALETTE_SETTING | CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
+	cio_api.options |= CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
+void x11_drawrect(struct rectlist *data)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
 	if(x11_initialized) {
-		ev.data.rect.x=xoffset;
-		ev.data.rect.y=yoffset;
-		ev.data.rect.width=width;
-		ev.data.rect.height=height;
-		ev.data.rect.data=data;
+		ev.data.rect=data;
 		write_event(&ev);
 	}
 }
@@ -466,4 +463,16 @@ void x11_flush(void)
 	ev.type=X11_LOCAL_FLUSH;
 	if(x11_initialized)
 		write_event(&ev);
+}
+
+void x_setscaling(int newval)
+{
+	pthread_mutex_lock(&vstatlock);
+	x_cvstat.scaling = vstat.scaling = newval;
+	pthread_mutex_unlock(&vstatlock);
+}
+
+int x_getscaling(void)
+{
+	return x_cvstat.scaling;
 }
