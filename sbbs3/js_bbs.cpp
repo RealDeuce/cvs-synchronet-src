@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.153 2016/01/10 07:06:46 deuce Exp $ */
+/* $Id: js_bbs.cpp,v 1.159 2018/02/20 02:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -142,6 +142,19 @@ enum {
 	,BBS_PROP_BATCH_UPLOAD_TOTAL
 	,BBS_PROP_BATCH_DNLOAD_TOTAL
 
+	/* READ ONLY */
+	,BBS_PROP_FILE_NAME
+	,BBS_PROP_FILE_DESC
+	,BBS_PROP_FILE_DIR
+	,BBS_PROP_FILE_ATTR
+	,BBS_PROP_FILE_DATE
+	,BBS_PROP_FILE_SIZE
+	,BBS_PROP_FILE_CREDITS
+	,BBS_PROP_FILE_ULER
+	,BBS_PROP_FILE_DATE_ULED
+	,BBS_PROP_FILE_DATE_DLED
+	,BBS_PROP_FILE_TIMES_DLED
+
 	,BBS_PROP_COMMAND_STR
 };
 
@@ -212,22 +225,22 @@ enum {
 	/* READ ONLY */
 	,"message recipient name"
 	,"message recipient extension"
-	,"message recipient network type"
+	,"message recipient network address"
 	,"message recipient agent type"
 	,"message sender name"
 	,"message sender extension"
-	,"message sender network type"
+	,"message sender network address"
 	,"message sender agent type"
 	,"message reply-to name"
 	,"message reply-to extension"
-	,"message reply-to network type"
+	,"message reply-to network address"
 	,"message reply-to agent type"
 	,"message subject"
 	,"message date/time"
 	,"message time zone"
 	,"message date/time imported"
 	,"message attributes"
-	,"message auxillary attributes"
+	,"message auxiliary attributes"
 	,"message network attributes"
 	,"message header offset"
 	,"message number (unique, monotonically incrementing)"
@@ -240,6 +253,18 @@ enum {
 	,"message identifier"
 	,"message replied-to identifier"
 	,"message delivery attempt counter"
+
+	,"file name"
+	,"file description"
+	,"file directory (number)"
+	,"file attribute flags"
+	,"file date"
+	,"file size (in bytes)"
+	,"file credit value"
+	,"file uploader (user name)"
+	,"file upload date"
+	,"file last-download date"
+	,"file download count"
 
 	,"number of files in batch upload queue"
 	,"number of files in batch download queue"
@@ -631,6 +656,74 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				p=sbbs->current_msg->reply_id;
 			break;
 
+		/* Currently Displayed File (sbbs.current_file) */
+		case BBS_PROP_FILE_NAME:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				p=sbbs->current_file->name;
+			break;
+		case BBS_PROP_FILE_DESC:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				p=sbbs->current_file->desc;
+			break;
+		case BBS_PROP_FILE_ULER:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				p=sbbs->current_file->uler;
+			break;
+		case BBS_PROP_FILE_DATE:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->date;
+			break;
+		case BBS_PROP_FILE_DATE_ULED:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->dateuled;
+			break;
+		case BBS_PROP_FILE_DATE_DLED:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->datedled;
+			break;
+		case BBS_PROP_FILE_TIMES_DLED:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->timesdled;
+			break;
+		case BBS_PROP_FILE_SIZE:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->size;
+			break;
+		case BBS_PROP_FILE_CREDITS:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->cdt;
+			break;
+		case BBS_PROP_FILE_DIR:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->dir;
+			break;
+		case BBS_PROP_FILE_ATTR:
+			if(sbbs->current_file==NULL)
+				p=nulstr;
+			else
+				val=sbbs->current_file->misc;
+			break;
+
 		case BBS_PROP_BATCH_UPLOAD_TOTAL:
 			val=sbbs->batup_total;
 			break;
@@ -679,7 +772,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 		if((js_str = JS_ValueToString(cx, *vp))==NULL)
 			return(JS_FALSE);
 		JSSTRING_TO_MSTRING(cx, js_str, p, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, p);
 	}
 
 	switch(tiny) {
@@ -946,6 +1039,18 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"msg_delivery_attempts"	,BBS_PROP_MSG_DELIVERY_ATTEMPTS
 														,PROP_READONLY	,310},
 
+	{	"file_name"			,BBS_PROP_FILE_NAME			,PROP_READONLY	,317},
+	{	"file_description"	,BBS_PROP_FILE_DESC			,PROP_READONLY	,317},
+	{	"file_dir_number"	,BBS_PROP_FILE_DIR			,PROP_READONLY	,317},
+	{	"file_attr"			,BBS_PROP_FILE_ATTR			,PROP_READONLY	,317},
+	{	"file_date"			,BBS_PROP_FILE_DATE			,PROP_READONLY	,317},
+	{	"file_size"			,BBS_PROP_FILE_SIZE			,PROP_READONLY	,317},
+	{	"file_credits"		,BBS_PROP_FILE_CREDITS		,PROP_READONLY	,317},
+	{	"file_uploader"		,BBS_PROP_FILE_ULER			,PROP_READONLY	,317},
+	{	"file_upload_date"	,BBS_PROP_FILE_DATE_ULED	,PROP_READONLY	,317},
+	{	"file_download_date",BBS_PROP_FILE_DATE_DLED	,PROP_READONLY	,317},
+	{	"file_download_count",BBS_PROP_FILE_TIMES_DLED	,PROP_READONLY	,317},
+
 	{	"batch_upload_total",BBS_PROP_BATCH_UPLOAD_TOTAL,PROP_READONLY	,310},
 	{	"batch_dnload_total",BBS_PROP_BATCH_DNLOAD_TOTAL,PROP_READONLY	,310},
 
@@ -1195,7 +1300,9 @@ js_user_event(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv = JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
+	char*		sys_pw = NULL;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -1203,8 +1310,13 @@ js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
+	if (argc) {
+		JSString* str = JS_ValueToString(cx, argv[0]);
+		JSSTRING_TO_ASTRING(cx, str, sys_pw, sizeof(sbbs->cfg.sys_pass)+2, NULL);
+	}
+
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chksyspass()));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->chksyspass(sys_pw)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1679,9 +1791,13 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		name;
-	char*		pw;
+	char*		pw_prompt = NULL;
+	char*		user_pw = NULL;
+	char*		sys_pw = NULL;
 	JSString*	js_name;
-	JSString*	js_pw;
+	JSString*	js_pw_prompt = NULL;
+	JSString*	js_user_pw = NULL;
+	JSString*	js_sys_pw = NULL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1696,21 +1812,27 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	if((js_name=JS_ValueToString(cx, argv[0]))==NULL) 
 		return(JS_FALSE);
 
-	if((js_pw=JS_ValueToString(cx, argv[1]))==NULL) 
-		return(JS_FALSE);
+	if(argc > 1)
+		js_pw_prompt = JS_ValueToString(cx, argv[1]);
+	if(argc > 2)
+		js_user_pw = JS_ValueToString(cx, argv[2]);
+	if(argc > 3)
+		js_sys_pw = JS_ValueToString(cx, argv[3]);
 
 	JSSTRING_TO_ASTRING(cx, js_name, name, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
 	if(name==NULL) 
 		return(JS_FALSE);
 
-	JSSTRING_TO_MSTRING(cx, js_pw, pw, NULL);
-	if(pw==NULL) 
-		return(JS_FALSE);
+	JSSTRING_TO_MSTRING(cx, js_pw_prompt, pw_prompt, NULL);
+	JSSTRING_TO_MSTRING(cx, js_user_pw, user_pw, NULL);
+	JSSTRING_TO_MSTRING(cx, js_sys_pw, sys_pw, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->login(name,pw_prompt,user_pw,sys_pw)==LOGIC_TRUE ? JS_TRUE:JS_FALSE));
 	JS_RESUMEREQUEST(cx, rc);
-	free(pw);
+	FREE_AND_NULL(pw_prompt);
+	FREE_AND_NULL(user_pw);
+	FREE_AND_NULL(sys_pw);
 	return(JS_TRUE);
 }
 
@@ -3521,8 +3643,9 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("interactive new user procedure")
 	,310
 	},
-	{"login",			js_login,			2,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name, password_prompt")
-	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for password (if required)")
+	{"login",			js_login,			4,	JSTYPE_BOOLEAN,	JSDOCSTR("user_name [,password_prompt] [,user_password] [,system_password]")
+	,JSDOCSTR("login with <i>user_name</i>, displaying <i>password_prompt</i> for user's password (if required), "
+	"optionally supplying the user's password and the system password as arguments so as to not be prompted")
 	,310
 	},
 	{"logon",			js_logon,			0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
@@ -3774,8 +3897,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,316
 	},		
 	/* security */
-	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("")
-	,JSDOCSTR("prompt for and verify system password")
+	{"check_syspass",	js_chksyspass,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("[sys_pw]")
+	,JSDOCSTR("verify system password, prompting for the password if not passed as an argument")
 	,310
 	},
 	{"good_password",	js_chkpass,			1,	JSTYPE_STRING,	JSDOCSTR("password")
@@ -3877,7 +4000,7 @@ static JSBool js_bbs_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 

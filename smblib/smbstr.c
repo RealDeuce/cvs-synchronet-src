@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.26 2016/11/16 10:53:54 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.28 2017/07/08 04:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -210,9 +210,12 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case RIO:   return("RIO");
 		case FER:   return("FER");
 		case AZO:   return("AZO");
-		case LON:   return("LON");
-		case BER:   return("BER");
-		case ATH:   return("ATH");
+		case WET:   return("WET");
+		case WEST:  return("WEST");
+		case CET:   return("CET");
+		case CEST:	return("CEST");
+		case EET:   return("EET");
+		case EEST:  return("EEST");
 		case MOS:   return("MOS");
 		case DUB:   return("DUB");
 		case KAB:   return("KAB");
@@ -226,7 +229,7 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case SYD:   return("SYD");
 		case NOU:   return("NOU");
 		case WEL:   return("WEL");
-		}
+	}
 
 	if(!OTHER_ZONE(zone)) {
 		if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
