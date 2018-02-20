@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.173 2018/03/04 04:07:14 rswindell Exp $ */
+/* $Id: smblib.c,v 1.172 2017/11/25 01:24:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -118,12 +118,8 @@ int SMBCALL smb_open(smb_t* smb)
 		}
 		if(memcmp(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID) && !smb->continue_on_error) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%s corrupt SMB header ID: %02X %02X %02X %02X", __FUNCTION__
-				,hdr.id[0]
-				,hdr.id[1]
-				,hdr.id[2]
-				,hdr.id[3]
-				);
+				,"%s corrupt SMB header ID: %.*s", __FUNCTION__
+				,LEN_HEADER_ID,hdr.id);
 			smb_close(smb);
 			return(SMB_ERR_HDR_ID); 
 		}
@@ -968,12 +964,8 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	}
 	if(memcmp(msg->hdr.id,SHD_HEADER_ID,LEN_HEADER_ID)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s corrupt message header ID (%02X %02X %02X %02X) at offset %lu", __FUNCTION__
-			,msg->hdr.id[0]
-			,msg->hdr.id[1]
-			,msg->hdr.id[2]
-			,msg->hdr.id[3]
-			,msg->idx.offset);
+			,"%s corrupt message header ID: %.*s at offset %lu", __FUNCTION__
+			,LEN_HEADER_ID,msg->hdr.id,msg->idx.offset);
 		return(SMB_ERR_HDR_ID);
 	}
 	if(msg->hdr.version<0x110) {
