@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.225 2018/02/13 08:11:18 deuce Exp $ */
+/* $Id: cterm.c,v 1.229 2018/02/20 19:13:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1831,9 +1831,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									break;
 								}
 							}
+							if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
+								strcat(retbuf, tmp);
 						}
-						if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
-							strcat(retbuf, tmp);
 						break;
 					case 's':
 						if (seq->param_str[0] == '?' && parse_parameters(seq)) {
@@ -2069,8 +2069,13 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						case 1:
 						case 2:
 						case 3:
-							cterm->setfont_result = SETFONT(seq->param_int[1],FALSE,seq->param_int[0]+1);
-							if(cterm->setfont_result == CIOLIB_SETFONT_SUCCESS)
+							/* For compatibility with ciolib.c v1.136-v1.164 */
+							/* Feature introduced in CTerm v1.160, return value modified later */
+							if (SETFONT(seq->param_int[1],FALSE,seq->param_int[0]+1) == 0)
+								cterm->setfont_result = 1;
+							else
+								cterm->setfont_result = 0;
+							if(cterm->setfont_result == 0)
 								cterm->altfont[seq->param_int[0]] = seq->param_int[1];
 							break;
 					}
@@ -2847,7 +2852,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.225 $";
+	char	*revision="$Revision: 1.229 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3172,8 +3177,8 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	struct text_info	ti;
 	int	olddmc;
 	int oldptnm;
-	uint32_t *mpalette;
 	uint32_t palette[16];
+	int mpalette;
 	struct vmem_cell tmpvc;
 	int orig_fonts[4];
 
@@ -3184,8 +3189,8 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	mpalette = get_modepalette(palette);
 	if (mpalette) {
 		for (i=0; i < 16; i++)
-			mpalette[i] += 16;
-		set_modepalette(mpalette);
+			palette[i] += 16;
+		set_modepalette(palette);
 	}
 
 	/* Deedle up the fonts */
@@ -3319,6 +3324,8 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 												FREE_AND_NULL(cterm->strbuf);
 												cterm->strbuflen = cterm->strbufsize = 0;
 											}
+											else
+												cterm->strbuf = p;
 										}
 									}
 								}
@@ -3917,8 +3924,8 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	/* Now rejigger the current modes palette... */
 	if (mpalette) {
 		for (i=0; i < 16; i++)
-			mpalette[i] -= 16;
-		set_modepalette(mpalette);
+			palette[i] -= 16;
+		set_modepalette(palette);
 	}
 
 	/* De-doodle the fonts */
