@@ -1,5 +1,25 @@
 Version 1.1
 -----------
+Don't wait for keypress after file transfer completes
+Fix Windows bug with the transfer path
+Add BinaryText screenshot capabilities to Capture Control menu
+Fix logging on Windows
+Range check screen width and height, clamp at 255 rows/cols
+Add CSI = 1 n and CSI = 2 n ANSI commands (see cterm.txt for details)
+Fix CSI ? s and CSI ? n
+Update to Cryptlib 3.4.4
+Ignore unsupported APC, DCS, OSC, PM, and SOS strings
+Add support for the palette redefinition/reset OSC commands from xterm
+Use XTerm 256-color palette
+Support XTerm style palette color selection
+Support Sixel graphics
+RLogin using the "current" speed was missing a terminating NUL
+Added CSI < Ps c command for extended attributes
+Added CSI ? Ps1 ; Ps2 S to query graphics canvas size
+Add a new ANSI compliant DCS command for font loading
+Support bright background mode in curses when in xterm 88 or 256 color mode
+Added support for cached font assets
+Support for XTerm and TundraDraw/PabloDraw 24-bit color modes
 
 Version 1.0
 -----------

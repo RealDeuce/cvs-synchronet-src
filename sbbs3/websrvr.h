@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.51 2016/11/28 02:59:08 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.53 2018/02/18 02:19:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,8 +52,6 @@ typedef struct {
     uint32_t	options;
 	uint16_t	port;
 	uint16_t	tls_port;
-	struct in_addr outgoing4;
-	struct in6_addr	outgoing6;
     str_list_t	interfaces;
     str_list_t	tls_interfaces;
 	
@@ -98,7 +96,6 @@ typedef struct {
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
 	char	default_cgi_content[128];
 	char	default_auth_list[128];
-	uint16_t	outbuf_highwater_mark;	/* output block size control */
 	uint16_t	outbuf_drain_timeout;
 
 	/* JavaScript operating parameters */
@@ -115,8 +112,6 @@ typedef struct {
 static struct init_field web_init_fields[] = { 
 	 OFFSET_AND_SIZE(web_startup_t,port)
 	,OFFSET_AND_SIZE(web_startup_t,interfaces)
-	,OFFSET_AND_SIZE(web_startup_t,outgoing4)
-	,OFFSET_AND_SIZE(web_startup_t,outgoing6)
 	,OFFSET_AND_SIZE(web_startup_t,ctrl_dir)
 	,OFFSET_AND_SIZE(web_startup_t,root_dir)
 	,OFFSET_AND_SIZE(web_startup_t,error_dir)
@@ -129,7 +124,7 @@ static struct init_field web_init_fields[] = {
 #define WEB_OPT_DEBUG_RX			(1<<0)	/* Log all received requests		*/
 #define WEB_OPT_DEBUG_TX			(1<<1)	/* Log all transmitted responses	*/
 #define WEB_OPT_DEBUG_SSJS			(1<<2)	/* Don't delete sbbs_ssjs.*.html	*/
-#define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virutal host html subdirs	*/
+#define WEB_OPT_VIRTUAL_HOSTS		(1<<4)	/* Use virtual host html subdirs	*/
 #define WEB_OPT_NO_CGI				(1<<5)	/* Disable CGI support				*/
 #define WEB_OPT_HTTP_LOGGING		(1<<6)	/* Create/write-to HttpLogFile		*/
 #define WEB_OPT_ALLOW_TLS			(1<<7)	/* Enable HTTPS						*/

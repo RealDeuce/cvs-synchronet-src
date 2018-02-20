@@ -1,14 +1,13 @@
-/* js_system.c */
-
 /* Synchronet JavaScript "system" Object */
+// vi: tabstop=4
 
-/* $Id: js_system.c,v 1.162 2015/11/10 22:53:27 deuce Exp $ */
+/* $Id: js_system.c,v 1.167 2018/02/20 02:17:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -638,12 +637,12 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SYSSTAT_PROP_TOTALMAIL:
 			rc=JS_SUSPENDREQUEST(cx);
-			*vp = INT_TO_JSVAL(getmail(cfg, 0,0));
+			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */0, /* Sent: */FALSE, /* SPAM: */FALSE));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case SYSSTAT_PROP_FEEDBACK:
 			rc=JS_SUSPENDREQUEST(cx);
-			*vp = INT_TO_JSVAL(getmail(cfg, 1,0));
+			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */1, /* Sent: */FALSE, /* SPAM: */FALSE));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 	}
@@ -710,7 +709,7 @@ static JSBool js_sysstats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -888,7 +887,7 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next,NULL,NULL)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -900,7 +899,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		can;
+	char*		can = NULL;
 	JSString*	js_str;
 	JSString*	js_can;
 	scfg_t*		cfg;
@@ -923,7 +922,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_can, can, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, can);
 	if(can==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -954,7 +953,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		fname;
+	char*		fname = NULL;
 	JSString*	js_str;
 	JSString*	js_fname;
 	jsrefcount	rc;
@@ -971,7 +970,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_fname, fname, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, fname);
 	if(fname==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -1401,7 +1400,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		node=1;
 	JSString*	js_msg;
-	char*		msg;
+	char*		msg = NULL;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1419,7 +1418,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx)
+	HANDLE_PENDING(cx, msg);
 	if(msg==NULL) 
 		return(JS_TRUE);
 
@@ -1474,7 +1473,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		usernumber=1;
 	JSString*	js_msg;
-	char*		msg;
+	char*		msg = NULL;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1492,7 +1491,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, msg);
 	if(msg==NULL)
 		return(JS_TRUE);
 
@@ -1651,13 +1650,18 @@ js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
-	char	*cmd;
+	char	*cmd = NULL;
 	int		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cmd);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
+		return JS_FALSE;
+	}
+	if(*cmd == 0) {
+		free(cmd);
+		JS_ReportError(cx, "Missing or invalid argument");
 		return JS_FALSE;
 	}
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1674,7 +1678,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
-	char*		cmd;
+	char*		cmd = NULL;
 	FILE*		fp;
 	jsint		line=0;
 	jsval		val;
@@ -1691,7 +1695,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cmd);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
@@ -1902,7 +1906,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,316
 	},
 #endif
-	{"exec",			js_sys_exec,		1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
+	{"exec",			js_sys_exec,		0,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
 	,JSDOCSTR("executes a native system/shell command-line, returns <i>0</i> on success")
 	,311
 	},
@@ -2132,7 +2136,7 @@ static JSBool js_node_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -2237,7 +2241,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
