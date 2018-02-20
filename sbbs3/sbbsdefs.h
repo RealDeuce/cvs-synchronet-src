@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.216 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.220 2018/02/03 23:39:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -54,7 +54,7 @@
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
-#define VERSION_NOTICE		"Synchronet BBS for "PLATFORM_DESC\
+#define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
@@ -483,6 +483,10 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_LEFTARROW	(1<<15)	/* Left arrow hit, exiting from getstr()	*/
 #define CON_INSERT		(1<<16)	/* Insert mode, for getstr()				*/
 #define CON_DELETELINE	(1<<17)	/* Deleted line, exiting from getstr()		*/
+#define CON_NORM_FONT	(1<<18)	/* Alt normal font set activated			*/
+#define CON_HIGH_FONT	(1<<19)	/* Alt high-intensity font activated		*/
+#define CON_BLINK_FONT	(1<<20)	/* Alt blink attribute font activated		*/
+#define CON_HBLINK_FONT	(1<<21)	/* Alt high-blink attribute font activated	*/
 																			
 							/* Number of milliseconds						*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
@@ -646,10 +650,11 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOHANG	(1L<<20)		/* Auto-hang-up after transfer			*/
 #define WIP 		(1L<<21)		/* Supports WIP terminal emulation		*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
-#define HTML		(1L<<23)		/* Using Deuce's HTML terminal			*/
+#define HTML		(1L<<23)		/* Using Zuul/HTML terminal				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
+#define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -661,6 +666,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define TERM_KEY_INSERT	CTRL_V
 #define TERM_KEY_DELETE	DEL
 #define TERM_KEY_ABORT	CTRL_C
+#define TERM_KEY_PAGEUP	CTRL_P
+#define TERM_KEY_PAGEDN	CTRL_N
 																			
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
