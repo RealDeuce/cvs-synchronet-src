@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.57 2016/11/28 09:48:39 rswindell Exp $ */
+/* $Id: link_list.c,v 1.58 2017/11/06 07:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,6 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_MUTEX) {
 		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-		memset(&list->tid, 0xff, sizeof(list->tid));
 	}
 
 	if(list->flags&LINK_LIST_SEMAPHORE) 
