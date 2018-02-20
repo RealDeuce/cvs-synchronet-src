@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.219 2018/03/10 03:19:01 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.217 2018/02/20 11:32:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -211,10 +211,8 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32)) {
-			free(cp);
+		if(!JS_ValueToInt32(cx,val,&i32))
 			return(FALSE);
-		}
 		nettype=(ushort)i32;
 	}
 
@@ -1508,11 +1506,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 		JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
 		n++;
-		if(JS_IsExceptionPending(cx)) {
-			free(cstr);
-			free(p);
-			return JS_FALSE;
-		}
+		HANDLE_PENDING(cx, cstr);
 		if(cstr != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
@@ -1904,6 +1898,7 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 			if(!msg_offset_by_id(p
 					,cstr
 					,&msg.offset)) {
+				free(p);
 				free(cstr);
 				JS_RESUMEREQUEST(cx, rc);
 				return JS_TRUE;	/* ID not found */
@@ -1916,8 +1911,10 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	if(!msg_specified)
+	if(!msg_specified) {
+		free(p);
 		return JS_TRUE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if((p->status=smb_getmsgidx(&(p->smb), &msg))==SMB_SUCCESS
@@ -1929,6 +1926,7 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	}
 
+	free(p);
 	smb_freemsgmem(&msg);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2215,8 +2213,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		body=NULL;
 	uintN		n;
-	jsuint      i;
-	jsuint      rcpt_list_length=0;
+    jsuint      i;
+    jsuint      rcpt_list_length=0;
 	jsval       val;
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
@@ -2288,10 +2286,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	if(hdr==NULL) {
-		FREE_AND_NULL(body);
+	if(hdr==NULL)
 		return JS_TRUE;
-	}
 	if(body==NULL)
 		body=strdup("");
 
