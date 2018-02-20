@@ -2,7 +2,7 @@
 
 /* Synchronet "uifc" (user interface) object */
 
-/* $Id: js_uifc.c,v 1.41 2018/02/20 02:17:16 rswindell Exp $ */
+/* $Id: js_uifc.c,v 1.42 2018/02/20 02:27:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,7 +299,7 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval
 		if(uifc->helpbuf)
 			free(uifc->helpbuf);
 		JSVALUE_TO_MSTRING(cx, *vp, uifc->helpbuf, NULL);
-		HANDLE_PENDING(cx, uifc->helpbuf);
+		HANDLE_PENDING(cx, NULL);
 		return JS_TRUE;
 	}
 
