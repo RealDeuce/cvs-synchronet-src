@@ -1,6 +1,6 @@
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.32 2018/03/05 00:38:44 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.31 2018/02/20 11:39:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,20 +113,13 @@ int sbbs_t::delmail(uint usernumber, int which)
 		l++; 
 	}
 	smb_rewind(smb.sid_fp);
-	if(smb_fsetlength(smb.sid_fp,0) != 0)
-		errormsg(WHERE, "truncating", smb.file, 0);
-	else {
-		for(i=0;i<l;i++) {
-			if(smb_fwrite(&smb,&idxbuf[i],sizeof(idxrec_t),smb.sid_fp) != sizeof(idxrec_t)) {
-				errormsg(WHERE, ERR_WRITE, smb.file, i);
-				break;
-			}
-		}
-		smb.status.total_msgs=i;
-		smb_putstatus(&smb);
-		smb_fflush(smb.sid_fp);
-	}
+	smb_fsetlength(smb.sid_fp,0);
+	for(i=0;i<l;i++)
+		smb_fwrite(&smb,&idxbuf[i],sizeof(idxrec_t),smb.sid_fp);
 	free(idxbuf);
+	smb.status.total_msgs=l;
+	smb_putstatus(&smb);
+	smb_fflush(smb.sid_fp);
 	smb_close_ha(&smb);
 	smb_close_da(&smb);
 	return removed;

@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.72 2018/03/10 03:19:02 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.68 2018/02/20 05:35:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4367,10 +4367,8 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 				if(body == NULL)
 					body = fmsgbuf;
 				else {
-					bodylen += sprintf(body, "Your PING request was received at: %s %s\r"
+					bodylen += sprintf(body, "Your PING request was received: %s %s\r"
 						,timestr(&scfg, time32(NULL), tmp), smb_zonestr(sys_timezone(&scfg),NULL));
-					bodylen += sprintf(body+bodylen, "by: %s (sysop: %s) @ %s\r"
-						,scfg.sys_name, scfg.sys_op, smb_faddrtoa(&scfg.faddr[match], NULL));
 					time_t t = (time_t)fmsgtime(hdr.time);
 					bodylen += sprintf(body+bodylen, "\rThe received message header contained:\r\r"
 						"Subj: %s\r"
@@ -5274,13 +5272,12 @@ void pack_netmail(void)
 		addr.net		= hdr.destnet;
 		addr.node		= hdr.destnode;
 		addr.point		= hdr.destpoint;
-		printf("NetMail msg %s from %s (%s) to %s (%s): "
-			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
 		if(sysfaddr_is_valid(find_sysfaddr(addr)))	{				  /* In-bound, so ignore */
-			printf("in-bound\n");
 			fclose(fidomsg);
 			continue;
 		}
+		printf("NetMail msg %s from %s (%s) to %s (%s): "
+			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
 		if((hdr.attr&FIDO_SENT) && !cfg.ignore_netmail_recv_attr) {
 			printf("already sent\n");
 			fclose(fidomsg);
@@ -5475,19 +5472,15 @@ void find_stray_packets(void)
 		outpkt_t* pkt;
 		if((pkt = calloc(1, sizeof(outpkt_t))) == NULL)
 			continue;
-		if((pkt->filename = strdup(packet)) == NULL) {
-			free(pkt);
+		if((pkt->filename = strdup(packet)) == NULL)
 			continue;
-		}
 		if(terminator == FIDO_PACKET_TERMINATOR)
 			lprintf(LOG_DEBUG, "Stray packet already finalized: %s", packet);
-		else {
+		else
 			if((pkt->fp = fopen(pkt->filename, "ab")) == NULL) {
 				lprintf(LOG_ERR, "ERROR %d (%s) opening %s", errno, strerror(errno), pkt->filename);
-				free(pkt);
 				continue;
 			}
-		}
 		pkt->orig = pkt_orig;
 		pkt->dest = pkt_dest;
 		listAddNode(&outpkt_list, pkt, 0, LAST_NODE);
@@ -5936,7 +5929,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.72 $", "%*s %s", revision);
+	sscanf("$Revision: 3.68 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -5948,8 +5941,7 @@ int main(int argc, char **argv)
 
 	cmdline[0]=0;
 	for(i=1;i<argc;i++) {
-		SAFECAT(cmdline, argv[i]);
-		SAFECAT(cmdline, " ");
+		sprintf(cmdline+strlen(cmdline), "%s ", argv[i]);
 		if(argv[i][0]=='-'
 #if !defined(__unix__)
 			|| argv[i][0]=='/'
