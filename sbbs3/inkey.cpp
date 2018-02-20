@@ -1,8 +1,6 @@
-/* inkey.cpp */
-
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.50 2016/10/06 06:47:39 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.54 2018/02/20 11:24:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +99,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 	char 	tmp[512];
 	uint	i,j;
 
-	if(ch==CTRL_C) {  /* Ctrl-C Abort */
+	if(ch==TERM_KEY_ABORT) {  /* Ctrl-C Abort */
 		sys_status|=SS_ABORT;
 		if(mode&K_SPIN) /* back space once if on spinning cursor */
 			backspace();
@@ -291,32 +289,41 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					continue;
 				}
 				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
+					str[i]=0;
 					switch(ch) {
 						case 'A':
-							return(0x1e);	/* ctrl-^ (up arrow) */
+							return(TERM_KEY_UP);
 						case 'B':
-							return(LF); 	/* ctrl-j (dn arrow) */
+							return(TERM_KEY_DOWN);
 						case 'C':
-							return(CTRL_F);	/* ctrl-f (rt arrow) */
+							return(TERM_KEY_RIGHT);
 						case 'D':
-							return(0x1d);	/* ctrl-] (lf arrow) */
+							return(TERM_KEY_LEFT);
 						case 'H':	/* ANSI:  home cursor */
-							return(CTRL_B);	/* ctrl-b (beg line) */
+							return(TERM_KEY_HOME);
+						case 'V':
+							return TERM_KEY_PAGEUP;
+						case 'U':
+							return TERM_KEY_PAGEDN;
 						case 'F':	/* Xterm: cursor preceding line */
 						case 'K':	/* ANSI:  clear-to-end-of-line */
-							return(CTRL_E);	/* ctrl-e (end line) */
+							return(TERM_KEY_END);
 						case '@':	/* ANSI/ECMA-048 INSERT */
-							return(CTRL_V);
+							return(TERM_KEY_INSERT);
 						case '~':	/* VT-220 (XP telnet.exe) */
 							switch(atoi(str)) {
 								case 1:
-									return(CTRL_B);
+									return(TERM_KEY_HOME);
 								case 2:
-									return(CTRL_V);
+									return(TERM_KEY_INSERT);
 								case 3:
-									return(DEL);
+									return(TERM_KEY_DELETE);
 								case 4:
-									return(CTRL_E);
+									return(TERM_KEY_END);
+								case 5:
+									return TERM_KEY_PAGEUP;
+								case 6:
+									return TERM_KEY_PAGEDN;
 							}
 							break;
 					}
