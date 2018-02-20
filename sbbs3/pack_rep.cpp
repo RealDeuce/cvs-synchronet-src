@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.45 2016/11/23 10:28:52 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.46 2017/10/23 03:38:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,7 +165,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 		free(mail);
 
 	for(i=0;i<cfg.qhub[hubnum]->subs;i++) {
-		j=cfg.qhub[hubnum]->sub[i]; 			/* j now equals the real sub num */
+		j=cfg.qhub[hubnum]->sub[i]->subnum; 			/* j now equals the real sub num */
 		msgs=getlastmsg(j,&last,0);
 		lncntr=0;						/* defeat pause */
 		if(!msgs || last<=subscan[j].ptr) {
