@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.233 2018/02/20 19:43:39 deuce Exp $ */
+/* $Id: cterm.c,v 1.234 2018/02/20 19:45:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1638,7 +1638,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 								GETTEXTINFO(&ti);
 								vmode = find_vmode(ti.currmode);
-								sprintf(tmp, "\x1b[?2;0;%u;%uS", vparams[vmode].charwidth*cterm->width, vparams[vmode].charheight*cterm->height);
+								if (vmode != -1)
+									sprintf(tmp, "\x1b[?2;0;%u;%uS", vparams[vmode].charwidth*cterm->width, vparams[vmode].charheight*cterm->height);
 								if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
 									strcat(retbuf, tmp);
 							}
@@ -1833,7 +1834,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 									GETTEXTINFO(&ti);
 									vmode = find_vmode(ti.currmode);
-									sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
+									if (vmode != -1)
+										sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
 									break;
 								}
 							}
@@ -2858,7 +2860,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.233 $";
+	char	*revision="$Revision: 1.234 $";
 	char *in;
 	char	*out;
 	int		i;
