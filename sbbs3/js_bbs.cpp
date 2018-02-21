@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.162 2018/02/23 18:57:35 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.161 2018/02/20 11:25:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1416,11 +1416,11 @@ js_replace_text(JSContext *cx, uintN argc, jsval *arglist)
 	if(!len) {
 		sbbs->text[i]=nulstr;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
-		free(p);
 	} else {
 		sbbs->text[i]=p;
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	}
+	free(p);
 
 	return(JS_TRUE);
 }
