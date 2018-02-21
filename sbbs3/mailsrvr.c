@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.616 2017/11/24 21:53:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.621 2018/02/20 11:39:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -63,6 +63,7 @@
 static const char*	server_name="Synchronet Mail Server";
 #define FORWARD			"forward:"
 #define NO_FORWARD		"local:"
+#define NO_SPAM			"#nospam"
 
 int dns_getmx(char* name, char* mx, char* mx2
 			  ,DWORD intf, DWORD ip_addr, BOOL use_tcp, int timeout);
@@ -638,7 +639,7 @@ static ulong sockmimetext(SOCKET socket, smbmsg_t* msg, char* msgtxt, ulong maxl
         sockprintf(socket,"");
         mimeblurb(socket,mime_boundary);
         sockprintf(socket,"");
-        mimetextpartheader(socket,mime_boundary);
+        mimetextpartheader(socket, mime_boundary, startup->default_charset);
 	}
 	if(!sockprintf(socket,""))	/* Header Terminator */
 		return(0);
@@ -811,6 +812,7 @@ static void pop3_thread(void* arg)
 	BOOL		activity=TRUE;
 	BOOL		apop=FALSE;
 	uint32_t	l;
+	long		lm_mode = 0;
 	ulong		lines;
 	ulong		lines_sent;
 	ulong		login_attempts;
@@ -940,6 +942,11 @@ static void pop3_thread(void* arg)
 				response=p;
 		}
 		SAFECOPY(username,p);
+		if((p = strstr(username, NO_SPAM)) != NULL) {
+			*p = 0;
+			lm_mode = LM_NOSPAM;
+		} else
+			lm_mode = 0;
 		if(!apop) {
 			sockprintf(socket,"+OK");
 			if(!sockgetrsp(socket,"PASS ",buf,sizeof(buf))) {
@@ -1030,7 +1037,7 @@ static void pop3_thread(void* arg)
 			break;
 		}
 
-		mail=loadmail(&smb,&msgs,user.number,MAIL_YOUR,0);
+		mail=loadmail(&smb,&msgs,user.number,MAIL_YOUR,lm_mode);
 
 		for(l=bytes=0;l<msgs;l++) {
 			msg.hdr.number=mail[l].number;
@@ -1803,7 +1810,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(; i<argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], lstr, &lstr_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, lstr);
 		if(lstr==NULL)
 			return(JS_TRUE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -2201,11 +2208,13 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 			ai.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV|AI_PASSIVE;
 			if(getaddrinfo(p, NULL, &ai, &res)!=0)
 				break;
-			if(res->ai_family == AF_INET6)
+			if(res->ai_family == AF_INET6) {
 				memcpy(&addr, res->ai_addr, res->ai_addrlen);
-			else
+				freeaddrinfo(res);
+			} else {
+				freeaddrinfo(res);
 				break;
-			freeaddrinfo(res);
+			}
 		}
 		else {
 			strncpy(ip,p,16);
@@ -3328,6 +3337,11 @@ static void smtp_thread(void* arg)
 						,reverse_path);
 					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
 
+					if(nettype == NET_FIDO) {
+						char* tp = strchr(rcpt_name, '@');
+						if(tp != NULL)
+							*tp = 0;
+					}
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
 					if(usernum && nettype!=NET_INTERNET) {	/* Local destination or QWKnet routed */
@@ -5162,7 +5176,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.616 $", "%*s %s", revision);
+	sscanf("$Revision: 1.621 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
