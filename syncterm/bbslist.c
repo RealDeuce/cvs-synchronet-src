@@ -256,12 +256,10 @@ void viewofflinescroll(void)
 			top=1;
 		if(top>(int)scrollback_lines)
 			top=scrollback_lines;
-		pputtext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
+		vmem_puttext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
 				,(sbtxtinfo.screenwidth-scrollback_cols)/2+scrollback_cols
 				,sbtxtinfo.screenheight
-				,scrollback_buf+(scrollback_cols*2*top)
-				,scrollback_fbuf?scrollback_fbuf+(scrollback_cols*top):NULL
-				,scrollback_bbuf?scrollback_bbuf+(scrollback_cols*top):NULL);
+				,scrollback_buf+(scrollback_cols*top));
 		ciolib_xlat=CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(scrollback_cols-9,1);
@@ -282,7 +280,7 @@ void viewofflinescroll(void)
 						getmouse(&mevent);
 						switch(mevent.event) {
 							case CIOLIB_BUTTON_1_DRAG_START:
-								mousedrag(scrollback_buf,scrollback_fbuf, scrollback_bbuf);
+								mousedrag(scrollback_buf);
 								break;
 						}
 						break;
@@ -1377,9 +1375,7 @@ void change_settings(void)
 							 "        This value MUST be greater than zero\n";
 				sprintf(str,"%d",settings.backlines);
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER|K_EDIT)!=-1) {
-					unsigned char *tmpscroll;
-					uint32_t *tmpscrollf;
-					uint32_t *tmpscrollb;
+					struct vmem_cell *tmpscroll;
 
 					j=atoi(str);
 					if(j<1) {
@@ -1388,13 +1384,9 @@ void change_settings(void)
 						check_exit(FALSE);
 					}
 					else {
-						tmpscroll=(unsigned char *)realloc(scrollback_buf,80*2*j);
-						tmpscrollf=realloc(scrollback_fbuf,80*sizeof(tmpscrollf[0])*j);
-						tmpscrollb=realloc(scrollback_bbuf,80*sizeof(tmpscrollb[0])*j);
+						tmpscroll=realloc(scrollback_buf,80*sizeof(*scrollback_buf)*j);
 						scrollback_buf = tmpscroll ? tmpscroll : scrollback_buf;
-						scrollback_fbuf = tmpscrollf ? tmpscrollf : scrollback_fbuf;
-						scrollback_bbuf = tmpscrollb ? tmpscrollb : scrollback_bbuf;
-						if(tmpscroll == NULL || tmpscrollf == NULL || tmpscrollb == NULL) {
+						if(tmpscroll == NULL) {
 							uifc.helpbuf="The selected scrollback size is too large.\n"
 										 "Please reduce the number of lines.";
 							uifc.msg("Cannot allocate space for scrollback.");
@@ -1631,11 +1623,12 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(!connected) {
 								viewofflinescroll();
 								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
-									,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
+									,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 							}
 							break;
 						case -2-CIO_KEY_MOUSE:	/* Clicked outside of window... */
 							getmouse(&mevent);
+							/* Fall-through */
 						case -2-0x0f00:	/* Backtab */
 						case -2-0x4b00:	/* Left Arrow */
 						case -2-0x4d00:	/* Right Arrow */
@@ -1768,7 +1761,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(settings.list_path,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1823,7 +1816,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								break;
 							}
 							if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1839,7 +1832,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							check_exit(FALSE);
 						}
 						else if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 							oldopt=-1;
 						}
 					}
@@ -1886,6 +1879,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case -2-CIO_KEY_MOUSE:
 						getmouse(&mevent);
+						/* Fall-through */
 					case -2-0x0f00:	/* Backtab */
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
