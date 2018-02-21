@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.674 2018/03/07 22:30:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.668 2018/02/20 11:39:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -168,9 +168,6 @@ int lputs(int level, const char* str)
 
 int eputs(int level, const char *str)
 {
-	if(*str == 0)
-		return 0;
-
 	if(level <= LOG_ERR) {
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
@@ -207,7 +204,7 @@ int eprintf(int level, const char *fmt, ...)
 
 	strip_ctrl(sbuf, sbuf);
 
-    return(eputs(level,truncsp(sbuf)));
+    return(eputs(level,sbuf));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -268,7 +265,6 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
-// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -1365,14 +1361,6 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptKeyset Class */
-		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
-			break;
-
-		/* CryptCert Class */
-		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
@@ -2567,7 +2555,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed: %s", str);
+						eprintf(LOG_INFO,"Packing completed");
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
@@ -5146,10 +5134,6 @@ NO_SSH:
 		if(client_socket == INVALID_SOCKET)
 			continue;
 
-		// Count the socket:
-		if(startup->socket_open!=NULL)
-			startup->socket_open(startup->cbdata, TRUE);
-
 		bool rlogin = false;
 #ifdef USE_CRYPTLIB
 		bool ssh = false;
@@ -5371,7 +5355,6 @@ NO_SSH:
 				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
-			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
