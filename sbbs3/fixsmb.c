@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.43 2018/02/21 03:22:18 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.44 2018/02/21 04:52:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -117,6 +117,13 @@ int fixsmb(char* sub)
 
 	if((p=getfext(smb.file))!=NULL && stricmp(p,".shd")==0)
 		*p=0;	/* Chop off .shd extension, if supplied on command-line */
+
+	char path[MAX_PATH+1];
+	SAFEPRINTF(path, "%s.shd", smb.file);
+	if(!fexistcase(path)) {
+		printf("%s does not exist\n", path);
+		exit(1);
+	}
 
 	printf("Opening %s\n",smb.file);
 
@@ -318,7 +325,7 @@ int main(int argc, char **argv)
 	str_list_t	list;
 	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.43 $", "%*s %s", revision);
+	sscanf("$Revision: 1.44 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
