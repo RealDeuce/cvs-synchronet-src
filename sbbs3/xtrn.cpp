@@ -2,7 +2,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.228 2018/01/13 09:07:47 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.229 2018/02/20 11:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2065,7 +2065,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-    for(i=j=0;i<len && j<(int)sizeof(cmdstr_output);i++) {
+    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2229,7 +2229,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-    for(i=j=0;i<len && j<MAX_PATH;i++) {
+    for(i=j=0; i<len && j < sizeof(buf)-1; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
