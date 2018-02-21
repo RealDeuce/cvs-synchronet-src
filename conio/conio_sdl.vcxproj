@@ -34,6 +34,7 @@
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
     <Import Project="..\xpdev\xpdev.props" />
     <Import Project="..\build\target_ia32.props" />
+    <Import Project="..\build\sdl.props" />
     <Import Project="..\smblib\smblib.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
@@ -41,15 +42,16 @@
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
     <Import Project="..\xpdev\xpdev.props" />
     <Import Project="..\build\target_ia32.props" />
+    <Import Project="..\build\sdl.props" />
     <Import Project="..\smblib\smblib.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.release\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.release_mt\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.debug\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.debug_mt\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.sdl.release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\msvc.win32.sd.release\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.sdl.debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\msvc.win32.sdl.debug\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -61,10 +63,10 @@
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeaderOutputFile>.\msvc.win32.release_mt/conio.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\msvc.win32.release_mt/</AssemblerListingLocation>
-      <ObjectFileName>.\msvc.win32.release_mt/</ObjectFileName>
-      <ProgramDataBaseFileName>.\msvc.win32.release_mt/</ProgramDataBaseFileName>
+      <PrecompiledHeaderOutputFile>.\msvc.win32.sdl.release/conio.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\msvc.win32.sdl.release/</AssemblerListingLocation>
+      <ObjectFileName>.\msvc.win32.sdl.release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\msvc.win32.sdl.release/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
@@ -73,12 +75,12 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Lib>
-      <OutputFile>.\msvc.win32.release\conio.lib</OutputFile>
+      <OutputFile>.\msvc.win32.sdl.release\conio_sdl.lib</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Lib>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\msvc.win32.release/conio.bsc</OutputFile>
+      <OutputFile>.\msvc.win32.sdl.release/conio.bsc</OutputFile>
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -90,10 +92,10 @@
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeaderOutputFile>.\msvc.win32.debug_mt/conio.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>.\msvc.win32.debug_mt/</AssemblerListingLocation>
-      <ObjectFileName>.\msvc.win32.debug_mt/</ObjectFileName>
-      <ProgramDataBaseFileName>.\msvc.win32.debug_mt/</ProgramDataBaseFileName>
+      <PrecompiledHeaderOutputFile>.\msvc.win32.sdl.debug/conio.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\msvc.win32.sdl.debug/</AssemblerListingLocation>
+      <ObjectFileName>.\msvc.win32.sdl.debug/</ObjectFileName>
+      <ProgramDataBaseFileName>.\msvc.win32.sdl.debug/</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -103,12 +105,12 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Lib>
-      <OutputFile>.\msvc.win32.debug\conio.lib</OutputFile>
+      <OutputFile>.\msvc.win32.sdl.debug\conio_sdl.lib</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Lib>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\msvc.win32.debug/conio.bsc</OutputFile>
+      <OutputFile>.\msvc.win32.sdl.debug/conio.bsc</OutputFile>
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -124,6 +126,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="bitmap_con.c" />
     <ClCompile Include="ciolib.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -142,6 +145,9 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="sdlfuncs.c" />
+    <ClCompile Include="sdl_con.c" />
+    <ClCompile Include="SDL_win32_main.c" />
     <ClCompile Include="vidmodes.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
