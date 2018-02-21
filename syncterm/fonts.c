@@ -270,12 +270,14 @@ void font_management(void)
 			char	**path;
 
 			if(i&MSK_DEL) {
-				FREE_AND_NULL(fonts[cur].name);
-				FREE_AND_NULL(fonts[cur].path8x8);
-				FREE_AND_NULL(fonts[cur].path8x14);
-				FREE_AND_NULL(fonts[cur].path8x16);
-				memmove(&(fonts[cur]),&(fonts[cur+1]),sizeof(struct font_files)*(count-cur));
-				count--;
+				if (fonts) {
+					FREE_AND_NULL(fonts[cur].name);
+					FREE_AND_NULL(fonts[cur].path8x8);
+					FREE_AND_NULL(fonts[cur].path8x14);
+					FREE_AND_NULL(fonts[cur].path8x16);
+					memmove(&(fonts[cur]),&(fonts[cur+1]),sizeof(struct font_files)*(count-cur));
+					count--;
+				}
 				break;
 			}
 			if(i&MSK_INS) {
@@ -351,34 +353,18 @@ void font_management(void)
 			if(show_filepick && !safe_mode) {
 				int result;
 				struct file_pick fpick;
-				char	*savbuf;
-				uint32_t *savf;
-				uint32_t *savb;
+				struct vmem_cell	*savbuf;
 				struct text_info	ti;
 
 				gettextinfo(&ti);
-				savbuf=(char *)alloca((ti.screenheight-2)*ti.screenwidth*2);
+				savbuf=alloca((ti.screenheight-2)*ti.screenwidth*sizeof(*savbuf));
 				if(savbuf==NULL) {
 					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
 					uifc.msg("malloc() failure.");
 					check_exit(FALSE);
 					continue;
 				}
-				savf=alloca((ti.screenheight-2)*ti.screenwidth*sizeof(savf[0]));
-				if(savf==NULL) {
-					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
-					uifc.msg("malloc() failure.");
-					check_exit(FALSE);
-					continue;
-				}
-				savb=alloca((ti.screenheight-2)*ti.screenwidth*sizeof(savb[0]));
-				if(savb==NULL) {
-					uifc.helpbuf="malloc() has failed.  Available Memory is dangerously low.";
-					uifc.msg("malloc() failure.");
-					check_exit(FALSE);
-					continue;
-				}
-				pgettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf,savf,savb);
+				vmem_gettext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 				result=filepick(&uifc, str, &fpick, ".", fontmask, UIFC_FP_ALLOWENTRY);
 				if(result!=-1 && fpick.files>0) {
 					FREE_AND_NULL(*path);
@@ -387,7 +373,7 @@ void font_management(void)
 				else
 					check_exit(FALSE);
 				filepick_free(&fpick);
-				pputtext(1,2,ti.screenwidth,ti.screenheight-1,savbuf,savf,savb);
+				vmem_puttext(1,2,ti.screenwidth,ti.screenheight-1,savbuf);
 			}
 		}
 	}
