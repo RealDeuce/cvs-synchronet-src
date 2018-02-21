@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.42 2018/02/21 02:08:54 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.43 2018/02/21 03:22:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -46,8 +46,9 @@
 
 smb_t	smb;
 BOOL	renumber=FALSE;
+BOOL	fixnums=FALSE;
 BOOL	smb_undelete=FALSE;
-char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]";
+char*	usage="usage: fixsmb [-renumber] [-undelete] [-fixnums] <smb_file> [[smb_file] [...]]";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -142,6 +143,8 @@ int fixsmb(char* sub)
 		exit(1);
 	}
 
+	uint32_t last_msg = smb.status.last_msg;
+
 	if(!(smb.status.attr&SMB_HYPERALLOC)) {
 
 		if((i=smb_open_ha(&smb))!=0) {
@@ -212,6 +215,11 @@ int fixsmb(char* sub)
 			if(msg.hdr.number == numbers[i])
 				dupe_msgnum = TRUE;
 
+		if(dupe_msgnum && fixnums && msg.hdr.number >= last_msg) {
+			printf("Fixed message number (%lu -> %lu)\n", (ulong)msg.hdr.number, (ulong)highest + 1);
+			msg.hdr.number = highest + 1;
+			dupe_msgnum = FALSE;
+		}
 		if(!dupe_msgnum) {
 			total++;
 			if((numbers = realloc(numbers, total * sizeof(*numbers))) == NULL) {
@@ -310,7 +318,7 @@ int main(int argc, char **argv)
 	str_list_t	list;
 	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.42 $", "%*s %s", revision);
+	sscanf("$Revision: 1.43 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -323,6 +331,8 @@ int main(int argc, char **argv)
 				renumber=TRUE;
 			else if(!stricmp(argv[i],"-undelete"))
 				smb_undelete=TRUE;
+			else if(!stricmp(argv[i],"-fixnums"))
+				fixnums=TRUE;
 		} else
 			strListPush(&list,argv[i]);
 	}
