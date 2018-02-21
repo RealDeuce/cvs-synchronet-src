@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.84 2018/03/10 06:11:57 deuce Exp $ */
+/* $Id: umonitor.c,v 1.82 2018/02/13 08:11:31 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,7 +805,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.84 $", "%*s %s", revision);
+	sscanf("$Revision: 1.82 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -866,14 +866,14 @@ int main(int argc, char** argv)  {
 
 	uifc.esc_delay=500;
 
-	boxch.ls=(char)186;
-	boxch.rs=(char)186;
-	boxch.ts=(char)205;
-	boxch.bs=(char)205;
-	boxch.tl=(char)201;
-	boxch.tr=(char)187;
-	boxch.bl=(char)200;
-	boxch.br=(char)188;
+	boxch.ls=186;
+	boxch.rs=186;
+	boxch.ts=205;
+	boxch.bs=205;
+	boxch.tl=201;
+	boxch.tr=187;
+	boxch.bl=200;
+	boxch.br=188;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
             )
@@ -1039,9 +1039,6 @@ int main(int argc, char** argv)  {
 		}
 
 		if(j==0) {
-			BOOL sysop_avail = sysop_available(&cfg);
-			int sysop_chat_opt;
-
 			/* System Options */
 			i=0;
 			strcpy(opt[i++],"Run SCFG");
@@ -1053,7 +1050,6 @@ int main(int argc, char** argv)  {
 			strcpy(opt[i++],"Recycle servers");
 			strcpy(opt[i++],"Edit CFG/INI files");
 			strcpy(opt[i++],"Edit trashcan files");
-			sysop_chat_opt = i++;
 			opt[i][0]=0;
 			uifc.helpbuf=	"`System Options`\n"
 			                "`------------`\n\n"
@@ -1073,7 +1069,6 @@ int main(int argc, char** argv)  {
 			done=0;
 			i=0;
 			while(!done) {
-				sprintf(opt[sysop_chat_opt], "Turn Sysop Chat availability %s", sysop_avail ? "Off" : "On");
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"System Options",opt))  {
 					case -1:
 						done=1;
@@ -1122,10 +1117,6 @@ int main(int argc, char** argv)  {
 						break;
 					case 8:
 						edit_can(&cfg);
-						break;
-					case 9:
-						sysop_avail = !sysop_avail;
-						set_sysop_availability(&cfg, sysop_avail);
 						break;
 				}
 			}
