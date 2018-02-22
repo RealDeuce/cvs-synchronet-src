@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.65 2018/01/31 23:44:18 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.66 2018/02/20 11:41:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,6 +278,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	if(fread(qwkbuf,QWK_BLOCK_LEN,blocks-1,qwk_fp) != blocks-1) {
 		free(qwkbuf);
 		errormsg(WHERE,ERR_READ,"QWK msg blocks",(blocks-1)*QWK_BLOCK_LEN);
+		return false;
 	}
 
 	bodylen=0;
