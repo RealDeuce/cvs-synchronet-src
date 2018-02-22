@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.24 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.28 2018/02/20 11:17:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -203,6 +203,52 @@ void global_settings(void)
 	}
 }
 
+static bool new_node(unsigned new_nodenum)
+{
+	nodecfg_t* nodecfg = realloc(cfg.nodecfg, sizeof(nodecfg_t)*(cfg.nodecfgs+1));
+	
+	if(nodecfg == NULL)
+		return false;
+
+	cfg.nodecfg = nodecfg;
+	for(unsigned int i=cfg.nodecfgs; i > new_nodenum; i--)
+		memcpy(&cfg.nodecfg[i], &cfg.nodecfg[i-1], sizeof(nodecfg_t));
+
+	cfg.nodecfgs++;
+	memset(&cfg.nodecfg[new_nodenum], 0, sizeof(nodecfg_t));
+	return true;
+}
+
+static bool new_arcdef(unsigned new_arcnum)
+{
+	arcdef_t * arcdef = realloc(cfg.arcdef, sizeof(arcdef_t)*(cfg.arcdefs+1));
+
+	if(arcdef == NULL)
+		return false;
+
+	cfg.arcdef = arcdef;
+
+	for(unsigned j=cfg.arcdefs;j>new_arcnum;j--)
+		memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1], sizeof(arcdef_t));
+	cfg.arcdefs++;
+	memset(&cfg.arcdef[new_arcnum], 0, sizeof(arcdef_t));
+	return true;
+}
+
+static bool new_list(unsigned new_listnum)
+{
+	echolist_t *listcfg = realloc(cfg.listcfg, sizeof(echolist_t)*(cfg.listcfgs+1));
+
+	if(listcfg == NULL)
+		return false;
+	cfg.listcfg = listcfg;
+	for(unsigned j=cfg.listcfgs;j>new_listnum;j--)
+		memcpy(&cfg.listcfg[j],&cfg.listcfg[j-1], sizeof(echolist_t));
+	cfg.listcfgs++;
+	memset(&cfg.listcfg[new_listnum],0,sizeof(echolist_t));
+	return true;
+}
+
 int main(int argc, char **argv)
 {
 	char str[256],*p;
@@ -302,7 +348,7 @@ int main(int argc, char **argv)
         			exit(0);
 		}
 		else
-			strcpy(str,argv[i]);
+			SAFECOPY(str,argv[i]);
 	}
 	if(str[0]==0) {
 		p=getenv("SBBSCTRL");
@@ -312,14 +358,14 @@ int main(int argc, char **argv)
 				goto USAGE;
 				exit(1); 
 			}
-			strcpy(str,p);
+			SAFECOPY(str,p);
 			backslash(str);
-			strcat(str,"../ctrl/sbbsecho.ini"); 
+			SAFECAT(str,"../ctrl/sbbsecho.ini"); 
 		}
 		else {
-			strcpy(str,p);
+			SAFECOPY(str,p);
 			backslash(str);
-			strcat(str,"sbbsecho.ini"); 
+			SAFECAT(str,"sbbsecho.ini"); 
 		} 
 	}
 	SAFECOPY(cfg.cfgfile,str);
@@ -438,22 +484,31 @@ int main(int argc, char **argv)
 	"FidoNet-style nodes (uplinks and downlinks).\n"
 	"\n"
 	"A single node configuration can represent one node or a collection\n"
-	"of nodes, by using the `ALL` wildcard word."
+	"of nodes, by using the `ALL` wildcard word.\n"
+	"\n"
+	"The hexadecimal numbers in parentheses are provided as an aide when\n"
+	"correlating FidoNet files and BSO directories with node numbers."
 	;
 
 					for(u=0;u<cfg.nodecfgs;u++) {
 						char hexaddr[16] = "";
-						if(!faddr_contains_wildcard(&cfg.nodecfg[u].addr))
-							sprintf(hexaddr, "(%04hx%04hx)", cfg.nodecfg[u].addr.net,cfg.nodecfg[u].addr.node);
-						snprintf(opt[u], MAX_OPLN-1, "%-16s %10s  %s"
+						if(cfg.nodecfg[u].addr.zone != 0xffff) {
+							if(!faddr_contains_wildcard(&cfg.nodecfg[u].addr))
+								sprintf(hexaddr, "(%04hx%04hx)", cfg.nodecfg[u].addr.net,cfg.nodecfg[u].addr.node);
+							else
+								sprintf(hexaddr, "(.%03X)", cfg.nodecfg[u].addr.zone);
+						}
+						snprintf(opt[u], MAX_OPLN-1, "%-16s %-10s  %s"
 							,faddrtoa(&cfg.nodecfg[u].addr), hexaddr
 							,cfg.nodecfg[u].name[0] ? cfg.nodecfg[u].name : cfg.nodecfg[u].comment);
 					}
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
+					if(cfg.nodecfgs)
+						mode |= WIN_COPY | WIN_CUT;
 					if (savnodecfg.addr.zone)
-						mode |= WIN_PUT;
+						mode |= WIN_PASTE | WIN_PASTEXTR;
 					i=uifc.list(mode,0,0,0,&node_opt,0,"Linked Nodes",opt);
 					if(i==-1)
 						break;
@@ -470,16 +525,10 @@ int main(int argc, char **argv)
 							,"Node Address (ALL wildcard allowed)",str
 							,25,K_EDIT)<1)
 							continue;
-						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
-							,sizeof(nodecfg_t)*(cfg.nodecfgs+1)))==NULL) {
+						if(!new_node(i)) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
-						for(j=cfg.nodecfgs;j>i;j--)
-							memcpy(&cfg.nodecfg[j],&cfg.nodecfg[j-1]
-								,sizeof(nodecfg_t));
-						cfg.nodecfgs++;
-						memset(&cfg.nodecfg[i],0,sizeof(nodecfg_t));
 						cfg.nodecfg[i].addr=atofaddr(str);
 						uifc.changes=TRUE;
 						continue; 
@@ -496,19 +545,16 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.nodecfgs;u++)
 							memcpy(&cfg.nodecfg[u],&cfg.nodecfg[u+1]
 								,sizeof(nodecfg_t));
-						if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
-							,sizeof(nodecfg_t)*(cfg.nodecfgs)))==NULL) {
-							printf("\nMemory Allocation Error\n");
-							exit(1); 
-						}
 						uifc.changes=TRUE;
 						continue; 
 					}
-					if (msk == MSK_GET) {
+					if (msk == MSK_COPY) {
 						memcpy(&savnodecfg,&cfg.nodecfg[i],sizeof(nodecfg_t));
 						continue; 
 					}
-					if (msk == MSK_PUT) {
+					if (msk == MSK_PASTE) {
+						if(!new_node(i))
+							continue;
 						memcpy(&cfg.nodecfg[i],&savnodecfg,sizeof(nodecfg_t));
 						uifc.changes=TRUE;
 						continue; 
@@ -549,7 +595,7 @@ int main(int argc, char **argv)
 	"    This setting may be managed by the node using AreaFix requests.\n"
 	"\n"
 	"`TIC File Password` is an optional password that may be configured here\n"
-	"    (and in your `sbbsecho.ini` file) for use by `ticket.js` when creating\n"
+	"    (and in your `sbbsecho.ini` file) for use by `tickit.js` when creating\n"
 	"    or authenticating `.TIC` files.\n"
 	"    This setting may be managed by the node using AreaFix requests.\n"
 	"\n"
@@ -647,7 +693,7 @@ int main(int argc, char **argv)
 	uifc.helpbuf=
 	"~ Address ~\n\n"
 	"This is the FidoNet style address of this linked node.\n";
-								strcpy(str,faddrtoa(&cfg.nodecfg[i].addr));
+								SAFECOPY(str,faddrtoa(&cfg.nodecfg[i].addr));
 								if(uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address (ALL wildcard allowed)",str
 									,25,K_EDIT|K_UPPER)>0)
@@ -728,7 +774,7 @@ int main(int argc, char **argv)
 							case __COUNTER__:
 	uifc.helpbuf=
 	"~ TIC File Password ~\n\n"
-	"This is an optional password that ticket.js will use for creating\n"
+	"This is an optional password that tickit.js will use for creating\n"
 	"and authenticating `.TIC` files to/from this node.\n";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"TIC File Password (optional)"
@@ -887,7 +933,7 @@ int main(int argc, char **argv)
 	"This option is normally only used with wildcard type node entries\n"
 	"(e.g. `ALL`, or `1:ALL`, `2:ALL`, etc.) and is used to route non-direct\n"
 	"NetMail packets to your uplink node (hub).\n";
-								strcpy(str,faddrtoa(&cfg.nodecfg[i].route));
+								SAFECOPY(str,faddrtoa(&cfg.nodecfg[i].route));
 								if(uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Node Address to Route To",str
 									,25,K_EDIT) >= 0) {
@@ -1186,7 +1232,7 @@ int main(int argc, char **argv)
 					if(cfg.max_netmail_age)
 						duration_to_vstr(cfg.max_netmail_age, str, sizeof(str));
 					else
-						strcpy(str, "None");
+						SAFECOPY(str, "None");
 					snprintf(opt[i++],MAX_OPLN-1,"%-40.40s%s","Maximum Age of Imported NetMail"	, str);
 					opt[i][0]=0;
 					j=uifc.list(WIN_ACT|WIN_SAV,0,0,0,&netmail_opt,0,"NetMail Settings",opt);
@@ -1287,7 +1333,7 @@ int main(int argc, char **argv)
 							if(cfg.max_netmail_age)
 								duration_to_vstr(cfg.max_netmail_age, str, sizeof(str));
 							else
-								strcpy(str, "None");
+								SAFECOPY(str, "None");
 							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum NetMail Age"
 								,str, 10, K_EDIT) >= 0)
 								cfg.max_netmail_age = (ulong)parse_duration(str);
@@ -1401,12 +1447,12 @@ int main(int argc, char **argv)
 					if(cfg.zone_blind)
 						sprintf(str,"Zones 1-%u", cfg.zone_blind_threshold);
 					else
-						strcpy(str,"Disabled");
+						SAFECOPY(str,"Disabled");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Zone Blind SEEN-BY and PATH Lines", str);
 					if(cfg.max_echomail_age)
 						duration_to_vstr(cfg.max_echomail_age, str, sizeof(str));
 					else
-						strcpy(str, "None");
+						SAFECOPY(str, "None");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Maximum Age of Imported EchoMail", str);
 					opt[i][0]=0;
 					j=uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&echomail_opt,0,"EchoMail Settings",opt);
@@ -1553,7 +1599,7 @@ int main(int argc, char **argv)
 							if(cfg.max_echomail_age)
 								duration_to_vstr(cfg.max_echomail_age, str, sizeof(str));
 							else
-								strcpy(str, "None");
+								SAFECOPY(str, "None");
 							if(uifc.input(WIN_MID|WIN_BOT|WIN_SAV,0,0,"Maximum EchoMail Age"
 								,str, 10, K_EDIT) >= 0)
 								cfg.max_echomail_age = (ulong)parse_duration(str);
@@ -1577,10 +1623,12 @@ int main(int argc, char **argv)
 					for(u=0;u<cfg.arcdefs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%-30.30s",cfg.arcdef[u].name);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
+					if(cfg.arcdefs)
+						mode |= WIN_COPY | WIN_CUT;
 					if(savarcdef.name[0])
-						mode |= WIN_PUT;
+						mode |= WIN_PASTE | WIN_PASTEXTR;
 					i=uifc.list(mode,0,0,0,&archive_opt,0,"Archive Types",opt);
 					if(i==-1)
 						break;
@@ -1591,20 +1639,14 @@ int main(int argc, char **argv)
 	uifc.helpbuf=
 	"~ Archive Type ~\n\n"
 	"This is the identifying name of the archiving program (packer).\n";
-						if(uifc.input(WIN_MID,0,0
+						if(uifc.input(WIN_MID|WIN_SAV,0,0
 							,"Archive Type",str,25,K_EDIT|K_UPPER)<1)
 							continue;
-						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
-							,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
+						if(!new_arcdef(i)) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
-						for(j=cfg.arcdefs;j>i;j--)
-							memcpy(&cfg.arcdef[j],&cfg.arcdef[j-1]
-								,sizeof(arcdef_t));
-						cfg.arcdefs++;
-						memset(&cfg.arcdef[i],0,sizeof(arcdef_t));
-						strcpy(cfg.arcdef[i].name,str);
+						SAFECOPY(cfg.arcdef[i].name,str);
 						continue; 
 					}
 
@@ -1619,18 +1661,15 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.arcdefs;u++)
 							memcpy(&cfg.arcdef[u],&cfg.arcdef[u+1]
 								,sizeof(arcdef_t));
-						if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
-							,sizeof(arcdef_t)*(cfg.arcdefs)))==NULL) {
-							printf("\nMemory Allocation Error\n");
-							exit(1); 
-						}
 						continue; 
 					}
-					if (msk == MSK_GET) {
+					if (msk == MSK_COPY) {
 						memcpy(&savarcdef,&cfg.arcdef[i],sizeof(arcdef_t));
 						continue; 
 					}
-					if (msk == MSK_PUT) {
+					if (msk == MSK_PASTE) {
+						if(!new_arcdef(i))
+							continue;
 						memcpy(&cfg.arcdef[i],&savarcdef,sizeof(arcdef_t));
 						continue; 
 					}
@@ -1759,10 +1798,12 @@ int main(int argc, char **argv)
 					for(u=0;u<cfg.listcfgs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%s",cfg.listcfg[u].listpath);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT | WIN_GET 
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
+					if(cfg.listcfgs)
+						mode |= WIN_COPY | WIN_CUT;
 					if(savlistcfg.listpath[0])
-						mode |= WIN_PUT;
+						mode |= WIN_PASTE | WIN_PASTEXTR;
 					i=uifc.list(mode,0,0,0,&echolist_opt,0,"EchoLists",opt);
 					if(i==-1)
 						break;
@@ -1777,17 +1818,11 @@ int main(int argc, char **argv)
 						if(uifc.input(WIN_MID|WIN_SAV,0,0
 							,"EchoList Path/Name",str,50,K_EDIT)<1)
 							continue;
-						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
-							,sizeof(echolist_t)*(cfg.listcfgs+1)))==NULL) {
+						if(!new_list(i)) {
 							printf("\nMemory Allocation Error\n");
 							exit(1); 
 						}
-						for(j=cfg.listcfgs;j>i;j--)
-							memcpy(&cfg.listcfg[j],&cfg.listcfg[j-1]
-								,sizeof(echolist_t));
-						cfg.listcfgs++;
-						memset(&cfg.listcfg[i],0,sizeof(echolist_t));
-						strcpy(cfg.listcfg[i].listpath,str);
+						SAFECOPY(cfg.listcfg[i].listpath,str);
 						continue; 
 					}
 
@@ -1802,18 +1837,15 @@ int main(int argc, char **argv)
 						for(u=i;u<cfg.listcfgs;u++)
 							memcpy(&cfg.listcfg[u],&cfg.listcfg[u+1]
 								,sizeof(echolist_t));
-						if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
-							,sizeof(echolist_t)*(cfg.listcfgs)))==NULL) {
-							printf("\nMemory Allocation Error\n");
-							exit(1); 
-						}
 						continue; 
 					}
-					if (msk == MSK_GET) {
+					if (msk == MSK_COPY) {
 						memcpy(&savlistcfg,&cfg.listcfg[i],sizeof(echolist_t));
 						continue; 
 					}
-					if (msk == MSK_PUT) {
+					if (msk == MSK_PASTE) {
+						if(!new_list(i))
+							continue;
 						memcpy(&cfg.listcfg[i],&savlistcfg,sizeof(echolist_t));
 						continue; 
 					}
@@ -1894,7 +1926,7 @@ int main(int argc, char **argv)
 								break;
 							case 2:
 								if(cfg.listcfg[i].hub.zone)
-									strcpy(str,faddrtoa(&cfg.listcfg[i].hub));
+									SAFECOPY(str,faddrtoa(&cfg.listcfg[i].hub));
 								else
 									str[0]=0;
 								uifc.input(WIN_MID|WIN_SAV,0,0
@@ -1941,10 +1973,7 @@ int main(int argc, char **argv)
 		"Select `Yes` to save the config file, `No` to quit without saving,\n"
 		"or hit ~ ESC ~ to go back to the menu.\n\n";
 					i=0;
-					strcpy(opt[0],"Yes");
-					strcpy(opt[1],"No");
-					opt[2][0]=0;
-					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",opt);
+					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
 					if(i==-1) break;
 					if(i) {uifc.bail(); exit(0);}
 					if(!sbbsecho_write_ini(&cfg))
