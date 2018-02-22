@@ -1,6 +1,6 @@
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.58 2019/01/01 04:39:02 rswindell Exp $ */
+/* $Id: uedit.c,v 1.55 2017/11/13 20:07:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -75,8 +75,6 @@ struct user_list {
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 char YesStr[]="Yes";
 char NoStr[]="No";
-
-#define GETUSERDAT(cfg, user)	if (getuserdat(cfg, user) != 0) { uifc.msg("Error reading user database!"); return -1; }
 
 /*
  * Find the first occurrence of find in s, ignore case.
@@ -243,7 +241,7 @@ int edit_terminal(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"Auto-detect      %s",user->misc & AUTOTERM?"Yes":"No");
 		sprintf(opt[i++],"Extended ASCII   %s",user->misc & NO_EXASCII?"No":"Yes");
@@ -342,7 +340,7 @@ int edit_logon(scfg_t *cfg, user_t *user)
 	j=0;
 	while(1) {
 		i=0;
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		sprintf(opt[i++],"Ask for New Message Scan     %s",user->misc & ASK_NSCAN?"Yes":"No");
 		sprintf(opt[i++],"Ask for Your Message Scan    %s",user->misc & ASK_SSCAN?"Yes":"No");
 		sprintf(opt[i++],"Remember Current Sub         %s",user->misc & CURSUB?"Yes":"No");
@@ -405,7 +403,7 @@ int edit_chat(scfg_t *cfg, user_t *user)
 	j=0;
 	while(1) {
 		i=0;
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		sprintf(opt[i++],"Chat Echo                  %s",user->chat & CHAT_ECHO?"Yes":"No");
 		sprintf(opt[i++],"Chat Actions               %s",user->chat & CHAT_ACTION?"Yes":"No");
 		sprintf(opt[i++],"Available for Chat         %s",user->chat & CHAT_NOPAGE?"No":"Yes");
@@ -494,7 +492,7 @@ int edit_cmd(scfg_t *cfg, user_t *user)
 	j=0;
 	while(1) {
 		i=0;
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		sprintf(opt[i++],"Command Shell  %s",cfg->shell[user->shell]->name);
 		sprintf(opt[i++],"Expert Mode    %s",user->misc & EXPERT?"Yes":"No");
 		opt[i][0]=0;
@@ -526,7 +524,7 @@ int edit_xedit(scfg_t *cfg, user_t *user)
 	if((opt=(char **)alloca(sizeof(char *)*(cfg->total_xedits+1)))==NULL)
 		allocfail(sizeof(char *)*(cfg->total_xedits+1));
 
-	GETUSERDAT(cfg,user);
+	getuserdat(cfg,user);
 	opt[0]="None";
 	for(i=1;i<=cfg->total_xedits;i++) {
 		opt[i]=cfg->xedit[i-1]->name;
@@ -568,7 +566,7 @@ int edit_msgopts(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"Forward Email to NetMail       %s",user->misc & NETMAIL?"Yes":"No");
 		sprintf(opt[i++],"Clear Screen Between Messages  %s",user->misc & CLRSCRN?"Yes":"No");
@@ -607,7 +605,7 @@ int edit_tmpqwktype(scfg_t *cfg, user_t *user)
 	if((opt=(char **)alloca(sizeof(char *)*(cfg->total_fcomps+1)))==NULL)
 		allocfail(sizeof(char *)*(cfg->total_fcomps+1));
 
-	GETUSERDAT(cfg,user);
+	getuserdat(cfg,user);
 	for(i=0;i<cfg->total_fcomps;i++) {
 		opt[i]=cfg->fcomp[i]->ext;
 		if(!strcmp(cfg->fcomp[i]->ext,user->tmpext))
@@ -655,7 +653,7 @@ int edit_qwk(scfg_t *cfg, user_t *user)
 	j=0;
 	while(1) {
 		i=0;
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		sprintf(opt[i++],"Include New Files List        %s",user->qwk & QWK_FILES?"Yes":"No");
 		sprintf(opt[i++],"Include Unread Email          %s",user->qwk & QWK_EMAIL?"Yes":"No");
 		sprintf(opt[i++],"Include ALL Email             %s",user->qwk & QWK_ALLMAIL?"Yes":"No");
@@ -766,7 +764,7 @@ int edit_proto(scfg_t *cfg, user_t *user)
 	if((opt=(char **)alloca(sizeof(char *)*(cfg->total_prots+1)))==NULL)
 		allocfail(sizeof(char *)*(cfg->total_prots+1));
 
-	GETUSERDAT(cfg,user);
+	getuserdat(cfg,user);
 	opt[0]="None";
 	for(i=1;i<=cfg->total_prots;i++) {
 		opt[i]=cfg->prot[i-1]->name;
@@ -815,7 +813,7 @@ int edit_fileopts(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"Auto-New Scan              %s",user->misc & ANFSCAN?"Yes":"No");
 		sprintf(opt[i++],"Extended Descriptions      %s",user->misc & EXTDESC?"Yes":"No");
@@ -989,7 +987,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"First On           %s",user->firston?timestr(cfg, user->firston, str):"Never");
 		sprintf(opt[i++],"Last On            %s",user->laston?timestr(cfg, user->laston, str):"Never");
@@ -1018,7 +1016,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 0:
 				/* First On */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				temptime=user->firston;
 				unixtodstr(cfg,temptime,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"First On Date",str,8,K_EDIT);
@@ -1034,7 +1032,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 1:
 				/* Last On */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				temptime=user->laston;
 				unixtodstr(cfg,temptime,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Last On Date",str,8,K_EDIT);
@@ -1050,7 +1048,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 2:
 				/* Logon Time */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				temptime=user->logontime;
 				unixtodstr(cfg,temptime,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Logon Date",str,8,K_EDIT);
@@ -1066,7 +1064,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 3:
 				/* Total Logons */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->logons);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Logons",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1076,7 +1074,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 4:
 				/* Todays Logons */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->ltoday);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Todays Logons",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1086,7 +1084,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 5:
 				/* Total Posts */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->posts);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Posts",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1096,7 +1094,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 6:
 				/* Todays Posts */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->ptoday);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Todays Posts",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1106,7 +1104,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 7:
 				/* Total Emails */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->emails);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Emails",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1116,7 +1114,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 8:
 				/* Todays Emails */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->etoday);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Todays Emails",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1126,7 +1124,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 9:
 				/* Emails to Sysop */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->fbacks);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Emails to Sysop",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1136,7 +1134,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 10:
 				/* Total Time On */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->timeon);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Time On",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1146,7 +1144,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 11:
 				/* Time On Today */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->ttoday);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Time On Today",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1156,7 +1154,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 12:
 				/* Time On Last Call */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->tlast);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Time On Last Call",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1166,7 +1164,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 13:
 				/* Extra Time Today */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->textra);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Extra Time Today",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1176,7 +1174,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 14:
 				/* Total Downloads */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->dls);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Downloads",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1186,7 +1184,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 15:
 				/* Downloaded Bytes */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->dlb);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Downloaded Bytes",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1196,7 +1194,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 16:
 				/* Total Uploads */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%hu",user->uls);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Total Uploads",str,5,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1206,7 +1204,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 17:
 				/* Uploaded Bytes */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->ulb);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Uploaded Bytes",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1216,7 +1214,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 18:
 				/* Leech Counter */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%u",user->leech);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Leech Counter",str,3,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1226,7 +1224,7 @@ int edit_stats(scfg_t *cfg, user_t *user)
 				break;
 			case 19:
 				/* Password Last Modified */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				temptime=user->pwmod;
 				unixtodstr(cfg,temptime,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Password Modified Date",str,8,K_EDIT);
@@ -1271,7 +1269,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 			allocfail(MAX_OPLN);
 
 	j=0;
-	GETUSERDAT(cfg,user);
+	getuserdat(cfg,user);
 	while(1) {
 		i=0;
 		sprintf(opt[i++],"Level         %d",user->level);
@@ -1292,7 +1290,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 0:
 				/* Level */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%d",user->level);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Level",str,2,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1302,7 +1300,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 1:
 				/* Expiration */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				unixtodstr(cfg,user->expire,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Expiration",str,8,K_EDIT);
 				if(uifc.changes && dstrtounix(cfg, str)!=user->expire) {
@@ -1312,7 +1310,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 2:
 				/* Flag Set 1 */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				ltoaf(user->flags1,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 1",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
@@ -1322,7 +1320,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 3:
 				/* Flag Set 2 */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				ltoaf(user->flags2,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 2",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
@@ -1332,7 +1330,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 4:
 				/* Flag Set 3 */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				ltoaf(user->flags3,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 3",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
@@ -1342,7 +1340,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 5:
 				/* Flag Set 4 */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				ltoaf(user->flags4,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Flag Set 4",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
@@ -1352,7 +1350,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 6:
 				/* Exemptions */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				ltoaf(user->exempt,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Exemptions",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
@@ -1362,7 +1360,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 7:
 				/* Restrictions */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				ltoaf(user->rest,str);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Restrictions",str,26,K_EDIT|K_UPPER|K_ALPHA);
 				if(uifc.changes) {
@@ -1372,7 +1370,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 8:
 				/* Credits */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->cdt);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Credits",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1382,7 +1380,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 9:
 				/* Free Credits */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->freecdt);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Free Credits",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1392,7 +1390,7 @@ int edit_security(scfg_t *cfg, user_t *user)
 				break;
 			case 10:
 				/* Minutes */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(str,"%lu",user->min);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Minutes",str,10,K_EDIT|K_NUMBER);
 				if(uifc.changes) {
@@ -1440,7 +1438,7 @@ int edit_personal(scfg_t *cfg, user_t *user)
 
 	j=0;
 	while(1) {
-		GETUSERDAT(cfg,user);
+		getuserdat(cfg,user);
 		i=0;
 		sprintf(opt[i++],"Real Name   %s",user->name);
 		sprintf(opt[i++],"Alias       %s",user->alias);
@@ -1465,37 +1463,36 @@ int edit_personal(scfg_t *cfg, user_t *user)
 				return(0);
 			case 0:
 				/* Real Name */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Real Name",user->name,LEN_NAME,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_NAME,LEN_NAME,user->name);
 				break;
 			case 1:
 				/* Alias */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Alias",user->alias,LEN_ALIAS,K_EDIT);
-				if(uifc.changes) {
+				if(uifc.changes)
 					putuserrec(cfg,user->number,U_ALIAS,LEN_ALIAS,user->alias);
 					putusername(cfg,user->number,user->alias);
-				}
 				break;
 			case 2:
 				/* Handle */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Chat Handle",user->handle,LEN_ALIAS,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_HANDLE,LEN_HANDLE,user->handle);
 				break;
 			case 3:
 				/* NetMail */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"NetMail Address",user->netmail,LEN_NETMAIL,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_NETMAIL,LEN_NETMAIL,user->netmail);
 				break;
 			case 4:
 				/* Gender */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				sprintf(onech,"%c",user->sex);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Gender",onech,1,K_UPPER|K_ALPHA|K_EDIT);
 				if(uifc.changes) {
@@ -1505,42 +1502,42 @@ int edit_personal(scfg_t *cfg, user_t *user)
 				break;
 			case 5:
 			    /* D.O.B */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"D.O.B.",user->birth,LEN_BIRTH,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_BIRTH,LEN_BIRTH,user->birth);
 				break;
 			case 6:
 				/* Address */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Address",user->address,LEN_ADDRESS,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_ADDRESS,LEN_ADDRESS,user->address);
 				break;
 			case 7:
 				/* Location */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Location",user->location,LEN_LOCATION,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_LOCATION,LEN_LOCATION,user->location);
 				break;
 			case 8:
 				/* Postal/Zip */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Postal/Zip Code",user->zipcode,LEN_ZIPCODE,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_ZIPCODE,LEN_ZIPCODE,user->zipcode);
 				break;
 			case 9:
 				/* Phone */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Phone",user->phone,LEN_PHONE,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_PHONE,LEN_PHONE,user->phone);
 				break;
 			case 10:
 				/* Computer */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Computer",user->comp,LEN_COMP,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_COMP,LEN_COMP,user->comp);
@@ -1548,21 +1545,21 @@ int edit_personal(scfg_t *cfg, user_t *user)
 
             case 11:
 				/* Connection */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Connection",user->modem,LEN_MODEM,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_MODEM,LEN_MODEM,user->modem);
 				break;
 			case 12:
 				/* IP Address */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"IP Address",user->modem,LEN_IPADDR,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_IPADDR,LEN_IPADDR,user->ipaddr);
 				break;
 			case 13:
 				/* Password */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Password",user->pass,LEN_PASS,K_EDIT);
 				if(uifc.changes) {
 					putuserrec(cfg,user->number,U_PASS,LEN_PASS,user->pass);
@@ -1572,14 +1569,14 @@ int edit_personal(scfg_t *cfg, user_t *user)
 				break;
 			case 14:
 				/* Note */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Note",user->note,LEN_NOTE,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_NOTE,LEN_NOTE,user->note);
 				break;
 			case 15:
 			    /* Comment */
-				GETUSERDAT(cfg,user);
+				getuserdat(cfg,user);
 				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"Comment",user->comment,LEN_COMMENT,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_COMMENT,60,user->comment);
@@ -1609,7 +1606,7 @@ int edit_user(scfg_t *cfg, int usernum)
 
 	j=0;
 	while(1) {
-		GETUSERDAT(cfg,&user);
+		getuserdat(cfg,&user);
 		i=0;
 		if (user.misc & DELETED)
 			strcpy(opt[i++],"Undelete");
@@ -1708,7 +1705,7 @@ int finduser(scfg_t *cfg, user_t *user)
 		j=0;
 		for(i=1; i<=last; i++) {
 			user->number=i;
-			GETUSERDAT(cfg,user);
+			getuserdat(cfg,user);
 			if(strcasestr(user->alias, str)!=NULL || strcasestr(user->name, str)!=NULL || strcasestr(user->handle, str)!=NULL
 					|| user->number==un) {
 				FREE_AND_NULL(opt[j]);
@@ -1758,7 +1755,7 @@ int getuser(scfg_t *cfg, user_t *user, char* str)
 		j=0;
 		for(i=1; i<=last; i++) {
 			user->number=i;
-			GETUSERDAT(cfg,user);
+			getuserdat(cfg,user);
 			if(strcasestr(user->alias, str)!=NULL || strcasestr(user->name, str)!=NULL || strcasestr(user->handle, str)!=NULL) {
 				FREE_AND_NULL(opt[j]);
 				if((opt[j]=(struct user_list *)malloc(sizeof(struct user_list)))==NULL)
@@ -1912,7 +1909,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.58 $", "%*s %s", revision);
+	sscanf("$Revision: 1.55 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -1993,7 +1990,7 @@ int main(int argc, char** argv)  {
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
+							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
@@ -2126,7 +2123,7 @@ int main(int argc, char** argv)  {
 				last=lastuser(&cfg);
 				for(i=1; i<=last; i++) {
 					user.number=i;
-					GETUSERDAT(&cfg,&user);
+					getuserdat(&cfg,&user);
 					sprintf(opt[i-1],"%1.1s³%1.1s³ %-25.25s ³ %-25.25s",user.misc&DELETED?"*":" ",user.misc&INACTIVE?"*":" ",user.name,user.alias);
 				}
 				opt[i-1][0]=0;
