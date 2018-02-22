@@ -1,6 +1,6 @@
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.32 2017/06/09 02:18:00 rswindell Exp $ */
+/* $Id: file.cpp,v 1.34 2018/02/20 11:21:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -48,6 +48,7 @@ void sbbs_t::fileinfo(file_t* f)
 	char*	real_fname;
 	uint	i,j;
 
+	current_file = f;
 	for(i=0;i<usrlibs;i++)
 		if(usrlib[i]==cfg.dir[f->dir]->lib)
 			break;
@@ -85,10 +86,9 @@ void sbbs_t::fileinfo(file_t* f)
 		else
 			bprintf(text[InvalidAlternatePathN],f->altpath); 
 	}
-	CRLF;
+	bputs(text[FileHdrDescSeparator]);
 	if(f->misc&FM_EXTDESC) {
 		getextdesc(&cfg,f->dir,f->datoffset,ext);
-		CRLF;
 		putmsg(ext,P_NOATCODES);
 		CRLF; 
 	}
@@ -99,7 +99,7 @@ void sbbs_t::fileinfo(file_t* f)
 	}
 	if(f->opencount)
 		bprintf(text[FileIsOpen],f->opencount,f->opencount>1 ? "s" : nulstr);
-
+	current_file = NULL;
 }
 
 
@@ -212,6 +212,7 @@ void sbbs_t::closefile(file_t* f)
 	}
 	close(file);
 	if((file=nopen(str1,O_WRONLY|O_TRUNC))==-1) {
+		free(buf);
 		errormsg(WHERE,ERR_OPEN,str1,O_WRONLY|O_TRUNC);
 		return; 
 	}
