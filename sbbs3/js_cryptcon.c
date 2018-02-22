@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.12 2018/02/22 10:44:10 deuce Exp $ */
+/* $Id: js_cryptcon.c,v 1.13 2018/02/22 10:48:35 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -496,7 +496,7 @@ js_create_signature(JSContext *cx, uintN argc, jsval *arglist)
 	sigCtx = JSVAL_TO_OBJECT(argv[0]);
 	if (!JS_InstanceOf(cx, sigCtx, &js_cryptcon_class, NULL))
 		return JS_FALSE;
-	HANDLE_PENDING(cx, sigCtx);
+	HANDLE_PENDING(cx, NULL);
 	if ((scp=(struct private_data *)JS_GetPrivate(cx,sigCtx))==NULL) {
 		JS_ReportError(cx, getprivate_failure, WHERE);
 		return JS_FALSE;
