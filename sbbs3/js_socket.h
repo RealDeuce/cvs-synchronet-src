@@ -18,7 +18,6 @@ typedef struct
 	int		type;
 	union xp_sockaddr	remote_addr;
 	CRYPT_SESSION	session;
-	BOOL	tls_server;
 	char	*hostname;
 	struct xpms_set	*set;
 	size_t	unflushed;
