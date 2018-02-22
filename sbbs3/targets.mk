@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.49 2018/10/20 20:31:21 rswindell Exp $
+# $Id: targets.mk,v 1.43 2018/02/12 05:09:12 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -37,9 +37,6 @@ DUPEFIND	= $(EXEODIR)$(DIRSEP)dupefind$(EXEFILE)
 SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
 DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
 READSAUCE	= $(EXEODIR)$(DIRSEP)readsauce$(EXEFILE)
-SHOWSTAT	= $(EXEODIR)$(DIRSEP)showstat$(EXEFILE)
-PKTDUMP		= $(EXEODIR)$(DIRSEP)pktdump$(EXEFILE)
-FMSGDUMP	= $(EXEODIR)$(DIRSEP)fmsgdump$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -48,10 +45,9 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT) \
-			  $(PKTDUMP) $(FMSGDUMP)
+			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE)
 
-all:	dlls utils console scfg uedit umonitor
+all:	dlls utils console
 
 console:	$(JS_DEPS) xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
@@ -70,35 +66,16 @@ mono:	xpdev-mt smblib \
 		$(MTOBJODIR) $(EXEODIR) \
 		$(SBBSMONO)
 
-.PHONY: scfg
-scfg:
-	$(MAKE) -C scfg $(MAKEFLAGS)
-
-.PHONY: uedit
-uedit:
-	$(MAKE) -C uedit $(MAKEFLAGS)
-
-.PHONY: umonitor
-umonitor:
-	$(MAKE) -C umonitor $(MAKEFLAGS)
-
-
 ifdef SBBSEXEC
 .PHONY: install
 install: all
 	install $(EXEODIR)/* $(SBBSEXEC)
 	install $(LIBODIR)/* $(SBBSEXEC)
-	install scfg/$(EXEODIR)/* $(SBBSEXEC)
-	install uedit/$(EXEODIR)/* $(SBBSEXEC)
-	install umonitor/$(EXEODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
 symlinks: all
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr $(LIBODIR)/* $(SBBSEXEC)
-	ln -sfr scfg/$(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr uedit/$(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
 endif
 
 .PHONY: sexyz
@@ -139,4 +116,3 @@ $(DUPEFIND): $(XPDEV_LIB) $(SMBLIB)
 $(SMBACTIV): $(XPDEV_LIB) $(SMBLIB)
 $(DSTSEDIT): $(XPDEV_LIB)
 $(READSAUCE): $(XPDEV_LIB)
-$(SHOWSTAT): $(XPDEV_LIB)
