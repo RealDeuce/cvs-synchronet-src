@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.56 2017/11/11 22:27:18 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.57 2018/02/05 07:12:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,6 +103,7 @@ static bool new_external_program(unsigned new_xtrn_num, unsigned section)
 	}
 	memset(new_xtrn, 0, sizeof(*new_xtrn));
 	new_xtrn->sec = section;
+	new_xtrn->misc = MULTIUSER;
 
 	xtrn_t ** new_xtrn_list = realloc(cfg.xtrn, sizeof(xtrn_t *)*(cfg.total_xtrns + 1));
 	if (new_xtrn_list == NULL) {

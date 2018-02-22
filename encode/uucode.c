@@ -2,13 +2,13 @@
 
 /* Unix-to-unix encoding/decoding routines */
 
-/* $Id: uucode.c,v 1.4 2004/04/08 05:21:32 rswindell Exp $ */
+/* $Id: uucode.c,v 1.5 2018/02/20 11:57:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
