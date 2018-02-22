@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.50 2018/01/12 07:53:49 rswindell Exp $ */
+/* $Id: download.cpp,v 1.51 2018/02/20 11:16:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 /****************************************************************************/
 void sbbs_t::downloadfile(file_t* f)
 {
-    char		str[256],fname[13];
+    char		str[MAX_PATH+1],fname[13];
 	char 		tmp[512];
     int			i,file;
 	long		mod;
