@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.483 2018/12/12 20:27:31 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.437 2018/02/20 11:23:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -53,10 +53,6 @@
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "multisock.h"
-#include "ssl.h"
-#include "cryptlib.h"
-#include "xpprintf.h"		// vasprintf
-#include "md5.h"
 
 /* Constants */
 
@@ -79,14 +75,6 @@
 #define INDEX_FNAME_LEN			15
 
 #define	NAME_LEN				15		/* User name length for listings */
-
-#define MLSX_TYPE	(1<<0)
-#define MLSX_PERM	(1<<1)
-#define MLSX_SIZE	(1<<2)
-#define MLSX_MODIFY	(1<<3)
-#define MLSX_OWNER	(1<<4)
-#define MLSX_UNIQUE	(1<<5)
-#define MLSX_CREATE	(1<<6)
 
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
@@ -140,9 +128,6 @@ BOOL dir_op(scfg_t* cfg, user_t* user, client_t* client, uint dirnum)
 		|| (cfg->dir[dirnum]->op_ar!=NULL && cfg->dir[dirnum]->op_ar[0] && chk_ar(cfg,cfg->dir[dirnum]->op_ar,user,client)));
 }
 
-#if defined(__GNUC__)	// Catch printf-format errors with lprintf
-static int lprintf(int level, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
-#endif
 static int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
@@ -155,7 +140,7 @@ static int lprintf(int level, const char *fmt, ...)
 
 	if(level <= LOG_ERR) {
 		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "ftp  %s", sbuf);
+		SAFEPRINTF(errmsg, "ftp %s", sbuf);
 		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
 			startup->errormsg(startup->cbdata,level,errmsg);
@@ -267,14 +252,9 @@ static SOCKET ftp_open_socket(int domain, int type)
 #ifdef __BORLANDC__
 #pragma argsused
 #endif
-static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
+static int ftp_close_socket(SOCKET* sock, int line)
 {
 	int		result;
-
-	if (*sess != -1) {
-		cryptDestroySession(*sess);
-		*sess = -1;
-	}
 
 	if((*sock)==INVALID_SOCKET) {
 		lprintf(LOG_WARNING,"0000 !INVALID_SOCKET in close_socket from line %u",line);
@@ -296,21 +276,7 @@ static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
 	return(result);
 }
 
-#define GCES(status, sock, session, estr, action) do {                  \
-	int GCES_level;                                                     \
-	get_crypt_error_string(status, session, &estr, action, &GCES_level);\
-	if (estr != NULL) {                                                 \
-		lprintf(GCES_level, "%04d TLS %s", sock, estr);                 \
-		free_crypt_attrstr(estr);										\
-		estr=NULL;														\
-	}                                                                   \
-} while (0)
-
-
-#if defined(__GNUC__)	// Catch printf-format errors with sockprintf
-static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
-#endif
-static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
+static int sockprintf(SOCKET sock, char *fmt, ...)
 {
 	int		len;
 	int		maxlen;
@@ -319,7 +285,6 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 	char	sbuf[1024];
 	fd_set	socket_set;
 	struct timeval tv;
-	char	*estr;
 
     va_start(argptr,fmt);
     len=vsnprintf(sbuf,maxlen=sizeof(sbuf)-2,fmt,argptr);
@@ -328,7 +293,7 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 	if(len<0 || len>maxlen) /* format error or output truncated */
 		len=maxlen;
 	if(startup!=NULL && startup->options&FTP_OPT_DEBUG_TX)
-		lprintf(LOG_DEBUG,"%04d TX%s: %.*s", sock, sess != -1 ? "S" : "", len, sbuf);
+		lprintf(LOG_DEBUG,"%04d TX: %.*s", sock, len, sbuf);
 	memcpy(sbuf+len,"\r\n",2);
 	len+=2;
 
@@ -353,43 +318,21 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 				,sock, ERROR_VALUE);
 		return(0);
 	}
-
-	if (sess != -1) {
-		int tls_sent;
-		int sent = 0;
-		while (sent < len) {
-			result = cryptPushData(sess, sbuf+sent, len-sent, &tls_sent);
-			if (result == CRYPT_OK)
-				sent += tls_sent;
-			else {
-				GCES(result, sock, sess, estr, "sending data");
-				if (result != CRYPT_ERROR_TIMEOUT)
-					return 0;
+	while((result=sendsocket(sock,sbuf,len))!=len) {
+		if(result==SOCKET_ERROR) {
+			if(ERROR_VALUE==EWOULDBLOCK) {
+				YIELD();
+				continue;
 			}
-			result = cryptFlushData(sess);
-			if (result != CRYPT_OK) {
-				GCES(result, sock, sess, estr, "flushing data");
-				return 0;
-			}
+			if(ERROR_VALUE==ECONNRESET) 
+				lprintf(LOG_WARNING,"%04d Connection reset by peer on send",sock);
+			else if(ERROR_VALUE==ECONNABORTED)
+				lprintf(LOG_WARNING,"%04d Connection aborted by peer on send",sock);
+			else
+				lprintf(LOG_WARNING,"%04d !ERROR %d sending",sock,ERROR_VALUE);
+			return(0);
 		}
-	}
-	else {
-		while((result=sendsocket(sock,sbuf,len))!=len) {
-			if(result==SOCKET_ERROR) {
-				if(ERROR_VALUE==EWOULDBLOCK) {
-					YIELD();
-					continue;
-				}
-				if(ERROR_VALUE==ECONNRESET) 
-					lprintf(LOG_WARNING,"%04d Connection reset by peer on send",sock);
-				else if(ERROR_VALUE==ECONNABORTED)
-					lprintf(LOG_WARNING,"%04d Connection aborted by peer on send",sock);
-				else
-					lprintf(LOG_WARNING,"%04d !ERROR %d sending",sock,ERROR_VALUE);
-				return(0);
-			}
-			lprintf(LOG_WARNING,"%04d !ERROR: short send: %u instead of %u",sock,result,len);
-		}
+		lprintf(LOG_WARNING,"%04d !ERROR: short send: %u instead of %u",sock,result,len);
 	}
 	return(len);
 }
@@ -728,34 +671,34 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 	long double		start=xp_timer();
 	jsrefcount	rc;
 
-	lprintf(LOG_DEBUG,"%04d <%s> JavaScript: Generating HTML Index for %s"
-		,sock, user->alias, genvpath(lib,dir,str));
+	lprintf(LOG_DEBUG,"%04d JavaScript: Generating HTML Index for %s"
+		,sock, genvpath(lib,dir,str));
 
 	JS_SetContextPrivate(js_cx, fp);
 
 	do {	/* pseudo try/catch */
 
 		if((file_array=JS_NewArrayObject(js_cx, 0, NULL))==NULL) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to create file_array",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to create file_array",sock);
 			break;
 		}
 
 		/* file[] */
 		val=OBJECT_TO_JSVAL(file_array);
 		if(!JS_SetProperty(js_cx, parent, "file_list", &val)) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set file property",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to set file property",sock);
 			break;
 		}
 
 		if((dir_array=JS_NewArrayObject(js_cx, 0, NULL))==NULL) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to create dir_array",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to create dir_array",sock);
 			break;
 		}
 
 		/* dir[] */
 		val=OBJECT_TO_JSVAL(dir_array);
 		if(!JS_SetProperty(js_cx, parent, "dir_list", &val)) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set dir property",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to set dir property",sock);
 			break;
 		}
 
@@ -772,7 +715,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 		if(!fexist(spath)) {
 			JS_RESUMEREQUEST(js_cx, rc);
-			lprintf(LOG_ERR,"%04d <%s> !HTML JavaScript (%s) doesn't exist",sock,user->alias, spath);
+			lprintf(LOG_ERR,"%04d !HTML JavaScript (%s) doesn't exist",sock,spath);
 			break;
 		}
 		JS_RESUMEREQUEST(js_cx, rc);
@@ -781,31 +724,31 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		val=STRING_TO_JSVAL(js_str);
 		if(!JS_SetProperty(js_cx, parent, "html_index_file", &val)) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set html_index_file property",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to set html_index_file property",sock);
 			break;
 		}
 
 		/* curlib */
 		if((lib_obj=JS_NewObject(js_cx, NULL, 0, NULL))==NULL) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to create lib_obj",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to create lib_obj",sock);
 			break;
 		}
 
 		val=OBJECT_TO_JSVAL(lib_obj);
 		if(!JS_SetProperty(js_cx, parent, "curlib", &val)) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curlib property",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curlib property",sock);
 			break;
 		}
 
 		/* curdir */
 		if((dir_obj=JS_NewObject(js_cx, NULL, 0, NULL))==NULL) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to create dir_obj",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to create dir_obj",sock);
 			break;
 		}
 
 		val=OBJECT_TO_JSVAL(dir_obj);
 		if(!JS_SetProperty(js_cx, parent, "curdir", &val)) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curdir property",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curdir property",sock);
 			break;
 		}
 
@@ -820,7 +763,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				break;
 			val=STRING_TO_JSVAL(js_str);
 			if(!JS_SetProperty(js_cx, lib_obj, "name", &val)) {
-				lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curlib.name property",sock, user->alias);
+				lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curlib.name property",sock);
 				break;
 			}
 
@@ -828,7 +771,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				break;
 			val=STRING_TO_JSVAL(js_str);
 			if(!JS_SetProperty(js_cx, lib_obj, "description", &val)) {
-				lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curlib.desc property",sock, user->alias);
+				lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curlib.desc property",sock);
 				break;
 			}
 		}
@@ -841,7 +784,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				break;
 			val=STRING_TO_JSVAL(js_str);
 			if(!JS_SetProperty(js_cx, dir_obj, "code", &val)) {
-				lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curdir.code property",sock, user->alias);
+				lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curdir.code property",sock);
 				break;
 			}
 
@@ -849,7 +792,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				break;
 			val=STRING_TO_JSVAL(js_str);
 			if(!JS_SetProperty(js_cx, dir_obj, "name", &val)) {
-				lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curdir.name property",sock, user->alias);
+				lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curdir.name property",sock);
 				break;
 			}
 
@@ -857,13 +800,13 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 				break;
 			val=STRING_TO_JSVAL(js_str);
 			if(!JS_SetProperty(js_cx, dir_obj, "description", &val)) {
-				lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curdir.desc property",sock, user->alias);
+				lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curdir.desc property",sock);
 				break;
 			}
 
 			val=INT_TO_JSVAL(scfg.dir[dir]->misc);
 			if(!JS_SetProperty(js_cx, dir_obj, "settings", &val)) {
-				lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curdir.misc property",sock, user->alias);
+				lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curdir.misc property",sock);
 				break;
 			}
 		}
@@ -872,7 +815,7 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 			break;
 		val=STRING_TO_JSVAL(js_str);
 		if(!JS_SetProperty(js_cx, parent, "path", &val)) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to set curdir property",sock, user->alias);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to set curdir property",sock);
 			break;
 		}
 
@@ -1077,18 +1020,18 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 		JS_ClearPendingException(js_cx);
 
 		if((js_script=JS_CompileFile(js_cx, parent, spath))==NULL) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to compile script (%s)",sock, user->alias, spath);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",sock,spath);
 			break;
 		}
 
 		js_PrepareToExecute(js_cx, parent, spath, /* startup_dir: */NULL, parent);
 		if((success=JS_ExecuteScript(js_cx, parent, js_script, &rval))!=TRUE) {
-			lprintf(LOG_ERR,"%04d <%s> !JavaScript FAILED to execute script (%s)",sock, user->alias, spath);
+			lprintf(LOG_ERR,"%04d !JavaScript FAILED to execute script (%s)",sock,spath);
 			break;
 		}
 
-		lprintf(LOG_DEBUG,"%04d <%s> JavaScript: Done executing script: %s (%.2Lf seconds)"
-			,sock, user->alias, spath, xp_timer()-start);
+		lprintf(LOG_DEBUG,"%04d JavaScript: Done executing script: %s (%.2Lf seconds)"
+			,sock,spath,xp_timer()-start);
 
 	} while(0);
 
@@ -1174,118 +1117,12 @@ void recverror(SOCKET socket, int rd, int line)
 			,socket, rd, line);
 }
 
-static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *lastactive)
-{
-	int len=0;
-	fd_set	socket_set;
-	struct	timeval	tv;
-	int ret;
-	int i;
-	char *estr;
-	BOOL first = TRUE;
-
-	if(ftp_set==NULL || terminate_server) {
-		sockprintf(sock,sess,"421 Server downed, aborting.");
-		lprintf(LOG_WARNING,"%04d Server downed, aborting",sock);
-		return(0);
-	}
-	if (sess > -1) {
-		/* Try a read with no timeout first. */
-		if ((ret = cryptSetAttribute(sess, CRYPT_OPTION_NET_READTIMEOUT, 0)) != CRYPT_OK)
-			GCES(ret, sock, sess, estr, "setting read timeout");
-		while (1) {
-			ret = cryptPopData(sess, buf, 1, &len);
-			/* Successive reads will be with the full timeout after a select() */
-			cryptSetAttribute(sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity);
-			switch(ret) {
-				case CRYPT_OK:
-					break;
-				case CRYPT_ERROR_TIMEOUT:
-					if (!first) {
-						GCES(ret, sock, sess, estr, "popping data");
-						return -1;
-					}
-					break;
-				case CRYPT_ERROR_COMPLETE:
-					return 0;
-				default:
-					GCES(ret, sock, sess, estr, "popping data");
-					if (ret < -1)
-						return ret;
-					return -2;
-			}
-			first = FALSE;
-			if (len)
-				return len;
-			
-			if((time(NULL)-(*lastactive))>startup->max_inactivity) {
-				lprintf(LOG_WARNING,"%04d Disconnecting due to to inactivity",sock);
-				sockprintf(sock,sess,"421 Disconnecting due to inactivity (%u seconds)."
-					,startup->max_inactivity);
-				return(0);
-			}
-
-			tv.tv_sec=startup->max_inactivity;
-			tv.tv_usec=0;
-
-			FD_ZERO(&socket_set);
-			FD_SET(sock,&socket_set);
-
-			i=select(sock+1,&socket_set,NULL,NULL,&tv);
-
-			if(i<1) {
-				if(i==0) {
-					if((time(NULL)-(*lastactive))>startup->max_inactivity) {
-						lprintf(LOG_WARNING,"%04d Disconnecting due to to inactivity",sock);
-						sockprintf(sock,sess,"421 Disconnecting due to inactivity (%u seconds)."
-							,startup->max_inactivity);
-						return(0);
-					}
-					continue;
-				}
-				recverror(sock,i,__LINE__);
-				return(i);
-			}
-		}
-	}
-	else {
-		while (1) {
-			tv.tv_sec=startup->max_inactivity;
-			tv.tv_usec=0;
-
-			FD_ZERO(&socket_set);
-			FD_SET(sock,&socket_set);
-
-			i=select(sock+1,&socket_set,NULL,NULL,&tv);
-
-			if(i<1) {
-				if(i==0) {
-					if((time(NULL)-(*lastactive))>startup->max_inactivity) {
-						lprintf(LOG_WARNING,"%04d Disconnecting due to to inactivity",sock);
-						sockprintf(sock,sess,"421 Disconnecting due to inactivity (%u seconds)."
-							,startup->max_inactivity);
-						return(0);
-					}
-					continue;
-				}
-				return(i);
-			}
-	#ifdef SOCKET_DEBUG_RECV_CHAR
-			socket_debug[sock]|=SOCKET_DEBUG_RECV_CHAR;
-	#endif
-			i=recv(sock, buf, 1, 0);
-	#ifdef SOCKET_DEBUG_RECV_CHAR
-			socket_debug[sock]&=~SOCKET_DEBUG_RECV_CHAR;
-	#endif
-			return i;
-		}
-	}
-}
-
-int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* lastactive)
+int sockreadline(SOCKET socket, char* buf, int len, time_t* lastactive)
 {
 	char	ch;
 	int		i,rd=0;
+	fd_set	socket_set;
+	struct timeval	tv;
 
 	buf[0]=0;
 
@@ -1293,13 +1130,44 @@ int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* 
 		lprintf(LOG_WARNING,"INVALID SOCKET in call to sockreadline");
 		return(0);
 	}
-
+	
 	while(rd<len-1) {
-		i = sock_recvbyte(socket, sess, &ch, lastactive);
 
+		tv.tv_sec=startup->max_inactivity;
+		tv.tv_usec=0;
+
+		FD_ZERO(&socket_set);
+		FD_SET(socket,&socket_set);
+
+		i=select(socket+1,&socket_set,NULL,NULL,&tv);
+
+		if(ftp_set==NULL || terminate_server) {
+			sockprintf(socket,"421 Server downed, aborting.");
+			lprintf(LOG_WARNING,"%04d Server downed, aborting",socket);
+			return(0);
+		}
 		if(i<1) {
-			if (sess != -1)
-				recverror(socket,i,__LINE__);
+			if(i==0) {
+				if((time(NULL)-(*lastactive))>startup->max_inactivity) {
+					lprintf(LOG_WARNING,"%04d Disconnecting due to to inactivity",socket);
+					sockprintf(socket,"421 Disconnecting due to inactivity (%u seconds)."
+						,startup->max_inactivity);
+					return(0);
+				}
+				continue;
+			}
+			recverror(socket,i,__LINE__);
+			return(i);
+		}
+#ifdef SOCKET_DEBUG_RECV_CHAR
+		socket_debug[socket]|=SOCKET_DEBUG_RECV_CHAR;
+#endif
+		i=recv(socket, &ch, 1, 0);
+#ifdef SOCKET_DEBUG_RECV_CHAR
+		socket_debug[socket]&=~SOCKET_DEBUG_RECV_CHAR;
+#endif
+		if(i<1) {
+			recverror(socket,i,__LINE__);
 			return(i);
 		}
 		if(ch=='\n' /* && rd>=1 */) { /* Mar-9-2003: terminate on sole LF */
@@ -1311,7 +1179,7 @@ int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* 
 		buf[rd-1]=0;
 	else
 		buf[rd]=0;
-
+	
 	return(rd);
 }
 
@@ -1334,9 +1202,7 @@ int ftp_remove(SOCKET sock, int line, const char* fname)
 
 typedef struct {
 	SOCKET		ctrl_sock;
-	CRYPT_SESSION	ctrl_sess;
 	SOCKET*		data_sock;
-	CRYPT_SESSION*	data_sess;
 	BOOL*		inprogress;
 	BOOL*		aborted;
 	BOOL		delfile;
@@ -1382,7 +1248,6 @@ static void send_thread(void* arg)
 	socklen_t	addr_len;
 	fd_set		socket_set;
 	struct timeval tv;
-	char		*estr;
 
 	xfer=*(xfer_t*)arg;
 	free(arg);
@@ -1394,12 +1259,11 @@ static void send_thread(void* arg)
 
 	if((fp=fnopen(NULL,xfer.filename,O_RDONLY|O_BINARY))==NULL	/* non-shareable open failed */
 		&& (fp=fopen(xfer.filename,"rb"))==NULL) {				/* shareable open failed */
-		lprintf(LOG_ERR,"%04d <%s> !DATA ERROR %d (%s) line %d opening %s"
-			,xfer.ctrl_sock, xfer.user->alias, errno, strerror(errno), __LINE__, xfer.filename);
-		sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"450 ERROR %d (%s) opening %s", errno, strerror(errno), xfer.filename);
+		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
+		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
 		if(xfer.tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 			ftp_remove(xfer.ctrl_sock, __LINE__, xfer.filename);
-		ftp_close_socket(xfer.data_sock,xfer.data_sess,__LINE__);
+		ftp_close_socket(xfer.data_sock,__LINE__);
 		*xfer.inprogress=FALSE;
 		thread_down();
 		return;
@@ -1411,8 +1275,8 @@ static void send_thread(void* arg)
 
 	*xfer.aborted=FALSE;
 	if(startup->options&FTP_OPT_DEBUG_DATA || xfer.filepos)
-		lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d sending %s from offset %lu"
-			,xfer.ctrl_sock, xfer.user->alias, *xfer.data_sock,xfer.filename,xfer.filepos);
+		lprintf(LOG_DEBUG,"%04d DATA socket %d sending %s from offset %lu"
+			,xfer.ctrl_sock,*xfer.data_sock,xfer.filename,xfer.filepos);
 
 	fseek(fp,xfer.filepos,SEEK_SET);
 	last_report=start=time(NULL);
@@ -1426,8 +1290,8 @@ static void send_thread(void* arg)
 				sprintf(str," from offset %lu",xfer.filepos);
 			else
 				str[0]=0;
-			lprintf(LOG_INFO,"%04d <%s> DATA Sent %lu bytes (%lu total) of %s (%lu cps)%s"
-				,xfer.ctrl_sock, xfer.user->alias, total,length,xfer.filename
+			lprintf(LOG_INFO,"%04d Sent %lu bytes (%lu total) of %s (%lu cps)%s"
+				,xfer.ctrl_sock,total,length,xfer.filename
 				,(ulong)((total-last_total)/(now-last_report))
 				,str);
 			last_total=total;
@@ -1435,14 +1299,14 @@ static void send_thread(void* arg)
 		}
 
 		if(*xfer.aborted==TRUE) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA Transfer aborted",xfer.ctrl_sock, xfer.user->alias);
-			sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"426 Transfer aborted.");
+			lprintf(LOG_WARNING,"%04d !DATA Transfer aborted",xfer.ctrl_sock);
+			sockprintf(xfer.ctrl_sock,"426 Transfer aborted.");
 			error=TRUE;
 			break;
 		}
 		if(ftp_set==NULL || terminate_server) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA Transfer locally aborted",xfer.ctrl_sock, xfer.user->alias);
-			sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"426 Transfer locally aborted.");
+			lprintf(LOG_WARNING,"%04d !DATA Transfer locally aborted",xfer.ctrl_sock);
+			sockprintf(xfer.ctrl_sock,"426 Transfer locally aborted.");
 			error=TRUE;
 			break;
 		}
@@ -1456,9 +1320,9 @@ static void send_thread(void* arg)
 
 		i=select((*xfer.data_sock)+1,NULL,&socket_set,NULL,&tv);
 		if(i==SOCKET_ERROR) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA ERROR %d selecting socket %d for send"
-				,xfer.ctrl_sock, xfer.user->alias, ERROR_VALUE, *xfer.data_sock);
-			sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"426 Transfer error.");
+			lprintf(LOG_WARNING,"%04d !DATA ERROR %d selecting socket %d for send"
+				,xfer.ctrl_sock, ERROR_VALUE, *xfer.data_sock);
+			sockprintf(xfer.ctrl_sock,"426 Transfer error.");
 			error=TRUE;
 			break;
 		}
@@ -1473,22 +1337,7 @@ static void send_thread(void* arg)
 #ifdef SOCKET_DEBUG_SEND
 		socket_debug[xfer.ctrl_sock]|=SOCKET_DEBUG_SEND;
 #endif
-		if (*xfer.data_sess != -1) {
-			int status = cryptPushData(*xfer.data_sess, buf, rd, &wr);
-			if (status != CRYPT_OK) {
-				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "pushing data");
-				wr = -1;
-			}
-			else {
-				status = cryptFlushData(*xfer.data_sess);
-				if (status != CRYPT_OK) {
-					GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "flushing data");
-					wr = -1;
-				}
-			}
-		}
-		else
-			wr=sendsocket(*xfer.data_sock,buf,rd);
+		wr=sendsocket(*xfer.data_sock,buf,rd);
 #ifdef SOCKET_DEBUG_SEND
 		socket_debug[xfer.ctrl_sock]&=~SOCKET_DEBUG_SEND;
 #endif
@@ -1500,29 +1349,29 @@ static void send_thread(void* arg)
 					continue;
 				}
 				else if(ERROR_VALUE==ECONNRESET) 
-					lprintf(LOG_WARNING,"%04d <%s> DATA Connection reset by peer, sending on socket %d"
-						,xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
+					lprintf(LOG_WARNING,"%04d DATA Connection reset by peer, sending on socket %d"
+						,xfer.ctrl_sock,*xfer.data_sock);
 				else if(ERROR_VALUE==ECONNABORTED) 
-					lprintf(LOG_WARNING,"%04d <%s> DATA Connection aborted by peer, sending on socket %d"
-						,xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
+					lprintf(LOG_WARNING,"%04d DATA Connection aborted by peer, sending on socket %d"
+						,xfer.ctrl_sock,*xfer.data_sock);
 				else
-					lprintf(LOG_WARNING,"%04d <%s> !DATA ERROR %d sending on data socket %d"
-						,xfer.ctrl_sock, xfer.user->alias,ERROR_VALUE,*xfer.data_sock);
+					lprintf(LOG_WARNING,"%04d !DATA ERROR %d sending on data socket %d"
+						,xfer.ctrl_sock,ERROR_VALUE,*xfer.data_sock);
 				/* Send NAK */
-				sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"426 Error %d sending on DATA channel"
+				sockprintf(xfer.ctrl_sock,"426 Error %d sending on DATA channel"
 					,ERROR_VALUE);
 				error=TRUE;
 				break;
 			}
 			if(wr==0) {
-				lprintf(LOG_WARNING,"%04d <%s> !DATA socket %d disconnected",xfer.ctrl_sock, xfer.user->alias, *xfer.data_sock);
-				sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"426 DATA channel disconnected");
+				lprintf(LOG_WARNING,"%04d !DATA socket %d disconnected",xfer.ctrl_sock, *xfer.data_sock);
+				sockprintf(xfer.ctrl_sock,"426 DATA channel disconnected");
 				error=TRUE;
 				break;
 			}
-			lprintf(LOG_ERR,"%04d <%s> !DATA ERROR %d (%d) sending on socket %d"
-				,xfer.ctrl_sock, xfer.user->alias, wr, ERROR_VALUE, *xfer.data_sock);
-			sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"451 DATA send error");
+			lprintf(LOG_ERR,"%04d !DATA SEND ERROR %d (%d) on socket %d"
+				,xfer.ctrl_sock, wr, ERROR_VALUE, *xfer.data_sock);
+			sockprintf(xfer.ctrl_sock,"451 DATA send error");
 			error=TRUE;
 			break;
 		}
@@ -1532,21 +1381,19 @@ static void send_thread(void* arg)
 	}
 
 	if((i=ferror(fp))!=0) 
-		lprintf(LOG_ERR,"%04d <%s> !DATA FILE ERROR %d (%d, %s)"
-			,xfer.ctrl_sock, xfer.user->alias, i, errno, strerror(errno));
+		lprintf(LOG_ERR,"%04d !FILE ERROR %d (%d)",xfer.ctrl_sock,i,errno);
 
-	ftp_close_socket(xfer.data_sock,xfer.data_sess,__LINE__);	/* Signal end of file */
+	ftp_close_socket(xfer.data_sock,__LINE__);	/* Signal end of file */
 	if(startup->options&FTP_OPT_DEBUG_DATA)
-		lprintf(LOG_DEBUG,"%04d <%s> DATA socket closed",xfer.ctrl_sock, xfer.user->alias);
+		lprintf(LOG_DEBUG,"%04d DATA socket closed",xfer.ctrl_sock);
 	
 	if(!error) {
 		dur=(long)(time(NULL)-start);
 		cps=dur ? total/dur : total*2;
-		lprintf(LOG_INFO,"%04d <%s> DATA Transfer successful: %lu bytes sent in %lu seconds (%lu cps)"
+		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes sent in %lu seconds (%lu cps)"
 			,xfer.ctrl_sock
-			,xfer.user->alias
 			,total,dur,cps);
-		sockprintf(xfer.ctrl_sock,xfer.ctrl_sess,"226 Download complete (%lu cps).",cps);
+		sockprintf(xfer.ctrl_sock,"226 Download complete (%lu cps).",cps);
 
 		if(xfer.dir>=0) {
 			memset(&f,0,sizeof(f));
@@ -1564,7 +1411,7 @@ static void send_thread(void* arg)
 				f.datedled=time32(NULL);
 				putfileixb(&scfg,&f);
 
-				lprintf(LOG_INFO,"%04d <%s> DATA downloaded: %s (%u times total)"
+				lprintf(LOG_INFO,"%04d %s downloaded: %s (%lu times total)"
 					,xfer.ctrl_sock
 					,xfer.user->alias
 					,xfer.filename
@@ -1661,8 +1508,6 @@ static void receive_thread(void* arg)
 	time_t		last_report;
 	fd_set		socket_set;
 	struct timeval tv;
-	CRYPT_SESSION	sess = -1;
-	char		*estr;
 
 	xfer=*(xfer_t*)arg;
 	free(arg);
@@ -1671,10 +1516,9 @@ static void receive_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 
 	if((fp=fopen(xfer.filename,xfer.append ? "ab" : "wb"))==NULL) {
-		lprintf(LOG_ERR,"%04d <%s> !DATA ERROR %d (%s) line %d opening %s"
-			,xfer.ctrl_sock, xfer.user->alias, errno, strerror(errno), __LINE__, xfer.filename);
-		sockprintf(xfer.ctrl_sock,sess,"450 ERROR %d (%s) opening %s", errno, strerror(errno), xfer.filename);
-		ftp_close_socket(xfer.data_sock,xfer.data_sess,__LINE__);
+		lprintf(LOG_ERR,"%04d !DATA ERROR %d opening %s",xfer.ctrl_sock,errno,xfer.filename);
+		sockprintf(xfer.ctrl_sock,"450 ERROR %d opening %s.",errno,xfer.filename);
+		ftp_close_socket(xfer.data_sock,__LINE__);
 		*xfer.inprogress=FALSE;
 		thread_down();
 		return;
@@ -1685,8 +1529,8 @@ static void receive_thread(void* arg)
 
 	*xfer.aborted=FALSE;
 	if(xfer.filepos || startup->options&FTP_OPT_DEBUG_DATA)
-		lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d receiving %s from offset %lu"
-			,xfer.ctrl_sock,xfer.user->alias, *xfer.data_sock,xfer.filename,xfer.filepos);
+		lprintf(LOG_DEBUG,"%04d DATA socket %d receiving %s from offset %lu"
+			,xfer.ctrl_sock,*xfer.data_sock,xfer.filename,xfer.filepos);
 
 	fseek(fp,xfer.filepos,SEEK_SET);
 	last_report=start=time(NULL);
@@ -1700,33 +1544,31 @@ static void receive_thread(void* arg)
 				sprintf(str," from offset %lu",xfer.filepos);
 			else
 				str[0]=0;
-			lprintf(LOG_INFO,"%04d <%s> DATA Received %lu bytes of %s (%lu cps)%s"
-				,xfer.ctrl_sock
-				,xfer.user->alias
-				,total,xfer.filename
+			lprintf(LOG_INFO,"%04d Received %lu bytes of %s (%lu cps)%s"
+				,xfer.ctrl_sock,total,xfer.filename
 				,(ulong)((total-last_total)/(now-last_report))
 				,str);
 			last_total=total;
 			last_report=now;
 		}
 		if(startup->max_fsize && (xfer.filepos+total) > startup->max_fsize) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA received %lu bytes of %s exceeds maximum allowed (%"PRIu64" bytes)"
-				,xfer.ctrl_sock, xfer.user->alias, xfer.filepos+total, xfer.filename, startup->max_fsize);
-			sockprintf(xfer.ctrl_sock,sess,"552 File size exceeds maximum allowed (%"PRIu64" bytes)", startup->max_fsize);
+			lprintf(LOG_WARNING,"%04d !DATA received %lu bytes of %s exceeds maximum allowed (%lu bytes)"
+				,xfer.ctrl_sock, xfer.filepos+total, xfer.filename, startup->max_fsize);
+			sockprintf(xfer.ctrl_sock,"552 File size exceeds maximum allowed (%lu bytes)", startup->max_fsize);
 			error=TRUE;
 			break;
 		}
 		if(*xfer.aborted==TRUE) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA Transfer aborted",xfer.ctrl_sock, xfer.user->alias);
+			lprintf(LOG_WARNING,"%04d !DATA Transfer aborted",xfer.ctrl_sock);
 			/* Send NAK */
-			sockprintf(xfer.ctrl_sock,sess,"426 Transfer aborted.");
+			sockprintf(xfer.ctrl_sock,"426 Transfer aborted.");
 			error=TRUE;
 			break;
 		}
 		if(ftp_set==NULL || terminate_server) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA Transfer locally aborted",xfer.ctrl_sock, xfer.user->alias);
+			lprintf(LOG_WARNING,"%04d !DATA Transfer locally aborted",xfer.ctrl_sock);
 			/* Send NAK */
-			sockprintf(xfer.ctrl_sock,sess,"426 Transfer locally aborted.");
+			sockprintf(xfer.ctrl_sock,"426 Transfer locally aborted.");
 			error=TRUE;
 			break;
 		}
@@ -1740,9 +1582,9 @@ static void receive_thread(void* arg)
 
 		i=select((*xfer.data_sock)+1,&socket_set,NULL,NULL,&tv);
 		if(i==SOCKET_ERROR) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA ERROR %d selecting socket %d for receive"
-				,xfer.ctrl_sock, xfer.user->alias, ERROR_VALUE, *xfer.data_sock);
-			sockprintf(xfer.ctrl_sock,sess,"426 Transfer error.");
+			lprintf(LOG_WARNING,"%04d !DATA ERROR %d selecting socket %d for receive"
+				,xfer.ctrl_sock, ERROR_VALUE, *xfer.data_sock);
+			sockprintf(xfer.ctrl_sock,"426 Transfer error.");
 			error=TRUE;
 			break;
 		}
@@ -1752,24 +1594,15 @@ static void receive_thread(void* arg)
 #if defined(SOCKET_DEBUG_RECV_BUF)
 		socket_debug[xfer.ctrl_sock]|=SOCKET_DEBUG_RECV_BUF;
 #endif
-		if (*xfer.data_sess != -1) {
-			int status = cryptPopData(*xfer.data_sess, buf, sizeof(buf), &rd);
-			if (status != CRYPT_OK) {
-				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "popping data");
-				rd = -1;
-			}
-		}
-		else {
-			rd=recv(*xfer.data_sock,buf,sizeof(buf),0);
-		}
+		rd=recv(*xfer.data_sock,buf,sizeof(buf),0);
 #if defined(SOCKET_DEBUG_RECV_BUF)
 		socket_debug[xfer.ctrl_sock]&=~SOCKET_DEBUG_RECV_BUF;
 #endif
 		if(rd<1) {
 			if(rd==0) { /* Socket closed */
 				if(startup->options&FTP_OPT_DEBUG_DATA)
-					lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d closed by client"
-						,xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
+					lprintf(LOG_DEBUG,"%04d DATA socket %d closed by client"
+						,xfer.ctrl_sock,*xfer.data_sock);
 				break;
 			}
 			if(rd==SOCKET_ERROR) {
@@ -1779,24 +1612,24 @@ static void receive_thread(void* arg)
 					continue;
 				}
 				else if(ERROR_VALUE==ECONNRESET) 
-					lprintf(LOG_WARNING,"%04d <%s> DATA Connection reset by peer, receiving on socket %d"
-						,xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
+					lprintf(LOG_WARNING,"%04d DATA Connection reset by peer, receiving on socket %d"
+						,xfer.ctrl_sock,*xfer.data_sock);
 				else if(ERROR_VALUE==ECONNABORTED) 
-					lprintf(LOG_WARNING,"%04d <%s> DATA Connection aborted by peer, receiving on socket %d"
-						,xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
+					lprintf(LOG_WARNING,"%04d DATA Connection aborted by peer, receiving on socket %d"
+						,xfer.ctrl_sock,*xfer.data_sock);
 				else
-					lprintf(LOG_WARNING,"%04d <%s> !DATA ERROR %d receiving on data socket %d"
-						,xfer.ctrl_sock, xfer.user->alias,ERROR_VALUE,*xfer.data_sock);
+					lprintf(LOG_WARNING,"%04d !DATA ERROR %d receiving on data socket %d"
+						,xfer.ctrl_sock,ERROR_VALUE,*xfer.data_sock);
 				/* Send NAK */
-				sockprintf(xfer.ctrl_sock,sess,"426 Error %d receiving on DATA channel"
+				sockprintf(xfer.ctrl_sock,"426 Error %d receiving on DATA channel"
 					,ERROR_VALUE);
 				error=TRUE;
 				break;
 			}
-			lprintf(LOG_ERR,"%04d <%s> !DATA ERROR recv returned %d on socket %d"
-				,xfer.ctrl_sock, xfer.user->alias,rd,*xfer.data_sock);
+			lprintf(LOG_ERR,"%04d !DATA ERROR recv returned %d on socket %d"
+				,xfer.ctrl_sock,rd,*xfer.data_sock);
 			/* Send NAK */
-			sockprintf(xfer.ctrl_sock,sess,"451 Unexpected socket error: %d",rd);
+			sockprintf(xfer.ctrl_sock,"451 Unexpected socket error: %d",rd);
 			error=TRUE;
 			break;
 		}
@@ -1808,14 +1641,14 @@ static void receive_thread(void* arg)
 
 	fclose(fp);
 
-	ftp_close_socket(xfer.data_sock,xfer.data_sess,__LINE__);
+	ftp_close_socket(xfer.data_sock,__LINE__);
 	if(error && startup->options&FTP_OPT_DEBUG_DATA)
-		lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d closed",xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
+		lprintf(LOG_DEBUG,"%04d DATA socket %d closed",xfer.ctrl_sock,*xfer.data_sock);
 	
 	if(xfer.filepos+total < startup->min_fsize) {
-		lprintf(LOG_WARNING,"%04d <%s> DATA received %lu bytes for %s, less than minimum required (%"PRIu64" bytes)"
-			,xfer.ctrl_sock, xfer.user->alias, xfer.filepos+total, xfer.filename, startup->min_fsize);
-		sockprintf(xfer.ctrl_sock,sess,"550 File size less than minimum required (%"PRIu64" bytes)"
+		lprintf(LOG_WARNING,"%04d DATA received %lu bytes for %s, less than minimum required (%lu bytes)"
+			,xfer.ctrl_sock, xfer.filepos+total, xfer.filename, startup->min_fsize);
+		sockprintf(xfer.ctrl_sock,"550 File size less than minimum required (%lu bytes)"
 			,startup->min_fsize);
 		error=TRUE;
 	}
@@ -1825,9 +1658,8 @@ static void receive_thread(void* arg)
 	} else {
 		dur=(long)(time(NULL)-start);
 		cps=dur ? total/dur : total*2;
-		lprintf(LOG_INFO,"%04d <%s> DATA Transfer successful: %lu bytes received in %lu seconds (%lu cps)"
+		lprintf(LOG_INFO,"%04d Transfer successful: %lu bytes received in %lu seconds (%lu cps)"
 			,xfer.ctrl_sock
-			,xfer.user->alias
 			,total,dur,cps);
 
 		if(xfer.dir>=0) {
@@ -1864,19 +1696,19 @@ static void receive_thread(void* arg)
 					if(fexistcase(tmp))
 						ftp_remove(xfer.ctrl_sock, __LINE__, tmp);
 					cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"FILE_ID.DIZ",cmd);
-					lprintf(LOG_DEBUG,"%04d <%s> DATA Extracting DIZ: %s",xfer.ctrl_sock, xfer.user->alias,cmd);
+					lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
 					system(cmd);
 					if(!fexistcase(tmp)) {
 						sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
 						if(fexistcase(tmp))
 							ftp_remove(xfer.ctrl_sock, __LINE__, tmp);
 						cmdstr(&scfg,xfer.user,scfg.fextr[i]->cmd,fname,"DESC.SDI",cmd);
-						lprintf(LOG_DEBUG,"%04d <%s> DATA Extracting DIZ: %s",xfer.ctrl_sock, xfer.user->alias,cmd);
+						lprintf(LOG_DEBUG,"%04d Extracting DIZ: %s",xfer.ctrl_sock,cmd);
 						system(cmd); 
 						fexistcase(tmp);	/* fixes filename case */
 					}
 					if((file=nopen(tmp,O_RDONLY))!=-1) {
-						lprintf(LOG_DEBUG,"%04d <%s> DATA Parsing DIZ: %s",xfer.ctrl_sock, xfer.user->alias,tmp);
+						lprintf(LOG_DEBUG,"%04d Parsing DIZ: %s",xfer.ctrl_sock,tmp);
 						memset(ext,0,sizeof(ext));
 						read(file,ext,sizeof(ext)-1);
 						for(i=sizeof(ext)-1;i;i--)	/* trim trailing spaces */
@@ -1896,7 +1728,7 @@ static void receive_thread(void* arg)
 						ftp_remove(xfer.ctrl_sock, __LINE__, tmp);
 						f.misc|=FM_EXTDESC; 
 					} else
-						lprintf(LOG_DEBUG,"%04d <%s> DATA DIZ Does not exist: %s",xfer.ctrl_sock, xfer.user->alias,tmp);
+						lprintf(LOG_DEBUG,"%04d DIZ Does not exist: %s",xfer.ctrl_sock,tmp);
 				} 
 			} /* FILE_ID.DIZ support */
 
@@ -1906,13 +1738,11 @@ static void receive_thread(void* arg)
 			SAFECOPY(f.uler,xfer.user->alias);	/* exception here, Aug-27-2002 */
 			if(filedat) {
 				if(!putfiledat(&scfg,&f))
-					lprintf(LOG_ERR,"%04d <%s> !DATA ERROR updating file (%s) in database"
-						,xfer.ctrl_sock, xfer.user->alias,f.name);
+					lprintf(LOG_ERR,"%04d !ERROR updating file (%s) in database",xfer.ctrl_sock,f.name);
 				/* need to update the index here */
 			} else {
 				if(!addfiledat(&scfg,&f))
-					lprintf(LOG_ERR,"%04d <%s> !DATA ERROR adding file (%s) to database"
-						,xfer.ctrl_sock, xfer.user->alias,f.name);
+					lprintf(LOG_ERR,"%04d !ERROR adding file (%s) to database",xfer.ctrl_sock,f.name);
 			}
 
 			if(f.misc&FM_EXTDESC)
@@ -1936,7 +1766,7 @@ static void receive_thread(void* arg)
 				upload_stats(total);
 		}
 		/* Send ACK */
-		sockprintf(xfer.ctrl_sock,sess,"226 Upload complete (%lu cps).",cps);
+		sockprintf(xfer.ctrl_sock,"226 Upload complete (%lu cps).",cps);
 	}
 
 	if(ftp_set!=NULL && !terminate_server)
@@ -1945,74 +1775,10 @@ static void receive_thread(void* arg)
 	thread_down();
 }
 
-static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
-{
-	BOOL nodelay;
-	ulong nb;
-	int status;
-	char *estr = NULL;
-	int level;
 
-	if (get_ssl_cert(&scfg, &estr, &level) == -1) {
-		if (estr) {
-			lprintf(level, "%04d TLS %s", *sock, estr);
-			free_crypt_attrstr(estr);
-		}
-		if (resp)
-			sockprintf(*sock, *sess, "431 TLS not available");
-		return FALSE;
-	}
-	if ((status = cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER)) != CRYPT_OK) {
-		GCES(status, *sock, CRYPT_UNUSED, estr, "creating session");
-		if (resp)
-			sockprintf(*sock, *sess, "431 TLS not available");
-		return FALSE;
-	}
-	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY)) != CRYPT_OK) {
-		GCES(status, *sock, *sess, estr, "disabling certificate verification");
-		cryptDestroySession(*sess);
-		*sess = -1;
-		if(resp)
-			sockprintf(*sock, *sess, "431 TLS not available");
-		return FALSE;
-	}
-	if ((status=cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-		GCES(status, *sock, *sess, estr, "setting private key");
-		cryptDestroySession(*sess);
-		*sess = -1;
-		if (resp)
-			sockprintf(*sock, *sess, "431 TLS not available");
-		return FALSE;
-	}
-	nodelay = TRUE;
-	setsockopt(*sock,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
-	nb=0;
-	ioctlsocket(*sock,FIONBIO,&nb);
-	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock)) != CRYPT_OK) {
-		GCES(status, *sock, *sess, estr, "setting network socket");
-		cryptDestroySession(*sess);
-		*sess = -1;
-		if (resp)
-			sockprintf(*sock, *sess, "431 TLS not available");
-		return TRUE;
-	}
-	if (resp)
-		sockprintf(*sock, -1, "234 Ready to start TLS");
-	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-		GCES(status, *sock, *sess, estr, "setting session active");
-		return TRUE;
-	}
-	if (startup->max_inactivity) {
-		if ((status = cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
-			GCES(status, *sock, *sess, estr, "setting read timeout");
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
 
-static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ctrl_sess, SOCKET pasv_sock, CRYPT_SESSION pasv_sess, SOCKET* data_sock
-					,CRYPT_SESSION *data_sess, char* filename, long filepos, BOOL* inprogress, BOOL* aborted
+static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, SOCKET pasv_sock, SOCKET* data_sock
+					,char* filename, long filepos, BOOL* inprogress, BOOL* aborted
 					,BOOL delfile, BOOL tmpfile
 					,time_t* lastactive
 					,user_t* user
@@ -2021,7 +1787,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 					,BOOL receiving
 					,BOOL credits
 					,BOOL append
-					,char* desc,BOOL protected)
+					,char* desc)
 {
 	int			result;
 	ulong		l;
@@ -2034,8 +1800,8 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 	char		host_ip[INET6_ADDRSTRLEN];
 
 	if((*inprogress)==TRUE) {
-		lprintf(LOG_WARNING,"%04d <%s> !DATA TRANSFER already in progress",ctrl_sock, user->alias);
-		sockprintf(ctrl_sock,ctrl_sess,"425 Transfer already in progress.");
+		lprintf(LOG_WARNING,"%04d !TRANSFER already in progress",ctrl_sock);
+		sockprintf(ctrl_sock,"425 Transfer already in progress.");
 		if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 			ftp_remove(ctrl_sock, __LINE__, filename);
 		return;
@@ -2043,14 +1809,14 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 	*inprogress=TRUE;
 
 	if(*data_sock!=INVALID_SOCKET)
-		ftp_close_socket(data_sock,data_sess,__LINE__);
+		ftp_close_socket(data_sock,__LINE__);
 
 	inet_addrtop(addr, host_ip, sizeof(host_ip));
 	if(pasv_sock==INVALID_SOCKET) {	/* !PASV */
 
 		if((*data_sock=socket(addr->addr.sa_family, SOCK_STREAM, IPPROTO_IP)) == INVALID_SOCKET) {
-			lprintf(LOG_ERR,"%04d <%s> !DATA ERROR %d opening socket", ctrl_sock, user->alias, ERROR_VALUE);
-			sockprintf(ctrl_sock,ctrl_sess,"425 Error %d opening socket",ERROR_VALUE);
+			lprintf(LOG_ERR,"%04d !DATA ERROR %d opening socket", ctrl_sock, ERROR_VALUE);
+			sockprintf(ctrl_sock,"425 Error %d opening socket",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 				ftp_remove(ctrl_sock, __LINE__, filename);
 			*inprogress=FALSE;
@@ -2059,7 +1825,7 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 		if(startup->socket_open!=NULL)
 			startup->socket_open(startup->cbdata,TRUE);
 		if(startup->options&FTP_OPT_DEBUG_DATA)
-			lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d opened",ctrl_sock, user->alias,*data_sock);
+			lprintf(LOG_DEBUG,"%04d DATA socket %d opened",ctrl_sock,*data_sock);
 
 		/* Use port-1 for all data connections */
 		reuseaddr=TRUE;
@@ -2067,8 +1833,8 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 
 		addr_len = sizeof(server_addr);
 		if((result=getsockname(ctrl_sock, &server_addr.addr,&addr_len))!=0) {
-			lprintf(LOG_ERR,"%04d <%s> !DATA ERROR %d (%d) getting address/port of command socket (%u)"
-				,ctrl_sock, user->alias,result,ERROR_VALUE,pasv_sock);
+			lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port of command socket (%u)"
+				,ctrl_sock,result,ERROR_VALUE,pasv_sock);
 			return;
 		}
 
@@ -2080,54 +1846,42 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 			result=bind(*data_sock, &server_addr.addr,addr_len);
 		}
 		if(result!=0) {
-			lprintf(LOG_ERR,"%04d <%s> DATA ERROR %d (%d) binding socket %d"
-				,ctrl_sock, user->alias, result, ERROR_VALUE, *data_sock);
-			sockprintf(ctrl_sock,ctrl_sess,"425 Error %d binding socket",ERROR_VALUE);
+			lprintf(LOG_ERR,"%04d !DATA ERROR %d (%d) binding socket %d"
+				,ctrl_sock, result, ERROR_VALUE, *data_sock);
+			sockprintf(ctrl_sock,"425 Error %d binding socket",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 				ftp_remove(ctrl_sock, __LINE__, filename);
 			*inprogress=FALSE;
-			ftp_close_socket(data_sock,data_sess,__LINE__);
+			ftp_close_socket(data_sock,__LINE__);
 			return;
 		}
 
 		result=connect(*data_sock, &addr->addr,xp_sockaddr_len(addr));
 		if(result!=0) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA ERROR %d (%d) connecting to client %s port %u on socket %d"
-					,ctrl_sock, user->alias,result,ERROR_VALUE
+			lprintf(LOG_WARNING,"%04d !DATA ERROR %d (%d) connecting to client %s port %u on socket %d"
+					,ctrl_sock,result,ERROR_VALUE
 					,host_ip,inet_addrport(addr),*data_sock);
-			sockprintf(ctrl_sock,ctrl_sess,"425 Error %d connecting to socket",ERROR_VALUE);
+			sockprintf(ctrl_sock,"425 Error %d connecting to socket",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 				ftp_remove(ctrl_sock, __LINE__, filename);
 			*inprogress=FALSE;
-			ftp_close_socket(data_sock,data_sess,__LINE__);
+			ftp_close_socket(data_sock,__LINE__);
 			return;
 		}
 		if(startup->options&FTP_OPT_DEBUG_DATA)
-			lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d connected to %s port %u"
-				,ctrl_sock, user->alias,*data_sock,host_ip,inet_addrport(addr));
+			lprintf(LOG_DEBUG,"%04d DATA socket %d connected to %s port %u"
+				,ctrl_sock,*data_sock,host_ip,inet_addrport(addr));
 
-		if (protected) {
-			if (start_tls(data_sock, data_sess, FALSE) || *data_sess == -1) {
-				lprintf(LOG_DEBUG,"%04d <%s> !DATA ERROR activating TLS"
-					,ctrl_sock, user->alias);
-				sockprintf(ctrl_sock,ctrl_sess,"425 Error activating TLS");
-				if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-					ftp_remove(ctrl_sock, __LINE__, filename);
-				*inprogress=FALSE;
-				ftp_close_socket(data_sock,data_sess,__LINE__);
-				return;
-			}
-		}
 	} else {	/* PASV */
 
 		if(startup->options&FTP_OPT_DEBUG_DATA) {
 			addr_len=sizeof(*addr);
 			if((result=getsockname(pasv_sock, &addr->addr,&addr_len))!=0)
-				lprintf(LOG_ERR,"%04d <%s> PASV !DATA ERROR %d (%d) getting address/port of passive socket (%u)"
-					,ctrl_sock, user->alias,result,ERROR_VALUE,pasv_sock);
+				lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port of passive socket (%u)"
+					,ctrl_sock,result,ERROR_VALUE,pasv_sock);
 			else
-				lprintf(LOG_DEBUG,"%04d <%s> PASV DATA socket %d listening on %s port %u"
-					,ctrl_sock, user->alias,pasv_sock,host_ip,inet_addrport(addr));
+				lprintf(LOG_DEBUG,"%04d PASV DATA socket %d listening on %s port %u"
+					,ctrl_sock,pasv_sock,host_ip,inet_addrport(addr));
 		}
 
 		/* Setup for select() */
@@ -2145,9 +1899,8 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 		socket_debug[ctrl_sock]&=~SOCKET_DEBUG_SELECT;
 #endif
 		if(result<1) {
-			lprintf(LOG_WARNING,"%04d <%s> PASV !DATA select returned %d (error: %d)"
-				,ctrl_sock, user->alias,result,ERROR_VALUE);
-			sockprintf(ctrl_sock,ctrl_sess,"425 Error %d selecting socket for connection",ERROR_VALUE);
+			lprintf(LOG_WARNING,"%04d !PASV select returned %d (error: %d)",ctrl_sock,result,ERROR_VALUE);
+			sockprintf(ctrl_sock,"425 Error %d selecting socket for connection",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 				ftp_remove(ctrl_sock, __LINE__, filename);
 			*inprogress=FALSE;
@@ -2163,9 +1916,9 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 		socket_debug[ctrl_sock]&=~SOCKET_DEBUG_ACCEPT;
 #endif
 		if(*data_sock==INVALID_SOCKET) {
-			lprintf(LOG_WARNING,"%04d <%s> PASV !DATA ERROR %d accepting connection on socket %d"
-				,ctrl_sock, user->alias,ERROR_VALUE,pasv_sock);
-			sockprintf(ctrl_sock,ctrl_sess,"425 Error %d accepting connection",ERROR_VALUE);
+			lprintf(LOG_WARNING,"%04d !PASV DATA ERROR %d accepting connection on socket %d"
+				,ctrl_sock,ERROR_VALUE,pasv_sock);
+			sockprintf(ctrl_sock,"425 Error %d accepting connection",ERROR_VALUE);
 			if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
 				ftp_remove(ctrl_sock, __LINE__, filename);
 			*inprogress=FALSE;
@@ -2174,18 +1927,8 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 		if(startup->socket_open!=NULL)
 			startup->socket_open(startup->cbdata,TRUE);
 		if(startup->options&FTP_OPT_DEBUG_DATA)
-			lprintf(LOG_DEBUG,"%04d <%s> PASV DATA socket %d connected to %s port %u"
-				,ctrl_sock, user->alias,*data_sock,host_ip,inet_addrport(addr));
-		if (protected) {
-			if (start_tls(data_sock, data_sess, FALSE) || *data_sess == -1) {
-				lprintf(LOG_WARNING,"%04d <%s> PASV !DATA ERROR starting TLS", pasv_sock, user->alias);
-				sockprintf(ctrl_sock,ctrl_sess,"425 Error negotiating TLS");
-				if(tmpfile && !(startup->options&FTP_OPT_KEEP_TEMP_FILES))
-					ftp_remove(ctrl_sock, __LINE__, filename);
-				*inprogress=FALSE;
-				return;
-			}
-		}
+			lprintf(LOG_DEBUG,"%04d PASV DATA socket %d connected to %s port %u"
+				,ctrl_sock,*data_sock,host_ip,inet_addrport(addr));
 	}
 
 	do {
@@ -2193,23 +1936,21 @@ static void filexfer(union xp_sockaddr* addr, SOCKET ctrl_sock, CRYPT_SESSION ct
 		l=1;
 
 		if(ioctlsocket(*data_sock, FIONBIO, &l)!=0) {
-			lprintf(LOG_ERR,"%04d <%s> !DATA ERROR %d disabling socket blocking"
-				,ctrl_sock, user->alias, ERROR_VALUE);
-			sockprintf(ctrl_sock,ctrl_sess,"425 Error %d disabling socket blocking"
+			lprintf(LOG_ERR,"%04d !DATA ERROR %d disabling socket blocking"
+				,ctrl_sock, ERROR_VALUE);
+			sockprintf(ctrl_sock,"425 Error %d disabling socket blocking"
 				,ERROR_VALUE);
 			break;
 		}
 
 		if((xfer=malloc(sizeof(xfer_t)))==NULL) {
-			lprintf(LOG_CRIT,"%04d <%s> !DATA MALLOC FAILURE LINE %d",ctrl_sock, user->alias,__LINE__);
-			sockprintf(ctrl_sock,ctrl_sess,"425 MALLOC FAILURE");
+			lprintf(LOG_CRIT,"%04d !MALLOC FAILURE LINE %d",ctrl_sock,__LINE__);
+			sockprintf(ctrl_sock,"425 MALLOC FAILURE");
 			break;
 		}
 		memset(xfer,0,sizeof(xfer_t));
 		xfer->ctrl_sock=ctrl_sock;
-		xfer->ctrl_sess=ctrl_sess;
 		xfer->data_sock=data_sock;
-		xfer->data_sess=data_sess;
 		xfer->inprogress=inprogress;
 		xfer->aborted=aborted;
 		xfer->delfile=delfile;
@@ -2259,17 +2000,92 @@ char* dotname(char* in, char* out)
 	return(out);
 }
 
-static BOOL can_list(lib_t *lib, dir_t *dir, user_t *user, client_t *client)
+void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curdir)
 {
-	if (!chk_ar(&scfg,lib->ar,user,client))
-		return FALSE;
-	if (dir->dirnum == scfg.sysop_dir)
-		return TRUE;
-	if (dir->dirnum == scfg.upload_dir)
-		return TRUE;
-	if (chk_ar(&scfg, dir->ar, user, client))
-		return TRUE;
-	return FALSE;
+	char*	p;
+	char*	tp;
+	char	path[MAX_PATH+1];
+	int		dir=*curdir;
+	int		lib=*curlib;
+
+	SAFECOPY(path,*pp);
+	p=path;
+
+	if(*p=='/') {
+		p++;
+		lib=-1;
+	}
+	else if(!strncmp(p,"./",2))
+		p+=2;
+
+	if(!strncmp(p,"..",2)) {
+		p+=2;
+		if(dir>=0)
+			dir=-1;
+		else if(lib>=0)
+			lib=-1;
+		if(*p=='/')
+			p++;
+	}
+
+	if(*p==0) {
+		*curlib=lib;
+		*curdir=dir;
+		return;
+	}
+
+	if(lib<0) { /* root */
+		tp=strchr(p,'/');
+		if(tp)
+			*(tp++)=0;
+		else
+			tp=p+strlen(p);
+		for(lib=0;lib<scfg.total_libs;lib++) {
+			if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
+				continue;
+			if(!stricmp(scfg.lib[lib]->sname,p))
+				break;
+		}
+		if(lib>=scfg.total_libs) { /* not found */
+			*curlib=-1;
+			return;
+		}
+		*curlib=lib;
+
+		if(*(tp)==0) {
+			*curdir=-1;
+			*pp+=tp-path;	/* skip "lib" or "lib/" */
+			return;
+		}
+
+		p=tp;
+	}
+
+	tp=strchr(p,'/');
+	if(tp!=NULL) {
+		*tp=0;
+		tp++;
+	} else 
+		tp=p+strlen(p);
+
+	for(dir=0;dir<scfg.total_dirs;dir++) {
+		if(scfg.dir[dir]->lib!=lib)
+			continue;
+		if(dir!=scfg.sysop_dir && dir!=scfg.upload_dir 
+			&& !chk_ar(&scfg,scfg.dir[dir]->ar,user,client))
+			continue;
+		if(!stricmp(scfg.dir[dir]->code_suffix,p))
+			break;
+	}
+
+	if(dir>=scfg.total_dirs) {  /* not found */
+		*pp+=p-path;			/* skip /lib/filespec */
+		return;
+	}
+
+	*curdir=dir;
+
+	*pp+=tp-path;	/* skip "lib/dir/" */
 }
 
 static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* client, int* curdir)
@@ -2284,21 +2100,21 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 	FILE*	fp;
 	BOOL	result=FALSE;
 
+	sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
+	if((fp=fopen(aliasfile,"r"))==NULL) 
+		return(FALSE);
+
 	SAFECOPY(alias,fullalias);
-	p = getfname(alias);
+	p=strrchr(alias+1,'/');
 	if(p) {
-		if(p != alias)
-			*(p-1) = 0;
-		if(*p) {
-			if(filename == NULL && p != alias)	// CWD command and a filename specified
-				return FALSE;
-			fname = p;
-		}
+		*p=0;
+		fname=p+1;
 	}
 
-	SAFEPRINTF(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
-	if((fp=fopen(aliasfile,"r"))==NULL) 
-		return FALSE;
+	if(filename==NULL /* directory */ && *fname /* filename specified */) {
+		fclose(fp);
+		return(FALSE);
+	}
 
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line),fp))
@@ -2313,7 +2129,7 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
-		if(stricmp(p, alias))	/* Not a match */
+		if(stricmp(p,alias))	/* Not a match */
 			continue;
 
 		p=tp+1;		/* filename */
@@ -2323,14 +2139,9 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
-		if(filename == NULL /* CWD? */ && (*lastchar(p) != '/' || (*fname != 0 && strcmp(fname, alias)))) {
-			fclose(fp);
-			return FALSE;
-		}
-
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 			if((dir=getdir(p+strlen(BBS_VIRTUAL_PATH),user,client))<0)	{
-				lprintf(LOG_WARNING,"0000 <%s> !Invalid virtual path: %s",user->alias, p);
+				lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",p,user->alias);
 				/* invalid or no access */
 				continue;
 			}
@@ -2352,140 +2163,6 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 	if(curdir!=NULL)
 		*curdir=dir;
 	return(result);
-}
-
-/*
- * Parses a path into *curlib, *curdir, and sets *pp to point to the filename
- */
-static int parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curdir)
-{
-	char filename[MAX_PATH+1];
-	int lib = *curlib;
-	int dir = *curdir;
-	char *p = *pp;
-	char *tmp;
-	char *fname = strchr(p, 0);
-	int ret = 0;
-	size_t len;
-
-	if (*p == '/') {
-		lib = -1;
-		dir = -1;
-		p++;
-	}
-
-	while (*p) {
-		/* Relative path stuff */
-		if (strcmp(p, "..") == 0) {
-			if (dir >= 0)
-				dir = -1;
-			else if (lib >= 0)
-				lib = -1;
-			else
-				ret = -1;
-			p += 2;
-		}
-		else if(strncmp(p, "../", 3) == 0) {
-			if (dir >= 0)
-				dir = -1;
-			else if (lib >= 0)
-				lib = -1;
-			else
-				ret = -1;
-			p += 3;
-		}
-		else if(strcmp(p, ".") == 0)
-			p++;
-		else if(strncmp(p, "./", 2) == 0)
-			p += 2;
-		/* Path component */
-		else if (lib < 0) {
-			for(lib=0;lib<scfg.total_libs;lib++) {
-				if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
-					continue;
-				len = strlen(scfg.lib[lib]->sname);
-				if (strlen(p) < len)
-					continue;
-				if (p[len] != 0 && p[len] != '/')
-					continue;
-				if(!strnicmp(scfg.lib[lib]->sname,p,len)) {
-					p += len;
-					if (*p)
-						p++;
-					break;
-				}
-			}
-			if (lib == scfg.total_libs) {
-				strcpy(filename, p);
-				tmp = strchr(filename, '/');
-				if (tmp != NULL)
-					*tmp = 0;
-				if (ftpalias(filename, filename, user, client, &dir) == TRUE) {
-					lib = scfg.dir[dir]->lib;
-					if (strchr(p, '/') != NULL) {
-						p = strchr(p, '/');
-						p++;
-					}
-					else
-						p = strchr(p, 0);
-				}
-				else {
-					ret = -1;
-					lib = -1;
-					if (strchr(p, '/') != NULL) {
-						p = strchr(p, '/');
-						p++;
-					}
-					else
-						p = strchr(p, 0);
-				}
-			}
-		}
-		else if (dir < 0) {
-			for(dir=0;dir<scfg.total_dirs;dir++) {
-				if(scfg.dir[dir]->lib!=lib)
-					continue;
-				if (!can_list(scfg.lib[lib], scfg.dir[dir], user, client))
-					continue;
-				len = strlen(scfg.dir[dir]->code_suffix);
-				if (strlen(p) < len)
-					continue;
-				if (p[len] != 0 && p[len] != '/')
-					continue;
-				if(!strnicmp(scfg.dir[dir]->code_suffix,p,len)) {
-					p += len;
-					if (*p)
-						p++;
-					break;
-				}
-			}
-			if (dir == scfg.total_dirs) {
-				ret = -1;
-				dir = -1;
-				if (strchr(p, '/') != NULL) {
-					p = strchr(p, '/');
-					p++;
-				}
-				else
-					p = strchr(p, 0);
-			}
-		}
-		else {	// Filename
-			if (strchr(p, '/') != NULL) {
-				ret = -1;
-				p = strchr(p, '/');
-				p++;
-			}
-			else {
-				fname = p;
-				p += strlen(fname);
-			}
-		}
-	}
-	*curdir = dir;
-	*curlib = lib;
-	*pp = fname;
-	return ret;
 }
 
 char* root_dir(char* path)
@@ -2522,7 +2199,7 @@ char* genvpath(int lib, int dir, char* str)
 	return(str);
 }
 
-void ftp_printfile(SOCKET sock, CRYPT_SESSION sess, const char* name, unsigned code)
+void ftp_printfile(SOCKET sock, const char* name, unsigned code)
 {
 	char	path[MAX_PATH+1];
 	char	buf[512];
@@ -2537,9 +2214,9 @@ void ftp_printfile(SOCKET sock, CRYPT_SESSION sess, const char* name, unsigned c
 				break;
 			truncsp(buf);
 			if(!i)
-				sockprintf(sock,sess,"%u-%s",code,buf);
+				sockprintf(sock,"%u-%s",code,buf);
 			else
-				sockprintf(sock,sess," %s",buf);
+				sockprintf(sock," %s",buf);
 			i++;
 		}
 		fclose(fp);
@@ -2560,7 +2237,7 @@ static BOOL ftp_hacklog(char* prot, char* user, char* text, char* host, union xp
 /* Consecutive failed login (possible password hack) attempt tracking		*/
 /****************************************************************************/
 
-static BOOL badlogin(SOCKET sock, CRYPT_SESSION sess, ulong* login_attempts, char* user, char* passwd, char* host, union xp_sockaddr* addr)
+static BOOL badlogin(SOCKET sock, ulong* login_attempts, char* user, char* passwd, char* host, union xp_sockaddr* addr)
 {
 	ulong count;
 	char	host_ip[INET6_ADDRSTRLEN];
@@ -2570,10 +2247,9 @@ static BOOL badlogin(SOCKET sock, CRYPT_SESSION sess, ulong* login_attempts, cha
 		if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
 			ftp_hacklog("FTP LOGIN", user, passwd, host, addr);
 		if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
-			char reason[128];
-			SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
 			inet_addrtop(addr, host_ip, sizeof(host_ip));
-			filter_ip(&scfg, "FTP", reason, host, host_ip, user, /* fname: */NULL);
+			filter_ip(&scfg, "FTP", "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
+				,host, host_ip, user, /* fname: */NULL);
 		}
 		if(count > *login_attempts)
 			*login_attempts=count;
@@ -2583,11 +2259,11 @@ static BOOL badlogin(SOCKET sock, CRYPT_SESSION sess, ulong* login_attempts, cha
 	mswait(startup->login_attempt.delay);	/* As recommended by RFC2577 */
 
 	if((*login_attempts)>=3) {
-		sockprintf(sock,sess,"421 Too many failed login attempts.");
+		sockprintf(sock,"421 Too many failed login attempts.");
 		return(TRUE);
 	}
-	ftp_printfile(sock,sess,"badlogin",530);
-	sockprintf(sock,sess,"530 Invalid login.");
+	ftp_printfile(sock,"badlogin",530);
+	sockprintf(sock,"530 Invalid login.");
 	return(FALSE);
 }
 
@@ -2598,325 +2274,10 @@ static char* ftp_tmpfname(char* fname, char* ext, SOCKET sock)
 	return(fname);
 }
 
-#if defined(__GNUC__)	// Catch printf-format errors 
-static BOOL send_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, const char *format, ...) __attribute__ ((format (printf, 4, 5)));
-#endif
-static BOOL send_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, const char *format, ...)
-{
-	va_list va;
-	char *str;
-
-	if (fp == NULL && sock == INVALID_SOCKET)
-		return FALSE;
-	va_start(va, format);
-	if (vasprintf(&str, format, va) == -1)
-		return FALSE;
-	if (fp != NULL)
-		fprintf(fp, "%s\r\n", str);
-	else
-		sockprintf(sock, sess, " %s", str);
-	free(str);
-	return TRUE;
-}
-
-static char *get_unique(const char *path, char *uniq)
-{
-	BYTE digest[MD5_DIGEST_SIZE];
-
-	if (path == NULL)
-		return NULL;
-
-	MD5_calc(digest, path, strlen(path));
-	MD5_hex((BYTE*)uniq, digest);
-	return uniq;
-}
-
-static BOOL send_mlsx_entry(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned feats, const char *type, const char *perm, uint64_t size, time_t modify, const char *owner, const char *unique, time_t ul, const char *fname)
-{
-	char line[1024];
-	char *end;
-	BOOL need_owner = FALSE;
-	struct tm t;
-
-	end=line;
-	*end=0;
-	if (type != NULL && (feats & MLSX_TYPE))
-		end += sprintf(end, "Type=%s;", type);
-	if (perm != NULL && (feats & MLSX_PERM))
-		end += sprintf(end, "Perm=%s;", perm);
-	if (size != UINT64_MAX && (feats & MLSX_SIZE))
-		end += sprintf(end, "Size=%" PRIu64 ";", size);
-	if (modify != 0 && (feats & MLSX_MODIFY)) {
-		t = *gmtime(&modify);
-		end += sprintf(end, "Modify=%04d%02d%02d%02d%02d%02d;",
-		    t.tm_year+1900, t.tm_mon+1, t.tm_mday,
-		    t.tm_hour, t.tm_min, t.tm_sec);
-	}
-	if (unique != NULL && (feats & MLSX_UNIQUE))
-		end += sprintf(end, "Unique=%s;", unique);
-	if (ul != 0 && (feats & MLSX_CREATE)) {
-		t = *gmtime(&modify);
-		end += sprintf(end, "Create=%04d%02d%02d%02d%02d%02d;",
-		    t.tm_year+1900, t.tm_mon+1, t.tm_mday,
-		    t.tm_hour, t.tm_min, t.tm_sec);
-	}
-	// Owner can contain percents, so let send_mlsx() deal with it
-	if (owner != NULL && (feats & MLSX_OWNER)) {
-		strcat(end, "UNIX.ownername=%s;");
-		need_owner = TRUE;
-	}
-	strcat(end, " %s");
-	if (need_owner)
-		return send_mlsx(fp, sock, sess, line, owner, fname==NULL ? "" : fname);
-	return send_mlsx(fp, sock, sess, line, fname==NULL ? "" : fname);
-}
-
-static BOOL write_local_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned feats, const char *path, BOOL full_path)
-{
-	const char *type;
-	char permstr[11];
-	char *p;
-	BOOL is_file = FALSE;
-
-	if (!strcmp(path, "."))
-		type="cdir";
-	else if (!strcmp(path, ".."))
-		type="pdir";
-	else if (isdir(path))
-		type="dir";
-	else {
-		is_file = TRUE;
-		type="file";
-	}
-	// TODO: Check for deletability 'd'
-	// TODO: Check for renamability 'f'
-	p = permstr;
-	if (is_file) {
-		if (access(path, W_OK) == 0) {
-			// Can append ('a') and write ('w')
-			*(p++)='a';
-			*(p++)='w';
-		}
-		if (access(path, R_OK) == 0) {
-			// Can read ('r')
-			*(p++)='r';
-		}
-	}
-	else {
-		// TODO: Check these on Windows...
-		if (access(path, W_OK) == 0) {
-			// Can create files ('c'), directories ('m') and delete files ('p')
-			*(p++)='c';
-			*(p++)='m';
-			*(p++)='p';
-		}
-		if (access(path, R_OK) == 0) {
-			// Can change to the directory ('e'), and list files ('l')
-			*(p++)='e';
-			*(p++)='l';
-		}
-	}
-	*p=0;
-	if (is_file)
-		full_path = FALSE;
-	return send_mlsx_entry(fp, sock, sess, feats, type, permstr, (uint64_t)flength(path), fdate(path), NULL, NULL, 0, full_path ? path : getfname(path));
-}
-
-/*
- * Nobody can do anything but list files and change to dirs.
- */
-static void get_libperm(lib_t *lib, user_t *user, client_t *client, char *permstr)
-{
-	char *p = permstr;
-
-	if (chk_ar(&scfg,lib->ar,user,client)) {
-		//*(p++) = 'a';	// File may be appended to
-		//*(p++) = 'c';	// Files may be created in dir
-		//*(p++) = 'd';	// Item may be depeted (dir or file)
-		*(p++) = 'e';	// Can change to the dir
-		//*(p++) = 'f';	// Item may be renamed
-		*(p++) = 'l';	// Directory contents can be listed
-		//*(p++) = 'm';	// New subdirectories may be created
-		//*(p++) = 'p';	// Files/Dirs in directory may be deleted
-		//*(p++) = 'r';	// File may be retrieved
-		//*(p++) = 'w';	// File may be overwritten
-	}
-	*p=0;
-}
-
-static BOOL can_upload(lib_t *lib, dir_t *dir, user_t *user, client_t *client)
-{
-	if (!chk_ar(&scfg,lib->ar,user,client))
-		return FALSE;
-	if (user->rest & FLAG('U'))
-		return FALSE;
-	if (dir_op(&scfg, user, client, dir->dirnum))
-		return TRUE;
-	// The rest can only upload if there's room
-	if(dir->maxfiles && getfiles(&scfg,dir->dirnum)>=dir->maxfiles)
-		return FALSE;
-	if (dir->dirnum == scfg.sysop_dir)
-		return TRUE;
-	if (dir->dirnum == scfg.upload_dir)
-		return TRUE;
-	if (chk_ar(&scfg, dir->ul_ar,user,client))
-		return TRUE;
-	if ((user->exempt & FLAG('U')))
-		return TRUE;
-	return FALSE;
-}
-
-static BOOL can_delete_files(lib_t *lib, dir_t *dir, user_t *user, client_t *client)
-{
-	if (!chk_ar(&scfg,lib->ar,user,client))
-		return FALSE;
-	if (user->rest&FLAG('D'))
-		return FALSE;
-	if (!chk_ar(&scfg,dir->ar,user,client))
-		return FALSE;
-	if (dir_op(&scfg,user,client,dir->dirnum))
-		return TRUE;
-	if (user->exempt&FLAG('R'))
-		return TRUE;
-	return FALSE;
-}
-
-static void get_dirperm(lib_t *lib, dir_t *dir, user_t *user, client_t *client, char *permstr)
-{
-	char *p = permstr;
-
-	//*(p++) = 'a';	// File may be appended to
-	if (can_upload(lib, dir, user, client))
-		*(p++) = 'c';	// Files may be created in dir
-	//*(p++) = 'd';	// Item may be depeted (dir or file)
-	if (can_list(lib, dir, user, client)) {
-		*(p++) = 'e';	// Can change to the dir
-		//*(p++) = 'f';	// Item may be renamed
-		*(p++) = 'l';	// Directory contents can be listed
-	}
-	//*(p++) = 'm';	// New subdirectories may be created
-	if (can_delete_files(lib, dir, user, client))
-		*(p++) = 'p';	// Files/Dirs in directory may be deleted
-	//*(p++) = 'r';	// File may be retrieved
-	//*(p++) = 'w';	// File may be overwritten
-	*p=0;
-}
-
-static BOOL can_append(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file)
-{
-	if (!chk_ar(&scfg,lib->ar,user,client))
-		return FALSE;
-	if (user->rest&FLAG('U'))
-		return FALSE;
-	if (dir->dirnum != scfg.sysop_dir && dir->dirnum != scfg.upload_dir && !chk_ar(&scfg,dir->ar,user,client))
-		return FALSE;
-	if(!dir_op(&scfg,user,client,dir->dirnum) && !(user->exempt&FLAG('U'))) {
-		if(!chk_ar(&scfg,dir->ul_ar,user,client))
-			return FALSE;
-	}
-	if(!getfileixb(&scfg,file) || !getfiledat(&scfg,file))
-		return FALSE;
-	if (stricmp(file->uler,user->alias))
-		return FALSE;
-	// Check credits?
-	return TRUE;
-}
-
-static BOOL can_delete(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file)
-{
-	if (user->rest&FLAG('D'))
-		return FALSE;
-	if (!chk_ar(&scfg,lib->ar,user,client))
-		return FALSE;
-	if (!chk_ar(&scfg,dir->ar,user,client))
-		return FALSE;
-	if (!dir_op(&scfg, user, client, dir->dirnum))
-		return FALSE;
-	if (!(user->exempt&FLAG('R')))
-		return FALSE;
-	if(!getfileixb(&scfg,file) && !(startup->options&FTP_OPT_DIR_FILES) && !(dir->misc&DIR_FILES))
-		return FALSE;
-	return TRUE;
-}
-
-static BOOL can_download(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file)
-{
-	if (user->rest&FLAG('D'))
-		return FALSE;
-	if (!chk_ar(&scfg,lib->ar,user,client))
-		return FALSE;
-	if (!chk_ar(&scfg,dir->ar,user,client))
-		return FALSE;
-	if (!chk_ar(&scfg,dir->dl_ar,user,client))
-		return FALSE;
-	if(!getfileixb(&scfg,file) && !(startup->options&FTP_OPT_DIR_FILES) && !(dir->misc&DIR_FILES))
-		return FALSE;
-	// TODO: Verify credits
-	return TRUE;
-}
-
-static void get_fileperm(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file, char *permstr)
-{
-	char *p = permstr;
-
-	if (can_append(lib, dir, user, client, file))
-		*(p++) = 'a';	// File may be appended to
-	//*(p++) = 'c';	// Files may be created in dir
-	if (can_delete(lib, dir, user, client, file))
-		*(p++) = 'd';	// Item may be depeted (dir or file)
-	//*(p++) = 'e';	// Can change to the dir
-	//*(p++) = 'f';	// Item may be renamed
-	//*(p++) = 'l';	// Directory contents can be listed
-	//*(p++) = 'm';	// New subdirectories may be created
-	//*(p++) = 'p';	// Files/Dirs in directory may be deleted
-	if (can_download(lib, dir, user, client, file))
-		*(p++) = 'r';	// File may be retrieved
-	//*(p++) = 'w';	// File may be overwritten
-	*p = 0;
-}
-
-static void get_owner_name(file_t *file, char *namestr)
-{
-	char *p;
-
-	if (file) {
-		if (file->misc & FM_ANON)
-			strcpy(namestr, ANONYMOUS);
-		else
-			strcpy(namestr, file->uler);
-	}
-	else
-		strcpy(namestr, scfg.sys_id);
-
-	// Now ensure it's an RCHAR string.
-	for (p=namestr; *p; p++) {
-		if (*p >= '!' && *p <= ')')
-			continue;
-		else if (*p >= '+' && *p <= ':')
-			continue;
-		else if (*p >= '?' && *p <= 'Z')
-			continue;
-		else if (*p == '\\')
-			continue;
-		else if (*p == '^')
-			continue;
-		else if (*p == '_')
-			continue;
-		else if (*p >= 'a' && *p <= 'z')
-			continue;
-		else if (*p == ' ')
-			*p = '.';
-		else
-			*p = '_';
-	}
-}
-
 static void ctrl_thread(void* arg)
 {
-	unsigned	mlsx_feats = (MLSX_TYPE | MLSX_PERM | MLSX_SIZE | MLSX_MODIFY | MLSX_OWNER | MLSX_UNIQUE | MLSX_CREATE);
 	char		buf[512];
 	char		str[128];
-	char		uniq[33];
 	char*		cmd;
 	char*		p;
 	char*		np;
@@ -2930,10 +2291,6 @@ static void ctrl_thread(void* arg)
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
 	char		aliasfile[MAX_PATH+1];
-	char		aliaspath[MAX_PATH+1];
-	char		mls_path[MAX_PATH+1];
-	char		*mls_fname;
-	char		permstr[11];
 	char		aliasline[512];
 	char		desc[501]="";
 	char		sys_pass[128];
@@ -2986,9 +2343,7 @@ static void ctrl_thread(void* arg)
 	SOCKET		sock;
 	SOCKET		tmp_sock;
 	SOCKET		pasv_sock=INVALID_SOCKET;
-	CRYPT_SESSION	pasv_sess=-1;
 	SOCKET		data_sock=INVALID_SOCKET;
-	CRYPT_SESSION	data_sess=-1;
 	HOSTENT*	host;
 	union xp_sockaddr	addr;
 	union xp_sockaddr	data_addr;
@@ -3016,9 +2371,6 @@ static void ctrl_thread(void* arg)
 	js_callback_t	js_callback;
 #endif
 	login_attempt_t attempted;
-	CRYPT_SESSION	sess = -1;
-	BOOL		got_pbsz = FALSE;
-	BOOL		protection = FALSE;
 
 	SetThreadName("sbbs/ftpControl");
 	thread_up(TRUE /* setuid */);
@@ -3047,9 +2399,9 @@ static void ctrl_thread(void* arg)
 	if((i=ioctlsocket(sock, FIONBIO, &l))!=0) {
 		lprintf(LOG_ERR,"%04d !ERROR %d (%d) disabling socket blocking"
 			,sock, i, ERROR_VALUE);
-		sockprintf(sock,sess,"425 Error %d disabling socket blocking"
+		sockprintf(sock,"425 Error %d disabling socket blocking"
 			,ERROR_VALUE);
-		ftp_close_socket(&sock,&sess,__LINE__);
+		ftp_close_socket(&sock,__LINE__);
 		thread_down();
 		return;
 	}
@@ -3075,20 +2427,20 @@ static void ctrl_thread(void* arg)
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
 		if(banned) {
 			char ban_duration[128];
-			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%lu login attempts, last: %s) - remaining: %s"
+			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
 				,sock, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in ip.can: %s", sock, host_ip);
-		sockprintf(sock,sess,"550 Access denied.");
-		ftp_close_socket(&sock,&sess,__LINE__);
+		sockprintf(sock,"550 Access denied.");
+		ftp_close_socket(&sock,__LINE__);
 		thread_down();
 		return;
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
 		lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", sock, host_name);
-		sockprintf(sock,sess,"550 Access denied.");
-		ftp_close_socket(&sock,&sess,__LINE__);
+		sockprintf(sock,"550 Access denied.");
+		ftp_close_socket(&sock,__LINE__);
 		thread_down();
 		return;
 	}
@@ -3097,13 +2449,13 @@ static void ctrl_thread(void* arg)
 	addr_len=sizeof(pasv_addr);
 	if((result=getsockname(sock, &pasv_addr.addr,&addr_len))!=0) {
 		lprintf(LOG_ERR,"%04d !ERROR %d (%d) getting address/port", sock, result, ERROR_VALUE);
-		sockprintf(sock,sess,"425 Error %d getting address/port",ERROR_VALUE);
-		ftp_close_socket(&sock,&sess,__LINE__);
+		sockprintf(sock,"425 Error %d getting address/port",ERROR_VALUE);
+		ftp_close_socket(&sock,__LINE__);
 		thread_down();
 		return;
 	} 
 
-	protected_uint32_adjust(&active_clients, 1);
+	protected_uint32_adjust(&active_clients, 1), 
 	update_clients();
 
 	/* Initialize client display */
@@ -3118,13 +2470,13 @@ static void ctrl_thread(void* arg)
 
 	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &ftp.client_addr)) > 1) {
-		lprintf(LOG_DEBUG,"%04d Throttling suspicious connection from: %s (%lu login attempts)"
+		lprintf(LOG_DEBUG,"%04d Throttling suspicious connection from: %s (%u login attempts)"
 			,sock, host_ip, login_attempts);
 		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
-	sockprintf(sock,sess,"220-%s (%s)",scfg.sys_name, startup->host_name);
-	sockprintf(sock,sess," Synchronet FTP Server %s-%s Ready"
+	sockprintf(sock,"220-%s (%s)",scfg.sys_name, startup->host_name);
+	sockprintf(sock," Synchronet FTP Server %s-%s Ready"
 		,revision,PLATFORM_DESC);
 	sprintf(str,"%sftplogin.txt",scfg.text_dir);
 	if((fp=fopen(str,"rb"))!=NULL) {
@@ -3132,11 +2484,11 @@ static void ctrl_thread(void* arg)
 			if(!fgets(buf,sizeof(buf),fp))
 				break;
 			truncsp(buf);
-			sockprintf(sock,sess," %s",buf);
+			sockprintf(sock," %s",buf);
 		}
 		fclose(fp);
 	}
-	sockprintf(sock,sess,"220 Please enter your user name.");
+	sockprintf(sock,"220 Please enter your user name.");
 
 #ifdef SOCKET_DEBUG_CTRL
 	socket_debug[sock]|=SOCKET_DEBUG_CTRL;
@@ -3146,13 +2498,13 @@ static void ctrl_thread(void* arg)
 #ifdef SOCKET_DEBUG_READLINE
 		socket_debug[sock]|=SOCKET_DEBUG_READLINE;
 #endif
-		rd = sockreadline(sock, sess, buf, sizeof(buf), &lastactive);
+		rd = sockreadline(sock, buf, sizeof(buf), &lastactive);
 #ifdef SOCKET_DEBUG_READLINE
 		socket_debug[sock]&=~SOCKET_DEBUG_READLINE;
 #endif
 		if(rd<1) {
 			if(transfer_inprogress==TRUE) {
-				lprintf(LOG_WARNING,"%04d !Aborting transfer due to receive error",sock);
+				lprintf(LOG_WARNING,"%04d Aborting transfer due to receive error",sock);
 				transfer_aborted=TRUE;
 			}
 			break;
@@ -3162,110 +2514,59 @@ static void ctrl_thread(void* arg)
 		cmd=buf;
 		while(((BYTE)*cmd)==TELNET_IAC) {
 			cmd++;
-			lprintf(LOG_DEBUG,"%04d RX%s: Telnet cmd: %s",sock,sess == -1 ? "" : "S", telnet_cmd_desc(*cmd));
+			lprintf(LOG_DEBUG,"%04d RX: Telnet cmd: %s",sock,telnet_cmd_desc(*cmd));
 			cmd++;
 		}
 		while(*cmd && *cmd<' ') {
-			lprintf(LOG_DEBUG,"%04d RX%s: %d (0x%02X)",sock,sess == -1 ? "" : "S", (BYTE)*cmd,(BYTE)*cmd);
+			lprintf(LOG_DEBUG,"%04d RX: %d (0x%02X)",sock,(BYTE)*cmd,(BYTE)*cmd);
 			cmd++;
 		}
 		if(!(*cmd))
 			continue;
 		if(startup->options&FTP_OPT_DEBUG_RX)
-			lprintf(LOG_DEBUG,"%04d RX%s: %s", sock, sess == -1 ? "" : "S", cmd);
+			lprintf(LOG_DEBUG,"%04d RX: %s", sock, cmd);
 		if(!stricmp(cmd, "NOOP")) {
-			sockprintf(sock,sess,"200 NOOP command successful.");
+			sockprintf(sock,"200 NOOP command successful.");
 			continue;
 		}
 		if(!stricmp(cmd, "HELP SITE") || !stricmp(cmd, "SITE HELP")) {
-			sockprintf(sock,sess,"214-The following SITE commands are recognized (* => unimplemented):");
-			sockprintf(sock,sess," HELP    VER     WHO     UPTIME");
+			sockprintf(sock,"214-The following SITE commands are recognized (* => unimplemented):");
+			sockprintf(sock," HELP    VER     WHO     UPTIME");
 			if(user.level>=SYSOP_LEVEL)
-				sockprintf(sock,sess,
+				sockprintf(sock,
 							" RECYCLE [ALL]");
 			if(sysop)
-				sockprintf(sock,sess,
+				sockprintf(sock,
 							" EXEC <cmd>");
-			sockprintf(sock,sess,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
+			sockprintf(sock,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
 			continue;
 		}
 		if(!strnicmp(cmd, "HELP",4)) {
-			sockprintf(sock,sess,"214-The following commands are recognized (* => unimplemented, # => extension):");
-			sockprintf(sock,sess," USER    PASS    CWD     XCWD    CDUP    XCUP    PWD     XPWD");
-			sockprintf(sock,sess," QUIT    REIN    PORT    PASV    LIST    NLST    NOOP    HELP");
-			sockprintf(sock,sess," SIZE    MDTM    RETR    STOR    REST    ALLO    ABOR    SYST");
-			sockprintf(sock,sess," TYPE    STRU    MODE    SITE    RNFR*   RNTO*   DELE*   DESC#");
-			sockprintf(sock,sess," FEAT#   OPTS#   EPRT    EPSV    AUTH#   PBSZ#   PROT#   CCC#");
-			sockprintf(sock,sess," MLSD#");
-			sockprintf(sock,sess,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
+			sockprintf(sock,"214-The following commands are recognized (* => unimplemented, # => extension):");
+			sockprintf(sock," USER    PASS    CWD     XCWD    CDUP    XCUP    PWD     XPWD");
+			sockprintf(sock," QUIT    REIN    PORT    PASV    LIST    NLST    NOOP    HELP");
+			sockprintf(sock," SIZE    MDTM    RETR    STOR    REST    ALLO    ABOR    SYST");
+			sockprintf(sock," TYPE    STRU    MODE    SITE    RNFR*   RNTO*   DELE*   DESC#");
+			sockprintf(sock," FEAT#   OPTS#   EPRT    EPSV");
+			sockprintf(sock,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
 			continue;
 		}
 		if(!stricmp(cmd, "FEAT")) {
-			sockprintf(sock,sess,"211-The following additional (post-RFC949) features are supported:");
-			sockprintf(sock,sess," DESC");
-			sockprintf(sock,sess," MDTM");
-			sockprintf(sock,sess," SIZE");
-			sockprintf(sock,sess," REST STREAM");
-			sockprintf(sock,sess," AUTH TLS");
-			sockprintf(sock,sess," PBSZ");
-			sockprintf(sock,sess," PROT");
-			sockprintf(sock,sess," MLST Type%s;Perm%s;Size%s;Modify%s;UNIX.ownername%s;Unique%s;Create%s",
-				(mlsx_feats & MLSX_TYPE) ? "*" : "",
-				(mlsx_feats & MLSX_PERM) ? "*" : "",
-				(mlsx_feats & MLSX_SIZE) ? "*" : "",
-				(mlsx_feats & MLSX_MODIFY) ? "*" : "",
-				(mlsx_feats & MLSX_OWNER) ? "*" : "",
-				(mlsx_feats & MLSX_UNIQUE) ? "*" : "",
-				(mlsx_feats & MLSX_CREATE) ? "*" : ""
-			);
-			sockprintf(sock,sess," TVFS");
-			sockprintf(sock,sess,"211 End");
-			continue;
-		}
-		if(!strnicmp(cmd, "OPTS MLST",9)) {
-			if (cmd[9] == 0) {
-				mlsx_feats = 0;
-				continue;
-			}
-			if (cmd[9] != ' ') {
-				sockprintf(sock,sess,"501 Option not supported.");
-				continue;
-			}
-			mlsx_feats = 0;
-			for (p = cmd; *p; p++)
-				*p = toupper(*p);
-			if (strstr(cmd, "TYPE;"))
-				mlsx_feats |= MLSX_TYPE;
-			if (strstr(cmd, "PERM;"))
-				mlsx_feats |= MLSX_PERM;
-			if (strstr(cmd, "SIZE;"))
-				mlsx_feats |= MLSX_SIZE;
-			if (strstr(cmd, "MODIFY;"))
-				mlsx_feats |= MLSX_MODIFY;
-			if (strstr(cmd, "UNIX.OWNERNAME;"))
-				mlsx_feats |= MLSX_OWNER;
-			if (strstr(cmd, "UNIQUE;"))
-				mlsx_feats |= MLSX_UNIQUE;
-			if (strstr(cmd, "CREATE;"))
-				mlsx_feats |= MLSX_CREATE;
-			sockprintf(sock,sess,"200 %s%s%s%s%s%s%s",
-				(mlsx_feats & MLSX_TYPE) ? "Type;" : "",
-				(mlsx_feats & MLSX_PERM) ? "Perm;" : "",
-				(mlsx_feats & MLSX_SIZE) ? "Size;" : "",
-				(mlsx_feats & MLSX_MODIFY) ? "Modify;" : "",
-				(mlsx_feats & MLSX_OWNER) ? "UNIX.ownername;" : "",
-				(mlsx_feats & MLSX_UNIQUE) ? "Unique;" : "",
-				(mlsx_feats & MLSX_CREATE) ? "Create;" : ""
-			);
+			sockprintf(sock,"211-The following additional (post-RFC949) features are supported:");
+			sockprintf(sock," DESC");
+			sockprintf(sock," MDTM");
+			sockprintf(sock," SIZE");
+			sockprintf(sock," REST STREAM");
+			sockprintf(sock,"211 End");
 			continue;
 		}
 		if(!strnicmp(cmd, "OPTS",4)) {
-			sockprintf(sock,sess,"501 Option not supported.");
+			sockprintf(sock,"501 No options supported.");
 			continue;
 		}
 		if(!stricmp(cmd, "QUIT")) {
-			ftp_printfile(sock,sess,"bye",221);
-			sockprintf(sock,sess,"221 Goodbye. Closing control connection.");
+			ftp_printfile(sock,"bye",221);
+			sockprintf(sock,"221 Goodbye. Closing control connection.");
 			break;
 		}
 		if(!strnicmp(cmd, "USER ",5)) {
@@ -3279,9 +2580,9 @@ static void ctrl_thread(void* arg)
 			if(!user.number && (stricmp(user.alias,"anonymous") == 0 || stricmp(user.alias, "ftp") == 0))
 				user.number=matchuser(&scfg,"guest",FALSE);
 			if(user.number && getuserdat(&scfg, &user)==0 && user.pass[0]==0) 
-				sockprintf(sock,sess,"331 User name okay, give your full e-mail address as password.");
+				sockprintf(sock,"331 User name okay, give your full e-mail address as password.");
 			else
-				sockprintf(sock,sess,"331 User name okay, need password.");
+				sockprintf(sock,"331 User name okay, need password.");
 			user.number=0;
 			continue;
 		}
@@ -3297,45 +2598,45 @@ static void ctrl_thread(void* arg)
 					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: '%s' (password: %s)",sock,user.alias,p);
 				else
 					lprintf(LOG_WARNING,"%04d !UNKNOWN USER: '%s'",sock,user.alias);
-				if(badlogin(sock, sess, &login_attempts, user.alias, p, host_name, &ftp.client_addr))
+				if(badlogin(sock, &login_attempts, user.alias, p, host_name, &ftp.client_addr))
 					break;
 				continue;
 			}
 			if((i=getuserdat(&scfg, &user))!=0) {
-				lprintf(LOG_ERR,"%04d <%s> !ERROR %d getting data for user #%d"
-					,sock, user.alias, i, user.number);
-				sockprintf(sock,sess,"530 Database error %d",i);
+				lprintf(LOG_ERR,"%04d !ERROR %d getting data for user #%d (%s)"
+					,sock,i,user.number,user.alias);
+				sockprintf(sock,"530 Database error %d",i);
 				user.number=0;
 				continue;
 			}
 			if(user.misc&(DELETED|INACTIVE)) {
-				lprintf(LOG_WARNING,"%04d <%s> !DELETED or INACTIVE user #%d"
-					,sock,user.alias,user.number);
+				lprintf(LOG_WARNING,"%04d !DELETED or INACTIVE user #%d (%s)"
+					,sock,user.number,user.alias);
 				user.number=0;
-				if(badlogin(sock, sess, &login_attempts, NULL, NULL, NULL, NULL))
+				if(badlogin(sock, &login_attempts, NULL, NULL, NULL, NULL))
 					break;
 				continue;
 			}
 			if(user.rest&FLAG('T')) {
-				lprintf(LOG_WARNING,"%04d <%s> !T RESTRICTED user #%d"
-					,sock,user.alias,user.number);
+				lprintf(LOG_WARNING,"%04d !T RESTRICTED user #%d (%s)"
+					,sock,user.number,user.alias);
 				user.number=0;
-				if(badlogin(sock, sess, &login_attempts, NULL, NULL, NULL, NULL))
+				if(badlogin(sock, &login_attempts, NULL, NULL, NULL, NULL))
 					break;
 				continue;
 			}
 			if(user.ltoday>=scfg.level_callsperday[user.level]
 				&& !(user.exempt&FLAG('L'))) {
-				lprintf(LOG_WARNING,"%04d <%s> !MAXIMUM LOGONS (%d) reached for level %u"
-					,sock,user.alias,scfg.level_callsperday[user.level], user.level);
-				sockprintf(sock,sess,"530 Maximum logons per day reached.");
+				lprintf(LOG_WARNING,"%04d !MAXIMUM LOGONS (%d) reached for %s"
+					,sock,scfg.level_callsperday[user.level],user.alias);
+				sockprintf(sock,"530 Maximum logons per day reached.");
 				user.number=0;
 				continue;
 			}
 			if(user.rest&FLAG('L') && user.ltoday>=1) {
-				lprintf(LOG_WARNING,"%04d <%s> !L RESTRICTED user already on today"
-					,sock,user.alias);
-				sockprintf(sock,sess,"530 Maximum logons per day reached.");
+				lprintf(LOG_WARNING,"%04d !L RESTRICTED user #%d (%s) already on today"
+					,sock,user.number,user.alias);
+				sockprintf(sock,"530 Maximum logons per day reached.");
 				user.number=0;
 				continue;
 			}
@@ -3343,9 +2644,9 @@ static void ctrl_thread(void* arg)
 			SAFEPRINTF2(sys_pass,"%s:%s",user.pass,scfg.sys_pass);
 			if(!user.pass[0]) {	/* Guest/Anonymous */
 				if(trashcan(&scfg,password,"email")) {
-					lprintf(LOG_NOTICE,"%04d <%s> !BLOCKED e-mail address: %s", sock, user.alias, password);
+					lprintf(LOG_NOTICE,"%04d !BLOCKED e-mail address: %s",sock,password);
 					user.number=0;
-					if(badlogin(sock, sess, &login_attempts, NULL, NULL, NULL, NULL))
+					if(badlogin(sock, &login_attempts, NULL, NULL, NULL, NULL))
 						break;
 					continue;
 				}
@@ -3353,18 +2654,18 @@ static void ctrl_thread(void* arg)
 				putuserrec(&scfg,user.number,U_NETMAIL,LEN_NETMAIL,password);
 			}
 			else if(user.level>=SYSOP_LEVEL && !stricmp(password,sys_pass)) {
-				lprintf(LOG_INFO,"%04d <%s> Sysop access granted", sock, user.alias);
+				lprintf(LOG_INFO,"%04d Sysop access granted to %s", sock, user.alias);
 				sysop=TRUE;
 			}
 			else if(stricmp(password,user.pass)) {
 				if(scfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_WARNING,"%04d <%s> !FAILED Password attempt: '%s' expected '%s'"
+					lprintf(LOG_WARNING,"%04d !FAILED Password attempt for user %s: '%s' expected '%s'"
 						,sock, user.alias, password, user.pass);
 				else
-					lprintf(LOG_WARNING,"%04d <%s> !FAILED Password attempt"
+					lprintf(LOG_WARNING,"%04d !FAILED Password attempt for user %s"
 						,sock, user.alias);
 				user.number=0;
-				if(badlogin(sock, sess, &login_attempts, user.alias, password, host_name, &ftp.client_addr))
+				if(badlogin(sock, &login_attempts, user.alias, password, host_name, &ftp.client_addr))
 					break;
 				continue;
 			}
@@ -3379,11 +2680,11 @@ static void ctrl_thread(void* arg)
 			}
 			client_on(sock,&client,TRUE /* update */);
 
-			lprintf(LOG_INFO,"%04d <%s> logged in (%u today, %u total)"
+			lprintf(LOG_INFO,"%04d %s logged in (%u today, %u total)"
 				,sock,user.alias,user.ltoday+1, user.logons+1);
 			logintime=time(NULL);
 			timeleft=(long)gettimeleft(&scfg,&user,logintime);
-			ftp_printfile(sock,sess,"hello",230);
+			ftp_printfile(sock,"hello",230);
 
 #ifdef JAVASCRIPT
 #ifdef JS_CX_PER_SESSION
@@ -3407,12 +2708,12 @@ static void ctrl_thread(void* arg)
 #endif
 
 			if(sysop)
-				sockprintf(sock,sess,"230-Sysop access granted.");
-			sockprintf(sock,sess,"230-%s logged in.",user.alias);
+				sockprintf(sock,"230-Sysop access granted.");
+			sockprintf(sock,"230-%s logged in.",user.alias);
 			if(!(user.exempt&FLAG('D')) && (user.cdt+user.freecdt)>0)
-				sockprintf(sock,sess,"230-You have %lu download credits."
+				sockprintf(sock,"230-You have %lu download credits."
 					,user.cdt+user.freecdt);
-			sockprintf(sock,sess,"230 You are allowed %lu minutes of use for this session."
+			sockprintf(sock,"230 You are allowed %lu minutes of use for this session."
 				,timeleft/60);
 			sprintf(qwkfile,"%sfile/%04d.qwk",scfg.data_dir,user.number);
 
@@ -3427,72 +2728,9 @@ static void ctrl_thread(void* arg)
 
 			continue;
 		}
-		if (!strnicmp(cmd, "AUTH ", 5)) {
-			if(!stricmp(cmd, "AUTH TLS")) {
-				if (sess != -1) {
-					sockprintf(sock,sess,"534 Already in TLS mode");
-					continue;
-				}
-				if (start_tls(&sock, &sess, TRUE))
-					break;
-				user.number=0;
-				sysop=FALSE;
-				filepos=0;
-				got_pbsz = FALSE;
-				protection = FALSE;
-				continue;
-			}
-			sockprintf(sock,sess,"504 TLS is the only AUTH supported");
-			continue;
-		}
-		if (!strnicmp(cmd, "PBSZ ", 5)) {
-			if(!stricmp(cmd, "PBSZ 0") && sess != -1) {
-				got_pbsz = TRUE;
-				sockprintf(sock,sess,"200 OK");
-				continue;
-			}
-			if (sess == -1) {
-				sockprintf(sock,sess,"503 Need AUTH TLS first");
-				continue;
-			}
-			if (strspn(cmd+5, "0123456789") == strlen(cmd+5)) {
-				sockprintf(sock,sess,"200 PBSZ=0");
-				continue;
-			}
-			sockprintf(sock,sess,"501 Unable to parse buffer size");
-			continue;
-		}
-		if (!strnicmp(cmd, "PROT ", 5)) {
-			if (sess == -1) {
-				sockprintf(sock,sess,"503 No AUTH yet");
-				continue;
-			}
-			if(!strnicmp(cmd, "PROT P",6) && sess != -1 && got_pbsz) {
-				protection = TRUE;
-				sockprintf(sock,sess,"200 Accepted");
-				continue;
-			}
-			if(!strnicmp(cmd, "PROT C",6) && sess != -1 && got_pbsz) {
-				protection = FALSE;
-				sockprintf(sock,sess,"200 Accepted");
-				continue;
-			}
-			sockprintf(sock,sess,"536 Only C and P are supported in TLS mode");
-			continue;
-		}
-		if(!stricmp(cmd, "CCC")) {
-			if (sess == -1) {
-				sockprintf(sock,sess,"533 Not in TLS mode");
-				continue;
-			}
-			sockprintf(sock,sess,"200 Accepted");
-			cryptDestroySession(sess);
-			sess = -1;
-			continue;
-		}
 
 		if(!user.number) {
-			sockprintf(sock,sess,"530 Please login with USER and PASS.");
+			sockprintf(sock,"530 Please login with USER and PASS.");
 			continue;
 		}
 
@@ -3500,8 +2738,8 @@ static void ctrl_thread(void* arg)
 			getuserdat(&scfg, &user);	/* get current user data */
 
 		if((timeleft=(long)gettimeleft(&scfg,&user,logintime))<1L) {
-			sockprintf(sock,sess,"421 Sorry, you've run out of time.");
-			lprintf(LOG_WARNING,"%04d <%s> Out of time, disconnecting",sock, user.alias);
+			sockprintf(sock,"421 Sorry, you've run out of time.");
+			lprintf(LOG_WARNING,"%04d Out of time, disconnecting",sock);
 			break;
 		}
 
@@ -3510,49 +2748,43 @@ static void ctrl_thread(void* arg)
 		/********************************/
 
 		if(!stricmp(cmd, "REIN")) {
-			lprintf(LOG_INFO,"%04d <%s> reinitialized control session",sock,user.alias);
+			lprintf(LOG_INFO,"%04d %s reinitialized control session",sock,user.alias);
 			user.number=0;
 			sysop=FALSE;
 			filepos=0;
-			sockprintf(sock,sess,"220 Control session re-initialized. Ready for re-login.");
-			if (sess != -1) {
-				cryptDestroySession(sess);
-				sess = -1;
-			}
-			got_pbsz = FALSE;
-			protection = FALSE;
+			sockprintf(sock,"220 Control session re-initialized. Ready for re-login.");
 			continue;
 		}
 
 		if(!stricmp(cmd, "SITE WHO")) {
-			sockprintf(sock,sess,"211-Active Telnet Nodes:");
+			sockprintf(sock,"211-Active Telnet Nodes:");
 			for(i=0;i<scfg.sys_nodes && i<scfg.sys_lastnode;i++) {
 				if((result=getnodedat(&scfg, i+1, &node, 0))!=0) {
-					sockprintf(sock,sess," Error %d getting data for Telnet Node %d",result,i+1);
+					sockprintf(sock," Error %d getting data for Telnet Node %d",result,i+1);
 					continue;
 				}
 				if(node.status==NODE_INUSE)
-					sockprintf(sock,sess," Node %3d: %s",i+1, username(&scfg,node.useron,str));
+					sockprintf(sock," Node %3d: %s",i+1, username(&scfg,node.useron,str));
 			}
-			sockprintf(sock,sess,"211 End (%d active FTP clients)", protected_uint32_value(active_clients));
+			sockprintf(sock,"211 End (%d active FTP clients)", protected_uint32_value(active_clients));
 			continue;
 		}
 		if(!stricmp(cmd, "SITE VER")) {
-			sockprintf(sock,sess,"211 %s",ftp_ver());
+			sockprintf(sock,"211 %s",ftp_ver());
 			continue;
 		}
 		if(!stricmp(cmd, "SITE UPTIME")) {
-			sockprintf(sock,sess,"211 %s (%lu served)",sectostr((uint)(time(NULL)-uptime),str),served);
+			sockprintf(sock,"211 %s (%lu served)",sectostr((uint)(time(NULL)-uptime),str),served);
 			continue;
 		}
 		if(!stricmp(cmd, "SITE RECYCLE") && user.level>=SYSOP_LEVEL) {
 			startup->recycle_now=TRUE;
-			sockprintf(sock,sess,"211 server will recycle when not in-use");
+			sockprintf(sock,"211 server will recycle when not in-use");
 			continue;
 		}
 		if(!stricmp(cmd, "SITE RECYCLE ALL") && user.level>=SYSOP_LEVEL) {
 			refresh_cfg(&scfg);
-			sockprintf(sock,sess,"211 ALL servers/nodes will recycle when not in-use");
+			sockprintf(sock,"211 ALL servers/nodes will recycle when not in-use");
 			continue;
 		}
 		if(!strnicmp(cmd,"SITE EXEC ",10) && sysop) {
@@ -3561,17 +2793,17 @@ static void ctrl_thread(void* arg)
 #ifdef __unix__
 			fp=popen(p,"r");
 			if(fp==NULL)
-				sockprintf(sock,sess,"500 Error %d opening pipe to: %s",errno,p);
+				sockprintf(sock,"500 Error %d opening pipe to: %s",errno,p);
 			else {
 				while(!feof(fp)) {
 					if(fgets(str,sizeof(str),fp)==NULL)
 						break;
-					sockprintf(sock,sess,"200-%s",str);
+					sockprintf(sock,"200-%s",str);
 				}
-				sockprintf(sock,sess,"200 %s returned %d",p,pclose(fp));
+				sockprintf(sock,"200 %s returned %d",p,pclose(fp));
 			}
 #else
-			sockprintf(sock,sess,"200 system(%s) returned %d",p,system(p));
+			sockprintf(sock,"200 system(%s) returned %d",p,system(p));
 #endif
 			continue;
 		}
@@ -3579,20 +2811,19 @@ static void ctrl_thread(void* arg)
 
 #ifdef SOCKET_DEBUG_CTRL
 		if(!stricmp(cmd, "SITE DEBUG")) {
-			sockprintf(sock,sess,"211-Debug");
+			sockprintf(sock,"211-Debug");
 			for(i=0;i<sizeof(socket_debug);i++) 
 				if(socket_debug[i]!=0)
-					sockprintf(sock,sess,"211-socket %d = 0x%X",i,socket_debug[i]);
-			sockprintf(sock,sess,"211 End");
+					sockprintf(sock,"211-socket %d = 0x%X",i,socket_debug[i]);
+			sockprintf(sock,"211 End");
 			continue;
 		}
 #endif
 
 		if(strnicmp(cmd, "PORT ",5)==0 || strnicmp(cmd, "EPRT ",5)==0 || strnicmp(cmd, "LPRT ",5)==0) {
 
-			if(pasv_sock!=INVALID_SOCKET)  {
-				ftp_close_socket(&pasv_sock,&pasv_sess,__LINE__);
-			}
+			if(pasv_sock!=INVALID_SOCKET) 
+				ftp_close_socket(&pasv_sock,__LINE__);
 
 			p=cmd+5;
 			SKIP_WHITESPACE(p);
@@ -3636,8 +2867,8 @@ static void ctrl_thread(void* arg)
 						FIND_CHAR(tp, delim);
 						*tp=0;
 						if(inet_ptoaddr(addr_str, &data_addr, sizeof(data_addr))==NULL) {
-							lprintf(LOG_WARNING,"%04d <%s> !Unable to parse IPv6 address: %s",sock, user.alias, addr_str);
-							sockprintf(sock,sess,"522 Unable to parse IPv6 address (1)");
+							lprintf(LOG_WARNING,"%04d Unable to parse IPv6 address %s",sock,addr_str);
+							sockprintf(sock,"522 Unable to parse IPv6 address (1)");
 							continue;
 						}
 						FIND_CHAR(p,delim);
@@ -3647,15 +2878,15 @@ static void ctrl_thread(void* arg)
 						data_addr.in6.sin6_family=AF_INET6;
 						break;
 					default:
-						lprintf(LOG_WARNING,"%04d <%s> !UNSUPPORTED protocol: %d", sock, user.alias, prot);
-						sockprintf(sock,sess,"522 Network protocol not supported, use (1)");
+						lprintf(LOG_WARNING,"%04d UNSUPPORTED protocol: %d", sock, prot);
+						sockprintf(sock,"522 Network protocol not supported, use (1)");
 						continue;
 				}
 			}
 			else {	/* LPRT */
 				if(sscanf(p,"%u,%u",&h1, &h2)!=2) {
-					lprintf(LOG_ERR, "%04d <%s> !Unable to parse LPRT: %s", sock, user.alias, p);
-					sockprintf(sock,sess, "521 Address family not supported");
+					lprintf(LOG_ERR, "Unable to parse LPRT %s", p);
+					sockprintf(sock, "521 Address family not supported");
 					continue;
 				}
 				FIND_CHAR(p,',');
@@ -3667,8 +2898,8 @@ static void ctrl_thread(void* arg)
 				switch(h1) {
 					case 4:	/* IPv4 */
 						if(h2 != 4) {
-							lprintf(LOG_ERR, "%04d <%s> !Unable to parse LPRT: %s", sock, user.alias, p);
-							sockprintf(sock,sess, "501 IPv4 Address is the wrong length");
+							lprintf(LOG_ERR, "Unable to parse LPRT %s", p);
+							sockprintf(sock, "501 IPv4 Address is the wrong length");
 							continue;
 						}
 						for(h1 = 0; h1 < h2; h1++) {
@@ -3678,8 +2909,8 @@ static void ctrl_thread(void* arg)
 								p++;
 						}
 						if(atoi(p)!=2) {
-							lprintf(LOG_ERR, "%04d <%s> !Unable to parse LPRT %s", sock, user.alias, p);
-							sockprintf(sock,sess, "501 IPv4 Port is the wrong length");
+							lprintf(LOG_ERR, "Unable to parse LPRT %s", p);
+							sockprintf(sock, "501 IPv4 Port is the wrong length");
 							continue;
 						}
 						FIND_CHAR(p,',');
@@ -3695,8 +2926,8 @@ static void ctrl_thread(void* arg)
 						break;
 					case 6:	/* IPv6 */
 						if(h2 != 16) {
-							lprintf(LOG_ERR, "%04d <%s> !Unable to parse LPRT: %s",sock, user.alias, p);
-							sockprintf(sock,sess, "501 IPv6 Address is the wrong length");
+							lprintf(LOG_ERR, "Unable to parse LPRT %s", p);
+							sockprintf(sock, "501 IPv6 Address is the wrong length");
 							continue;
 						}
 						for(h1 = 0; h1 < h2; h1++) {
@@ -3706,8 +2937,8 @@ static void ctrl_thread(void* arg)
 								p++;
 						}
 						if(atoi(p)!=2) {
-							lprintf(LOG_ERR, "%04d <%s> !Unable to parse LPRT: %s",sock, user.alias, p);
-							sockprintf(sock,sess, "501 IPv6 Port is the wrong length");
+							lprintf(LOG_ERR, "Unable to parse LPRT %s", p);
+							sockprintf(sock, "501 IPv6 Port is the wrong length");
 							continue;
 						}
 						FIND_CHAR(p,',');
@@ -3722,23 +2953,23 @@ static void ctrl_thread(void* arg)
 						data_addr.in6.sin6_family=AF_INET6;
 						break;
 					default:
-						lprintf(LOG_ERR, "%04d <%s> !Unable to parse LPRT: %s",sock, user.alias, p);
-						sockprintf(sock,sess, "521 Address family not supported");
+						lprintf(LOG_ERR, "Unable to parse LPRT %s", p);
+						sockprintf(sock, "521 Address family not supported");
 						continue;
 				}
 			}
 
 			inet_addrtop(&data_addr, data_ip, sizeof(data_ip));
 			if(data_port< IPPORT_RESERVED) {
-				lprintf(LOG_WARNING,"%04d <%s> !SUSPECTED BOUNCE ATTACK ATTEMPT to %s port %u"
+				lprintf(LOG_WARNING,"%04d !SUSPECTED BOUNCE ATTACK ATTEMPT by %s to %s port %u"
 					,sock,user.alias
 					,data_ip,data_port);
 				ftp_hacklog("FTP BOUNCE", user.alias, cmd, host_name, &ftp.client_addr);
-				sockprintf(sock,sess,"504 Bad port number.");	
+				sockprintf(sock,"504 Bad port number.");	
 				continue; /* As recommended by RFC2577 */
 			}
 			inet_setaddrport(&data_addr, data_port);
-			sockprintf(sock,sess,"200 PORT Command successful.");
+			sockprintf(sock,"200 PORT Command successful.");
 			mode="active";
 			continue;
 		}
@@ -3746,31 +2977,31 @@ static void ctrl_thread(void* arg)
 		if(stricmp(cmd, "PASV")==0 || stricmp(cmd, "P@SW")==0	/* Kludge required for SMC Barricade V1.2 */
 			|| stricmp(cmd, "EPSV")==0 || strnicmp(cmd, "EPSV ", 5)==0 || stricmp(cmd, "LPSV")==0) {
 
-			if(pasv_sock!=INVALID_SOCKET)
-				ftp_close_socket(&pasv_sock,&pasv_sess,__LINE__);
+			if(pasv_sock!=INVALID_SOCKET) 
+				ftp_close_socket(&pasv_sock,__LINE__);
 
 			if((pasv_sock=ftp_open_socket(pasv_addr.addr.sa_family, SOCK_STREAM))==INVALID_SOCKET) {
-				lprintf(LOG_WARNING,"%04d <%s> !PASV ERROR %d opening socket", sock, user.alias, ERROR_VALUE);
-				sockprintf(sock,sess,"425 Error %d opening PASV data socket", ERROR_VALUE);
+				lprintf(LOG_WARNING,"%04d !PASV ERROR %d opening socket", sock,ERROR_VALUE);
+				sockprintf(sock,"425 Error %d opening PASV data socket", ERROR_VALUE);
 				continue;
 			}
 
 			reuseaddr=FALSE;
 			if((result=setsockopt(pasv_sock,SOL_SOCKET,SO_REUSEADDR,(char*)&reuseaddr,sizeof(reuseaddr)))!=0) {
-				lprintf(LOG_WARNING,"%04d <%s> !PASV ERROR %d disabling REUSEADDR socket option"
-					,sock, user.alias, ERROR_VALUE);
-				sockprintf(sock,sess,"425 Error %d disabling REUSEADDR socket option", ERROR_VALUE);
+				lprintf(LOG_WARNING,"%04d !PASV ERROR %d disabling REUSEADDR socket option"
+					,sock,ERROR_VALUE);
+				sockprintf(sock,"425 Error %d disabling REUSEADDR socket option", ERROR_VALUE);
 				continue;
 			}
 
 			if(startup->options&FTP_OPT_DEBUG_DATA)
-				lprintf(LOG_DEBUG,"%04d <%s> PASV DATA socket %d opened",sock, user.alias, pasv_sock);
+				lprintf(LOG_DEBUG,"%04d PASV DATA socket %d opened",sock,pasv_sock);
 
 			for(port=startup->pasv_port_low; port<=startup->pasv_port_high; port++) {
 
 				if(startup->options&FTP_OPT_DEBUG_DATA)
-					lprintf(LOG_DEBUG,"%04d <%s> PASV DATA trying to bind socket to port %u"
-						,sock, user.alias, port);
+					lprintf(LOG_DEBUG,"%04d PASV DATA trying to bind socket to port %u"
+						,sock,port);
 
 				inet_setaddrport(&pasv_addr, port);
 
@@ -3780,39 +3011,39 @@ static void ctrl_thread(void* arg)
 					break;
 			}
 			if(result!= 0) {
-				lprintf(LOG_ERR,"%04d <%s> !PASV ERROR %d (%d) binding socket to port %u"
-					,sock, user.alias, result, ERROR_VALUE, port);
-				sockprintf(sock,sess,"425 Error %d binding data socket",ERROR_VALUE);
-				ftp_close_socket(&pasv_sock,&pasv_sess,__LINE__);
+				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) binding socket to port %u"
+					,sock, result, ERROR_VALUE, port);
+				sockprintf(sock,"425 Error %d binding data socket",ERROR_VALUE);
+				ftp_close_socket(&pasv_sock,__LINE__);
 				continue;
 			}
 			if(startup->options&FTP_OPT_DEBUG_DATA)
-				lprintf(LOG_DEBUG,"%04d <%s> PASV DATA socket %d bound to port %u",sock, user.alias, pasv_sock, port);
+				lprintf(LOG_DEBUG,"%04d PASV DATA socket %d bound to port %u",sock,pasv_sock,port);
 
 			addr_len=sizeof(addr);
 			if((result=getsockname(pasv_sock, &addr.addr,&addr_len))!=0) {
-				lprintf(LOG_ERR,"%04d <%s> !PASV ERROR %d (%d) getting address/port"
-					,sock, user.alias, result, ERROR_VALUE);
-				sockprintf(sock,sess,"425 Error %d getting address/port",ERROR_VALUE);
-				ftp_close_socket(&pasv_sock,&pasv_sess,__LINE__);
+				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) getting address/port"
+					,sock, result, ERROR_VALUE);
+				sockprintf(sock,"425 Error %d getting address/port",ERROR_VALUE);
+				ftp_close_socket(&pasv_sock,__LINE__);
 				continue;
 			} 
 
 			if((result=listen(pasv_sock, 1))!= 0) {
-				lprintf(LOG_ERR,"%04d <%s> !PASV ERROR %d (%d) listening on port %u"
-					,sock, user.alias, result, ERROR_VALUE,port);
-				sockprintf(sock,sess,"425 Error %d listening on data socket",ERROR_VALUE);
-				ftp_close_socket(&pasv_sock,&pasv_sess,__LINE__);
+				lprintf(LOG_ERR,"%04d !PASV ERROR %d (%d) listening on port %u"
+					,sock, result, ERROR_VALUE,port);
+				sockprintf(sock,"425 Error %d listening on data socket",ERROR_VALUE);
+				ftp_close_socket(&pasv_sock,__LINE__);
 				continue;
 			}
 
 			port=inet_addrport(&addr);
 			if(strnicmp(cmd, "EPSV", 4)==0)
-				sockprintf(sock,sess,"229 Entering Extended Passive Mode (|||%hu|)", port);
+				sockprintf(sock,"229 Entering Extended Passive Mode (|||%hu|)", port);
 			else if (stricmp(cmd,"LPSV")==0) {
 				switch(addr.addr.sa_family) {
 					case AF_INET:
-						sockprintf(sock,sess, "228 Entering Long Passive Mode (4, 4, %d, %d, %d, %d, 2, %d, %d)"
+						sockprintf(sock, "228 Entering Long Passive Mode (4, 4, %d, %d, %d, %d, 2, %d, %d)"
 							,((unsigned char *)&(addr.in.sin_addr))[0]
 							,((unsigned char *)&(addr.in.sin_addr))[1]
 							,((unsigned char *)&(addr.in.sin_addr))[2]
@@ -3821,7 +3052,7 @@ static void ctrl_thread(void* arg)
 							,((unsigned char *)&(addr.in.sin_port))[1]);
 						break;
 					case AF_INET6:
-						sockprintf(sock,sess, "228 Entering Long Passive Mode (6, 16, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, 2, %d, %d)"
+						sockprintf(sock, "228 Entering Long Passive Mode (6, 16, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, 2, %d, %d)"
 							,((unsigned char *)&(addr.in6.sin6_addr))[0]
 							,((unsigned char *)&(addr.in6.sin6_addr))[1]
 							,((unsigned char *)&(addr.in6.sin6_addr))[2]
@@ -3854,15 +3085,14 @@ static void ctrl_thread(void* arg)
 					ip_addr=ntohl(pasv_addr.in.sin_addr.s_addr);
 
 				if(startup->options&FTP_OPT_DEBUG_DATA)
-					lprintf(LOG_INFO,"%04d <%s> PASV DATA IP address in response: %u.%u.%u.%u (subject to NAT)"
+					lprintf(LOG_INFO,"%04d PASV DATA IP address in response: %u.%u.%u.%u (subject to NAT)"
 						,sock
-						,user.alias
 						,(ip_addr>>24)&0xff
 						,(ip_addr>>16)&0xff
 						,(ip_addr>>8)&0xff
 						,ip_addr&0xff
 						);
-				sockprintf(sock,sess,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
+				sockprintf(sock,"227 Entering Passive Mode (%u,%u,%u,%u,%hu,%hu)"
 					,(ip_addr>>24)&0xff
 					,(ip_addr>>16)&0xff
 					,(ip_addr>>8)&0xff
@@ -3876,7 +3106,7 @@ static void ctrl_thread(void* arg)
 		}
 
 		if(!strnicmp(cmd, "TYPE ",5)) {
-			sockprintf(sock,sess,"200 All files sent in BINARY mode.");
+			sockprintf(sock,"200 All files sent in BINARY mode.");
 			continue;
 		}
 
@@ -3892,9 +3122,9 @@ static void ctrl_thread(void* arg)
 			else
 				avail=getfreediskspace(scfg.data_dir,0);	/* Change to temp_dir? */
 			if(l && l>avail)
-				sockprintf(sock,sess,"504 Only %lu bytes available.",avail);
+				sockprintf(sock,"504 Only %lu bytes available.",avail);
 			else
-				sockprintf(sock,sess,"200 %lu bytes available.",avail);
+				sockprintf(sock,"200 %lu bytes available.",avail);
 			continue;
 		}
 
@@ -3905,7 +3135,7 @@ static void ctrl_thread(void* arg)
 				filepos=atol(p);
 			else
 				filepos=0;
-			sockprintf(sock,sess,"350 Restarting at %lu. Send STORE or RETRIEVE to initiate transfer."
+			sockprintf(sock,"350 Restarting at %lu. Send STORE or RETRIEVE to initiate transfer."
 				,filepos);
 			continue;
 		}
@@ -3914,9 +3144,9 @@ static void ctrl_thread(void* arg)
 			p=cmd+5;
 			SKIP_WHITESPACE(p);
 			if(toupper(*p)!='S')
-				sockprintf(sock,sess,"504 Only STREAM mode supported.");
+				sockprintf(sock,"504 Only STREAM mode supported.");
 			else
-				sockprintf(sock,sess,"200 STREAM mode.");
+				sockprintf(sock,"200 STREAM mode.");
 			continue;
 		}
 
@@ -3924,26 +3154,26 @@ static void ctrl_thread(void* arg)
 			p=cmd+5;
 			SKIP_WHITESPACE(p);
 			if(toupper(*p)!='F')
-				sockprintf(sock,sess,"504 Only FILE structure supported.");
+				sockprintf(sock,"504 Only FILE structure supported.");
 			else
-				sockprintf(sock,sess,"200 FILE structure.");
+				sockprintf(sock,"200 FILE structure.");
 			continue;
 		}
 
 		if(!stricmp(cmd, "SYST")) {
-			sockprintf(sock,sess,"215 UNIX Type: L8");
+			sockprintf(sock,"215 UNIX Type: L8");
 			continue;
 		}
 
 		if(!stricmp(cmd, "ABOR")) {
 			if(!transfer_inprogress)
-				sockprintf(sock,sess,"226 No tranfer in progress.");
+				sockprintf(sock,"226 No tranfer in progress.");
 			else {
-				lprintf(LOG_WARNING,"%04d <%s> aborting transfer"
+				lprintf(LOG_WARNING,"%04d %s aborting transfer"
 					,sock,user.alias);
 				transfer_aborted=TRUE;
 				YIELD(); /* give send thread time to abort */
-				sockprintf(sock,sess,"226 Transfer aborted.");
+				sockprintf(sock,"226 Transfer aborted.");
 			}
 			continue;
 		}
@@ -3955,17 +3185,17 @@ static void ctrl_thread(void* arg)
 				local_fsys=FALSE;
 			else {
 				if(!direxist(p)) {
-					sockprintf(sock,sess,"550 Directory does not exist.");
-					lprintf(LOG_WARNING,"%04d <%s> !attempted to mount invalid directory: %s"
+					sockprintf(sock,"550 Directory does not exist.");
+					lprintf(LOG_WARNING,"%04d !%s attempted to mount invalid directory: %s"
 						,sock, user.alias, p);
 					continue;
 				}
 				local_fsys=TRUE;
 				SAFECOPY(local_dir,p);
 			}
-			sockprintf(sock,sess,"250 %s file system mounted."
+			sockprintf(sock,"250 %s file system mounted."
 				,local_fsys ? "Local" : "BBS");
-			lprintf(LOG_INFO,"%04d <%s> mounted %s file system"
+			lprintf(LOG_INFO,"%04d %s mounted %s file system"
 				,sock, user.alias, local_fsys ? "local" : "BBS");
 			continue;
 		}
@@ -3979,86 +3209,16 @@ static void ctrl_thread(void* arg)
 				&& local_dir[strlen(local_dir)-1]!='/')
 				strcat(local_dir,"/");
 
-			if(!strnicmp(cmd, "MLS", 3)) {
-				if (cmd[3] == 'T' || cmd[3] == 'D') {
-					if (cmd[3] == 'D') {
-						if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
-							lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
-								,sock, user.alias, errno, strerror(errno), __LINE__, fname);
-							sockprintf(sock,sess, "451 Insufficient system storage");
-							continue;
-						}
-					}
-
-					p=cmd+4;
-					SKIP_WHITESPACE(p);
-
-					filespec=p;
-					if (!local_dir[0])
-						strcpy(local_dir, "/");
-					SAFEPRINTF2(path,"%s%s",local_dir, filespec);
-					p=FULLPATH(NULL, path, 0);
-					strcpy(path, p);
-					free(p);
-					if (cmd[3] == 'T') {
-						if (access(path, 0) == -1) {
-							sockprintf(sock,sess, "550 No such path %s", path);
-							continue;
-						}
-						sockprintf(sock,sess, "250- Listing %s", path);
-					}
-					else {
-						if (access(path, 0) == -1) {
-							sockprintf(sock,sess, "550 No such path %s", path);
-							continue;
-						}
-						if (!isdir(path)) {
-							sockprintf(sock,sess, "501 Not a directory");
-							continue;
-						}
-						sockprintf(sock,sess, "150 Directory of %s", path);
-						backslash(path);
-						strcat(path, "*");
-					}
-
-					lprintf(LOG_INFO,"%04d <%s> MLSx listing: %s in %s mode", sock, user.alias, path, mode);
-
-					now=time(NULL);
-					if(localtime_r(&now,&cur_tm)==NULL)
-						memset(&cur_tm,0,sizeof(cur_tm));
-
-					if (cmd[3] == 'T') {
-						write_local_mlsx(NULL, sock, sess, mlsx_feats, path, TRUE);
-						sockprintf(sock, sess, "250 End");
-					}
-					else {
-						glob(path,0,NULL,&g);
-						for(i=0;i<(int)g.gl_pathc;i++)
-							write_local_mlsx(fp, INVALID_SOCKET, -1, mlsx_feats, g.gl_pathv[i], FALSE);
-						globfree(&g);
-						fclose(fp);
-						filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
-							,&transfer_inprogress,&transfer_aborted
-							,TRUE	/* delfile */
-							,TRUE	/* tmpfile */
-							,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL,protection);
-					}
+			if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {	
+				if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
+					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+					sockprintf(sock, "451 Insufficient system storage");
 					continue;
 				}
-			}
-
-			if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {
 				if(!strnicmp(cmd, "LIST", 4))
 					detail=TRUE;
 				else
 					detail=FALSE;
-
-				if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
-					lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
-						,sock, user.alias, errno, strerror(errno), __LINE__, fname);
-					sockprintf(sock,sess, "451 Insufficient system storage");
-					continue;
-				}
 
 				p=cmd+4;
 				SKIP_WHITESPACE(p);
@@ -4073,8 +3233,8 @@ static void ctrl_thread(void* arg)
 					filespec="*";
 
 				SAFEPRINTF2(path,"%s%s",local_dir, filespec);
-				lprintf(LOG_INFO,"%04d <%s> listing: %s in %s mode", sock, user.alias, path, mode);
-				sockprintf(sock,sess, "150 Directory of %s%s", local_dir, filespec);
+				lprintf(LOG_INFO,"%04d %s listing: %s in %s mode", sock, user.alias, path, mode);
+				sockprintf(sock, "150 Directory of %s%s", local_dir, filespec);
 
 				now=time(NULL);
 				if(localtime_r(&now,&cur_tm)==NULL) 
@@ -4105,14 +3265,14 @@ static void ctrl_thread(void* arg)
 				}
 				globfree(&g);
 				fclose(fp);
-				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
+				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,0L
 					,&transfer_inprogress,&transfer_aborted
 					,TRUE	/* delfile */
 					,TRUE	/* tmpfile */
-					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL,protection);
+					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL);
 				continue;
 			} /* Local LIST/NLST */
-
+				
 			if(!strnicmp(cmd, "CWD ", 4) || !strnicmp(cmd,"XCWD ",5)) {
 			    if(!strnicmp(cmd,"CWD ",4))
 					p=cmd+4;
@@ -4124,8 +3284,8 @@ static void ctrl_thread(void* arg)
 					tp++;
 				if(!strnicmp(tp,BBS_FSYS_DIR,strlen(BBS_FSYS_DIR))) {
 					local_fsys=FALSE;
-					sockprintf(sock,sess,"250 CWD command successful (BBS file system mounted).");
-					lprintf(LOG_INFO,"%04d <%s> mounted BBS file system", sock, user.alias);
+					sockprintf(sock,"250 CWD command successful (BBS file system mounted).");
+					lprintf(LOG_INFO,"%04d %s mounted BBS file system", sock, user.alias);
 					continue;
 				}
 				if(!strnicmp(tp,LOCAL_FSYS_DIR,strlen(LOCAL_FSYS_DIR))) {
@@ -4135,24 +3295,20 @@ static void ctrl_thread(void* arg)
 
 				if(p[1]==':' || !strncmp(p,"\\\\",2))
 					SAFECOPY(path,p);
-				else if(*p=='/' || *p=='\\') {
-					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p+1);
-					p = FULLPATH(NULL, path, 0);
-					SAFECOPY(path, p);
-					free(p);
-				}
+				else if(*p=='/' || *p=='\\')
+					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p);
 				else {
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 					FULLPATH(path,fname,sizeof(path));
 				}
 
 				if(!direxist(path)) {
-					sockprintf(sock,sess,"550 Directory does not exist (%s).",path);
-					lprintf(LOG_WARNING,"%04d <%s> !attempted to change to an invalid directory: %s"
+					sockprintf(sock,"550 Directory does not exist (%s).",path);
+					lprintf(LOG_WARNING,"%04d !%s attempted to change to an invalid directory: %s"
 						,sock, user.alias, path);
 				} else {
 					SAFECOPY(local_dir,path);
-					sockprintf(sock,sess,"250 CWD command successful (%s).", local_dir);
+					sockprintf(sock,"250 CWD command successful (%s).", local_dir);
 				}
 				continue;
 			} /* Local CWD */
@@ -4160,9 +3316,9 @@ static void ctrl_thread(void* arg)
 			if(!stricmp(cmd,"CDUP") || !stricmp(cmd,"XCUP")) {
 				SAFEPRINTF(path,"%s..",local_dir);
 				if(FULLPATH(local_dir,path,sizeof(local_dir))==NULL)
-					sockprintf(sock,sess,"550 Directory does not exist.");
+					sockprintf(sock,"550 Directory does not exist.");
 				else
-					sockprintf(sock,sess,"200 CDUP command successful.");
+					sockprintf(sock,"200 CDUP command successful.");
 				continue;
 			}
 
@@ -4170,7 +3326,7 @@ static void ctrl_thread(void* arg)
 				if(strlen(local_dir)>3)
 					local_dir[strlen(local_dir)-1]=0;	/* truncate '/' */
 
-				sockprintf(sock,sess,"257 \"%s\" is current directory."
+				sockprintf(sock,"257 \"%s\" is current directory."
 					,local_dir);
 				continue;
 			} /* Local PWD */
@@ -4183,13 +3339,13 @@ static void ctrl_thread(void* arg)
 				else		/* relative */
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 
-				if(MKDIR(fname) == 0) {
-					sockprintf(sock,sess,"257 \"%s\" directory created",fname);
-					lprintf(LOG_NOTICE,"%04d <%s> created directory: %s",sock,user.alias,fname);
+				if((i=MKDIR(fname))==0) {
+					sockprintf(sock,"257 \"%s\" directory created",fname);
+					lprintf(LOG_NOTICE,"%04d %s created directory: %s",sock,user.alias,fname);
 				} else {
-					sockprintf(sock,sess,"521 Error %d creating directory: %s",errno,fname);
-					lprintf(LOG_WARNING,"%04d <%s> !ERROR %d (%s) attempting to create directory: %s"
-						,sock,user.alias,errno,strerror(errno),fname);
+					sockprintf(sock,"521 Error %d creating directory: %s",i,fname);
+					lprintf(LOG_WARNING,"%04d !%s attempted to create directory: %s (Error %d)"
+						,sock,user.alias,fname,i);
 				}
 				continue;
 			}
@@ -4202,13 +3358,13 @@ static void ctrl_thread(void* arg)
 				else		/* relative */
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 
-				if(rmdir(fname) == 0) {
-					sockprintf(sock,sess,"250 \"%s\" directory removed",fname);
-					lprintf(LOG_NOTICE,"%04d <%s> removed directory: %s",sock,user.alias,fname);
+				if((i=rmdir(fname))==0) {
+					sockprintf(sock,"250 \"%s\" directory removed",fname);
+					lprintf(LOG_NOTICE,"%04d %s removed directory: %s",sock,user.alias,fname);
 				} else {
-					sockprintf(sock,sess,"450 Error %d removing directory: %s", errno, fname);
-					lprintf(LOG_WARNING,"%04d <%s> !ERROR %d (%s) removing directory: %s"
-						,sock, user.alias, errno, strerror(errno), fname);
+					sockprintf(sock,"450 Error %d removing directory: %s",i,fname);
+					lprintf(LOG_WARNING,"%04d !%s attempted to remove directory: %s (Error %d)"
+						,sock,user.alias,fname,i);
 				}
 				continue;
 			}
@@ -4221,11 +3377,11 @@ static void ctrl_thread(void* arg)
 				else		/* relative */
 					SAFEPRINTF2(ren_from,"%s%s",local_dir,p);
 				if(!fexist(ren_from)) {
-					sockprintf(sock,sess,"550 File not found: %s",ren_from);
-					lprintf(LOG_WARNING,"%04d <%s> !ERROR renaming %s (not found)"
+					sockprintf(sock,"550 File not found: %s",ren_from);
+					lprintf(LOG_WARNING,"%04d !%s attempted to rename %s (not found)"
 						,sock,user.alias,ren_from);
 				} else
-					sockprintf(sock,sess,"350 File exists, ready for destination name");
+					sockprintf(sock,"350 File exists, ready for destination name");
 				continue;
 			}
 
@@ -4237,13 +3393,13 @@ static void ctrl_thread(void* arg)
 				else		/* relative */
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 
-				if(rename(ren_from, fname) == 0) {
-					sockprintf(sock,sess,"250 \"%s\" renamed to \"%s\"",ren_from,fname);
-					lprintf(LOG_NOTICE,"%04d <%s> renamed %s to %s",sock,user.alias,ren_from,fname);
+				if((i=rename(ren_from, fname))==0) {
+					sockprintf(sock,"250 \"%s\" renamed to \"%s\"",ren_from,fname);
+					lprintf(LOG_NOTICE,"%04d %s renamed %s to %s",sock,user.alias,ren_from,fname);
 				} else {
-					sockprintf(sock,sess,"450 Error %d renaming file: %s", errno, ren_from);
-					lprintf(LOG_WARNING,"%04d <%s> !ERRROR %d (%s) renaming file: %s"
-						,sock, user.alias, errno, strerror(errno), ren_from);
+					sockprintf(sock,"450 Error %d renaming file: %s",i,ren_from);
+					lprintf(LOG_WARNING,"%04d !%s attempted to rename file: %s (Error %d)"
+						,sock,user.alias,ren_from,i);
 				}
 				continue;
 			}
@@ -4264,42 +3420,42 @@ static void ctrl_thread(void* arg)
 				else		/* relative */
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 				if(!fexist(fname)) {
-					lprintf(LOG_WARNING,"%04d <%s> !File not found: %s",sock,user.alias,fname);
-					sockprintf(sock,sess,"550 File not found: %s",fname);
+					lprintf(LOG_WARNING,"%04d !%s file not found: %s",sock,user.alias,fname);
+					sockprintf(sock,"550 File not found: %s",fname);
 					continue;
 				}
 				if(!strnicmp(cmd,"SIZE ",5)) {
-					sockprintf(sock,sess,"213 %"PRIuOFF,flength(fname));
+					sockprintf(sock,"213 %"PRIuOFF,flength(fname));
 					continue;
 				}
 				if(!strnicmp(cmd,"MDTM ",5)) {
 					t=fdate(fname);
 					if(gmtime_r(&t,&tm)==NULL) /* specifically use GMT/UTC representation */
 						memset(&tm,0,sizeof(tm));
-					sockprintf(sock,sess,"213 %u%02u%02u%02u%02u%02u"
+					sockprintf(sock,"213 %u%02u%02u%02u%02u%02u"
 						,1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday
 						,tm.tm_hour,tm.tm_min,tm.tm_sec);					
 					continue;
 				}
 				if(!strnicmp(cmd,"DELE ",5)) {
-					if(ftp_remove(sock, __LINE__, fname) == 0) {
-						sockprintf(sock,sess,"250 \"%s\" removed successfully.",fname);
-						lprintf(LOG_NOTICE,"%04d <%s> deleted file: %s",sock,user.alias,fname);
+					if((i=ftp_remove(sock, __LINE__, fname))==0) {
+						sockprintf(sock,"250 \"%s\" removed successfully.",fname);
+						lprintf(LOG_NOTICE,"%04d %s deleted file: %s",sock,user.alias,fname);
 					} else {
-						sockprintf(sock,sess,"450 Error %d removing file: %s", errno, fname);
-						lprintf(LOG_WARNING,"%04d <%s> !ERROR %d (%s) deleting file: %s"
-							,sock, user.alias, errno, strerror(errno), fname);
+						sockprintf(sock,"450 Error %d removing file: %s",i,fname);
+						lprintf(LOG_WARNING,"%04d !%s attempted to delete file: %s (Error %d)"
+							,sock,user.alias,fname,i);
 					}
 					continue;
 				}
 				/* RETR */
-				lprintf(LOG_INFO,"%04d <%s> downloading: %s (%"PRIuOFF" bytes) in %s mode"
+				lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 					,sock,user.alias,fname,flength(fname)
 					,mode);
-				sockprintf(sock,sess,"150 Opening BINARY mode data connection for file transfer.");
-				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,filepos
+				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
+				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
-					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL,protection);
+					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL);
 				continue;
 			} /* Local RETR/SIZE/MDTM */
 
@@ -4317,10 +3473,10 @@ static void ctrl_thread(void* arg)
 				else				/* relative */
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 
-				lprintf(LOG_INFO,"%04d <%s> uploading: %s in %s mode", sock,user.alias,fname
+				lprintf(LOG_INFO,"%04d %s uploading: %s in %s mode", sock,user.alias,fname
 					,mode);
-				sockprintf(sock,sess,"150 Opening BINARY mode data connection for file transfer.");
-				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,filepos
+				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
+				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
 					,&lastactive
 					,&user
@@ -4330,310 +3486,10 @@ static void ctrl_thread(void* arg)
 					,FALSE	/* credits */
 					,!strnicmp(cmd,"APPE",4) ? TRUE : FALSE	/* append */
 					,NULL	/* desc */
-					,protection
 					);
 				filepos=0;
 				continue;
 			} /* Local STOR */
-		}
-
-		if (!strnicmp(cmd, "MLS", 3)) {
-			if (cmd[3] == 'D' || cmd[3] == 'T') {
-				dir=curdir;
-				lib=curlib;
-				l = 0;
-
-				if(cmd[4]!=0)
-					lprintf(LOG_DEBUG,"%04d <%s> MLSx: %s",sock, user.alias, cmd);
-
-				/* path specified? */
-				p=cmd+4;
-				if (*p == ' ')
-					p++;
-
-				if (parsepath(&p,&user,&client,&lib,&dir) == -1) {
-					sockprintf(sock,sess, "550 No such path");
-					continue;
-				}
-
-				if (strchr(p, '/')) {
-					sockprintf(sock,sess, "550 No such path");
-					continue;
-				}
-				if (cmd[3] == 'T') {
-					if (cmd[4])
-						strcpy(mls_path, cmd+5);
-					else
-						strcpy(mls_path, p);
-				}
-				else {
-					if (*p) {
-						sockprintf(sock,sess, "501 Not a directory");
-						continue;
-					}
-					strcpy(mls_path, p);
-				}
-				mls_fname = p;
-
-				fp = NULL;
-				if (cmd[3] == 'D') {
-					if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
-						lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
-							,sock, user.alias, errno, strerror(errno), __LINE__, fname);
-						sockprintf(sock,sess, "451 Insufficient system storage");
-						continue;
-					}
-					sockprintf(sock,sess,"150 Opening ASCII mode data connection for MLSD.");
-				}
-				now=time(NULL);
-				if(localtime_r(&now,&cur_tm)==NULL)
-					memset(&cur_tm,0,sizeof(cur_tm));
-
-				/* ASCII Index File */
-				if(startup->options&FTP_OPT_INDEX_FILE && startup->index_file_name[0]
-						&& (cmd[3] == 'D' || strcmp(startup->index_file_name, mls_fname) == 0)) {
-					if (cmd[3] == 'T')
-						sockprintf(sock,sess, "250- Listing %s", startup->index_file_name);
-					get_owner_name(NULL, str);
-					send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : startup->index_file_name);
-					l++;
-				}
-				/* HTML Index File */
-				if(startup->options&FTP_OPT_INDEX_FILE && startup->html_index_file[0]
-						&& (cmd[3] == 'D' || strcmp(startup->html_index_file, mls_fname) == 0)) {
-					if (cmd[3] == 'T')
-						sockprintf(sock,sess, "250- Listing %s", startup->html_index_file);
-					get_owner_name(NULL, str);
-					send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : startup->html_index_file);
-					l++;
-				}
-
-				if(lib<0) { /* Root dir */
-					if (cmd[3] == 'T' && !*mls_fname) {
-						sockprintf(sock,sess, "250- Listing root");
-						get_owner_name(NULL, str);
-						strcpy(aliaspath, "/");
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
-						l++;
-					}
-					else {
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
-					}
-					lprintf(LOG_INFO,"%04d <%s> listing: root in %s mode",sock,user.alias, mode);
-
-					/* QWK Packet */
-					if(startup->options&FTP_OPT_ALLOW_QWK) {
-						SAFEPRINTF(str,"%s.qwk",scfg.sys_id);
-						if (cmd[3] == 'D' || strcmp(str, mls_fname) == 0) {
-							if (cmd[3] == 'T')
-								sockprintf(sock,sess, "250- Listing %s", str);
-							get_owner_name(NULL, str);
-							send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : str);
-							l++;
-						}
-					}
-
-					/* File Aliases */
-					sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
-					if((alias_fp=fopen(aliasfile,"r"))!=NULL) {
-
-						while(!feof(alias_fp)) {
-							if(!fgets(aliasline,sizeof(aliasline),alias_fp))
-								break;
-
-							alias_dir=FALSE;
-
-							p=aliasline;		/* alias pointer */
-							SKIP_WHITESPACE(p);
-
-							if(*p==';')	/* comment */
-								continue;
-
-							tp=p;		/* terminator pointer */
-							FIND_WHITESPACE(tp);
-							if(*tp) *tp=0;
-
-							np=tp+1;	/* filename pointer */
-							SKIP_WHITESPACE(np);
-
-							tp=np;		/* terminator pointer */
-							FIND_WHITESPACE(tp);
-							if(*tp) *tp=0;
-
-							dp=tp+1;	/* description pointer */
-							SKIP_WHITESPACE(dp);
-							truncsp(dp);
-
-							if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
-								continue;
-
-							/* Virtual Path? */
-							aliaspath[0]=0;
-							if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
-								if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user,&client))<0) {
-									lprintf(LOG_WARNING,"%04d <%s> !Invalid virtual path:%s",sock,user.alias,np);
-									continue; /* No access or invalid virtual path */
-								}
-								tp=strrchr(np,'/');
-								if(tp==NULL) 
-									continue;
-								tp++;
-								if(*tp) {
-									SAFEPRINTF2(aliasfile,"%s%s",scfg.dir[dir]->path,tp);
-									np=aliasfile;
-									SAFEPRINTF3(aliaspath,"/%s/%s/%s", scfg.lib[scfg.dir[dir]->lib]->sname, scfg.dir[dir]->code_suffix, tp);
-								}
-								else {
-									alias_dir=TRUE;
-									SAFEPRINTF2(aliaspath,"/%s/%s", scfg.lib[scfg.dir[dir]->lib]->sname, scfg.dir[dir]->code_suffix);
-								}
-							}
-
-							if(!alias_dir && !fexist(np)) {
-								lprintf(LOG_WARNING,"%04d <%s> !Missing aliased file: %s",sock, user.alias, np);
-								continue;
-							}
-
-							if(cmd[3] == 'D' || strcmp(startup->html_index_file, mls_fname) == 0) {
-								if (cmd[3] == 'T')
-									sockprintf(sock,sess, "250- Listing %s", p);
-								get_unique(aliaspath, uniq);
-								if (cmd[3] == 'D') {
-									if (alias_dir==TRUE)
-										send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", "el", UINT64_MAX, 0, NULL, uniq, 0, p);
-									else
-										send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", (uint64_t)flength(np), fdate(np), NULL, uniq, 0, p);
-								}
-								else {
-									if (alias_dir==TRUE)
-										send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", "el", UINT64_MAX, 0, NULL, uniq, 0, aliaspath[0] ? aliaspath : mls_path);
-									else
-										send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", (uint64_t)flength(np), fdate(np), NULL, uniq, 0, mls_path);
-								}
-								l++;
-							}
-						}
-
-						fclose(alias_fp);
-					}
-
-					/* Library folders */
-					for(i=0;i<scfg.total_libs;i++) {
-						if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
-							continue;
-						if (cmd[3] != 'D' && strcmp(scfg.lib[i]->sname, mls_fname) != 0)
-							continue;
-						if (cmd[3] == 'T')
-							sockprintf(sock,sess, "250- Listing %s", scfg.lib[i]->sname);
-						get_libperm(scfg.lib[i], &user, &client, permstr);
-						get_owner_name(NULL, str);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", permstr, UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : scfg.lib[i]->sname);
-						l++;
-					}
-				} else if(dir<0) {
-					if (cmd[3] == 'T' && !*mls_fname) {
-						sockprintf(sock,sess, "250- Listing %s", scfg.lib[lib]->sname);
-						get_owner_name(NULL, str);
-						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
-						l++;
-					}
-					if (cmd[3] == 'D') {
-						get_owner_name(NULL, str);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
-						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
-					}
-					lprintf(LOG_INFO,"%04d <%s> listing: %s library in %s mode"
-						,sock,user.alias,scfg.lib[lib]->sname,mode);
-					for(i=0;i<scfg.total_dirs;i++) {
-						if(scfg.dir[i]->lib!=lib)
-							continue;
-						if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir 
-							&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
-							continue;
-						if (cmd[3] != 'D' && strcmp(scfg.dir[i]->code_suffix, mls_fname) != 0)
-							continue;
-						if (cmd[3] == 'T')
-							sockprintf(sock,sess, "250- Listing %s", scfg.dir[i]->code_suffix);
-						get_dirperm(scfg.lib[lib], scfg.dir[i], &user, &client, permstr);
-						get_owner_name(NULL, str);
-						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[i]->code_suffix);
-						get_unique(aliaspath, uniq);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", permstr, UINT64_MAX, 0, str, uniq, 0, cmd[3] == 'T' ? mls_path : scfg.dir[i]->code_suffix);
-						l++;
-					}
-				} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
-					lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode"
-						,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
-
-					if (cmd[3] == 'T' && !*mls_fname) {
-						sockprintf(sock,sess, "250- Listing %s/%s",scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix);
-						get_owner_name(NULL, str);
-						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix);
-						get_unique(aliaspath, uniq);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, uniq, 0, aliaspath);
-						l++;
-					}
-					if (cmd[3] == 'D') {
-						get_libperm(scfg.lib[lib], &user, &client, permstr);
-						get_owner_name(NULL, str);
-						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", permstr, UINT64_MAX, 0, str, NULL, 0, aliaspath);
-						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix);
-						get_unique(aliaspath, uniq);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", permstr, UINT64_MAX, 0, str, NULL, 0, aliaspath);
-					}
-
-					SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,"*");
-					glob(path,0,NULL,&g);
-					for(i=0;i<(int)g.gl_pathc;i++) {
-						if(isdir(g.gl_pathv[i]))
-							continue;
-#ifdef _WIN32
-						GetShortPathName(g.gl_pathv[i], str, sizeof(str));
-#else
-						SAFECOPY(str,g.gl_pathv[i]);
-#endif
-						padfname(getfname(str),f.name);
-						f.dateuled = 0;
-						f.dir=dir;
-						if((filedat=getfileixb(&scfg,&f))==FALSE
-							&& !(startup->options&FTP_OPT_DIR_FILES)
-							&& !(scfg.dir[dir]->misc&DIR_FILES))
-							continue;
-						if (cmd[3] != 'D' && strcmp(getfname(g.gl_pathv[i]), mls_fname) != 0)
-							continue;
-						if (cmd[3] == 'T')
-							sockprintf(sock,sess, "250- Listing %s", p);
-						get_fileperm(scfg.lib[lib], scfg.dir[dir], &user, &client, &f, permstr);
-						get_owner_name(&f, str);
-						SAFEPRINTF3(aliaspath, "/%s/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix, getfname(g.gl_pathv[i]));
-						get_unique(aliaspath, uniq);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, (uint64_t)flength(g.gl_pathv[i]), fdate(g.gl_pathv[i]), str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
-						l++;
-					}
-					globfree(&g);
-				} else 
-					lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode (empty - no access)"
-						,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
-
-				if (cmd[3] == 'D') {
-					fclose(fp);
-					filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
-						,&transfer_inprogress,&transfer_aborted
-						,TRUE /* delfile */
-						,TRUE /* tmpfile */
-						,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL,protection);
-				}
-				else {
-					if (l==0)
-						sockprintf(sock,sess, "550 No such path");
-					else
-						sockprintf(sock, sess, "250 End");
-				}
-				continue;
-			}
 		}
 
 		if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {	
@@ -4641,7 +3497,7 @@ static void ctrl_thread(void* arg)
 			lib=curlib;
 
 			if(cmd[4]!=0) 
-				lprintf(LOG_DEBUG,"%04d <%s> LIST/NLST: %s", sock, user.alias, cmd);
+				lprintf(LOG_DEBUG,"%04d LIST/NLST: %s",sock,cmd);
 
 			/* path specified? */
 			p=cmd+4;
@@ -4652,32 +3508,21 @@ static void ctrl_thread(void* arg)
 				SKIP_WHITESPACE(p);
 			}
 
-			if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
-				lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
-					,sock, user.alias, errno, strerror(errno), __LINE__, fname);
-				sockprintf(sock,sess, "451 Insufficient system storage");
-				continue;
-			}
-			sockprintf(sock,sess,"150 Opening ASCII mode data connection for /bin/ls.");
-
-			if (parsepath(&p,&user,&client,&lib,&dir) == -1) {
-				/* Empty list */
-				fclose(fp);
-				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
-					,&transfer_inprogress,&transfer_aborted
-					,TRUE /* delfile */
-					,TRUE /* tmpfile */
-					,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL,protection);
-				continue;
-			}
+			parsepath(&p,&user,&client,&lib,&dir);
 			filespec=p;
 			if(*filespec==0)
 				filespec="*";
 
+			if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
+				lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+				sockprintf(sock, "451 Insufficient system storage");
+				continue;
+			}
 			if(!strnicmp(cmd, "LIST", 4))
 				detail=TRUE;
 			else
 				detail=FALSE;
+			sockprintf(sock,"150 Opening ASCII mode data connection for /bin/ls.");
 			now=time(NULL);
 			if(localtime_r(&now,&cur_tm)==NULL) 
 				memset(&cur_tm,0,sizeof(cur_tm));
@@ -4714,7 +3559,7 @@ static void ctrl_thread(void* arg)
 			} 
 
 			if(lib<0) { /* Root dir */
-				lprintf(LOG_INFO,"%04d <%s> listing: root in %s mode",sock,user.alias, mode);
+				lprintf(LOG_INFO,"%04d %s listing: root in %s mode",sock,user.alias, mode);
 
 				/* QWK Packet */
 				if(startup->options&FTP_OPT_ALLOW_QWK) {
@@ -4782,7 +3627,7 @@ static void ctrl_thread(void* arg)
 						/* Virtual Path? */
 						if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 							if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user,&client))<0) {
-								lprintf(LOG_WARNING,"%04d <%s> !Invalid virtual path: %s", sock, user.alias, np);
+								lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",np,user.alias);
 								continue; /* No access or invalid virtual path */
 							}
 							tp=strrchr(np,'/');
@@ -4798,7 +3643,7 @@ static void ctrl_thread(void* arg)
 						}
 
 						if(!alias_dir && !fexist(np)) {
-							lprintf(LOG_WARNING,"%04d <%s> !Missing aliased file: %s", sock, user.alias, np);
+							lprintf(LOG_WARNING,"0000 !Missing aliased file (%s) for %s",np,user.alias);
 							continue;
 						}
 
@@ -4851,7 +3696,7 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",scfg.lib[i]->sname);
 				}
 			} else if(dir<0) {
-				lprintf(LOG_INFO,"%04d <%s> listing: %s library in %s mode"
+				lprintf(LOG_INFO,"%04d %s listing: %s library in %s mode"
 					,sock,user.alias,scfg.lib[lib]->sname,mode);
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
@@ -4873,7 +3718,7 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",scfg.dir[i]->code_suffix);
 				}
 			} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
-				lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode"
+				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode"
 					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,filespec);
@@ -4924,15 +3769,15 @@ static void ctrl_thread(void* arg)
 				}
 				globfree(&g);
 			} else 
-				lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode (empty - no access)"
+				lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode (empty - no access)"
 					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 			fclose(fp);
-			filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
+			filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,0L
 				,&transfer_inprogress,&transfer_aborted
 				,TRUE /* delfile */
 				,TRUE /* tmpfile */
-				,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL,protection);
+				,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL);
 			continue;
 		}
 
@@ -4952,7 +3797,7 @@ static void ctrl_thread(void* arg)
 				delecmd=TRUE;
 
 			if(!getsize && !getdate && user.rest&FLAG('D')) {
-				sockprintf(sock,sess,"550 Insufficient access.");
+				sockprintf(sock,"550 Insufficient access.");
 				filepos=0;
 				continue;
 			}
@@ -4981,7 +3826,7 @@ static void ctrl_thread(void* arg)
 				credits=TRUE;	/* include in d/l stats */
 				tmpfile=FALSE;
 				delfile=FALSE;
-				lprintf(LOG_INFO,"%04d <%s> %.4s by alias: %s"
+				lprintf(LOG_INFO,"%04d %s %.4s by alias: %s"
 					,sock,user.alias,cmd,p);
 				p=getfname(fname);
 				if(dir>=0)
@@ -5021,13 +3866,13 @@ static void ctrl_thread(void* arg)
 			if(lib<0 && startup->options&FTP_OPT_ALLOW_QWK 
 				&& !stricmp(p,str) && !delecmd) {
 				if(!fexistcase(qwkfile)) {
-					lprintf(LOG_INFO,"%04d <%s> creating QWK packet...",sock,user.alias);
+					lprintf(LOG_INFO,"%04d %s creating QWK packet...",sock,user.alias);
 					sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
 					if(!ftouch(str))
-						lprintf(LOG_ERR,"%04d <%s> !ERROR creating semaphore file: %s"
-							,sock, user.alias, str);
+						lprintf(LOG_ERR,"%04d !ERROR creating semaphore file: %s"
+							,sock, str);
 					t=time(NULL);
-					while(fexist(str) && !terminate_server) {
+					while(fexist(str)) {
 						if(!socket_check(sock,NULL,NULL,0))
 							break;
 						if(time(NULL)-t>startup->qwk_timeout)
@@ -5039,15 +3884,15 @@ static void ctrl_thread(void* arg)
 						continue;
 					}
 					if(fexist(str)) {
-						lprintf(LOG_WARNING,"%04d <%s> !TIMEOUT waiting for QWK packet creation", sock, user.alias);
-						sockprintf(sock,sess,"451 Time-out waiting for packet creation.");
+						lprintf(LOG_WARNING,"%04d !TIMEOUT waiting for QWK packet creation",sock);
+						sockprintf(sock,"451 Time-out waiting for packet creation.");
 						ftp_remove(sock, __LINE__, str);
 						filepos=0;
 						continue;
 					}
 					if(!fexistcase(qwkfile)) {
-						lprintf(LOG_INFO,"%04d <%s> No QWK Packet created (no new messages)", sock, user.alias);
-						sockprintf(sock,sess,"550 No QWK packet created (no new messages)");
+						lprintf(LOG_INFO,"%04d No QWK Packet created (no new messages)",sock);
+						sockprintf(sock,"550 No QWK packet created (no new messages)");
 						filepos=0;
 						continue;
 					}
@@ -5057,7 +3902,7 @@ static void ctrl_thread(void* arg)
 				delfile=TRUE;
 				credits=FALSE;
 				if(!getsize && !getdate)
-					lprintf(LOG_INFO,"%04d <%s> downloading QWK packet (%"PRIuOFF" bytes) in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading QWK packet (%"PRIuOFF" bytes) in %s mode"
 						,sock,user.alias,flength(fname)
 						,mode);
 			/* ASCII Index File */
@@ -5065,13 +3910,12 @@ static void ctrl_thread(void* arg)
 				&& !stricmp(p,startup->index_file_name)
 				&& !delecmd) {
 				if(getsize) {
-					sockprintf(sock,sess, "550 Size not available for dynamically generated files");
+					sockprintf(sock, "550 Size not available for dynamically generated files");
 					continue;
 				}
 				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"w+b"))==NULL) {
-					lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
-						,sock, user.alias, errno, strerror(errno), __LINE__, fname);
-					sockprintf(sock,sess, "451 Insufficient system storage");
+					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+					sockprintf(sock, "451 Insufficient system storage");
 					filepos=0;
 					continue;
 				}
@@ -5079,7 +3923,7 @@ static void ctrl_thread(void* arg)
 				if(getdate)
 					file_date=time(NULL);
 				else {
-					lprintf(LOG_INFO,"%04d <%s> downloading index for %s in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading index for %s in %s mode"
 						,sock,user.alias,genvpath(lib,dir,str)
 						,mode);
 					credits=FALSE;
@@ -5181,7 +4025,7 @@ static void ctrl_thread(void* arg)
 				&& !delecmd) {
 				success=TRUE;
 				if(getsize) {
-					sockprintf(sock,sess, "550 Size not available for dynamically generated files");
+					sockprintf(sock, "550 Size not available for dynamically generated files");
 					continue;
 				}
 				else if(getdate)
@@ -5189,18 +4033,18 @@ static void ctrl_thread(void* arg)
 				else {
 #ifdef JAVASCRIPT
 					if(startup->options&FTP_OPT_NO_JAVASCRIPT) {
-						lprintf(LOG_ERR,"%04d <%s> !JavaScript disabled, cannot generate %s",sock, user.alias, fname);
-						sockprintf(sock,sess, "451 JavaScript disabled");
+						lprintf(LOG_ERR,"%04d !JavaScript disabled, cannot generate %s",sock,fname);
+						sockprintf(sock, "451 JavaScript disabled");
 						filepos=0;
 						continue;
 					}
 					if(js_runtime == NULL) {
-						lprintf(LOG_DEBUG,"%04d <%s> JavaScript: Creating runtime: %lu bytes"
-							,sock, user.alias,startup->js.max_bytes);
+						lprintf(LOG_DEBUG,"%04d JavaScript: Creating runtime: %lu bytes"
+							,sock,startup->js.max_bytes);
 
 						if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL) {
-							lprintf(LOG_ERR,"%04d <%s> !ERROR creating JavaScript runtime",sock, user.alias);
-							sockprintf(sock,sess,"451 Error creating JavaScript runtime");
+							lprintf(LOG_ERR,"%04d !ERROR creating JavaScript runtime",sock);
+							sockprintf(sock,"451 Error creating JavaScript runtime");
 							filepos=0;
 							continue;
 						}
@@ -5209,26 +4053,26 @@ static void ctrl_thread(void* arg)
 					if(js_cx==NULL) {	/* Context not yet created, create it now */
 						/* js_initcx() starts a request */
 						if(((js_cx=js_initcx(js_runtime, sock,&js_glob,&js_ftp,&js_callback))==NULL)) {
-							lprintf(LOG_ERR,"%04d <%s> !ERROR initializing JavaScript context",sock, user.alias);
-							sockprintf(sock,sess,"451 Error initializing JavaScript context");
+							lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript context",sock);
+							sockprintf(sock,"451 Error initializing JavaScript context");
 							filepos=0;
 							continue;
 						}
 						if(js_CreateUserClass(js_cx, js_glob, &scfg)==NULL) 
-							lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR creating user class",sock, user.alias);
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user class",sock);
 
 						if(js_CreateFileClass(js_cx, js_glob)==NULL) 
-							lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR creating file class",sock, user.alias);
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file class",sock);
 
 						if(js_CreateUserObject(js_cx, js_glob, &scfg, "user", &user, &client, /* global_user: */TRUE)==NULL) 
-							lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR creating user object",sock, user.alias);
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating user object",sock);
 
 						if(js_CreateClientObject(js_cx, js_glob, "client", &client, sock, -1)==NULL) 
-							lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR creating client object",sock, user.alias);
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating client object",sock);
 
 						if(js_CreateFileAreaObject(js_cx, js_glob, &scfg, &user, &client
 							,startup->html_index_file)==NULL) 
-							lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR creating file area object",sock, user.alias);
+							lprintf(LOG_ERR,"%04d !JavaScript ERROR creating file area object",sock);
 					}
 					else
 						JS_BEGINREQUEST(js_cx);
@@ -5278,13 +4122,12 @@ static void ctrl_thread(void* arg)
 					JS_ENDREQUEST(js_cx);
 #endif
 					if((fp=fopen(ftp_tmpfname(fname,"html",sock),"w+b"))==NULL) {
-						lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
-							,sock, user.alias, errno, strerror(errno), __LINE__, fname);
-						sockprintf(sock,sess, "451 Insufficient system storage");
+						lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+						sockprintf(sock, "451 Insufficient system storage");
 						filepos=0;
 						continue;
 					}
-					lprintf(LOG_INFO,"%04d <%s> downloading HTML index for %s in %s mode"
+					lprintf(LOG_INFO,"%04d %s downloading HTML index for %s in %s mode"
 						,sock,user.alias,genvpath(lib,dir,str)
 						,mode);
 					credits=FALSE;
@@ -5294,7 +4137,7 @@ static void ctrl_thread(void* arg)
 					JS_BEGINREQUEST(js_cx);
 					js_val=INT_TO_JSVAL(timeleft);
 					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
-						lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR setting user.time_left",sock, user.alias);
+						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
 					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user, &client);
 					JS_ENDREQUEST(js_cx);
 #endif
@@ -5303,32 +4146,32 @@ static void ctrl_thread(void* arg)
 			} else if(dir>=0) {
 
 				if(!chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
-					lprintf(LOG_WARNING,"%04d <%s> has insufficient access to /%s/%s"
+					lprintf(LOG_WARNING,"%04d !%s has insufficient access to /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
 						,scfg.dir[dir]->code_suffix);
-					sockprintf(sock,sess,"550 Insufficient access.");
+					sockprintf(sock,"550 Insufficient access.");
 					filepos=0;
 					continue;
 				}
 
 				if(!getsize && !getdate && !delecmd
 					&& !chk_ar(&scfg,scfg.dir[dir]->dl_ar,&user,&client)) {
-					lprintf(LOG_WARNING,"%04d <%s> has insufficient access to download from /%s/%s"
+					lprintf(LOG_WARNING,"%04d !%s has insufficient access to download from /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
 						,scfg.dir[dir]->code_suffix);
-					sockprintf(sock,sess,"550 Insufficient access.");
+					sockprintf(sock,"550 Insufficient access.");
 					filepos=0;
 					continue;
 				}
 
 				if(delecmd && !dir_op(&scfg,&user,&client,dir) && !(user.exempt&FLAG('R'))) {
-					lprintf(LOG_WARNING,"%04d <%s> has insufficient access to delete files in /%s/%s"
+					lprintf(LOG_WARNING,"%04d !%s has insufficient access to delete files in /%s/%s"
 						,sock,user.alias
 						,scfg.lib[scfg.dir[dir]->lib]->sname
 						,scfg.dir[dir]->code_suffix);
-					sockprintf(sock,sess,"550 Insufficient access.");
+					sockprintf(sock,"550 Insufficient access.");
 					filepos=0;
 					continue;
 				}
@@ -5344,8 +4187,8 @@ static void ctrl_thread(void* arg)
 				f.size=-1;
 				filedat=getfileixb(&scfg,&f);
 				if(!filedat && !(startup->options&FTP_OPT_DIR_FILES) && !(scfg.dir[dir]->misc&DIR_FILES)) {
-					sockprintf(sock,sess,"550 File not found: %s",p);
-					lprintf(LOG_WARNING,"%04d <%s> file (%s%s) not in database for %.4s command"
+					sockprintf(sock,"550 File not found: %s",p);
+					lprintf(LOG_WARNING,"%04d !%s file (%s%s) not in database for %.4s command"
 						,sock,user.alias,genvpath(lib,dir,str),p,cmd);
 					filepos=0;
 					continue;
@@ -5359,12 +4202,12 @@ static void ctrl_thread(void* arg)
 					else
 						f.cdt=flength(fname);
 					if(f.cdt>(user.cdt+user.freecdt)) {
-						lprintf(LOG_WARNING,"%04d <%s> has insufficient credit to download /%s/%s/%s (%lu credits)"
+						lprintf(LOG_WARNING,"%04d !%s has insufficient credit to download /%s/%s/%s (%lu credits)"
 							,sock,user.alias,scfg.lib[scfg.dir[dir]->lib]->sname
 							,scfg.dir[dir]->code_suffix
 							,p
-							,(ulong)f.cdt);
-						sockprintf(sock,sess,"550 Insufficient credit (%lu required).", (ulong)f.cdt);
+							,f.cdt);
+						sockprintf(sock,"550 Insufficient credit (%lu required).",f.cdt);
 						filepos=0;
 						continue;
 					}
@@ -5372,14 +4215,14 @@ static void ctrl_thread(void* arg)
 
 				if(strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)) {
 					success=FALSE;
-					lprintf(LOG_WARNING,"%04d <%s> !ILLEGAL FILENAME ATTEMPT by %s [%s]: %s"
-						,sock, user.alias, host_name, host_ip, p);
+					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
+						,sock,user.alias,p);
 					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 				} else {
 					if(fexistcase(fname)) {
 						success=TRUE;
 						if(!getsize && !getdate && !delecmd)
-							lprintf(LOG_INFO,"%04d <%s> downloading: %s (%"PRIuOFF" bytes) in %s mode"
+							lprintf(LOG_INFO,"%04d %s downloading: %s (%"PRIuOFF" bytes) in %s mode"
 								,sock,user.alias,fname,flength(fname)
 								,mode);
 					} 
@@ -5390,35 +4233,35 @@ static void ctrl_thread(void* arg)
 #endif
 
 			if(getsize && success)
-				sockprintf(sock,sess,"213 %"PRIuOFF, flength(fname));
+				sockprintf(sock,"213 %"PRIuOFF, flength(fname));
 			else if(getdate && success) {
 				if(file_date==0)
 					file_date = fdate(fname);
 				if(gmtime_r(&file_date,&tm)==NULL)	/* specifically use GMT/UTC representation */
 					memset(&tm,0,sizeof(tm));
-				sockprintf(sock,sess,"213 %u%02u%02u%02u%02u%02u"
+				sockprintf(sock,"213 %u%02u%02u%02u%02u%02u"
 					,1900+tm.tm_year,tm.tm_mon+1,tm.tm_mday
 					,tm.tm_hour,tm.tm_min,tm.tm_sec);
 			} else if(delecmd && success) {
 				if(removecase(fname)!=0) {
-					lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) deleting %s", sock, user.alias, errno, strerror(errno), fname);
-					sockprintf(sock,sess,"450 %s could not be deleted (error: %d)"
+					lprintf(LOG_ERR,"%04d !ERROR %d deleting %s",sock,errno,fname);
+					sockprintf(sock,"450 %s could not be deleted (error: %d)"
 						,fname,errno);
 				} else {
-					lprintf(LOG_NOTICE,"%04d <%s> deleted %s",sock,user.alias,fname);
+					lprintf(LOG_NOTICE,"%04d %s deleted %s",sock,user.alias,fname);
 					if(filedat) 
 						removefiledat(&scfg,&f);
-					sockprintf(sock,sess,"250 %s deleted.",fname);
+					sockprintf(sock,"250 %s deleted.",fname);
 				}
 			} else if(success) {
-				sockprintf(sock,sess,"150 Opening BINARY mode data connection for file transfer.");
-				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,filepos
+				sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
+				filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 					,&transfer_inprogress,&transfer_aborted,delfile,tmpfile
-					,&lastactive,&user,&client,dir,FALSE,credits,FALSE,NULL,protection);
+					,&lastactive,&user,&client,dir,FALSE,credits,FALSE,NULL);
 			}
 			else {
-				sockprintf(sock,sess,"550 File not found: %s",p);
-				lprintf(LOG_WARNING,"%04d <%s> file (%s%s) not found for %.4s command"
+				sockprintf(sock,"550 File not found: %s",p);
+				lprintf(LOG_WARNING,"%04d !%s file (%s%s) not found for %.4s command"
 					,sock,user.alias,genvpath(lib,dir,str),p,cmd);
 			}
 			filepos=0;
@@ -5431,7 +4274,7 @@ static void ctrl_thread(void* arg)
 		if(!strnicmp(cmd, "DESC", 4)) {
 
 			if(user.rest&FLAG('U')) {
-				sockprintf(sock,sess,"553 Insufficient access.");
+				sockprintf(sock,"553 Insufficient access.");
 				continue;
 			}
 
@@ -5439,10 +4282,10 @@ static void ctrl_thread(void* arg)
 			SKIP_WHITESPACE(p);
 
 			if(*p==0) 
-				sockprintf(sock,sess,"501 No file description given.");
+				sockprintf(sock,"501 No file description given.");
 			else {
 				SAFECOPY(desc,p);
-				sockprintf(sock,sess,"200 File description set. Ready to STOR file.");
+				sockprintf(sock,"200 File description set. Ready to STOR file.");
 			}
 			continue;
 		}
@@ -5450,13 +4293,13 @@ static void ctrl_thread(void* arg)
 		if(!strnicmp(cmd, "STOR ", 5) || !strnicmp(cmd, "APPE ", 5)) {
 
 			if(user.rest&FLAG('U')) {
-				sockprintf(sock,sess,"553 Insufficient access.");
+				sockprintf(sock,"553 Insufficient access.");
 				continue;
 			}
 
 			if(transfer_inprogress==TRUE) {
-				lprintf(LOG_WARNING,"%04d <%s> !TRANSFER already in progress (%s)",sock, user.alias, cmd);
-				sockprintf(sock,sess,"425 Transfer already in progress.");
+				lprintf(LOG_WARNING,"%04d !TRANSFER already in progress (%s)",sock,cmd);
+				sockprintf(sock,"425 Transfer already in progress.");
 				continue;
 			}
 
@@ -5509,13 +4352,13 @@ static void ctrl_thread(void* arg)
 				sprintf(str,"%s.rep",scfg.sys_id);
 				if(!(startup->options&FTP_OPT_ALLOW_QWK)
 					|| stricmp(p,str)) {
-					lprintf(LOG_WARNING,"%04d <%s> !attempted to upload to invalid directory"
+					lprintf(LOG_WARNING,"%04d !%s attempted to upload to invalid directory"
 						,sock,user.alias);
-					sockprintf(sock,sess,"553 Invalid directory.");
+					sockprintf(sock,"553 Invalid directory.");
 					continue;
 				}
 				sprintf(fname,"%sfile/%04d.rep",scfg.data_dir,user.number);
-				lprintf(LOG_INFO,"%04d <%s> uploading: %s in %s mode"
+				lprintf(LOG_INFO,"%04d %s uploading: %s in %s mode"
 					,sock,user.alias,fname
 					,mode);
 			} else {
@@ -5524,30 +4367,30 @@ static void ctrl_thread(void* arg)
 			
 				if(!dir_op(&scfg,&user,&client,dir) && !(user.exempt&FLAG('U'))) {
 					if(!chk_ar(&scfg,scfg.dir[dir]->ul_ar,&user,&client)) {
-						lprintf(LOG_WARNING,"%04d <%s> cannot upload to /%s/%s (insufficient access)"
+						lprintf(LOG_WARNING,"%04d !%s cannot upload to /%s/%s (insufficient access)"
 							,sock,user.alias
 							,scfg.lib[scfg.dir[dir]->lib]->sname
 							,scfg.dir[dir]->code_suffix);
-						sockprintf(sock,sess,"553 Insufficient access.");
+						sockprintf(sock,"553 Insufficient access.");
 						continue;
 					}
 
-					if(!append && scfg.dir[dir]->maxfiles && getfiles(&scfg,dir)>=scfg.dir[dir]->maxfiles) {
-						lprintf(LOG_WARNING,"%04d <%s> cannot upload to /%s/%s (directory full: %ld files)"
+					if(scfg.dir[dir]->maxfiles && getfiles(&scfg,dir)>=scfg.dir[dir]->maxfiles) {
+						lprintf(LOG_WARNING,"%04d !%s cannot upload to /%s/%s (directory full: %u files)"
 							,sock,user.alias
 							,scfg.lib[scfg.dir[dir]->lib]->sname
 							,scfg.dir[dir]->code_suffix
 							,getfiles(&scfg,dir));
-						sockprintf(sock,sess,"553 Directory full.");
+						sockprintf(sock,"553 Directory full.");
 						continue;
 					}
 				}
 				if(*p=='-'
 					|| strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
 					|| trashcan(&scfg,p,"file")) {
-					lprintf(LOG_WARNING,"%04d <%s> !ILLEGAL FILENAME ATTEMPT by %s [%s]: %s"
-						,sock, user.alias, host_name, host_ip, p);
-					sockprintf(sock,sess,"553 Illegal filename attempt");
+					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
+						,sock,user.alias,p);
+					sockprintf(sock,"553 Illegal filename attempt");
 					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 					continue;
 				}
@@ -5558,9 +4401,9 @@ static void ctrl_thread(void* arg)
 					|| (startup->options&FTP_OPT_HTML_INDEX_FILE 
 						&& !stricmp(p,startup->html_index_file))
 					) {
-					lprintf(LOG_WARNING,"%04d <%s> attempted to overwrite existing file: %s"
+					lprintf(LOG_WARNING,"%04d !%s attempted to overwrite existing file: %s"
 						,sock,user.alias,fname);
-					sockprintf(sock,sess,"553 File already exists.");
+					sockprintf(sock,"553 File already exists.");
 					continue;
 				}
 				if(append || filepos) {	/* RESUME */
@@ -5575,30 +4418,30 @@ static void ctrl_thread(void* arg)
 					f.size=-1;
 					if(!getfileixb(&scfg,&f) || !getfiledat(&scfg,&f)) {
 						if(filepos) {
-							lprintf(LOG_WARNING,"%04d <%s> file (%s) not in database for %.4s command"
+							lprintf(LOG_WARNING,"%04d !%s file (%s) not in database for %.4s command"
 								,sock,user.alias,fname,cmd);
-							sockprintf(sock,sess,"550 File not found: %s",p);
+							sockprintf(sock,"550 File not found: %s",p);
 							continue;
 						}
 						append=FALSE;
 					}
 					/* Verify user is original uploader */
 					if((append || filepos) && stricmp(f.uler,user.alias)) {
-						lprintf(LOG_WARNING,"%04d <%s> !cannot resume upload of %s, uploaded by %s"
+						lprintf(LOG_WARNING,"%04d !%s cannot resume upload of %s, uploaded by %s"
 							,sock,user.alias,fname,f.uler);
-						sockprintf(sock,sess,"553 Insufficient access (can't resume upload from different user).");
+						sockprintf(sock,"553 Insufficient access (can't resume upload from different user).");
 						continue;
 					}
 				}
-				lprintf(LOG_INFO,"%04d <%s> uploading: %s to %s (%s) in %s mode"
+				lprintf(LOG_INFO,"%04d %s uploading: %s to %s (%s) in %s mode"
 					,sock,user.alias
 					,p						/* filename */
 					,genvpath(lib,dir,str)	/* virtual path */
 					,scfg.dir[dir]->path	/* actual path */
 					,mode);
 			}
-			sockprintf(sock,sess,"150 Opening BINARY mode data connection for file transfer.");
-			filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,filepos
+			sockprintf(sock,"150 Opening BINARY mode data connection for file transfer.");
+			filexfer(&data_addr,sock,pasv_sock,&data_sock,fname,filepos
 				,&transfer_inprogress,&transfer_aborted,FALSE,FALSE
 				,&lastactive
 				,&user
@@ -5608,7 +4451,6 @@ static void ctrl_thread(void* arg)
 				,TRUE	/* credits */
 				,append
 				,desc
-				,protection
 				);
 			filepos=0;
 			continue;
@@ -5619,7 +4461,7 @@ static void ctrl_thread(void* arg)
 				curlib=-1;
 			else
 				curdir=-1;
-			sockprintf(sock,sess,"200 CDUP command successful.");
+			sockprintf(sock,"200 CDUP command successful.");
 			continue;
 		}
 
@@ -5640,15 +4482,15 @@ static void ctrl_thread(void* arg)
 				&& !strnicmp(p,LOCAL_FSYS_DIR,strlen(LOCAL_FSYS_DIR))) {	
 				p+=strlen(LOCAL_FSYS_DIR);
 				if(!direxist(p)) {
-					sockprintf(sock,sess,"550 Directory does not exist.");
-					lprintf(LOG_WARNING,"%04d <%s> attempted to mount invalid directory: %s"
+					sockprintf(sock,"550 Directory does not exist.");
+					lprintf(LOG_WARNING,"%04d !%s attempted to mount invalid directory: %s"
 						,sock, user.alias, p);
 					continue;
 				}
 				SAFECOPY(local_dir,p);
 				local_fsys=TRUE;
-				sockprintf(sock,sess,"250 CWD command successful (local file system mounted).");
-				lprintf(LOG_INFO,"%04d <%s> mounted local file system", sock, user.alias);
+				sockprintf(sock,"250 CWD command successful (local file system mounted).");
+				lprintf(LOG_INFO,"%04d %s mounted local file system", sock, user.alias);
 				continue;
 			}
 			success=FALSE;
@@ -5718,9 +4560,9 @@ static void ctrl_thread(void* arg)
 			}
 
 			if(success)
-				sockprintf(sock,sess,"250 CWD command successful.");
+				sockprintf(sock,"250 CWD command successful.");
 			else {
-				sockprintf(sock,sess,"550 %s: No such directory.",p);
+				sockprintf(sock,"550 %s: No such file or directory.",p);
 				curlib=orglib;
 				curdir=orgdir;
 			}
@@ -5729,12 +4571,12 @@ static void ctrl_thread(void* arg)
 
 		if(!stricmp(cmd, "PWD") || !stricmp(cmd,"XPWD")) {
 			if(curlib<0)
-				sockprintf(sock,sess,"257 \"/\" is current directory.");
+				sockprintf(sock,"257 \"/\" is current directory.");
 			else if(curdir<0)
-				sockprintf(sock,sess,"257 \"/%s\" is current directory."
+				sockprintf(sock,"257 \"/%s\" is current directory."
 					,scfg.lib[curlib]->sname);
 			else
-				sockprintf(sock,sess,"257 \"/%s/%s\" is current directory."
+				sockprintf(sock,"257 \"/%s/%s\" is current directory."
 					,scfg.lib[curlib]->sname
 					,scfg.dir[curdir]->code_suffix);
 			continue;
@@ -5743,13 +4585,12 @@ static void ctrl_thread(void* arg)
 		if(!strnicmp(cmd, "MKD", 3) || 
 			!strnicmp(cmd,"XMKD",4) || 
 			!strnicmp(cmd,"SITE EXEC",9)) {
-			lprintf(LOG_WARNING,"%04d <%s> !SUSPECTED HACK ATTEMPT: %s"
+			lprintf(LOG_WARNING,"%04d !SUSPECTED HACK ATTEMPT by %s: '%s'"
 				,sock,user.alias,cmd);
 			ftp_hacklog("FTP", user.alias, cmd, host_name, &ftp.client_addr);
 		}		
-		// TODO: STAT is mandatory
-		sockprintf(sock,sess,"500 Syntax error: '%s'",cmd);
-		lprintf(LOG_WARNING,"%04d <%s> !UNSUPPORTED COMMAND: %s"
+		sockprintf(sock,"500 Syntax error: '%s'",cmd);
+		lprintf(LOG_WARNING,"%04d !UNSUPPORTED COMMAND from %s: '%s'"
 			,sock,user.alias,cmd);
 	} /* while(1) */
 
@@ -5768,15 +4609,15 @@ static void ctrl_thread(void* arg)
 			if(!transfer_aborted) {
 				if(gettimeleft(&scfg,&user,logintime)<1) {
 					lprintf(LOG_WARNING,"%04d Out of time, disconnecting",sock);
-					sockprintf(sock,sess,"421 Sorry, you've run out of time.");
-					ftp_close_socket(&data_sock,&data_sess,__LINE__);
+					sockprintf(sock,"421 Sorry, you've run out of time.");
+					ftp_close_socket(&data_sock,__LINE__);
 					transfer_aborted=TRUE;
 				}
 				if((time(NULL)-lastactive)>startup->max_inactivity) {
 					lprintf(LOG_WARNING,"%04d Disconnecting due to to inactivity",sock);
-					sockprintf(sock,sess,"421 Disconnecting due to inactivity (%u seconds)."
+					sockprintf(sock,"421 Disconnecting due to inactivity (%u seconds)."
 						,startup->max_inactivity);
-					ftp_close_socket(&data_sock,&data_sess,__LINE__);
+					ftp_close_socket(&data_sock,__LINE__);
 					transfer_aborted=TRUE;
 				}
 			}
@@ -5793,11 +4634,11 @@ static void ctrl_thread(void* arg)
 	if(user.number) {
 		/* Update User Statistics */
 		if(!logoutuserdat(&scfg, &user, time(NULL), logintime))
-			lprintf(LOG_ERR,"%04d <%s> !ERROR in logoutuserdat", sock, user.alias);
+			lprintf(LOG_ERR,"%04d !ERROR in logoutuserdat",sock);
 		/* Remove QWK-pack semaphore file (if left behind) */
 		sprintf(str,"%spack%04u.now",scfg.data_dir,user.number);
 		ftp_remove(sock, __LINE__, str);
-		lprintf(LOG_INFO,"%04d <%s> logged off", sock, user.alias);
+		lprintf(LOG_INFO,"%04d %s logged off",sock,user.alias);
 	}
 
 #ifdef _WIN32
@@ -5824,9 +4665,9 @@ static void ctrl_thread(void* arg)
 /*	status(STATUS_WFC); server thread should control status display */
 
 	if(pasv_sock!=INVALID_SOCKET)
-		ftp_close_socket(&pasv_sock,&pasv_sess,__LINE__);
+		ftp_close_socket(&pasv_sock,__LINE__);
 	if(data_sock!=INVALID_SOCKET)
-		ftp_close_socket(&data_sock,&data_sess,__LINE__);
+		ftp_close_socket(&data_sock,__LINE__);
 
 	client_off(sock);
 
@@ -5839,14 +4680,14 @@ static void ctrl_thread(void* arg)
 #endif
 
 	tmp_sock=sock;
-	ftp_close_socket(&tmp_sock,&sess,__LINE__);
+	ftp_close_socket(&tmp_sock,__LINE__);
 
 	{
 		int32_t	clients = protected_uint32_adjust(&active_clients, -1);
 		int32_t	threads = thread_down();
 		update_clients();
 
-		lprintf(LOG_INFO,"%04d CTRL thread terminated (%d clients and %d threads remain, %lu served)"
+		lprintf(LOG_INFO,"%04d CTRL thread terminated (%ld clients and %ld threads remain, %lu served)"
 			,sock, clients, threads, served);
 	}
 }
@@ -5858,11 +4699,10 @@ static void cleanup(int code, int line)
 #endif
 
 	if(protected_uint32_value(thread_count) > 1) {
-		lprintf(LOG_INFO, "0000 Waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
+		lprintf(LOG_DEBUG,"#### FTP Server waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
 		while(protected_uint32_value(thread_count) > 1) {
 			mswait(100);
 		}
-		lprintf(LOG_INFO, "0000 Done waiting for child threads to terminate");
 	}
 
 	free_cfg(&scfg);
@@ -5879,7 +4719,7 @@ static void cleanup(int code, int line)
 	update_clients();	/* active_clients is destroyed below */
 
 	if(protected_uint32_value(active_clients))
-		lprintf(LOG_WARNING,"!!!! Terminating with %d active clients", protected_uint32_value(active_clients));
+		lprintf(LOG_WARNING,"#### !FTP Server terminating with %ld active clients", protected_uint32_value(active_clients));
 	else
 		protected_uint32_destroy(active_clients);
 
@@ -5903,7 +4743,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.483 $", "%*s %s", revision);
+	sscanf("$Revision: 1.437 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5935,7 +4775,6 @@ void DLLCALL ftp_server(void* arg)
 	time_t			initialized=0;
 	ftp_t*			ftp;
 	char			client_ip[INET6_ADDRSTRLEN];
-	CRYPT_SESSION		none = -1;
 
 	ftp_ver();
 
@@ -6019,11 +4858,11 @@ void DLLCALL ftp_server(void* arg)
 		}
 
 		t=time(NULL);
-		lprintf(LOG_INFO,"Initializing on %.24s with options: %x"
+		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,str),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
-			lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), startup->ctrl_dir);
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -6112,6 +4951,7 @@ void DLLCALL ftp_server(void* arg)
 		 */
 		xpms_add_list(ftp_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "FTP Server", ftp_open_socket_cb, startup->seteuid, NULL);
 
+		lprintf(LOG_INFO,"FTP Server listening");
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
@@ -6170,25 +5010,25 @@ void DLLCALL ftp_server(void* arg)
 
 			inet_addrtop(&client_addr, client_ip, sizeof(client_ip));
 			if(trashcan(&scfg,client_ip,"ip-silent")) {
-				ftp_close_socket(&client_socket,&none,__LINE__);
+				ftp_close_socket(&client_socket,__LINE__);
 				continue;
 			}
 			
 			if(protected_uint32_value(active_clients)>=startup->max_clients) {
 				lprintf(LOG_WARNING,"%04d !MAXIMUM CLIENTS (%d) reached, access denied"
 					,client_socket, startup->max_clients);
-				sockprintf(client_socket,-1,"421 Maximum active clients reached, please try again later.");
+				sockprintf(client_socket,"421 Maximum active clients reached, please try again later.");
 				mswait(3000);
-				ftp_close_socket(&client_socket,&none,__LINE__);
+				ftp_close_socket(&client_socket,__LINE__);
 				continue;
 			}
 
 			if((ftp=malloc(sizeof(ftp_t)))==NULL) {
 				lprintf(LOG_CRIT,"%04d !ERROR allocating %d bytes of memory for ftp_t"
-					,client_socket,(int)sizeof(ftp_t));
-				sockprintf(client_socket,-1,"421 System error, please try again later.");
+					,client_socket,sizeof(ftp_t));
+				sockprintf(client_socket,"421 System error, please try again later.");
 				mswait(3000);
-				ftp_close_socket(&client_socket,&none,__LINE__);
+				ftp_close_socket(&client_socket,__LINE__);
 				continue;
 			}
 
@@ -6205,18 +5045,17 @@ void DLLCALL ftp_server(void* arg)
 		lprintf(LOG_DEBUG,"0000 terminate_server: %d",terminate_server);
 #endif
 		if(protected_uint32_value(active_clients)) {
-			lprintf(LOG_INFO,"0000 Waiting for %d active clients to disconnect..."
+			lprintf(LOG_DEBUG,"Waiting for %d active clients to disconnect..."
 				, protected_uint32_value(active_clients));
 			start=time(NULL);
 			while(protected_uint32_value(active_clients)) {
-				if(time(NULL)-start > startup->max_inactivity * 2) {
-					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d active clients"
+				if(time(NULL)-start>startup->max_inactivity) {
+					lprintf(LOG_WARNING,"!TIMEOUT waiting for %d active clients"
 						, protected_uint32_value(active_clients));
 					break;
 				}
 				mswait(100);
 			}
-			lprintf(LOG_INFO, "0000 Done waiting for active clients to disconnect");
 		}
 
 		cleanup(0,__LINE__);
