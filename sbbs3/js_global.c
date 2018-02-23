@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.370 2018/03/09 20:03:04 deuce Exp $ */
+/* $Id: js_global.c,v 1.369 2018/02/22 10:02:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -931,7 +931,6 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	ulong		sum=0;
 	char*		p = NULL;
-	char*		sp;
 	size_t		len;
 	jsrefcount	rc;
 
@@ -946,8 +945,7 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);	/* 3.8 seconds on Deuce's computer when len==UINT_MAX/8 */
-	sp = 0;
-	while(len--) sum+=*(sp++);
+	while(len--) sum+=*(p++);
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 
