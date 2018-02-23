@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.620 2018/02/20 02:17:17 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.621 2018/02/20 11:39:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2208,11 +2208,13 @@ static int chk_received_hdr(SOCKET socket,const char *buf,IN_ADDR *dnsbl_result,
 			ai.ai_flags = AI_NUMERICHOST|AI_NUMERICSERV|AI_PASSIVE;
 			if(getaddrinfo(p, NULL, &ai, &res)!=0)
 				break;
-			if(res->ai_family == AF_INET6)
+			if(res->ai_family == AF_INET6) {
 				memcpy(&addr, res->ai_addr, res->ai_addrlen);
-			else
+				freeaddrinfo(res);
+			} else {
+				freeaddrinfo(res);
 				break;
-			freeaddrinfo(res);
+			}
 		}
 		else {
 			strncpy(ip,p,16);
@@ -5174,7 +5176,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.620 $", "%*s %s", revision);
+	sscanf("$Revision: 1.621 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
