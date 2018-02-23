@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.469 2018/02/20 02:17:17 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.472 2018/02/23 08:24:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -221,7 +221,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	if(JS_IsExceptionPending(cx)) { \
 		if(p != NULL) \
 			free(p); \
-		p = NULL; \
 		return JS_FALSE; \
 	}
 
@@ -1334,6 +1333,12 @@ extern "C" {
 
 	/* js_cryptcon.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
+
+	/* js_cryptkeyset.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptKeysetClass(JSContext* cx, JSObject* parent);
+
+	/* js_cryptcert.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptCertClass(JSContext* cx, JSObject* parent);
 
 #endif
 
