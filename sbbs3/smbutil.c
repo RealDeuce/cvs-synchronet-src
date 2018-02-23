@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.126 2018/03/14 05:41:41 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.120 2018/02/22 23:07:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -209,6 +209,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	uchar*		msgtxt=NULL;
 	uchar*		newtxt;
 	long		msgtxtlen;
+	ushort		net;
 	int 		i;
 	ushort		agent=AGENT_SMBUTIL;
 	smbmsg_t	msg;
@@ -282,17 +283,23 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 
 	if(smb.status.attr&SMB_EMAIL && (type=='N' || to_address!=NULL)) {
 		if(to_address==NULL) {
-			printf("To Address (e.g. user@host or 1:2/3): ");
+			printf("To Address (e.g. user@host): ");
 			gets(str);
 		} else
 			SAFECOPY(str,to_address);
 		truncsp(str);
 		if(*str) {
-			if((i=smb_hfield_netaddr(&msg,RECIPIENTNETADDR,str,NULL))!=SMB_SUCCESS) {
-				fprintf(errfp,"\n%s!smb_hfield_netaddr(0x%02X) returned %d: %s\n"
-					,beep,RECIPIENTNETADDR,i,smb.last_error);
+			net=smb_netaddr_type(str);
+			if((i=smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net))!=SMB_SUCCESS) {
+				fprintf(errfp,"\n%s!smb_hfield(0x%02X) returned %d: %s\n"
+					,beep,RECIPIENTNETTYPE,i,smb.last_error);
 				bail(1); 
 			}
+			if((i=smb_hfield_str(&msg,RECIPIENTNETADDR,str))!=SMB_SUCCESS) {
+				fprintf(errfp,"\n%s!smb_hfield_str(0x%02X) returned %d: %s\n"
+					,beep,RECIPIENTNETADDR,i,smb.last_error);
+				bail(1); 
+			} 
 		} 
 	}
 
@@ -364,8 +371,6 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	}
 	smb_freemsgmem(&msg);
 
-	// MSVC can't do %zu for size_t until MSVC 2017 it seems...
-	fprintf(statfp, "Message (%" PRIu64 " bytes) added to %s successfully\n", (uint64_t)strlen((char *)msgtxt), smb.file);
 	FREE_AND_NULL(msgtxt);
 }
 
@@ -733,6 +738,7 @@ void maint(void)
 	}
 	fseek(smb.sid_fp,0L,SEEK_SET);
 	l = fread(idx, sizeof(idxrec_t), smb.status.total_msgs, smb.sid_fp);
+	l /= sizeof(idxrec_t);
 
 	printf("\nDone.\n\n");
 	printf("Scanning for pre-flagged messages...\n");
@@ -1261,10 +1267,6 @@ void packmsgs(ulong packable)
 			,beep,i,smb.last_error,smb.file);
 		return; 
 	}
-	if((i=smb_lock(&smb)) != SMB_SUCCESS)
-		fprintf(errfp,"\n%s!ERROR %d (%s) locking %s\n"
-			,beep,i,smb.last_error,smb.file);
-
 	if((i=smb_locksmbhdr(&smb))!=0)
 		fprintf(errfp,"\n%s!smb_locksmbhdr returned %d: %s\n"
 			,beep,i,smb.last_error);
@@ -1543,7 +1545,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.120 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
