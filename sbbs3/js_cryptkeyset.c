@@ -1,4 +1,4 @@
-/* $Id: js_cryptkeyset.c,v 1.5 2018/02/23 11:40:14 deuce Exp $ */
+/* $Id: js_cryptkeyset.c,v 1.4 2018/02/23 08:24:23 deuce Exp $ */
 
 // Cyrptlib Keyset...
 
@@ -114,8 +114,8 @@ js_add_public_key(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 	}
 	cert = JSVAL_TO_OBJECT(argv[0]);
-	if (!JS_InstanceOf(cx, cert, &js_cryptcert_class, NULL)) {
-		JS_ReportError(cx, "Invalid CryptCert");
+	if (!JS_InstanceOf(cx, cert, &js_cryptcon_class, NULL)) {
+		JS_ReportError(cx, "Invalid CryptContext");
 		return JS_FALSE;
 	}
 
