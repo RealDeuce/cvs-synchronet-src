@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.184 2018/02/20 02:17:16 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.187 2018/02/23 22:05:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,8 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			buf=((uint8_t *)buf) + copied;
 		}
 		else {
-			lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
+			if (status != CRYPT_ERROR_COMPLETE)
+				lprintf(LOG_WARNING,"cryptPopData() returned %d", ret);
 			if (total > 0)
 				return total;
 			do_js_close(p);
@@ -875,7 +876,6 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
-	free(fname);
 
 	len = js_socket_sendfilesocket(p, file, NULL, 0);
 	close(file);
@@ -886,6 +886,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %s failed",fname);
 	}
+	free(fname);
 
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
@@ -1701,12 +1702,19 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 							nb=1;
 							setsockopt(p->sock,IPPROTO_TCP,TCP_NODELAY,(char*)&nb,sizeof(nb));
 							if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_NETWORKSOCKET, p->sock))==CRYPT_OK) {
-//								if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_VERSION, 0))==CRYPT_OK) {
+								// Reduced compliance checking... required for acme-staging-v02.api.letsencrypt.org
+								do_cryptAttribute(p->session, CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_REDUCED);
+//								if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_VERSION, 3))==CRYPT_OK) {
 									if((ret=do_cryptAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname)))==CRYPT_OK) {
 										if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK) {
+											char *estr = get_crypt_error(p->session);
+											lprintf(LOG_ERR, "Error setting session active: %s\n", estr);
+											free_crypt_attrstr(estr);
 											cryptDestroySession(p->session);
 											p->session=-1;
 											ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
+											closesocket(p->sock);
+											p->sock = INVALID_SOCKET;
 										}
 									}
 //								}
@@ -1715,6 +1723,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 								cryptDestroySession(p->session);
 								p->session=-1;
 								ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
+								closesocket(p->sock);
+								p->sock = INVALID_SOCKET;
 							}
 						}
 						else lprintf(LOG_ERR,"cryptCreateSession() Error %d",ret);
@@ -1726,6 +1736,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 					cryptDestroySession(p->session);
 					p->session=-1;
 					ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
+					closesocket(p->sock);
+					p->sock = INVALID_SOCKET;
 				}
 			}
 			JS_RESUMEREQUEST(cx, rc);
@@ -2123,6 +2135,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 					return JS_FALSE;
 				}
 				JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
+				FREE_AND_NULL(protocol);
 				return JS_TRUE;
 			}
 			else
@@ -2151,6 +2164,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ReportError(cx,"open_socket failed with error %d",ERROR_VALUE);
 		if(protocol)
 			free(protocol);
+		free(p);
 		return(JS_FALSE);
 	}
 	if(protocol)
@@ -2162,6 +2176,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
+		free(p);
 		return(JS_FALSE);
 	}
 
