@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.185 2018/02/25 23:01:08 rswindell Exp $ */
+/* $Id: userdat.c,v 1.184 2018/02/20 11:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3192,23 +3192,4 @@ BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
 		smb_close(&smb);
 	}
 	return TRUE;
-}
-
-static char* sysop_available_semfile(scfg_t* scfg)
-{
-	static char semfile[MAX_PATH+1];
-	SAFEPRINTF(semfile, "%ssysavail.chat", scfg->ctrl_dir);
-	return semfile;
-}
-
-BOOL DLLCALL sysop_available(scfg_t* scfg)
-{
-	return fexist(sysop_available_semfile(scfg));
-}
-
-BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
-{
-	if(available)
-		return ftouch(sysop_available_semfile(scfg));
-	return remove(sysop_available_semfile(scfg)) == 0;
 }
