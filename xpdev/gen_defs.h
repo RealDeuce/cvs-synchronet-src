@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.77 2018/08/28 21:20:18 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.75 2018/02/20 05:25:47 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -252,7 +252,7 @@ typedef int32_t         time32_t;
 #    define PRIuOFF     "lu"
 #  endif
 #elif defined(__linux__) || defined(__sun__)
-#  if (defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)) || defined(__LP64__)
+#  if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS==64)
 #    define PRIdOFF     PRId64
 #    define PRIuOFF     PRIu64
 #  else
@@ -469,7 +469,7 @@ typedef struct {
 /********************************/
 /* Handy Pointer-freeing Macros */
 /********************************/
-#define FREE_AND_NULL(x)                if((x)!=NULL) { FREE(x); (x)=NULL; }
+#define FREE_AND_NULL(x)                if(x!=NULL) { FREE(x); x=NULL; }
 #define FREE_LIST_ITEMS(list,i)         if(list!=NULL) {                                \
 											for(i=0;list[i]!=NULL;i++)      \
 												FREE_AND_NULL(list[i]); \
