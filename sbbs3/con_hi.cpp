@@ -1,7 +1,7 @@
 /* Synchronet hi-level console routines */
 // vi: tabstop=4
 
-/* $Id: con_hi.cpp,v 1.26 2018/07/01 09:40:27 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.25 2018/01/26 04:28:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -160,9 +160,8 @@ bool sbbs_t::chksyspass(const char* sys_pw)
 		SAFECOPY(str, sys_pw);
 	else {
 		bputs(text[SystemPassword]);
-		getstr(str, sizeof(cfg.sys_pass)-1, K_UPPER | K_NOECHO);
+		getstr(str, 40, K_UPPER | K_NOECHO);
 		CRLF;
-		lncntr=0;
 	}
 	if(stricmp(cfg.sys_pass,str)) {
 		if(cfg.sys_misc&SM_ECHO_PW) 
