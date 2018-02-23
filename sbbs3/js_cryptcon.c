@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.16 2018/02/23 02:03:57 deuce Exp $ */
+/* $Id: js_cryptcon.c,v 1.17 2018/02/23 11:15:58 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -134,6 +134,10 @@ static void js_simple_asn1(unsigned char *data, size_t len, JSContext *cx, JSObj
 						n = malloc(sz);
 						if (n == NULL)
 							return;
+						while(data[off] == 0) {
+							off++;
+							sz--;
+						}
 						memcpy(n, data+off, sz);
 						n64 = malloc(sz*4/3+3);
 						if (n64 == NULL) {
@@ -160,6 +164,10 @@ static void js_simple_asn1(unsigned char *data, size_t len, JSContext *cx, JSObj
 						if (e == NULL) {
 							free(n64);
 							return;
+						}
+						while(data[off] == 0) {
+							off++;
+							sz--;
 						}
 						memcpy(e, data+off, sz);
 						e64 = malloc(sz*4/3+3);
