@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.158 2018/03/09 06:52:32 deuce Exp $ */
+/* $Id: ini_file.c,v 1.155 2018/02/09 02:52:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -430,12 +430,9 @@ BOOL DLLCALL iniRemoveSection(str_list_t* list, const char* section)
 
 BOOL DLLCALL iniRemoveSections(str_list_t* list, const char* prefix)
 {
-	str_list_t sections;
+	str_list_t sections = iniGetSectionList(*list, prefix);
 	const char* section;
 
-	if (list == NULL || *list == NULL)
-		return FALSE;
-	sections = iniGetSectionList(*list, prefix);
 	while((section = strListPop(&sections)) != NULL)
 		if(!iniRemoveSection(list, section))
 			return(FALSE);
