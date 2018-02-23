@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.52 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.50 2018/02/20 11:39:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -264,7 +264,6 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -293,7 +292,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	useron.etoday++;
 	putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
-	sprintf(str,"sent Internet Mail to %s (%s)"
+	sprintf(str,"%s sent Internet Mail to %s (%s)"
+		,useron.alias
 		,name,addr);
 	logline("EN",str);
 	return(true);
@@ -471,7 +471,6 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -492,7 +491,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	useron.etoday++;
 	putuserrec(&cfg,useron.number,U_ETODAY,5,ultoa(useron.etoday,tmp,10));
 
-	sprintf(str,"sent QWK NetMail to %s (%s)"
+	sprintf(str,"%s sent QWK NetMail to %s (%s)"
+		,useron.alias
 		,to,fulladdr);
 	logline("EN",str);
 	return(true);
