@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.14 2018/02/23 00:16:05 deuce Exp $ */
+/* $Id: js_cryptcon.c,v 1.15 2018/02/23 00:31:13 deuce Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -701,8 +701,7 @@ js_cryptcon_attrstr_get(JSContext *cx, jsval *vp, CRYPT_CONTEXT ctx, CRYPT_ATTRI
 	status = cryptGetAttributeString(ctx, type, NULL, &len);
 	if (cryptStatusError(status)) {
 		*vp = JSVAL_VOID;
-		js_cryptcon_error(cx, ctx, status);
-		return JS_FALSE;
+		return JS_TRUE;	// Do not return JS_FALSE here, or jsdocs build will break.
 	}
 	if ((val = (char *)malloc(len)) == NULL) {
 		JS_ReportError(cx, "malloc(%d) failure", len);
