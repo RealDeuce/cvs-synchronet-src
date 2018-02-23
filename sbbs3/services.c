@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.306 2018/02/23 00:16:06 deuce Exp $ */
+/* $Id: services.c,v 1.307 2018/02/23 08:24:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,6 +805,10 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		/* CryptKeyset Class */
 		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* user-specific objects */
@@ -1641,7 +1645,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.306 $", "%*s %s", revision);
+	sscanf("$Revision: 1.307 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

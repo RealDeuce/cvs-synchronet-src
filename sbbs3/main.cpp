@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.670 2018/02/23 00:16:05 deuce Exp $ */
+/* $Id: main.cpp,v 1.671 2018/02/23 08:24:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1368,6 +1368,10 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptKeyset Class */
 		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
