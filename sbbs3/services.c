@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.303 2018/02/18 02:18:07 rswindell Exp $ */
+/* $Id: services.c,v 1.306 2018/02/23 00:16:06 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -284,7 +284,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	int32		level=LOG_INFO;
 	service_client_t* client;
 	jsrefcount	rc;
-	char		*line;
+	char		*line = NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -302,7 +302,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
 		JSVALUE_TO_MSTRING(cx, argv[i], line, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, line);
 		if(line==NULL)
 		    return(JS_FALSE);
 		strncat(str,line,sizeof(str)/2);
@@ -628,7 +628,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cstr);
 		client.user=cstr;
 	}
 
@@ -801,6 +801,10 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptKeyset Class */
+		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
 			break;
 
 		/* user-specific objects */
@@ -1577,6 +1581,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
+			iniFreeStringList(sec_list);
 			return(service);
 		}
 		service=np;
@@ -1636,7 +1641,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.303 $", "%*s %s", revision);
+	sscanf("$Revision: 1.306 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
