@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.72 2017/08/26 01:29:02 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.75 2018/02/20 05:25:47 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -376,6 +376,8 @@ typedef struct {
 #define SAFECOPY(dst,src)                   (strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
 #endif
 
+#define SAFECAT(dst, src)					if(strlen(dst) + strlen(src) < sizeof(dst)) { strcat(dst, src); }
+
 /* Bound-safe version of sprintf() - only works with fixed-length arrays */
 #if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
 /* *BSD *nprintf() is already safe */
@@ -400,6 +402,8 @@ typedef struct {
 #define FIND_CHAR(p,c)                  while(*(p) && *(p)!=c)                                  (p)++;
 #define SKIP_CHARSET(p,s)               while(*(p) && strchr(s,*(p))!=NULL)                     (p)++;
 #define FIND_CHARSET(p,s)               while(*(p) && strchr(s,*(p))==NULL)                     (p)++;
+#define SKIP_CRLF(p)					SKIP_CHARSET(p, "\r\n")
+#define FIND_CRLF(p)					FIND_CHARSET(p, "\r\n")
 #define SKIP_ALPHA(p)                   while(*(p) && isalpha((unsigned char)*(p)))             (p)++;
 #define FIND_ALPHA(p)                   while(*(p) && !isalpha((unsigned char)*(p)))            (p)++;
 #define SKIP_ALPHANUMERIC(p)            while(*(p) && isalnum((unsigned char)*(p)))             (p)++;
