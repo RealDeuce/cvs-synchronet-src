@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.651 2018/02/20 11:44:52 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.652 2018/02/24 21:02:58 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3351,9 +3351,18 @@ static void read_webctrl_section(FILE *file, char *section, http_session_t *sess
 	int i;
 	char str[MAX_PATH+1];
 	named_string_t **values;
+	char *p;
 
-	if(iniReadString(file, section, "AccessRequirements", session->req.ars,str)==str)
-		SAFECOPY(session->req.ars,str);
+	p = iniReadExistingString(file, section, "AccessRequirements", session->req.ars, str);
+	/*
+	 * If p == NULL, the key doesn't exist, retain default 
+	 * If p == default, zero-length string present, truncate req.ars
+	 * Otherwise, p is new value and is updated
+	 */
+	if (p == session->req.ars)
+		session->req.ars[0] = 0;
+	else if (p != NULL)
+		SAFECOPY(session->req.ars,p);
 	if(iniReadString(file, section, "Realm", scfg.sys_name,str)==str) {
 		FREE_AND_NULL(session->req.realm);
 		/* FREE()d in close_request() */
@@ -6511,7 +6520,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.651 $", "%*s %s", revision);
+	sscanf("$Revision: 1.652 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
