@@ -1,4 +1,4 @@
-/* $Id: js_cryptcert.c,v 1.8 2018/02/26 07:05:10 deuce Exp $ */
+/* $Id: js_cryptcert.c,v 1.5 2018/02/24 01:14:54 deuce Exp $ */
 
 // Cyrptlib Certificates...
 
@@ -59,62 +59,6 @@ js_finalize_cryptcert(JSContext *cx, JSObject *obj)
 }
 
 // Methods
-
-static JSBool
-js_add_extension(JSContext *cx, uintN argc, jsval *arglist)
-{
-	struct js_cryptcert_private_data* p;
-	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
-	jsrefcount rc;
-	int status;
-	jsval *argv=JS_ARGV(cx, arglist);
-	JSString *jsoid;
-	JSBool critical;
-	JSString *jsextension;
-	char *oid;
-	char *extension;
-	size_t oid_len;
-	size_t ext_len;
-
-	if ((p=(struct js_cryptcert_private_data *)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx, getprivate_failure, WHERE);
-		return JS_FALSE;
-	}
-
-	if (argc != 3) {
-		JS_ReportError(cx, "Incorrect number of arguments.  Got %d, expected 3.", argc);
-		return JS_FALSE;
-	}
-
-	if ((jsoid = JS_ValueToString(cx, argv[0])) == NULL) {
-		JS_ReportError(cx, "Invalid oid");
-		return JS_FALSE;
-	}
-	if (!JS_ValueToBoolean(cx, argv[1], &critical)) {
-		JS_ReportError(cx, "Invalid critical flag");
-		return JS_FALSE;
-	}
-	if ((jsextension = JS_ValueToString(cx, argv[2])) == NULL) {
-		JS_ReportError(cx, "Invalid extension");
-		return JS_FALSE;
-	}
-	JSSTRING_TO_MSTRING(cx, jsoid, oid, &oid_len);
-	HANDLE_PENDING(cx, oid);
-	JSSTRING_TO_MSTRING(cx, jsextension, extension, &ext_len);
-	if (JS_IsExceptionPending(cx)) {
-		FREE_AND_NULL(oid);
-		FREE_AND_NULL(extension);
-		return JS_FALSE;
-	}
-	rc = JS_SUSPENDREQUEST(cx);
-	status = cryptAddCertExtension(p->cert, oid, critical, extension, ext_len);
-	JS_RESUMEREQUEST(cx, rc);
-	if (cryptStatusError(status)) {
-		js_cryptcert_error(cx, p->cert, status);
-		return JS_FALSE;
-	}
-	return JS_TRUE;
-}
 
 static JSBool
 js_check(JSContext *cx, uintN argc, jsval *arglist)
@@ -362,7 +306,7 @@ js_get_attribute_time(JSContext *cx, uintN argc, jsval *arglist)
 		js_cryptcert_error(cx, p->cert, status);
 		return JS_FALSE;
 	}
-	msec = (jsdouble)val;
+	msec = val;
 	msec *= 1000;
 	dobj = JS_NewDateObjectMsec(cx, msec);
 	if(dobj==NULL)
@@ -496,7 +440,7 @@ js_set_attribute_time(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 		}
 	}
-	val = (time_t)sec;
+	val = sec;
 
 	if ((p=(struct js_cryptcert_private_data *)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx, getprivate_failure, WHERE);
@@ -546,7 +490,6 @@ js_sign(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc = JS_SUSPENDREQUEST(cx);
-	cryptSetAttribute(p->cert, CRYPT_OPTION_CERT_SIGNUNRECOGNISEDATTRIBUTES, 1);
 	status = cryptSignCert(p->cert, ctx->ctx);
 	JS_RESUMEREQUEST(cx, rc);
 	if (cryptStatusError(status)) {
@@ -631,7 +574,7 @@ js_cryptcert_attrtime_get(JSContext *cx, jsval *vp, CRYPT_CERTIFICATE cert, CRYP
 		js_cryptcert_error(cx, cert, status);
 		return JS_FALSE;
 	}
-	msec = (jsdouble)t;
+	msec = t;
 	msec *= 1000;
 	dobj = JS_NewDateObjectMsec(cx, msec);
 	if(dobj==NULL)
@@ -1932,7 +1875,7 @@ js_cryptcert_attrtime_set(JSContext *cx, jsval *vp, CRYPT_CERTIFICATE cert, CRYP
 			return JS_FALSE;
 		}
 	}
-	t = (time_t)sec;
+	t = sec;
 
 	status = cryptSetAttributeString(cert, type, &t, sizeof(t));
 	if (cryptStatusError(status)) {
@@ -2940,10 +2883,6 @@ static jsSyncPropertySpec js_cryptcert_properties[] = {
 };
 
 static jsSyncMethodSpec js_cryptcert_functions[] = {
-	{"add_extension", js_add_extension, 0, JSTYPE_VOID, "oid, critical, extension"
-	,JSDOCSTR("Adds a DER encoded certificate extension.")
-	,316
-	},
 	{"check",	js_check,	0,	JSTYPE_BOOLEAN,	""
 	,JSDOCSTR("Checks the certificate for validity.")
 	,316
@@ -2952,7 +2891,7 @@ static jsSyncMethodSpec js_cryptcert_functions[] = {
 	,JSDOCSTR("Destroys the certificate.")
 	,316
 	},
-	{"export_cert",	js_export,	0,	JSTYPE_STRING,	"format"
+	{"export",	js_export,	0,	JSTYPE_STRING,	"format"
 	,JSDOCSTR("Exports the certificate in the format chosen from CryptCert.CERTFORMAT.")
 	,316
 	},
