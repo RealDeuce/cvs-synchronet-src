@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.208 2017/11/01 22:41:05 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.218 2018/02/22 10:29:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -156,7 +156,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	
 	if(JS_GetProperty(cx, hdr, "to", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"to\" string in recipient object");
 			return(FALSE);
@@ -182,7 +182,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 
 	if(JS_GetProperty(cx, hdr, "to_ext", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"to_ext\" string in recipient object");
 			return(FALSE);
@@ -198,7 +198,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 
 	if(JS_GetProperty(cx, hdr, "to_org", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"to_org\" string in recipient object");
 			return(FALSE);
@@ -218,7 +218,7 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 
 	if(JS_GetProperty(cx, hdr, "to_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"to_net_addr\" string in recipient object");
 			return(FALSE);
@@ -287,6 +287,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	ushort		type;
 	ushort		agent;
 	int32		i32;
+	uint32		u32;
 	jsval		val;
 	JSObject*	array;
 	JSObject*	field;
@@ -304,7 +305,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		/* Required Header Fields */
 		if(JS_GetProperty(cx, hdr, "subject", &val) && !JSVAL_NULL_OR_VOID(val)) {
 			JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, cp);
 			if(cp==NULL) {
 				JS_ReportError(cx, "Invalid \"subject\" string in header object");
 				goto err;
@@ -320,7 +321,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	}
 	if(JS_GetProperty(cx, hdr, "from", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from\" string in header object");
 			goto err;
@@ -342,7 +343,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	/* Optional Header Fields */
 	if(JS_GetProperty(cx, hdr, "from_ext", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_ext\" string in header object");
 			goto err;
@@ -357,7 +358,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "from_org", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_org\" string in header object");
 			goto err;
@@ -377,7 +378,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "from_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_net_addr\" string in header object");
 			goto err;
@@ -409,7 +410,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "from_ip_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_ip_addr\" string in header object");
 			goto err;
@@ -422,7 +423,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "from_host_name", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_host_name\" string in header object");
 			goto err;
@@ -435,7 +436,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "from_protocol", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_protocol\" string in header object");
 			goto err;
@@ -448,7 +449,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "from_port", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"from_port\" string in header object");
 			goto err;
@@ -461,7 +462,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "sender_userid", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"sender_userid\" string in header object");
 			goto err;
@@ -474,7 +475,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "sender_server", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"sender_server\" string in header object");
 			goto err;
@@ -487,7 +488,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "sender_time", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"sender_time\" string in header object");
 			goto err;
@@ -500,7 +501,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	
 	if(JS_GetProperty(cx, hdr, "replyto", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"replyto\" string in header object");
 			goto err;
@@ -513,7 +514,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "replyto_ext", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"replyto_ext\" string in header object");
 			goto err;
@@ -526,7 +527,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "replyto_org", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"replyto_org\" string in header object");
 			goto err;
@@ -545,7 +546,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	}
 	if(JS_GetProperty(cx, hdr, "replyto_net_addr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"replyto_net_addr\" string in header object");
 			goto err;
@@ -575,7 +576,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	/* RFC822 headers */
 	if(JS_GetProperty(cx, hdr, "id", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"id\" string in header object");
 			goto err;
@@ -588,7 +589,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "reply_id", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"reply_id\" string in header object");
 			goto err;
@@ -602,7 +603,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	/* SMTP headers */
 	if(JS_GetProperty(cx, hdr, "reverse_path", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"reverse_path\" string in header object");
 			goto err;
@@ -615,7 +616,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "forward_path", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"forward_path\" string in header object");
 			goto err;
@@ -629,7 +630,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	/* USENET headers */
 	if(JS_GetProperty(cx, hdr, "path", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"path\" string in header object");
 			goto err;
@@ -642,7 +643,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "newsgroups", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"newsgroups\" string in header object");
 			goto err;
@@ -656,7 +657,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	/* FTN headers */
 	if(JS_GetProperty(cx, hdr, "ftn_msgid", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"ftn_msgid\" string in header object");
 			goto err;
@@ -669,7 +670,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "ftn_reply", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"ftn_reply\" string in header object");
 			goto err;
@@ -682,7 +683,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "ftn_area", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"ftn_area\" string in header object");
 			goto err;
@@ -695,7 +696,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "ftn_flags", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"ftn_flags\" string in header object");
 			goto err;
@@ -708,7 +709,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "ftn_pid", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"ftn_pid\" string in header object");
 			goto err;
@@ -721,7 +722,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "ftn_tid", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"ftn_tid\" string in header object");
 			goto err;
@@ -734,7 +735,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 
 	if(JS_GetProperty(cx, hdr, "date", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL) {
 			JS_ReportError(cx, "Invalid \"date\" string in header object");
 			goto err;
@@ -757,9 +758,9 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToUint32(cx,val,&i32))
+		if(!JS_ValueToUint32(cx,val,&u32))
 			goto err;
-		msg->hdr.auxattr=i32;
+		msg->hdr.auxattr=u32;
 	}
 	if(JS_GetProperty(cx, hdr, "netattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
@@ -827,7 +828,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 				continue;
 			if(JSVAL_IS_STRING(val)) {
 				JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-				HANDLE_PENDING(cx);
+				HANDLE_PENDING(cx, cp);
 				type=smb_hfieldtypelookup(cp);
 			}
 			else {
@@ -838,7 +839,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			if(!JS_GetProperty(cx, field, "data", &val))
 				continue;
 			JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, cp);
 			if(cp==NULL) {
 				JS_ReportError(cx, "Invalid data string in \"field_list\" array");
 				goto err;
@@ -1435,7 +1436,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	JSBool		by_offset=JS_FALSE;
 	JSBool		include_votes=JS_FALSE;
 	jsrefcount	rc;
-	char*		cstr;
+	char*		cstr = NULL;
 	privatemsg_t*	p;
 	JSObject*	proto;
 	jsval		val;
@@ -1451,6 +1452,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((p->p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
+		free(p);
 		return JS_FALSE;
 	}
 
@@ -1467,28 +1469,35 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	/* Now parse message offset/id and get message */
 	if(JSVAL_IS_NUMBER(argv[n])) {
 		if(by_offset) {							/* Get by offset */
-			if(!JS_ValueToInt32(cx,argv[n],(int32*)&(p->msg).offset))
+			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).offset)) {
+				free(p);
 				return JS_FALSE;
+			}
 		}
 		else {									/* Get by number */
-			if(!JS_ValueToInt32(cx,argv[n],(int32*)&(p->msg).hdr.number))
+			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).hdr.number)) {
+				free(p);
 				return JS_FALSE;
+			}
 		}
 
 		rc=JS_SUSPENDREQUEST(cx);
 		if((p->p->status=smb_getmsgidx(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
+			free(p);
 			return JS_TRUE;
 		}
 
 		if((p->p->status=smb_lockmsghdr(&(p->p->smb),&(p->msg)))!=SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
+			free(p);
 			return JS_TRUE;
 		}
 
 		if((p->p->status=smb_getmsghdr(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
 			smb_unlockmsghdr(&(p->p->smb),&(p->msg)); 
 			JS_RESUMEREQUEST(cx, rc);
+			free(p);
 			return JS_TRUE;
 		}
 
@@ -1496,20 +1505,26 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 	} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 		JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
-		HANDLE_PENDING(cx);
-		rc=JS_SUSPENDREQUEST(cx);
-		if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
-				,cstr))!=SMB_SUCCESS) {
+		n++;
+		HANDLE_PENDING(cx, cstr);
+		if(cstr != NULL) {
+			rc=JS_SUSPENDREQUEST(cx);
+			if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
+					,cstr))!=SMB_SUCCESS) {
+				free(cstr);
+				JS_RESUMEREQUEST(cx, rc);
+				free(p);
+				return JS_TRUE;	/* ID not found */
+			}
 			free(cstr);
 			JS_RESUMEREQUEST(cx, rc);
-			return JS_TRUE;	/* ID not found */
 		}
-		free(cstr);
-		JS_RESUMEREQUEST(cx, rc);
 	}
 
-	if(p->msg.hdr.number==0) /* No valid message number/id/offset specified */
+	if(p->msg.hdr.number==0) { /* No valid message number/id/offset specified */
+		free(p);
 		return JS_TRUE;
+	}
 
 	if(JSVAL_IS_BOOLEAN(argv[n]))
 		p->expand_fields = JSVAL_TO_BOOLEAN(argv[n++]);
@@ -1519,6 +1534,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(!include_votes && (p->msg.hdr.attr&MSG_VOTE)) {
 		smb_freemsgmem(&(p->msg));
+		free(p);
 		return JS_TRUE;
 	}
 
@@ -1534,6 +1550,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((hdrobj=JS_NewObject(cx,&js_msghdr_class,proto,obj))==NULL) {
 		smb_freemsgmem(&(p->msg));
+		free(p);
 		return JS_TRUE;
 	}
 
@@ -1762,7 +1779,7 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, cstr);
 			rc=JS_SUSPENDREQUEST(cx);
 			if(!msg_offset_by_id(p
 					,cstr
@@ -1786,6 +1803,13 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_TRUE;
 
 	hdr = JSVAL_TO_OBJECT(argv[n++]);
+
+	privatemsg_t* mp;
+	mp=(privatemsg_t*)JS_GetPrivate(cx,hdr);
+	if(mp != NULL && mp->expand_fields) {
+		JS_ReportError(cx, "Message header has 'expanded fields'", WHERE);
+		return JS_FALSE;
+	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	if((p->status=smb_getmsgidx(&(p->smb), &msg))!=SMB_SUCCESS) {
@@ -1835,7 +1859,7 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 	JSBool		msg_specified=JS_FALSE;
 	smbmsg_t	msg;
 	private_t*	p;
-	char*		cstr;
+	char*		cstr = NULL;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
@@ -1867,16 +1891,18 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, cstr);
+			if(cstr == NULL)
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			if(!msg_offset_by_id(p
 					,cstr
 					,&msg.offset)) {
-				free(p);
+				free(cstr);
 				JS_RESUMEREQUEST(cx, rc);
 				return JS_TRUE;	/* ID not found */
 			}
-			free(p);
+			free(cstr);
 			JS_RESUMEREQUEST(cx, rc);
 			msg_specified=JS_TRUE;
 			n++;
@@ -2008,7 +2034,7 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, cstr);
 			rc=JS_SUSPENDREQUEST(cx);
 			if(!msg_offset_by_id(p
 					,cstr
@@ -2123,7 +2149,7 @@ js_get_msg_tail(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, cstr);
 			rc=JS_SUSPENDREQUEST(cx);
 			if(!msg_offset_by_id(p
 					,cstr
@@ -2184,7 +2210,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	char*		body=NULL;
 	uintN		n;
     jsuint      i;
-    jsuint      rcpt_list_length;
+    jsuint      rcpt_list_length=0;
 	jsval       val;
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
@@ -2204,7 +2230,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc<2)
 		return JS_TRUE;
-	
+
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
@@ -2239,7 +2265,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		if(body==NULL) {
 			JSVALUE_TO_MSTRING(cx, argv[n], body, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, body);
 			if(body==NULL) {
 				JS_ReportError(cx,"Invalid message body string");
 				return JS_FALSE;
@@ -2262,10 +2288,10 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 		body=strdup("");
 
 	if(rcpt_list!=NULL) {
-		if(!JS_GetArrayLength(cx, rcpt_list, &rcpt_list_length))
+		if(!JS_GetArrayLength(cx, rcpt_list, &rcpt_list_length) || !rcpt_list_length) {
+			free(body);
 			return JS_TRUE;
-		if(!rcpt_list_length)
-			return JS_TRUE;
+		}
 	}
 
 	if(parse_header_object(cx, p, hdr, &msg, rcpt_list==NULL)) {
@@ -2288,7 +2314,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 					if(!JS_GetElement(cx, rcpt_list, i, &val))
 						break;
-					
+
 					if(!JSVAL_IS_OBJECT(val))
 						break;
 
@@ -2303,7 +2329,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 						break;
 
 					rc=JS_SUSPENDREQUEST(cx);
-					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, SMB_SELFPACK))!=SMB_SUCCESS) {
+					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, smb_storage_mode(scfg, &(p->smb))))!=SMB_SUCCESS) {
 						JS_RESUMEREQUEST(cx, rc);
 						break;
 					}
@@ -2315,6 +2341,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 				if(i==rcpt_list_length)
 					JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+				if(i > 1)
+					smb_incmsg_dfields(&(p->smb), &msg, (uint16_t)(i - 1));
 			}
 		}
 		else
@@ -2473,7 +2501,7 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 	jsval*		argv=JS_ARGV(cx, arglist);
 	int32		msgnum;
 	private_t*	p;
-	char*		name;
+	char*		name = NULL;
 	uint16_t	votes;
 	jsrefcount	rc;
 
@@ -2491,12 +2519,13 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 
 	JSVALUE_TO_MSTRING(cx, argv[1], name, NULL)
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, name);
 	if(name==NULL)
 		return JS_TRUE;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	votes = smb_voted_already(&(p->smb), msgnum, name, NET_NONE, NULL);
+	free(name);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(votes));
@@ -2511,7 +2540,7 @@ js_close_poll(JSContext *cx, uintN argc, jsval *arglist)
 	jsval*		argv=JS_ARGV(cx, arglist);
 	int32		msgnum;
 	private_t*	p;
-	char*		name;
+	char*		name = NULL;
 	int			result;
 	jsrefcount	rc;
 	scfg_t*		scfg;
@@ -2532,12 +2561,13 @@ js_close_poll(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 
 	JSVALUE_TO_MSTRING(cx, argv[1], name, NULL)
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, name);
 	if(name==NULL)
 		return JS_TRUE;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	result = closepoll(scfg, &(p->smb), msgnum, name);
+	free(name);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, result == SMB_SUCCESS ? JSVAL_TRUE : JSVAL_FALSE);
@@ -2844,6 +2874,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>thread_first</tt><td>Message number of the first reply to this message"
 	"<tr><td align=top><tt>field_list[].type</tt><td>Other SMB header fields (type)"
 	"<tr><td align=top><tt>field_list[].data</tt><td>Other SMB header fields (data)"
+	"<tr><td align=top><tt>can_read</tt><td>true if the current user can read this validated or unmoderated message"
 	"</table>"
 	"<br><i>New in v3.12:</i> "
 	"The optional <i>client</i> argument is an instance of the <i>Client</i> class to be used for the "
@@ -2906,7 +2937,7 @@ static JSBool js_msgbase_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -2943,7 +2974,7 @@ js_msgbase_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *			argv=JS_ARGV(cx, arglist);
 	JSString*		js_str;
 	JSObject*		cfgobj;
-	char*			base;
+	char*			base = NULL;
 	private_t*		p;
 	scfg_t*			scfg;
 
@@ -2961,7 +2992,12 @@ js_msgbase_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	js_str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, js_str, base, NULL);
-	HANDLE_PENDING(cx);
+	if(JS_IsExceptionPending(cx)) {
+		if(base != NULL)
+			free(base);
+		free(p);
+		return JS_FALSE;
+	}
 	if(base==NULL) {
 		JS_ReportError(cx, "Invalid base parameter");
 		free(p);

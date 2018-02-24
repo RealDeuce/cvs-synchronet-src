@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.89 2017/10/23 04:17:13 rswindell Exp $ */
+/* $Id: scfg.c,v 1.93 2017/12/29 06:04:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,7 +55,7 @@ char **opt;
 char tmp[256];
 char error[256];
 int  backup_level=5;
-char* area_sort_desc[] = { "Index Position", "Long Name", "Short Name", "Internal Code" };
+char* area_sort_desc[] = { "Index Position", "Long Name", "Short Name", "Internal Code", NULL };
 
 char *invalid_code=
 	"`Invalid Internal Code:`\n\n"
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     if(p!=NULL)
         SAFECOPY(cfg.ctrl_dir,p);
     else
-        getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 	uifc.esc_delay=25;
 
@@ -192,6 +192,10 @@ int main(int argc, char **argv)
             ) {
 			if(strncmp(argv[i]+1, "import=", 7) == 0) {
 				import = argv[i] + 8;
+				continue;
+			}
+			if(strcmp(argv[i]+1, "insert") == 0) {
+				uifc.insert_mode = TRUE;
 				continue;
 			}
             switch(toupper(argv[i][1])) {
@@ -471,11 +475,11 @@ int main(int argc, char **argv)
 			"    Networks             : Message networking configuration\n"
 			"    File Areas           : File area configuration\n"
 			"    File Options         : File area options\n"
-			"    Chat Features        : Chat actions, sections, pagers, and gurus\n"
+			"    Chat Features        : Chat actions, sections, pagers, and robots\n"
 			"    Message Areas        : Message area configuration\n"
-			"    Message Options      : Message and email options\n"
-			"    External Programs    : Events, editors, and online programs\n"
-			"    Text File Sections   : General text file area\n"
+			"    Message Options      : Message and e-mail options\n"
+			"    External Programs    : Events, editors, and online programs (doors)\n"
+			"    Text File Sections   : Text file areas available for online viewing\n"
 			"\n"
 			"Use the arrow keys and ~ ENTER ~ to select an option, or ~ ESC ~ to exit.\n"
 		;
@@ -589,6 +593,10 @@ int main(int argc, char **argv)
 					strcpy(opt[i++],"Multinode Chat Channels");
 					strcpy(opt[i++],"External Sysop Chat Pagers");
 					opt[i][0]=0;
+					uifc.helpbuf=
+						"`Chat Features:`\n"
+						"\n"
+						"Here you may configure the real-time chat-related features of the BBS.";
 					j=uifc.list(WIN_ORG|WIN_ACT|WIN_CHE,0,0,0,&chat_dflt,0
 						,"Chat Features",opt);
 					if(j==-1) {
