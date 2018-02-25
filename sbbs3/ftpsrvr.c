@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.435 2017/10/12 08:55:00 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.437 2018/02/20 11:23:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -400,7 +400,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str=NULL;
 	FILE*	fp;
 	jsrefcount	rc;
-	char		*p;
+	char		*p = NULL;
 	size_t		len;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -413,7 +413,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		if (!str)
 		    return JS_FALSE;
 		JSSTRING_TO_MSTRING(cx, str, p, &len);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, p);
 		rc=JS_SUSPENDREQUEST(cx);
 		if(p) {
 			fwrite(p, len, 1, fp);
@@ -4743,7 +4743,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.435 $", "%*s %s", revision);
+	sscanf("$Revision: 1.437 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -4891,7 +4891,11 @@ void DLLCALL ftp_server(void* arg)
 		else
 			SAFECOPY(scfg.temp_dir,"../temp");
 	   	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-		MKDIR(scfg.temp_dir);
+		if(!isdir(scfg.temp_dir) && MKDIR(scfg.temp_dir) != 0) {
+			lprintf(LOG_ERR, "Error %d creating temp directory: %s", errno, scfg.temp_dir);
+			cleanup(1,__LINE__);
+			break;
+		}
 		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
 		if(!isdir(scfg.temp_dir)) {
 			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
