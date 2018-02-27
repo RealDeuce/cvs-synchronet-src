@@ -1,6 +1,6 @@
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.32 2017/10/23 03:04:38 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.33 2018/02/20 18:49:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -470,6 +470,8 @@ void help()
 							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
 								,p,helpline,l,api->helpixbfile);
 						}
+						else
+							hbuf[HELPBUF_SIZE-1] = 0;
 					}
 					fclose(fp); 
 				}
