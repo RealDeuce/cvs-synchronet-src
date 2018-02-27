@@ -2,13 +2,13 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.29 2017/11/24 23:05:56 rswindell Exp $ */
+/* $Id: js_conio.c,v 1.33 2018/02/20 11:56:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -235,10 +235,10 @@ static JSBool js_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval
 		case PROP_CLIPBOARD:
 			{
 				size_t	len;
-				char	*bytes;
+				char	*bytes = NULL;
 
 				JSVALUE_TO_MSTRING(cx, *vp, bytes, &len);
-				HANDLE_PENDING(cx);
+				HANDLE_PENDING(cx, bytes);
 				if(!bytes)
 					return JS_FALSE;
 				rc=JS_SUSPENDREQUEST(cx);
@@ -467,7 +467,8 @@ js_conio_beep(JSContext *cx, uintN argc, jsval *arglist)
 	jsrefcount	rc;
 
 	rc=JS_SUSPENDREQUEST(cx);
-    JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(beep()));
+    	beep();
+	JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -475,12 +476,19 @@ js_conio_beep(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_conio_getfont(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
+	int32	fnum;
 	jsrefcount	rc;
 
-	rc=JS_SUSPENDREQUEST(cx);
-    JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(getfont()));
-	JS_RESUMEREQUEST(cx, rc);
-	return(JS_TRUE);
+	if(argc==1 && JSVAL_IS_NUMBER(argv[0]) && JS_ValueToInt32(cx,argv[0],&fnum)) {
+		rc=JS_SUSPENDREQUEST(cx);
+		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(getfont(fnum)));
+		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
+		JS_RESUMEREQUEST(cx, rc);
+		return(JS_TRUE);
+	}
+
+	return(JS_FALSE);
 }
 
 static JSBool
@@ -581,12 +589,12 @@ static JSBool
 js_conio_loadfont(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char *	str;
+	char *	str = NULL;
 	jsrefcount	rc;
 
 	if(argc==1) {
 		JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, str);
 		if(str != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			JS_SET_RVAL(cx, arglist,INT_TO_JSVAL(loadfont(str)));
@@ -603,12 +611,12 @@ static JSBool
 js_conio_settitle(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char *	str;
+	char *	str = NULL;
 	jsrefcount	rc;
 
 	if(argc==1) {
 		JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, str);
 		if(str != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			settitle(str);
@@ -626,12 +634,12 @@ static JSBool
 js_conio_setname(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char *	str;
+	char *	str = NULL;
 	jsrefcount	rc;
 
 	if(argc==1) {
 		JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, str);
 		if(str != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			setname(str);
@@ -649,12 +657,12 @@ static JSBool
 js_conio_cputs(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char *	str;
+	char *	str = NULL;
 	jsrefcount	rc;
 
 	if(argc==1) {
 		JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, str);
 		if(str != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			JS_SET_RVAL(cx, arglist,INT_TO_JSVAL(cputs(str)));
@@ -708,13 +716,13 @@ static JSBool
 js_conio_getpass(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char *	str;
+	char *	str = NULL;
 	char *	pwd;
 	jsrefcount	rc;
 
 	if(argc==1) {
 		JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, str);
 		if(str != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			pwd=getpass(str);
@@ -1080,8 +1088,8 @@ static jsSyncMethodSpec js_functions[] = {
 		,JSTYPE_VOID,JSDOCSTR("")
 		,JSDOCSTR("Beeps."),315
 	},
-	{"getfont",			js_conio_getfont,		0
-		,JSTYPE_NUMBER,JSDOCSTR("")
+	{"getfont",			js_conio_getfont,		1
+		,JSTYPE_NUMBER,JSDOCSTR("fnum")
 		,JSDOCSTR("Returns the current font ID or -1 if fonts aren't supported."),315
 	},
 	{"hidemouse",		js_conio_hidemouse,		0
@@ -1177,7 +1185,7 @@ static JSBool js_conio_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 			if(name==NULL)
 				return JS_FALSE;
 		}
