@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.46 2018/03/17 05:43:39 deuce Exp $
+# $Id: targets.mk,v 1.44 2018/02/24 00:08:12 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -37,7 +37,6 @@ DUPEFIND	= $(EXEODIR)$(DIRSEP)dupefind$(EXEFILE)
 SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
 DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
 READSAUCE	= $(EXEODIR)$(DIRSEP)readsauce$(EXEFILE)
-SHOWSTAT	= $(EXEODIR)$(DIRSEP)showstat$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -46,7 +45,7 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT)
+			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE)
 
 all:	dlls utils console scfg uedit umonitor
 
@@ -69,15 +68,15 @@ mono:	xpdev-mt smblib \
 
 .PHONY: scfg
 scfg:
-	$(MAKE) -C scfg
+	$(MAKE) -C scfg $(MAKEFLAGS)
 
 .PHONY: uedit
 uedit:
-	$(MAKE) -C uedit
+	$(MAKE) -C uedit $(MAKEFLAGS)
 
 .PHONY: umonitor
 umonitor:
-	$(MAKE) -C umonitor
+	$(MAKE) -C umonitor $(MAKEFLAGS)
 
 
 ifdef SBBSEXEC
@@ -130,4 +129,3 @@ $(DUPEFIND): $(XPDEV_LIB) $(SMBLIB)
 $(SMBACTIV): $(XPDEV_LIB) $(SMBLIB)
 $(DSTSEDIT): $(XPDEV_LIB)
 $(READSAUCE): $(XPDEV_LIB)
-$(SHOWSTAT): $(XPDEV_LIB)
