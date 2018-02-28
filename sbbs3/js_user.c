@@ -1,7 +1,8 @@
-/* Synchronet JavaScript "User" Object */
-// vi: tabstop=4
+/* js_user.c */
 
-/* $Id: js_user.c,v 1.106 2018/08/07 00:49:20 rswindell Exp $ */
+/* Synchronet JavaScript "User" Object */
+
+/* $Id: js_user.c,v 1.103 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +46,6 @@ typedef struct
 	user_t		storage;
 	BOOL		cached;
 	client_t*	client;
-	int			file;		// for fast read operations, only
 
 } private_t;
 
@@ -129,9 +129,7 @@ enum {
 static void js_getuserdat(scfg_t* scfg, private_t* p)
 {
 	if(!p->cached) {
-		if(p->file < 1)
-			p->file = openuserdat(scfg, /* for_modify: */FALSE);
-		if(fgetuserdat(scfg, p->user, p->file)==0)
+		if(getuserdat(scfg,p->user)==0)
 			p->cached=TRUE;
 	}
 }
@@ -793,15 +791,15 @@ static char* user_prop_desc[] = {
 	,"external e-mail address"
 	,"local Internet e-mail address	- <small>READ ONLY</small>"
 	,"street address"
-	,"location (e.g. city, state)"
+	,"location (city, state)"
 	,"zip/postal code"
 	,"phone number"
-	,"birth date in either MM/DD/YY or DD/MM/YY format depending on system configuration"
+	,"birth date"
 	,"calculated age in years - <small>READ ONLY</small>"
-	,"connection type (protocol)"
+	,"connection type"
 	,"AKA connection"
 	,"terminal rows (lines)"
-	,"gender type (e.g. M or F)"
+	,"gender type"
 	,"current/last message sub-board (internal code)"
 	,"current/last file directory (internal code)"
 	,"current/last external program (internal code) run"
@@ -954,15 +952,15 @@ static char* user_stats_prop_desc[] = {
 
 static void js_user_finalize(JSContext *cx, JSObject *obj)
 {
-	private_t* p = (private_t*)JS_GetPrivate(cx,obj);
+	private_t* p;
 
-	if(p!=NULL) {
-		if(p->file > 0)
-			closeuserdat(p->file);
+	p=(private_t*)JS_GetPrivate(cx,obj);
+
+	if(p!=NULL)
 		free(p);
-	}
 
-	JS_SetPrivate(cx, obj, NULL);
+	p=NULL;
+	JS_SetPrivate(cx,obj,p);
 }
 
 static JSBool
@@ -1568,7 +1566,6 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		p->storage = *user;
 		if(global_user)
 			p->user = user;
-		p->cached = TRUE;
 	}
 
 	JS_SetPrivate(cx, userobj, p);	
