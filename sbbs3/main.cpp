@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.677 2018/03/10 04:29:37 rswindell Exp $ */
+/* $Id: main.cpp,v 1.671 2018/02/23 08:24:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -268,7 +268,6 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
-// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -880,8 +879,6 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_RASTRING(cx, argv[i], str, &str_sz, &len);
 		if(str==NULL)
 		    return(JS_FALSE);
-		if(len < 1)
-			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
@@ -2569,7 +2566,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed: %s", str);
+						eprintf(LOG_INFO,"Packing completed");
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
@@ -4915,11 +4912,14 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
+	lprintf(LOG_INFO,"Telnet Server listening");
+
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
+		lprintf(LOG_INFO,"RLogin Server listening");
 	}
 
 #ifdef USE_CRYPTLIB
@@ -4970,6 +4970,7 @@ void DLLCALL bbs_thread(void* arg)
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
+		lprintf(LOG_INFO,"SSH Server listening");
 	}
 NO_SSH:
 #endif
@@ -5200,10 +5201,6 @@ NO_SSH:
 			continue;
 		}
 
-		// Count the socket:
-		if(startup->socket_open!=NULL)
-			startup->socket_open(startup->cbdata, TRUE);
-
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
@@ -5369,7 +5366,6 @@ NO_SSH:
 				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
-			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
