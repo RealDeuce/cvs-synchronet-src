@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.57 2016/11/28 09:48:39 rswindell Exp $ */
+/* $Id: link_list.c,v 1.59 2018/02/26 05:22:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 		if((list=(link_list_t*)malloc(sizeof(link_list_t)))==NULL)
 			return(NULL);
 		flags |= LINK_LIST_MALLOC;
-	} 
+	}
 
 	memset(list,0,sizeof(link_list_t));
 
@@ -58,10 +58,9 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_MUTEX) {
 		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-		memset(&list->tid, 0xff, sizeof(list->tid));
 	}
 
-	if(list->flags&LINK_LIST_SEMAPHORE) 
+	if(list->flags&LINK_LIST_SEMAPHORE)
 		sem_init(&list->sem,0,0);
 #endif
 
@@ -127,8 +126,8 @@ BOOL DLLCALL listFree(link_list_t* list)
 
 #if defined(LINK_LIST_THREADSAFE)
 
-	if(list->flags&LINK_LIST_MUTEX) { 
-		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) 
+	if(list->flags&LINK_LIST_MUTEX) {
+		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY)
 			SLEEP(1);
 		list->flags&=~LINK_LIST_MUTEX;
 	}
@@ -338,6 +337,8 @@ ulong DLLCALL listCountMatches(link_list_t* list, const void* data, size_t lengt
 	return matches;
 }
 
+#ifndef NO_STR_LIST_SUPPORT
+
 str_list_t DLLCALL listStringList(link_list_t* list)
 {
 	list_node_t*	node;
@@ -392,6 +393,8 @@ void* DLLCALL listFreeStringList(str_list_t list)
 	strListFree(&list);
 	return(list);
 }
+
+#endif	/* #ifndef NO_STR_LIST_SUPPORT */
 
 list_node_t* DLLCALL listFirstNode(link_list_t* list)
 {
@@ -646,6 +649,8 @@ list_node_t* DLLCALL listAddNodeString(link_list_t* list, const char* str, list_
 	return(node);
 }
 
+#ifndef NO_STR_LIST_SUPPORT
+
 long DLLCALL listAddStringList(link_list_t* list, str_list_t str_list, list_node_tag_t* tag, list_node_t* after)
 {
 	long			i;
@@ -660,6 +665,8 @@ long DLLCALL listAddStringList(link_list_t* list, str_list_t str_list, list_node
 
 	return(i);
 }
+
+#endif
 
 long DLLCALL listAddNodeList(link_list_t* list, const link_list_t* src, list_node_t* after)
 {
@@ -775,7 +782,7 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 		return(NULL);
 
 	listLock(list);
-		
+
 	if((node=listFindTaggedNode(list, tag)) != NULL)
 		data = list_remove_node(list, node, free_data);
 
@@ -804,7 +811,7 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 	}
 
 	listUnlock(list);
-	
+
 	return(count);
 }
 
