@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.172 2018/04/18 06:44:48 deuce Exp $ */
+/* $Id: ciolib.c,v 1.170 2018/02/20 21:11:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,8 +720,10 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 {
 	CIOLIB_INIT()
 
-	if(cio_api.gettextinfo)
+	if(cio_api.gettextinfo) {
 		cio_api.gettextinfo(&cio_textinfo);
+		return;
+	}
 
 	if(info!=&cio_textinfo)
 		*info=cio_textinfo;
@@ -1827,7 +1829,6 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 {
 	struct ciolib_screen *ret;
 	int vmode;
-	int i;
 
 	CIOLIB_INIT();
 
@@ -1862,9 +1863,6 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 	ciolib_vmem_gettext(1, 1, ret->text_info.screenwidth, ret->text_info.screenheight, ret->vmem);
 	ret->fg_colour = ciolib_fg;
 	ret->bg_colour = ciolib_bg;
-	for (i=0; i<5; i++)
-		ret->fonts[i] = ciolib_getfont(i);
-	ret->flags = ciolib_getvideoflags();
 
 	return ret;
 }
@@ -1886,7 +1884,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 {
 	struct text_info ti;
 	int vmode;
-	int i;
 
 	CIOLIB_INIT();
 
@@ -1900,9 +1897,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 	vmode = find_vmode(scrn->text_info.currmode);
 	if (vmode != -1)
 		ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
-	for (i=0; i<5; i++)
-		ciolib_setfont(scrn->fonts[i], FALSE, i);
-	ciolib_setvideoflags(scrn->flags);
 	ciolib_setcolour(scrn->fg_colour, scrn->bg_colour);
 	ciolib_gotoxy(scrn->text_info.curx, scrn->text_info.cury);
 	return 1;
