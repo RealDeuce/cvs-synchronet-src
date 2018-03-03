@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.653 2018/03/01 19:09:07 deuce Exp $ */
+/* $Id: websrvr.c,v 1.654 2018/03/03 02:02:32 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -294,8 +294,6 @@ typedef struct  {
 	BOOL			peeked_valid;
 	char			peeked;
 } http_session_t;
-
-static CRYPT_CONTEXT tls_context = -1;
 
 enum {
 	 HTTP_0_9
@@ -6229,9 +6227,9 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		if (tls_context != -1) {
+		if (scfg.tls_certificate != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session);
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &session);
+			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
@@ -6482,11 +6480,6 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 	
-	if (tls_context != -1) {
-		cryptDestroyContext(tls_context);
-		tls_context = -1;
-	}
-
 	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
 		xpms_destroy(ws_set, close_socket_cb, NULL);
 		ws_set=NULL;
@@ -6520,7 +6513,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.653 $", "%*s %s", revision);
+	sscanf("$Revision: 1.654 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6792,8 +6785,8 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->options&WEB_OPT_ALLOW_TLS) {
 			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-			tls_context = get_ssl_cert(&scfg, ssl_estr);
-			if (tls_context == -1)
+			get_ssl_cert(&scfg, ssl_estr);
+			if (scfg.tls_certificate == -1)
 				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
 		}
 
@@ -6839,7 +6832,7 @@ void DLLCALL web_server(void* arg)
 		 * Add interfaces
 		 */
 		xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "Web Server", open_socket, startup->seteuid, NULL);
-		if(tls_context != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
+		if(scfg.tls_certificate != -1 && startup->options&WEB_OPT_ALLOW_TLS) {
 			if(do_cryptInit())
 				xpms_add_list(ws_set, PF_UNSPEC, SOCK_STREAM, 0, startup->tls_interfaces, startup->tls_port, "Secure Web Server", open_socket, startup->seteuid, "TLS");
 		}
