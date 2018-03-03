@@ -1,6 +1,6 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.12 2018/10/08 00:01:10 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.10 2016/05/25 02:24:33 deuce Exp $ */
 
 #include "fidodefs.h"
 #include "xpendian.h"	/* swap */
@@ -14,17 +14,17 @@ FILE* bodyfp;
 /****************************************************************************/
 /* Returns an ASCII string for FidoNet address 'addr'                       */
 /****************************************************************************/
-char *faddrtoa(struct fidoaddr* addr, char* outstr)
+char *faddrtoa(faddr4d_t* addr, char* outstr)
 {
 	static char str[64];
+    char point[25];
 
 	if(addr==NULL)
 		return("0:0/0");
 	sprintf(str,"%hu:%hu/%hu",addr->zone,addr->net,addr->node);
-	if(addr->point)
-		sprintf(str + strlen(str), ".%hu", addr->point);
-	if(addr->domain[0])
-		sprintf(str + strlen(str), "@%s", addr->domain);
+	if(addr->point) {
+		sprintf(point,".%hu",addr->point);
+		strcat(str,point); }
 	if(outstr==NULL)
 		return(str);
 	strcpy(outstr,str);
@@ -52,12 +52,14 @@ int pktdump(FILE* fp, const char* fname)
 {
 	int			ch,lastch=0;
 	char		buf[128];
+	char		origdomn[16]="";
+	char		destdomn[16]="";
 	char		to[FIDO_NAME_LEN];
 	char		from[FIDO_NAME_LEN];
 	char		subj[FIDO_SUBJ_LEN];
 	long		offset;
-	struct fidoaddr	orig = {0};
-	struct fidoaddr	dest = {0};
+	faddr4d_t	orig;
+	faddr4d_t	dest;
 	fpkthdr_t	pkthdr;
 	fpkdmsg_t	pkdmsg;
 
@@ -103,24 +105,24 @@ int pktdump(FILE* fp, const char* fname)
 			orig.point=pkthdr.type2plus.origpoint;
 		}
 		if(pkthdr.type2plus.origzone != orig.zone)
-			printf("!Warning: origination zone mismatch in type 2+ packet header (%u != %u)\n"
+			printf("!Warning: origination zone mistmatch in type 2+ packet header (%u != %u)\n"
 				,pkthdr.type2plus.origzone, orig.zone);
 		if(pkthdr.type2plus.destzone != dest.zone)
-			printf("!Warning: destination zone mismatch in type 2+ packet header (%u != %u)\n"
+			printf("!Warning: destination zone mistmatch in type 2+ packet header (%u != %u)\n"
 				,pkthdr.type2plus.destzone, dest.zone);
 	} else if(pkthdr.type2_2.subversion==2) {					/* Type 2.2 Packet Header (FSC-45) */
 		fprintf(stdout,"2.2 (prod: %02X, rev: %u)", pkthdr.type2_2.prodcode, pkthdr.type2_2.prodrev);
 		dest.point=pkthdr.type2_2.destpoint; 
-		memcpy(orig.domain, pkthdr.type2_2.origdomn, sizeof(pkthdr.type2_2.origdomn));
-		memcpy(dest.domain, pkthdr.type2_2.destdomn, sizeof(pkthdr.type2_2.destdomn));
+		sprintf(origdomn,"@%s",pkthdr.type2_2.origdomn);
+		sprintf(destdomn,"@%s",pkthdr.type2_2.destdomn);
 	} else
 		fprintf(stdout,"2.0 (prod: %02X, serial: %u)", pkthdr.type2.prodcode, pkthdr.type2.sernum);
 
-	printf(" from %s",faddrtoa(&orig,NULL));
-	printf(" to %s\n"	,faddrtoa(&dest,NULL));
+	printf(" from %s%s",faddrtoa(&orig,NULL),origdomn);
+	printf(" to %s%s\n"	,faddrtoa(&dest,NULL),destdomn);
 
 	if(pkthdr.type2.password[0])
-		fprintf(stdout,"Password: '%.*s'\n",(int)sizeof(pkthdr.type2.password),pkthdr.type2.password);
+		fprintf(stdout,"Password: '%.*s'\n",sizeof(pkthdr.type2.password),pkthdr.type2.password);
 
 	fseek(fp,sizeof(pkthdr),SEEK_SET);
 
@@ -174,7 +176,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.12 $", "%*s %s", revision);
+	sscanf("$Revision: 1.10 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
