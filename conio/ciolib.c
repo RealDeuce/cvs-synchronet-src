@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.171 2018/03/09 06:28:28 deuce Exp $ */
+/* $Id: ciolib.c,v 1.170 2018/02/20 21:11:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -720,8 +720,10 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_gettextinfo(struct text_info *info)
 {
 	CIOLIB_INIT()
 
-	if(cio_api.gettextinfo)
+	if(cio_api.gettextinfo) {
 		cio_api.gettextinfo(&cio_textinfo);
+		return;
+	}
 
 	if(info!=&cio_textinfo)
 		*info=cio_textinfo;
