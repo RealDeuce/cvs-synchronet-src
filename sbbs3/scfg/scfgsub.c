@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.50 2018/10/03 06:07:11 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.45 2017/11/16 06:03:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 	if (cfg.total_faddrs)
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
-	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_FAST);
+	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_HDRMOD | SUB_FAST);
 	new_subboard->maxmsgs = 500;
 
 	/* Use last sub in group (if exists) as a template for new subs */
@@ -57,9 +57,8 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 				break;
 		}
 	}
-	new_subboard->misc |= SUB_HDRMOD;
 
-	/* Allocate a new (unused) pointer index (deprecated!) */
+	/* Allocate a new (unused) pointer index */
 	for (; new_subboard->ptridx < USHRT_MAX; new_subboard->ptridx++) {
 		int n;
 		for (n = 0; n < cfg.total_subs; n++)
@@ -285,8 +284,10 @@ void sub_cfg(uint grpnum)
 						,str2,uifcYesNoOpts);
 					if(j==-1)
 						continue;
-					if(j==0)
-						delfiles(data_dir,str);
+					if(j==0) {
+							delfiles(data_dir,str);
+							clearptrs(subnum[i]); 
+					}
 				}
 			}
 			if(msk == MSK_CUT)
@@ -419,16 +420,11 @@ void sub_cfg(uint grpnum)
 					break;
 				case 4:
 					uifc.helpbuf=
-						"`Newsgroup Name:`\n"
+						"Newsgroup Name:\n"
 						"\n"
 						"This is the name of the sub-board used for newsgroup readers. If no name\n"
 						"is configured here, a name will be automatically generated from the\n"
 						"Sub-board's Short Name and message group's Short Name.\n"
-						"\n"
-						"This field may also be used to specify the FidoNet-style `Echo Tag` for\n"
-						"this message area.\n"
-						"\n"
-						"This name should ~ not ~ contain spaces."
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,""
 						,cfg.sub[i]->newsgroup,sizeof(cfg.sub[i]->newsgroup)-1,K_EDIT);
@@ -542,8 +538,6 @@ void sub_cfg(uint grpnum)
 							,cfg.sub[i]->misc&SUB_NOVOTING ? "No":"Yes");
 						sprintf(opt[n++],"%-27.27s%s","Allow Message Quoting"
 							,cfg.sub[i]->misc&SUB_QUOTE ? "Yes":"No");
-						sprintf(opt[n++],"%-27.27s%s","Allow Message Tagging"
-							,cfg.sub[i]->misc&SUB_MSGTAGS ? "Yes":"No");
 						sprintf(opt[n++],"%-27.27s%s","Suppress User Signatures"
 							,cfg.sub[i]->misc&SUB_NOUSERSIG ? "Yes":"No");
 						sprintf(opt[n++],"%-27.27s%s","Permanent Operator Msgs"
@@ -565,7 +559,7 @@ void sub_cfg(uint grpnum)
 							"This menu allows you to toggle certain options for the selected\n"
 							"sub-board between two or more settings, such as `Yes` and `No`.\n"
 						;
-						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,1,36,&tog_dflt,0
+						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,2,36,&tog_dflt,0
 							,"Toggle Options",opt);
 						if(n==-1)
 							break;
@@ -892,28 +886,6 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 11:
-								n=(cfg.sub[i]->misc&SUB_MSGTAGS) ? 0:1;
-								uifc.helpbuf=
-									"`Allow Message Tagging:`\n"
-									"\n"
-									"If you want users to be allowed to add tags to messages on this sub-board, \n"
-									"set this option to `Yes` (not to be confused with 'tag-lines').\n"
-								;
-								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-									,"Allow Message Tagging",uifcYesNoOpts);
-								if(n==-1)
-									break;
-								if(!n && !(cfg.sub[i]->misc&SUB_MSGTAGS)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->misc|=SUB_MSGTAGS;
-									break; 
-								}
-								if(n==1 && cfg.sub[i]->misc&SUB_MSGTAGS) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->misc&=~SUB_MSGTAGS; 
-								}
-								break;
-							case 12:
 								n=(cfg.sub[i]->misc&SUB_NOUSERSIG) ? 0:1;
 								uifc.helpbuf=
 									"Suppress User Signatures:\n"
@@ -935,7 +907,7 @@ void sub_cfg(uint grpnum)
 									cfg.sub[i]->misc&=~SUB_NOUSERSIG; 
 								}
 								break;
-							case 13:
+							case 12:
 								n=(cfg.sub[i]->misc&SUB_SYSPERM) ? 0:1;
 								uifc.helpbuf=
 									"`Operator Messages Automatically Permanent:`\n"
@@ -997,7 +969,7 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 	#endif
-							case 14:
+							case 13:
 								n=(cfg.sub[i]->misc&SUB_LZH) ? 0:1;
 								uifc.helpbuf=
 									"`Compress Messages with LZH Encoding:`\n"
@@ -1026,7 +998,7 @@ void sub_cfg(uint grpnum)
 									cfg.sub[i]->misc&=~SUB_LZH; 
 								}
 								break;
-							case 15:
+							case 14:
 								n=(cfg.sub[i]->misc&SUB_TEMPLATE) ? 0:1;
 								uifc.helpbuf=
 									"`Use this Sub-board as a Template for New Subs:`\n"
@@ -1069,6 +1041,8 @@ void sub_cfg(uint grpnum)
 						sprintf(opt[n++],"QWK Tagline");
 						sprintf(opt[n++],"%-27.27s%s","Internet (UUCP/NNTP)"
 							,cfg.sub[i]->misc&SUB_INET ? "Yes":"No");
+						sprintf(opt[n++],"%-27.27s%s","PostLink or PCRelay"
+							,cfg.sub[i]->misc&SUB_PNET ? "Yes":"No");
 						sprintf(opt[n++],"%-27.27s%s","FidoNet EchoMail"
 							,cfg.sub[i]->misc&SUB_FIDO ? "Yes":"No");
 						sprintf(opt[n++],"%-27.27s%s","FidoNet Address"
@@ -1227,6 +1201,31 @@ void sub_cfg(uint grpnum)
 							case 6:
 								n=1;
 								uifc.helpbuf=
+									"`Sub-board Networked via PostLink or PCRelay:`\n"
+									"\n"
+									"If this sub-board is networked with other BBSs via PostLink or PCRelay,\n"
+									"this option should be set to `Yes`. With this option set to `Yes`,\n"
+									"titles of posts on this sub-board will be limited to the UTI\n"
+									"specification limitation of 25 characters. It also allows the `N`etwork\n"
+									"restriction to function properly.\n"
+								;
+								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
+									,"Networked via PostLink or PCRelay",uifcYesNoOpts);
+								if(n==-1)
+									break;
+								if(!n && !(cfg.sub[i]->misc&SUB_PNET)) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->misc|=SUB_PNET;
+									break; 
+								}
+								if(n==1 && cfg.sub[i]->misc&SUB_PNET) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->misc&=~SUB_PNET; 
+								}
+								break;
+							case 7:
+								n=1;
+								uifc.helpbuf=
 									"`Sub-board Networked via FidoNet EchoMail:`\n"
 									"\n"
 									"If this sub-board is networked with a FidoNet-technology Network (FTN)\n"
@@ -1246,7 +1245,7 @@ void sub_cfg(uint grpnum)
 									cfg.sub[i]->misc&=~SUB_FIDO; 
 								}
 								break;
-							case 7:
+							case 8:
 								smb_faddrtoa(&cfg.sub[i]->faddr,str);
 								uifc.helpbuf=
 									"`Sub-board FidoNet Address:`\n"
@@ -1258,7 +1257,7 @@ void sub_cfg(uint grpnum)
 									,str,25,K_EDIT);
 								cfg.sub[i]->faddr=atofaddr(str);
 								break;
-							case 8:
+							case 9:
 								uifc.helpbuf=
 									"`Sub-board FidoNet Origin Line:`\n"
 									"\n"
@@ -1372,7 +1371,7 @@ void sub_cfg(uint grpnum)
 									opt[2][0]=0;
 									m=0;
 									if(uifc.list(WIN_SAV|WIN_MID,0,0,0,&m,0
-										,"Delete all data for this sub-board?",opt)!=0)
+										,"Delete all messages in this sub-board?",opt)!=0)
 										break;
 									if(cfg.sub[i]->data_dir[0])
 										sprintf(str,"%s",cfg.sub[i]->data_dir);
