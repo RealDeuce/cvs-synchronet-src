@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.79 2017/08/26 01:57:24 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.81 2018/03/04 07:11:56 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -166,6 +166,7 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
 #define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
+#define MAIL_OPT_KILL_READ_SPAM			(1<<28)	/* Set the KILLREAD flag on SPAM msgs */
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
@@ -204,6 +205,7 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
 	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
+	{ MAIL_OPT_KILL_READ_SPAM		,"KILL_READ_SPAM"		},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
 	{ 0 							,NULL					}
@@ -248,6 +250,6 @@ int mail_close_socket(SOCKET sock);
 }
 #endif
 
-int sockprintf(SOCKET sock, char *fmt, ...);
+int sockprintf(SOCKET sock, int sess, char *fmt, ...);
 
 #endif /* Don't add anything after this line */
