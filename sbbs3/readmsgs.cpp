@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.112 2019/02/02 23:21:24 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.103 2017/11/13 08:31:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts)
 		smb_unlockmsghdr(&smb,&msg);
 		if(listed==0)
 			bputs(text[MailOnSystemLstHdr]);
-		bprintf(text[SubMsgLstFmt], i+1
+		bprintf(text[SubMsgLstFmt],post[i].num
 			,msg.hdr.attr&MSG_ANONYMOUS && !sub_op(subnum)
 			? text[Anonymous] : msg.from
 			,msg.to
@@ -120,12 +120,9 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* variable fields */
 	for(i=0;i<msg->total_hfields;i++) {
-		char* p = str;
+		char *p;
 		bprintf("%-16.16s ",smb_hfieldtype(msg->hfield[i].type));
 		switch(msg->hfield[i].type) {
-			case SMB_COLUMNS:
-				sprintf(str, "%u", *(uint8_t*)msg->hfield_dat[i]);
-				break;
 			case SENDERNETTYPE:
 			case RECIPIENTNETTYPE:
 			case REPLYTONETTYPE:
@@ -139,53 +136,53 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	}
 
 	/* fixed fields */
-	bprintf("%-16.16s %08X %04hX %.24s %s\r\n","when_written"	
+	bprintf("%-16.16s %08lX %04hX %.24s %s\r\n","when_written"	
 		,msg->hdr.when_written.time, msg->hdr.when_written.zone
 		,timestr(msg->hdr.when_written.time)
 		,smb_zonestr(msg->hdr.when_written.zone,NULL));
-	bprintf("%-16.16s %08X %04hX %.24s %s\r\n","when_imported"	
+	bprintf("%-16.16s %08lX %04hX %.24s %s\r\n","when_imported"	
 		,msg->hdr.when_imported.time, msg->hdr.when_imported.zone
 		,timestr(msg->hdr.when_imported.time)
 		,smb_zonestr(msg->hdr.when_imported.zone,NULL));
-	bprintf("%-16.16s %04Xh\r\n"	,"type"			,msg->hdr.type);
-	bprintf("%-16.16s %04Xh\r\n"	,"version"		,msg->hdr.version);
-	bprintf("%-16.16s %04Xh\r\n"	,"attr"			,msg->hdr.attr);
-	bprintf("%-16.16s %08Xh\r\n"	,"auxattr"		,msg->hdr.auxattr);
-	bprintf("%-16.16s %08Xh\r\n"	,"netattr"		,msg->hdr.netattr);
-	bprintf("%-16.16s %06Xh\r\n"	,"header offset"	,msg->idx.offset);
-	bprintf("%-16.16s %u\r\n"	,"header length"	,msg->hdr.length);
-	bprintf("%-16.16s %d\r\n"	,"number"		,msg->hdr.number);
+	bprintf("%-16.16s %04Xh\r\n","type"				,msg->hdr.type);
+	bprintf("%-16.16s %04Xh\r\n","version"			,msg->hdr.version);
+	bprintf("%-16.16s %04Xh\r\n","attr"				,msg->hdr.attr);
+	bprintf("%-16.16s %08lXh\r\n","auxattr"			,msg->hdr.auxattr);
+	bprintf("%-16.16s %08lXh\r\n","netattr"			,msg->hdr.netattr);
+	bprintf("%-16.16s %06lXh\r\n","header offset"	,msg->idx.offset);
+	bprintf("%-16.16s %u\r\n"	 ,"header length"	,msg->hdr.length);
+	bprintf("%-16.16s %ld\r\n"	 ,"number"			,msg->hdr.number);
 
 	/* optional fixed fields */
 	if(msg->hdr.thread_id)
-		bprintf("%-16.16s %d\r\n"	,"thread_id"		,msg->hdr.thread_id);
+		bprintf("%-16.16s %ld\r\n"	,"thread_id"		,msg->hdr.thread_id);
 	if(msg->hdr.thread_back)
-		bprintf("%-16.16s %d\r\n"	,"thread_back"		,msg->hdr.thread_back);
+		bprintf("%-16.16s %ld\r\n"	,"thread_back"		,msg->hdr.thread_back);
 	if(msg->hdr.thread_next)
-		bprintf("%-16.16s %d\r\n"	,"thread_next"		,msg->hdr.thread_next);
+		bprintf("%-16.16s %ld\r\n"	,"thread_next"		,msg->hdr.thread_next);
 	if(msg->hdr.thread_first)
-		bprintf("%-16.16s %d\r\n"	,"thread_first"		,msg->hdr.thread_first);
+		bprintf("%-16.16s %ld\r\n"	,"thread_first"		,msg->hdr.thread_first);
 	if(msg->hdr.delivery_attempts)
-		bprintf("%-16.16s %hu\r\n"	,"delivery_attempts"	,msg->hdr.delivery_attempts);
+		bprintf("%-16.16s %hu\r\n"	,"delivery_attempts",msg->hdr.delivery_attempts);
 	if(msg->hdr.times_downloaded)
-		bprintf("%-16.16s %u\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
+		bprintf("%-16.16s %lu\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
 	if(msg->hdr.last_downloaded)
 		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
 	if(msg->hdr.votes)
-		bprintf("%-16.16s %hu\r\n"	,"votes"		,msg->hdr.votes);
+		bprintf("%-16.16s %hu\r\n"	,"votes"			,msg->hdr.votes);
 
 	/* convenience integers */
 	if(msg->expiration)
-		bprintf("%-16.16s %s\r\n"	,"expiration"
+		bprintf("%-16.16s %s\r\n"	,"expiration"	
 			,timestr(msg->expiration));
 	if(msg->priority)
-		bprintf("%-16.16s %u\r\n"	,"priority"			,msg->priority);
+		bprintf("%-16.16s %lu\r\n"	,"priority"			,msg->priority);
 	if(msg->cost)
-		bprintf("%-16.16s %u\r\n"	,"cost"				,msg->cost);
+		bprintf("%-16.16s %lu\r\n"	,"cost"				,msg->cost);
 
-	bprintf("%-16.16s %06Xh\r\n"	,"data offset"		,msg->hdr.offset);
+	bprintf("%-16.16s %06lXh\r\n"	,"data offset"		,msg->hdr.offset);
 	for(i=0;i<msg->hdr.total_dfields;i++)
-		bprintf("data field[%u]    %s, offset %u, length %u\r\n"
+		bprintf("data field[%u]    %s, offset %lu, length %lu\r\n"
 				,i
 				,smb_dfieldtype(msg->dfield[i].type)
 				,msg->dfield[i].offset
@@ -464,8 +461,8 @@ void sbbs_t::show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thr
 //		,msg.hdr.number
 		,(unsigned)i == curmsg ? '>' : ':');
 	bprintf("\1w%-*.*s\1g%c\1g%c \1w%s\r\n"
-		,(int)(cols-column-12)
-		,(int)(cols-column-12)
+		,cols-column-12
+		,cols-column-12
 		,msg.hdr.attr&MSG_ANONYMOUS && !sub_op(smb.subnum)
 			? text[Anonymous] : msg.from
 		,(unsigned)i == curmsg ? '<' : ' '
@@ -496,7 +493,8 @@ void sbbs_t::show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thr
 int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
-			,done=0,domsg=1,*buf;
+			,done=0,domsg=1,*buf,*p;
+	char	subj[128];
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -562,8 +560,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
-	usub = getusrsub(subnum);
-	ugrp = getusrgrp(subnum);
 
 	if(!(mode&SCAN_TOYOU)
 		&& (!mode || mode&SCAN_FIND || !(subscan[subnum].cfg&SUB_CFG_YSCAN)))
@@ -671,6 +667,15 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 		while(smb.curmsg>=smb.msgs) smb.curmsg--;
 
+		for(ugrp=0;ugrp<usrgrps;ugrp++)
+			if(usrgrp[ugrp]==cfg.sub[subnum]->grp)
+				break;
+		for(usub=0;usub<usrsubs[ugrp];usub++)
+			if(usrsub[ugrp][usub]==subnum)
+				break;
+		usub++;
+		ugrp++;
+
 		msg.idx=post[smb.curmsg].idx;
 
 		if((i=smb_locksmbhdr(&smb))!=0) {
@@ -730,7 +735,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			}
 			bprintf("\1n\1l\1h\1bThread\1n\1b: \1h\1c");
-			bprintf("%-.*s\r\n", (int)(cols-(column+1)), msg.subj);
+			bprintf("%-.*s\r\n", cols-(column+1), msg.subj);
 			show_thread(first, post, smb.curmsg);
 			subscan[subnum].last = post[smb.curmsg].idx.number;
 		}
@@ -747,8 +752,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							domsg=0;
 					continue; 
 				}
-				if(strcasestr(buf,find) == NULL && strcasestr(msg.subj, find) == NULL
-					&& (msg.tags == NULL || strcasestr(msg.tags, find) == NULL)) {
+				strupr(buf);
+				strip_ctrl(buf, buf);
+				SAFECOPY(subj,msg.subj);
+				strupr(subj);
+				if(!strstr(buf,find) && !strstr(subj,find)) {
 					free(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -964,7 +972,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 						break; 
 					}
 					if(cfg.sub[subnum]->misc&SUB_DELLAST && smb.curmsg!=(smb.msgs-1)) {
-						bprintf(text[CantDeleteMsg], smb.curmsg + 1);
+						bputs(text[CantDeleteMsg]);
 						domsg=0;
 						break;
 					}
@@ -977,7 +985,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					} 
 				}
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bprintf(text[CantDeleteMsg], smb.curmsg + 1);
+					bputs(text[CantDeleteMsg]);
 					domsg=0;
 					break; 
 				}
@@ -996,7 +1004,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						smb_unlockmsghdr(&smb,&msg);
 						if(i==0 && msg.idx.attr&MSG_DELETE) {
-							sprintf(str,"removed post from %s %s"
+							sprintf(str,"%s removed post from %s %s"
+								,useron.alias
 								,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 							logline("P-",str);
 							if(!stricmp(cfg.sub[subnum]->misc&SUB_NAME
@@ -1120,22 +1129,23 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 				FREE_AND_NULL(post);
 				quotemsg(&msg,/* include tails: */TRUE);
-				if(strchr(str, '@') != NULL) {
-					if(smb_netaddr_type(str)==NET_INTERNET)
-						inetmail(str,msg.subj,WM_QUOTE|WM_NETMAIL);
-					else	/* FidoNet or QWKnet */
-						netmail(str,msg.subj,WM_QUOTE);
-				}
+				if(smb_netaddr_type(str)==NET_INTERNET)
+					inetmail(str,msg.subj,WM_QUOTE|WM_NETMAIL);
 				else {
-					i=atoi(str);
-					if(!i) {
-						if(cfg.sub[subnum]->misc&SUB_NAME)
-							i=userdatdupe(0,U_NAME,LEN_NAME,str);
-						else
-							i=matchuser(&cfg,str,TRUE /* sysop_alias */); 
-					}
-					email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE); 
-				} 
+					p=strrchr(str,'@');
+					if(p)								/* FidoNet or QWKnet */
+						netmail(str,msg.subj,WM_QUOTE);
+					else {
+						i=atoi(str);
+						if(!i) {
+							if(cfg.sub[subnum]->misc&SUB_NAME)
+								i=userdatdupe(0,U_NAME,LEN_NAME,str);
+							else
+								i=matchuser(&cfg,str,TRUE /* sysop_alias */); 
+						}
+						email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE); 
+					} 
+				}
 				break;
 			case 'P':   /* Post message on sub-board */
 				domsg=0;
@@ -1245,7 +1255,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				msg_client_hfields(&vote, &client);
 				smb_hfield_str(&vote, SENDERSERVER, startup->host_name);
 
-				if((i=votemsg(&cfg, &smb, &vote, notice, text[VoteNoticeFmt])) != SMB_SUCCESS)
+				if((i=votemsg(&cfg, &smb, &vote, notice)) != SMB_SUCCESS)
 					errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 
 				break;
@@ -1281,7 +1291,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					if(!(useron.misc&EXPERT))
 						menu("sysmscan");
 					bputs(text[OperatorPrompt]);
-					strcpy(str,"?ADCEHMQUV");
+					strcpy(str,"?ACEHMQUV");
 					if(SYSOP)
 						strcat(str,"SP");
 					switch(getkeys(str,0)) {
@@ -1387,54 +1397,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 								smb_unlocksmbhdr(&smb);
 							}
 							break;
-						case 'D':	/* Delete a range of posts */
-						{
-							domsg = false;
-							bprintf("\r\nFirst message to delete [%u]: ", smb.curmsg + 1);
-							long first = getnum(LONG_MAX, smb.curmsg + 1);
-							if(first < 1 || first > (long)smb.msgs)
-								break;
-							bprintf(" Last message to delete [%u]: ", smb.msgs);
-							long last = getnum(LONG_MAX, smb.msgs);
-							if(first > last || last > (long)smb.msgs)
-								break;
-							ulong already = 0;
-							ulong deleted = 0;
-							ulong failed = 0;
-							if(smb_locksmbhdr(&smb)==SMB_SUCCESS) {	/* Lock the entire base */
-								for(long n = first; n <= last; n++) {
-									if(post[n - 1].idx.attr & MSG_DELETE) {
-										already++;
-										continue;	// Already deleted
-									}
-									if(post[n - 1].idx.attr & MSG_PERMANENT) {
-										bprintf(text[CantDeleteMsg], smb.curmsg + 1);
-										failed++;
-										continue;
-									}
-									smb_freemsgmem(&msg);
-									msg.idx.offset = 0;
-									msg.idx.number = post[n - 1].idx.number;
-									if(loadmsg(&msg,msg.idx.number) >= SMB_SUCCESS) {
-										msg.idx.attr|=MSG_DELETE;
-										msg.hdr.attr=msg.idx.attr;
-										if((i=smb_putmsg(&smb,&msg)) != SMB_SUCCESS) {
-											errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
-											failed++;
-										} else
-											deleted++;
-										smb_unlockmsghdr(&smb,&msg);
-									} else {
-										bprintf("Error loading message");
-										failed++;
-									}
-								}
-								smb_unlocksmbhdr(&smb);
-							}
-							bprintf("Messages-deleted: %lu, Already-deleted: %lu, Failed-to-delete: %lu\n"
-								, deleted, already, failed);
-							break;
-						}
 						default:
 							continue; 
 					}
@@ -1715,13 +1677,8 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
 		lp_mode |= LP_POLLS;
 	post=loadposts(&posts,subnum,0,lp_mode,NULL,&total);
-	char grp[128];
-	char sub[128];
-	uint ugrp = getusrgrp(subnum);
-	uint usub = getusrsub(subnum);
-	SAFEPRINTF4(grp, "%*s[%u] %s", DEC_DIGITS(usrgrps) - DEC_DIGITS(ugrp), "", ugrp, cfg.grp[cfg.sub[subnum]->grp]->sname);
-	SAFEPRINTF4(sub, "%*s[%u] %s", DEC_DIGITS(usrsubs[ugrp - 1]) - DEC_DIGITS(usub), "", usub, cfg.sub[subnum]->lname);
-	bprintf(text[SearchSubFmt], grp, sub, total);
+	bprintf(text[SearchSubFmt]
+		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname,total);
 	if(posts) {
 		if(mode&SCAN_FIND)
 			displayed=searchposts(subnum, post, start, posts, search);
@@ -1746,6 +1703,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 	, const char *search)
 {
 	char*	buf;
+	char	subj[128];
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1760,8 +1718,11 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			smb_freemsgmem(&msg);
 			continue; 
 		}
-		if(strcasestr(buf, search) != NULL || strcasestr(msg.subj, search) != NULL
-			|| (msg.tags != NULL && strcasestr(msg.tags, search) != NULL)) {
+		strupr(buf);
+		strip_ctrl(buf, buf);
+		SAFECOPY(subj,msg.subj);
+		strupr(subj);
+		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
 			bprintf(text[SubMsgLstFmt],l+1
