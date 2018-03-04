@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.176 2018/03/09 04:53:58 rswindell Exp $ */
+/* $Id: smblib.c,v 1.173 2018/03/04 04:07:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,7 +87,6 @@ int SMBCALL smb_open(smb_t* smb)
 	smb->shd_fp=smb->sdt_fp=smb->sid_fp=NULL;
 	smb->sha_fp=smb->sda_fp=smb->hash_fp=NULL;
 	smb->last_error[0]=0;
-	smb->locked = FALSE;
 
 	/* Check for message-base lock semaphore file (under maintenance?) */
 	while(smb_islocked(smb)) {
@@ -950,7 +949,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	rewind(smb->shd_fp);
 	if(fseek(smb->shd_fp,msg->idx.offset,SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s %d '%s' seeking to %lu in header file", __FUNCTION__
+			,"%s %d '%s' seeking to %lu in header", __FUNCTION__
 			,get_errno(),STRERROR(get_errno())
 			,msg->idx.offset);
 		return(SMB_ERR_SEEK);
@@ -1529,7 +1528,6 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	int		i;
 	long	l;
 	ulong	hdrlen;
-	long	idxlen;
 
 	if(smb->shd_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
@@ -1552,16 +1550,6 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		smb_unlocksmbhdr(smb);
 		return(i);
 	}
-
-	idxlen = filelength(fileno(smb->sid_fp));
-	if(idxlen != (smb->status.total_msgs * sizeof(idxrec_t))) {
-		safe_snprintf(smb->last_error, sizeof(smb->last_error)
-			,"%s index file length (%ld) unexpected (%ld)", __FUNCTION__
-			,idxlen, smb->status.total_msgs * sizeof(idxrec_t));
-		smb_unlocksmbhdr(smb);
-		return SMB_ERR_FILE_LEN;
-	}
-		
 	msg->hdr.number=smb->status.last_msg+1;
 
 	if(msg->hdr.thread_id==0)	/* new thread being started */
@@ -1763,7 +1751,7 @@ int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 	}
 	if(fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s %d '%s' seeking to %u in index file", __FUNCTION__
+			,"%s %d '%s' seeking to %u in header", __FUNCTION__
 			,get_errno(),STRERROR(get_errno())
 			,(unsigned)(msg->offset*sizeof(idxrec_t)));
 		return(SMB_ERR_SEEK);
@@ -1800,7 +1788,7 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 	clearerr(smb->shd_fp);
 	if(fseek(smb->shd_fp,msg->idx.offset,SEEK_SET)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s %d '%s' seeking to %lu in header file", __FUNCTION__
+			,"%s %d '%s' seeking to %lu in index", __FUNCTION__
 			,get_errno(),STRERROR(get_errno()),msg->idx.offset);
 		return(SMB_ERR_SEEK);
 	}
