@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.84 2018/03/10 06:11:57 deuce Exp $ */
+/* $Id: umonitor.c,v 1.83 2018/02/25 23:10:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,7 +805,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.84 $", "%*s %s", revision);
+	sscanf("$Revision: 1.83 $", "%*s %s", revision);
 
     printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -866,14 +866,14 @@ int main(int argc, char** argv)  {
 
 	uifc.esc_delay=500;
 
-	boxch.ls=(char)186;
-	boxch.rs=(char)186;
-	boxch.ts=(char)205;
-	boxch.bs=(char)205;
-	boxch.tl=(char)201;
-	boxch.tr=(char)187;
-	boxch.bl=(char)200;
-	boxch.br=(char)188;
+	boxch.ls=186;
+	boxch.rs=186;
+	boxch.ts=205;
+	boxch.bs=205;
+	boxch.tl=201;
+	boxch.tr=187;
+	boxch.bl=200;
+	boxch.br=188;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
             )
