@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.40 2018/03/09 06:48:01 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.39 2018/02/14 04:37:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1048,5 +1048,4 @@ void curs_setvideoflags(int flags)
 	flags &= (CIOLIB_VIDEO_NOBRIGHT|CIOLIB_VIDEO_BGBRIGHT|CIOLIB_VIDEO_NOBLINK);
 	if (COLORS < 16)
 		flags &= ~CIOLIB_VIDEO_BGBRIGHT;
-	vflags = flags;
 }
