@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.173 2018/03/04 04:07:14 rswindell Exp $ */
+/* $Id: smblib.c,v 1.174 2018/03/04 22:59:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,6 +87,7 @@ int SMBCALL smb_open(smb_t* smb)
 	smb->shd_fp=smb->sdt_fp=smb->sid_fp=NULL;
 	smb->sha_fp=smb->sda_fp=smb->hash_fp=NULL;
 	smb->last_error[0]=0;
+	smb->locked = FALSE;
 
 	/* Check for message-base lock semaphore file (under maintenance?) */
 	while(smb_islocked(smb)) {
