@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.668 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: main.cpp,v 1.671 2018/02/23 08:24:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -168,6 +168,9 @@ int lputs(int level, const char* str)
 
 int eputs(int level, const char *str)
 {
+	if(*str == 0)
+		return 0;
+
 	if(level <= LOG_ERR) {
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
@@ -204,7 +207,7 @@ int eprintf(int level, const char *fmt, ...)
 
 	strip_ctrl(sbuf, sbuf);
 
-    return(eputs(level,sbuf));
+    return(eputs(level,truncsp(sbuf)));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -1361,6 +1364,14 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptKeyset Class */
+		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */

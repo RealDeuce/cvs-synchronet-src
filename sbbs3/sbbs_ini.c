@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.160 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.161 2018/03/04 08:15:32 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -502,11 +502,15 @@ void sbbs_read_ini(
 			=iniGetShortInt(list,section,"SMTPPort",IPPORT_SMTP);
 		mail->submission_port
 			=iniGetShortInt(list,section,"SubmissionPort",IPPORT_SUBMISSION);
+		mail->submissions_port
+			=iniGetShortInt(list,section,"SubmissionsPort",IPPORT_SUBMISSIONS);
 		iniFreeStringList(mail->pop3_interfaces);
 		mail->pop3_interfaces
 			=iniGetStringList(list,section,"POP3Interface",",",global_interfaces);
 		mail->pop3_port
 			=iniGetShortInt(list,section,"POP3Port",IPPORT_POP3);
+		mail->pop3s_port
+			=iniGetShortInt(list,section,"POP3SPort",IPPORT_POP3S);
 		mail->relay_port
 			=iniGetShortInt(list,section,"RelayPort",IPPORT_SMTP);
 		mail->max_clients
