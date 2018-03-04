@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.120 2018/02/22 23:07:27 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.121 2018/03/04 21:06:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1267,6 +1267,10 @@ void packmsgs(ulong packable)
 			,beep,i,smb.last_error,smb.file);
 		return; 
 	}
+	if((i=smb_lock(&smb)) != SMB_SUCCESS)
+		fprintf(errfp,"\n%s!ERROR %d (%s) locking %s\n"
+			,beep,i,smb.last_error,smb.file);
+
 	if((i=smb_locksmbhdr(&smb))!=0)
 		fprintf(errfp,"\n%s!smb_locksmbhdr returned %d: %s\n"
 			,beep,i,smb.last_error);
@@ -1545,7 +1549,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.120 $", "%*s %s", revision);
+	sscanf("$Revision: 1.121 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
