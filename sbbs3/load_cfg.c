@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.70 2017/10/23 03:38:59 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.72 2018/03/03 02:02:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,9 @@
 
 #include "sbbs.h"
 #include "text.h"	/* TOTAL_TEXT */
+#ifdef USE_CRYPTLIB
+#include "cryptlib.h"
+#endif
 
 static void prep_cfg(scfg_t* cfg);
 static void free_attr_cfg(scfg_t* cfg);
@@ -62,6 +65,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 	free_cfg(cfg);	/* free allocated config parameters */
 
 	cfg->prepped=FALSE;	/* reset prepped flag */
+	cfg->tls_certificate = -1;
 
 	if(cfg->node_num<1)
 		cfg->node_num=1;
@@ -272,11 +276,17 @@ void prep_cfg(scfg_t* cfg)
 	for(i=0;i<cfg->total_xedits;i++) 
 		strlwr(cfg->xedit[i]->code);
 
+	if (!cfg->prepped)
+		cfg->tls_certificate = -1;
 	cfg->prepped=TRUE;	/* data prepared for run-time, DO NOT SAVE TO DISK! */
 }
 
 void DLLCALL free_cfg(scfg_t* cfg)
 {
+#ifdef USE_CRYPTLIB
+	if (cfg->tls_certificate != -1 && cfg->prepped)
+		cryptDestroyContext(cfg->tls_certificate);
+#endif
 	free_node_cfg(cfg);
 	free_main_cfg(cfg);
 	free_msgs_cfg(cfg);
@@ -349,6 +359,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 	if((cfg->color=malloc(MIN_COLORS))==NULL) {
 		sprintf(error,"Error allocating memory (%u bytes) for colors"
 			,MIN_COLORS);
+		fclose(instream);
 		return(FALSE);
 	}
 	/* Setup default colors here: */

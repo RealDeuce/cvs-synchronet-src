@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.95 2017/12/28 04:17:39 rswindell Exp $ */
+/* $Id: xpbeep.c,v 1.96 2018/02/01 09:10:45 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -572,7 +572,10 @@ void DLLCALL xptone_complete(void)
 		while(pa_api->active(portaudio_stream))
 			SLEEP(1);
 		pa_api->stop(portaudio_stream);
-		FREE_AND_NULL(pawave);
+		if (pawave) {
+			free((void *)pawave);
+			pawave = NULL;
+		}
 	}
 #endif
 
