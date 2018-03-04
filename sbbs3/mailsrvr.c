@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.623 2018/03/04 08:15:32 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.624 2018/03/04 21:20:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5643,7 +5643,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.623 $", "%*s %s", revision);
+	sscanf("$Revision: 1.624 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5882,7 +5882,7 @@ void DLLCALL mail_server(void* arg)
 				lprintf(LOG_INFO,"SUBMISSION Server listening");
 		}
 
-		if(startup->options&MAIL_OPT_USE_SUBMISSIONS_PORT) {
+		if(startup->options&MAIL_OPT_TLS_SUBMISSION) {
 			if(xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->submissions_port, "TLS/SMTP Submission Agent", mail_open_socket, startup->seteuid, "submissions"))
 				lprintf(LOG_INFO,"SUBMISSIONS Server listening");
 		}
@@ -5895,7 +5895,7 @@ void DLLCALL mail_server(void* arg)
 			lprintf(LOG_INFO,"POP3 Server listening");
 		}
 
-		if(startup->options&MAIL_OPT_USE_POP3S_PORT) {
+		if(startup->options&MAIL_OPT_TLS_POP3) {
 
 			/* open a socket and wait for a client */
 			if(!xpms_add_list(mail_set, PF_UNSPEC, SOCK_STREAM, 0, startup->pop3_interfaces, startup->pop3s_port, "TLS/POP3 Server", mail_open_socket, startup->seteuid, "pop3s"))
