@@ -413,10 +413,10 @@ object MailCfgDlg: TMailCfgDlg
       object POP3LogCheckBox: TCheckBox
         Left = 150
         Top = 62
-        Width = 107
+        Width = 57
         Height = 19
         Hint = 'Log all POP3 user activity'
-        Caption = 'Log All Activity'
+        Caption = 'Log'
         ParentShowHint = False
         ShowHint = True
         TabOrder = 4
