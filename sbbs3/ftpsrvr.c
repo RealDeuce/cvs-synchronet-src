@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.439 2018/03/05 05:55:49 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.440 2018/03/05 06:03:01 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2768,7 +2768,6 @@ static void ctrl_thread(void* arg)
 			sockprintf(sock,sess," AUTH TLS");
 			sockprintf(sock,sess," PBSZ");
 			sockprintf(sock,sess," PROT");
-			sockprintf(sock,sess," CCC");
 			sockprintf(sock,sess,"211 End");
 			continue;
 		}
@@ -5027,7 +5026,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.439 $", "%*s %s", revision);
+	sscanf("$Revision: 1.440 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
