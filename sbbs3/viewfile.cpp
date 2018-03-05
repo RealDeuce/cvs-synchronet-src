@@ -2,7 +2,7 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.9 2010/03/12 08:27:57 rswindell Exp $ */
+/* $Id: viewfile.cpp,v 1.10 2018/01/12 22:15:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,6 @@ int sbbs_t::viewfile(file_t* f, int ext)
 		else
 			viewfilecontents(f);
 		ASYNC;
-		CRLF;
 		sprintf(str,text[FileInfoPrompt],unpadfname(f->name,tmp));
 		mnemonics(str);
 		ch=(char)getkeys("BEVQ\r",0);
