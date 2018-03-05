@@ -1,6 +1,6 @@
 /* Synchronet telnet gateway routines */
 
-/* $Id: telgate.cpp,v 1.44 2017/09/27 00:50:46 rswindell Exp $ */
+/* $Id: telgate.cpp,v 1.45 2018/02/20 11:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -150,7 +150,7 @@ void sbbs_t::telnet_gate(char* destaddr, ulong mode, char* client_user_name, cha
 	while(online) {
 		if(!(mode&TG_NOCHKTIME))
 			gettimeleft();
-		rd=RingBufRead(&inbuf,buf,sizeof(buf));
+		rd=RingBufRead(&inbuf,buf,sizeof(buf)-1);
 		if(rd) {
 #if 0
 			if(memchr(buf,TELNET_IAC,rd)) {
