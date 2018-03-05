@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.440 2018/03/05 06:03:01 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.441 2018/03/05 06:33:35 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4872,6 +4872,7 @@ static void ctrl_thread(void* arg)
 				,sock,user.alias,cmd);
 			ftp_hacklog("FTP", user.alias, cmd, host_name, &ftp.client_addr);
 		}		
+		// TODO: STAT is mandatory
 		sockprintf(sock,sess,"500 Syntax error: '%s'",cmd);
 		lprintf(LOG_WARNING,"%04d !UNSUPPORTED COMMAND from %s: '%s'"
 			,sock,user.alias,cmd);
@@ -5026,7 +5027,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.440 $", "%*s %s", revision);
+	sscanf("$Revision: 1.441 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
