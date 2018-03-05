@@ -1,6 +1,6 @@
 /* Synchronet configuration structure (scfg_t) definition */
 
-/* $Id: scfgdefs.h,v 1.43 2018/01/07 23:11:03 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.44 2018/03/03 02:02:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -600,6 +600,8 @@ typedef struct
 
 	uint16_t		user_backup_level;
 	uint16_t		mail_backup_level;
+
+	int				tls_certificate;
 
 } scfg_t;
 
