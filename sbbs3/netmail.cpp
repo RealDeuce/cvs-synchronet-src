@@ -2,13 +2,13 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.49 2017/11/24 21:53:39 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.50 2018/02/20 11:39:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -118,7 +118,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 			for(x=0;x<cfg.total_prots;x++)
 				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
 					sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
-					strcat(str,tmp); 
+					SAFECAT(str,tmp); 
 				}
 			ch=(char)getkeys(str,0);
 			if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
