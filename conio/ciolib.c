@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.167 2018/02/20 19:02:10 deuce Exp $ */
+/* $Id: ciolib.c,v 1.170 2018/02/20 21:11:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -534,8 +534,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 	int width;
 	int height;
 	void *buf;
-	uint32_t *fgb = NULL;
-	uint32_t *bgb = NULL;
 
 	CIOLIB_INIT();
 
@@ -567,10 +565,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 
 fail:
 	free(buf);
-	if (fgb)
-		free(fgb);
-	if (bgb)
-		free(bgb);
 	return 0;
 }
 
@@ -1396,9 +1390,10 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_vmem_gettext(int a,int b,int c,int d,struct v
 		buf = malloc((c-a+1)*(d-b+1)*sizeof(*buf));
 		if (buf == NULL)
 			return 0;
-		ret = ciolib_gettext(a, b, c, d, e);
+		ret = ciolib_gettext(a, b, c, d, buf);
 		if (ret) {
 			for (i=0; i<(c-a+1)*(d-b+1); i++) {
+				memset(&e[i], 0, sizeof(e[0]));
 				e[i].ch = buf[i] & 0xff;
 				e[i].legacy_attr = buf[i] >> 8;
 			}
@@ -1462,7 +1457,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_delay(long a)
 CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 {
 	unsigned char a1=ch;
-	struct vmem_cell buf;
+	struct vmem_cell buf[1];
 	int i;
 	int old_puttext_can_move=puttext_can_move;
 
@@ -1473,11 +1468,11 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 
 	puttext_can_move=1;
 
-	buf.ch=a1;
-	buf.legacy_attr=cio_textinfo.attribute;
-	buf.fg = ciolib_fg;
-	buf.bg = ciolib_bg;
-	buf.font = ciolib_attrfont(cio_textinfo.attribute);
+	buf[0].ch=a1;
+	buf[0].legacy_attr=cio_textinfo.attribute;
+	buf[0].fg = ciolib_fg;
+	buf[0].bg = ciolib_bg;
+	buf[0].font = ciolib_attrfont(cio_textinfo.attribute);
 
 	switch(a1) {
 		case '\r':
@@ -1492,12 +1487,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 		case '\b':
 			if(cio_textinfo.curx>1) {
 				ciolib_gotoxy(cio_textinfo.curx-1,cio_textinfo.cury);
-				buf.ch=' ';
+				buf[0].ch=' ';
 				ciolib_vmem_puttext(cio_textinfo.curx+cio_textinfo.winleft-1
 						,cio_textinfo.cury+cio_textinfo.wintop-1
 						,cio_textinfo.curx+cio_textinfo.winleft-1
 						,cio_textinfo.cury+cio_textinfo.wintop-1
-						,&buf);
+						,buf);
 			}
 			break;
 		case 7:		/* Bell */
@@ -1506,13 +1501,13 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 		case '\t':
 			for(i=0;i<(sizeof(tabs)/sizeof(int));i++) {
 				if(tabs[i]>cio_textinfo.curx) {
-					buf.ch=' ';
+					buf[0].ch=' ';
 					while(cio_textinfo.curx<tabs[i]) {
 						ciolib_vmem_puttext(cio_textinfo.curx+cio_textinfo.winleft-1
 								,cio_textinfo.cury+cio_textinfo.wintop-1
 								,cio_textinfo.curx+cio_textinfo.winleft-1
 								,cio_textinfo.cury+cio_textinfo.wintop-1
-								,&buf);
+								,buf);
 						ciolib_gotoxy(cio_textinfo.curx+1,cio_textinfo.cury);
 						if(cio_textinfo.curx==cio_textinfo.screenwidth)
 							break;
@@ -1535,7 +1530,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 						,ciolib_wherey()+cio_textinfo.wintop-1
 						,ciolib_wherex()+cio_textinfo.winleft-1
 						,ciolib_wherey()+cio_textinfo.wintop-1
-						,&buf);
+						,buf);
 				ciolib_wscroll();
 				ciolib_gotoxy(1, cio_textinfo.winbottom-cio_textinfo.wintop+1);
 			}
@@ -1545,7 +1540,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 							,ciolib_wherey()+cio_textinfo.wintop-1
 							,ciolib_wherex()+cio_textinfo.winleft-1
 							,ciolib_wherey()+cio_textinfo.wintop-1
-							,&buf);
+							,buf);
 					ciolib_gotoxy(1,cio_textinfo.cury+1);
 				}
 				else {
@@ -1553,7 +1548,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 							,ciolib_wherey()+cio_textinfo.wintop-1
 							,ciolib_wherex()+cio_textinfo.winleft-1
 							,ciolib_wherey()+cio_textinfo.wintop-1
-							,&buf);
+							,buf);
 					ciolib_gotoxy(cio_textinfo.curx+1, cio_textinfo.cury);
 				}
 			}

@@ -1,8 +1,9 @@
 /* prntfile.cpp */
+// vi: tabstop=4
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.23 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.26 2018/02/27 08:03:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +80,7 @@ void sbbs_t::printfile(char *str, long mode)
 		CRLF;
 	}
 
+	fexistcase(str);
 	if((stream=fnopen(&file,str,O_RDONLY|O_DENYNONE))==NULL) {
 		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
 			,cfg.node_num,errno,strerror(errno),str);
@@ -135,6 +137,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 	if(!tos) {
 		CRLF; 
 	}
+	fexistcase(str);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1) {
 		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
 			,cfg.node_num,errno,strerror(errno),str);
