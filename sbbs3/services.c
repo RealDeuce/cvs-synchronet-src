@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.314 2018/03/10 07:02:09 deuce Exp $ */
+/* $Id: services.c,v 1.309 2018/03/05 19:46:57 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -924,30 +924,26 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 }
 
-#define HANDLE_CRYPT_CALL(status, service_client, action)  handle_crypt_call(status, service_client, action, __FILE__, __LINE__)
+#define HANDLE_CRYPT_CALL(status, service_client)  handle_crypt_call(status, service_client, __FILE__, __LINE__)
 
-static BOOL handle_crypt_call(int status, service_client_t *service_client, const char *action, const char *file, int line)
+static BOOL handle_crypt_call(int status, service_client_t *service_client, const char *file, int line)
 {
 	char	*estr = NULL;
 	int		sock = 0;
-	CRYPT_HANDLE	sess;
-	int level;
 
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (service_client != NULL) {
+		if (service_client->service->options & SERVICE_OPT_TLS)
+			estr = get_crypt_error(service_client->tls_sess);
 		sock = service_client->socket;
-		if (service_client->service->options & SERVICE_OPT_TLS) {
-			sess = service_client->tls_sess;
-			if (sess == -1)
-				sess = CRYPT_UNUSED;
-			get_crypt_error_string(status, sess, &estr, action, &level);
-			if (estr) {
-				lprintf(level, "%04d %s", sock, estr);
-				free_crypt_attrstr(estr);
-			}
-		}
 	}
+	if (estr) {
+		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
+		free_crypt_attrstr(estr);
+	}
+	else
+		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
 }
 
@@ -1020,7 +1016,7 @@ static void js_service_thread(void* arg)
 
 	if (service_client.service->options & SERVICE_OPT_TLS) {
 		/* Create and initialize the TLS session */
-		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&service_client.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &service_client, "creating session")) {
+		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&service_client.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &service_client)) {
 			js_service_failure_cleanup(service, socket);
 			return;
 		}
@@ -1033,19 +1029,19 @@ static void js_service_thread(void* arg)
 			if(user.misc&(DELETED|INACTIVE))
 				continue;
 			if (user.alias[0] && user.pass[0]) {
-				if(HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_USERNAME, user.alias, strlen(user.alias)), &session, "adding PSK user"))
-					HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_PASSWORD, user.pass, strlen(user.pass)), &session, "adding PSK key");
+				if(HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_USERNAME, user.alias, strlen(user.alias)), &session))
+					HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_PASSWORD, user.pass, strlen(user.pass)), &session);
 			}
 		}
 #endif
 		if (scfg.tls_certificate != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &service_client, "setting private key");
+			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &service_client);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
-		HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, socket), &service_client, "setting network socket");
-		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &service_client, "setting session active")) {
+		HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, socket), &service_client);
+		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &service_client)) {
 			js_service_failure_cleanup(service, socket);
 			return;
 		}
@@ -1642,7 +1638,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.314 $", "%*s %s", revision);
+	sscanf("$Revision: 1.309 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1710,9 +1706,7 @@ void DLLCALL services_thread(void* arg)
 	ulong			total_sockets;
 	struct timeval	tv;
 	service_client_t* client;
-	char			*ssl_estr;
-	int			level;
-	BOOL			need_cert = FALSE;
+	char			ssl_estr[SSL_ESTR_LEN];
 
 	services_ver();
 
@@ -1847,7 +1841,11 @@ void DLLCALL services_thread(void* arg)
 					continue;
 				}
 				if(scfg.tls_certificate == -1) {
-					need_cert = TRUE;
+					get_ssl_cert(&scfg, ssl_estr);
+					if (scfg.tls_certificate == -1) {
+						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+						continue;
+					}
 				}
 			}
 			service[i].set=xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
@@ -1912,15 +1910,6 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
-
-		if (need_cert) {
-			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1) {
-				if (ssl_estr) {
-					lprintf(level, "No TLS certificiate %s", ssl_estr);
-					free_crypt_attrstr(ssl_estr);
-				}
-			}
-		}
 
 		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
