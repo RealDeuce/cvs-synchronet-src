@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.218 2018/03/09 06:59:56 deuce Exp $ */
+/* $Id: syncterm.c,v 1.216 2018/02/28 07:28:52 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1107,6 +1107,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 	/* UNIX */
 	char	*home=getenv("HOME");
 
+	home=getenv("HOME");
 	if (!shared) {
 		if((home==NULL || strlen(home) > MAX_PATH-32)) {	/* $HOME just too damn big */
 			if(type==SYNCTERM_DEFAULT_TRANSFER_PATH || type==SYNCTERM_PATH_CACHE) {
@@ -1655,8 +1656,10 @@ int main(int argc, char **argv)
 		}
 		bbs=NULL;
 	}
-	if (bbs_alloc)
+	if (bbs_alloc) {
+		bbs_alloc=FALSE;
 		free(bbs);
+	}
 	if (last_bbs)
 		free(last_bbs);
 	// Save changed settings
@@ -1687,8 +1690,10 @@ int main(int argc, char **argv)
 	return(0);
 
 	USAGE:
-	if (bbs_alloc)
+	if (bbs_alloc) {
+		bbs_alloc=FALSE;
 		free(bbs);
+	}
 	uifcbail();
 	clrscr();
     gettextinfo(&txtinfo);

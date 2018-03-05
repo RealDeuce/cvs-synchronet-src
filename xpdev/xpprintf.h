@@ -2,7 +2,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.h,v 1.16 2018/03/10 04:04:05 rswindell Exp $ */
+/* $Id: xpprintf.h,v 1.15 2015/09/28 22:36:12 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,8 +80,8 @@ DLLEXPORT char* DLLCALL xp_asprintf(const char *format, ...);
 DLLEXPORT char* DLLCALL xp_vasprintf(const char *format, va_list va);
 DLLEXPORT int DLLCALL xp_printf_get_type(const char *format);
 #if defined(_MSC_VER) || defined(__MSVCRT__)
-DLLEXPORT int DLLCALL vasprintf(char **strptr, const char *format, va_list va);
-DLLEXPORT int DLLCALL asprintf(char **strptr, const char *format, ...);
+DLLEXPORT int DLLCALL vasprintf(char **strptr, char *format, va_list va);
+DLLEXPORT int DLLCALL asprintf(char **strptr, char *format, ...);
 #endif
 
 #if defined(__cplusplus)

@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.75 2018/03/07 02:48:29 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.74 2018/02/20 11:41:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -814,8 +814,8 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
-						safe_snprintf(path, sizeof(path), "%s%s/"
-							, cfg->dir[i]->data_dir
+						safe_snprintf(path, sizeof(path), "%sdirs/%s/"
+							, cfg->data_dir
 							, str);
 					}
 					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
