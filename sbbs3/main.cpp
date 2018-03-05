@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.671 2018/02/23 08:24:23 deuce Exp $ */
+/* $Id: main.cpp,v 1.672 2018/03/05 02:53:55 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5366,6 +5366,7 @@ NO_SSH:
 				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
+			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
