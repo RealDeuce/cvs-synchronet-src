@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.73 2018/03/07 00:57:02 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.72 2018/03/03 02:02:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +199,7 @@ void prep_cfg(scfg_t* cfg)
 		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
 		if(!cfg->dir[i]->path[0])		/* no file storage path specified */
-            sprintf(cfg->dir[i]->path,"%s%s/",cfg->dir[i]->data_dir,cfg->dir[i]->code);
+            sprintf(cfg->dir[i]->path,"%sdirs/%s/",cfg->data_dir,cfg->dir[i]->code);
 		else if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
