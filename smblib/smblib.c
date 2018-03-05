@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.174 2018/03/04 22:59:40 rswindell Exp $ */
+/* $Id: smblib.c,v 1.175 2018/03/05 00:35:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1529,6 +1529,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	int		i;
 	long	l;
 	ulong	hdrlen;
+	long	idxlen;
 
 	if(smb->shd_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
@@ -1551,6 +1552,16 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		smb_unlocksmbhdr(smb);
 		return(i);
 	}
+
+	idxlen = filelength(fileno(smb->sid_fp));
+	if(idxlen != (smb->status.total_msgs * sizeof(idxrec_t))) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error)
+			,"%s index file length (%ld) unexpected (%ld)", __FUNCTION__
+			,idxlen, smb->status.total_msgs * sizeof(idxrec_t));
+		smb_unlocksmbhdr(smb);
+		return SMB_ERR_FILE_LEN;
+	}
+		
 	msg->hdr.number=smb->status.last_msg+1;
 
 	if(msg->hdr.thread_id==0)	/* new thread being started */
