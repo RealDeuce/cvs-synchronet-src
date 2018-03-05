@@ -1,11 +1,12 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.h,v 1.18 2018/02/13 08:11:36 deuce Exp $ */
+/* $Id: term.h,v 1.19 2018/02/13 08:13:07 deuce Exp $ */
 
 #ifndef _TERM_H_
 #define _TERM_H_
 
 #include "bbslist.h"
+#include "ciolib.h"
 
 struct terminal {
 	int	height;
