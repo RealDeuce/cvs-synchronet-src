@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.40 2016/11/24 03:03:58 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.45 2018/02/21 05:44:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,7 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <stdio.h>	
+#include <stdio.h>
 #include <stdlib.h>	/* atoi, qsort */
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
@@ -46,8 +46,10 @@
 
 smb_t	smb;
 BOOL	renumber=FALSE;
+BOOL	rehash=FALSE;
+BOOL	fixnums=FALSE;
 BOOL	smb_undelete=FALSE;
-char*	usage="usage: fixsmb [-renumber] [-undelete] <smb_file> [[smb_file] [...]]";
+char*	usage="usage: fixsmb [-renumber] [-undelete] [-fixnums] [-rehash] <smb_file> [[smb_file] [...]]";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -108,6 +110,7 @@ int fixsmb(char* sub)
 	uint32_t*	numbers = NULL;
 	uint32_t	total = 0;
 	BOOL		dupe_msgnum;
+	uint32_t	highest = 0;
 
 	memset(&smb,0,sizeof(smb));
 
@@ -116,11 +119,18 @@ int fixsmb(char* sub)
 	if((p=getfext(smb.file))!=NULL && stricmp(p,".shd")==0)
 		*p=0;	/* Chop off .shd extension, if supplied on command-line */
 
+	char path[MAX_PATH+1];
+	SAFEPRINTF(path, "%s.shd", smb.file);
+	if(!fexistcase(path)) {
+		printf("%s does not exist\n", path);
+		exit(1);
+	}
+
 	printf("Opening %s\n",smb.file);
 
 	if((i=smb_open(&smb))!=0) {
 		printf("smb_open returned %d: %s\n",i,smb.last_error);
-		exit(1); 
+		exit(1);
 	}
 
 	if((i=smb_lock(&smb))!=0) {
@@ -131,28 +141,30 @@ int fixsmb(char* sub)
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		printf("smb_locksmbhdr returned %d: %s\n",i,smb.last_error);
-		exit(1); 
+		exit(1);
 	}
 
 	if((i=smb_getstatus(&smb))!=0) {
 		smb_unlocksmbhdr(&smb);
 		smb_close(&smb);
 		printf("smb_getstatus returned %d: %s\n",i,smb.last_error);
-		exit(1); 
+		exit(1);
 	}
+
+	uint32_t last_msg = smb.status.last_msg;
 
 	if(!(smb.status.attr&SMB_HYPERALLOC)) {
 
 		if((i=smb_open_ha(&smb))!=0) {
 			smb_close(&smb);
 			printf("smb_open_ha returned %d: %s\n",i,smb.last_error);
-			exit(1); 
+			exit(1);
 		}
 
 		if((i=smb_open_da(&smb))!=0) {
 			smb_close(&smb);
 			printf("smb_open_da returned %d: %s\n",i,smb.last_error);
-			exit(1); 
+			exit(1);
 		}
 
 		rewind(smb.sha_fp);
@@ -164,8 +176,8 @@ int fixsmb(char* sub)
 	rewind(smb.sid_fp);
 	chsize(fileno(smb.sid_fp),0L);			/* Truncate the index */
 
-	if(renumber) {
-		printf("Truncating hash file (due to renumbering)\n");
+	if(renumber || rehash) {
+		printf("Truncating hash file (due to renumbering/rehashing)\n");
 		if((i=smb_open_hash(&smb))!=SMB_SUCCESS) {
 			printf("smb_open_hash returned %d: %s\n", i, smb.last_error);
 			exit(1);
@@ -182,8 +194,8 @@ int fixsmb(char* sub)
 
 		length=filelength(fileno(smb.shd_fp));
 		c=0;
-		for(l=0;l<length;l+=SHD_BLOCK_LEN)	/* Init .SHD file to NULL */
-			fwrite(&c,1,1,smb.sha_fp); 
+		for(l=smb.status.header_offset;l<length;l+=SHD_BLOCK_LEN)	/* Init .SHD file to NULL */
+			fwrite(&c,1,1,smb.sha_fp);
 	} else
 		length=filelength(fileno(smb.shd_fp));
 
@@ -195,13 +207,13 @@ int fixsmb(char* sub)
 		msg.idx.offset=l;
 		if((i=smb_lockmsghdr(&smb,&msg))!=0) {
 			printf("\n(%06lX) smb_lockmsghdr returned %d:\n%s\n",l,i,smb.last_error);
-			continue; 
+			continue;
 		}
 		i=smb_getmsghdr(&smb,&msg);
 		smb_unlockmsghdr(&smb,&msg);
 		if(i!=0) {
 			printf("\n(%06lX) smb_getmsghdr returned %d:\n%s\n",l,i,smb.last_error);
-			continue; 
+			continue;
 		}
 		size=smb_hdrblocks(smb_getmsghdrlen(&msg))*SHD_BLOCK_LEN;
 		printf("#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,msg.from);
@@ -211,6 +223,11 @@ int fixsmb(char* sub)
 			if(msg.hdr.number == numbers[i])
 				dupe_msgnum = TRUE;
 
+		if(dupe_msgnum && fixnums && msg.hdr.number >= last_msg) {
+			printf("Fixed message number (%lu -> %lu)\n", (ulong)msg.hdr.number, (ulong)highest + 1);
+			msg.hdr.number = highest + 1;
+			dupe_msgnum = FALSE;
+		}
 		if(!dupe_msgnum) {
 			total++;
 			if((numbers = realloc(numbers, total * sizeof(*numbers))) == NULL) {
@@ -219,7 +236,7 @@ int fixsmb(char* sub)
 			}
 			numbers[total-1] = msg.hdr.number;
 		}
-		
+
 		if(dupe_msgnum)
 			msg.hdr.attr|=MSG_DELETE;
 		else if(smb_undelete)
@@ -243,19 +260,21 @@ int fixsmb(char* sub)
 			printf("Not indexing deleted message\n");
 		else if(msg.hdr.number==0)
 			printf("Not indexing invalid message number (0)!\n");
-		else {   
+		else {
 			msg.offset=n;
 			if(renumber)
 				msg.hdr.number=n+1;
+			if(msg.hdr.number > highest)
+				highest = msg.hdr.number;
 			if(msg.hdr.netattr&MSG_INTRANSIT) {
 				printf("Removing 'in transit' attribute\n");
 				msg.hdr.netattr&=~MSG_INTRANSIT;
 			}
 			if((i=smb_putmsg(&smb,&msg))!=0) {
 				printf("\nsmb_putmsg returned %d: %s\n",i,smb.last_error);
-				continue; 
+				continue;
 			}
-			n++; 
+			n++;
 		}
 
 		if(!(smb.status.attr&SMB_HYPERALLOC)) {
@@ -277,14 +296,17 @@ int fixsmb(char* sub)
 				smb_incmsg_dfields(&smb,&msg,1);
 		}
 
-		smb_freemsgmem(&msg); 
+		smb_freemsgmem(&msg);
 	}
 	printf("\r%79s\r100%%\n","");
 	smb.status.total_msgs=n;
 	if(renumber)
-		smb.status.last_msg=n;
-	else
+		smb.status.last_msg = highest;
+	else {
+		if(highest > smb.status.last_msg)
+			smb.status.last_msg = highest;
 		sort_index(&smb);
+	}
 	printf("Saving message base status (%lu total messages).\n",n);
 	if((i=smb_putstatus(&smb))!=0)
 		printf("\nsmb_putstatus returned %d: %s\n",i,smb.last_error);
@@ -304,7 +326,7 @@ int main(int argc, char **argv)
 	str_list_t	list;
 	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.40 $", "%*s %s", revision);
+	sscanf("$Revision: 1.45 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -315,15 +337,19 @@ int main(int argc, char **argv)
 		if(argv[i][0]=='-') {
 			if(!stricmp(argv[i],"-renumber"))
 				renumber=TRUE;
+			else if(!stricmp(argv[i],"-rehash"))
+				rehash=TRUE;
 			else if(!stricmp(argv[i],"-undelete"))
 				smb_undelete=TRUE;
+			else if(!stricmp(argv[i],"-fixnums"))
+				fixnums=TRUE;
 		} else
 			strListPush(&list,argv[i]);
 	}
 
 	if(!strListCount(list)) {
 		puts(usage);
-		exit(1); 
+		exit(1);
 	}
 
 	atexit(unlock_msgbase);
