@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.672 2018/03/05 02:53:55 deuce Exp $ */
+/* $Id: main.cpp,v 1.673 2018/03/06 07:33:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2566,7 +2566,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed");
+						eprintf(LOG_INFO,"Packing completed: %s", str);
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
