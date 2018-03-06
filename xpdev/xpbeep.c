@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.94 2015/04/28 02:06:53 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.96 2018/02/01 09:10:45 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -12,6 +12,7 @@
 	#include <mmsystem.h>
 #elif defined(__unix__)
 	#include <fcntl.h>
+	#include <sys/ioctl.h>
 	#if SOUNDCARD_H_IN==1
 		#include <sys/soundcard.h>
 	#elif SOUNDCARD_H_IN==2
@@ -571,7 +572,10 @@ void DLLCALL xptone_complete(void)
 		while(pa_api->active(portaudio_stream))
 			SLEEP(1);
 		pa_api->stop(portaudio_stream);
-		FREE_AND_NULL(pawave);
+		if (pawave) {
+			free((void *)pawave);
+			pawave = NULL;
+		}
 	}
 #endif
 
