@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.22 2017/10/12 07:06:07 rswindell Exp $ */
+/* $Id: scfg.h,v 1.26 2017/11/11 22:27:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -47,11 +47,41 @@
 
 #define SETHELP(where)  uifc.sethelp(where)
 
+#define SCFG_CMDLINE_SPEC_HELP 	"\n"																				\
+								"The following is a list of commonly-used command-line specifiers:\n"				\
+								"\n"																				\
+								"  `%f`  The path/filename of the file to act upon or door/game drop file\n"		\
+								"  `%s`  File specification (e.g. `*.txt`) or the current `Startup Directory`\n"	\
+								"  `%!`  The Synchronet `exec` directory (use `%@` for non-Unix only)\n"			\
+								"  `%.`  Executable file extension (`.exe`, or blank for Unix systems)\n"			\
+								"  `%n`  The current node directory\n"												\
+								"  `%#`  The current node number\n"													\
+								"  `%a`  The current user's alias\n"												\
+								"  `%1`  The current user's number (use `%2`, `%3`, etc. for 0-padded values)\n"	\
+								"  `%h`  The current TCP/IP socket descriptor (handle) value\n"						\
+								"  `%p`  The current connection type (protocol, e.g. `telnet`, `rlogin`, etc.)\n"	\
+								"  `%r`  The current user's terminal height (rows)\n"								\
+								"  `%w`  The current user's terminal width (columns)\n"								\
+								"\n"																				\
+								"For a complete list of the supported command-line specifiers, see:\n"				\
+								"`http://wiki.synchro.net/config:cmdline`\n"
+
+
 /*************/
 /* Constants */
 /*************/
 
 #define SUB_HDRMOD	(1L<<31)		/* Modified sub-board header info */
+
+#define MAX_UNIQUE_CODE_ATTEMPTS (36*36*36)
+
+enum import_list_type {
+	IMPORT_LIST_TYPE_SUBS_TXT,
+	IMPORT_LIST_TYPE_QWK_CONTROL_DAT,
+	IMPORT_LIST_TYPE_GENERIC_AREAS_BBS,
+	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
+	IMPORT_LIST_TYPE_BACKBONE_NA,
+};
 
 /************/
 /* Typedefs */
@@ -70,6 +100,7 @@ extern char *nulstr;
 extern char *invalid_code,*num_flags;
 extern int	backup_level;
 extern BOOL new_install;
+char* area_sort_desc[AREA_SORT_TYPES+1];
 
 /***********************/
 /* Function Prototypes */
@@ -111,6 +142,15 @@ int export_mdm(char *fname);
 int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
+bool new_sub(unsigned new_subnum, unsigned group_num);
+bool new_qhub_sub(qhub_t*, unsigned qsubnum, sub_t*, unsigned confnum);
+void sort_subs(int grpnum);
+void sort_dirs(int libnum);
+unsigned subs_in_group(unsigned grpnum);
+char random_code_char(void);
+
+	
+long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum, qhub_t*, long* added);
 
 /* Prepare a string to be used as an internal code; Note: use the return value, Luke */
 char* prep_code(char *str, const char* prefix);
