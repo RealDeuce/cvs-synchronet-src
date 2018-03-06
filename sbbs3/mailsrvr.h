@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.79 2017/08/26 01:57:24 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.83 2018/03/04 21:20:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -45,7 +45,9 @@ typedef struct {
 	DWORD	size;				/* sizeof(mail_startup_t) */
 	WORD	smtp_port;
 	WORD	pop3_port;
+	WORD	pop3s_port;
 	WORD	submission_port;
+	WORD	submissions_port;
 	WORD	max_clients;
 #define MAIL_DEFAULT_MAX_CLIENTS			10
 	WORD	max_inactivity;
@@ -132,6 +134,9 @@ typedef struct {
 static struct init_field mail_init_fields[] = { 
 	 OFFSET_AND_SIZE(mail_startup_t,smtp_port)
 	,OFFSET_AND_SIZE(mail_startup_t,pop3_port)
+	,OFFSET_AND_SIZE(mail_startup_t,pop3s_port)
+	,OFFSET_AND_SIZE(mail_startup_t,submission_port)
+	,OFFSET_AND_SIZE(mail_startup_t,submissions_port)
 	,OFFSET_AND_SIZE(mail_startup_t,interfaces)
 	,OFFSET_AND_SIZE(mail_startup_t,ctrl_dir)
 	,{ 0,0 }	/* terminator */
@@ -166,6 +171,9 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
 #define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
+#define MAIL_OPT_KILL_READ_SPAM			(1<<28)	/* Set the KILLREAD flag on SPAM msgs */
+#define MAIL_OPT_TLS_SUBMISSION			(1<<29)	/* Listen on the TLS "MSA" service port for mail submissions */
+#define MAIL_OPT_TLS_POP3				(1<<30)	/* POP3S */
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
@@ -204,6 +212,9 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
 	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
+	{ MAIL_OPT_KILL_READ_SPAM		,"KILL_READ_SPAM"		},
+	{ MAIL_OPT_TLS_SUBMISSION		,"TLS_SUBMISSION"		},
+	{ MAIL_OPT_TLS_POP3				,"TLS_POP3"				},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
 	{ 0 							,NULL					}
@@ -248,6 +259,6 @@ int mail_close_socket(SOCKET sock);
 }
 #endif
 
-int sockprintf(SOCKET sock, char *fmt, ...);
+int sockprintf(SOCKET sock, int sess, char *fmt, ...);
 
 #endif /* Don't add anything after this line */

@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.36 2015/11/26 08:34:34 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.38 2018/02/20 11:14:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	CRLF;
 
 	if((msgbuf=(char*)malloc(length+1))==NULL) {
+		fclose(fp);
 		errormsg(WHERE,ERR_ALLOC,msgpath,length+1);
 		return(false);
 	}
@@ -205,7 +206,7 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 		smb_hfield_str(&newmsg,RECIPIENTEXT,str);
 	}
 
-	j=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK);
+	j=smb_addmsghdr(smb,&newmsg,smb_storage_mode(&cfg, smb));
 	smb_freemsgmem(&newmsg);
 	if(j!=SMB_SUCCESS)
 		return(j);
