@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.230 2018/02/20 19:34:17 deuce Exp $ */
+/* $Id: cterm.c,v 1.236 2018/02/20 21:36:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1303,6 +1303,8 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 			cterm->sx_pixels_sent = 1;
 			GETTEXTINFO(&ti);
 			vmode = find_vmode(ti.currmode);
+			if (vmode == -1)
+				return;
 			if (cterm->sx_pixels == NULL) {
 				cterm->sx_pixels = malloc(sizeof(struct ciolib_pixels));
 				cterm->sx_pixels->pixels = malloc(sizeof(cterm->sx_pixels->pixels[0]) * cterm->sx_iv * ti.screenwidth * vparams[vmode].charwidth * 6);
@@ -1390,13 +1392,13 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 					break;
 				case '!':	// Repeat
 					p++;
-					if (!p)
+					if (!*p)
 						continue;
 					cterm->sx_repeat = strtoul(p, &p, 10);
 					break;
 				case '#':	// Colour Introducer
 					p++;
-					if (!p)
+					if (!*p)
 						continue;
 					cterm->sx_fg = strtoul(p, &p, 10) + TOTAL_DAC_SIZE + 16;
 					/* Do we want to redefine it while we're here? */
@@ -1433,6 +1435,8 @@ static void parse_sixel_string(struct cterminal *cterm, bool finish)
 						GETTEXTINFO(&ti);
 						vmode = find_vmode(ti.currmode);
 
+						if (vmode == -1)
+							return;
 						setpixels(cterm->sx_left, cterm->sx_y, cterm->sx_row_max_x, cterm->sx_y + 6 * cterm->sx_iv - 1, cterm->sx_left, 0, cterm->sx_pixels, cterm->sx_mask);
 						cterm->sx_row_max_x = 0;
 
@@ -1497,13 +1501,15 @@ all_done:
 	}
 
 	if (cterm->sx_scroll_mode) {
-		cterm->sx_x = cterm->sx_x / vparams[vmode].charwidth + 1;
-		cterm->sx_x -= (cterm->x - 1);
+		if (vmode != -1) {
+			cterm->sx_x = cterm->sx_x / vparams[vmode].charwidth + 1;
+			cterm->sx_x -= (cterm->x - 1);
 
-		cterm->sx_y = (cterm->sx_y - 1) / vparams[vmode].charheight + 1;
-		cterm->sx_y -= (cterm->y - 1);
+			cterm->sx_y = (cterm->sx_y - 1) / vparams[vmode].charheight + 1;
+			cterm->sx_y -= (cterm->y - 1);
 
-		GOTOXY(cterm->sx_x,cterm->sx_y);
+			GOTOXY(cterm->sx_x,cterm->sx_y);
+		}
 	}
 	else {
 		GOTOXY(cterm->sx_start_x, cterm->sx_start_y);
@@ -1630,13 +1636,16 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								struct text_info ti;
 								int vmode;
 
+								tmp[0] = 0;
 								GETTEXTINFO(&ti);
 								vmode = find_vmode(ti.currmode);
-								sprintf(tmp, "\x1b[?2;0;%u;%uS", vparams[vmode].charwidth*cterm->width, vparams[vmode].charheight*cterm->height);
+								if (vmode != -1)
+									sprintf(tmp, "\x1b[?2;0;%u;%uS", vparams[vmode].charwidth*cterm->width, vparams[vmode].charheight*cterm->height);
 								if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
 									strcat(retbuf, tmp);
 							}
 						}
+						break;
 					case 'c':
 						/* SyncTERM Device Attributes */
 						if (seq->param_str[0] == '<' && parse_parameters(seq)) {
@@ -1827,7 +1836,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 									GETTEXTINFO(&ti);
 									vmode = find_vmode(ti.currmode);
-									sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
+									if (vmode != -1)
+										sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
 									break;
 								}
 							}
@@ -2852,7 +2862,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.230 $";
+	char	*revision="$Revision: 1.236 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3105,6 +3115,10 @@ static void parse_sixel_intro(struct cterminal *cterm)
 
 		GETTEXTINFO(&ti);
 		vmode = find_vmode(ti.currmode);
+		if (vmode == -1) {
+			cterm->sixel = SIXEL_INACTIVE;
+			return;
+		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->sx_scroll_mode) {
 			cterm->sx_x = cterm->sx_left = (cterm->x + WHEREX() - 2) * vparams[vmode].charwidth;
@@ -3298,8 +3312,10 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 								cterm->string = 0;
 								FREE_AND_NULL(cterm->strbuf);
 								cterm->strbuflen = cterm->strbufsize = 0;
-								cterm_write(cterm, "\x1b", 1, retbuf+strlen(retbuf), retsize-strlen(retbuf), speed);
-								cterm_write(cterm, &ch[0], 1, retbuf+strlen(retbuf), retsize-strlen(retbuf), speed);
+								if (retbuf) {
+									cterm_write(cterm, "\x1b", 1, retbuf+strlen(retbuf), retsize-strlen(retbuf), speed);
+									cterm_write(cterm, &ch[0], 1, retbuf+strlen(retbuf), retsize-strlen(retbuf), speed);
+								}
 							}
 							else {
 								if (cterm->strbuf == NULL) {
