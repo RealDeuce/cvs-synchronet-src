@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.168 2018/02/20 19:22:14 deuce Exp $ */
+/* $Id: ciolib.c,v 1.170 2018/02/20 21:11:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -534,8 +534,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 	int width;
 	int height;
 	void *buf;
-	uint32_t *fgb = NULL;
-	uint32_t *bgb = NULL;
 
 	CIOLIB_INIT();
 
@@ -567,10 +565,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int 
 
 fail:
 	free(buf);
-	if (fgb)
-		free(fgb);
-	if (bgb)
-		free(bgb);
 	return 0;
 }
 
@@ -1396,9 +1390,10 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_vmem_gettext(int a,int b,int c,int d,struct v
 		buf = malloc((c-a+1)*(d-b+1)*sizeof(*buf));
 		if (buf == NULL)
 			return 0;
-		ret = ciolib_gettext(a, b, c, d, e);
+		ret = ciolib_gettext(a, b, c, d, buf);
 		if (ret) {
 			for (i=0; i<(c-a+1)*(d-b+1); i++) {
+				memset(&e[i], 0, sizeof(e[0]));
 				e[i].ch = buf[i] & 0xff;
 				e[i].legacy_attr = buf[i] >> 8;
 			}
