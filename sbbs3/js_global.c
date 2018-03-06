@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.368 2018/02/20 11:32:32 rswindell Exp $ */
+/* $Id: js_global.c,v 1.369 2018/02/22 10:02:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2841,7 +2841,7 @@ js_cfgfname(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc==0 || JSVAL_IS_VOID(argv[0]))
+	if(argc < 2 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], path, NULL);
