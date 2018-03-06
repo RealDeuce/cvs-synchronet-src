@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.654 2018/03/03 02:02:32 deuce Exp $ */
+/* $Id: websrvr.c,v 1.655 2018/03/06 08:05:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3319,7 +3319,7 @@ static BOOL exec_js_webctrl(http_session_t* session, char *name, char* script, c
 
 		lprintf(LOG_DEBUG,"%04d JavaScript: Compiling %s", session->socket, name);
 		if(!JS_EvaluateScript(session->js_cx, session->js_glob, script, strlen(script), name, 1, &rval)) {
-			lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile rewrite %s:%s"
+			lprintf(LOG_WARNING,"%04d !JavaScript FAILED to compile rewrite %s:%s"
 				,session->socket,name,script);
 			JS_ReportPendingException(session->js_cx);
 			JS_RemoveObjectRoot(session->js_cx, &session->js_glob);
@@ -6513,7 +6513,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.654 $", "%*s %s", revision);
+	sscanf("$Revision: 1.655 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
