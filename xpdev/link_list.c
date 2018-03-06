@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.61 2018/03/09 07:46:03 deuce Exp $ */
+/* $Id: link_list.c,v 1.59 2018/02/26 05:22:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,7 +57,7 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_MUTEX) {
-		list->mutex = pthread_mutex_initializer_np(/* recursive: */TRUE);
+		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 	}
 
 	if(list->flags&LINK_LIST_SEMAPHORE)
@@ -803,8 +803,6 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 
 	if(node==FIRST_NODE)
 		node=list->first;
-	if(node==LAST_NODE)
-		node=list->last;
 
 	for(count=0; node!=NULL && count<max; node=next_node, count++) {
 		next_node = node->next;
