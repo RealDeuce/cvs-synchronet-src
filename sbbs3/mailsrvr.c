@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.627 2018/03/06 04:18:59 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.628 2018/03/06 08:09:53 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5352,15 +5352,6 @@ static void sendmail_thread(void* arg)
 								j--;
 								continue;
 							}
-							if (cryptSetAttribute(session, CRYPT_SESSINFO_VERSION, 1) != CRYPT_OK) {
-								cryptDestroySession(session);
-								session = -1;
-								remove_msg_intransit(&smb,&msg);
-								bounce(sock, &smb,&msg,"Unable to set TLS version to 1.0",/* immediate: */buf[0]=='5');
-								tls_failed = TRUE;
-								j--;
-								continue;
-							}
 							if (cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1) != CRYPT_OK) {
 								cryptDestroySession(session);
 								session = -1;
@@ -5667,7 +5658,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.627 $", "%*s %s", revision);
+	sscanf("$Revision: 1.628 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
