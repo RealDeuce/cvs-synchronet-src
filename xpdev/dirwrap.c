@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.94 2017/12/28 04:17:39 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.98 2018/02/20 21:22:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
-   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
+   return strcmp( * ( char** ) arg1, * ( char** ) arg2 );
 }
 
 #if defined(__BORLANDC__)
@@ -248,7 +248,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 			SAFECOPY(path,pattern);
 			p=getfname(path);
 			*p=0;
-			strcat(path,ff.name);
+			SAFECAT(path,ff.name);
 
 			if((glob->gl_pathv[glob->gl_pathc]=(char*)malloc(strlen(path)+2))==NULL) {
 				globfree(glob);
@@ -315,8 +315,9 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 
 	SAFECOPY(match,path);
 	backslash(match);
-	strcat(match,ALLFILES);
-	glob(match,GLOB_MARK,NULL,&g);
+	SAFECAT(match,ALLFILES);
+	if (glob(match,GLOB_MARK,NULL,&g) != 0)
+		return 0;
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -767,7 +768,7 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 
 	SAFECOPY(path, inpath);
 	backslash(path);
-	strcat(path, pattern);
+	SAFECAT(path, pattern);
 	if(glob(path, GLOB_MARK, NULL, &g))
 		return 0;
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
@@ -968,8 +969,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(sb.st_mode&S_IFDIR)
 		strcat(target,"/"); */
 
-	for(;*out;out++)  {
-		while(*out=='/')  {
+	for(;*out;out++) {
+		while(*out=='/') {
 			if(*(out+1)=='/')
 				memmove(out,out+1,strlen(out));
 			else if(*(out+1)=='.' && (*(out+2)=='/' || *(out+2)==0))
@@ -986,6 +987,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 				out++;
 			}
 		}
+		if (!*out)
+			break;
 	}
 	return(target);
 }

@@ -2,7 +2,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.105 2017/12/13 21:16:23 rswindell Exp $
+# $Id: Common.gmake,v 1.106 2018/02/03 07:31:18 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -246,6 +246,10 @@ ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
 else
  ifeq ($(shell if [ -f /boot/develop/headers/posix/inttypes.h ] ; then echo YES ; fi),YES)
   CFLAGS	+=	-DHAS_INTTYPES_H
+ else
+  ifeq ($(os),darwin)	# Don't go digging for stuff on Mac, nobody knows what's up.
+   CFLAGS	+=	-DHAS_INTTYPES_H
+  endif
  endif
 endif
 
