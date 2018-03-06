@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.309 2018/03/05 19:46:57 deuce Exp $ */
+/* $Id: services.c,v 1.310 2018/03/06 00:08:35 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1638,7 +1638,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.309 $", "%*s %s", revision);
+	sscanf("$Revision: 1.310 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1707,6 +1707,7 @@ void DLLCALL services_thread(void* arg)
 	struct timeval	tv;
 	service_client_t* client;
 	char			ssl_estr[SSL_ESTR_LEN];
+	BOOL			need_cert = FALSE;
 
 	services_ver();
 
@@ -1841,11 +1842,7 @@ void DLLCALL services_thread(void* arg)
 					continue;
 				}
 				if(scfg.tls_certificate == -1) {
-					get_ssl_cert(&scfg, ssl_estr);
-					if (scfg.tls_certificate == -1) {
-						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-						continue;
-					}
+					need_cert = TRUE;
 				}
 			}
 			service[i].set=xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
@@ -1910,6 +1907,12 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		if (need_cert) {
+			get_ssl_cert(&scfg, ssl_estr);
+			if (scfg.tls_certificate == -1)
+				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+		}
 
 		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
