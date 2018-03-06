@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.215 2018/02/20 20:54:58 deuce Exp $ */
+/* $Id: syncterm.c,v 1.216 2018/02/28 07:28:52 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -77,6 +77,7 @@ char	*usage =
 		"-6  =  Only resolve IPv6 addresses\n"
 		"-s  =  enable \"Safe Mode\" which prevents writing/browsing local files\n"
 		"-T  =  when the ONLY argument, dumps the terminfo entry to stdout and exits\n"
+		"-v  =  when the ONLY argument, dumps the version info to stdout and exits\n"
 		"\n"
 		"URL format is: [(rlogin|telnet|ssh|raw)://][user[:password]@]domainname[:port]\n"
 		"raw:// URLs MUST include a port.\n"
@@ -1351,6 +1352,11 @@ int main(int argc, char **argv)
 		write(STDOUT_FILENO, syncterm_termcap, strlen(syncterm_termcap));
 		return 0;
 	}
+	if(argc==2 && strcmp(argv[1],"-v")==0) {
+		fprintf(stdout, "%s\n", syncterm_version);
+		return 0;
+	}
+
 
 #if !defined(WITHOUT_CRYPTLIB)
 	/* Cryptlib initialization MUST be done before ciolib init */
