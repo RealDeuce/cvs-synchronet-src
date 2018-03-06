@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.633 2018/03/06 19:19:07 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.634 2018/03/06 19:47:46 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5409,9 +5409,12 @@ static void sendmail_thread(void* arg)
 							}
 							if ((i=cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
 								cryptDestroySession(session);
-								lprintf(LOG_WARNING,"%04d !SEND ERROR %d activating TLS session with SMTP server: %s"
+								p = get_crypt_error(session);
+								lprintf(LOG_WARNING,"%04d !SEND ERROR %d (%s) activating TLS session with SMTP server: %s"
 									,sock
-									,i, server);
+									,i, p ? p : "<unknown>", server);
+								if (p)
+									free_crypt_attrstr(p);
 								session = -1;
 								if (!sendmail_open_socket(&sock, &smb, &msg)) {
 									remove_msg_intransit(&smb,&msg);
@@ -5732,7 +5735,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.633 $", "%*s %s", revision);
+	sscanf("$Revision: 1.634 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
