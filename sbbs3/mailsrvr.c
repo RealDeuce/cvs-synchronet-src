@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.624 2018/03/04 21:20:53 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.625 2018/03/06 03:04:57 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3618,7 +3618,7 @@ static void smtp_thread(void* arg)
 						,server_ip
 						,server_name
 						,revision,PLATFORM_DESC
-						,esmtp ? "ESMTP" : "SMTP"
+						,esmtp ? (auth_login ? "ESMTPA" : "ESMTP") : "SMTP"
 						,rcpt_to,msgdate(msg.hdr.when_imported,date)
 						,reverse_path);
 					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
@@ -5643,7 +5643,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.624 $", "%*s %s", revision);
+	sscanf("$Revision: 1.625 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
