@@ -1,10 +1,10 @@
-/* $Id: x_cio.c,v 1.50 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: x_cio.c,v 1.48 2018/02/14 04:37:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -430,6 +430,7 @@ int x_init(void)
 	}
 
 	_beginthread(x11_event_thread,1<<16,NULL);
+	_beginthread(x11_mouse_thread,1<<16,NULL);
 	sem_wait(&init_complete);
 	if(!x11_initialized) {
 		xp_dlclose(dl);
@@ -440,7 +441,6 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
-	_beginthread(x11_mouse_thread,1<<16,NULL);
 	cio_api.options |= CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
