@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.193 2018/03/06 07:09:33 deuce Exp $ */
+/* $Id: js_socket.c,v 1.194 2018/03/06 07:10:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,8 +104,10 @@ static void do_js_close(js_socket_private_t *p)
 		cryptDestroySession(p->session);
 		p->session=-1;
 	}
-	if(p->sock==INVALID_SOCKET)
+	if(p->sock==INVALID_SOCKET) {
+		p->is_connected = FALSE;
 		return;
+	}
 	if(p->external==FALSE) {
 		close_socket(p->sock);
 		p->last_error = ERROR_VALUE;
