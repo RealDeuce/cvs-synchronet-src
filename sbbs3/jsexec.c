@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.198 2018/03/09 03:55:41 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.196 2018/02/20 11:39:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.198 $", "%*s %s", revision);
+	sscanf("$Revision: 1.196 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1358,11 +1358,8 @@ int main(int argc, char **argv, char** env)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
 #elif defined(__unix__)
 	signal(SIGQUIT,break_handler);
-	siginterrupt(SIGQUIT, 1);
 	signal(SIGINT,break_handler);
-	siginterrupt(SIGINT, 1);
 	signal(SIGTERM,break_handler);
-	siginterrupt(SIGTERM, 1);
 
 	signal(SIGHUP,recycle_handler);
 
@@ -1393,7 +1390,7 @@ int main(int argc, char **argv, char** env)
 		YIELD();
 
 		if(result)
-			lprintf(LOG_ERR,"!Module (%s) set exit_code: %ld", module, result);
+			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
 
 		fprintf(statfp,"\n");
 		fprintf(statfp,"JavaScript: Destroying context\n");
