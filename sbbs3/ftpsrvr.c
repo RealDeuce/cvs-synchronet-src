@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.447 2018/03/07 22:22:03 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.448 2018/03/07 23:34:21 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4505,21 +4505,31 @@ static void ctrl_thread(void* arg)
 				SKIP_WHITESPACE(p);
 			}
 
-			parsepath(&p,&user,&client,&lib,&dir);
-			filespec=p;
-			if(*filespec==0)
-				filespec="*";
-
 			if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 				sockprintf(sock,sess, "451 Insufficient system storage");
 				continue;
 			}
+			sockprintf(sock,sess,"150 Opening ASCII mode data connection for /bin/ls.");
+
+			if (parsepath(&p,&user,&client,&lib,&dir) == -1) {
+				/* Empty list */
+				fclose(fp);
+				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
+					,&transfer_inprogress,&transfer_aborted
+					,TRUE /* delfile */
+					,TRUE /* tmpfile */
+					,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL,protection);
+				continue;
+			}
+			filespec=p;
+			if(*filespec==0)
+				filespec="*";
+
 			if(!strnicmp(cmd, "LIST", 4))
 				detail=TRUE;
 			else
 				detail=FALSE;
-			sockprintf(sock,sess,"150 Opening ASCII mode data connection for /bin/ls.");
 			now=time(NULL);
 			if(localtime_r(&now,&cur_tm)==NULL) 
 				memset(&cur_tm,0,sizeof(cur_tm));
@@ -5742,7 +5752,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.447 $", "%*s %s", revision);
+	sscanf("$Revision: 1.448 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
