@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.655 2018/03/06 08:05:12 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.656 2018/03/07 07:50:27 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -655,11 +655,13 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						else if(ERROR_VALUE==ECONNABORTED) 
 							lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",session->socket);
 #ifdef EPIPE
-						else if(ERROR_VALUE==EPIPE) 
+						else if(ERROR_VALUE==EPIPE)
 							lprintf(LOG_NOTICE,"%04d Unable to send to peer",session->socket);
 #endif
 						else
 							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
+						if (failed)
+							*failed=TRUE;
 						return(sent);
 					}
 				}
@@ -6513,7 +6515,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.655 $", "%*s %s", revision);
+	sscanf("$Revision: 1.656 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
