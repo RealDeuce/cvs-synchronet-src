@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.674 2018/03/07 22:30:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.675 2018/03/07 22:39:57 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5146,10 +5146,6 @@ NO_SSH:
 		if(client_socket == INVALID_SOCKET)
 			continue;
 
-		// Count the socket:
-		if(startup->socket_open!=NULL)
-			startup->socket_open(startup->cbdata, TRUE);
-
 		bool rlogin = false;
 #ifdef USE_CRYPTLIB
 		bool ssh = false;
@@ -5205,6 +5201,10 @@ NO_SSH:
 			/* Do not need to close_socket(client_socket) here */
 			continue;
 		}
+
+		// Count the socket:
+		if(startup->socket_open!=NULL)
+			startup->socket_open(startup->cbdata, TRUE);
 
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
