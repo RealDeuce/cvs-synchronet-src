@@ -1,6 +1,6 @@
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.33 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: file.cpp,v 1.34 2018/02/20 11:21:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -212,6 +212,7 @@ void sbbs_t::closefile(file_t* f)
 	}
 	close(file);
 	if((file=nopen(str1,O_WRONLY|O_TRUNC))==-1) {
+		free(buf);
 		errormsg(WHERE,ERR_OPEN,str1,O_WRONLY|O_TRUNC);
 		return; 
 	}
