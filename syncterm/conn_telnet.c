@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.12 2018/10/25 09:08:29 rswindell Exp $ */
+/* $Id: conn_telnet.c,v 1.11 2018/02/01 08:17:39 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -11,7 +11,6 @@
 
 #include "bbslist.h"
 #include "conn.h"
-#include "term.h"
 #include "uifcinit.h"
 
 #include "telnet_io.h"
@@ -33,8 +32,6 @@ void telnet_input_thread(void *args)
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
-	while(cterm == NULL)	// telnet_interpret needs to dereference cterm (to get emulation type)
-		SLEEP(1);
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
