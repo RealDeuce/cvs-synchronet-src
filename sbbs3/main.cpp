@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.673 2018/03/06 07:33:49 rswindell Exp $ */
+/* $Id: main.cpp,v 1.674 2018/03/07 22:30:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -268,6 +268,7 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
+// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -5144,6 +5145,10 @@ NO_SSH:
 
 		if(client_socket == INVALID_SOCKET)
 			continue;
+
+		// Count the socket:
+		if(startup->socket_open!=NULL)
+			startup->socket_open(startup->cbdata, TRUE);
 
 		bool rlogin = false;
 #ifdef USE_CRYPTLIB
