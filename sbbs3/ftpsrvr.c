@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.446 2018/03/07 22:00:49 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.447 2018/03/07 22:22:03 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2246,7 +2246,6 @@ static int parsepath(char** pp, user_t* user, client_t* client, int* curlib, int
 	}
 
 	while (*p) {
-lprintf(LOG_DEBUG, "Parsing '%s'", p);
 		/* Relative path stuff */
 		if (strcmp(p, "..") == 0) {
 			if (dir >= 0)
@@ -2272,7 +2271,6 @@ lprintf(LOG_DEBUG, "Parsing '%s'", p);
 			p += 2;
 		/* Path component */
 		else if (lib < 0) {
-lprintf(LOG_DEBUG, "Finding a lib");
 			for(lib=0;lib<scfg.total_libs;lib++) {
 				if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
 					continue;
@@ -2291,10 +2289,15 @@ lprintf(LOG_DEBUG, "Finding a lib");
 			if (lib == scfg.total_libs) {
 				ret = -1;
 				lib = -1;
+				if (strchr(p, '/') != NULL) {
+					p = strchr(p, '/');
+					p++;
+				}
+				else
+					p = strchr(p, 0);
 			}
 		}
 		else if (dir < 0) {
-lprintf(LOG_DEBUG, "Finding a dir");
 			for(dir=0;dir<scfg.total_dirs;dir++) {
 				if(scfg.dir[dir]->lib!=lib)
 					continue;
@@ -2315,10 +2318,15 @@ lprintf(LOG_DEBUG, "Finding a dir");
 			if (dir == scfg.total_dirs) {
 				ret = -1;
 				dir = -1;
+				if (strchr(p, '/') != NULL) {
+					p = strchr(p, '/');
+					p++;
+				}
+				else
+					p = strchr(p, 0);
 			}
 		}
 		else {	// Filename
-lprintf(LOG_DEBUG, "Thats a filename");
 			if (strchr(p, '/') != NULL) {
 				ret = -1;
 				p = strchr(p, '/');
@@ -2330,7 +2338,6 @@ lprintf(LOG_DEBUG, "Thats a filename");
 			}
 		}
 	}
-lprintf(LOG_DEBUG, "ret=%d lib=%d dir=%d fname='%s'\n", ret, lib, dir, fname);
 	*curdir = dir;
 	*curlib = lib;
 	*pp = fname;
@@ -5735,7 +5742,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.446 $", "%*s %s", revision);
+	sscanf("$Revision: 1.447 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
