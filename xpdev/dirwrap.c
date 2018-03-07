@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.96 2018/02/10 08:20:40 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.99 2018/03/07 02:40:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,7 +248,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 			SAFECOPY(path,pattern);
 			p=getfname(path);
 			*p=0;
-			strcat(path,ff.name);
+			SAFECAT(path,ff.name);
 
 			if((glob->gl_pathv[glob->gl_pathc]=(char*)malloc(strlen(path)+2))==NULL) {
 				globfree(glob);
@@ -315,8 +315,9 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 
 	SAFECOPY(match,path);
 	backslash(match);
-	strcat(match,ALLFILES);
-	glob(match,GLOB_MARK,NULL,&g);
+	SAFECAT(match,ALLFILES);
+	if (glob(match,GLOB_MARK,NULL,&g) != 0)
+		return 0;
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -767,7 +768,7 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 
 	SAFECOPY(path, inpath);
 	backslash(path);
-	strcat(path, pattern);
+	SAFECAT(path, pattern);
 	if(glob(path, GLOB_MARK, NULL, &g))
 		return 0;
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
@@ -1031,7 +1032,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || filename[1]==':'
+		|| filename[0]=='\\' || (isalpha(filename[0] && filename[1]==':')
 #endif
 		);
 }
