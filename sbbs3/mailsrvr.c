@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.638 2018/03/07 03:20:14 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.639 2018/03/07 07:20:54 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4695,6 +4695,7 @@ static void smtp_thread(void* arg)
 				protected_uint32_adjust(&active_clients, -1);
 				update_clients();
 				free(mailproc_to_match);
+				break;
 			}
 			if (startup->max_inactivity) {
 				if (cryptSetAttribute(session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity) != CRYPT_OK) {
@@ -5682,7 +5683,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.638 $", "%*s %s", revision);
+	sscanf("$Revision: 1.639 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
