@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.448 2018/03/07 23:34:21 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.449 2018/03/08 08:05:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,6 +55,7 @@
 #include "multisock.h"
 #include "ssl.h"
 #include "cryptlib.h"
+#include "xpprintf.h"		// vasprintf
 
 /* Constants */
 
@@ -5752,7 +5753,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.448 $", "%*s %s", revision);
+	sscanf("$Revision: 1.449 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
