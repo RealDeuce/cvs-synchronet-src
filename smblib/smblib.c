@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.172 2017/11/25 01:24:23 rswindell Exp $ */
+/* $Id: smblib.c,v 1.175 2018/03/05 00:35:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,6 +87,7 @@ int SMBCALL smb_open(smb_t* smb)
 	smb->shd_fp=smb->sdt_fp=smb->sid_fp=NULL;
 	smb->sha_fp=smb->sda_fp=smb->hash_fp=NULL;
 	smb->last_error[0]=0;
+	smb->locked = FALSE;
 
 	/* Check for message-base lock semaphore file (under maintenance?) */
 	while(smb_islocked(smb)) {
@@ -118,8 +119,12 @@ int SMBCALL smb_open(smb_t* smb)
 		}
 		if(memcmp(hdr.id,SMB_HEADER_ID,LEN_HEADER_ID) && !smb->continue_on_error) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%s corrupt SMB header ID: %.*s", __FUNCTION__
-				,LEN_HEADER_ID,hdr.id);
+				,"%s corrupt SMB header ID: %02X %02X %02X %02X", __FUNCTION__
+				,hdr.id[0]
+				,hdr.id[1]
+				,hdr.id[2]
+				,hdr.id[3]
+				);
 			smb_close(smb);
 			return(SMB_ERR_HDR_ID); 
 		}
@@ -964,8 +969,12 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	}
 	if(memcmp(msg->hdr.id,SHD_HEADER_ID,LEN_HEADER_ID)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s corrupt message header ID: %.*s at offset %lu", __FUNCTION__
-			,LEN_HEADER_ID,msg->hdr.id,msg->idx.offset);
+			,"%s corrupt message header ID (%02X %02X %02X %02X) at offset %lu", __FUNCTION__
+			,msg->hdr.id[0]
+			,msg->hdr.id[1]
+			,msg->hdr.id[2]
+			,msg->hdr.id[3]
+			,msg->idx.offset);
 		return(SMB_ERR_HDR_ID);
 	}
 	if(msg->hdr.version<0x110) {
@@ -1520,6 +1529,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	int		i;
 	long	l;
 	ulong	hdrlen;
+	long	idxlen;
 
 	if(smb->shd_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
@@ -1542,6 +1552,16 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 		smb_unlocksmbhdr(smb);
 		return(i);
 	}
+
+	idxlen = filelength(fileno(smb->sid_fp));
+	if(idxlen != (smb->status.total_msgs * sizeof(idxrec_t))) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error)
+			,"%s index file length (%ld) unexpected (%ld)", __FUNCTION__
+			,idxlen, smb->status.total_msgs * sizeof(idxrec_t));
+		smb_unlocksmbhdr(smb);
+		return SMB_ERR_FILE_LEN;
+	}
+		
 	msg->hdr.number=smb->status.last_msg+1;
 
 	if(msg->hdr.thread_id==0)	/* new thread being started */
