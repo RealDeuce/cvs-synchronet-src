@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.47 2017/10/23 03:57:17 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.53 2018/03/07 01:12:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -72,6 +72,7 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 	for (unsigned u = cfg.total_dirs; u > new_dirnum; u--)
 		cfg.dir[u] = cfg.dir[u - 1];
 
+	new_directory->dirnum = new_dirnum;
 	cfg.dir[new_dirnum] = new_directory;
 	cfg.total_dirs++;
 	return true;
@@ -583,7 +584,7 @@ void xfer_cfg()
 					}
 					else
 						j=O_WRONLY|O_CREAT;
-					if((stream=fnopen(&file,str,j))==NULL) {
+					if((stream=fnopen(&file,str,j|O_TEXT))==NULL) {
 						uifc.msg("Open Failure");
 						break;
 					}
@@ -593,12 +594,12 @@ void xfer_cfg()
 							continue;
 						ported++;
 						if(k==1) {
-							fprintf(stream,"Area %-8s  0     !      %s\r\n"
+							fprintf(stream,"Area %-8s  0     !      %s\n"
 								,cfg.dir[j]->code_suffix,cfg.dir[j]->lname);
 							continue;
 						}
-						fprintf(stream,"%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n"
-								"%s\r\n%s\r\n"
+						fprintf(stream,"%s\n%s\n%s\n%s\n%s\n%s\n"
+								"%s\n%s\n"
 							,cfg.dir[j]->lname
 							,cfg.dir[j]->sname
 							,cfg.dir[j]->code_suffix
@@ -608,8 +609,8 @@ void xfer_cfg()
 							,cfg.dir[j]->dl_arstr
 							,cfg.dir[j]->op_arstr
 							);
-						fprintf(stream,"%s\r\n%s\r\n%u\r\n%s\r\n%"PRIX32"\r\n%u\r\n"
-								"%u\r\n"
+						fprintf(stream,"%s\n%s\n%u\n%s\n%"PRIX32"\n%u\n"
+								"%u\n"
 							,cfg.dir[j]->path
 							,cfg.dir[j]->upload_sem
 							,cfg.dir[j]->maxfiles
@@ -618,13 +619,13 @@ void xfer_cfg()
 							,cfg.dir[j]->seqdev
 							,cfg.dir[j]->sort
 							);
-						fprintf(stream,"%s\r\n%u\r\n%u\r\n%u\r\n"
+						fprintf(stream,"%s\n%u\n%u\n%u\n"
 							,cfg.dir[j]->ex_arstr
 							,cfg.dir[j]->maxage
 							,cfg.dir[j]->up_pct
 							,cfg.dir[j]->dn_pct
 							);
-						fprintf(stream,"***END-OF-DIR***\r\n\r\n");
+						fprintf(stream,"***END-OF-DIR***\n\n");
 					}
 					fclose(stream);
 					uifc.pop(0);
@@ -820,6 +821,11 @@ void xfer_cfg()
 							} 
 						}
 
+						if(tmpdir.lname[0] == 0)
+							SAFECOPY(tmpdir.lname, tmp_code);
+						if(tmpdir.sname[0] == 0)
+							SAFECOPY(tmpdir.sname, tmp_code);
+
 						SAFECOPY(tmpdir.code_suffix, prep_code(tmp_code,cfg.lib[i]->code_prefix));
 
 						int dupes = 0;
@@ -872,6 +878,7 @@ void xfer_cfg()
 								break;
 							}
 							memset(cfg.dir[j],0,sizeof(dir_t)); 
+							cfg.dir[j]->dirnum = j;
 							added++;
 						} else
 							dupes++;
@@ -894,7 +901,7 @@ void xfer_cfg()
 						uifc.changes=1; 
 					}
 					fclose(stream);
-					if(ported)
+					if(ported && cfg.lib[i]->sort)
 						sort_dirs(i);
 					uifc.pop(0);
 					sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
@@ -958,6 +965,8 @@ void dir_cfg(uint libnum)
 				case AREA_SORT_CODE:
 					name = cfg.dir[i]->code_suffix;
 					name_len = LEN_CODE;
+					break;
+				default:	/* Defeat stupid GCC warning */
 					break;
 			}
 			sprintf(str, "%-*s %c", name_len, name, cfg.dir[i]->misc&DIR_TEMPLATE ? '*' : ' ');
@@ -1028,9 +1037,7 @@ void dir_cfg(uint libnum)
 				"This is the drive and directory where your uploads to and downloads from\n"
 				"this directory will be stored. Example: `C:\\XFER\\GAMES`\n"
 			;
-			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Directory File Path",path,50
-				,K_EDIT)<1)
-				continue;
+			uifc.input(WIN_MID|WIN_SAV,0,0,"Directory File Path", path, LEN_DIR,K_EDIT);
 
 			if (!new_dir(dirnum[i], libnum))
 				continue;
@@ -1112,8 +1119,25 @@ void dir_cfg(uint libnum)
 				,cfg.dir[i]->op_arstr);
 			sprintf(opt[n++],"%-27.27s%.40s","Exemption Requirements"
 				,cfg.dir[i]->ex_arstr);
+			if(cfg.dir[i]->path[0]) {
+				SAFECOPY(str, cfg.dir[i]->path);
+				if(cfg.lib[cfg.dir[i]->lib]->parent_path[0])
+					prep_dir(cfg.lib[cfg.dir[i]->lib]->parent_path, str, sizeof(str));
+				else 
+					prep_dir(cfg.ctrl_dir, str, sizeof(str));
+			} else {
+				if (!cfg.dir[dirnum[i]]->data_dir[0])
+					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
+				else
+					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
+				backslash(data_dir);
+				SAFEPRINTF3(str, "[%s%s%s/]"
+					,data_dir 
+					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
+			}
+			strlwr(str);
 			sprintf(opt[n++],"%-27.27s%.40s","Transfer File Path"
-				,cfg.dir[i]->path);
+				,str);
 			sprintf(opt[n++],"%-27.27s%u","Maximum Number of Files"
 				,cfg.dir[i]->maxfiles);
 			if(cfg.dir[i]->maxage)
@@ -1136,7 +1160,7 @@ void dir_cfg(uint libnum)
 				"Options with a trailing `...` provide a sub-menu of more options.\n"
 			;
 			switch(uifc.list(WIN_SAV|WIN_ACT|WIN_RHT|WIN_BOT
-				,0,0,60,&opt_dflt,0,str,opt)) {
+				,0,0,0,&opt_dflt,0,str,opt)) {
 				case -1:
 					done=1;
 					break;
@@ -1813,7 +1837,7 @@ void dir_cfg(uint libnum)
 					sprintf(opt[n++],"%-27.27s%s","Extensions Allowed"
 						,cfg.dir[i]->exts);
 					if(!cfg.dir[i]->data_dir[0])
-						sprintf(str,"%sdirs/",cfg.data_dir);
+						sprintf(str,"[%sdirs/]",cfg.data_dir);
 					else
 						strcpy(str,cfg.dir[i]->data_dir);
 					sprintf(opt[n++],"%-27.27s%.40s","Data Directory"
@@ -1825,6 +1849,7 @@ void dir_cfg(uint libnum)
 						: cfg.dir[i]->sort==SORT_NAME_D ? "Name Descending"
 						: cfg.dir[i]->sort==SORT_DATE_A ? "Date Ascending"
 						: "Date Descending");
+					sprintf(opt[n++],"%-27.27sNow %u / Was %u","Directory Index", i, cfg.dir[i]->dirnum);
 					opt[n][0]=0;
 					uifc.helpbuf=
 						"`Directory Advanced Options:`\n"
@@ -1904,6 +1929,9 @@ void dir_cfg(uint libnum)
 									uifc.changes=1;
 								}
 								break; 
+							case 4:
+								uifc.msg("This value cannot be changed.");
+								break;
 						} 
 					}
 				break;
