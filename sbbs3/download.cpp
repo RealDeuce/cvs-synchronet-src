@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.54 2018/10/30 01:22:43 rswindell Exp $ */
+/* $Id: download.cpp,v 1.51 2018/02/20 11:16:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,8 @@ void sbbs_t::downloadfile(file_t* f)
 		logon_dls++;
 	}
 	bprintf(text[FileNBytesSent],f->name,ultoac(length,tmp));
-	sprintf(str,"downloaded %s from %s %s"
+	sprintf(str,"%s downloaded %s from %s %s"
+		,useron.alias
 		,f->name,cfg.lib[cfg.dir[f->dir]->lib]->sname
 		,cfg.dir[f->dir]->sname);
 	logline("D-",str);
@@ -74,7 +75,6 @@ void sbbs_t::downloadfile(file_t* f)
 	/* Update Uploader's Info */
 	/**************************/
 	i=matchuser(&cfg,f->uler,TRUE /*sysop_alias*/);
-	memset(&uploader, 0, sizeof(uploader));
 	uploader.number=i;
 	getuserdat(&cfg,&uploader);
 	if(i && i!=useron.number && uploader.firston<f->dateuled) {
@@ -226,12 +226,12 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	/* enable telnet binary transmission in both directions */
 	request_telnet_opt(TELNET_DO,TELNET_BINARY_TX);
 	request_telnet_opt(TELNET_WILL,TELNET_BINARY_TX);
-	ex_mode = EX_BIN;
+	ex_mode=0;
 	if(prot->misc&PROT_NATIVE)
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=EX_STDIO;
+		ex_mode|=(EX_STDIO|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
@@ -386,14 +386,16 @@ bool sbbs_t::checkprotresult(prot_t* prot, int error, file_t* f)
 	if(!success) {
 		bprintf(text[FileNotSent],f->name);
 		if(f->dir<cfg.total_dirs)
-			sprintf(str,"attempted to download %s (%s) from %s %s"
+			sprintf(str,"%s attempted to download %s (%s) from %s %s"
+				,useron.alias
 				,f->name,ultoac(f->size,tmp)
 				,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 		else if(f->dir==cfg.total_dirs)
-			SAFECOPY(str,"attempted to download QWK packet");
+			sprintf(str,"%s attempted to download QWK packet"
+				,useron.alias);
 		else if(f->dir==cfg.total_dirs+1)
-			sprintf(str,"attempted to download attached file: %s"
-				,f->name);
+			sprintf(str,"%s attempted to download attached file: %s"
+				,useron.alias,f->name);
 		logline(LOG_NOTICE,"D!",str);
 		return(false); 
 	}
@@ -489,14 +491,14 @@ bool sbbs_t::sendfile(char* fname, char prot, const char* desc)
 		ultoac(length, bytes);
 		bprintf(text[FileNBytesSent], getfname(fname), bytes);
 		char str[128];
-		SAFEPRINTF3(str, "downloaded %s: %s (%s bytes)"
-			,desc == NULL ? "file" : desc, fname, bytes);
+		SAFEPRINTF4(str, "%s downloaded %s: %s (%s bytes)"
+			,useron.alias, desc == NULL ? "file" : desc, fname, bytes);
 		logline("D-",str); 
 		autohangup(); 
 	} else {
 		char str[128];
 		bprintf(text[FileNotSent], getfname(fname));
-		sprintf(str,"attempted to download attached file: %s", fname);
+		sprintf(str,"%s attempted to download attached file: %s", useron.alias, fname);
 		logline(LOG_NOTICE,"D!",str);
 	}
 	return result;
