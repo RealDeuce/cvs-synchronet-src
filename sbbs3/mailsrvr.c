@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.639 2018/03/07 07:20:54 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.640 2018/03/08 19:09:20 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4689,23 +4689,11 @@ static void smtp_thread(void* arg)
 			sockprintf(socket, -1, "220 Ready to start TLS");
 			if (cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1) != CRYPT_OK) {
 				lprintf(LOG_ERR, "%04d !SMTP Unable to set session active", socket);
-				cryptDestroySession(session);
-				mail_close_socket(socket);
-				thread_down();
-				protected_uint32_adjust(&active_clients, -1);
-				update_clients();
-				free(mailproc_to_match);
 				break;
 			}
 			if (startup->max_inactivity) {
 				if (cryptSetAttribute(session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity) != CRYPT_OK) {
 					lprintf(LOG_ERR, "%04d !SMTP Unable to set max inactivity", socket);
-					cryptDestroySession(session);
-					mail_close_socket(socket);
-					thread_down();
-					protected_uint32_adjust(&active_clients, -1);
-					update_clients();
-					free(mailproc_to_match);
 					break;
 				}
 			}
@@ -5683,7 +5671,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.639 $", "%*s %s", revision);
+	sscanf("$Revision: 1.640 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
