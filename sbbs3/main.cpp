@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.667 2018/02/19 21:25:43 deuce Exp $ */
+/* $Id: main.cpp,v 1.675 2018/03/07 22:39:57 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -168,6 +168,9 @@ int lputs(int level, const char* str)
 
 int eputs(int level, const char *str)
 {
+	if(*str == 0)
+		return 0;
+
 	if(level <= LOG_ERR) {
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
@@ -204,7 +207,7 @@ int eprintf(int level, const char *fmt, ...)
 
 	strip_ctrl(sbuf, sbuf);
 
-    return(eputs(level,sbuf));
+    return(eputs(level,truncsp(sbuf)));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -265,6 +268,7 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
+// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -726,8 +730,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+			FREE_AND_NULL(line);
 			return(JS_FALSE);
+		}
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
@@ -740,7 +746,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	free(line);
+	if(line != NULL)
+		free(line);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -844,6 +851,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
+	FREE_AND_NULL(cstr);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -876,6 +884,8 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
+	if (str != NULL)
+		free(str);
 
     return(JS_TRUE);
 }
@@ -1355,6 +1365,14 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptKeyset Class */
+		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
@@ -2549,7 +2567,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed");
+						eprintf(LOG_INFO,"Packing completed: %s", str);
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
@@ -5184,6 +5202,10 @@ NO_SSH:
 			continue;
 		}
 
+		// Count the socket:
+		if(startup->socket_open!=NULL)
+			startup->socket_open(startup->cbdata, TRUE);
+
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
@@ -5349,6 +5371,7 @@ NO_SSH:
 				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
+			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
