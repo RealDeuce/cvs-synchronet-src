@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.119 2018/02/22 22:51:21 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.121 2018/03/04 21:06:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -117,6 +117,8 @@ char *usage=
 "       d    = delete all msgs\n"
 "       m    = maintain msg base - delete old msgs and msgs over max\n"
 "       p[k] = pack msg base (k specifies minimum packable Kbytes)\n"
+"       L    = lock a msg base for exclusive-access/backup\n"
+"       U    = unlock a msg base\n"
 "opts:\n"
 "      -c[m] = create message base if it doesn't exist (m=max msgs)\n"
 "      -a    = always pack msg base (disable compression analysis)\n"
@@ -1265,6 +1267,10 @@ void packmsgs(ulong packable)
 			,beep,i,smb.last_error,smb.file);
 		return; 
 	}
+	if((i=smb_lock(&smb)) != SMB_SUCCESS)
+		fprintf(errfp,"\n%s!ERROR %d (%s) locking %s\n"
+			,beep,i,smb.last_error,smb.file);
+
 	if((i=smb_locksmbhdr(&smb))!=0)
 		fprintf(errfp,"\n%s!smb_locksmbhdr returned %d: %s\n"
 			,beep,i,smb.last_error);
@@ -1543,7 +1549,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.119 $", "%*s %s", revision);
+	sscanf("$Revision: 1.121 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1678,26 +1684,28 @@ int main(int argc, char **argv)
 					fprintf(errfp,"\n%s doesn't exist (use -c to create)\n",path);
 					bail(1);
 				}
-				smb.retry_time=30;
-				fprintf(statfp,"Opening %s\r\n",smb.file);
-				if((i=smb_open(&smb))!=0) {
-					fprintf(errfp,"\n%s!Error %d (%s) opening %s message base\n"
-						,beep,i,smb.last_error,smb.file);
-					continue; 
-				}
-				if(!filelength(fileno(smb.shd_fp))) {
-					if(!create) {
-						printf("Empty\n");
-						smb_close(&smb);
+				if(cmd[0] != 'U') {
+					smb.retry_time=30;
+					fprintf(statfp,"Opening %s\r\n",smb.file);
+					if((i=smb_open(&smb))!=0) {
+						fprintf(errfp,"\n%s!Error %d (%s) opening %s message base\n"
+							,beep,i,smb.last_error,smb.file);
 						continue; 
 					}
-					smb.status.max_msgs=max_msgs;
-					smb.status.max_crcs=count;
-					if((i=smb_create(&smb))!=0) {
-						smb_close(&smb);
-						printf("!Error %d (%s) creating %s\n",i,smb.last_error,smb.file);
-						continue; 
-					} 
+					if(!filelength(fileno(smb.shd_fp))) {
+						if(!create) {
+							printf("Empty\n");
+							smb_close(&smb);
+							continue; 
+						}
+						smb.status.max_msgs=max_msgs;
+						smb.status.max_crcs=count;
+						if((i=smb_create(&smb))!=0) {
+							smb_close(&smb);
+							printf("!Error %d (%s) creating %s\n",i,smb.last_error,smb.file);
+							continue; 
+						} 
+					}
 				}
 				for(y=0;cmd[y];y++)
 					switch(cmd[y]) {
@@ -1741,11 +1749,15 @@ int main(int argc, char **argv)
 							break;
 						case 'p':
 						case 'd':
+						case 'L':
 							if((i=smb_lock(&smb))!=0) {
 								fprintf(errfp,"\n%s!smb_lock returned %d: %s\n"
 									,beep,i,smb.last_error);
 								return(i);
 							}
+							printf("%s locked successfully\n", smb.file);
+							if(cmd[y] == 'L')	// Lock base
+								break;
 							switch(toupper(cmd[y])) {
 								case 'P':
 									packmsgs(atol(cmd+y+1));
@@ -1754,8 +1766,13 @@ int main(int argc, char **argv)
 									delmsgs();
 									break;
 							}
-							smb_unlock(&smb);
 							y=strlen(cmd)-1;
+							/* fall-through */
+						case 'U':	// Unlock base
+							if((i=smb_unlock(&smb)) == SMB_SUCCESS)
+								printf("%s unlocked successfully\n", smb.file);
+							else
+								fprintf(errfp, "\nError %d (%s) unlocking %s\n", i, smb.last_error, smb.file);
 							break;
 						case 'r':
 							readmsgs(atol(cmd+1));
