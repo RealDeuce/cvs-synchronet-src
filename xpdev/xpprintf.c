@@ -3,7 +3,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.61 2018/03/10 06:42:41 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.59 2018/03/08 23:33:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,7 @@
 #include "gen_defs.h"
 
 #if defined(_MSC_VER) || defined(__MSVCRT__)
-int DLLCALL vasprintf(char **strptr, const char *format, va_list va)
+int DLLCALL vasprintf(char **strptr, char *format, va_list va)
 {
 	va_list	va2;
 	int		ret;
@@ -59,16 +59,14 @@ int DLLCALL vasprintf(char **strptr, const char *format, va_list va)
 	va_copy(va2, va);
 	ret = _vscprintf(format, va);
 	*strptr = (char *)malloc(ret+1);
-	if (*strptr == NULL) {
-		va_end(va2);
+	if (*strptr == NULL)
 		return -1;
-	}
 	ret = vsprintf(*strptr, format, va2);
 	va_end(va2);
 	return ret;
 }
 
-int DLLCALL asprintf(char **strptr, const char *format, ...)
+int DLLCALL asprintf(char **strptr, char *format, ...)
 {
 	va_list	va;
 	int		ret;
