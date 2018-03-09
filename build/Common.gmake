@@ -1,14 +1,15 @@
 # build/Common.gmake
+# vi: tabstop=4
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.104 2015/09/02 08:04:45 deuce Exp $
+# $Id: Common.gmake,v 1.107 2018/03/09 03:11:06 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
 # @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)			#
 #																			#
-# Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		#
+# Copyright Rob Swindell - http://www.synchro.net/copyright.html			#
 #																			#
 # This program is free software; you can redistribute it and/or				#
 # modify it under the terms of the GNU General Public License				#
@@ -102,14 +103,21 @@
 #																			#
 # Common Targets Defined:													#
 #  Implicit C and C++ targets												#
-#  "clean" target															# 
+#  "clean" target															#
 #  Output directory targets													#
 #																			#
 #############################################################################
 
+# Set SBBSEXEC (if SBBSCTRL is set)
+ifdef SBBSCTRL
+ifndef SBBSEXEC
+SBBSEXEC:=$(SBBSCTRL)/../exec
+endif
+endif
+
 # Set VERSION
 ifndef VERSION
- VERSION	:=	3.16
+ VERSION	:=	3.17
 endif
 
 # Put local (optional) macro definitions in localdefs.mk
@@ -239,6 +247,10 @@ ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
 else
  ifeq ($(shell if [ -f /boot/develop/headers/posix/inttypes.h ] ; then echo YES ; fi),YES)
   CFLAGS	+=	-DHAS_INTTYPES_H
+ else
+  ifeq ($(os),darwin)	# Don't go digging for stuff on Mac, nobody knows what's up.
+   CFLAGS	+=	-DHAS_INTTYPES_H
+  endif
  endif
 endif
 
@@ -311,7 +323,7 @@ endif
 
 # PThread-specific flags
 ifeq ($(os),linux)    # Linux
- CFLAGS	+=	-DPOSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -DSPEED_MACROS_ONLY
+ CFLAGS	+=	-DPOSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -DSPEED_MACROS_ONLY -D_GNU_SOURCE
  ifndef THREADS_ACTUALLY_WORK
   CFLAGS    += -D_THREAD_SUID_BROKEN
  endif
