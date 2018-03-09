@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.76 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.75 2018/02/25 23:01:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -582,8 +582,8 @@ bool sbbs_t::guru_page(void)
 		return(false);
 	}
 	if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
-		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
 		close(file);
+		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
 		return(false);
 	}
 	read(file,gurubuf,(size_t)filelength(file));
