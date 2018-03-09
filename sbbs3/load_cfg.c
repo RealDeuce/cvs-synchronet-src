@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.75 2018/10/18 21:28:23 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.73 2018/03/07 00:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,7 +331,7 @@ BOOL md(char *inpath)
 	if(!isdir(path)) {
 		/* lprintf("Creating directory: %s",path); */
 		if(mkpath(path)) {
-			lprintf(LOG_WARNING,"!ERROR %d (%s) creating directory: %s", errno, strerror(errno), path);
+			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
@@ -450,7 +450,7 @@ char* prep_code(char *str, const char* prefix)
 			str+=i;
 	}
 	for(i=j=0;str[i] && i<sizeof(tmp);i++)
-		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?' && str[i]!='.'
+		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?'
 			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
 			tmp[j++]=toupper(str[i]);
 	tmp[j]=0;
