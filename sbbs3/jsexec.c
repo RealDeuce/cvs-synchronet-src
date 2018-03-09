@@ -1,8 +1,7 @@
-/* jsexec.c */
-
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.184 2016/11/15 22:03:14 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.197 2018/03/08 23:52:33 deuce Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,6 +80,7 @@ int  		err_level=DEFAULT_ERR_LOG_LVL;
 pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
+struct termios	orig_term;
 #endif
 char		orig_cwd[MAX_PATH+1];
 BOOL		debugger=FALSE;
@@ -116,39 +116,40 @@ void usage(FILE* fp)
 	fprintf(fp,"\nusage: " PROG_NAME_LC " [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
 #ifdef JSDOOR
-		"\t-c<ctrl_dir>   specify path to CTRL directory\n"
+		"    -c<ctrl_dir>   specify path to CTRL directory\n"
 #else
-		"\t-c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
+		"    -c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
 #endif
+		"    -C             do not change the current working directory (to CTRL dir)\n"
 #if defined(__unix__)
-		"\t-d             run in background (daemonize)\n"
+		"    -d             run in background (daemonize)\n"
 #endif
-		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
-		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
-		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
-		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
-		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
+		"    -m<bytes>      set maximum heap size (default=%u bytes)\n"
+		"    -s<bytes>      set context stack size (default=%u bytes)\n"
+		"    -t<limit>      set time limit (default=%u, 0=unlimited)\n"
+		"    -y<interval>   set yield interval (default=%u, 0=never)\n"
+		"    -g<interval>   set garbage collection interval (default=%u, 0=never)\n"
 #ifdef JSDOOR
-		"\t-h[hostname]   use local or specified host name\n"
+		"    -h[hostname]   use local or specified host name\n"
 #else
-		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
+		"    -h[hostname]   use local or specified host name (instead of SCFG value)\n"
 #endif
-		"\t-u<mask>       set file creation permissions mask (in octal)\n"
-		"\t-L<level>      set log level (default=%u)\n"
-		"\t-E<level>      set error log level threshold (default=%u)\n"
-		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
-		"\t-f             use non-buffered stream for console messages\n"
-		"\t-a             append instead of overwriting message output files\n"
-		"\t-e<filename>   send error messages to file in addition to stderr\n"
-		"\t-o<filename>   send console messages to file instead of stdout\n"
-		"\t-n             send status messages to %s instead of stderr\n"
-		"\t-q             send console messages to %s instead of stdout\n"
-		"\t-v             display version details and exit\n"
-		"\t-x             disable auto-termination on local abort signal\n"
-		"\t-l             loop until intentionally terminated\n"
-		"\t-p             wait for keypress (pause) on exit\n"
-		"\t-!             wait for keypress (pause) on error\n"
-		"\t-D             debugs the script\n"
+		"    -u<mask>       set file creation permissions mask (in octal)\n"
+		"    -L<level>      set log level (default=%u)\n"
+		"    -E<level>      set error log level threshold (default=%u)\n"
+		"    -i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
+		"    -f             use non-buffered stream for console messages\n"
+		"    -a             append instead of overwriting message output files\n"
+		"    -e<filename>   send error messages to file in addition to stderr\n"
+		"    -o<filename>   send console messages to file instead of stdout\n"
+		"    -n             send status messages to %s instead of stderr\n"
+		"    -q             send console messages to %s instead of stdout\n"
+		"    -v             display version details and exit\n"
+		"    -x             disable auto-termination on local abort signal\n"
+		"    -l             loop until intentionally terminated\n"
+		"    -p             wait for keypress (pause) on exit\n"
+		"    -!             wait for keypress (pause) on error\n"
+		"    -D             debugs the script\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
 		,JAVASCRIPT_TIME_LIMIT
@@ -160,6 +161,52 @@ void usage(FILE* fp)
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
+}
+
+static void
+cooked_tty(void)
+{
+	if (isatty(fileno(stdin))) {
+#ifdef __unix__
+		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
+#elif defined _WIN32
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), ENABLE_ECHO_INPUT
+		    | ENABLE_EXTENDED_FLAGS | ENABLE_INSERT_MODE | ENABLE_LINE_INPUT
+		    | ENABLE_MOUSE_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_QUICK_EDIT_MODE);
+#else
+		#warning "Can't cook the tty on this platform"
+#endif
+	}
+}
+
+#ifdef __unix__
+static void raw_input(struct termios *t)
+{
+#ifdef JSDOOR
+	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+#else
+	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
+#endif
+}
+#endif
+
+static void
+raw_tty(void)
+{
+	if (isatty(fileno(stdin))) {
+#ifdef __unix__
+		struct termios term = orig_term;
+
+		raw_input(&term);
+		tcsetattr(fileno(stdin), TCSANOW, &term);
+#elif defined _WIN32
+		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+#else
+		#warning "Can't set the tty as raw on this platform"
+#endif
+	}
 }
 
 int mfprintf(FILE* fp, char *fmt, ...)
@@ -280,10 +327,6 @@ static BOOL winsock_startup(void)
 
 #endif
 
-#ifdef __unix__
-struct termios orig_term;
-#endif
-
 static int do_bail(int code)
 {
 #if defined(_WINSOCKAPI_)
@@ -298,10 +341,7 @@ static int do_bail(int code)
 
 	if(code)
 		fprintf(statfp,"\nReturning error code: %d\n",code);
-#ifdef __unix__
-	if(isatty(fileno(stdin)))
-		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
-#endif
+	cooked_tty();
 	return(code);
 }
 
@@ -396,7 +436,9 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
+	cooked_tty();
 	p=fgets(buf,len+1,stdin);
+	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(p!=NULL)
@@ -507,7 +549,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
-	char	 *	cstr;
+	char	 *	cstr = NULL;
 	char     *	p;
 	jsrefcount	rc;
 	char		instr[81]="y";
@@ -518,13 +560,15 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cstr);
 	if(cstr==NULL)
 		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
 	printf("%s (Y/n)? ", cstr);
 	free(cstr);
+	cooked_tty();
 	fgets(instr,sizeof(instr),stdin);
+	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	p=instr;
@@ -538,7 +582,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
-	char	 *	cstr;
+	char	 *	cstr = NULL;
 	char     *	p;
 	jsrefcount	rc;
 	char		instr[81];
@@ -549,13 +593,15 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cstr);
 	if(cstr==NULL)
 		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
 	printf("%s (N/y)? ", cstr);
 	free(cstr);
+	cooked_tty();
 	fgets(instr,sizeof(instr),stdin);
+	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	p=instr;
@@ -568,16 +614,16 @@ static JSBool
 js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char		instr[81];
+	char		instr[256];
     JSString *	str;
 	jsrefcount	rc;
-	char		*prstr;
+	char		*prstr = NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
 		JSVALUE_TO_MSTRING(cx, argv[0], prstr, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, prstr);
 		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -588,15 +634,18 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, NULL);
 	} else
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
+	cooked_tty();
 	if(!fgets(instr,sizeof(instr),stdin)) {
+		raw_tty();
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
+	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((str=JS_NewStringCopyZ(cx, truncnl(instr)))==NULL)
@@ -610,12 +659,12 @@ static JSBool
 js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p;
+	char*		p = NULL;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, p);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
@@ -639,7 +688,7 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc) {
 		JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, p);
 	}
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
@@ -756,7 +805,7 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	return(TRUE);
 }
 
-static BOOL js_init(char** environ)
+static BOOL js_init(char** env)
 {
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
@@ -791,7 +840,7 @@ static BOOL js_init(char** environ)
 	}
 
 	/* Environment Object (associative array) */
-	if(!js_CreateEnvObject(js_cx, js_glob, environ)) {
+	if(!js_CreateEnvObject(js_cx, js_glob, env)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -843,8 +892,12 @@ char *dbg_getline(void)
 	char	*line=NULL;
 	size_t	linecap=0;
 
-	if(getline(&line, &linecap, stdin)>=0)
+	cooked_tty();
+	if(getline(&line, &linecap, stdin)>=0) {
+		raw_tty();
 		return line;
+	}
+	raw_tty();
 	if(line)
 		free(line);
 	return NULL;
@@ -852,8 +905,12 @@ char *dbg_getline(void)
 	// I assume Windows sucks.
 	char	buf[1025];
 
-	if(fgets(buf,sizeof(buf),stdin))
+	cooked_tty();
+	if(fgets(buf,sizeof(buf),stdin)) {
+		raw_tty();
 		return strdup(buf);
+	}
+	raw_tty();
 	return NULL;
 #endif
 }
@@ -877,6 +934,7 @@ long js_exec(const char *fname, char** args)
 	int32		result=0;
 	long double	start;
 	long double	diff;
+	JSBool		exec_result;
 
 	if(fname!=NULL) {
 		if(isfullpath(fname)) {
@@ -958,6 +1016,8 @@ long js_exec(const char *fname, char** args)
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
 			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
 				,js_buflen+len);
+			if(fp!=stdin)
+				fclose(fp);
 			return(-1);
 		}
 		memcpy(js_buf+js_buflen,line,len);
@@ -982,7 +1042,7 @@ long js_exec(const char *fname, char** args)
 	start=xp_timer();
 	if(debugger)
 		debug_prompt(js_cx, js_script);
-	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
 	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
 	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
 		char	*p;
@@ -991,7 +1051,8 @@ long js_exec(const char *fname, char** args)
 		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
 		free(p);
 		JS_ValueToInt32(js_cx,rval,&result);
-	}
+	} else if(!exec_result)
+		result = EXIT_FAILURE;
 	js_EvalOnExit(js_cx, js_glob, &cb);
 
 	JS_ReportPendingException(js_cx);
@@ -1050,23 +1111,10 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
-#ifdef __unix__
-void raw_input(struct termios *t)
-{
-#ifdef JSDOOR
-	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-#else
-	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
-#endif
-}
-#endif
-
 /*********************/
 /* Entry point (duh) */
 /*********************/
-int main(int argc, char **argv, char** environ)
+int main(int argc, char **argv, char** env)
 {
 #ifndef JSDOOR
 	char	error[512];
@@ -1079,6 +1127,7 @@ int main(int argc, char **argv, char** environ)
 	ulong	exec_count=0;
 	BOOL	loop=FALSE;
 	BOOL	nonbuffered_con=FALSE;
+	BOOL	change_cwd=TRUE;
 
 	confp=stdout;
 	errfp=stderr;
@@ -1088,16 +1137,9 @@ int main(int argc, char **argv, char** environ)
 	}
 	if(isatty(fileno(stdin))) {
 #ifdef __unix__
-		struct termios term;
-
 		tcgetattr(fileno(stdin), &orig_term);
-		term = orig_term;
-		raw_input(&term);
-		tcsetattr(fileno(stdin), TCSANOW, &term);
-#else
-	//	This completely disabled console input on Windows:
-	//	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 #endif
+		raw_tty();
 		statfp=stderr;
 	}
 	else	/* if redirected, don't send status messages to stderr */
@@ -1108,7 +1150,7 @@ int main(int argc, char **argv, char** environ)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.184 $", "%*s %s", revision);
+	sscanf("$Revision: 1.197 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1148,6 +1190,9 @@ int main(int argc, char **argv, char** environ)
 				case 'c':
 					if(*p==0) p=argv[++argn];
 					SAFECOPY(scfg.ctrl_dir,p);
+					break;
+				case 'C':
+					change_cwd = FALSE;
 					break;
 #if defined(__unix__)
 				case 'd':
@@ -1274,7 +1319,7 @@ int main(int argc, char **argv, char** environ)
 #ifdef JSDOOR
 	SAFECOPY(scfg.temp_dir,"./temp");
 #else
-	if(chdir(scfg.ctrl_dir)!=0)
+	if(change_cwd && chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
 
 	fprintf(statfp,"\nLoading configuration files from %s\n",scfg.ctrl_dir);
@@ -1313,8 +1358,11 @@ int main(int argc, char **argv, char** environ)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
 #elif defined(__unix__)
 	signal(SIGQUIT,break_handler);
+	siginterrupt(SIGQUIT, 1);
 	signal(SIGINT,break_handler);
+	siginterrupt(SIGINT, 1);
 	signal(SIGTERM,break_handler);
+	siginterrupt(SIGTERM, 1);
 
 	signal(SIGHUP,recycle_handler);
 
@@ -1333,7 +1381,7 @@ int main(int argc, char **argv, char** environ)
 
 		recycled=FALSE;
 
-		if(!js_init(environ)) {
+		if(!js_init(env)) {
 			lprintf(LOG_ERR,"!JavaScript initialization failure");
 			return(do_bail(1));
 		}
