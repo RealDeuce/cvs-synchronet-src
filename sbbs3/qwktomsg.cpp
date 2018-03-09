@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.70 2019/02/17 06:22:40 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.66 2018/02/20 11:41:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,12 +137,6 @@ static void qwk_parse_header_list(ulong confnum, smbmsg_t* msg, str_list_t* head
 
 	/* Synchronet */
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_EDITOR),value))!=NULL)
-		smb_hfield_str(msg,hfield_type,p);
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_COLUMNS),value))!=NULL) {
-		uint8_t columns = atoi(p);
-		smb_hfield_bin(msg,hfield_type,columns);
-	}
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_TAGS),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 
 	/* USENET */
@@ -462,17 +456,17 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	if(smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 
-	add_msg_ids(&cfg, &smb, msg, /* remsg: */NULL);
 	if((i=smb_addmsg(&smb,msg,smb_storage_mode(&cfg, &smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
 		success=true;
 	else if(i==SMB_DUPE_MSG) {
 		bprintf("\r\n!%s\r\n",smb.last_error);
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
-				SAFEPRINTF(str,"duplicate e-mail attempt (%s)", smb.last_error);
+				SAFEPRINTF2(str,"%s duplicate e-mail attempt (%s)",useron.alias,smb.last_error);
 				logline(LOG_NOTICE,"E!",str); 
 			} else {
-				SAFEPRINTF3(str,"duplicate message attempt in %s %s (%s)"
+				SAFEPRINTF4(str,"%s duplicate message attempt in %s %s (%s)"
+					,useron.alias
 					,cfg.grp[cfg.sub[subnum]->grp]->sname
 					,cfg.sub[subnum]->lname
 					,smb.last_error);
