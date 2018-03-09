@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.127 2018/04/30 23:02:14 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.122 2018/03/09 03:54:13 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -209,6 +209,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	uchar*		msgtxt=NULL;
 	uchar*		newtxt;
 	long		msgtxtlen;
+	ushort		net;
 	int 		i;
 	ushort		agent=AGENT_SMBUTIL;
 	smbmsg_t	msg;
@@ -282,17 +283,23 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 
 	if(smb.status.attr&SMB_EMAIL && (type=='N' || to_address!=NULL)) {
 		if(to_address==NULL) {
-			printf("To Address (e.g. user@host or 1:2/3): ");
+			printf("To Address (e.g. user@host): ");
 			gets(str);
 		} else
 			SAFECOPY(str,to_address);
 		truncsp(str);
 		if(*str) {
-			if((i=smb_hfield_netaddr(&msg,RECIPIENTNETADDR,str,NULL))!=SMB_SUCCESS) {
-				fprintf(errfp,"\n%s!smb_hfield_netaddr(0x%02X) returned %d: %s\n"
-					,beep,RECIPIENTNETADDR,i,smb.last_error);
+			net=smb_netaddr_type(str);
+			if((i=smb_hfield(&msg,RECIPIENTNETTYPE,sizeof(net),&net))!=SMB_SUCCESS) {
+				fprintf(errfp,"\n%s!smb_hfield(0x%02X) returned %d: %s\n"
+					,beep,RECIPIENTNETTYPE,i,smb.last_error);
 				bail(1); 
 			}
+			if((i=smb_hfield_str(&msg,RECIPIENTNETADDR,str))!=SMB_SUCCESS) {
+				fprintf(errfp,"\n%s!smb_hfield_str(0x%02X) returned %d: %s\n"
+					,beep,RECIPIENTNETADDR,i,smb.last_error);
+				bail(1); 
+			} 
 		} 
 	}
 
@@ -364,8 +371,7 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	}
 	smb_freemsgmem(&msg);
 
-	// MSVC can't do %zu for size_t until MSVC 2017 it seems...
-	fprintf(statfp, "Message (%" PRIu64 " bytes) added to %s successfully\n", (uint64_t)strlen((char *)msgtxt), smb.file);
+	fprintf(statfp, "Message (%u bytes) added to %s successfully\n", strlen(msgtxt), smb.file);
 	FREE_AND_NULL(msgtxt);
 }
 
@@ -708,10 +714,9 @@ void maint(void)
 				hash_t*	hashes = malloc(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t));
 				if(hashes != NULL) {
 					if(fread(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp) == max_hashes * SMB_HASH_SOURCE_TYPES) {
+						CHSIZE_FP(smb.hash_fp,0);
 						rewind(smb.hash_fp);
 						fwrite(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp);
-						fflush(smb.hash_fp);
-						CHSIZE_FP(smb.hash_fp, sizeof(hash_t) * max_hashes * SMB_HASH_SOURCE_TYPES);
 					}
 					free(hashes);
 				}
@@ -734,6 +739,7 @@ void maint(void)
 	}
 	fseek(smb.sid_fp,0L,SEEK_SET);
 	l = fread(idx, sizeof(idxrec_t), smb.status.total_msgs, smb.sid_fp);
+	l /= sizeof(idxrec_t);
 
 	printf("\nDone.\n\n");
 	printf("Scanning for pre-flagged messages...\n");
@@ -861,16 +867,15 @@ void maint(void)
 
 	printf("Re-writing index...\n");
 	rewind(smb.sid_fp);
+	CHSIZE_FP(smb.sid_fp,0);
 	for(m=n=0;m<l;m++) {
 		if(idx[m].attr&MSG_DELETE)
 			continue;
-		n++;
-		printf("%lu of %lu\r", n, l-flagged);
+		printf("%lu of %lu\r",++n,l-flagged);
 		fwrite(&idx[m],sizeof(idxrec_t),1,smb.sid_fp); 
 	}
-	fflush(smb.sid_fp);
-	CHSIZE_FP(smb.sid_fp, n * sizeof(idxrec_t));
 	printf("\nDone.\n\n");
+	fflush(smb.sid_fp);
 
 	free(idx);
 	smb.status.total_msgs-=flagged;
@@ -1545,7 +1550,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.127 $", "%*s %s", revision);
+	sscanf("$Revision: 1.122 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
