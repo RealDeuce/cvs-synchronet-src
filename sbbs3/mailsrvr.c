@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.641 2018/03/09 04:54:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.642 2018/03/09 06:47:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3657,6 +3657,12 @@ static void smtp_thread(void* arg)
 						char* tp = strchr(rcpt_name, '@');
 						if(tp != NULL)
 							*tp = 0;
+						// Remove "(ftn_addr)" portion of to name
+						SAFEPRINTF(str,"(%s)", rcpt_addr);
+						if((tp = strstr(rcpt_name, str)) != NULL && tp != rcpt_name) {
+							*tp = 0;
+							truncsp(rcpt_name);
+						}
 					}
 					smb_hfield_str(&newmsg, RECIPIENT, rcpt_name);
 
@@ -5671,7 +5677,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.641 $", "%*s %s", revision);
+	sscanf("$Revision: 1.642 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
