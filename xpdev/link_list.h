@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.28 2018/03/30 08:33:10 rswindell Exp $ */
+/* $Id: link_list.h,v 1.27 2017/11/06 07:05:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -110,7 +110,7 @@ DLLEXPORT BOOL	DLLCALL	listSemTryWaitBlock(link_list_t*, unsigned long timeout);
 #endif
 
 /* Lock/unlock linked lists (works best for mutex-protected lists) */
-/* Locks are recursive (e.g. must call Unlock for each call to Lock */
+/* Locks are recusive (e.g. must call Unlock for each call to Lock */
 DLLEXPORT BOOL	DLLCALL	listLock(link_list_t*);
 DLLEXPORT BOOL	DLLCALL	listUnlock(link_list_t*);
 DLLEXPORT BOOL	DLLCALL	listIsLocked(const link_list_t*);
