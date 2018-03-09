@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.55 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: str_util.c,v 1.53 2017/10/28 20:16:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -73,7 +73,7 @@ char* DLLCALL strip_ctrl(const char *str, char* dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -121,7 +121,7 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 	for(i=j=0;str[i];i++)
 		if(str[i]==CTRL_A && str[i+1]!=0) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -336,7 +336,8 @@ str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 }
 
 /****************************************************************************/
-/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
+/* Returns the number of characters in 'str' not counting ctrl-ax codes		*/
+/* or the null terminator													*/
 /****************************************************************************/
 size_t bstrlen(const char *str)
 {
@@ -345,7 +346,7 @@ size_t bstrlen(const char *str)
 	while(*str) {
 		if(*str==CTRL_A) {
 			str++;
-			if(*str==0 || *str=='Z')	/* EOF */
+			if(toupper(*str)=='Z')	/* EOF */
 				break;
 			if(*str=='[')
 				i=0;
