@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.306 2018/02/23 00:16:06 deuce Exp $ */
+/* $Id: services.c,v 1.310 2018/03/06 00:08:35 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -177,8 +177,6 @@ static BOOL winsock_startup(void)
 #define SOCKLIB_DESC NULL
 
 #endif
-
-static CRYPT_CONTEXT tls_context = -1;
 
 static ulong active_clients(void)
 {
@@ -807,6 +805,10 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
 			break;
 
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
+			break;
+
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -1032,8 +1034,8 @@ static void js_service_thread(void* arg)
 			}
 		}
 #endif
-		if (tls_context != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &service_client);
+		if (scfg.tls_certificate != -1) {
+			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &service_client);
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
@@ -1611,11 +1613,6 @@ static void cleanup(int code)
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
 
-	if (tls_context != -1) {
-		cryptDestroyContext(tls_context);
-		tls_context = -1;
-	}
-
 	update_clients();
 
 #ifdef _WINSOCKAPI_	
@@ -1641,7 +1638,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.306 $", "%*s %s", revision);
+	sscanf("$Revision: 1.310 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1710,6 +1707,7 @@ void DLLCALL services_thread(void* arg)
 	struct timeval	tv;
 	service_client_t* client;
 	char			ssl_estr[SSL_ESTR_LEN];
+	BOOL			need_cert = FALSE;
 
 	services_ver();
 
@@ -1843,12 +1841,8 @@ void DLLCALL services_thread(void* arg)
 					lprintf(LOG_ERR, "Option error, TLS not yet supported for static services (%s)", service[i].protocol);
 					continue;
 				}
-				if(tls_context == -1) {
-					tls_context = get_ssl_cert(&scfg, ssl_estr);
-					if (tls_context == -1) {
-						lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-						continue;
-					}
+				if(scfg.tls_certificate == -1) {
+					need_cert = TRUE;
 				}
 			}
 			service[i].set=xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
@@ -1913,6 +1907,12 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		if (need_cert) {
+			get_ssl_cert(&scfg, ssl_estr);
+			if (scfg.tls_certificate == -1)
+				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+		}
 
 		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
@@ -2102,7 +2102,6 @@ void DLLCALL services_thread(void* arg)
 					if(service[i].max_clients && service[i].clients+1>service[i].max_clients) {
 						lprintf(LOG_WARNING,"%04d !%s MAXIMUM CLIENTS (%u) reached, access denied"
 							,client_socket, service[i].protocol, service[i].max_clients);
-						mswait(3000);
 						close_socket(client_socket);
 						continue;
 					}
@@ -2118,7 +2117,6 @@ void DLLCALL services_thread(void* arg)
 							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);
 						FREE_AND_NULL(udp_buf);
-						mswait(3000);
 						close_socket(client_socket);
 						continue;
 					}
@@ -2133,7 +2131,6 @@ void DLLCALL services_thread(void* arg)
 						FREE_AND_NULL(udp_buf);
 						lprintf(LOG_CRIT,"%04d !%s ERROR allocating %u bytes of memory for service_client"
 							,client_socket, service[i].protocol, sizeof(service_client_t));
-						mswait(3000);
 						close_socket(client_socket);
 						continue;
 					}
