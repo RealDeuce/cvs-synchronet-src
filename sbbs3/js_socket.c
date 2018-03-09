@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.197 2018/03/09 18:25:01 deuce Exp $ */
+/* $Id: js_socket.c,v 1.198 2018/03/09 19:48:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -112,6 +112,8 @@ static void do_js_close(js_socket_private_t *p)
 		close_socket(p->sock);
 		p->last_error = ERROR_VALUE;
 	}
+	else
+		shutdown(p->sock, SHUT_RDWR);
 	// This is a lie for external sockets... don't tell anyone.
 	p->sock = INVALID_SOCKET; 
 	p->is_connected = FALSE;
