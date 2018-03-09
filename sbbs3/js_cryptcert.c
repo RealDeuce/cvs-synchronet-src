@@ -1,4 +1,4 @@
-/* $Id: js_cryptcert.c,v 1.6 2018/02/24 07:05:24 deuce Exp $ */
+/* $Id: js_cryptcert.c,v 1.8 2018/02/26 07:05:10 deuce Exp $ */
 
 // Cyrptlib Certificates...
 
@@ -362,7 +362,7 @@ js_get_attribute_time(JSContext *cx, uintN argc, jsval *arglist)
 		js_cryptcert_error(cx, p->cert, status);
 		return JS_FALSE;
 	}
-	msec = val;
+	msec = (jsdouble)val;
 	msec *= 1000;
 	dobj = JS_NewDateObjectMsec(cx, msec);
 	if(dobj==NULL)
@@ -496,7 +496,7 @@ js_set_attribute_time(JSContext *cx, uintN argc, jsval *arglist)
 			return JS_FALSE;
 		}
 	}
-	val = sec;
+	val = (time_t)sec;
 
 	if ((p=(struct js_cryptcert_private_data *)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx, getprivate_failure, WHERE);
@@ -631,7 +631,7 @@ js_cryptcert_attrtime_get(JSContext *cx, jsval *vp, CRYPT_CERTIFICATE cert, CRYP
 		js_cryptcert_error(cx, cert, status);
 		return JS_FALSE;
 	}
-	msec = t;
+	msec = (jsdouble)t;
 	msec *= 1000;
 	dobj = JS_NewDateObjectMsec(cx, msec);
 	if(dobj==NULL)
@@ -1932,7 +1932,7 @@ js_cryptcert_attrtime_set(JSContext *cx, jsval *vp, CRYPT_CERTIFICATE cert, CRYP
 			return JS_FALSE;
 		}
 	}
-	t = sec;
+	t = (time_t)sec;
 
 	status = cryptSetAttributeString(cert, type, &t, sizeof(t));
 	if (cryptStatusError(status)) {
@@ -2952,7 +2952,7 @@ static jsSyncMethodSpec js_cryptcert_functions[] = {
 	,JSDOCSTR("Destroys the certificate.")
 	,316
 	},
-	{"export",	js_export,	0,	JSTYPE_STRING,	"format"
+	{"export_cert",	js_export,	0,	JSTYPE_STRING,	"format"
 	,JSDOCSTR("Exports the certificate in the format chosen from CryptCert.CERTFORMAT.")
 	,316
 	},
