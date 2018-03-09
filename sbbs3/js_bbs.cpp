@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.164 2018/06/10 08:53:13 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.162 2018/02/23 18:57:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1699,7 +1699,7 @@ js_finduser(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->finduser(p, /* silent_failure: */true)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->finduser(p)));
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
@@ -2478,7 +2478,6 @@ js_readmail(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		readwhich=MAIL_YOUR;
 	int32		usernumber;
-	int32		lm_mode = 0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2496,13 +2495,9 @@ js_readmail(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&usernumber))
 			return JS_FALSE;
 	}
-	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
-		if(!JS_ValueToInt32(cx, argv[2], &lm_mode))
-			return JS_FALSE;
-	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->readmail(usernumber, readwhich, lm_mode);
+	sbbs->readmail(usernumber,readwhich);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -3095,7 +3090,6 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
 				if(fpath==NULL) {
 					if(fspec != def)
 						free(fspec);
-					free(p);
 					return JS_FALSE;
 				}
 			}
@@ -3104,7 +3098,6 @@ js_cmdstr(JSContext *cx, uintN argc, jsval *arglist)
 				if(fspec==NULL) {
 					if(fpath != def)
 						free(fpath);
-					free(p);
 					return JS_FALSE;
 				}
 			}
@@ -3182,11 +3175,8 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode)) {
-				if(fspec != def)
-					FREE_AND_NULL(fspec);
+			if(!JS_ValueToInt32(cx,argv[i],&mode))
 				return JS_FALSE;
-			}
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
@@ -3804,7 +3794,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("display the logon list")
 	,310
 	},		
-	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>] [,loadmail_mode=<tt>0</tt>]")
+	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>]")
 	,JSDOCSTR("read private e-mail"
 	"(see <tt>MAIL_*</tt> in <tt>sbbsdefs.js</tt> for valid <i>which</i> values)")
 	,310
