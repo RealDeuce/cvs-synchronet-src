@@ -2,13 +2,13 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.26 2017/10/12 08:47:29 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.27 2018/01/12 22:15:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -749,6 +749,40 @@ uint sbbs_t::getusrsub(uint subnum)
 
 	return(usub+1);
 }
+
+uint sbbs_t::getusrlib(uint dirnum)
+{
+	uint	ulib;
+
+	if(dirnum == INVALID_DIR)
+		return 0;
+
+	if(usrlibs <= 0)
+		return 0;
+
+	for(ulib=0; ulib < usrlibs; ulib++)
+		if(usrlib[ulib] == cfg.dir[dirnum]->lib)
+			break;
+
+	return ulib+1;
+}
+
+uint sbbs_t::getusrdir(uint dirnum)
+{
+	uint	udir;
+	uint	ulib;
+
+	ulib = getusrlib(dirnum);
+	if(ulib <= 0)
+		return 0;
+	ulib--;
+	for(udir=0; udir < usrdirs[ulib]; udir++)
+		if(usrdir[ulib][udir] == dirnum)
+			break;
+
+	return udir+1;
+}
+
 
 int sbbs_t::dir_op(uint dirnum)
 {
