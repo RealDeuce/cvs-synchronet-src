@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.640 2018/03/08 19:09:20 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.641 2018/03/09 04:54:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4759,8 +4759,8 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 		,msg->to_net.addr);
 
 	if((i=smb_updatemsg(smb,msg))!=SMB_SUCCESS) {
-		lprintf(LOG_ERR,"%04d !SEND BOUNCE ERROR %d (%s) incrementing delivery attempt counter"
-			,sock, i, smb->last_error);
+		lprintf(LOG_ERR,"%04d !SEND BOUNCE ERROR %d (%s) incrementing delivery attempt counter of message #%lu"
+			,sock, i, smb->last_error, msg->hdr.number);
 		return(FALSE);
 	}
 
@@ -5671,7 +5671,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.640 $", "%*s %s", revision);
+	sscanf("$Revision: 1.641 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
