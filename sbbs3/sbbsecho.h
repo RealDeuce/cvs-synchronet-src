@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.27 2019/03/19 19:34:26 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.21 2017/11/24 22:06:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		7
+#define SBBSECHO_VERSION_MINOR		3
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -68,7 +68,7 @@ enum pkt_type {
 	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
 	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
 	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
-	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/
+	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
 	,PKT_TYPES_SUPPORTED
 };
 
@@ -103,12 +103,9 @@ typedef struct {
 
 typedef struct {
 	fidoaddr_t 	addr			/* Fido address of this node */
-			   ,route			/* Address to route FLO stuff through */
-			   ,local_addr;		/* Preferred local address (AKA) to use when sending packets to this node */
-	char		domain[FIDO_DOMAIN_LEN+1];
+			   ,route;			/* Address to route FLO stuff through */
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
-	char		sesspwd[41];				/* Binkd's MAXPWDLEN = 40 */
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
 	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
@@ -124,14 +121,6 @@ typedef struct {
 #define SBBSECHO_ARCHIVE_NONE	NULL
 	arcdef_t*	archive;
 	str_list_t	grphub;			/* This link is hub of these groups (short names */
-	/* BinkP settings */
-	bool		binkp_plainAuthOnly;
-	bool		binkp_allowPlainAuth;
-	bool		binkp_allowPlainText;
-	bool		binkp_poll;
-	uint16_t	binkp_port;
-	char		binkp_host[64];
-	char	 	binkp_src[32];
 } nodecfg_t;
 
 typedef struct {
@@ -148,13 +137,11 @@ typedef struct {
 	char		filename[MAX_PATH+1];	/* The full path to the attached file */
 } attach_t;
 
-struct fido_domain {
-	char		name[FIDO_DOMAIN_LEN + 1];
-	int*		zone_list;
-	unsigned	zone_count;
-	char		root[MAX_PATH + 1];
-	char		nodelist[MAX_PATH + 1];
-	char		dns_suffix[64];
+struct zone_mapping {
+	uint16_t	zone;
+	char *		root;
+	char *		domain;
+	struct zone_mapping *next;
 };
 
 typedef struct {
@@ -208,6 +195,7 @@ typedef struct {
 	bool		ignore_netmail_kill_attr;
 	bool		ignore_netmail_recv_attr;
 	bool		ignore_netmail_local_attr;
+	bool		use_ftn_domains;
 	bool		relay_filtered_msgs;
 	bool		auto_add_subs;
 	ulong		bsy_timeout;
@@ -215,11 +203,7 @@ typedef struct {
 	ulong		bso_lock_delay;			/* in seconds */
 	ulong		max_netmail_age;
 	ulong		max_echomail_age;
-	int64_t		min_free_diskspace;
-	struct fido_domain* domain_list;
-	unsigned	domain_count;
-	char		binkp_caps[64];
-	char		binkp_sysop[64];
+	struct zone_mapping *zone_map;	// 
 } sbbsecho_cfg_t;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];

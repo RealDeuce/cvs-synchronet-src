@@ -19,7 +19,7 @@
 		#define DLLEXPORT	__declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL
+		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
 	#endif
@@ -37,12 +37,11 @@ extern "C" {
 DLLEXPORT void DLLCALL free_crypt_attrstr(char *attr);
 DLLEXPORT char* DLLCALL get_crypt_attribute(CRYPT_HANDLE sess, C_IN CRYPT_ATTRIBUTE_TYPE attr);
 DLLEXPORT char* DLLCALL get_crypt_error(CRYPT_HANDLE sess);
-DLLEXPORT CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level);
+DLLEXPORT CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN]);
 DLLEXPORT int DLLCALL do_cryptInit(void);
 DLLEXPORT bool DLLCALL is_crypt_initialized(void);
-DLLEXPORT bool DLLCALL get_crypt_error_string(int status, CRYPT_HANDLE sess, char **estr, const char *action, int *level);
-DLLEXPORT void lock_ssl_cert(void);
-DLLEXPORT void unlock_ssl_cert(void);
+DLLEXPORT bool DLLCALL get_crypt_error_string(int status, CRYPT_HANDLE sess, char estr[SSL_ESTR_LEN], const char *action);
+DLLEXPORT int DLLCALL crypt_ll(int error);
 
 #if defined(__cplusplus)
 }
