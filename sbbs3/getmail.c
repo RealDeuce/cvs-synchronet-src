@@ -1,6 +1,6 @@
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.18 2018/08/03 06:25:21 rswindell Exp $ */
+/* $Id: getmail.c,v 1.15 2017/11/15 10:39:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,35 +84,40 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
 /***************************/
 /* Delete file attachments */
 /***************************/
-BOOL DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
+void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 {
-    char dir[MAX_PATH+1];
-	char path[MAX_PATH+1];
-	char files[128];
+    char str[MAX_PATH+1];
+	char str2[MAX_PATH+1];
 	char *tp,*sp,*p;
 
-	if(msg->idx.to==0) 	/* netmail */
-		SAFEPRINTF2(dir, "%sfile/%04u.out", cfg->data_dir, msg->idx.from);
-	else
-		SAFEPRINTF2(dir, "%sfile/%04u.in", cfg->data_dir, msg->idx.to);
+	if(msg->idx.to==0) {	/* netmail */
+		SAFEPRINTF3(str,"%sfile/%04u.out/%s"
+			,cfg->data_dir,msg->idx.from,getfname(msg->subj));
+		remove(str);
+		SAFEPRINTF2(str,"%sfile/%04u.out"
+			,cfg->data_dir,msg->idx.from);
+		rmdir(str);
+		return;
+	}
 		
-	SAFECOPY(files, msg->subj);
-	tp=files;
+	SAFECOPY(str,msg->subj);
+	tp=str;
 	while(1) {
 		p=strchr(tp,' ');
 		if(p) *p=0;
 		sp=strrchr(tp,'/');              /* sp is slash pointer */
 		if(!sp) sp=strrchr(tp,'\\');
 		if(sp) tp=sp+1;
-		SAFEPRINTF2(path, "%s/%s", dir, tp);
-		if(remove(path) != 0)
-			return FALSE;
+		SAFEPRINTF3(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
+			,cfg->data_dir,msg->idx.to,tp);
+		remove(str2);
 		if(!p)
 			break;
 		tp=p+1; 
+
 	}
-	rmdir(dir);                     /* remove the dir if it's empty */
-	return TRUE;
+	SAFEPRINTF2(str,"%sfile/%04u.in",cfg->data_dir,msg->idx.to);
+	rmdir(str);                     /* remove the dir if it's empty */
 }
 
 /****************************************************************************/
@@ -156,13 +161,11 @@ mail_t* DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 			continue;
 		if(mode&LM_SPAMONLY && !(idx.attr&MSG_SPAM))
 			continue;
-		mail_t* np;
-		if((np = realloc(mail, sizeof(mail_t) * (l+1))) == NULL) {
-			free(mail);
+		if((mail=(mail_t *)realloc(mail,sizeof(mail_t)*(l+1)))
+			==NULL) {
 			smb_unlocksmbhdr(smb);
 			return(NULL); 
 		}
-		mail = np;
 		mail[l]=idx;
 		l++; 
 	}
