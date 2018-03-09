@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.125 2018/10/03 23:49:04 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.120 2018/02/20 11:44:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -401,7 +401,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		max_title_len=cols-column-1;
 		if(max_title_len > LEN_TITLE)
 			max_title_len = LEN_TITLE;
-		if(!getstr(subj,max_title_len,mode&WM_FILE ? K_LINE|K_TRIM : K_LINE|K_EDIT|K_AUTODEL|K_TRIM)
+		if(!getstr(subj,max_title_len,mode&WM_FILE ? K_LINE : K_LINE|K_EDIT|K_AUTODEL)
 			&& useron_level && useron.logons) {
 			free(buf);
 			return(false); 
@@ -827,14 +827,14 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		if(sys_status&SS_ABORT) {
 			if(line==lines)
 				free(str[line]);
-			continue;
+			continue; 
 		}
 		if(strin[0]=='/' && strlen(strin)<8) {
 			if(!stricmp(strin,"/DEBUG") && SYSOP) {
 				if(line==lines)
 					free(str[line]);
-				bprintf("\r\nline=%d lines=%d rows=%ld\r\n",line,lines,rows);
-				continue;
+				bprintf("\r\nline=%d lines=%d rows=%d\r\n",line,lines,rows);
+				continue; 
 			}
 			else if(!stricmp(strin,"/ABT")) {
 				if(line==lines) 		/* delete a line */
@@ -842,7 +842,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				for(i=0;i<lines;i++)
 					free(str[i]);
 				free(str);
-				return(0);
+				return(0); 
 			}
 			else if(toupper(strin[1])=='D') {
 				if(line==lines)         /* delete a line */
@@ -958,7 +958,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 					free(str[line]);
 				if(title[0]) {
 					bputs(text[SubjectPrompt]);
-					getstr(title,LEN_TITLE,K_LINE|K_EDIT|K_AUTODEL|K_TRIM);
+					getstr(title,LEN_TITLE,K_LINE|K_EDIT|K_AUTODEL);
 					SYNC;
 					CRLF; 
 				}
@@ -1061,8 +1061,8 @@ bool sbbs_t::editfile(char *fname, bool msg)
 			return false;
 		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
 		if(l>0) {
-			SAFEPRINTF3(str,"created or edited file: %s (%ld bytes, %u lines)"
-				,path, l, lines);
+			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
+				,useron.alias, path, l, lines);
 			logline(LOG_NOTICE,nulstr,str);
 		}
 		rioctl(IOSM|PAUSE|ABORT); 
@@ -1109,8 +1109,8 @@ bool sbbs_t::editfile(char *fname, bool msg)
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
-	SAFEPRINTF3(str,"created or edited file: %s (%ld bytes, %u lines)"
-		,fname, l, lines);
+	SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
+		,useron.alias, fname, l, lines);
 	logline(nulstr,str);
 	return true;
 }
@@ -1217,7 +1217,8 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 		copyfattach(usernumber,useron.number,msg->subj);
 
 	bprintf(text[Forwarded],username(&cfg,usernumber,str),usernumber);
-	SAFEPRINTF2(str,"forwarded mail to %s #%d"
+	SAFEPRINTF3(str,"%s forwarded mail to %s #%d"
+		,useron.alias
 		,username(&cfg,usernumber,tmp)
 		,usernumber);
 	logline("E+",str);
@@ -1524,7 +1525,8 @@ bool sbbs_t::movemsg(smbmsg_t* msg, uint subnum)
 
 	bprintf("\r\nMoved to %s %s\r\n\r\n"
 		,cfg.grp[usrgrp[newgrp]]->sname,cfg.sub[newsub]->lname);
-	safe_snprintf(str,sizeof(str),"moved message from %s %s to %s %s"
+	safe_snprintf(str,sizeof(str),"%s moved message from %s %s to %s %s"
+		,useron.alias
 		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->sname
 		,cfg.grp[newgrp]->sname,cfg.sub[newsub]->sname);
 	logline("M+",str);
