@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.236 2018/02/20 21:36:24 deuce Exp $ */
+/* $Id: cterm.c,v 1.237 2018/03/09 05:34:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1001,6 +1001,8 @@ static bool parse_sub_parameters(struct sub_params *sub, struct esc_seq *seq, un
 	for (p=seq->param[param]; *p; p++)
 		if (*p == ':')
 			sub->param_count++;
+	if (sub->param_count == 0)
+		return true;
 	sub->param_int = malloc(sub->param_count * sizeof(sub->param_int[0]));
 	if (sub->param_int == NULL)
 		return false;
@@ -2862,7 +2864,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.236 $";
+	char	*revision="$Revision: 1.237 $";
 	char *in;
 	char	*out;
 	int		i;
