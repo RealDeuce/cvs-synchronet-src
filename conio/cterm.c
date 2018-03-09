@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.238 2018/03/09 06:13:55 deuce Exp $ */
+/* $Id: cterm.c,v 1.239 2018/03/09 06:20:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2797,6 +2797,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									char *collast;
 									uint16_t rgb[3];
 									int ccount = 0;
+									bool broken=false;
 
 									p4 = &p[4];
 									while (ccount < 3 && (p3 = strtok_r(p4, "/", &collast))!=NULL) {
@@ -2818,10 +2819,13 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 											case 4:
 												rgb[ccount] = v;
 												break;
+											default:
+												broken = true;
+												break;
 										}
 										ccount++;
 									}
-									if (ccount == 3)
+									if (ccount == 3 && !broken)
 										setpalette(index+16, rgb[0], rgb[1], rgb[2]);
 									index = ULONG_MAX;
 								}
@@ -2864,7 +2868,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.238 $";
+	char	*revision="$Revision: 1.239 $";
 	char *in;
 	char	*out;
 	int		i;
