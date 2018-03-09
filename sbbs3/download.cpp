@@ -2,13 +2,13 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.46 2015/04/28 10:55:11 rswindell Exp $ */
+/* $Id: download.cpp,v 1.51 2018/02/20 11:16:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2015 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -44,7 +44,7 @@
 /****************************************************************************/
 void sbbs_t::downloadfile(file_t* f)
 {
-    char		str[256],fname[13];
+    char		str[MAX_PATH+1],fname[13];
 	char 		tmp[512];
     int			i,file;
 	long		mod;
@@ -306,14 +306,12 @@ void sbbs_t::autohangup()
 		CRLF;
 }
 
-bool sbbs_t::checkdszlog(file_t* f)
+bool sbbs_t::checkdszlog(const char* fpath)
 {
 	char	path[MAX_PATH+1];
-	char	str[MAX_PATH+128];
-	char	fname[MAX_PATH+1];
 	char	rpath[MAX_PATH+1];
+	char	str[MAX_PATH+128];
 	char*	p;
-	char*	rname;
 	char	code;
 	ulong	bytes;
 	FILE*	fp;
@@ -323,11 +321,8 @@ bool sbbs_t::checkdszlog(file_t* f)
 	if((fp=fopen(path,"r"))==NULL)
 		return(false);
 
-	unpadfname(f->name,fname);
-
-	getfilepath(&cfg,f,rpath);
-	fexistcase(rpath);	/* incase of long filename */
-	rname=getfname(rpath);
+	SAFECOPY(rpath, fpath);
+	fexistcase(rpath);
 
 	while(!ferror(fp)) {
 		if(!fgets(str,sizeof(str),fp))
@@ -358,7 +353,7 @@ bool sbbs_t::checkdszlog(file_t* f)
 		FIND_WHITESPACE(p);	// Skip block size
 		SKIP_WHITESPACE(p);
 		p=getfname(p);	/* DSZ stores fullpath, BiModem doesn't */
-		if(stricmp(p,fname)==0 || stricmp(p,rname)==0) {
+		if(stricmp(p, getfname(fpath))==0 || stricmp(p, getfname(rpath))==0) {
 			/* E for Error or L for Lost Carrier or s for Skipped */
 			/* or only sent 0 bytes! */
 			if(code!='E' && code!='L' && code!='s' && bytes!=0)
@@ -380,9 +375,11 @@ bool sbbs_t::checkprotresult(prot_t* prot, int error, file_t* f)
 	char str[512];
 	char tmp[128];
 	bool success;
+	char fpath[MAX_PATH+1];
 
+	getfilepath(&cfg,f,fpath);
 	if(prot->misc&PROT_DSZLOG)
-		success=checkdszlog(f);
+		success=checkdszlog(fpath);
 	else
 		success=(error==0);
 
@@ -450,14 +447,15 @@ void sbbs_t::seqwait(uint devnum)
 
 }
 
-bool sbbs_t::sendfile(char* fname, char prot)
+bool sbbs_t::sendfile(char* fname, char prot, const char* desc)
 {
 	char	keys[128];
 	char	ch;
 	size_t	i;
-	bool	result=false;
+	int		error;
+	bool	result;
 
-	if(prot)
+	if(prot > ' ')
 		ch=toupper(prot);
 	else {
 		xfer_prot_menu(XFER_DOWNLOAD);
@@ -475,11 +473,33 @@ bool sbbs_t::sendfile(char* fname, char prot)
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
 			break;
-	if(i<cfg.total_prots) {
-		if(protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false)==0)
-			result=true;
-		autohangup(); 
-	}
+	if(i >= cfg.total_prots)
+		return false;
+	error = protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false);
+	if(cfg.prot[i]->misc&PROT_DSZLOG)
+		result = checkdszlog(fname);
+	else
+		result = (error == 0);
 
-	return(result);
+	if(result) {
+		off_t length = flength(fname);
+		logon_dlb += length;	/* Update stats */
+		logon_dls++;
+		useron.dls = (ushort)adjustuserrec(&cfg, useron.number, U_DLS, 5, 1);
+		useron.dlb = adjustuserrec(&cfg,useron.number, U_DLB, 10, length);
+		char bytes[32];
+		ultoac(length, bytes);
+		bprintf(text[FileNBytesSent], getfname(fname), bytes);
+		char str[128];
+		SAFEPRINTF4(str, "%s downloaded %s: %s (%s bytes)"
+			,useron.alias, desc == NULL ? "file" : desc, fname, bytes);
+		logline("D-",str); 
+		autohangup(); 
+	} else {
+		char str[128];
+		bprintf(text[FileNotSent], getfname(fname));
+		sprintf(str,"%s attempted to download attached file: %s", useron.alias, fname);
+		logline(LOG_NOTICE,"D!",str);
+	}
+	return result;
 }
