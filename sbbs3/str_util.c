@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.57 2019/02/04 05:53:55 rswindell Exp $ */
+/* $Id: str_util.c,v 1.53 2017/10/28 20:16:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -73,7 +73,7 @@ char* DLLCALL strip_ctrl(const char *str, char* dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -121,7 +121,7 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 	for(i=j=0;str[i];i++)
 		if(str[i]==CTRL_A && str[i+1]!=0) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -159,7 +159,7 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 	SAFECOPY(str,string);
 
 	p=str;	
-//	SKIP_WHITESPACE(p);
+	SKIP_WHITESPACE(p);
 
 	if(*p==';')		/* comment */
 		return(FALSE);
@@ -258,7 +258,7 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 	ip_addr = parse_ipv4_address(insearchof);
 	for(index=0; list[index]!=NULL; index++) {
 		p=list[index];
-//		SKIP_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
 		if(ip_addr != 0 && (cidr = parse_cidr(p, &subnet)) != 0)
 			found = is_cidr_match(p, ip_addr, cidr, subnet);
 		else
@@ -336,7 +336,8 @@ str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 }
 
 /****************************************************************************/
-/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
+/* Returns the number of characters in 'str' not counting ctrl-ax codes		*/
+/* or the null terminator													*/
 /****************************************************************************/
 size_t bstrlen(const char *str)
 {
@@ -345,7 +346,7 @@ size_t bstrlen(const char *str)
 	while(*str) {
 		if(*str==CTRL_A) {
 			str++;
-			if(*str==0 || *str=='Z')	/* EOF */
+			if(toupper(*str)=='Z')	/* EOF */
 				break;
 			if(*str=='[')
 				i=0;
