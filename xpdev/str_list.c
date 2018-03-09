@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.49 2018/03/09 06:11:37 deuce Exp $ */
+/* $Id: str_list.c,v 1.48 2018/03/09 06:05:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -269,7 +269,7 @@ char* DLLCALL strListInsert(str_list_t* list, const char* str, size_t index)
 
 	ret = str_list_insert(list,buf,index);
 	if (ret == NULL)
-		free(buf);
+		free(str);
 	return ret;
 }
 

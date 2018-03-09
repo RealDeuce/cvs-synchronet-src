@@ -2,13 +2,13 @@
 
 /* Synchronet Serial Communications (COM) I/O Library */
 
-/* $Id: comio.h,v 1.9 2018/07/24 01:10:49 rswindell Exp $ */
+/* $Id: comio.h,v 1.8 2014/02/14 12:05:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
