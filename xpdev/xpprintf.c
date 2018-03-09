@@ -1,14 +1,15 @@
 /* xpprintf.c */
+// vi: tabstop=4
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.57 2015/09/29 00:48:52 deuce Exp $ */
+/* $Id: xpprintf.c,v 1.59 2018/03/08 23:33:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,7 +36,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#define _GNU_SOURCE	// asprintf() on Linux
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+	#define _GNU_SOURCE	// asprintf() on Linux
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -1240,8 +1243,10 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 		 */
 		if(format_len < (format_len-this_format_len+j)) {
 			newbuf=(char *)realloc(format, format_len-this_format_len+j);
-			if(newbuf==NULL)
+			if(newbuf==NULL) {
+				FREE_AND_NULL(entry);
 				return(NULL);
+			}
 			format=newbuf;
 		}
 		/* Move trailing end to make space */
