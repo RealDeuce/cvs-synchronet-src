@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.670 2018/02/23 00:16:05 deuce Exp $ */
+/* $Id: main.cpp,v 1.675 2018/03/07 22:39:57 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -268,6 +268,7 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
+// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -1368,6 +1369,10 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptKeyset Class */
 		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
@@ -2562,7 +2567,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed");
+						eprintf(LOG_INFO,"Packing completed: %s", str);
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
@@ -5197,6 +5202,10 @@ NO_SSH:
 			continue;
 		}
 
+		// Count the socket:
+		if(startup->socket_open!=NULL)
+			startup->socket_open(startup->cbdata, TRUE);
+
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
@@ -5362,6 +5371,7 @@ NO_SSH:
 				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
+			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
