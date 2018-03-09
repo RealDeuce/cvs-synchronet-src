@@ -2,7 +2,7 @@
 
 /* Synchronet batch file transfer functions */
 
-/* $Id: bat_xfer.cpp,v 1.39 2019/03/10 00:45:09 rswindell Exp $ */
+/* $Id: bat_xfer.cpp,v 1.37 2018/02/20 11:13:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ void sbbs_t::batchmenu()
 		}
 		ASYNC;
 		bputs(text[BatchMenuPrompt]);
-		SAFEPRINTF(keys,"BCDLRU?\r%c", text[YNQP][2]);
+		sprintf(keys,"BCDLRU?\r%c", text[YNQP][2]);
 		ch=(char)getkeys(keys,0);
 		if(ch>' ')
 			logch(ch,0);
@@ -122,7 +122,7 @@ void sbbs_t::batchmenu()
 				xfer_prot_menu(XFER_BIDIR);
 				SYNC;
 				mnemonics(text[ProtocolOrQuit]);
-				SAFEPRINTF(tmp2,"%c",text[YNQP][2]);
+				sprintf(tmp2,"%c",text[YNQP][2]);
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->bicmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
@@ -151,11 +151,11 @@ void sbbs_t::batchmenu()
 						if(cfg.dir[batdn_dir[i]]->seqdev) {
 							lncntr=0;
 							unpadfname(batdn_name[i],tmp);
-							SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,tmp);
+							sprintf(tmp2,"%s%s",cfg.temp_dir,tmp);
 							if(!fexistcase(tmp2)) {
 								seqwait(cfg.dir[batdn_dir[i]]->seqdev);
 								bprintf(text[RetrievingFile],tmp);
-								SAFEPRINTF2(str,"%s%s"
+								sprintf(str,"%s%s"
 									,batdn_alt[i]>0 && batdn_alt[i]<=cfg.altpaths
 									? cfg.altpath[batdn_alt[i]-1]
 									: cfg.dir[batdn_dir[i]]->path
@@ -168,15 +168,15 @@ void sbbs_t::batchmenu()
 								CRLF; 
 							} 
 						}
-					SAFEPRINTF(str,"%sBATCHDN.LST",cfg.node_dir);
-					SAFEPRINTF(tmp2,"%sBATCHUP.LST",cfg.node_dir);
+					sprintf(str,"%sBATCHDN.LST",cfg.node_dir);
+					sprintf(tmp2,"%sBATCHUP.LST",cfg.node_dir);
 					start=time(NULL);
 					protocol(cfg.prot[xfrprot],XFER_BIDIR,str,tmp2,true);
 					end=time(NULL);
 					for(i=0;i<batdn_total;i++)
 						if(cfg.dir[batdn_dir[i]]->seqdev) {
 							unpadfname(batdn_name[i],tmp);
-							SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,tmp);
+							sprintf(tmp2,"%s%s",cfg.temp_dir,tmp);
 							remove(tmp2); 
 						}
 					batch_upload();
@@ -199,7 +199,7 @@ void sbbs_t::batchmenu()
 							f.dir=batdn_dir[i];
 							f.datoffset=batdn_offset[i];
 							f.size=batdn_size[i];
-							SAFECOPY(f.name,batdn_name[i]);
+							strcpy(f.name,batdn_name[i]);
 							closefile(&f); 
 						}
 						batdn_total=0;
@@ -260,7 +260,7 @@ void sbbs_t::batchmenu()
 					if((int)n>=1) {
 						n--;
 						f.dir=batdn_dir[n];
-						SAFECOPY(f.name,batdn_name[n]);
+						strcpy(f.name,batdn_name[n]);
 						f.datoffset=batdn_offset[n];
 						f.size=batdn_size[n];
 						closefile(&f);
@@ -295,7 +295,7 @@ void sbbs_t::batchmenu()
 					break;
 				ASYNC;
 				mnemonics(text[ProtocolOrQuit]);
-				SAFEPRINTF(str,"%c",text[YNQP][2]);
+				sprintf(str,"%c",text[YNQP][2]);
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->batulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
@@ -309,7 +309,7 @@ void sbbs_t::batchmenu()
 						&& chk_ar(cfg.prot[i]->ar,&useron,&client))
 						break;
 				if(i<cfg.total_prots) {
-					SAFEPRINTF(str,"%sBATCHUP.LST",cfg.node_dir);
+					sprintf(str,"%sBATCHUP.LST",cfg.node_dir);
 					xfrprot=i;
 					if(batup_total)
 						xfrdir=batup_dir[0];
@@ -383,7 +383,7 @@ BOOL sbbs_t::start_batch_download()
 	xfer_prot_menu(XFER_BATCH_DOWNLOAD);
 	ASYNC;
 	mnemonics(text[ProtocolOrQuit]);
-	SAFEPRINTF(str,"%c",text[YNQP][2]);
+	sprintf(str,"%c",text[YNQP][2]);
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->batdlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 			sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
@@ -412,11 +412,11 @@ BOOL sbbs_t::start_batch_download()
 		unpadfname(batdn_name[i],fname);
 		if(cfg.dir[batdn_dir[i]]->seqdev) {
 			lncntr=0;
-			SAFEPRINTF2(path,"%s%s",cfg.temp_dir,fname);
+			sprintf(path,"%s%s",cfg.temp_dir,fname);
 			if(!fexistcase(path)) {
 				seqwait(cfg.dir[batdn_dir[i]]->seqdev);
 				bprintf(text[RetrievingFile],fname);
-				SAFEPRINTF2(str,"%s%s"
+				sprintf(str,"%s%s"
 					,batdn_alt[i]>0 && batdn_alt[i]<=cfg.altpaths
 					? cfg.altpath[batdn_alt[i]-1]
 					: cfg.dir[batdn_dir[i]]->path
@@ -430,7 +430,7 @@ BOOL sbbs_t::start_batch_download()
 			} 
 		}
 		else
-			SAFEPRINTF2(path,"%s%s"
+			sprintf(path,"%s%s"
 				,batdn_alt[i]>0 && batdn_alt[i]<=cfg.altpaths
 				? cfg.altpath[batdn_alt[i]-1]
 				: cfg.dir[batdn_dir[i]]->path
@@ -439,13 +439,10 @@ BOOL sbbs_t::start_batch_download()
 			list_len=0;
 		else
 			list_len=strlen(list)+1;	/* add one for ' ' */
-		char* np;
-		if((np=(char*)realloc(list,list_len+strlen(path)+1	/* add one for '\0'*/))==NULL) {
-			free(list);
+		if((list=(char*)realloc(list,list_len+strlen(path)+1	/* add one for '\0'*/))==NULL) {
 			errormsg(WHERE,ERR_ALLOC,"list",list_len+strlen(path));
 			return(FALSE);
 		}
-		list = np;
 		if(!list_len)
 			strcpy(list,path);
 		else {
@@ -463,7 +460,7 @@ BOOL sbbs_t::start_batch_download()
 		}
 	}
 
-	SAFEPRINTF(str,"%sBATCHDN.LST",cfg.node_dir);
+	sprintf(str,"%sBATCHDN.LST",cfg.node_dir);
 	action=NODE_DLNG;
 	t=now;
 	if(cur_cps) 
@@ -499,7 +496,7 @@ bool sbbs_t::create_batchdn_lst(bool native)
 	int		file;
 	uint	i;
 
-	SAFEPRINTF(path,"%sBATCHDN.LST",cfg.node_dir);
+	sprintf(path,"%sBATCHDN.LST",cfg.node_dir);
 	if((file=nopen(path,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 		errormsg(WHERE,ERR_OPEN,path,O_WRONLY|O_CREAT|O_TRUNC);
 		return(false); 
@@ -533,16 +530,16 @@ bool sbbs_t::create_batchup_lst()
     int		file;
 	uint	i;
 
-	SAFEPRINTF(str,"%sBATCHUP.LST",cfg.node_dir);
+	sprintf(str,"%sBATCHUP.LST",cfg.node_dir);
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 		return(false); 
 	}
 	for(i=0;i<batup_total;i++) {
 		if(batup_dir[i]>=cfg.total_dirs)
-			SAFECOPY(str,cfg.temp_dir);
+			strcpy(str,cfg.temp_dir);
 		else
-			SAFECOPY(str,batup_alt[i]>0 && batup_alt[i]<=cfg.altpaths
+			strcpy(str,batup_alt[i]>0 && batup_alt[i]<=cfg.altpaths
 				? cfg.altpath[batup_alt[i]-1] : cfg.dir[batup_dir[i]]->path);
 		write(file,str,strlen(str));
 		unpadfname(batup_name[i],str);
@@ -564,27 +561,27 @@ bool sbbs_t::create_bimodem_pth()
     int		file;
 	uint	i;
 
-	SAFEPRINTF(str,"%sBIMODEM.PTH",cfg.node_dir);  /* Create bimodem file */
+	sprintf(str,"%sBIMODEM.PTH",cfg.node_dir);  /* Create bimodem file */
 	if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 		return(false); 
 	}
 	for(i=0;i<batup_total;i++) {
-		SAFEPRINTF2(str,"%s%s",batup_dir[i]>=cfg.total_dirs ? cfg.temp_dir
+		sprintf(str,"%s%s",batup_dir[i]>=cfg.total_dirs ? cfg.temp_dir
 			: batup_alt[i]>0 && batup_alt[i]<=cfg.altpaths
 			? cfg.altpath[batup_alt[i]-1] : cfg.dir[batup_dir[i]]->path
 			,unpadfname(batup_name[i],tmp));
-		SAFEPRINTF2(tmp2,"D       %-80.80s%-160.160s"
+		sprintf(tmp2,"D       %-80.80s%-160.160s"
 			,unpadfname(batup_name[i],tmp),str);
 		write(file,tmp2,248); 
 	}
 	for(i=0;i<batdn_total;i++) {
-		SAFEPRINTF2(str,"%s%s"
+		sprintf(str,"%s%s"
 			,(batdn_dir[i]>=cfg.total_dirs || cfg.dir[batdn_dir[i]]->seqdev)
 			? cfg.temp_dir : batdn_alt[i]>0 && batdn_alt[i]<=cfg.altpaths
 				? cfg.altpath[batdn_alt[i]-1] : cfg.dir[batdn_dir[i]]->path
 				,unpadfname(batdn_name[i],tmp));
-		SAFEPRINTF(tmp2,"U       %-240.240s",str);
+		sprintf(tmp2,"U       %-240.240s",str);
 		write(file,tmp2,248); 
 	}
 	close(file);
@@ -608,8 +605,8 @@ void sbbs_t::batch_upload()
 		curdirnum=batup_dir[i]; 			/* for ARS */
 		lncntr=0;                               /* defeat pause */
 		unpadfname(batup_name[i],tmp);
-		SAFEPRINTF2(str1,"%s%s",cfg.temp_dir,tmp);
-		SAFEPRINTF2(str2,"%s%s",cfg.dir[batup_dir[i]]->path,tmp);
+		sprintf(str1,"%s%s",cfg.temp_dir,tmp);
+		sprintf(str2,"%s%s",cfg.dir[batup_dir[i]]->path,tmp);
 		if(fexistcase(str1) && fexistcase(str2)) { /* file's in two places */
 			bprintf(text[FileAlreadyThere],batup_name[i]);
 			remove(str1);    /* this is the one received */
@@ -618,8 +615,8 @@ void sbbs_t::batch_upload()
 		}
 		if(fexist(str1))
 			mv(str1,str2,0);
-		SAFECOPY(f.name,batup_name[i]);
-		SAFECOPY(f.desc,batup_desc[i]);
+		strcpy(f.name,batup_name[i]);
+		strcpy(f.desc,batup_desc[i]);
 		f.dir=batup_dir[i];
 		f.misc=batup_misc[i];
 		f.altpath=batup_alt[i];
@@ -639,7 +636,7 @@ void sbbs_t::batch_upload()
 		return;
 	dir=opendir(cfg.temp_dir);
 	while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
-		SAFEPRINTF2(str1,"%s%s",cfg.temp_dir,dirent->d_name);
+		sprintf(str1,"%s%s",cfg.temp_dir,dirent->d_name);
 		if(isdir(str1))
 			continue;
 		memset(&f,0,sizeof(file_t));
@@ -659,7 +656,7 @@ void sbbs_t::batch_upload()
 			if(y<usrdirs[x])
 				break; 
 		}
-		SAFEPRINTF2(str2,"%s%s",cfg.dir[f.dir]->path,dirent->d_name);
+		sprintf(str2,"%s%s",cfg.dir[f.dir]->path,dirent->d_name);
 		if(x<usrlibs || fexistcase(str2)) {
 			bprintf(text[FileAlreadyOnline],f.name);
 			remove(str1); 
@@ -684,7 +681,7 @@ void sbbs_t::batch_download(int xfrprot)
 	for(i=0;i<batdn_total;) {
 		lncntr=0;                               /* defeat pause */
 		f.dir=curdirnum=batdn_dir[i];
-		SAFECOPY(f.name,batdn_name[i]);
+		strcpy(f.name,batdn_name[i]);
 		f.datoffset=batdn_offset[i];
 		f.size=batdn_size[i];
 		f.altpath=batdn_alt[i];
@@ -764,7 +761,7 @@ void sbbs_t::batch_create_list()
 	FILE*	stream;
 
 	if(batdn_total) {
-		SAFEPRINTF2(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
+		sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
 		if((stream=fnopen(NULL,str,O_WRONLY|O_TRUNC|O_CREAT))!=NULL) {
 			for(i=0;i<(int)batdn_total;i++)
 				fprintf(stream,"%s\r\n",batdn_name[i]);
