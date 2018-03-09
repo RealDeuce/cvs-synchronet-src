@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.80 2018/10/26 03:33:14 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.75 2018/02/25 23:01:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -368,7 +368,9 @@ void sbbs_t::multinodechat(int channel)
 						done=1;
 						break;
 					case '*':
-						if(!menu("chan", P_NOERROR)) {
+						if(menu_exists("chan"))
+							menu("chan");
+						else {
 							bputs(text[ChatChanLstHdr]);
 							bputs(text[ChatChanLstTitles]);
 							if(cfg.total_chans>=10) {
@@ -580,8 +582,8 @@ bool sbbs_t::guru_page(void)
 		return(false);
 	}
 	if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
-		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
 		close(file);
+		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
 		return(false);
 	}
 	read(file,gurubuf,(size_t)filelength(file));
@@ -706,7 +708,7 @@ bool sbbs_t::sysop_page(void)
 		|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron,&client))
 		|| useron.exempt&FLAG('C')) {
 
-		sprintf(str,"paged sysop for chat");
+		sprintf(str,"%s paged sysop for chat",useron.alias);
 		logline("C",str);
 
 		ftouch(syspage_semfile);
@@ -715,14 +717,8 @@ bool sbbs_t::sysop_page(void)
 				break;
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
-			long mode = 0;
-			if(cfg.page[i]->misc&XTRN_STDIO)
-				mode |= EX_STDIO;
-			if(cfg.page[i]->misc&XTRN_NATIVE)
-				mode|= EX_NATIVE;
-			if(cfg.page[i]->misc&XTRN_SH)
-				mode |= EX_SH;
-			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL), mode); 
+			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL)
+				,cfg.page[i]->misc&XTRN_STDIO ? EX_STDIO : 0); 
 		}
 		else if(cfg.sys_misc&SM_SHRTPAGE) {
 			bprintf(text[PagingGuru],cfg.sys_op);
@@ -821,8 +817,8 @@ void sbbs_t::privchat(bool local)
 				,cfg.node_num,thisnode.misc&NODE_ANON
 					? text[UNKNOWN_USER] : useron.alias);
 			putnmsg(&cfg,n,str);
-			sprintf(str,"paged %s on node %d to private chat"
-				,username(&cfg,node.useron,tmp),n);
+			sprintf(str,"%s paged %s on node %d to private chat"
+				,useron.alias,username(&cfg,node.useron,tmp),n);
 			logline("C",str); 
 		}
 
@@ -1269,10 +1265,8 @@ int sbbs_t::getnodetopage(int all, int telegram)
 
 	strcpy(str,lastnodemsguser);
 	getstr(str,LEN_ALIAS,K_UPRLWR|K_LINE|K_EDIT|K_AUTODEL);
-	if(sys_status&SS_ABORT) {
-		sys_status&= ~SS_ABORT;
+	if(sys_status&SS_ABORT)
 		return(0);
-	}
 	if(!str[0])
 		return(0);
 
@@ -1439,8 +1433,8 @@ void sbbs_t::nodemsg()
 					break; 
 				}
 				putsmsg(&cfg,usernumber,buf);
-				sprintf(str,"sent telegram to %s #%u"
-					,username(&cfg,usernumber,tmp),usernumber);
+				sprintf(str,"%s sent telegram to %s #%u"
+					,useron.alias,username(&cfg,usernumber,tmp),usernumber);
 				logline("C",str);
 				logline(nulstr,logbuf);
 				bprintf(text[MsgSentToUser],"Telegram"
@@ -1472,8 +1466,8 @@ void sbbs_t::nodemsg()
 						if(!(node.misc&NODE_ANON))
 							bprintf(text[MsgSentToUser],"Message"
 								,username(&cfg,usernumber,tmp),usernumber);
-						sprintf(str,"sent message to %s on node %d:"
-							,username(&cfg,usernumber,tmp),i);
+						sprintf(str,"%s sent message to %s on node %d:"
+							,useron.alias,username(&cfg,usernumber,tmp),i);
 						logline("C",str);
 						logline(nulstr,line); 
 					} 
@@ -1494,7 +1488,7 @@ void sbbs_t::nodemsg()
 							&& (SYSOP || !(node.misc&NODE_POFF)))
 							putnmsg(&cfg,i,buf); 
 					}
-					SAFECOPY(str,"sent message to all nodes");
+					sprintf(str,"%s sent message to all nodes",useron.alias);
 					logline("C",str);
 					logline(nulstr,line); 
 				}

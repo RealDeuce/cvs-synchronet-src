@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.137 2018/04/18 06:33:39 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.135 2018/02/20 21:09:34 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -302,8 +302,6 @@ static void set_vmem_cell(struct vstat_vmem *vmem_ptr, size_t pos, uint16_t cell
 	if (!vstat.blink_altcharset)
 		altfont &= ~0x02;
 	font=current_font[altfont];
-	if (font == -99)
-		font = default_font;
 	if (font < 0 || font > 255)
 		font = 0;
 
@@ -682,6 +680,7 @@ static int update_from_vmem(int force)
 	unsigned int pos;
 
 	int	redraw_cursor=0;
+	int	lastcharupdated=0;
 	int bright_attr_changed=0;
 	int blink_attr_changed=0;
 
@@ -755,6 +754,7 @@ static int update_from_vmem(int force)
 			}
 			pos++;
 		}
+		lastcharupdated=0;
 	}
 	release_vmem(vmem_ptr);
 
