@@ -2,7 +2,7 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id$ */
+/* $Id: xpevent.c,v 1.16 2018/03/09 07:03:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,7 +173,6 @@ WaitForEvent(xpevent_t event, DWORD ms)
 		retval=WAIT_OBJECT_0;
 
 	while ((!(event->value)) || (event->verify!=NULL && !event->verify(event->cbdata))) {
-		retval=WAIT_FAILED;
 		event->nwaiters++;
 		switch(ms) {
 			case 0:
