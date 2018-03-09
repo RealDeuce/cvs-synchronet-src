@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.196 2018/03/09 03:18:57 deuce Exp $ */
+/* $Id: js_socket.c,v 1.197 2018/03/09 18:25:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -421,7 +421,7 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 					}
 				}
 				else {
-					if (*p->sock == INVALID_SOCKET)
+					if (p->sock == INVALID_SOCKET)
 						return TRUE;
 					else {
 						if(FD_ISSET(p->sock, fds))
