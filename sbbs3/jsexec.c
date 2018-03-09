@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.199 2018/04/06 02:42:38 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.197 2018/03/08 23:52:33 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1014,7 +1014,7 @@ long js_exec(const char *fname, char** args)
 			strcpy(line,"\n");	/* To keep line count correct */
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
-			lprintf(LOG_ERR,"!Error allocating %lu bytes of memory"
+			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
 				,js_buflen+len);
 			if(fp!=stdin)
 				fclose(fp);
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.199 $", "%*s %s", revision);
+	sscanf("$Revision: 1.197 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1393,7 +1393,7 @@ int main(int argc, char **argv, char** env)
 		YIELD();
 
 		if(result)
-			lprintf(LOG_ERR,"!Module (%s) set exit_code: %ld", module, result);
+			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
 
 		fprintf(statfp,"\n");
 		fprintf(statfp,"JavaScript: Destroying context\n");
