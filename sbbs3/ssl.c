@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <threadwrap.h>
+#include "xpprintf.h"
 
 #include "ssl.h"
 //#include "js_socket.h"	// TODO... move this stuff in here?
@@ -11,7 +12,7 @@ void DLLCALL free_crypt_attrstr(char *attr)
 	free(attr);
 }
 
-char* DLLCALL get_crypt_attribute(CRYPT_SESSION sess, C_IN CRYPT_ATTRIBUTE_TYPE attr)
+char* DLLCALL get_crypt_attribute(CRYPT_HANDLE sess, C_IN CRYPT_ATTRIBUTE_TYPE attr)
 {
 	int		len = 0;
 	char	*estr = NULL;
@@ -19,7 +20,10 @@ char* DLLCALL get_crypt_attribute(CRYPT_SESSION sess, C_IN CRYPT_ATTRIBUTE_TYPE 
 	if (cryptStatusOK(cryptGetAttributeString(sess, attr, NULL, &len))) {
 		estr = malloc(len + 1);
 		if (estr) {
-			cryptGetAttributeString(sess, attr, estr, &len);
+			if (cryptStatusError(cryptGetAttributeString(sess, attr, estr, &len))) {
+				free(estr);
+				return NULL;
+			}
 			estr[len] = 0;
 			return estr;
 		}
@@ -27,25 +31,194 @@ char* DLLCALL get_crypt_attribute(CRYPT_SESSION sess, C_IN CRYPT_ATTRIBUTE_TYPE 
 	return NULL;
 }
 
-char* DLLCALL get_crypt_error(CRYPT_SESSION sess)
+char* DLLCALL get_crypt_error(CRYPT_HANDLE sess)
 {
 	return get_crypt_attribute(sess, CRYPT_ATTRIBUTE_ERRORMESSAGE);
 }
 
-static bool get_error_string(int status, CRYPT_SESSION sess, char estr[SSL_ESTR_LEN], char *file, int line)
+static int DLLCALL crypt_ll(int error)
 {
-	char	*emsg;
-
-	if (cryptStatusOK(status))
-		return true;
-
-	emsg = get_crypt_error(sess);
-	if (emsg) {
-		safe_snprintf(estr, SSL_ESTR_LEN, "cryptlib error %d at %s:%d (%s)", status, file, line, emsg);
-		free_crypt_attrstr(emsg);
+	switch(error) {
+		case CRYPT_ERROR_INCOMPLETE:
+			return LOG_WARNING;
+		case CRYPT_ERROR_COMPLETE:
+		case CRYPT_ERROR_READ:
+		case CRYPT_ERROR_WRITE:
+		case CRYPT_ENVELOPE_RESOURCE:
+			return LOG_DEBUG;
+		case CRYPT_ERROR_TIMEOUT:
+			return LOG_INFO;
 	}
-	else
-		safe_snprintf(estr, SSL_ESTR_LEN, "cryptlib error %d at %s:%d", status, file, line);
+	return LOG_ERR;
+}
+
+static const char *crypt_lstr(int level)
+{
+	switch(level) {
+		case LOG_EMERG:
+			return "!ERROR";
+		case LOG_ALERT:
+			return "!ERROR";
+		case LOG_CRIT:
+			return "!ERROR";
+		case LOG_ERR:
+			return "ERROR";
+		case LOG_WARNING:
+			return "WARNING";
+		case LOG_NOTICE:
+			return "note";
+		case LOG_INFO:
+			return "info";
+		case LOG_DEBUG:
+			return "dbg";
+	}
+	return "!!!!!!!!";
+}
+
+bool DLLCALL get_crypt_error_string(int status, CRYPT_HANDLE sess, char **estr, const char *action, int *lvl)
+{
+	char	*emsg = NULL;
+	bool	allocated = false;
+	int	level;
+
+	if (cryptStatusOK(status)) {
+		if (estr)
+			*estr = NULL;
+		return true;
+	}
+
+	level = crypt_ll(status);
+	if (lvl)
+		*lvl = level;
+
+	if (estr) {
+		if (sess != CRYPT_UNUSED)
+			emsg = get_crypt_error(sess);
+		if (emsg != NULL)
+			allocated = true;
+		if (emsg == NULL) {
+			switch(status) {
+				case CRYPT_ERROR_PARAM1:
+					emsg = "Bad argument, parameter 1";
+					break;
+				case CRYPT_ERROR_PARAM2:
+					emsg = "Bad argument, parameter 2";
+					break;
+				case CRYPT_ERROR_PARAM3:
+					emsg = "Bad argument, parameter 3";
+					break;
+				case CRYPT_ERROR_PARAM4:
+					emsg = "Bad argument, parameter 4";
+					break;
+				case CRYPT_ERROR_PARAM5:
+					emsg = "Bad argument, parameter 5";
+					break;
+				case CRYPT_ERROR_PARAM6:
+					emsg = "Bad argument, parameter 6";
+					break;
+				case CRYPT_ERROR_PARAM7:
+					emsg = "Bad argument, parameter 7";
+					break;
+
+				/* Errors due to insufficient resources */
+
+				case CRYPT_ERROR_MEMORY:
+					emsg = "Out of memory";
+					break;
+				case CRYPT_ERROR_NOTINITED:
+					emsg = "Data has not been initialised";
+					break;
+				case CRYPT_ERROR_INITED:
+					emsg = "Data has already been init'd";
+					break;
+				case CRYPT_ERROR_NOSECURE:
+					emsg = "Opn.not avail.at requested sec.level";
+					break;
+				case CRYPT_ERROR_RANDOM:
+					emsg = "No reliable random data available";
+					break;
+				case CRYPT_ERROR_FAILED:
+					emsg = "Operation failed";
+					break;
+				case CRYPT_ERROR_INTERNAL:
+					emsg = "Internal consistency check failed";
+					break;
+
+				/* Security violations */
+
+				case CRYPT_ERROR_NOTAVAIL:
+					emsg = "This type of opn.not available";
+					break;
+				case CRYPT_ERROR_PERMISSION:
+					emsg = "No permiss.to perform this operation";
+					break;
+				case CRYPT_ERROR_WRONGKEY:
+					emsg = "Incorrect key used to decrypt data";
+					break;
+				case CRYPT_ERROR_INCOMPLETE:
+					emsg = "Operation incomplete/still in progress";
+					break;
+				case CRYPT_ERROR_COMPLETE:
+					emsg = "Operation complete/can't continue";
+					break;
+				case CRYPT_ERROR_TIMEOUT:
+					emsg = "Operation timed out before completion";
+					break;
+				case CRYPT_ERROR_INVALID:
+					emsg = "Invalid/inconsistent information";
+					break;
+				case CRYPT_ERROR_SIGNALLED:
+					emsg = "Resource destroyed by extnl.event";
+					break;
+
+				/* High-level function errors */
+
+				case CRYPT_ERROR_OVERFLOW:
+					emsg = "Resources/space exhausted";
+					break;
+				case CRYPT_ERROR_UNDERFLOW:
+					emsg = "Not enough data available";
+					break;
+				case CRYPT_ERROR_BADDATA:
+					emsg = "Bad/unrecognised data format";
+					break;
+				case CRYPT_ERROR_SIGNATURE:
+					emsg = "Signature/integrity check failed";
+					break;
+
+				/* Data access function errors */
+
+				case CRYPT_ERROR_OPEN:
+					emsg = "Cannot open object";
+					break;
+				case CRYPT_ERROR_READ:
+					emsg = "Cannot read item from object";
+					break;
+				case CRYPT_ERROR_WRITE:
+					emsg = "Cannot write item to object";
+					break;
+				case CRYPT_ERROR_NOTFOUND:
+					emsg = "Requested item not found in object";
+					break;
+				case CRYPT_ERROR_DUPLICATE:
+					emsg = "Item already present in object";
+					break;
+
+				/* Data enveloping errors */
+
+				case CRYPT_ENVELOPE_RESOURCE:
+					emsg = "Need resource to proceed";
+					break;
+			}
+		}
+		if (emsg) {
+			asprintf(estr, "%s '%s' (%d) %s", crypt_lstr(level), emsg, status, action);
+			if (allocated)
+				free_crypt_attrstr(emsg);
+		}
+		else
+			asprintf(estr, "%s (%d) %s", crypt_lstr(level), status, action);
+	}
 	return false;
 }
 
@@ -86,17 +259,19 @@ bool DLLCALL is_crypt_initialized(void)
 	return cryptlib_initialized;
 }
 
-#define DO(x)	get_error_string(x, ssl_context, estr, __FILE__, __LINE__)
+#define DO(action, handle, x)	get_crypt_error_string(x, handle, estr, action, level)
 
-CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN])
+CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 {
 	CRYPT_KEYSET		ssl_keyset;
-	CRYPT_CONTEXT		ssl_context;
+	CRYPT_CONTEXT		ssl_context = -1;	// MSVC requires this to be initialized
 	CRYPT_CERTIFICATE	ssl_cert;
 	int					i;
 	char				sysop_email[sizeof(cfg->sys_inetaddr)+6];
-    char				str[MAX_PATH+1];
+	char				str[MAX_PATH+1];
 
+	if (estr)
+		estr = NULL;
 	if(!do_cryptInit())
 		return -1;
 	pthread_mutex_lock(&ssl_cert_mutex);
@@ -107,56 +282,54 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char estr[SSL_ESTR_LEN])
 	/* Get the certificate... first try loading it from a file... */
 	SAFEPRINTF2(str,"%s%s",cfg->ctrl_dir,"ssl.cert");
 	if(cryptStatusOK(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_READONLY))) {
-		if(!DO(cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass))) {
+		if(!DO("getting private key", ssl_keyset, cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass))) {
 			pthread_mutex_unlock(&ssl_cert_mutex);
 			return -1;
 		}
 	}
 	else {
 		/* Couldn't do that... create a new context and use the cert from there... */
-		if(!cryptStatusOK(i=cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
+		if(!DO("creating SSL context", CRYPT_UNUSED, cryptStatusOK(i=cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA)))) {
 			pthread_mutex_unlock(&ssl_cert_mutex);
-			if (estr)
-				sprintf(estr, "cryptlib error %d creating SSL context",i);
 			return -1;
 		}
-		if(!DO(cryptSetAttributeString(ssl_context, CRYPT_CTXINFO_LABEL, "ssl_cert", 8)))
+		if(!DO("setting label", ssl_context, cryptSetAttributeString(ssl_context, CRYPT_CTXINFO_LABEL, "ssl_cert", 8)))
 			goto failure_return_1;
-		if(!DO(cryptGenerateKey(ssl_context)))
+		if(!DO("generating key", ssl_context, cryptGenerateKey(ssl_context)))
 			goto failure_return_1;
-		if(!DO(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE)))
+		if(!DO("opening keyset", CRYPT_UNUSED, cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE)))
 			goto failure_return_1;
-		if(!DO(cryptAddPrivateKey(ssl_keyset, ssl_context, cfg->sys_pass)))
+		if(!DO("adding private key", ssl_keyset, cryptAddPrivateKey(ssl_keyset, ssl_context, cfg->sys_pass)))
 			goto failure_return_2;
-		if(!DO(cryptCreateCert(&ssl_cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE)))
+		if(!DO("creating certificate", CRYPT_UNUSED, cryptCreateCert(&ssl_cert, CRYPT_UNUSED, CRYPT_CERTTYPE_CERTIFICATE)))
 			goto failure_return_2;
-		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO, ssl_context)))
+		if(!DO("setting public key", ssl_cert, cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_SUBJECTPUBLICKEYINFO, ssl_context)))
 			goto failure_return_3;
-		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_SELFSIGNED, 1)))
+		if(!DO("signing certificate", ssl_cert, cryptSetAttribute(ssl_cert, CRYPT_CERTINFO_SELFSIGNED, 1)))
 			goto failure_return_3;
-		if(!DO(cryptSetAttribute(ssl_cert, CRYPT_OPTION_CERT_VALIDITY, 3650)))
+		if(!DO("verifying certificate", ssl_cert, cryptSetAttribute(ssl_cert, CRYPT_OPTION_CERT_VALIDITY, 3650)))
 			goto failure_return_3;
-		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COUNTRYNAME, "ZZ", 2)))
+		if(!DO("setting country name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COUNTRYNAME, "ZZ", 2)))
 			goto failure_return_3;
-		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_ORGANIZATIONNAME, cfg->sys_name, strlen(cfg->sys_name))))
+		if(!DO("setting orginization name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_ORGANIZATIONNAME, cfg->sys_name, strlen(cfg->sys_name))))
 			goto failure_return_3;
-		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_DNSNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
+		if(!DO("setting DNS name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_DNSNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
 			goto failure_return_3;
-		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COMMONNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
+		if(!DO("setting Common Name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COMMONNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
 			goto failure_return_3;
 		sprintf(sysop_email, "sysop@%s", cfg->sys_inetaddr);
-		if(!DO(cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_RFC822NAME, sysop_email, strlen(sysop_email))))
+		if(!DO("setting email", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_RFC822NAME, sysop_email, strlen(sysop_email))))
 			goto failure_return_3;
-		if(!DO(cryptSignCert(ssl_cert, ssl_context)))
+		if(!DO("signing certificate", ssl_cert, cryptSignCert(ssl_cert, ssl_context)))
 			goto failure_return_3;
-		if(!DO(cryptAddPublicKey(ssl_keyset, ssl_cert)))
+		if(!DO("adding public key", ssl_keyset, cryptAddPublicKey(ssl_keyset, ssl_cert)))
 			goto failure_return_3;
 		cryptDestroyCert(ssl_cert);
 		cryptKeysetClose(ssl_keyset);
 		cryptDestroyContext(ssl_context);
 		// Finally, load it from the file.
 		if(cryptStatusOK(cryptKeysetOpen(&ssl_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_READONLY))) {
-			if(!DO(cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass))) {
+			if(!DO("getting private key", ssl_keyset, cryptGetPrivateKey(ssl_keyset, &ssl_context, CRYPT_KEYID_NAME, "ssl_cert", cfg->sys_pass))) {
 				ssl_context = -1;
 			}
 		}
