@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.67 2018/02/20 11:56:27 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.69 2018/03/06 21:46:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -155,9 +155,29 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		SAFECOPY(str,sub->newsgroup);
 	else {
 		sprintf(str,"%s.%s",cfg->grp[sub->grp]->sname,sub->sname);
-		for(c=0;str[c];c++)
-			if(str[c]==' ')
-				str[c]='_';
+		/*
+		 * From RFC5536:
+		 * newsgroup-name  =  component *( "." component )
+		 * component       =  1*component-char
+		 * component-char  =  ALPHA / DIGIT / "+" / "-" / "_"
+		 */
+		if (str[0] == '.')
+			str[0] = '_';
+		for(c=0;str[c];c++) {
+			/* Legal characters */
+			if ((str[c] >= 'A' && str[c] <= 'Z')
+					|| (str[c] >= 'a' && str[c] <= 'z')
+					|| (str[c] >= '0' && str[c] <= '9')
+					|| str[c] == '+'
+					|| str[c] == '-'
+					|| str[c] == '_'
+					|| str[c] == '.')
+				continue;
+			str[c] = '_';
+		}
+		c--;
+		if (str[c] == '.')
+			str[0] = '_';
 	}
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
 		return(FALSE);
