@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.14 2019/03/19 22:52:18 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.12 2016/11/29 10:09:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,7 @@ size_t SMBCALL smb_fwrite(smb_t* smb, const void* buf, size_t bytes, FILE* fp)
 
 /****************************************************************************/
 /* Opens a non-shareable file (FILE*) associated with a message base		*/
-/* Retries for retry_time number of seconds									*/
+/* Retrys for retry_time number of seconds									*/
 /* Return 0 on success, non-zero otherwise									*/
 /****************************************************************************/
 int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
@@ -156,7 +156,7 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 	SAFEPRINTF2(path,"%s.%s",smb->file,ext);
 
 	while(1) {
-		if((file=sopen(path,O_RDWR|O_CREAT|O_BINARY,share,DEFFILEMODE))!=-1)
+		if((file=sopen(path,O_RDWR|O_CREAT|O_BINARY,share,S_IREAD|S_IWRITE))!=-1)
 			break;
 		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
