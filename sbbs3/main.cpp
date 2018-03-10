@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.675 2018/03/07 22:39:57 deuce Exp $ */
+/* $Id: main.cpp,v 1.676 2018/03/10 02:19:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -880,6 +880,8 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_RASTRING(cx, argv[i], str, &str_sz, &len);
 		if(str==NULL)
 		    return(JS_FALSE);
+		if(len < 1)
+			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
