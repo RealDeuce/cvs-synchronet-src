@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.198 2018/03/09 19:48:40 deuce Exp $ */
+/* $Id: js_socket.c,v 1.199 2018/03/10 01:53:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1667,7 +1667,6 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 	jsrefcount	rc;
 	BOOL		b;
 	int32		i;
-	char ssl_estr[SSL_ESTR_LEN];
 	scfg_t *scfg;
 
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
@@ -1741,7 +1740,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 										ret = CRYPT_ERROR_NOTAVAIL;
 									}
 									else {
-										get_ssl_cert(scfg, ssl_estr);
+										get_ssl_cert(scfg, NULL, NULL);
 										if (scfg->tls_certificate == -1)
 											ret = CRYPT_ERROR_NOTAVAIL;
 										else {

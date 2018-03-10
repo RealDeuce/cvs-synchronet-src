@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.310 2018/03/06 00:08:35 deuce Exp $ */
+/* $Id: services.c,v 1.311 2018/03/10 01:53:39 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1638,7 +1638,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.310 $", "%*s %s", revision);
+	sscanf("$Revision: 1.311 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1706,7 +1706,8 @@ void DLLCALL services_thread(void* arg)
 	ulong			total_sockets;
 	struct timeval	tv;
 	service_client_t* client;
-	char			ssl_estr[SSL_ESTR_LEN];
+	char			*ssl_estr;
+	int			level;
 	BOOL			need_cert = FALSE;
 
 	services_ver();
@@ -1909,9 +1910,8 @@ void DLLCALL services_thread(void* arg)
     		startup->started(startup->cbdata);
 
 		if (need_cert) {
-			get_ssl_cert(&scfg, ssl_estr);
-			if (scfg.tls_certificate == -1)
-				lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
+			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1)
+				lprintf(level, "No TLS certificiate %s", ssl_estr);
 		}
 
 		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
