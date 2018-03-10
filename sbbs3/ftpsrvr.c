@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.463 2018/03/17 04:24:40 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.457 2018/03/10 01:53:38 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -297,8 +297,8 @@ static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
 	int GCES_level;                                                     \
 	get_crypt_error_string(status, session, &estr, action, &GCES_level);\
 	if (estr) {                                                         \
-		lprintf(GCES_level, "%04d TLS %s", sock, estr);                 \
-		free_crypt_attrstr(estr);                                   \
+		lprintf(GCES_level, "%04d %s", sock, estr);                 \
+		free(estr);                                                 \
 	}                                                                   \
 } while (0)
 
@@ -1286,7 +1286,7 @@ int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* 
 	while(rd<len-1) {
 		i = sock_recvbyte(socket, sess, &ch, lastactive);
 
-		if(i<1 && sess == -1) {
+		if(i<1) {
 			recverror(socket,i,__LINE__);
 			return(i);
 		}
@@ -1737,7 +1737,7 @@ static void receive_thread(void* arg)
 		if (*xfer.data_sess != -1) {
 			int status = cryptPopData(*xfer.data_sess, buf, sizeof(buf), &rd);
 			if (status != CRYPT_OK) {
-				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "popping data");
+				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "flushing data");
 				rd = -1;
 			}
 		}
@@ -1935,7 +1935,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	if (get_ssl_cert(&scfg, &estr, &level) == -1) {
 		if (estr) {
 			lprintf(level, "%04d FTP %s", estr);
-			free_crypt_attrstr(estr);
+			free(estr);
 		}
 		if (resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
@@ -3076,7 +3076,7 @@ static void ctrl_thread(void* arg)
 		return;
 	} 
 
-	protected_uint32_adjust(&active_clients, 1);
+	protected_uint32_adjust(&active_clients, 1), 
 	update_clients();
 
 	/* Initialize client display */
@@ -5868,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.463 $", "%*s %s", revision);
+	sscanf("$Revision: 1.457 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6077,6 +6077,7 @@ void DLLCALL ftp_server(void* arg)
 		 */
 		xpms_add_list(ftp_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "FTP Server", ftp_open_socket_cb, startup->seteuid, NULL);
 
+		lprintf(LOG_INFO,"FTP Server listening");
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
