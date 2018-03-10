@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.658 2018/03/10 01:57:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.659 2018/03/10 03:53:32 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -394,6 +394,16 @@ enum  {
 	,MOVED_STAT
 };
 
+#define GCES(status, sess, action) do {                                                 \
+	char *GCES_estr;                                                                \
+	int GCES_level;                                                                 \
+	get_crypt_error_string(status, sess->tls_sess, &GCES_estr, action, &GCES_level);\
+	if (GCES_estr) {                                                                \
+		lprintf(GCES_level, "%04d %s", sess->socket, GCES_estr);                \
+		free(GCES_estr);                                                        \
+	}                                                                               \
+} while (0)
+
 static char	*days[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static char	*months[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
@@ -562,26 +572,13 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 
 static BOOL handle_crypt_call_except2(int status, http_session_t *session, int ignore, int ignore2, const char *file, int line)
 {
-	char	*estr = NULL;
-	int		sock = 0;
-
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (status == ignore)
 		return FALSE;
 	if (status == ignore2)
 		return FALSE;
-	if (session != NULL) {
-		if (session->is_tls)
-			estr = get_crypt_error(session->tls_sess);
-		sock = session->socket;
-	}
-	if (estr) {
-		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
-		free_crypt_attrstr(estr);
-	}
-	else
-		lprintf(LOG_WARNING, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
+	GCES(status, session, "popping data after timeout");
 	return FALSE;
 }
 
@@ -631,11 +628,12 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 			case 1:
 				if (session->is_tls) {
 					status = cryptPushData(session->tls_sess, buf+sent, len-sent, &tls_sent);
+					GCES(status, session, "pushing data");
 					if (status == CRYPT_ERROR_TIMEOUT) {
 						tls_sent = 0;
 						if(!cryptStatusOK(status=cryptPopData(session->tls_sess, "", 0, &status))) {
 							if (status != CRYPT_ERROR_TIMEOUT && status != CRYPT_ERROR_PARAM2)
-								lprintf(LOG_NOTICE,"%04d Cryptlib error %d popping data after timeout",session->socket, status);
+								GCES(status, session, "popping data after timeout");
 						}
 						status = CRYPT_OK;
 					}
@@ -6515,7 +6513,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.658 $", "%*s %s", revision);
+	sscanf("$Revision: 1.659 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
