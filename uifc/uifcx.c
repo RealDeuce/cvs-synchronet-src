@@ -1,6 +1,6 @@
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.37 2019/02/01 21:59:07 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.33 2018/02/20 18:49:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,8 +33,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "genwrap.h"
-#include "gen_defs.h"
 #include "uifc.h"
 
 #include <sys/types.h>
@@ -156,10 +154,10 @@ static int getstr(char* str, int maxlen)
 			str[len++]=ch;
 	}
     str[len]=0;	/* we need The Terminator */
-
+    
 	return(len);
 }
-
+	
 
 /****************************************************************************/
 /* Local utility function.													*/
@@ -178,6 +176,34 @@ static int which(char* prompt, int max)
             return(i-1);
     }
 }
+
+/****************************************************************************/
+/* Truncates white-space chars off end of 'str'								*/
+/****************************************************************************/
+static void truncsp(char *str)
+{
+	uint c;
+
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=' ') c--;
+	str[c]=0;
+}
+
+/****************************************************************************/
+/* Convert ASCIIZ string to upper case										*/
+/****************************************************************************/
+#if defined(__unix__) && !defined(__HAIKU__)
+static char* strupr(char* str)
+{
+	char*	p=str;
+
+	while(*p) {
+		*p=toupper(*p);
+		p++;
+	}
+	return(str);
+}
+#endif
 
 /****************************************************************************/
 /* General menu function, see uifc.h for details.							*/
@@ -242,7 +268,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
         }
         str[0]=0;
         getstr(str,sizeof(str)-1);
-
+        
         truncsp(str);
         i=atoi(str);
         if(i>0 && i<=opts) {
@@ -330,7 +356,7 @@ int uinput(int mode, int left, int top, char *prompt, char *outstr,
 	int max, int kmode)
 {
     char str[256];
-
+    
     while(1) {
         printf("%s (maxlen=%u): ",prompt,max);
 
@@ -344,7 +370,7 @@ int uinput(int mode, int left, int top, char *prompt, char *outstr,
 		api->changes=1;
     if(kmode&K_UPPER)	/* convert to uppercase? */
     	strupr(str);
-    strcpy(outstr,str);
+    strcpy(outstr,str);    
     return(strlen(outstr));
 }
 
@@ -400,7 +426,7 @@ void help()
     printf("\n");
     if(!api->helpbuf) {
         if((fp=fopen(api->helpixbfile,"rb"))==NULL)
-            SAFEPRINTF(hbuf,"ERROR: Cannot open help index: %.128s"
+            sprintf(hbuf,"ERROR: Cannot open help index: %s"
                 ,api->helpixbfile);
         else {
             p=strrchr(helpfile,'/');
@@ -428,25 +454,26 @@ void help()
             }
             fclose(fp);
             if(l==-1L)
-                SAFEPRINTF3(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %.128s"
+                sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
                     ,p,helpline,api->helpixbfile);
             else {
                 if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-                    SAFEPRINTF(hbuf,"ERROR: Cannot open help file: %.128s"
+                    sprintf(hbuf,"ERROR: Cannot open help file: %s"
                         ,api->helpdatfile);
                 else {
                     if(fseek(fp,l,SEEK_SET)!=0) {
-						SAFEPRINTF4(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %.128s"
+						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
 							,p,helpline,l,api->helpixbfile);
 					}
 					else {
 						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
-							SAFEPRINTF4(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %.128s"
+							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
 								,p,helpline,l,api->helpixbfile);
 						}
-						hbuf[HELPBUF_SIZE-1] = 0;
+						else
+							hbuf[HELPBUF_SIZE-1] = 0;
 					}
-					fclose(fp);
+					fclose(fp); 
 				}
 			}
 		}
