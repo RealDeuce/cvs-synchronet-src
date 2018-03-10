@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.19 2015/05/01 04:05:49 deuce Exp $ */
+/* $Id: ssh.c,v 1.22 2018/02/01 08:28:22 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -15,6 +15,8 @@
 #include "ciolib.h"
 
 #include "st_crypt.h"
+
+#include "syncterm.h"
 
 static SOCKET	sock;
 CRYPT_SESSION	ssh_session;
@@ -67,27 +69,27 @@ void ssh_input_thread(void *args)
 		}
 		if(rd == 0)
 			continue;
-		while(rd) {
-			pthread_mutex_lock(&ssh_mutex);
-			status=cl.PopData(ssh_session, conn_api.rd_buf, conn_api.rd_buf_size, &rd);
-			pthread_mutex_unlock(&ssh_mutex);
-			if(cryptStatusError(status)) {
-				if(status==CRYPT_ERROR_COMPLETE || status == CRYPT_ERROR_READ) {	/* connection closed */
-					ssh_active=FALSE;
-					break;
-				}
-				cryptlib_error_message(status, "recieving data");
+
+		pthread_mutex_lock(&ssh_mutex);
+		status=cl.PopData(ssh_session, conn_api.rd_buf, conn_api.rd_buf_size, &rd);
+		pthread_mutex_unlock(&ssh_mutex);
+
+		if(cryptStatusError(status)) {
+			if(status==CRYPT_ERROR_COMPLETE || status == CRYPT_ERROR_READ) {	/* connection closed */
 				ssh_active=FALSE;
 				break;
 			}
-			else {
-				buffered=0;
-				while(buffered < rd) {
-					pthread_mutex_lock(&(conn_inbuf.mutex));
-					buffer=conn_buf_wait_free(&conn_inbuf, rd-buffered, 100);
-					buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
-					pthread_mutex_unlock(&(conn_inbuf.mutex));
-				}
+			cryptlib_error_message(status, "recieving data");
+			ssh_active=FALSE;
+			break;
+		}
+		else {
+			buffered=0;
+			while(buffered < rd) {
+				pthread_mutex_lock(&(conn_inbuf.mutex));
+				buffer=conn_buf_wait_free(&conn_inbuf, rd-buffered, 100);
+				buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
+				pthread_mutex_unlock(&(conn_inbuf.mutex));
 			}
 		}
 	}
@@ -264,6 +266,8 @@ int ssh_connect(struct bbslist *bbs)
 	/* Pass socket to cryptlib */
 	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, rows);
 
+	cl.SetAttribute(ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 1);
+
 	/* Activate the session */
 	uifc.pop(NULL);
 	uifc.pop("Activating Session");
@@ -276,6 +280,18 @@ int ssh_connect(struct bbslist *bbs)
 	}
 
 	ssh_active=TRUE;
+	uifc.pop(NULL);
+
+	/* Clear ownership */
+	uifc.pop(NULL);
+	uifc.pop("Clearing Ownership");
+	status=cl.SetAttribute(ssh_session, CRYPT_PROPERTY_OWNER, CRYPT_UNUSED);
+	if(cryptStatusError(status)) {
+		cryptlib_error_message(status, "clearing session ownership");
+		conn_api.terminate=1;
+		uifc.pop(NULL);
+		return(-1);
+	}
 	uifc.pop(NULL);
 
 	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
