@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.649 2018/03/10 08:00:34 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.650 2018/03/10 08:09:42 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -144,23 +144,23 @@ typedef struct {
 	BOOL			tls_port;
 } smtp_t,pop3_t;
 
-#define GCES(status, server, sock, sess, action) do {                                 \
+#define GCES(status, server, sock, sess, action) do {                             \
 	char *GCES_estr;                                                               \
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, "flushing data", &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s%s", sock, server, GCES_estr);                 \
-		free_crypt_attrstr(GCES_estr);                                              \
+		lprintf(GCES_level, "%04d %s%s", sock, server, GCES_estr);                     \
+		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
 
-#define GCESH(status, server, sock, host, sess, action) do {                          \
+#define GCESH(status, server, sock, host, sess, action) do {                      \
 	char *GCES_estr;                                                               \
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, "flushing data", &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s [%s] %s", sock, server, host, GCES_estr);     \
-		free_crypt_attrstr(GCES_estr);                                              \
+		lprintf(GCES_level, "%04d %s [%s] %s", sock, server, host, GCES_estr);         \
+		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
 
@@ -5702,7 +5702,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.649 $", "%*s %s", revision);
+	sscanf("$Revision: 1.650 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

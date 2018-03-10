@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.683 2018/03/10 08:00:35 deuce Exp $ */
+/* $Id: main.cpp,v 1.684 2018/03/10 08:09:42 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -109,33 +109,33 @@ static	link_list_t current_connections;
 int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 #endif
 
-#define GCES(status, node, sess, action) do {                              \
+#define GCES(status, node, sess, action) do {                          \
 	char *GCES_estr;                                                    \
 	int GCES_level;                                                      \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "Node %d SSH %s", node, GCES_estr);         \
-		free_crypt_attrstr(GCES_estr);                                   \
+		lprintf(GCES_level, "Node %d SSH %s", node, GCES_estr);             \
+		free_crypt_attrstr(GCES_estr);                                       \
 	}                                                                         \
 } while (0)
 
-#define GCESNN(status, sess, action) do {                                  \
+#define GCESNN(status, sess, action) do {                              \
 	char *GCES_estr;                                                    \
 	int GCES_level;                                                      \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "SSH %s", GCES_estr);                       \
-		free_crypt_attrstr(GCES_estr);                                   \
+		lprintf(GCES_level, "SSH %s", GCES_estr);                           \
+		free_crypt_attrstr(GCES_estr);                                       \
 	}                                                                         \
 } while (0)
 
-#define GCESS(status, sock, sess, action) do {                             \
+#define GCESS(status, sock, sess, action) do {                         \
 	char *GCES_estr;                                                    \
 	int GCES_level;                                                      \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "%04d SSH %s", sock, GCES_estr);            \
-		free_crypt_attrstr(GCES_estr);                                   \
+		lprintf(GCES_level, "%04d SSH %s", sock, GCES_estr);                \
+		free_crypt_attrstr(GCES_estr);                                       \
 	}                                                                         \
 } while (0)
 
