@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.678 2018/03/10 04:49:08 deuce Exp $ */
+/* $Id: main.cpp,v 1.679 2018/03/10 06:08:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -875,8 +875,10 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+			FREE_AND_NULL(cstr);
 			return(JS_FALSE);
+		}
 		JSSTRING_TO_RASTRING(cx, str, cstr, &cstr_sz, NULL);
 		if(cstr==NULL)
 		    return(JS_FALSE);
