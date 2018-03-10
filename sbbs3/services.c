@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.319 2018/03/23 01:19:20 rswindell Exp $ */
+/* $Id: services.c,v 1.314 2018/03/10 07:02:09 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -943,7 +943,7 @@ static BOOL handle_crypt_call(int status, service_client_t *service_client, cons
 				sess = CRYPT_UNUSED;
 			get_crypt_error_string(status, sess, &estr, action, &level);
 			if (estr) {
-				lprintf(level, "%04d %s TLS %s", sock, service_client->service->protocol, estr);
+				lprintf(level, "%04d %s", sock, estr);
 				free_crypt_attrstr(estr);
 			}
 		}
@@ -991,7 +991,6 @@ static void js_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
-	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
@@ -1195,7 +1194,6 @@ static void js_static_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
-	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1586,6 +1584,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		}
 
 		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
+			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
 			iniFreeStringList(sec_list);
@@ -1605,7 +1604,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 static void cleanup(int code)
 {
 	while(protected_uint32_value(threads_pending_start)) {
-		lprintf(LOG_NOTICE,"0000 Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
+		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
 		SLEEP(1000);
 	}
 	protected_uint32_destroy(threads_pending_start);
@@ -1643,7 +1642,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.319 $", "%*s %s", revision);
+	sscanf("$Revision: 1.314 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1769,6 +1768,8 @@ void DLLCALL services_thread(void* arg)
 		DESCRIBE_COMPILER(compiler);
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
+
+		sbbs_srand();	/* Seed random number generator */
 
 		protected_uint32_init(&threads_pending_start,0);
 
@@ -2182,11 +2183,11 @@ void DLLCALL services_thread(void* arg)
 
 		/* Wait for Dynamic Service Threads to terminate */
 		if(active_clients()) {
-			lprintf(LOG_INFO,"0000 Waiting for %d clients to disconnect",active_clients());
+			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",active_clients());
 			while(active_clients()) {
 				mswait(500);
 			}
-			lprintf(LOG_INFO,"0000 Done waiting for clients to disconnect");
+			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
 		/* Wait for Static Service Threads to terminate */
@@ -2194,7 +2195,7 @@ void DLLCALL services_thread(void* arg)
 		for(i=0;i<(int)services;i++) 
 			total_running+=service[i].running;
 		if(total_running) {
-			lprintf(LOG_INFO,"0000 Waiting for %d static services to terminate",total_running);
+			lprintf(LOG_DEBUG,"0000 Waiting for %d static services to terminate",total_running);
 			while(1) {
 				total_running=0;
 				for(i=0;i<(int)services;i++) 
@@ -2203,7 +2204,7 @@ void DLLCALL services_thread(void* arg)
 					break;
 				mswait(500);
 			}
-			lprintf(LOG_INFO,"0000 Done waiting for static services to terminate");
+			lprintf(LOG_DEBUG,"0000 Done waiting");
 		}
 
 		cleanup(0);
