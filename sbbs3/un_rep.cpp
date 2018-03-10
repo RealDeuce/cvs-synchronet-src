@@ -1,6 +1,6 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.63 2018/03/10 06:17:49 deuce Exp $ */
+/* $Id: un_rep.cpp,v 1.62 2016/11/20 20:23:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,9 +202,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
-			SAFEPRINTF2(str,"!Filtering QWK message from %s due to age: %" PRIu64 " days"
+			SAFEPRINTF2(str,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
-				,(uint64_t)((now-msg.hdr.when_written.time)/(24*60*60))); 
+				,(now-msg.hdr.when_written.time)/(24*60*60)); 
 			logline(LOG_NOTICE,"P!",str);
 			continue;
 		}
