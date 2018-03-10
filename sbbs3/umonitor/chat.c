@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.17 2018/01/30 05:12:14 deuce Exp $ */
+/* $Id: chat.c,v 1.18 2018/02/11 23:07:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -194,7 +194,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 					close(in);
 					in=-1;
 				}
-				if(ch==0 || ch==0xe0) {		/* Special keys... eat 'em. */
+				if(ch==0 || ch=='\xe0') {		/* Special keys... eat 'em. */
 					getch();
 				}
 			}
@@ -237,7 +237,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 			ch=getch();
 			switch(ch)  {
 				case 0:			/* Special Chars */
-				case 0xe0:
+				case '\xe0':
 					ch=0;
 					getch();
 					break;
