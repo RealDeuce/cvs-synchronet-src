@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.168 2018/02/20 11:32:32 rswindell Exp $ */
+/* $Id: js_system.c,v 1.169 2018/03/10 03:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -930,6 +930,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 
 	JSSTRING_TO_MSTRING(cx, js_str, str, NULL);
 	if(JS_IsExceptionPending(cx)) {
+		FREE_AND_NULL(str);
 		free(can);
 		return JS_FALSE;
 	}
