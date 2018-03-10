@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.123 2018/03/10 07:02:09 deuce Exp $ */
+/* $Id: smbutil.c,v 1.124 2018/03/10 07:17:47 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -371,7 +371,8 @@ void postmsg(char type, char* to, char* to_number, char* to_address,
 	}
 	smb_freemsgmem(&msg);
 
-	fprintf(statfp, "Message (%u bytes) added to %s successfully\n", strlen((char *)msgtxt), smb.file);
+	// MSVC can't do %zu for size_t until MSVC 2017 it seems...
+	fprintf(statfp, "Message (%" PRIu64 " bytes) added to %s successfully\n", (uint64_t)strlen((char *)msgtxt), smb.file);
 	FREE_AND_NULL(msgtxt);
 }
 
@@ -1550,7 +1551,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.123 $", "%*s %s", revision);
+	sscanf("$Revision: 1.124 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
