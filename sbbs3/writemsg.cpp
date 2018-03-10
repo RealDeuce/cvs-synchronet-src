@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.122 2018/03/10 06:20:47 deuce Exp $ */
+/* $Id: writemsg.cpp,v 1.121 2018/03/10 06:19:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1109,7 +1109,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 	bprintf(text[SavedNBytes],l,lines);
 	fclose(stream);
 	free(buf);
-	SAFEPRINTF4(str,"%s created or edited file: %s (%ld bytes, %u lines)"
+	SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
 		,useron.alias, fname, l, lines);
 	logline(nulstr,str);
 	return true;
