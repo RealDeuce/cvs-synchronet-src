@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.481 2018/06/10 08:53:14 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.474 2018/03/10 03:19:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,7 +328,6 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
-	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -380,7 +379,6 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
-	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
@@ -587,7 +585,7 @@ public:
 
 	void	reset_logon_vars(void);
 
-	uint	finduser(char *str, bool silent_failure = false);
+	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
 
@@ -675,7 +673,7 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which, long lm_mode = 0);
+	void	readmail(uint usernumber, int which);
 	bool	readmail_inside;
 	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
@@ -760,7 +758,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	void	badlogin(char* user, char* passwd);
 
 	/* answer.cpp */
 	bool	answer();
@@ -1357,17 +1355,8 @@ char*	prep_code(char *str, const char* prefix);
 
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
-	int 	lprintf(int level, const char *fmt, ...)	/* log output */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));
-#endif
-	;
-	int 	eprintf(int level, const char *fmt, ...)	/* event log */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));
-#endif
-	;
-	void	call_socket_open_callback(BOOL open);
+	int 	lprintf(int level, const char *fmt, ...);	/* log output */
+	int 	eprintf(int level, const char *fmt, ...);	/* event log */
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
