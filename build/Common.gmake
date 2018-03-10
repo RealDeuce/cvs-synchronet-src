@@ -1,8 +1,9 @@
 # build/Common.gmake
+# vi: tabstop=4
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.106 2018/02/03 07:31:18 deuce Exp $
+# $Id: Common.gmake,v 1.107 2018/03/09 03:11:06 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -102,7 +103,7 @@
 #																			#
 # Common Targets Defined:													#
 #  Implicit C and C++ targets												#
-#  "clean" target															# 
+#  "clean" target															#
 #  Output directory targets													#
 #																			#
 #############################################################################
@@ -322,7 +323,7 @@ endif
 
 # PThread-specific flags
 ifeq ($(os),linux)    # Linux
- CFLAGS	+=	-DPOSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -DSPEED_MACROS_ONLY
+ CFLAGS	+=	-DPOSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -DSPEED_MACROS_ONLY -D_GNU_SOURCE
  ifndef THREADS_ACTUALLY_WORK
   CFLAGS    += -D_THREAD_SUID_BROKEN
  endif
