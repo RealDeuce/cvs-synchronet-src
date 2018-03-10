@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.650 2018/03/10 08:09:42 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.651 2018/03/10 08:50:28 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4342,19 +4342,25 @@ static void smtp_thread(void* arg)
 				if(relay_user.number && scfg.total_faddrs) {
 					char* ftn_tld = strstr(dest_host, FIDO_TLD);
 					if(ftn_tld != NULL && ftn_tld[strlen(FIDO_TLD)] == 0) {
+						short point, node, net, zone;
+
 						fidoaddr_t faddr = scfg.faddr[0];
-						faddr.point = 0;
+						point = 0;
 						if((sscanf(dest_host,"p%hu.f%hu.n%hu.z%hu.fidonet"
-							,&faddr.point
-							,&faddr.node
-							,&faddr.net
-							,&faddr.zone)==4
+							,&point
+							,&node
+							,&net
+							,&zone)==4
 							||
 							sscanf(dest_host,"f%hu.n%hu.z%hu.fidonet"
-							,&faddr.node
-							,&faddr.net
-							,&faddr.zone)==3
-							) && faddr.zone) {
+							,&node
+							,&net
+							,&zone)==3
+							) && zone) {
+							faddr.point = point;
+							faddr.node = node;
+							faddr.net = net;
+							faddr.zone = zone;
 
 							lprintf(LOG_INFO,"%04d SMTP %s relaying to FidoNet address: %s (%s)"
 								,socket, relay_user.alias, tp+1, smb_faddrtoa(&faddr, NULL));
@@ -5702,7 +5708,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.650 $", "%*s %s", revision);
+	sscanf("$Revision: 1.651 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
