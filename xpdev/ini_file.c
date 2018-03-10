@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.160 2018/03/16 05:24:04 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.159 2018/03/09 06:53:34 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -570,12 +570,6 @@ char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const c
 				 ,ini_style_t* style)
 {
 	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
-}
-
-char* DLLCALL iniSetValue(str_list_t* list, const char* section, const char* key, const char* value
-				 ,ini_style_t* style)
-{
-	return ini_set_string(list, section, key, value, /* literal: */FALSE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
