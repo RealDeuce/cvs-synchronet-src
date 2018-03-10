@@ -1,8 +1,7 @@
-/* js_system.c */
-
 /* Synchronet JavaScript "system" Object */
+// vi: tabstop=4
 
-/* $Id: js_system.c,v 1.165 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: js_system.c,v 1.170 2018/03/10 06:08:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -710,7 +709,7 @@ static JSBool js_sysstats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -900,7 +899,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		can;
+	char*		can = NULL;
 	JSString*	js_str;
 	JSString*	js_can;
 	scfg_t*		cfg;
@@ -923,7 +922,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_can, can, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, can);
 	if(can==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -931,6 +930,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 
 	JSSTRING_TO_MSTRING(cx, js_str, str, NULL);
 	if(JS_IsExceptionPending(cx)) {
+		FREE_AND_NULL(str);
 		free(can);
 		return JS_FALSE;
 	}
@@ -954,7 +954,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		fname;
+	char*		fname = NULL;
 	JSString*	js_str;
 	JSString*	js_fname;
 	jsrefcount	rc;
@@ -971,7 +971,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_fname, fname, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, fname);
 	if(fname==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -979,6 +979,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 
 	JSSTRING_TO_MSTRING(cx, js_str, str, NULL);
 	if(JS_IsExceptionPending(cx)) {
+		FREE_AND_NULL(str);
 		free(fname);
 		return JS_FALSE;
 	}
@@ -1126,7 +1127,7 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		p;
+	char*		p=NULL;
 	char*		prot=NULL;
 	char*		action=NULL;
 	char*		reason=NULL;
@@ -1163,27 +1164,29 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 					free(to);
 				if(from)
 					free(from);
+				if(p)
+					free(p);
 				return JS_FALSE;
 			}
+			if(p==NULL)
+				continue;
+			if(prot==NULL)
+				prot=p;
+			else if(action==NULL)
+				action=p;
+			else if(reason==NULL)
+				reason=p;
+			else if(host==NULL)
+				host=p;
+			else if(ip_addr==NULL)
+				ip_addr=p;
+			else if(to==NULL)
+				to=p;
+			else if(from==NULL)
+				from=p;
+			else
+				free(p);
 		}
-		if(p==NULL)
-			continue;
-		if(prot==NULL)
-			prot=p;
-		else if(action==NULL)
-			action=p;
-		else if(reason==NULL)
-			reason=p;
-		else if(host==NULL)
-			host=p;
-		else if(ip_addr==NULL)
-			ip_addr=p;
-		else if(to==NULL)
-			to=p;
-		else if(from==NULL)
-			from=p;
-		else
-			free(p);
 	}
 	rc=JS_SUSPENDREQUEST(cx);
 	ret=spamlog(cfg,prot,action,reason,host,ip_addr,to,from);
@@ -1213,7 +1216,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	int32		i32=0;
-	char*		p;
+	char*		p=NULL;
 	char*		prot=NULL;
 	char*		user=NULL;
 	char*		text=NULL;
@@ -1251,6 +1254,8 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 					free(text);
 				if(host)
 					free(host);
+				if(p)
+					free(p);
 				return JS_FALSE;
 			}
 		}
@@ -1286,7 +1291,7 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		p;
+	char*		p=NULL;
 	char*		prot=NULL;
 	char*		reason=NULL;
 	char*		host=NULL;
@@ -1320,6 +1325,8 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 					free(from);
 				if(fname)
 					free(fname);
+				if(p)
+					free(p);
 				return JS_FALSE;
 			}
 		}
@@ -1401,7 +1408,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		node=1;
 	JSString*	js_msg;
-	char*		msg;
+	char*		msg = NULL;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1419,7 +1426,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx)
+	HANDLE_PENDING(cx, msg);
 	if(msg==NULL) 
 		return(JS_TRUE);
 
@@ -1474,7 +1481,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		usernumber=1;
 	JSString*	js_msg;
-	char*		msg;
+	char*		msg = NULL;
 	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
@@ -1492,7 +1499,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, msg);
 	if(msg==NULL)
 		return(JS_TRUE);
 
@@ -1651,11 +1658,11 @@ js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
-	char	*cmd;
+	char	*cmd = NULL;
 	int		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cmd);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
@@ -1679,7 +1686,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
-	char*		cmd;
+	char*		cmd = NULL;
 	FILE*		fp;
 	jsint		line=0;
 	jsval		val;
@@ -1696,7 +1703,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cmd);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
@@ -2137,7 +2144,7 @@ static JSBool js_node_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -2242,7 +2249,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
