@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.201 2018/03/10 07:02:08 deuce Exp $ */
+/* $Id: js_socket.c,v 1.202 2018/03/10 09:17:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,7 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 
 #define GCES(status, pdata, estr, action) do {                                               \
 	int GCES_level;                                                                      \
-	get_crypt_error_string(status, pdata->session, &estr, "flushing data", &GCES_level); \
+	get_crypt_error_string(status, pdata->session, &estr, action, &GCES_level); \
 	if (estr) {                                                                          \
 		lprintf(GCES_level, "%04d %s", p->sock, estr);                               \
 		free_crypt_attrstr(estr);                                                                  \
@@ -101,7 +101,7 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 
 #define GCESH(status, socket, handle, estr, action) do {                                     \
 	int GCESH_level;                                                                     \
-	get_crypt_error_string(status, handle, &estr, "flushing data", &GCESH_level);        \
+	get_crypt_error_string(status, handle, &estr, action, &GCESH_level);        \
 	if (estr) {                                                                          \
 		lprintf(GCESH_level, "%04d %s", socket, estr);                               \
 		free_crypt_attrstr(estr);                                                                  \
