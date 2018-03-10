@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.664 2018/01/29 22:46:21 deuce Exp $ */
+/* $Id: main.cpp,v 1.677 2018/03/10 04:29:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -168,6 +168,9 @@ int lputs(int level, const char* str)
 
 int eputs(int level, const char *str)
 {
+	if(*str == 0)
+		return 0;
+
 	if(level <= LOG_ERR) {
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
@@ -204,7 +207,7 @@ int eprintf(int level, const char *fmt, ...)
 
 	strip_ctrl(sbuf, sbuf);
 
-    return(eputs(level,sbuf));
+    return(eputs(level,truncsp(sbuf)));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -265,6 +268,7 @@ SOCKET open_socket(int type, const char* protocol)
 	return(sock);
 }
 
+// Used by sbbs_t::ftp_put():
 SOCKET accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen)
 {
 	SOCKET	sock;
@@ -726,8 +730,10 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
     for(; i<argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+		if((str=JS_ValueToString(cx, argv[i]))==NULL) {
+			FREE_AND_NULL(line);
 			return(JS_FALSE);
+		}
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 		    return(JS_FALSE);
@@ -740,7 +746,8 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
-	free(line);
+	if(line != NULL)
+		free(line);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -844,6 +851,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
+	FREE_AND_NULL(cstr);
 
 	if(str==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -872,10 +880,14 @@ js_write_raw(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_RASTRING(cx, argv[i], str, &str_sz, &len);
 		if(str==NULL)
 		    return(JS_FALSE);
+		if(len < 1)
+			continue;
 		rc=JS_SUSPENDREQUEST(cx);
 		sbbs->putcom(str, len);
 		JS_RESUMEREQUEST(cx, rc);
 	}
+	if (str != NULL)
+		free(str);
 
     return(JS_TRUE);
 }
@@ -1355,6 +1367,14 @@ extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
 
 		/* CryptContext Class */
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptKeyset Class */
+		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
 			break;
 
 		/* Area Objects */
@@ -2549,7 +2569,7 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						eprintf(LOG_INFO,"Packing completed");
+						eprintf(LOG_INFO,"Packing completed: %s", str);
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs(); 
 						remove(bat_list);
@@ -3909,13 +3929,37 @@ int sbbs_t::incom(unsigned long timeout)
 	return(ch);
 }
 
-int sbbs_t::outcom(uchar ch)
+// Steve's original implementation (in RCIOL) did not incorporate a retry
+// ... so this function does not either. :-P
+int sbbs_t::_outcom(uchar ch)
 {
 	if(!RingBufFree(&outbuf))
 		return(TXBOF);
     if(!RingBufWrite(&outbuf, &ch, 1))
 		return(TXBOF);
 	return(0);
+}
+
+// This outcom version retries - copied loop from sbbs_t::outchar()
+int sbbs_t::outcom(uchar ch, int max_attempts)
+{
+	int i = 0;
+	while(_outcom(ch) != 0) {
+		if(!online)
+			break;
+		i++;
+		if(i >= max_attempts) {			/* timeout - beep flush outbuf */
+			lprintf(LOG_NOTICE, "timeout(outcom) %04X %04X", rioctl(TXBC), rioctl(IOFO));
+			_outcom(BEL);
+			rioctl(IOCS|PAUSE); 
+			return TXBOF;
+		} 
+		if(sys_status&SS_SYSPAGE)
+			sbbs_beep(i, OUTCOM_RETRY_DELAY);
+		else
+			mswait(OUTCOM_RETRY_DELAY); 
+	}
+	return 0;	// Success
 }
 
 int sbbs_t::putcom(const char *str, size_t len)
@@ -4031,6 +4075,7 @@ void sbbs_t::reset_logon_vars(void)
 	cols=80;
     lncntr=0;
     autoterm=0;
+	cterm_version = 0;
     lbuflen=0;
     slcnt=0;
     altul=0;
@@ -4870,14 +4915,11 @@ void DLLCALL bbs_thread(void* arg)
 	 */
 	xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->telnet_interfaces, startup->telnet_port, "Telnet Server", sock_cb, startup->seteuid, &telnet_cb);
 
-	lprintf(LOG_INFO,"Telnet Server listening");
-
 	if(startup->options&BBS_OPT_ALLOW_RLOGIN) {
 		/* open a socket and wait for a client */
 		rlogin_cb.protocol="rlogin";
 		rlogin_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->rlogin_interfaces, startup->rlogin_port, "RLogin Server", sock_cb, startup->seteuid, &rlogin_cb);
-		lprintf(LOG_INFO,"RLogin Server listening");
 	}
 
 #ifdef USE_CRYPTLIB
@@ -4915,7 +4957,7 @@ void DLLCALL bbs_thread(void* arg)
 				goto NO_SSH;
 			}
 
-			/* Ok, now try saving this one... use the syspass to enctrpy it. */
+			/* Ok, now try saving this one... use the syspass to encrypt it. */
 			if(cryptStatusOK(cryptKeysetOpen(&ssh_keyset, CRYPT_UNUSED, CRYPT_KEYSET_FILE, str, CRYPT_KEYOPT_CREATE))) {
 				if(!cryptStatusOK(cryptAddPrivateKey(ssh_keyset, ssh_context, scfg.sys_pass)))
 					lprintf(LOG_ERR,"SSH Cryptlib error %d saving key",i);
@@ -4928,7 +4970,6 @@ void DLLCALL bbs_thread(void* arg)
 		ssh_cb.protocol="ssh";
 		ssh_cb.startup=startup;
 		xpms_add_list(ts_set, PF_UNSPEC, SOCK_STREAM, 0, startup->ssh_interfaces, startup->ssh_port, "SSH Server", sock_cb, startup->seteuid, &ssh_cb);
-		lprintf(LOG_INFO,"SSH Server listening");
 	}
 NO_SSH:
 #endif
@@ -5159,6 +5200,10 @@ NO_SSH:
 			continue;
 		}
 
+		// Count the socket:
+		if(startup->socket_open!=NULL)
+			startup->socket_open(startup->cbdata, TRUE);
+
 		if(client_socket == INVALID_SOCKET)	{
 #if 0	/* is this necessary still? */
 			if(ERROR_VALUE == ENOTSOCK || ERROR_VALUE == EINTR || ERROR_VALUE == EINVAL) {
@@ -5324,6 +5369,7 @@ NO_SSH:
 				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving on Cryptlib session", sbbs->cfg.node_num, err);
 				i=0;
 			}
+			// TODO: Here is where we'll be able to check the subsystem and do sftp
 			sbbs->online=ON_REMOTE;
 		}
 #endif
