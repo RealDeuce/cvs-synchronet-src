@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.369 2018/02/22 10:02:24 rswindell Exp $ */
+/* $Id: js_global.c,v 1.373 2018/03/10 06:12:50 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -931,6 +931,7 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	ulong		sum=0;
 	char*		p = NULL;
+	char*		sp;
 	size_t		len;
 	jsrefcount	rc;
 
@@ -945,7 +946,8 @@ js_chksum(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);	/* 3.8 seconds on Deuce's computer when len==UINT_MAX/8 */
-	while(len--) sum+=*(p++);
+	sp = p;
+	while(len--) sum+=*(sp++);
 	free(p);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2419,7 +2421,7 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = 249;
+			outbuf[j++] = (char)249;
 			continue;
 		}
 
@@ -2702,6 +2704,7 @@ js_truncstr(JSContext *cx, uintN argc, jsval *arglist)
 	JSVALUE_TO_MSTRING(cx, argv[1], set, NULL);
 	if(JS_IsExceptionPending(cx)) {
 		free(str);
+		FREE_AND_NULL(set);
 		return JS_FALSE;
 	}
 	if(set==NULL) {
@@ -3005,6 +3008,7 @@ js_fcopy(JSContext *cx, uintN argc, jsval *arglist)
 	JSVALUE_TO_MSTRING(cx, argv[1], dest, NULL);
 	if(JS_IsExceptionPending(cx)) {
 		free(src);
+		FREE_AND_NULL(dest);
 		return JS_FALSE;
 	}
 	if(dest==NULL) {
@@ -3337,6 +3341,7 @@ js_fmutex(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_MSTRING(cx, argv[argn], text, NULL);
 		argn++;
 		if(JS_IsExceptionPending(cx)) {
+			FREE_AND_NULL(text);
 			free(fname);
 			return JS_FALSE;
 		}
@@ -3480,6 +3485,8 @@ js_wildmatch(JSContext *cx, uintN argc, jsval *arglist)
 		argn++;
 		if(JS_IsExceptionPending(cx)) {
 			free(fname);
+			if(spec != NULL && spec != spec_def)
+				free(spec);
 			return JS_FALSE;
 		}
 		if(spec==NULL) {

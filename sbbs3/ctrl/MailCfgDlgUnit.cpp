@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.33 2018/03/05 02:12:54 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.34 2018/03/05 05:35:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,8 +406,8 @@ void __fastcall TMailCfgDlg::POP3EnabledCheckBoxClick(TObject *Sender)
 {
 	POP3PortEdit->Enabled=POP3EnabledCheckBox->Checked;
     POP3PortLabel->Enabled=POP3EnabledCheckBox->Checked;
-	TLSPOP3PortEdit->Enabled=POP3EnabledCheckBox->Checked;
-    TLSPOP3PortLabel->Enabled=POP3EnabledCheckBox->Checked;
+	TLSPOP3PortEdit->Enabled=TLSPOP3EnabledCheckBox->Checked;
+    TLSPOP3PortLabel->Enabled=TLSPOP3EnabledCheckBox->Checked;
 
     bool enabled = POP3EnabledCheckBox->Checked || TLSPOP3EnabledCheckBox->Checked;
     
@@ -511,4 +511,5 @@ void __fastcall TMailCfgDlg::TLSSubPortCheckBoxClick(TObject *Sender)
 
 }
 //---------------------------------------------------------------------------
+
 
