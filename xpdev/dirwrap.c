@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.97 2018/02/20 05:05:42 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.100 2018/03/07 02:44:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,7 +316,8 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 	SAFECOPY(match,path);
 	backslash(match);
 	SAFECAT(match,ALLFILES);
-	glob(match,GLOB_MARK,NULL,&g);
+	if (glob(match,GLOB_MARK,NULL,&g) != 0)
+		return 0;
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -1031,7 +1032,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || filename[1]==':'
+		|| filename[0]=='\\' || (isalpha(filename[0]) && filename[1]==':')
 #endif
 		);
 }

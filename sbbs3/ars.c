@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.20 2011/10/24 05:48:39 deuce Exp $ */
+/* $Id: ars.c,v 1.21 2018/02/20 11:56:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*

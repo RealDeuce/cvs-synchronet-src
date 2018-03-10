@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.183 2017/11/24 23:35:21 rswindell Exp $ */
+/* $Id: userdat.c,v 1.187 2018/03/10 05:13:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -459,7 +459,8 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 	for(i=1;i<=cfg->sys_nodes;i++) { /* instant user data update */
 //		if(i==cfg->node_num)
 //			continue;
-		getnodedat(cfg, i,&node,NULL);
+		if(getnodedat(cfg, i,&node,NULL) != 0)
+			continue;
 		if(node.useron==usernumber && (node.status==NODE_INUSE
 			|| node.status==NODE_QUIET)) {
 			if(getnodedat(cfg, i,&node,&file) == 0) {
@@ -1668,7 +1669,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && !findstr_in_string(user->cursub,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->cursub,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1700,7 +1701,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && !findstr_in_string(user->curdir,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->curdir,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -2039,8 +2040,13 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		return(-4);
 	}
 
-	if(length==0)	/* auto-length */
+	if(length==0) {	/* auto-length */
 		length=user_rec_len(start);
+		if((long)length < 0) {
+			close(file);
+			return -2;
+		}
+	}
 
 	strcpy(str2,str);
 	if(strlen(str2)<length) {
@@ -2058,8 +2064,10 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		i++; 
 	}
 
-	if(i>=LOOP_NODEDAB) 
+	if(i>=LOOP_NODEDAB) {
+		close(file);
 		return(-3);
+	}
 
 	write(file,str2,length);
 	unlock(file,(long)((long)(usernumber-1)*U_LEN)+start,length);
@@ -2932,6 +2940,8 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 		return 0;
 	memset(&first, 0, sizeof(first));
 	listLock(list);
+	if(user == NULL)
+		user = "<unspecified>";
 	if((node=login_attempted(list, addr)) != NULL) {
 		attempt=node->data;
 		/* Don't count consecutive duplicate attempts (same name and password): */
@@ -3185,4 +3195,23 @@ BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
 		smb_close(&smb);
 	}
 	return TRUE;
+}
+
+static char* sysop_available_semfile(scfg_t* scfg)
+{
+	static char semfile[MAX_PATH+1];
+	SAFEPRINTF(semfile, "%ssysavail.chat", scfg->ctrl_dir);
+	return semfile;
+}
+
+BOOL DLLCALL sysop_available(scfg_t* scfg)
+{
+	return fexist(sysop_available_semfile(scfg));
+}
+
+BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
+{
+	if(available)
+		return ftouch(sysop_available_semfile(scfg));
+	return remove(sysop_available_semfile(scfg)) == 0;
 }
