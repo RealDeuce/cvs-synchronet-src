@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.119 2015/11/19 09:48:15 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.122 2018/02/20 11:44:53 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -1917,7 +1917,7 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 	return(FALSE);
 }
 
-int zmodem_recv_files(zmodem_t* zm, const char* download_dir, int64_t* bytes_received)
+int zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_received)
 {
 	char		fpath[MAX_PATH+1];
 	FILE*		fp;
@@ -2013,6 +2013,11 @@ int zmodem_recv_files(zmodem_t* zm, const char* download_dir, int64_t* bytes_rec
 				break;
 			}
 			start_bytes=filelength(fileno(fp));
+			if(start_bytes < 0) {
+				fclose(fp);
+				lprintf(zm,LOG_ERR,"Invalid file length %"PRId64": %s", start_bytes, fpath);
+				break;
+			}
 
 			skip=FALSE;
 			errors=zmodem_recv_file_data(zm,fp,start_bytes);
@@ -2300,7 +2305,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.119 $", "%*s %s", buf);
+	sscanf("$Revision: 1.122 $", "%*s %s", buf);
 
 	return(buf);
 }
