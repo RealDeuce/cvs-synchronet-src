@@ -1,9 +1,8 @@
 /* exec.cpp */
-// vi: tabstop=4
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.108 2019/02/21 22:36:12 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.105 2016/11/16 07:58:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +39,7 @@
 #include "cmdshell.h"
 #include "js_request.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
+char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -125,7 +124,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-int32_t * sbbs_t::getintvar(csi_t *bin, uint32_t name)
+int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -791,12 +790,7 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 
 	memcpy(&bin,csi,sizeof(csi_t));
 	clearvars(&bin);
-	bin.length = filelength(file);
-	if(bin.length < 1) {
-		close(file);
-		errormsg(WHERE, ERR_LEN, str, bin.length);
-		return -1;
-	}
+	bin.length=(uint32_t)filelength(file);
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,bin.length);
