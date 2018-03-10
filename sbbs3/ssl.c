@@ -40,16 +40,12 @@ static int DLLCALL crypt_ll(int error)
 {
 	switch(error) {
 		case CRYPT_ERROR_INCOMPLETE:
-		case CRYPT_ERROR_NOSECURE:
 			return LOG_WARNING;
-		case CRYPT_ERROR_INTERNAL:
-			return LOG_NOTICE;
 		case CRYPT_ERROR_COMPLETE:
 		case CRYPT_ERROR_READ:
 		case CRYPT_ERROR_WRITE:
 		case CRYPT_ENVELOPE_RESOURCE:
 			return LOG_DEBUG;
-		case CRYPT_ERROR_NOTAVAIL:
 		case CRYPT_ERROR_TIMEOUT:
 			return LOG_INFO;
 	}
