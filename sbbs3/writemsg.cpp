@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.119 2018/01/12 22:23:55 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.121 2018/03/10 06:19:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,8 +174,10 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 	if((buf=(char*)malloc(len+1))==NULL)
 		return -2;
 
-	if((fp=fopen(src,"rb"))==NULL)
+	if((fp=fopen(src,"rb"))==NULL) {
+		free(buf);
 		return -3;
+	}
 
 	memset(buf,0,len+1);
 	fread(buf,len,sizeof(char),fp);
@@ -220,10 +222,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(editor!=NULL)
 		*editor=NULL;
 
-	if((buf=(char*)malloc(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN))
+	if((buf=(char*)malloc((cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) + 1))
 		==NULL) {
 		errormsg(WHERE,ERR_ALLOC,fname
-			,cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
+			,(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN) +1);
 		return(false); 
 	}
 
@@ -1059,7 +1061,7 @@ bool sbbs_t::editfile(char *fname, bool msg)
 			return false;
 		l=process_edited_file(msgtmp, path, /* mode: */WM_EDIT, &lines,maxlines);
 		if(l>0) {
-			SAFEPRINTF4(str,"%s created or edited file: %s (%u bytes, %u lines)"
+			SAFEPRINTF4(str,"%s created or edited file: %s (%ld bytes, %u lines)"
 				,useron.alias, path, l, lines);
 			logline(LOG_NOTICE,nulstr,str);
 		}
