@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet SCFG project
 
-# $Id: targets.mk,v 1.9 2017/12/13 20:59:54 rswindell Exp $
+# $Id: targets.mk,v 1.10 2017/12/13 21:25:22 rswindell Exp $
 
 # LIBODIR, SLASH, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -18,11 +18,11 @@ all:		xpdev-mt \
 
 ifdef SBBSEXEC
 .PHONY: install
-install:
+install: all
 	install $(EXEODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
-symlinks:
+symlinks: all
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 endif
 
