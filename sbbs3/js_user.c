@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "User" Object */
 
-/* $Id: js_user.c,v 1.101 2017/11/13 08:31:24 rswindell Exp $ */
+/* $Id: js_user.c,v 1.103 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -409,7 +409,7 @@ static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
 	jsval idval;
-	char*		str;
+	char*		str = NULL;
 	char		tmp[64];
 	jsint		val;
 	ulong		usermisc;
@@ -425,7 +425,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		return(JS_TRUE);
 
 	JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, str);
 	if(str==NULL)
 		return(JS_FALSE);
 
@@ -971,7 +971,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 	uchar*		ar;
 	private_t*	p;
 	jsrefcount	rc;
-	char		*ars;
+	char		*ars = NULL;
 	scfg_t*		scfg;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
@@ -982,7 +982,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 
 	JSVALUE_TO_MSTRING(cx,argv[0], ars, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, ars);
 	if(ars==NULL)
 		return JS_FALSE;
 
@@ -1281,7 +1281,7 @@ static JSBool js_user_stats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1307,7 +1307,7 @@ static JSBool js_user_security_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1333,7 +1333,7 @@ static JSBool js_user_limits_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1403,7 +1403,7 @@ static JSBool js_user_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
@@ -1500,6 +1500,7 @@ js_user_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && (!JS_ValueToInt32(cx,argv[0],&val)))
 		return JS_FALSE;
+	memset(&user, 0, sizeof(user));
 	user.number=(ushort)val;
 	if(user.number!=0 && (i=getuserdat(scfg,&user))!=0) {
 		JS_ReportError(cx,"Error %d reading user number %d",i,val);

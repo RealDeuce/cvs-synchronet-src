@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.75 2017/11/13 08:31:25 rswindell Exp $ */
+/* $Id: str.cpp,v 1.79 2018/02/20 11:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,6 +159,7 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 	}
 	if(lread(file,buf,length)!=length) {
 		close(file);
+		free(buf);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
 		return; 
@@ -328,6 +329,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 		close(file);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
+		free(buf);
 		return; 
 	}
 	close(file);
@@ -842,9 +844,15 @@ char* sbbs_t::timestr(time_t intime)
 	return(::timestr(&cfg,(time32_t)intime,timestr_output));
 }
 
+char* sbbs_t::datestr(time_t t)
+{
+	return unixtodstr(&cfg, (time32_t)t, datestr_output);
+}
+
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
+	char	path[MAX_PATH+1];
 	uint	i;
 	stats_t stats;
 
@@ -870,12 +878,13 @@ void sbbs_t::sys_info()
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	if(text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	SAFEPRINTF(path, "%ssystem.msg", cfg.text_dir);
+	if(fexistcase(path) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
-		sprintf(tmp,"%ssystem.msg", cfg.text_dir);
-		printfile(tmp,0); 
+		printfile(path,0); 
 	}
-	if(text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	SAFEPRINTF(path, "%smenu/logon.asc", cfg.text_dir);
+	if(fexistcase(path) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
 		menu("logon"); 
 	}
@@ -929,11 +938,8 @@ void sbbs_t::user_info()
 
 void sbbs_t::xfer_policy()
 {
-	char	str[MAX_PATH+1];
-
 	if(!usrlibs) return;
-	sprintf(str,"%smenu/tpolicy.*", cfg.text_dir);
-	if(fexist(str))
+	if(menu_exists("tpolicy"))
 		menu("tpolicy");
 	else {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
@@ -954,10 +960,7 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	char path[MAX_PATH+1];
-
-	sprintf(path,"%smenu/%s.*",cfg.text_dir,prot_menu_file[type]);
-	if(fexistcase(path)) {
+	if(menu_exists(prot_menu_file[type])) {
 		menu(prot_menu_file[type]);
 		return;
 	}
