@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.54 2015/02/24 08:41:37 deuce Exp $ */
+/* $Id: menu.c,v 1.60 2018/02/13 08:11:35 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -19,23 +19,24 @@ void viewscroll(void)
 	int	top;
 	int key;
 	int i;
-	char	*scrollback;
+	struct vmem_cell	*scrollback;
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
 	int old_xlat=ciolib_xlat;
+	struct ciolib_screen *savscrn;
 
 	x=wherex();
 	y=wherey();
 	uifcbail();
     gettextinfo(&txtinfo);
 	/* too large for alloca() */
-	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	scrollback=malloc((scrollback_buf==NULL?0:(term.width*sizeof(*scrollback)*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(*scrollback)));
 	if(scrollback==NULL)
 		return;
-	if(cterm->scrollback != NULL)
-		memcpy(scrollback,cterm->scrollback,term.width*2*settings.backlines);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
+	memcpy(scrollback,cterm->scrollback,term.width*sizeof(*scrollback)*settings.backlines);
+	vmem_gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width);
+	savscrn = savescreen();
 	drawwin();
 	top=cterm->backpos;
 	gotoxy(1,1);
@@ -45,8 +46,8 @@ void viewscroll(void)
 			top=1;
 		if(top>cterm->backpos)
 			top=cterm->backpos;
-		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		ciolib_xlat = TRUE;
+		vmem_puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*top));
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
 		cputs("Scrollback");
@@ -54,7 +55,7 @@ void viewscroll(void)
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
-			case 0xff:
+			case 0xe0:
 			case 0:
 				switch(key|getch()<<8) {
 					case CIO_KEY_QUIT:
@@ -115,9 +116,10 @@ void viewscroll(void)
 				break;
 		}
 	}
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
+	restorescreen(savscrn);
 	gotoxy(x,y);
 	free(scrollback);
+	freescreen(savscrn);
 	return;
 }
 
@@ -144,12 +146,11 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	int		opt=0;
 	int		i,j;
 	struct	text_info txtinfo;
-	char	*buf;
+	struct ciolib_screen *savscrn;
 	int		ret;
 
     gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+    savscrn = savescreen();
 
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
 			&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
@@ -186,7 +187,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				break;
 			case 0:		/* Scrollback */
 				uifcbail();
-				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				restorescreen(savscrn);
 				viewscroll();
 				break;
 			case 1:		/* Disconnect */
@@ -240,12 +241,14 @@ int syncmenu(struct bbslist *bbs, int *speed)
 			default:
 				ret=i;
 				uifcbail();
-				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				restorescreen(savscrn);
+				freescreen(savscrn);
 				return(ret);
 		}
 	}
 
 	uifcbail();
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	restorescreen(savscrn);
+	freescreen(savscrn);
 	return(ret);
 }
