@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.657 2018/03/10 01:53:39 deuce Exp $ */
+/* $Id: websrvr.c,v 1.658 2018/03/10 01:57:47 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6515,7 +6515,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.657 $", "%*s %s", revision);
+	sscanf("$Revision: 1.658 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6655,7 +6655,7 @@ void DLLCALL web_server(void* arg)
 	http_session_t *	session=NULL;
 	void			*acc_type;
 	char			*ssl_estr;
-	int			level;
+	int			lvl;
 
 	startup=(web_startup_t*)arg;
 
@@ -6788,9 +6788,9 @@ void DLLCALL web_server(void* arg)
 
 		if(startup->options&WEB_OPT_ALLOW_TLS) {
 			lprintf(LOG_DEBUG,"Loading/Creating TLS certificate");
-			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1) {
+			if (get_ssl_cert(&scfg, &ssl_estr, &lvl) == -1) {
 				if (ssl_estr) {
-					lprintf(level, "%s", ssl_estr);
+					lprintf(lvl, "%s", ssl_estr);
 					free(ssl_estr);
 				}
 			}
