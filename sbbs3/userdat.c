@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.186 2018/03/09 23:41:09 rswindell Exp $ */
+/* $Id: userdat.c,v 1.187 2018/03/10 05:13:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1669,7 +1669,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && !findstr_in_string(user->cursub,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->cursub,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1701,7 +1701,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && !findstr_in_string(user->curdir,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->curdir,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
