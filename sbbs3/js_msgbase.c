@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.216 2018/02/20 02:17:16 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.219 2018/03/10 03:19:01 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -211,8 +211,10 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
+		if(!JS_ValueToInt32(cx,val,&i32)) {
+			free(cp);
 			return(FALSE);
+		}
 		nettype=(ushort)i32;
 	}
 
@@ -1452,6 +1454,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((p->p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
+		free(p);
 		return JS_FALSE;
 	}
 
@@ -1468,28 +1471,35 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	/* Now parse message offset/id and get message */
 	if(JSVAL_IS_NUMBER(argv[n])) {
 		if(by_offset) {							/* Get by offset */
-			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).offset))
+			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).offset)) {
+				free(p);
 				return JS_FALSE;
+			}
 		}
 		else {									/* Get by number */
-			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).hdr.number))
+			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).hdr.number)) {
+				free(p);
 				return JS_FALSE;
+			}
 		}
 
 		rc=JS_SUSPENDREQUEST(cx);
 		if((p->p->status=smb_getmsgidx(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
+			free(p);
 			return JS_TRUE;
 		}
 
 		if((p->p->status=smb_lockmsghdr(&(p->p->smb),&(p->msg)))!=SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
+			free(p);
 			return JS_TRUE;
 		}
 
 		if((p->p->status=smb_getmsghdr(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
 			smb_unlockmsghdr(&(p->p->smb),&(p->msg)); 
 			JS_RESUMEREQUEST(cx, rc);
+			free(p);
 			return JS_TRUE;
 		}
 
@@ -1498,20 +1508,29 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 		JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
 		n++;
-		HANDLE_PENDING(cx, cstr);
-		rc=JS_SUSPENDREQUEST(cx);
-		if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
-				,cstr))!=SMB_SUCCESS) {
+		if(JS_IsExceptionPending(cx)) {
+			free(cstr);
+			free(p);
+			return JS_FALSE;
+		}
+		if(cstr != NULL) {
+			rc=JS_SUSPENDREQUEST(cx);
+			if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
+					,cstr))!=SMB_SUCCESS) {
+				free(cstr);
+				JS_RESUMEREQUEST(cx, rc);
+				free(p);
+				return JS_TRUE;	/* ID not found */
+			}
 			free(cstr);
 			JS_RESUMEREQUEST(cx, rc);
-			return JS_TRUE;	/* ID not found */
 		}
-		free(cstr);
-		JS_RESUMEREQUEST(cx, rc);
 	}
 
-	if(p->msg.hdr.number==0) /* No valid message number/id/offset specified */
+	if(p->msg.hdr.number==0) { /* No valid message number/id/offset specified */
+		free(p);
 		return JS_TRUE;
+	}
 
 	if(JSVAL_IS_BOOLEAN(argv[n]))
 		p->expand_fields = JSVAL_TO_BOOLEAN(argv[n++]);
@@ -1521,6 +1540,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(!include_votes && (p->msg.hdr.attr&MSG_VOTE)) {
 		smb_freemsgmem(&(p->msg));
+		free(p);
 		return JS_TRUE;
 	}
 
@@ -1536,6 +1556,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((hdrobj=JS_NewObject(cx,&js_msghdr_class,proto,obj))==NULL) {
 		smb_freemsgmem(&(p->msg));
+		free(p);
 		return JS_TRUE;
 	}
 
@@ -1844,7 +1865,7 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 	JSBool		msg_specified=JS_FALSE;
 	smbmsg_t	msg;
 	private_t*	p;
-	char*		cstr;
+	char*		cstr = NULL;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
@@ -1877,15 +1898,17 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 		} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
 			HANDLE_PENDING(cx, cstr);
+			if(cstr == NULL)
+				return JS_FALSE;
 			rc=JS_SUSPENDREQUEST(cx);
 			if(!msg_offset_by_id(p
 					,cstr
 					,&msg.offset)) {
-				free(p);
+				free(cstr);
 				JS_RESUMEREQUEST(cx, rc);
 				return JS_TRUE;	/* ID not found */
 			}
-			free(p);
+			free(cstr);
 			JS_RESUMEREQUEST(cx, rc);
 			msg_specified=JS_TRUE;
 			n++;
@@ -2192,8 +2215,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		body=NULL;
 	uintN		n;
-    jsuint      i;
-    jsuint      rcpt_list_length=0;
+	jsuint      i;
+	jsuint      rcpt_list_length=0;
 	jsval       val;
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
@@ -2265,16 +2288,18 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	if(hdr==NULL)
+	if(hdr==NULL) {
+		FREE_AND_NULL(body);
 		return JS_TRUE;
+	}
 	if(body==NULL)
 		body=strdup("");
 
 	if(rcpt_list!=NULL) {
-		if(!JS_GetArrayLength(cx, rcpt_list, &rcpt_list_length))
+		if(!JS_GetArrayLength(cx, rcpt_list, &rcpt_list_length) || !rcpt_list_length) {
+			free(body);
 			return JS_TRUE;
-		if(!rcpt_list_length)
-			return JS_TRUE;
+		}
 	}
 
 	if(parse_header_object(cx, p, hdr, &msg, rcpt_list==NULL)) {
@@ -2508,6 +2533,7 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	votes = smb_voted_already(&(p->smb), msgnum, name, NET_NONE, NULL);
+	free(name);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist,UINT_TO_JSVAL(votes));
@@ -2549,6 +2575,7 @@ js_close_poll(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	result = closepoll(scfg, &(p->smb), msgnum, name);
+	free(name);
 	JS_RESUMEREQUEST(cx, rc);
 
 	JS_SET_RVAL(cx, arglist, result == SMB_SUCCESS ? JSVAL_TRUE : JSVAL_FALSE);
@@ -2973,7 +3000,12 @@ js_msgbase_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	js_str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, js_str, base, NULL);
-	HANDLE_PENDING(cx, base);
+	if(JS_IsExceptionPending(cx)) {
+		if(base != NULL)
+			free(base);
+		free(p);
+		return JS_FALSE;
+	}
 	if(base==NULL) {
 		JS_ReportError(cx, "Invalid base parameter");
 		free(p);
