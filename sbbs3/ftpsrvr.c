@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.441 2018/03/05 06:33:35 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.460 2018/03/10 07:02:08 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,6 +55,8 @@
 #include "multisock.h"
 #include "ssl.h"
 #include "cryptlib.h"
+#include "xpprintf.h"		// vasprintf
+#include "md5.h"
 
 /* Constants */
 
@@ -77,6 +79,14 @@
 #define INDEX_FNAME_LEN			15
 
 #define	NAME_LEN				15		/* User name length for listings */
+
+#define MLSX_TYPE	(1<<0)
+#define MLSX_PERM	(1<<1)
+#define MLSX_SIZE	(1<<2)
+#define MLSX_MODIFY	(1<<3)
+#define MLSX_OWNER	(1<<4)
+#define MLSX_UNIQUE	(1<<5)
+#define MLSX_CREATE	(1<<6)
 
 static ftp_startup_t*	startup=NULL;
 static scfg_t	scfg;
@@ -283,6 +293,16 @@ static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
 	return(result);
 }
 
+#define GCES(status, sock, session, estr, action) do {                      \
+	int GCES_level;                                                     \
+	get_crypt_error_string(status, session, &estr, action, &GCES_level);\
+	if (estr) {                                                         \
+		lprintf(GCES_level, "%04d %s", sock, estr);                 \
+		free_crypt_attrstr(estr);                                   \
+	}                                                                   \
+} while (0)
+
+
 static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 {
 	int		len;
@@ -292,6 +312,7 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 	char	sbuf[1024];
 	fd_set	socket_set;
 	struct timeval tv;
+	char	*estr;
 
     va_start(argptr,fmt);
     len=vsnprintf(sbuf,maxlen=sizeof(sbuf)-2,fmt,argptr);
@@ -334,13 +355,13 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 			if (result == CRYPT_OK)
 				sent += tls_sent;
 			else {
-				lprintf(LOG_DEBUG, "pushData returned %d\n", result);
-				if (result != -25)
-				return 0;
+				GCES(result, sock, sess, estr, "sending data");
+				if (result != CRYPT_ERROR_TIMEOUT)
+					return 0;
 			}
 			result = cryptFlushData(sess);
 			if (result != CRYPT_OK) {
-				lprintf(LOG_DEBUG, "cryptFlushData() returned %d\n", result);
+				GCES(result, sock, sess, estr, "flushing data");
 				return 0;
 			}
 		}
@@ -1153,6 +1174,7 @@ static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *las
 	struct	timeval	tv;
 	int ret;
 	int i;
+	char *estr;
 
 	if(ftp_set==NULL || terminate_server) {
 		sockprintf(sock,sess,"421 Server downed, aborting.");
@@ -1161,7 +1183,8 @@ static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *las
 	}
 	if (sess > -1) {
 		/* Try a read with no timeout first. */
-		cryptSetAttribute(sess, CRYPT_OPTION_NET_READTIMEOUT, 0);
+		if ((ret = cryptSetAttribute(sess, CRYPT_OPTION_NET_READTIMEOUT, 0)) != CRYPT_OK)
+			GCES(ret, sock, sess, estr, "setting read timeout");
 		while (1) {
 			ret = cryptPopData(sess, buf, 1, &len);
 			/* Successive reads will be with the full timeout after a select() */
@@ -1170,12 +1193,12 @@ static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *las
 				case CRYPT_OK:
 					break;
 				case CRYPT_ERROR_TIMEOUT:
-					lprintf(LOG_WARNING,"%04d !TIMEOUT in sock_recvbyte (%u seconds):  INACTIVE SOCKET",sock,startup->max_inactivity);
+					GCES(ret, sock, sess, estr, "popping data");
 					return -1;
 				case CRYPT_ERROR_COMPLETE:
 					return 0;
 				default:
-					lprintf(LOG_WARNING,"%04d !Cryptlib error in sock_recvbyte:  %d",sock,ret);
+					GCES(ret, sock, sess, estr, "popping data");
 					if (ret < -1)
 						return ret;
 					return -2;
@@ -1263,7 +1286,7 @@ int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* 
 	while(rd<len-1) {
 		i = sock_recvbyte(socket, sess, &ch, lastactive);
 
-		if(i<1) {
+		if(i<1 && sess == -1) {
 			recverror(socket,i,__LINE__);
 			return(i);
 		}
@@ -1347,6 +1370,7 @@ static void send_thread(void* arg)
 	socklen_t	addr_len;
 	fd_set		socket_set;
 	struct timeval tv;
+	char		*estr;
 
 	xfer=*(xfer_t*)arg;
 	free(arg);
@@ -1439,13 +1463,13 @@ static void send_thread(void* arg)
 		if (*xfer.data_sess != -1) {
 			int status = cryptPushData(*xfer.data_sess, buf, rd, &wr);
 			if (status != CRYPT_OK) {
-				lprintf(LOG_DEBUG, "PushData() returned %d\n", status);
+				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "pushing data");
 				wr = -1;
 			}
 			else {
 				status = cryptFlushData(*xfer.data_sess);
 				if (status != CRYPT_OK) {
-					lprintf(LOG_DEBUG, "cryptFlushData() returned %d\n", status);
+					GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "flushing data");
 					wr = -1;
 				}
 			}
@@ -1623,6 +1647,7 @@ static void receive_thread(void* arg)
 	fd_set		socket_set;
 	struct timeval tv;
 	CRYPT_SESSION	sess = -1;
+	char		*estr;
 
 	xfer=*(xfer_t*)arg;
 	free(arg);
@@ -1711,8 +1736,10 @@ static void receive_thread(void* arg)
 #endif
 		if (*xfer.data_sess != -1) {
 			int status = cryptPopData(*xfer.data_sess, buf, sizeof(buf), &rd);
-			if (status != CRYPT_OK)
+			if (status != CRYPT_OK) {
+				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "flushing data");
 				rd = -1;
+			}
 		}
 		else {
 			rd=recv(*xfer.data_sock,buf,sizeof(buf),0);
@@ -1903,53 +1930,64 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	ulong nb;
 	int status;
 	char *estr;
+	int level;
 
-	if (get_ssl_cert(&scfg, NULL) == -1) {
-		lprintf(LOG_ERR, "Unable to get certificate");
-		sockprintf(*sock, *sess, "431 TLS not available");
+	if (get_ssl_cert(&scfg, &estr, &level) == -1) {
+		if (estr) {
+			lprintf(level, "%04d FTP %s", estr);
+			free_crypt_attrstr(estr);
+		}
+		if (resp)
+			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	if (cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to create TLS session");
-		sockprintf(*sock, *sess, "431 TLS not available");
+	if ((status = cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER)) != CRYPT_OK) {
+		GCES(status, *sock, CRYPT_UNUSED, estr, "creating session");
+		if (estr) {
+			lprintf(level, "%04d FTP %s", *sock, estr);
+			free(estr);
+		}
+		if (resp)
+			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	if (cryptSetAttribute(*sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to disable certificate verification");
+	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY)) != CRYPT_OK) {
+		GCES(status, *sock, *sess, estr, "disabling certificate verification");
 		cryptDestroySession(*sess);
 		*sess = -1;
-		sockprintf(*sock, *sess, "431 TLS not available");
+		if(resp)
+			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	if (cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to set private key");
+	if ((status=cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
+		GCES(status, *sock, *sess, estr, "setting private key");
 		cryptDestroySession(*sess);
 		*sess = -1;
-		sockprintf(*sock, *sess, "431 TLS not available");
+		if (resp)
+			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
 	nodelay = TRUE;
 	setsockopt(*sock,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 	nb=0;
 	ioctlsocket(*sock,FIONBIO,&nb);
-	if (cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to set network socket");
+	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock)) != CRYPT_OK) {
+		GCES(status, *sock, *sess, estr, "setting network socket");
 		cryptDestroySession(*sess);
 		*sess = -1;
-		sockprintf(*sock, *sess, "431 TLS not available");
+		if (resp)
+			sockprintf(*sock, *sess, "431 TLS not available");
 		return TRUE;
 	}
 	if (resp)
 		sockprintf(*sock, -1, "234 Ready to start TLS");
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-		estr = get_crypt_error(*sess);
-		lprintf(LOG_ERR, "Unable to set session active (%d:%s)", status, estr);
-		free_crypt_attrstr(estr);
+		GCES(status, *sock, *sess, estr, "setting session active");
 		return TRUE;
 	}
 	if (startup->max_inactivity) {
-		if (cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity) != CRYPT_OK) {
-			lprintf(LOG_ERR, "Unable to set max inactivity");
+		if ((status = cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
+			GCES(status, *sock, *sess, estr, "setting read timeout");
 			return TRUE;
 		}
 	}
@@ -2203,92 +2241,17 @@ char* dotname(char* in, char* out)
 	return(out);
 }
 
-void parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curdir)
+static BOOL can_list(lib_t *lib, dir_t *dir, user_t *user, client_t *client)
 {
-	char*	p;
-	char*	tp;
-	char	path[MAX_PATH+1];
-	int		dir=*curdir;
-	int		lib=*curlib;
-
-	SAFECOPY(path,*pp);
-	p=path;
-
-	if(*p=='/') {
-		p++;
-		lib=-1;
-	}
-	else if(!strncmp(p,"./",2))
-		p+=2;
-
-	if(!strncmp(p,"..",2)) {
-		p+=2;
-		if(dir>=0)
-			dir=-1;
-		else if(lib>=0)
-			lib=-1;
-		if(*p=='/')
-			p++;
-	}
-
-	if(*p==0) {
-		*curlib=lib;
-		*curdir=dir;
-		return;
-	}
-
-	if(lib<0) { /* root */
-		tp=strchr(p,'/');
-		if(tp)
-			*(tp++)=0;
-		else
-			tp=p+strlen(p);
-		for(lib=0;lib<scfg.total_libs;lib++) {
-			if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
-				continue;
-			if(!stricmp(scfg.lib[lib]->sname,p))
-				break;
-		}
-		if(lib>=scfg.total_libs) { /* not found */
-			*curlib=-1;
-			return;
-		}
-		*curlib=lib;
-
-		if(*(tp)==0) {
-			*curdir=-1;
-			*pp+=tp-path;	/* skip "lib" or "lib/" */
-			return;
-		}
-
-		p=tp;
-	}
-
-	tp=strchr(p,'/');
-	if(tp!=NULL) {
-		*tp=0;
-		tp++;
-	} else 
-		tp=p+strlen(p);
-
-	for(dir=0;dir<scfg.total_dirs;dir++) {
-		if(scfg.dir[dir]->lib!=lib)
-			continue;
-		if(dir!=scfg.sysop_dir && dir!=scfg.upload_dir 
-			&& !chk_ar(&scfg,scfg.dir[dir]->ar,user,client))
-			continue;
-		if(!stricmp(scfg.dir[dir]->code_suffix,p))
-			break;
-	}
-
-	if(dir>=scfg.total_dirs) {  /* not found */
-		*pp+=p-path;			/* skip /lib/filespec */
-		return;
-	}
-
-	*curdir=dir;
-
-	*pp+=tp-path;	/* skip "lib/dir/" */
+	if (!chk_ar(&scfg,lib->ar,user,client))
+		return FALSE;
+	if (dir->dirnum == scfg.sysop_dir)
+		return TRUE;
+	if (dir->dirnum == scfg.upload_dir)
+		return TRUE;
+	if (chk_ar(&scfg, dir->ar, user, client))
+		return TRUE;
+	return FALSE;
 }
 
 static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* client, int* curdir)
@@ -2366,6 +2329,140 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 	if(curdir!=NULL)
 		*curdir=dir;
 	return(result);
+}
+
+/*
+ * Parses a path into *curlib, *curdir, and sets *pp to point to the filename
+ */
+static int parsepath(char** pp, user_t* user, client_t* client, int* curlib, int* curdir)
+{
+	char filename[MAX_PATH+1];
+	int lib = *curlib;
+	int dir = *curdir;
+	char *p = *pp;
+	char *tmp;
+	char *fname = strchr(p, 0);
+	int ret = 0;
+	size_t len;
+
+	if (*p == '/') {
+		lib = -1;
+		dir = -1;
+		p++;
+	}
+
+	while (*p) {
+		/* Relative path stuff */
+		if (strcmp(p, "..") == 0) {
+			if (dir >= 0)
+				dir = -1;
+			else if (lib >= 0)
+				lib = -1;
+			else
+				ret = -1;
+			p += 2;
+		}
+		else if(strncmp(p, "../", 3) == 0) {
+			if (dir >= 0)
+				dir = -1;
+			else if (lib >= 0)
+				lib = -1;
+			else
+				ret = -1;
+			p += 3;
+		}
+		else if(strcmp(p, ".") == 0)
+			p++;
+		else if(strncmp(p, "./", 2) == 0)
+			p += 2;
+		/* Path component */
+		else if (lib < 0) {
+			for(lib=0;lib<scfg.total_libs;lib++) {
+				if(!chk_ar(&scfg,scfg.lib[lib]->ar,user,client))
+					continue;
+				len = strlen(scfg.lib[lib]->sname);
+				if (strlen(p) < len)
+					continue;
+				if (p[len] != 0 && p[len] != '/')
+					continue;
+				if(!strnicmp(scfg.lib[lib]->sname,p,len)) {
+					p += len;
+					if (*p)
+						p++;
+					break;
+				}
+			}
+			if (lib == scfg.total_libs) {
+				strcpy(filename, p);
+				tmp = strchr(filename, '/');
+				if (tmp != NULL)
+					*tmp = 0;
+				if (ftpalias(filename, filename, user, client, &dir) == TRUE) {
+					lib = scfg.dir[dir]->lib;
+					if (strchr(p, '/') != NULL) {
+						p = strchr(p, '/');
+						p++;
+					}
+					else
+						p = strchr(p, 0);
+				}
+				else {
+					ret = -1;
+					lib = -1;
+					if (strchr(p, '/') != NULL) {
+						p = strchr(p, '/');
+						p++;
+					}
+					else
+						p = strchr(p, 0);
+				}
+			}
+		}
+		else if (dir < 0) {
+			for(dir=0;dir<scfg.total_dirs;dir++) {
+				if(scfg.dir[dir]->lib!=lib)
+					continue;
+				if (!can_list(scfg.lib[lib], scfg.dir[dir], user, client))
+					continue;
+				len = strlen(scfg.dir[dir]->code_suffix);
+				if (strlen(p) < len)
+					continue;
+				if (p[len] != 0 && p[len] != '/')
+					continue;
+				if(!strnicmp(scfg.dir[dir]->code_suffix,p,len)) {
+					p += len;
+					if (*p)
+						p++;
+					break;
+				}
+			}
+			if (dir == scfg.total_dirs) {
+				ret = -1;
+				dir = -1;
+				if (strchr(p, '/') != NULL) {
+					p = strchr(p, '/');
+					p++;
+				}
+				else
+					p = strchr(p, 0);
+			}
+		}
+		else {	// Filename
+			if (strchr(p, '/') != NULL) {
+				ret = -1;
+				p = strchr(p, '/');
+				p++;
+			}
+			else {
+				fname = p;
+				p += strlen(fname);
+			}
+		}
+	}
+	*curdir = dir;
+	*curlib = lib;
+	*pp = fname;
+	return ret;
 }
 
 char* root_dir(char* path)
@@ -2477,10 +2574,322 @@ static char* ftp_tmpfname(char* fname, char* ext, SOCKET sock)
 	return(fname);
 }
 
+static BOOL send_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, const char *format, ...)
+{
+	va_list va;
+	char *str;
+
+	if (fp == NULL && sock == INVALID_SOCKET)
+		return FALSE;
+	va_start(va, format);
+	if (vasprintf(&str, format, va) == -1)
+		return FALSE;
+	if (fp != NULL)
+		fprintf(fp, "%s\r\n", str);
+	else
+		sockprintf(sock, sess, " %s", str);
+	free(str);
+	return TRUE;
+}
+
+static char *get_unique(const char *path, char *uniq)
+{
+	BYTE digest[MD5_DIGEST_SIZE];
+
+	if (path == NULL)
+		return NULL;
+
+	MD5_calc(digest, path, strlen(path));
+	MD5_hex((BYTE*)uniq, digest);
+	return uniq;
+}
+
+static BOOL send_mlsx_entry(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned feats, const char *type, const char *perm, uint64_t size, time_t modify, const char *owner, const char *unique, time_t ul, const char *fname)
+{
+	char line[1024];
+	char *end;
+	BOOL need_owner = FALSE;
+	struct tm t;
+
+	end=line;
+	*end=0;
+	if (type != NULL && (feats & MLSX_TYPE))
+		end += sprintf(end, "Type=%s;", type);
+	if (perm != NULL && (feats & MLSX_PERM))
+		end += sprintf(end, "Perm=%s;", perm);
+	if (size != UINT64_MAX && (feats & MLSX_SIZE))
+		end += sprintf(end, "Size=%" PRIu64 ";", size);
+	if (modify != 0 && (feats & MLSX_MODIFY)) {
+		t = *gmtime(&modify);
+		end += sprintf(end, "Modify=%04d%02d%02d%02d%02d%02d;",
+		    t.tm_year+1900, t.tm_mon+1, t.tm_mday,
+		    t.tm_hour, t.tm_min, t.tm_sec);
+	}
+	if (unique != NULL && (feats & MLSX_UNIQUE))
+		end += sprintf(end, "Unique=%s;", unique);
+	if (ul != 0 && (feats & MLSX_CREATE)) {
+		t = *gmtime(&modify);
+		end += sprintf(end, "Create=%04d%02d%02d%02d%02d%02d;",
+		    t.tm_year+1900, t.tm_mon+1, t.tm_mday,
+		    t.tm_hour, t.tm_min, t.tm_sec);
+	}
+	// Owner can contain percents, so let send_mlsx() deal with it
+	if (owner != NULL && (feats & MLSX_OWNER)) {
+		strcat(end, "UNIX.ownername=%s;");
+		need_owner = TRUE;
+	}
+	strcat(end, " %s");
+	if (need_owner)
+		return send_mlsx(fp, sock, sess, line, owner, fname==NULL ? "" : fname);
+	return send_mlsx(fp, sock, sess, line, fname==NULL ? "" : fname);
+}
+
+static BOOL write_local_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned feats, const char *path, BOOL full_path)
+{
+	const char *type;
+	char permstr[11];
+	char *p;
+	BOOL is_file = FALSE;
+
+	if (!strcmp(path, "."))
+		type="cdir";
+	else if (!strcmp(path, ".."))
+		type="pdir";
+	else if (isdir(path))
+		type="dir";
+	else {
+		is_file = TRUE;
+		type="file";
+	}
+	// TODO: Check for deletability 'd'
+	// TODO: Check for renamability 'f'
+	p = permstr;
+	if (is_file) {
+		if (access(path, W_OK) == 0) {
+			// Can append ('a') and write ('w')
+			*(p++)='a';
+			*(p++)='w';
+		}
+		if (access(path, R_OK) == 0) {
+			// Can read ('r')
+			*(p++)='r';
+		}
+	}
+	else {
+		// TODO: Check these on Windows...
+		if (access(path, W_OK) == 0) {
+			// Can create files ('c'), directories ('m') and delete files ('p')
+			*(p++)='c';
+			*(p++)='m';
+			*(p++)='p';
+		}
+		if (access(path, R_OK) == 0) {
+			// Can change to the directory ('e'), and list files ('l')
+			*(p++)='e';
+			*(p++)='l';
+		}
+	}
+	*p=0;
+	if (is_file)
+		full_path = FALSE;
+	return send_mlsx_entry(fp, sock, sess, feats, type, permstr, (uint64_t)flength(path), fdate(path), NULL, NULL, 0, full_path ? path : getfname(path));
+}
+
+/*
+ * Nobody can do anything but list files and change to dirs.
+ */
+static void get_libperm(lib_t *lib, user_t *user, client_t *client, char *permstr)
+{
+	char *p = permstr;
+
+	if (chk_ar(&scfg,lib->ar,user,client)) {
+		//*(p++) = 'a';	// File may be appended to
+		//*(p++) = 'c';	// Files may be created in dir
+		//*(p++) = 'd';	// Item may be depeted (dir or file)
+		*(p++) = 'e';	// Can change to the dir
+		//*(p++) = 'f';	// Item may be renamed
+		*(p++) = 'l';	// Directory contents can be listed
+		//*(p++) = 'm';	// New subdirectories may be created
+		//*(p++) = 'p';	// Files/Dirs in directory may be deleted
+		//*(p++) = 'r';	// File may be retrieved
+		//*(p++) = 'w';	// File may be overwritten
+	}
+	*p=0;
+}
+
+static BOOL can_upload(lib_t *lib, dir_t *dir, user_t *user, client_t *client)
+{
+	if (!chk_ar(&scfg,lib->ar,user,client))
+		return FALSE;
+	if (user->rest & FLAG('U'))
+		return FALSE;
+	if (dir_op(&scfg, user, client, dir->dirnum))
+		return TRUE;
+	// The rest can only upload if there's room
+	if(dir->maxfiles && getfiles(&scfg,dir->dirnum)>=dir->maxfiles)
+		return FALSE;
+	if (dir->dirnum == scfg.sysop_dir)
+		return TRUE;
+	if (dir->dirnum == scfg.upload_dir)
+		return TRUE;
+	if (chk_ar(&scfg, dir->ul_ar,user,client))
+		return TRUE;
+	if ((user->exempt & FLAG('U')))
+		return TRUE;
+	return FALSE;
+}
+
+static BOOL can_delete_files(lib_t *lib, dir_t *dir, user_t *user, client_t *client)
+{
+	if (!chk_ar(&scfg,lib->ar,user,client))
+		return FALSE;
+	if (user->rest&FLAG('D'))
+		return FALSE;
+	if (!chk_ar(&scfg,dir->ar,user,client))
+		return FALSE;
+	if (dir_op(&scfg,user,client,dir->dirnum))
+		return TRUE;
+	if (user->exempt&FLAG('R'))
+		return TRUE;
+	return FALSE;
+}
+
+static void get_dirperm(lib_t *lib, dir_t *dir, user_t *user, client_t *client, char *permstr)
+{
+	char *p = permstr;
+
+	//*(p++) = 'a';	// File may be appended to
+	if (can_upload(lib, dir, user, client))
+		*(p++) = 'c';	// Files may be created in dir
+	//*(p++) = 'd';	// Item may be depeted (dir or file)
+	if (can_list(lib, dir, user, client)) {
+		*(p++) = 'e';	// Can change to the dir
+		//*(p++) = 'f';	// Item may be renamed
+		*(p++) = 'l';	// Directory contents can be listed
+	}
+	//*(p++) = 'm';	// New subdirectories may be created
+	if (can_delete_files(lib, dir, user, client))
+		*(p++) = 'p';	// Files/Dirs in directory may be deleted
+	//*(p++) = 'r';	// File may be retrieved
+	//*(p++) = 'w';	// File may be overwritten
+	*p=0;
+}
+
+static BOOL can_append(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file)
+{
+	if (!chk_ar(&scfg,lib->ar,user,client))
+		return FALSE;
+	if (user->rest&FLAG('U'))
+		return FALSE;
+	if (dir->dirnum != scfg.sysop_dir && dir->dirnum != scfg.upload_dir && !chk_ar(&scfg,dir->ar,user,client))
+		return FALSE;
+	if(!dir_op(&scfg,user,client,dir->dirnum) && !(user->exempt&FLAG('U'))) {
+		if(!chk_ar(&scfg,dir->ul_ar,user,client))
+			return FALSE;
+	}
+	if(!getfileixb(&scfg,file) || !getfiledat(&scfg,file))
+		return FALSE;
+	if (stricmp(file->uler,user->alias))
+		return FALSE;
+	// Check credits?
+	return TRUE;
+}
+
+static BOOL can_delete(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file)
+{
+	if (user->rest&FLAG('D'))
+		return FALSE;
+	if (!chk_ar(&scfg,lib->ar,user,client))
+		return FALSE;
+	if (!chk_ar(&scfg,dir->ar,user,client))
+		return FALSE;
+	if (!dir_op(&scfg, user, client, dir->dirnum))
+		return FALSE;
+	if (!(user->exempt&FLAG('R')))
+		return FALSE;
+	if(!getfileixb(&scfg,file) && !(startup->options&FTP_OPT_DIR_FILES) && !(dir->misc&DIR_FILES))
+		return FALSE;
+	return TRUE;
+}
+
+static BOOL can_download(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file)
+{
+	if (user->rest&FLAG('D'))
+		return FALSE;
+	if (!chk_ar(&scfg,lib->ar,user,client))
+		return FALSE;
+	if (!chk_ar(&scfg,dir->ar,user,client))
+		return FALSE;
+	if (!chk_ar(&scfg,dir->dl_ar,user,client))
+		return FALSE;
+	if(!getfileixb(&scfg,file) && !(startup->options&FTP_OPT_DIR_FILES) && !(dir->misc&DIR_FILES))
+		return FALSE;
+	// TODO: Verify credits
+	return TRUE;
+}
+
+static void get_fileperm(lib_t *lib, dir_t *dir, user_t *user, client_t *client, file_t *file, char *permstr)
+{
+	char *p = permstr;
+
+	if (can_append(lib, dir, user, client, file))
+		*(p++) = 'a';	// File may be appended to
+	//*(p++) = 'c';	// Files may be created in dir
+	if (can_delete(lib, dir, user, client, file))
+		*(p++) = 'd';	// Item may be depeted (dir or file)
+	//*(p++) = 'e';	// Can change to the dir
+	//*(p++) = 'f';	// Item may be renamed
+	//*(p++) = 'l';	// Directory contents can be listed
+	//*(p++) = 'm';	// New subdirectories may be created
+	//*(p++) = 'p';	// Files/Dirs in directory may be deleted
+	if (can_download(lib, dir, user, client, file))
+		*(p++) = 'r';	// File may be retrieved
+	//*(p++) = 'w';	// File may be overwritten
+	*p = 0;
+}
+
+static void get_owner_name(file_t *file, char *namestr)
+{
+	char *p;
+
+	if (file) {
+		if (file->misc & FM_ANON)
+			strcpy(namestr, ANONYMOUS);
+		else
+			strcpy(namestr, file->uler);
+	}
+	else
+		strcpy(namestr, scfg.sys_id);
+
+	// Now ensure it's an RCHAR string.
+	for (p=namestr; *p; p++) {
+		if (*p >= '!' && *p <= ')')
+			continue;
+		else if (*p >= '+' && *p <= ':')
+			continue;
+		else if (*p >= '?' && *p <= 'Z')
+			continue;
+		else if (*p == '\\')
+			continue;
+		else if (*p == '^')
+			continue;
+		else if (*p == '_')
+			continue;
+		else if (*p >= 'a' && *p <= 'z')
+			continue;
+		else if (*p == ' ')
+			*p = '.';
+		else
+			*p = '_';
+	}
+}
+
 static void ctrl_thread(void* arg)
 {
+	unsigned	mlsx_feats = (MLSX_TYPE | MLSX_PERM | MLSX_SIZE | MLSX_MODIFY | MLSX_OWNER | MLSX_UNIQUE | MLSX_CREATE);
 	char		buf[512];
 	char		str[128];
+	char		uniq[33];
 	char*		cmd;
 	char*		p;
 	char*		np;
@@ -2494,6 +2903,10 @@ static void ctrl_thread(void* arg)
 	char		fname[MAX_PATH+1];
 	char		qwkfile[MAX_PATH+1];
 	char		aliasfile[MAX_PATH+1];
+	char		aliaspath[MAX_PATH+1];
+	char		mls_path[MAX_PATH+1];
+	char		*mls_fname;
+	char		permstr[11];
 	char		aliasline[512];
 	char		desc[501]="";
 	char		sys_pass[128];
@@ -2756,6 +3169,7 @@ static void ctrl_thread(void* arg)
 			sockprintf(sock,sess," SIZE    MDTM    RETR    STOR    REST    ALLO    ABOR    SYST");
 			sockprintf(sock,sess," TYPE    STRU    MODE    SITE    RNFR*   RNTO*   DELE*   DESC#");
 			sockprintf(sock,sess," FEAT#   OPTS#   EPRT    EPSV    AUTH#   PBSZ#   PROT#   CCC#");
+			sockprintf(sock,sess," MLSD#");
 			sockprintf(sock,sess,"214 Direct comments to sysop@%s.",scfg.sys_inetaddr);
 			continue;
 		}
@@ -2768,11 +3182,58 @@ static void ctrl_thread(void* arg)
 			sockprintf(sock,sess," AUTH TLS");
 			sockprintf(sock,sess," PBSZ");
 			sockprintf(sock,sess," PROT");
+			sockprintf(sock,sess," MLST Type%s;Perm%s;Size%s;Modify%s;UNIX.ownername%s;",
+				(mlsx_feats & MLSX_TYPE) ? "*" : "",
+				(mlsx_feats & MLSX_PERM) ? "*" : "",
+				(mlsx_feats & MLSX_SIZE) ? "*" : "",
+				(mlsx_feats & MLSX_MODIFY) ? "*" : "",
+				(mlsx_feats & MLSX_OWNER) ? "*" : "",
+				(mlsx_feats & MLSX_UNIQUE) ? "*" : "",
+				(mlsx_feats & MLSX_CREATE) ? "*" : ""
+			);
+			sockprintf(sock,sess," TVFS");
 			sockprintf(sock,sess,"211 End");
 			continue;
 		}
+		if(!strnicmp(cmd, "OPTS MLST",9)) {
+			if (cmd[9] == 0) {
+				mlsx_feats = 0;
+				continue;
+			}
+			if (cmd[9] != ' ') {
+				sockprintf(sock,sess,"501 Option not supported.");
+				continue;
+			}
+			mlsx_feats = 0;
+			for (p = cmd; *p; p++)
+				*p = toupper(*p);
+			if (strstr(cmd, "TYPE;"))
+				mlsx_feats |= MLSX_TYPE;
+			if (strstr(cmd, "PERM;"))
+				mlsx_feats |= MLSX_PERM;
+			if (strstr(cmd, "SIZE;"))
+				mlsx_feats |= MLSX_SIZE;
+			if (strstr(cmd, "MODIFY;"))
+				mlsx_feats |= MLSX_MODIFY;
+			if (strstr(cmd, "UNIX.OWNERNAME;"))
+				mlsx_feats |= MLSX_OWNER;
+			if (strstr(cmd, "UNIQUE;"))
+				mlsx_feats |= MLSX_UNIQUE;
+			if (strstr(cmd, "CREATE;"))
+				mlsx_feats |= MLSX_CREATE;
+			sockprintf(sock,sess,"200 %s%s%s%s%s",
+				(mlsx_feats & MLSX_TYPE) ? "Type;" : "",
+				(mlsx_feats & MLSX_PERM) ? "Perm;" : "",
+				(mlsx_feats & MLSX_SIZE) ? "Size;" : "",
+				(mlsx_feats & MLSX_MODIFY) ? "Modify;" : "",
+				(mlsx_feats & MLSX_OWNER) ? "UNIX.ownername;" : "",
+				(mlsx_feats & MLSX_UNIQUE) ? "Unique;" : "",
+				(mlsx_feats & MLSX_CREATE) ? "Create;" : ""
+			);
+			continue;
+		}
 		if(!strnicmp(cmd, "OPTS",4)) {
-			sockprintf(sock,sess,"501 No options supported.");
+			sockprintf(sock,sess,"501 Option not supported.");
 			continue;
 		}
 		if(!stricmp(cmd, "QUIT")) {
@@ -3490,16 +3951,84 @@ static void ctrl_thread(void* arg)
 				&& local_dir[strlen(local_dir)-1]!='/')
 				strcat(local_dir,"/");
 
-			if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {	
+			if(!strnicmp(cmd, "MLS", 3)) {
+				if (cmd[3] == 'T' || cmd[3] == 'D') {
+					if (cmd[3] == 'D') {
+						if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
+							lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+							sockprintf(sock,sess, "451 Insufficient system storage");
+							continue;
+						}
+					}
+
+					p=cmd+4;
+					SKIP_WHITESPACE(p);
+
+					filespec=p;
+					if (!local_dir[0])
+						strcpy(local_dir, "/");
+					SAFEPRINTF2(path,"%s%s",local_dir, filespec);
+					p=FULLPATH(NULL, path, 0);
+					strcpy(path, p);
+					free(p);
+					if (cmd[3] == 'T') {
+						if (access(path, 0) == -1) {
+							sockprintf(sock,sess, "550 No such path %s", path);
+							continue;
+						}
+						sockprintf(sock,sess, "250- Listing %s", path);
+					}
+					else {
+						if (access(path, 0) == -1) {
+							sockprintf(sock,sess, "550 No such path %s", path);
+							continue;
+						}
+						if (!isdir(path)) {
+							sockprintf(sock,sess, "501 Not a directory");
+							continue;
+						}
+						sockprintf(sock,sess, "150 Directory of %s", path);
+						backslash(path);
+						strcat(path, "*");
+					}
+
+					lprintf(LOG_INFO,"%04d %s MLSx listing: %s in %s mode", sock, user.alias, path, mode);
+
+					now=time(NULL);
+					if(localtime_r(&now,&cur_tm)==NULL)
+						memset(&cur_tm,0,sizeof(cur_tm));
+
+					if (cmd[3] == 'T') {
+						write_local_mlsx(NULL, sock, sess, mlsx_feats, path, TRUE);
+						sockprintf(sock, sess, "250 End");
+					}
+					else {
+						glob(path,0,NULL,&g);
+						for(i=0;i<(int)g.gl_pathc;i++)
+							write_local_mlsx(fp, INVALID_SOCKET, -1, mlsx_feats, g.gl_pathv[i], FALSE);
+						globfree(&g);
+						fclose(fp);
+						filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
+							,&transfer_inprogress,&transfer_aborted
+							,TRUE	/* delfile */
+							,TRUE	/* tmpfile */
+							,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL,protection);
+					}
+					continue;
+				}
+			}
+
+			if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {
+				if(!strnicmp(cmd, "LIST", 4))
+					detail=TRUE;
+				else
+					detail=FALSE;
+
 				if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
 					lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 					sockprintf(sock,sess, "451 Insufficient system storage");
 					continue;
 				}
-				if(!strnicmp(cmd, "LIST", 4))
-					detail=TRUE;
-				else
-					detail=FALSE;
 
 				p=cmd+4;
 				SKIP_WHITESPACE(p);
@@ -3553,7 +4082,7 @@ static void ctrl_thread(void* arg)
 					,&lastactive,&user,&client,-1,FALSE,FALSE,FALSE,NULL,protection);
 				continue;
 			} /* Local LIST/NLST */
-				
+
 			if(!strnicmp(cmd, "CWD ", 4) || !strnicmp(cmd,"XCWD ",5)) {
 			    if(!strnicmp(cmd,"CWD ",4))
 					p=cmd+4;
@@ -3576,8 +4105,12 @@ static void ctrl_thread(void* arg)
 
 				if(p[1]==':' || !strncmp(p,"\\\\",2))
 					SAFECOPY(path,p);
-				else if(*p=='/' || *p=='\\')
-					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p);
+				else if(*p=='/' || *p=='\\') {
+					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p+1);
+					p = FULLPATH(NULL, path, 0);
+					SAFECOPY(path, p);
+					free(p);
+				}
 				else {
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 					FULLPATH(path,fname,sizeof(path));
@@ -3774,6 +4307,304 @@ static void ctrl_thread(void* arg)
 			} /* Local STOR */
 		}
 
+		if (!strnicmp(cmd, "MLS", 3)) {
+			if (cmd[3] == 'D' || cmd[3] == 'T') {
+				dir=curdir;
+				lib=curlib;
+				l = 0;
+
+				if(cmd[4]!=0)
+					lprintf(LOG_DEBUG,"%04d MLSx: %s",sock,cmd);
+
+				/* path specified? */
+				p=cmd+4;
+				if (*p == ' ')
+					p++;
+
+				if (parsepath(&p,&user,&client,&lib,&dir) == -1) {
+					sockprintf(sock,sess, "550 No such path");
+					continue;
+				}
+
+				if (strchr(p, '/')) {
+					sockprintf(sock,sess, "550 No such path");
+					continue;
+				}
+				if (cmd[3] == 'T') {
+					if (cmd[4])
+						strcpy(mls_path, cmd+5);
+					else
+						strcpy(mls_path, p);
+				}
+				else {
+					if (*p) {
+						sockprintf(sock,sess, "501 Not a directory");
+						continue;
+					}
+					strcpy(mls_path, p);
+				}
+				mls_fname = p;
+
+				fp = NULL;
+				if (cmd[3] == 'D') {
+					if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
+						lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
+						sockprintf(sock,sess, "451 Insufficient system storage");
+						continue;
+					}
+					sockprintf(sock,sess,"150 Opening ASCII mode data connection for MLSD.");
+				}
+				now=time(NULL);
+				if(localtime_r(&now,&cur_tm)==NULL)
+					memset(&cur_tm,0,sizeof(cur_tm));
+
+				/* ASCII Index File */
+				if(startup->options&FTP_OPT_INDEX_FILE && startup->index_file_name[0]
+						&& (cmd[3] == 'D' || strcmp(startup->index_file_name, mls_fname) == 0)) {
+					if (cmd[3] == 'T')
+						sockprintf(sock,sess, "250- Listing %s", startup->index_file_name);
+					get_owner_name(NULL, str);
+					send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : startup->index_file_name);
+					l++;
+				}
+				/* HTML Index File */
+				if(startup->options&FTP_OPT_INDEX_FILE && startup->html_index_file[0]
+						&& (cmd[3] == 'D' || strcmp(startup->html_index_file, mls_fname) == 0)) {
+					if (cmd[3] == 'T')
+						sockprintf(sock,sess, "250- Listing %s", startup->html_index_file);
+					get_owner_name(NULL, str);
+					send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : startup->html_index_file);
+					l++;
+				}
+
+				if(lib<0) { /* Root dir */
+					if (cmd[3] == 'T' && !*mls_fname) {
+						sockprintf(sock,sess, "250- Listing root");
+						get_owner_name(NULL, str);
+						strcpy(aliaspath, "/");
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
+						l++;
+					}
+					else {
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
+					}
+					lprintf(LOG_INFO,"%04d %s listing: root in %s mode",sock,user.alias, mode);
+
+					/* QWK Packet */
+					if(startup->options&FTP_OPT_ALLOW_QWK) {
+						SAFEPRINTF(str,"%s.qwk",scfg.sys_id);
+						if (cmd[3] == 'D' || strcmp(str, mls_fname) == 0) {
+							if (cmd[3] == 'T')
+								sockprintf(sock,sess, "250- Listing %s", str);
+							get_owner_name(NULL, str);
+							send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : str);
+							l++;
+						}
+					}
+
+					/* File Aliases */
+					sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
+					if((alias_fp=fopen(aliasfile,"r"))!=NULL) {
+
+						while(!feof(alias_fp)) {
+							if(!fgets(aliasline,sizeof(aliasline),alias_fp))
+								break;
+
+							alias_dir=FALSE;
+
+							p=aliasline;		/* alias pointer */
+							SKIP_WHITESPACE(p);
+
+							if(*p==';')	/* comment */
+								continue;
+
+							tp=p;		/* terminator pointer */
+							FIND_WHITESPACE(tp);
+							if(*tp) *tp=0;
+
+							np=tp+1;	/* filename pointer */
+							SKIP_WHITESPACE(np);
+
+							tp=np;		/* terminator pointer */
+							FIND_WHITESPACE(tp);
+							if(*tp) *tp=0;
+
+							dp=tp+1;	/* description pointer */
+							SKIP_WHITESPACE(dp);
+							truncsp(dp);
+
+							if(stricmp(dp,BBS_HIDDEN_ALIAS)==0)
+								continue;
+
+							/* Virtual Path? */
+							aliaspath[0]=0;
+							if(!strnicmp(np,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
+								if((dir=getdir(np+strlen(BBS_VIRTUAL_PATH),&user,&client))<0) {
+									lprintf(LOG_WARNING,"0000 !Invalid virtual path (%s) for %s",np,user.alias);
+									continue; /* No access or invalid virtual path */
+								}
+								tp=strrchr(np,'/');
+								if(tp==NULL) 
+									continue;
+								tp++;
+								if(*tp) {
+									SAFEPRINTF2(aliasfile,"%s%s",scfg.dir[dir]->path,tp);
+									np=aliasfile;
+									SAFEPRINTF3(aliaspath,"/%s/%s/%s", scfg.lib[scfg.dir[dir]->lib]->sname, scfg.dir[dir]->code_suffix, tp);
+								}
+								else {
+									alias_dir=TRUE;
+									SAFEPRINTF2(aliaspath,"/%s/%s", scfg.lib[scfg.dir[dir]->lib]->sname, scfg.dir[dir]->code_suffix);
+								}
+							}
+
+							if(!alias_dir && !fexist(np)) {
+								lprintf(LOG_WARNING,"0000 !Missing aliased file (%s) for %s",np,user.alias);
+								continue;
+							}
+
+							if(cmd[3] == 'D' || strcmp(startup->html_index_file, mls_fname) == 0) {
+								if (cmd[3] == 'T')
+									sockprintf(sock,sess, "250- Listing %s", p);
+								get_unique(aliaspath, uniq);
+								if (cmd[3] == 'D') {
+									if (alias_dir==TRUE)
+										send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", "el", UINT64_MAX, 0, NULL, uniq, 0, p);
+									else
+										send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", (uint64_t)flength(np), fdate(np), NULL, uniq, 0, p);
+								}
+								else {
+									if (alias_dir==TRUE)
+										send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", "el", UINT64_MAX, 0, NULL, uniq, 0, aliaspath[0] ? aliaspath : mls_path);
+									else
+										send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", "r", (uint64_t)flength(np), fdate(np), NULL, uniq, 0, mls_path);
+								}
+								l++;
+							}
+						}
+
+						fclose(alias_fp);
+					}
+
+					/* Library folders */
+					for(i=0;i<scfg.total_libs;i++) {
+						if(!chk_ar(&scfg,scfg.lib[i]->ar,&user,&client))
+							continue;
+						if (cmd[3] != 'D' && strcmp(scfg.lib[i]->sname, mls_fname) != 0)
+							continue;
+						if (cmd[3] == 'T')
+							sockprintf(sock,sess, "250- Listing %s", scfg.lib[i]->sname);
+						get_libperm(scfg.lib[i], &user, &client, permstr);
+						get_owner_name(NULL, str);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", permstr, UINT64_MAX, 0, str, NULL, 0, cmd[3] == 'T' ? mls_path : scfg.lib[i]->sname);
+						l++;
+					}
+				} else if(dir<0) {
+					if (cmd[3] == 'T' && !*mls_fname) {
+						sockprintf(sock,sess, "250- Listing %s", scfg.lib[lib]->sname);
+						get_owner_name(NULL, str);
+						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
+						l++;
+					}
+					if (cmd[3] == 'D') {
+						get_owner_name(NULL, str);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
+						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
+					}
+					lprintf(LOG_INFO,"%04d %s listing: %s library in %s mode"
+						,sock,user.alias,scfg.lib[lib]->sname,mode);
+					for(i=0;i<scfg.total_dirs;i++) {
+						if(scfg.dir[i]->lib!=lib)
+							continue;
+						if(i!=(int)scfg.sysop_dir && i!=(int)scfg.upload_dir 
+							&& !chk_ar(&scfg,scfg.dir[i]->ar,&user,&client))
+							continue;
+						if (cmd[3] != 'D' && strcmp(scfg.dir[i]->code_suffix, mls_fname) != 0)
+							continue;
+						if (cmd[3] == 'T')
+							sockprintf(sock,sess, "250- Listing %s", scfg.dir[i]->code_suffix);
+						get_dirperm(scfg.lib[lib], scfg.dir[i], &user, &client, permstr);
+						get_owner_name(NULL, str);
+						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[i]->code_suffix);
+						get_unique(aliaspath, uniq);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", permstr, UINT64_MAX, 0, str, uniq, 0, cmd[3] == 'T' ? mls_path : scfg.dir[i]->code_suffix);
+						l++;
+					}
+				} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
+					lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode"
+						,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
+
+					if (cmd[3] == 'T' && !*mls_fname) {
+						sockprintf(sock,sess, "250- Listing %s/%s",scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix);
+						get_owner_name(NULL, str);
+						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix);
+						get_unique(aliaspath, uniq);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, uniq, 0, aliaspath);
+						l++;
+					}
+					if (cmd[3] == 'D') {
+						get_libperm(scfg.lib[lib], &user, &client, permstr);
+						get_owner_name(NULL, str);
+						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", permstr, UINT64_MAX, 0, str, NULL, 0, aliaspath);
+						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix);
+						get_unique(aliaspath, uniq);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", permstr, UINT64_MAX, 0, str, NULL, 0, aliaspath);
+					}
+
+					SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,"*");
+					glob(path,0,NULL,&g);
+					for(i=0;i<(int)g.gl_pathc;i++) {
+						if(isdir(g.gl_pathv[i]))
+							continue;
+#ifdef _WIN32
+						GetShortPathName(g.gl_pathv[i], str, sizeof(str));
+#else
+						SAFECOPY(str,g.gl_pathv[i]);
+#endif
+						padfname(getfname(str),f.name);
+						f.dateuled = 0;
+						f.dir=dir;
+						if((filedat=getfileixb(&scfg,&f))==FALSE
+							&& !(startup->options&FTP_OPT_DIR_FILES)
+							&& !(scfg.dir[dir]->misc&DIR_FILES))
+							continue;
+						if (cmd[3] != 'D' && strcmp(getfname(g.gl_pathv[i]), mls_fname) != 0)
+							continue;
+						if (cmd[3] == 'T')
+							sockprintf(sock,sess, "250- Listing %s", p);
+						get_fileperm(scfg.lib[lib], scfg.dir[dir], &user, &client, &f, permstr);
+						get_owner_name(&f, str);
+						SAFEPRINTF3(aliaspath, "/%s/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix, getfname(g.gl_pathv[i]));
+						get_unique(aliaspath, uniq);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, (uint64_t)flength(g.gl_pathv[i]), fdate(g.gl_pathv[i]), str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
+						l++;
+					}
+					globfree(&g);
+				} else 
+					lprintf(LOG_INFO,"%04d %s listing: %s/%s directory in %s mode (empty - no access)"
+						,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
+
+				if (cmd[3] == 'D') {
+					fclose(fp);
+					filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
+						,&transfer_inprogress,&transfer_aborted
+						,TRUE /* delfile */
+						,TRUE /* tmpfile */
+						,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL,protection);
+				}
+				else {
+					if (l==0)
+						sockprintf(sock,sess, "550 No such path");
+					else
+						sockprintf(sock, sess, "250 End");
+				}
+				continue;
+			}
+		}
+
 		if(!strnicmp(cmd, "LIST", 4) || !strnicmp(cmd, "NLST", 4)) {	
 			dir=curdir;
 			lib=curlib;
@@ -3790,21 +4621,31 @@ static void ctrl_thread(void* arg)
 				SKIP_WHITESPACE(p);
 			}
 
-			parsepath(&p,&user,&client,&lib,&dir);
-			filespec=p;
-			if(*filespec==0)
-				filespec="*";
-
 			if((fp=fopen(ftp_tmpfname(fname,"lst",sock),"w+b"))==NULL) {
 				lprintf(LOG_ERR,"%04d !ERROR %d opening %s",sock,errno,fname);
 				sockprintf(sock,sess, "451 Insufficient system storage");
 				continue;
 			}
+			sockprintf(sock,sess,"150 Opening ASCII mode data connection for /bin/ls.");
+
+			if (parsepath(&p,&user,&client,&lib,&dir) == -1) {
+				/* Empty list */
+				fclose(fp);
+				filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
+					,&transfer_inprogress,&transfer_aborted
+					,TRUE /* delfile */
+					,TRUE /* tmpfile */
+					,&lastactive,&user,&client,dir,FALSE,FALSE,FALSE,NULL,protection);
+				continue;
+			}
+			filespec=p;
+			if(*filespec==0)
+				filespec="*";
+
 			if(!strnicmp(cmd, "LIST", 4))
 				detail=TRUE;
 			else
 				detail=FALSE;
-			sockprintf(sock,sess,"150 Opening ASCII mode data connection for /bin/ls.");
 			now=time(NULL);
 			if(localtime_r(&now,&cur_tm)==NULL) 
 				memset(&cur_tm,0,sizeof(cur_tm));
@@ -4657,7 +5498,7 @@ static void ctrl_thread(void* arg)
 						continue;
 					}
 
-					if(scfg.dir[dir]->maxfiles && getfiles(&scfg,dir)>=scfg.dir[dir]->maxfiles) {
+					if(!append && scfg.dir[dir]->maxfiles && getfiles(&scfg,dir)>=scfg.dir[dir]->maxfiles) {
 						lprintf(LOG_WARNING,"%04d !%s cannot upload to /%s/%s (directory full: %u files)"
 							,sock,user.alias
 							,scfg.lib[scfg.dir[dir]->lib]->sname
@@ -5027,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.441 $", "%*s %s", revision);
+	sscanf("$Revision: 1.460 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -5236,7 +6077,6 @@ void DLLCALL ftp_server(void* arg)
 		 */
 		xpms_add_list(ftp_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "FTP Server", ftp_open_socket_cb, startup->seteuid, NULL);
 
-		lprintf(LOG_INFO,"FTP Server listening");
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
