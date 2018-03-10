@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.193 2017/11/13 19:55:04 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.197 2018/03/02 00:31:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -805,6 +805,7 @@ static void recycle(void* cbdata)
         );
     if(fp!=NULL)
         fclose(fp);
+	MainForm->SetLogControls();
 }
 //---------------------------------------------------------------------------
 __fastcall TMainForm::TMainForm(TComponent* Owner)
@@ -843,7 +844,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.event_cbdata=&event_log_list;    
     bbs_startup.first_node=1;
     bbs_startup.last_node=4;
-	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE;
+	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED;
 	bbs_startup.telnet_port=IPPORT_TELNET;
     bbs_startup.rlogin_port=513;
 	bbs_startup.lputs=lputs;
@@ -1114,8 +1115,8 @@ void __fastcall TMainForm::FormClose(TObject *Sender, TCloseAction &Action)
         TrayIcon->Visible=false;    /* restore to avoid crash */
         
     /* This is necessary to save form sizes/positions */
-    if(Initialized) /* Don't overwrite registry settings with defaults */
-        SaveRegistrySettings(Sender);
+    if(Initialized) /* Don't overwrite registry and .ini settings with defaults */
+        SaveSettings(Sender);
 
 	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Terminating servers...";
     time_t start=time(NULL);
@@ -1653,6 +1654,20 @@ void __fastcall TMainForm::WriteFont(AnsiString subkey, TFont* Font)
 
     Registry->CloseKey();
     delete Registry;
+}
+
+void __fastcall TMainForm::SetLogControls(void)
+{
+    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
+    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
+    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
+    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
+    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
+    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
+    WebForm->LogLevelUpDown->Position=web_startup.log_level;
+    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
+    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
+    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
 }
 void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 {
@@ -2248,7 +2263,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     else
     	SoundToggle->Checked=true;
 
-    if(bbs_startup.options&BBS_OPT_SYSOP_AVAILABLE)
+    if(sysop_available(&cfg))
     	ChatToggle->Checked=true;
     else
     	ChatToggle->Checked=false;
@@ -2344,26 +2359,19 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 
     StatsTimer->Interval=cfg.node_stat_check*1000;
 	StatsTimer->Enabled=true;
-    Initialized=true;
 
     UpTimer->Enabled=true; /* Start updating the status bar */
     LogTimer->Enabled=true;
                 
     ServiceStatusTimer->Enabled=true;
 
-    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
-    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
-    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
-    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
-    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
-    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
-    WebForm->LogLevelUpDown->Position=web_startup.log_level;
-    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
-    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
-    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
 
+	SetLogControls();
+	
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
+
+    Initialized=true;
 }
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::SaveRegistrySettings(TObject* Sender)
@@ -2553,7 +2561,7 @@ void __fastcall TMainForm::SaveSettings(TObject* Sender)
 bool __fastcall TMainForm::SaveIniSettings(TObject* Sender)
 {
     FILE* fp=NULL;
-   	if(ini_file[0]==0)
+   	if(ini_file[0]==0 || !Initialized)
         return(false);
 
     if((fp=fopen(ini_file,"r+"))==NULL) {
@@ -2958,6 +2966,12 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     char    days[64];
     static  time_t start;
     ulong   up;
+    static  bool sysop_available;
+
+    if(ChatToggle->Checked != sysop_available) {
+        sysop_available = ChatToggle->Checked;
+        set_sysop_availability(&cfg, sysop_available);
+    }
 
     if(!start)
         start=time(NULL);
@@ -3031,16 +3045,8 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
 void __fastcall TMainForm::ChatToggleExecute(TObject *Sender)
 {
     ChatToggle->Checked=!ChatToggle->Checked;
-    if(ChatToggle->Checked)
-	    bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
-    else
-        bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
-
-	if(bbs_svc!=NULL && controlService!=NULL)
-        controlService(bbs_svc
-            ,ChatToggle->Checked ? SERVICE_CONTROL_SYSOP_AVAILABLE : SERVICE_CONTROL_SYSOP_UNAVAILABLE
-            ,&bbs_svc_status);
 }
+
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::UserEditExecute(TObject *Sender)
 {
@@ -3373,7 +3379,7 @@ void __fastcall TMainForm::reload_config(void)
    	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration reloaded";
    	semfile_list_check(&initialized,recycle_semfiles);
 
-    if(bbs_startup.options&BBS_OPT_SYSOP_AVAILABLE)
+    if(sysop_available(&cfg))
     	ChatToggle->Checked=true;
     else
     	ChatToggle->Checked=false;
@@ -3382,6 +3388,7 @@ void __fastcall TMainForm::reload_config(void)
     	SoundToggle->Checked=false;
     else
     	SoundToggle->Checked=true;
+	SetLogControls();
 }
 //---------------------------------------------------------------------------
 
