@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include <threadwrap.h>
-#include "xpprintf.h"
 
 #include "ssl.h"
 //#include "js_socket.h"	// TODO... move this stuff in here?
@@ -40,16 +39,11 @@ static int DLLCALL crypt_ll(int error)
 {
 	switch(error) {
 		case CRYPT_ERROR_INCOMPLETE:
-		case CRYPT_ERROR_NOSECURE:
 			return LOG_WARNING;
-		case CRYPT_ERROR_INTERNAL:
-			return LOG_NOTICE;
 		case CRYPT_ERROR_COMPLETE:
 		case CRYPT_ERROR_READ:
 		case CRYPT_ERROR_WRITE:
-		case CRYPT_ENVELOPE_RESOURCE:
 			return LOG_DEBUG;
-		case CRYPT_ERROR_NOTAVAIL:
 		case CRYPT_ERROR_TIMEOUT:
 			return LOG_INFO;
 	}
@@ -275,7 +269,7 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 	char				str[MAX_PATH+1];
 
 	if (estr)
-		*estr = NULL;
+		estr = NULL;
 	if(!do_cryptInit())
 		return -1;
 	pthread_mutex_lock(&ssl_cert_mutex);

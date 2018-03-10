@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.317 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: services.c,v 1.312 2018/03/10 03:53:32 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -943,8 +943,8 @@ static BOOL handle_crypt_call(int status, service_client_t *service_client, cons
 				sess = CRYPT_UNUSED;
 			get_crypt_error_string(status, sess, &estr, action, &level);
 			if (estr) {
-				lprintf(level, "%04d %s TLS %s", sock, service_client->service->protocol, estr);
-				free_crypt_attrstr(estr);
+				lprintf(level, "%04d %s", sock, estr);
+				free(estr);
 			}
 		}
 	}
@@ -1584,6 +1584,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		}
 
 		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
+			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
 			iniFreeStringList(sec_list);
@@ -1641,7 +1642,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.317 $", "%*s %s", revision);
+	sscanf("$Revision: 1.312 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1914,10 +1915,8 @@ void DLLCALL services_thread(void* arg)
 
 		if (need_cert) {
 			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1) {
-				if (ssl_estr) {
-					lprintf(level, "No TLS certificiate %s", ssl_estr);
-					free_crypt_attrstr(ssl_estr);
-				}
+				lprintf(level, "No TLS certificiate %s", ssl_estr);
+				free(ssl_estr);
 			}
 		}
 
