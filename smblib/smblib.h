@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.90 2019/04/10 20:02:55 rswindell Exp $ */
+/* $Id: smblib.h,v 1.85 2017/11/27 06:29:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -45,7 +45,7 @@
 
 #ifdef _WIN32
 	#ifdef __BORLANDC__
-		#define SMBCALL
+		#define SMBCALL __stdcall
 	#else
 		#define SMBCALL
 	#endif
@@ -70,7 +70,7 @@
 
 #define SMB_SUCCESS			0			/* Successful result/return code */
 #define SMB_FAILURE			-1			/* Generic error (discouraged) */
-#define SMB_BAD_PARAMETER	-2			/* Invalid API function parameter value */
+
 										/* Standard smblib errors values */
 #define SMB_ERR_NOT_OPEN	-100		/* Message base not open */
 #define SMB_ERR_HDR_LEN		-101		/* Invalid message header length (>64k) */
@@ -96,6 +96,11 @@
 #define SMB_DUPE_MSG		1			/* Duplicate message detected by smb_addcrc() */
 #define SMB_CLOSED			2			/* Poll/thread is closed to replies/votes */
 #define SMB_UNAUTHORIZED	3			/* Poll was posted by someone else */
+
+#define SMB_STACK_LEN		4			/* Max msg bases in smb_stack() 	*/
+#define SMB_STACK_POP       0           /* Pop a msg base off of smb_stack()*/
+#define SMB_STACK_PUSH      1           /* Push a msg base onto smb_stack() */
+#define SMB_STACK_XCHNG     2           /* Exchange msg base w/last pushed	*/
 
 #define SMB_ALL_REFS		0			/* Free all references to data		*/
 
@@ -126,10 +131,10 @@ extern "C" {
 SMBEXPORT int 		SMBCALL smb_ver(void);
 SMBEXPORT char*		SMBCALL smb_lib_ver(void);
 SMBEXPORT int 		SMBCALL smb_open(smb_t* smb);
-SMBEXPORT int		SMBCALL smb_open_index(smb_t* smb);
 SMBEXPORT void		SMBCALL smb_close(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_create(smb_t* smb);
+SMBEXPORT int 		SMBCALL smb_stack(smb_t* smb, int op);
 SMBEXPORT int 		SMBCALL smb_trunchdr(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_lock(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_unlock(smb_t* smb);
@@ -224,7 +229,7 @@ SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list, BOOL skip_m
 SMBEXPORT uint16_t	SMBCALL smb_name_crc(const char* name);
 SMBEXPORT uint16_t	SMBCALL smb_subject_crc(const char *subj);
 SMBEXPORT void		SMBCALL smb_freehashes(hash_t**);
-SMBEXPORT long		SMBCALL	smb_getmsgidx_by_time(smb_t*, idxrec_t*, time_t);
+SMBEXPORT int		SMBCALL	smb_getmsgidx_by_time(smb_t*, idxrec_t*, time_t);
 
 /* Fast look-up functions (using hashes) */
 SMBEXPORT int 		SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
@@ -268,7 +273,7 @@ SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
 /* smbtxt.c */
 SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode);
 SMBEXPORT char*		SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf);
-SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, size_t filename_len, uint32_t* filelen, int index);
+SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, uint32_t* filelen, int index);
 
 /* smbfile.c */
 SMBEXPORT int 		SMBCALL smb_feof(FILE* fp);
@@ -286,7 +291,7 @@ SMBEXPORT void		SMBCALL smb_rewind(FILE* fp);
 SMBEXPORT void		SMBCALL smb_clearerr(FILE* fp);
 SMBEXPORT int 		SMBCALL smb_open_fp(smb_t* smb, FILE**, int share);
 SMBEXPORT void		SMBCALL smb_close_fp(FILE**);
-
+					
 #ifdef __cplusplus
 }
 #endif
