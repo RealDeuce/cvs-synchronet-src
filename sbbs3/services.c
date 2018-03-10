@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.312 2018/03/10 03:53:32 deuce Exp $ */
+/* $Id: services.c,v 1.313 2018/03/10 06:34:49 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1642,7 +1642,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.312 $", "%*s %s", revision);
+	sscanf("$Revision: 1.313 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1915,8 +1915,10 @@ void DLLCALL services_thread(void* arg)
 
 		if (need_cert) {
 			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1) {
-				lprintf(level, "No TLS certificiate %s", ssl_estr);
-				free(ssl_estr);
+				if (ssl_estr) {
+					lprintf(level, "No TLS certificiate %s", ssl_estr);
+					free(ssl_estr);
+				}
 			}
 		}
 
