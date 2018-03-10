@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.457 2018/03/10 01:53:38 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.458 2018/03/10 02:04:11 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1286,7 +1286,7 @@ int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* 
 	while(rd<len-1) {
 		i = sock_recvbyte(socket, sess, &ch, lastactive);
 
-		if(i<1) {
+		if(i<1 && sess == -1) {
 			recverror(socket,i,__LINE__);
 			return(i);
 		}
@@ -5868,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.457 $", "%*s %s", revision);
+	sscanf("$Revision: 1.458 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
