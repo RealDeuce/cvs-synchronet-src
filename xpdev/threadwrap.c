@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.37 2019/02/18 04:04:11 rswindell Exp $ */
+/* $Id: threadwrap.c,v 1.35 2015/10/04 22:20:53 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -112,7 +112,7 @@ pthread_mutex_t DLLCALL pthread_mutex_initializer_np(BOOL recursive)
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	if(recursive)
-#if defined(__linux__) && defined(PTHREAD_MUTEX_RECURSIVE_NP) && !defined(__USE_UNIX98)
+#if defined(__linux__) && !defined(__USE_UNIX98)
 		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE_NP);
 #else
 		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
