@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.203 2018/03/10 10:16:54 deuce Exp $ */
+/* $Id: js_socket.c,v 1.204 2018/03/11 21:30:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -314,14 +314,7 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	if(p->session != -1) {
-		cryptDestroySession(p->session);
-		p->session=-1;
-	}
-	if(p->external==FALSE && p->sock!=INVALID_SOCKET) {
-		close_socket(p->sock);
-		dbprintf(FALSE, p, "closed/deleted");
-	}
+	do_js_close(p);
 
 	if(p->hostname)
 		free(p->hostname);
@@ -612,6 +605,7 @@ js_accept(JSContext *cx, uintN argc, jsval *arglist)
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
+		call_socket_open_callback(TRUE);
 	}
 	else {
 		if((new_socket=accept_socket(p->sock,&(p->remote_addr),&addrlen))==INVALID_SOCKET) {
