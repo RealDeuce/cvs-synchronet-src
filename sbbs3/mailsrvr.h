@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.84 2018/03/19 16:36:33 deuce Exp $ */
+/* $Id: mailsrvr.h,v 1.83 2018/03/04 21:20:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -254,7 +254,7 @@ DLLEXPORT const	char*	DLLCALL mail_ver(void);
 
 /* for mxlookup.c: */
 void mail_open_socket(SOCKET sock, void* cb_protocol);
-int mail_close_socket(SOCKET *sock, int *sess);
+int mail_close_socket(SOCKET sock);
 #ifdef __cplusplus
 }
 #endif
