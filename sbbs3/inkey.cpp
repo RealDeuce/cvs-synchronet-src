@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.54 2018/02/20 11:24:15 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.55 2018/03/11 21:29:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -239,6 +239,8 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				,sectostr((uint)(now-logontime),tmp));
 			bprintf(text[TiTimeLeft]
 				,sectostr(timeleft,tmp));
+			if(sys_status&SS_EVENT)
+				bprintf(text[ReducedTime],timestr(event_time));
 			SYNC;
 			RESTORELINE;
 			lncntr=0;
