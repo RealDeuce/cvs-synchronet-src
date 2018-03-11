@@ -1,6 +1,8 @@
+/* ntsvcs.c */
+
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.48 2018/03/20 03:36:10 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.47 2018/02/20 11:56:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -293,7 +295,6 @@ static int svc_lputs(void* p, int level, const char* str)
 	len = strlen(str);
 	SAFECOPY(msg.buf, str);
 	msg.level = level;
-	msg.repeated = 0;
 	GetLocalTime(&msg.time);
 
 	/* Mailslot Logging (for sbbsctrl) */
