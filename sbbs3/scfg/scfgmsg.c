@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.54 2018/03/09 23:54:15 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.55 2018/03/11 21:27:06 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -132,6 +132,7 @@ static bool new_grp(unsigned new_grpnum)
 
 	grp_t** new_grp_list;
 	if ((new_grp_list = (grp_t **)realloc(cfg.grp, sizeof(grp_t *)*(cfg.total_grps + 1))) == NULL) {
+		free(new_group);
 		errormsg(WHERE, ERR_ALLOC, "group list", cfg.total_grps + 1);
 		return false;
 	}
