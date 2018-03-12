@@ -1,10 +1,10 @@
-/* $Id: wordwrap.h,v 1.7 2018/07/24 01:11:08 rswindell Exp $ */
+/* $Id: wordwrap.h,v 1.6 2011/11/08 02:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
