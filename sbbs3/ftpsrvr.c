@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.461 2018/03/12 00:21:41 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.462 2018/03/12 18:24:43 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1737,7 +1737,7 @@ static void receive_thread(void* arg)
 		if (*xfer.data_sess != -1) {
 			int status = cryptPopData(*xfer.data_sess, buf, sizeof(buf), &rd);
 			if (status != CRYPT_OK) {
-				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "flushing data");
+				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "popping data");
 				rd = -1;
 			}
 		}
@@ -5868,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.461 $", "%*s %s", revision);
+	sscanf("$Revision: 1.462 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
