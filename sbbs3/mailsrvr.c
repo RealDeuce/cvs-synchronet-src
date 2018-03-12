@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.654 2018/03/12 00:21:42 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.655 2018/03/12 18:11:05 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1137,7 +1137,7 @@ static void pop3_thread(void* arg)
 					break;
 				}
 				if ((stat=cryptSetAttribute(session, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY)) != CRYPT_OK) {
-					GCESH(stat, "POP3", socket, host_ip, session, "creating session");
+					GCESH(stat, "POP3", socket, host_ip, session, "disabling certificate verification");
 					buf[0] = 0;
 					break;
 				}
@@ -2800,7 +2800,7 @@ static void smtp_thread(void* arg)
 			return;
 		}
 		if ((cstat = cryptCreateSession(&session, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER)) != CRYPT_OK) {
-			GCES(cstat, "SMTP", socket, CRYPT_UNUSED, "setting network socket");
+			GCES(cstat, "SMTP", socket, CRYPT_UNUSED, "creating session");
 			mail_close_socket(socket);
 			thread_down();
 			return;
@@ -5115,7 +5115,7 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 							continue;
 						}
 						if ((status=cryptSetAttribute(*session, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY)) != CRYPT_OK) {
-							GCESH(status, "SMTP", sock, server, *session, "creating TLS session");
+							GCESH(status, "SMTP", sock, server, *session, "disabling certificate verification");
 							continue;
 						}
 						if ((status=cryptSetAttribute(*session, CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_OBLIVIOUS)) != CRYPT_OK) {
@@ -5135,7 +5135,7 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 							continue;
 						}
 						if ((status=cryptSetAttribute(*session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-							GCESH(status, "SMTP", sock, server, *session, "setting network socket");
+							GCESH(status, "SMTP", sock, server, *session, "setting session active");
 							continue;
 						}
 						if (startup->max_inactivity) {
@@ -5714,7 +5714,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.654 $", "%*s %s", revision);
+	sscanf("$Revision: 1.655 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
