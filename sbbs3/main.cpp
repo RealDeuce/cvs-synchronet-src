@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.686 2018/03/12 18:07:38 deuce Exp $ */
+/* $Id: main.cpp,v 1.687 2018/03/12 18:26:18 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1754,7 +1754,6 @@ static int crypt_pop_channel_data(sbbs_t *sbbs, char *inbuf, int want, int *got)
 	int cid;
 	char *cname;
 	int ret;
-	BOOL rd;
 
 	*got=0;
 	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
@@ -4804,7 +4803,6 @@ void DLLCALL bbs_thread(void* arg)
 	struct main_sock_cb_data	ssh_cb;
 	struct main_sock_cb_data	rlogin_cb;
 	void						*ts_cb;
-	int							err;
 
     if(startup==NULL) {
     	sbbs_beep(100,500);
