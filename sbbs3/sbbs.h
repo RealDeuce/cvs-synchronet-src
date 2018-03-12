@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.477 2018/03/25 21:07:52 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.475 2018/03/11 21:30:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,7 +328,6 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
-	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -380,7 +379,6 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
-	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
