@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.460 2018/03/10 07:02:08 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.461 2018/03/12 00:21:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -297,7 +297,7 @@ static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
 	int GCES_level;                                                     \
 	get_crypt_error_string(status, session, &estr, action, &GCES_level);\
 	if (estr) {                                                         \
-		lprintf(GCES_level, "%04d %s", sock, estr);                 \
+		lprintf(GCES_level, "%04d TLS %s", sock, estr);                 \
 		free_crypt_attrstr(estr);                                   \
 	}                                                                   \
 } while (0)
@@ -5868,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.460 $", "%*s %s", revision);
+	sscanf("$Revision: 1.461 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

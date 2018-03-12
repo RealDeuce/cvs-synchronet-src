@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.653 2018/03/11 21:28:05 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.654 2018/03/12 00:21:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -149,7 +149,7 @@ typedef struct {
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s%s", sock, server, GCES_estr);                     \
+		lprintf(GCES_level, "%04d %s/TLS %s", sock, server, GCES_estr);                     \
 		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
@@ -159,7 +159,7 @@ typedef struct {
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s [%s] %s", sock, server, host, GCES_estr);         \
+		lprintf(GCES_level, "%04d %s/TLS [%s] %s", sock, server, host, GCES_estr);         \
 		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
@@ -5714,7 +5714,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.653 $", "%*s %s", revision);
+	sscanf("$Revision: 1.654 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

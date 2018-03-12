@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.660 2018/03/10 07:02:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.661 2018/03/12 00:21:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -394,13 +394,13 @@ enum  {
 	,MOVED_STAT
 };
 
-#define GCES(status, sess, action) do {                                                 \
+#define GCES(status, sess, action) do {                                             \
 	char *GCES_estr;                                                                \
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess->tls_sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                                \
-		lprintf(GCES_level, "%04d %s", sess->socket, GCES_estr);                \
-		free_crypt_attrstr(GCES_estr);                                                        \
+		lprintf(GCES_level, "%04d TLS %s", sess->socket, GCES_estr);                \
+		free_crypt_attrstr(GCES_estr);                                              \
 	}                                                                               \
 } while (0)
 
@@ -6513,7 +6513,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.660 $", "%*s %s", revision);
+	sscanf("$Revision: 1.661 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.314 2018/03/10 07:02:09 deuce Exp $ */
+/* $Id: services.c,v 1.315 2018/03/12 00:21:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -943,7 +943,7 @@ static BOOL handle_crypt_call(int status, service_client_t *service_client, cons
 				sess = CRYPT_UNUSED;
 			get_crypt_error_string(status, sess, &estr, action, &level);
 			if (estr) {
-				lprintf(level, "%04d %s", sock, estr);
+				lprintf(level, "%04d %s/TLS %s", sock, service_client->service->protocol, estr);
 				free_crypt_attrstr(estr);
 			}
 		}
@@ -1642,7 +1642,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.314 $", "%*s %s", revision);
+	sscanf("$Revision: 1.315 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
