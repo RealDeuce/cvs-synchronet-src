@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.656 2018/03/12 19:11:18 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.657 2018/03/12 19:20:18 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -572,6 +572,7 @@ static int sockgetrsp_opt(SOCKET socket, CRYPT_SESSION sess, char* rsp, char *op
 	}
 	mopt[3] = ' ';
 	if (strncmp(buf, mopt, moptlen) == 0)
+		ret = 1;
 	free(mopt);
 	if(startup->options&MAIL_OPT_DEBUG_RX_RSP)
 		lprintf(LOG_DEBUG,"%04d RX%s: %s",socket,sess != -1 ? "S" : "", buf);
@@ -5714,7 +5715,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.656 $", "%*s %s", revision);
+	sscanf("$Revision: 1.657 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
