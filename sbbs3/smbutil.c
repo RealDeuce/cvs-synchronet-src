@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.124 2018/03/10 07:17:47 deuce Exp $ */
+/* $Id: smbutil.c,v 1.125 2018/03/13 06:22:54 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -740,7 +740,6 @@ void maint(void)
 	}
 	fseek(smb.sid_fp,0L,SEEK_SET);
 	l = fread(idx, sizeof(idxrec_t), smb.status.total_msgs, smb.sid_fp);
-	l /= sizeof(idxrec_t);
 
 	printf("\nDone.\n\n");
 	printf("Scanning for pre-flagged messages...\n");
@@ -1551,7 +1550,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.124 $", "%*s %s", revision);
+	sscanf("$Revision: 1.125 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
