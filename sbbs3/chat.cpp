@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.74 2018/02/20 11:15:24 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.75 2018/02/25 23:01:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -690,25 +690,6 @@ void sbbs_t::chatsection()
 	}
 //	if(gurubuf)
 //		free(gurubuf);
-}
-
-static char* sysop_available_semfile(scfg_t* scfg)
-{
-	static char semfile[MAX_PATH+1];
-	SAFEPRINTF(semfile, "%ssysavail.chat", scfg->ctrl_dir);
-	return semfile;
-}
-
-extern "C" BOOL DLLCALL sysop_available(scfg_t* scfg)
-{
-	return fexist(sysop_available_semfile(scfg));
-}
-
-extern "C" BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
-{
-	if(available)
-		return ftouch(sysop_available_semfile(scfg));
-	return remove(sysop_available_semfile(scfg)) == 0;
 }
 
 /****************************************************************************/
