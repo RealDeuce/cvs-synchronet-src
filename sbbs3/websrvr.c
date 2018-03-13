@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.662 2018/03/12 18:24:43 deuce Exp $ */
+/* $Id: websrvr.c,v 1.663 2018/03/13 05:55:19 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -638,11 +638,15 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						status = CRYPT_OK;
 					}
 					if(cryptStatusOK(status)) {
-						HANDLE_CRYPT_CALL_EXCEPT(cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
-						if (failed)
-							*failed=TRUE;
+						HANDLE_CRYPT_CALL_EXCEPT(status = cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
+						if (cryptStatusError(status)) {
+							if (failed)
+								*failed=TRUE;
+						}
 						return tls_sent;
 					}
+					if (failed)
+						*failed=TRUE;
 					result = tls_sent;
 				}
 				else {
@@ -6240,7 +6244,7 @@ void http_session_thread(void* arg)
 			thread_down();
 			return;
 		}
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session, "setting read timeout");
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
 	}
 
 	/* Start up the output buffer */
@@ -6513,7 +6517,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.662 $", "%*s %s", revision);
+	sscanf("$Revision: 1.663 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
