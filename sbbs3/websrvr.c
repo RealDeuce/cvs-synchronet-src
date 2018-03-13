@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.671 2018/12/06 02:17:29 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.662 2018/03/12 18:24:43 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -518,9 +518,6 @@ time_gm(struct tm *tm)
         return (t < 0 ? (time_t) -1 : t);
 }
 
-#if defined(__GNUC__)   // Catch printf-format errors with lprintf
-static int lprintf(int level, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
-#endif
 static int lprintf(int level, const char *fmt, ...)
 {
 	va_list argptr;
@@ -533,7 +530,7 @@ static int lprintf(int level, const char *fmt, ...)
 
 	if(level <= LOG_ERR) {
 		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "web  %s", sbuf);
+		SAFEPRINTF(errmsg, "web %s", sbuf);
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
 			startup->errormsg(startup->cbdata,level,errmsg);
@@ -619,12 +616,8 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 	fd_set	wr_set;
 	struct timeval tv;
 	int status;
-	BOOL local_failed = FALSE;
 
-	if (failed == NULL)
-		failed = &local_failed;
-
-	while(sent<len && session->socket!=INVALID_SOCKET && *failed == FALSE) {
+	while(sent<len && session->socket!=INVALID_SOCKET) {
 		FD_ZERO(&wr_set);
 		FD_SET(session->socket,&wr_set);
 		/* Convert timeout from ms to sec/usec */
@@ -645,12 +638,11 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						status = CRYPT_OK;
 					}
 					if(cryptStatusOK(status)) {
-						HANDLE_CRYPT_CALL_EXCEPT(status = cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
-						if (cryptStatusError(status))
+						HANDLE_CRYPT_CALL_EXCEPT(cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
+						if (failed)
 							*failed=TRUE;
 						return tls_sent;
 					}
-					*failed=TRUE;
 					result = tls_sent;
 				}
 				else {
@@ -666,23 +658,26 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 #endif
 						else
 							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
-						*failed=TRUE;
+						if (failed)
+							*failed=TRUE;
 						return(sent);
 					}
 				}
 				break;
 			case 0:
 				lprintf(LOG_WARNING,"%04d Timeout selecting socket for write",session->socket);
-				*failed=TRUE;
+				if(failed)
+					*failed=TRUE;
 				return(sent);
 			case -1:
 				lprintf(LOG_WARNING,"%04d !ERROR %d selecting socket for write",session->socket,ERROR_VALUE);
-				*failed=TRUE;
+				if(failed)
+					*failed=TRUE;
 				return(sent);
 		}
 		sent+=result;
 	}
-	if(sent<len)
+	if(failed && sent<len)
 		*failed=TRUE;
 	if(session->is_tls)
 		HANDLE_CRYPT_CALL(cryptFlushData(session->tls_sess), session, "flushing data");
@@ -1280,12 +1275,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 
 		/* Status-Line */
-		/* TODO: This Status-Line appears to violate RFC 2145:
-			"An HTTP server SHOULD send a response version equal to the highest
-   			 version for which the server is at least conditionally compliant, and
-			 whose major version is less than or equal to the one received in the
-   			 request."
-		*/
 		safe_snprintf(header,sizeof(header),"%s %s",http_vers[session->http_ver],status_line);
 
 		lprintf(LOG_DEBUG,"%04d Result: %s",session->socket,header);
@@ -1813,11 +1802,9 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
-	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
-		SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
-		filter_ip(&scfg, prot, reason
+	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
+		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
 			,host, inet_addrtop(addr, addrstr, sizeof(addrstr)), user, /* fname: */NULL);
-	}
 	if(count>1)
 		mswait(startup->login_attempt.delay);
 }
@@ -1997,8 +1984,8 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		iniCloseFile(fp);
 		COUNT_LIST_ITEMS(list,i);
 		if(i)
-			lprintf(LOG_DEBUG,"Read %lu %s from %s section of %s"
-				,(ulong)i,desc,section==NULL ? "root":section,path);
+			lprintf(LOG_DEBUG,"Read %u %s from %s section of %s"
+				,i,desc,section==NULL ? "root":section,path);
 	} else
 		lprintf(LOG_WARNING, "Error %d opening %s", errno, path);
 	return(list);
@@ -4567,12 +4554,12 @@ static BOOL exec_fastcgi(http_session_t *session)
 	closesocket(sock);
 
 	if(!(ret & CGI_STUFF_VALID_HEADERS)) {
-		lprintf(LOG_ERR,"%04d FastCGI Process did not generate valid headers", session->socket);
+		lprintf(LOG_ERR,"%04d FastCGI Process did not generate valid headers");
 		return(FALSE);
 	}
 
 	if(!(ret & CGI_STUFF_DONE_PARSING)) {
-		lprintf(LOG_ERR,"%04d FastCGI Process did not send data header termination", session->socket);
+		lprintf(LOG_ERR,"%04d FastCGI Process did not send data header termination");
 		return(FALSE);
 	}
 
@@ -5970,7 +5957,7 @@ int read_post_data(http_session_t * session)
 					/* FREE()d in close_request */
 					p=realloc(session->req.post_data, s);
 					if(p==NULL) {
-						lprintf(LOG_CRIT,"%04d !ERROR Allocating %lu bytes of memory",session->socket, (ulong)session->req.post_len);
+						lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,session->req.post_len);
 						send_error(session,__LINE__,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
@@ -6027,14 +6014,14 @@ int read_post_data(http_session_t * session)
 				if(s < (MAX_POST_LEN+1) && (session->req.post_data=malloc((size_t)(s+1))) != NULL)
 					session->req.post_len=recvbufsocket(session,session->req.post_data,s);
 				else  {
-					lprintf(LOG_CRIT,"%04d !ERROR Allocating %lu bytes of memory",session->socket, (ulong)s);
+					lprintf(LOG_CRIT,"%04d !ERROR Allocating %d bytes of memory",session->socket,s);
 					send_error(session,__LINE__,"413 Request entity too large");
 					return(FALSE);
 				}
 			}
 		}
 		if(session->req.post_len != s)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %lu bytes, but I got %lu",session->socket, (ulong)s, (ulong)session->req.post_len);
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %d bytes, but I got %d",session->socket,s,session->req.post_len);
 		if(session->req.post_len > s)
 			session->req.post_len = s;
 		session->req.post_data[session->req.post_len]=0;
@@ -6253,7 +6240,7 @@ void http_session_thread(void* arg)
 			thread_down();
 			return;
 		}
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session, "setting read timeout");
 	}
 
 	/* Start up the output buffer */
@@ -6301,7 +6288,7 @@ void http_session_thread(void* arg)
 	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
 		if(banned) {
 			char ban_duration[128];
-			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%lu login attempts, last: %s) - remaining: %s"
+			lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts, last: %s) - remaining: %s"
 				,session.socket, session.host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 		} else
 			lprintf(LOG_NOTICE, "%04d !CLIENT BLOCKED in ip.can: %s", session.socket, session.host_ip);
@@ -6328,7 +6315,7 @@ void http_session_thread(void* arg)
 
 	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &session.addr)) > 1) {
-		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%lu login attempts)"
+		lprintf(LOG_DEBUG,"%04d %s Throttling suspicious connection from: %s (%u login attempts)"
 			,socket, session.client.protocol, session.host_ip, login_attempts);
 		mswait(login_attempts*startup->login_attempt.throttle);
 	}
@@ -6337,7 +6324,7 @@ void http_session_thread(void* arg)
 	session.last_js_user_num=-1;
 	session.logon_time=0;
 
-	session.subscan=(subscan_t*)calloc(scfg.total_subs, sizeof(subscan_t));
+	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished) {
 		init_error=FALSE;
@@ -6449,7 +6436,7 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	FREE_AND_NULL(session.subscan);
+	free(session.subscan);
 
 	clients_remain=protected_uint32_adjust(&active_clients, -1);
 	update_clients();
@@ -6474,11 +6461,10 @@ void DLLCALL web_terminate(void)
 static void cleanup(int code)
 {
 	if(protected_uint32_value(thread_count) > 1) {
-		lprintf(LOG_INFO,"0000 Waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
+		lprintf(LOG_DEBUG,"#### Web Server waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
 		while(protected_uint32_value(thread_count) > 1) {
 			mswait(100);
 		}
-		lprintf(LOG_INFO,"0000 Done waiting");
 	}
 	free_cfg(&scfg);
 
@@ -6503,7 +6489,7 @@ static void cleanup(int code)
 	update_clients();	/* active_clients is destroyed below */
 
 	if(protected_uint32_value(active_clients))
-		lprintf(LOG_WARNING,"!!!! Terminating with %u active clients", protected_uint32_value(active_clients));
+		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", protected_uint32_value(active_clients));
 	else
 		protected_uint32_destroy(active_clients);
 
@@ -6527,7 +6513,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.671 $", "%*s %s", revision);
+	sscanf("$Revision: 1.662 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6769,7 +6755,7 @@ void DLLCALL web_server(void* arg)
 		}
 
 		t=time(NULL);
-		lprintf(LOG_INFO,"Initializing on %.24s with options: %x"
+		lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
 			,ctime_r(&t,logstr),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
@@ -6928,7 +6914,7 @@ void DLLCALL web_server(void* arg)
 			if(session==NULL) {
 				/* FREE()d at the start of the session thread */
 				if((session=malloc(sizeof(http_session_t)))==NULL) {
-					lprintf(LOG_CRIT,"!ERROR allocating %lu bytes of memory for http_session_t", (ulong)sizeof(http_session_t));
+					lprintf(LOG_CRIT,"!ERROR allocating %u bytes of memory for http_session_t", sizeof(http_session_t));
 					continue;
 				}
 				memset(session, 0, sizeof(http_session_t));
@@ -7003,7 +6989,7 @@ void DLLCALL web_server(void* arg)
 
 		/* Wait for active clients to terminate */
 		if(protected_uint32_value(active_clients)) {
-			lprintf(LOG_INFO, "Waiting for %d active clients to disconnect..."
+			lprintf(LOG_DEBUG,"Waiting for %d active clients to disconnect..."
 				, protected_uint32_value(active_clients));
 			start=time(NULL);
 			while(protected_uint32_value(active_clients)) {
@@ -7014,7 +7000,6 @@ void DLLCALL web_server(void* arg)
 				}
 				mswait(100);
 			}
-			lprintf(LOG_INFO, "Done waiting for active clients to disconnect");
 		}
 
 		if(http_logging_thread_running) {
@@ -7023,7 +7008,7 @@ void DLLCALL web_server(void* arg)
 			mswait(100);
 		}
 		if(http_logging_thread_running) {
-			lprintf(LOG_INFO, "Waiting for HTTP logging thread to terminate...");
+			lprintf(LOG_DEBUG,"Waiting for HTTP logging thread to terminate...");
 			start=time(NULL);
 			while(http_logging_thread_running) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
@@ -7033,7 +7018,6 @@ void DLLCALL web_server(void* arg)
 				}
 				mswait(100);
 			}
-			lprintf(LOG_INFO, "Done waiting for HTTP logging thread to terminate");
 		}
 
 		cleanup(0);
