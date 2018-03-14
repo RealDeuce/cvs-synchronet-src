@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.53 2018/04/06 02:42:38 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.51 2016/11/20 22:15:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
 			eprintf(LOG_NOTICE,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
-				,(unsigned int)(now-msg.hdr.when_written.time)/(24*60*60)); 
+				,(now-msg.hdr.when_written.time)/(24*60*60)); 
 			continue;
 		}
 
@@ -355,15 +355,13 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 	delfiles(cfg.temp_dir,"*.NDX");
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
-	removecase(str);
+	remove(str);
 	SAFEPRINTF(str,"%sDOOR.ID",cfg.temp_dir);
-	removecase(str);
+	remove(str);
 	SAFEPRINTF(str,"%sCONTROL.DAT",cfg.temp_dir);
-	removecase(str);
+	remove(str);
 	SAFEPRINTF(str,"%sNETFLAGS.DAT",cfg.temp_dir);
-	removecase(str);
-	SAFEPRINTF(str,"%sTOREADER.EXT",cfg.temp_dir);
-	removecase(str);
+	remove(str);
 
 	dir=opendir(cfg.temp_dir);
 	while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
