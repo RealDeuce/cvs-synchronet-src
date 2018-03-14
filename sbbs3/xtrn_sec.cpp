@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.85 2018/04/17 22:57:28 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.83 2018/02/20 11:44:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -319,24 +319,19 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 	SAFECOPY(text_dir,cfg.text_dir);
 	SAFECOPY(temp_dir,cfg.temp_dir);
 
-	if(!(misc&XTRN_NATIVE)) {
 #ifdef _WIN32
+
+	if(!(misc&XTRN_NATIVE)) {
 		/* Put Micros~1 shortened paths in drop files when running 16-bit DOS programs */
 		GetShortPathName(cfg.node_dir,node_dir,sizeof(node_dir));
-		GetShortPathName(cfg.ctrl_dir,ctrl_dir,sizeof(ctrl_dir));
+		GetShortPathName(cfg.ctrl_dir,node_dir,sizeof(ctrl_dir));
 		GetShortPathName(cfg.data_dir,data_dir,sizeof(data_dir));
 		GetShortPathName(cfg.exec_dir,exec_dir,sizeof(exec_dir));
 		GetShortPathName(cfg.text_dir,text_dir,sizeof(text_dir));
 		GetShortPathName(cfg.temp_dir,temp_dir,sizeof(temp_dir));
-#elif defined(__linux__) && defined(USE_DOSEMU)
-		/* These drive mappings must match the Linux/DOSEMU patch in xtrn.cpp: */
-		SAFECOPY(node_dir, "D:");
-		SAFECOPY(ctrl_dir, "F:");
-		SAFECOPY(data_dir, "G:");
-		SAFECOPY(exec_dir, "H:");
-#endif
 	}
 
+#endif
 
 	if(type==XTRN_SBBS) {	/* SBBS XTRN.DAT file */
 		strcpy(tmp,"XTRN.DAT");
@@ -994,10 +989,9 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		i=cfg.level_timepercall[useron.level];	/* Time allowed on */
 		write(file,&i,2);
 
-		c=0;
 		i=0;									/* Allowed K-bytes for D/L */
 		write(file,&i,2);
-		write(file,&c,1);						/* Conference user was in */
+		write(file,&i,1);						/* Conference user was in */
 		write(file,&i,2);						/* Conferences joined */
 		write(file,&i,2);						/* "" */
 		write(file,&i,2);						/* "" */
