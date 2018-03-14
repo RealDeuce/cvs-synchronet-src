@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.32 2018/11/04 23:26:45 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.28 2017/07/08 04:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
 		case SMB_EDITOR:		return("Editor");
-		case SMB_TAGS:			return("Tags");
-		case SMB_COLUMNS:		return("Columns");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
@@ -228,13 +226,9 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case BAN:   return("BAN");
 		case HON:   return("HON");
 		case TOK:   return("TOK");
-		case ACST:	return("ACST");
-		case ACDT:	return("ACDT");
-		case AEST:	return("AEST");
-		case AEDT:	return("AEDT");
+		case SYD:   return("SYD");
 		case NOU:   return("NOU");
-		case NZST:  return("NZST");
-		case NZDT:  return("NZDT");
+		case WEL:   return("WEL");
 	}
 
 	if(!OTHER_ZONE(zone)) {
@@ -330,18 +324,16 @@ char* SMBCALL smb_netaddrstr(net_t* net, char* fidoaddr_buf)
 }
 
 /****************************************************************************/
-/* Returns net_type for passed e-mail address (e.g. "user@addr")			*/
-/* QWKnet and Internet addresses must have an '@'.							*/
-/* FidoNet addresses may be in form: "user@addr" or just "addr".			*/
+/* Returns net_type for passed e-mail address (i.e. "user@addr")			*/
 /****************************************************************************/
 enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 {
-	const char*	p;
+	char*	p;
 
 	if((p=strchr(str,'@'))==NULL)
-		p = str;
-	else
-		p++;
+		return(NET_NONE);
+
+	p++;
 	SKIP_WHITESPACE(p);
 	if(*p==0)
 		return(NET_UNKNOWN);
@@ -396,7 +388,7 @@ char* SMBCALL smb_nettype(enum smb_net_type type)
 		case NET_NONE:		return "NONE";
 		case NET_UNKNOWN:	return "UNKNOWN";
 		case NET_QWK:		return "QWKnet";
-		case NET_FIDO:		return "FidoNet";
+		case NET_FIDO:		return "Fidonet";
 		case NET_INTERNET:	return "Internet";
 		default:			return "Unsupported net type";
 	}
