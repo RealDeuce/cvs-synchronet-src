@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.34 2017/10/23 07:09:11 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.36 2018/03/11 21:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,8 @@ bool new_qhub(unsigned new_qhubnum)
 
 	qhub_t** new_qhub_list = realloc(cfg.qhub, sizeof(qhub_t*) * (cfg.total_qhubs + 1));
 	if(new_qhub_list == NULL) {
-		/* ToDo: report error */
+		free(new_qhub);
+		errormsg(WHERE, ERR_ALLOC, "qhub list", cfg.total_qhubs + 1);
 		return false;
 	}
 	cfg.qhub = new_qhub_list;
@@ -161,6 +162,7 @@ void net_cfg()
 			,qhub_dflt,phub_dflt;
 	char	str[81],done;
 	int 	i,j,k,l;
+	int		mode;
 
 	while(1) {
 		i=0;
@@ -279,16 +281,13 @@ void net_cfg()
 		}
 
 		else if(i==2) { 	/* FidoNet Stuff */
+			static faddr_t savfaddr;
 			done=0;
 			while(!done) {
 				i=0;
 				sprintf(opt[i++],"%-27.27s%s"
 					,"System Addresses",cfg.total_faddrs
                 		? smb_faddrtoa(&cfg.faddr[0],tmp) : nulstr);
-				sprintf(opt[i++],"%-27.27s%s"
-					,"Default Outbound Address"
-					,cfg.dflt_faddr.zone
-                		? smb_faddrtoa(&cfg.dflt_faddr,tmp) : "No");
 				sprintf(opt[i++],"%-27.27s"
 					,"Default Origin Line");
 				sprintf(opt[i++],"%-27.27s%.40s"
@@ -338,9 +337,13 @@ void net_cfg()
 						uifc.helpbuf=
 							"`System FidoNet Addresses:`\n"
 							"\n"
-							"This is the FidoNet address of this system used to receive NetMail.\n"
-							"The Main address is also used as the default address for sub-boards.\n"
-							"Format: `Zone:Net/Node[.Point]`\n"
+							"These are the FidoNet-style addresses of your system, used to receive\n"
+							"FidoNet-style NetMail and EchoMail over FidoNet Technology Networks.\n"
+							"\n"
+							"The `Main` address is also used as the default address for Fido-Networked\n"
+							"sub-boards (EchoMail areas).\n"
+							"\n"
+							"The supported address format (so-called 3D or 4D): `Zone:Net/Node[.Point]`\n"
 						;
 						k=l=0;
 						while(1) {
@@ -349,29 +352,32 @@ void net_cfg()
 									strcpy(str,"Main");
 								else
 									sprintf(str,"AKA %u",i);
-								sprintf(opt[i],"%-8.8s %-16s"
+								sprintf(opt[i],"%-8.8s %16s"
 									,str,smb_faddrtoa(&cfg.faddr[i],tmp)); 
 							}
 							opt[i][0]=0;
-							j=WIN_RHT|WIN_SAV|WIN_ACT|WIN_INSACT;
+							mode=WIN_RHT|WIN_SAV|WIN_ACT|WIN_INSACT;
 							if(cfg.total_faddrs<MAX_OPTS)
-								j|=WIN_INS|WIN_XTR;
+								mode |= WIN_INS|WIN_XTR;
 							if(cfg.total_faddrs)
-								j|=WIN_DEL;
-							i=uifc.list(j,0,0,0,&k,&l
+								mode |= WIN_DEL|WIN_COPY|WIN_CUT;
+							if(savfaddr.zone)
+								mode |= WIN_PASTE | WIN_PASTEXTR;
+							i=uifc.list(mode,0,0,0,&k,&l
 								,"System Addresses",opt);
 							if(i==-1)
 								break;
 							int msk = i & MSK_ON;
 							i &= MSK_OFF;
-							if (msk == MSK_INS) {
-								if(!cfg.total_faddrs)
-									strcpy(str,"1:1/0");
-								else
-									smb_faddrtoa(&cfg.faddr[0],str);
-								if(!uifc.input(WIN_MID|WIN_SAV,0,0,"Address"
-									,str,25,K_EDIT|K_UPPER))
-									continue;
+							if (msk == MSK_INS || msk == MSK_PASTE) {
+								faddr_t newfaddr;
+								if(msk == MSK_INS) {
+									if(uifc.input(WIN_MID|WIN_SAV,0,0,"Address (e.g. 1:2/3 or 1:2/3.4)"
+										,str,25,K_UPPER) < 1)
+										continue;
+									newfaddr = atofaddr(str);
+								} else
+									newfaddr = savfaddr;
 
 								if((cfg.faddr=(faddr_t *)realloc(cfg.faddr
 									,sizeof(faddr_t)*(cfg.total_faddrs+1)))==NULL) {
@@ -385,12 +391,18 @@ void net_cfg()
 								for(j=cfg.total_faddrs;j>i;j--)
 									cfg.faddr[j]=cfg.faddr[j-1];
 
-								cfg.faddr[i]=atofaddr(str);
+								cfg.faddr[i]=newfaddr;
 								cfg.total_faddrs++;
 								uifc.changes=1;
 								continue; 
 							}
-							if (msk == MSK_DEL) {
+							if (msk == MSK_COPY) {
+								savfaddr = cfg.faddr[i];
+								continue;
+							}
+							if (msk == MSK_DEL || msk == MSK_CUT) {
+								if(msk == MSK_CUT)
+									savfaddr = cfg.faddr[i];
 								cfg.total_faddrs--;
 								while(i<cfg.total_faddrs) {
 									cfg.faddr[i]=cfg.faddr[i+1];
@@ -400,50 +412,12 @@ void net_cfg()
 								continue; 
 							}
 							smb_faddrtoa(&cfg.faddr[i],str);
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Address"
-								,str,25,K_EDIT);
-							cfg.faddr[i]=atofaddr(str); 
+							if(uifc.input(WIN_MID|WIN_SAV,0,0,"Address"
+								,str,25,K_EDIT|K_UPPER) >= 1)
+								cfg.faddr[i]=atofaddr(str); 
 						}
 						break;
 					case 1:
-						i=0;
-						uifc.helpbuf=
-							"`Use Default Outbound NetMail Address:`\n"
-							"\n"
-							"If you would like to have a default FidoNet address adding to outbound\n"
-							"NetMail mail messages that do not have an address specified, select\n"
-							"`Yes`.\n"
-						;
-						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-							,"Use Default Outbound NetMail Address",uifcYesNoOpts);
-						if(i==1) {
-							if(cfg.dflt_faddr.zone)
-								uifc.changes=1;
-							cfg.dflt_faddr.zone=0;
-							break; 
-						}
-						if(i==-1)
-							break;
-						if(!cfg.dflt_faddr.zone) {
-							cfg.dflt_faddr.zone=1;
-							uifc.changes=1; 
-						}
-						smb_faddrtoa(&cfg.dflt_faddr,str);
-						uifc.helpbuf=
-							"`Default Outbound FidoNet NetMail Address:`\n"
-							"\n"
-							"If you would like to automatically add a FidoNet address to outbound\n"
-							"NetMail that does not have an address specified, set this option\n"
-							"to that address. This is useful for Fido/UUCP gateway mail.\n"
-							"Format: `Zone:Net/Node[.Point]`\n"
-						;
-						if(uifc.input(WIN_MID|WIN_SAV,0,0,"Outbound Address"
-							,str,25,K_EDIT)) {
-							cfg.dflt_faddr=atofaddr(str);
-							uifc.changes=1; 
-						}
-						break;
-					case 2:
 						uifc.helpbuf=
 							"`Default Origin Line:`\n"
 							"\n"
@@ -454,7 +428,7 @@ void net_cfg()
 						uifc.input(WIN_MID|WIN_SAV,0,0,"* Origin"
 							,cfg.origline,sizeof(cfg.origline)-1,K_EDIT);
 						break;
-					case 3:
+					case 2:
 						uifc.helpbuf=
 							"`NetMail Semaphore File:`\n"
 							"\n"
@@ -465,7 +439,7 @@ void net_cfg()
 						uifc.input(WIN_MID|WIN_SAV,0,0,"NetMail Semaphore"
 							,cfg.netmail_sem,sizeof(cfg.netmail_sem)-1,K_EDIT);
 						break;
-					case 4:
+					case 3:
 						uifc.helpbuf=
 							"`EchoMail Semaphore File:`\n"
 							"\n"
@@ -476,7 +450,7 @@ void net_cfg()
 						uifc.input(WIN_MID|WIN_SAV,0,0,"EchoMail Semaphore"
 							,cfg.echomail_sem,sizeof(cfg.echomail_sem)-1,K_EDIT);
 						break;
-					case 5:
+					case 4:
 						uifc.helpbuf=
 							"`NetMail Directory:`\n"
 							"\n"
@@ -486,7 +460,7 @@ void net_cfg()
 						uifc.input(WIN_MID|WIN_SAV,0,0,"NetMail"
 							,cfg.netmail_dir,sizeof(cfg.netmail_dir)-1,K_EDIT);
 						break;
-					case 6:
+					case 5:
 						i=0;
 						uifc.helpbuf=
 							"`Allow Users to Send NetMail:`\n"
@@ -505,7 +479,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_ALLOW; 
 						}
 						break;
-					case 7:
+					case 6:
 						i=0;
 						uifc.helpbuf=
 							"`Allow Users to Send NetMail File Attachments:`\n"
@@ -524,7 +498,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_FILE; 
 						}
 						break;
-					case 8:
+					case 7:
 						i=1;
 						uifc.helpbuf=
 							"`Use Aliases in NetMail:`\n"
@@ -545,7 +519,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_ALIAS; 
 						}
 						break;
-					case 9:
+					case 8:
 						i=1;
 						uifc.helpbuf=
 							"`NetMail Defaults to Crash Status:`\n"
@@ -564,7 +538,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_CRASH; 
 						}
 						break;
-					case 10:
+					case 9:
 						i=1;
 						uifc.helpbuf=
 							"`NetMail Defaults to Direct Status:`\n"
@@ -583,7 +557,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_DIRECT; 
 						}
 						break;
-					case 11:
+					case 10:
 						i=1;
 						uifc.helpbuf=
 							"`NetMail Defaults to Hold Status:`\n"
@@ -602,7 +576,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_HOLD; 
 						}
 						break;
-					case 12:
+					case 11:
 						i=0;
 						uifc.helpbuf=
 							"`Kill NetMail After it is Sent:`\n"
@@ -621,7 +595,7 @@ void net_cfg()
 							cfg.netmail_misc&=~NMAIL_KILL; 
 						}
 						break;
-					case 13:
+					case 12:
 						ultoa(cfg.netmail_cost,str,10);
 						uifc.helpbuf=
 							"`Cost in Credits to Send NetMail:`\n"
