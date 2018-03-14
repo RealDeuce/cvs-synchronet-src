@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.204 2019/02/15 06:26:05 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.197 2018/03/02 00:31:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@
 TMainForm *MainForm;
 
 #define LOG_TIME_FMT "  m/d  hh:mm:ssa/p"
-#define STATUSBAR_LAST_PANEL  6
+#define STATUSBAR_LAST_PANEL  5
 
 /* Service functions are NT-only, must call dynamically :-( */
 typedef WINADVAPI SC_HANDLE (WINAPI *OpenSCManager_t)(LPCTSTR,LPCTSTR,DWORD);
@@ -153,8 +153,6 @@ link_list_t ftp_log_list;
 link_list_t web_log_list;
 link_list_t services_log_list;
 link_list_t	login_attempt_list;
-
-bool clearLoginAttemptList = false;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
@@ -283,48 +281,27 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
 static int lputs(void* p, int level, const char *str)
 {
     log_msg_t   msg;
-	link_list_t* list = (link_list_t*)p;
-	log_msg_t*	last;
 
-	msg.repeated = 0;
     msg.level = level;
     GetLocalTime(&msg.time);
     SAFECOPY(msg.buf, str);
-	listLock(list);
-	BOOL unique = TRUE;
-	if(list->last != NULL) {
-		last = (log_msg_t*)list->last->data;
-		if(strcmp(last->buf, msg.buf) == 0) {
-			last->repeated++;
-			unique = FALSE;
-		}
-	}
-	if(unique)
-		listPushNodeData(list, &msg, sizeof(msg));
-	listUnlock(list);
+    listPushNodeData((link_list_t*)p, &msg, sizeof(msg));
     return strlen(msg.buf);
-}
-
-static void log_msg(TRichEdit* Log, log_msg_t* msg)
-{
-    while(MaxLogLen && Log->Lines->Count >= MaxLogLen)
-        Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
-	if(msg->repeated)
-		Line += " [x" + AnsiString(msg->repeated + 1) + "]";
-    Log->SelLength=0;
-	Log->SelStart=-1;
-    Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, Log->Color, Log->Font));
-	Log->Lines->Add(Line);
-    SendMessage(Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 }
 
 static void bbs_log_msg(log_msg_t* msg)
 {
-	log_msg(TelnetForm->Log, msg);
+    while(MaxLogLen && TelnetForm->Log->Lines->Count >= MaxLogLen)
+        TelnetForm->Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+
+    Line+=AnsiString(msg->buf).Trim();
+    TelnetForm->Log->SelLength=0;
+    TelnetForm->Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, TelnetForm->Log->Color, TelnetForm->Log->Font));
+	TelnetForm->Log->Lines->Add(Line);
+    SendMessage(TelnetForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 }
 
 static void bbs_status(void* p, const char *str)
@@ -402,12 +379,30 @@ static void bbs_start(void)
 
 static void event_log_msg(log_msg_t* msg)
 {
-	log_msg(EventsForm->Log, msg);
+    while(MaxLogLen && EventsForm->Log->Lines->Count >= MaxLogLen)
+        EventsForm->Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(msg->buf).Trim();
+    EventsForm->Log->SelLength=0;
+    EventsForm->Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, EventsForm->Log->Color, EventsForm->Log->Font));
+	EventsForm->Log->Lines->Add(Line);
+    SendMessage(EventsForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 }
 
 static void services_log_msg(log_msg_t* msg)
 {
-	log_msg(ServicesForm->Log, msg);
+    while(MaxLogLen && ServicesForm->Log->Lines->Count >= MaxLogLen)
+        ServicesForm->Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(msg->buf).Trim();
+    ServicesForm->Log->SelLength=0;
+    ServicesForm->Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, ServicesForm->Log->Color, ServicesForm->Log->Font));
+	ServicesForm->Log->Lines->Add(Line);
+    SendMessage(ServicesForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 }
 
 static void services_status(void* p, const char *str)
@@ -459,7 +454,16 @@ static void mail_log_msg(log_msg_t* msg)
         return;
     }
 
-	log_msg(MailForm->Log, msg);
+    while(MaxLogLen && MailForm->Log->Lines->Count >= MaxLogLen)
+        MailForm->Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(msg->buf).Trim();
+    MailForm->Log->SelLength=0;
+    MailForm->Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, MailForm->Log->Color, MailForm->Log->Font));
+	MailForm->Log->Lines->Add(Line);
+    SendMessage(MailForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 
     if(MainForm->MailLogFile && MainForm->MailStop->Enabled) {
         AnsiString LogFileName
@@ -478,10 +482,8 @@ static void mail_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-			AnsiString Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+			Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
 		    Line+=AnsiString(msg->buf).Trim();
-			if(msg->repeated)
-				Line += " [x" + AnsiString(msg->repeated + 1) + "]";
 	        Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
@@ -567,7 +569,16 @@ static void ftp_log_msg(log_msg_t* msg)
         return;
     }
 
-	log_msg(FtpForm->Log, msg);
+    while(MaxLogLen && FtpForm->Log->Lines->Count >= MaxLogLen)
+        FtpForm->Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(msg->buf).Trim();
+    FtpForm->Log->SelLength=0;
+    FtpForm->Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, FtpForm->Log->Color, FtpForm->Log->Font));
+	FtpForm->Log->Lines->Add(Line);
+    SendMessage(FtpForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 
     if(MainForm->FtpLogFile && MainForm->FtpStop->Enabled) {
         AnsiString LogFileName
@@ -587,10 +598,8 @@ static void ftp_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-            AnsiString Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+            Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
             Line+=AnsiString(msg->buf).Trim();
-			if(msg->repeated)
-				Line += " [x" + AnsiString(msg->repeated + 1) + "]";
             Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
@@ -676,7 +685,16 @@ static void web_log_msg(log_msg_t* msg)
         return;
     }
 
-	log_msg(WebForm->Log, msg);
+    while(MaxLogLen && WebForm->Log->Lines->Count >= MaxLogLen)
+        WebForm->Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(msg->buf).Trim();
+    WebForm->Log->SelLength=0;
+    WebForm->Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, WebForm->Log->Color, WebForm->Log->Font));
+	WebForm->Log->Lines->Add(Line);
+    SendMessage(WebForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 }
 
 static void web_status(void* p, const char *str)
@@ -1004,7 +1022,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
     long bbs_ver = bbs_ver_num();
     if(bbs_ver != VERSION_HEX) {
         char str[128];
-        sprintf(str,"Incorrect SBBS.DLL Version (%lX, expected %lx)", bbs_ver, VERSION_HEX);
+        sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
@@ -2850,7 +2868,6 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
 {
 	int i,file;
 	char str[MAX_PATH+1];
-	static int selection;
 
 	Application->CreateForm(__classid(TCodeInputForm), &CodeInputForm);
 	CodeInputForm->Label->Caption="Event Internal Code";
@@ -2858,7 +2875,7 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
     for(i=0;i<cfg.total_events;i++)
     	CodeInputForm->ComboBox->Items->Add(
             AnsiString(cfg.event[i]->code).UpperCase());
-    CodeInputForm->ComboBox->ItemIndex=selection;
+    CodeInputForm->ComboBox->ItemIndex=0;
     if(CodeInputForm->ShowModal()==mrOk
        	&& CodeInputForm->ComboBox->Text.Length()) {
         for(i=0;i<cfg.total_events;i++) {
@@ -2867,7 +2884,6 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
             	if((file=_sopen(str,O_CREAT|O_TRUNC|O_WRONLY
 	                ,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 	                close(file);
-				selection = CodeInputForm->ComboBox->ItemIndex;
                 break;
 	   		}
         }
@@ -2956,11 +2972,6 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         sysop_available = ChatToggle->Checked;
         set_sysop_availability(&cfg, sysop_available);
     }
-	
-	if(clearLoginAttemptList) {
-		loginAttemptListClear(&login_attempt_list);
-		clearLoginAttemptList = false;
-	}
 
     if(!start)
         start=time(NULL);
@@ -3000,15 +3011,10 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     if(MainForm->StatusBar->Panels->Items[3]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[3]->Text=Str;
 
-    sprintf(str,"Failed: %u",loginAttemptListCount(&login_attempt_list));
+    sprintf(str,"Errors: %u",errors);
     Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[4]->Text=Str;
-
-    sprintf(str,"Errors: %u",errors);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[5]->Text=Str;
 
 #if 0
     THeapStatus hp=GetHeapStatus();
@@ -3607,7 +3613,6 @@ bool GetServerLogLine(HANDLE& log, const char* name, log_msg_t* msg)
         ) || !msgs)
         return(false);
 
-	memset(msg, 0, sizeof(*msg));
     DWORD rd=0;
     if(!ReadFile(
         log,				// handle of file to read
@@ -3916,13 +3921,6 @@ void __fastcall TMainForm::LogPopupCopyClick(TObject *Sender)
 {
     TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
     Log->CopyToClipboard();
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
-      TObject *Sender)
-{
-    clearLoginAttemptList = true;
 }
 //---------------------------------------------------------------------------
 
