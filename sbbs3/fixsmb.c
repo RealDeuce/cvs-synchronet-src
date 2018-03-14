@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.46 2018/04/30 06:05:12 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.45 2018/02/21 05:44:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>	/* atoi, qsort */
-#include <stdbool.h>
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
 
@@ -93,15 +92,11 @@ void sort_index(smb_t* smb)
 	printf("\n");
 }
 
-bool we_locked_the_base = false;
-
 void unlock_msgbase(void)
 {
 	int i;
-	if(we_locked_the_base && smb_islocked(&smb) && (i=smb_unlock(&smb))!=0)
+	if(smb_islocked(&smb) && (i=smb_unlock(&smb))!=0)
 		printf("smb_unlock returned %d: %s\n",i,smb.last_error);
-	else
-		we_locked_the_base = false;
 }
 
 int fixsmb(char* sub)
@@ -113,7 +108,7 @@ int fixsmb(char* sub)
 	ulong		l,length,size,n;
 	smbmsg_t	msg;
 	uint32_t*	numbers = NULL;
-	long		total = 0;
+	uint32_t	total = 0;
 	BOOL		dupe_msgnum;
 	uint32_t	highest = 0;
 
@@ -142,7 +137,6 @@ int fixsmb(char* sub)
 		printf("smb_lock returned %d: %s\n",i,smb.last_error);
 		exit(1);
 	}
-	we_locked_the_base = true;
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
@@ -332,7 +326,7 @@ int main(int argc, char **argv)
 	str_list_t	list;
 	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.46 $", "%*s %s", revision);
+	sscanf("$Revision: 1.45 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
