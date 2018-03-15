@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.83 2018/02/16 09:01:01 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.84 2018/02/22 09:40:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -710,6 +710,8 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 {
 	char str[128];
 
+	if(cfg.node_num == 0)
+		return;	// Don't output this for events
 	if((count%interval) != 0)
 		return;
 	if(text == NULL) text = "";
