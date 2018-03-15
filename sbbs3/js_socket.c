@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.212 2018/03/15 21:40:14 deuce Exp $ */
+/* $Id: js_socket.c,v 1.213 2018/03/15 21:56:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -190,13 +190,13 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 				return total;
 			return ret;
 		}
-		if (!(flags & MSG_WAITALL) || p->nonblocking)
+		if ((!(flags & MSG_WAITALL)) || p->nonblocking)
 			return ret;
-		total += copied;
+		total += ret;
 		if(total>=(ptrdiff_t)len)
 			return total;
-		len-=copied;
-		buf=((uint8_t *)buf) + copied;
+		len-=ret;
+		buf=((uint8_t *)buf) + ret;
 
 		if(!socket_check(p->sock,NULL,NULL,0)) {
 			if (total > 0)
