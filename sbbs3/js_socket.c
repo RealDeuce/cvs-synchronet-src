@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.207 2018/03/13 06:16:11 deuce Exp $ */
+/* $Id: js_socket.c,v 1.208 2018/03/15 08:27:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1762,6 +1762,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 								// Reduced compliance checking... required for acme-staging-v02.api.letsencrypt.org
 								do_cryptAttribute(p->session, CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_REDUCED);
 								if (tiny == SOCK_PROP_SSL_SESSION) {
+									// TODO: Make this configurable
+									do_cryptAttribute(p->session, CRYPT_SSLOPTION_DISABLE_NAMEVERIFY, 1);
 									ret=do_cryptAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname));
 									p->tls_server = FALSE;
 								}
