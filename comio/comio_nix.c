@@ -2,13 +2,13 @@
 
 /* Synchronet Serial Communications I/O Library Functions for *nix */
 
-/* $Id: comio_nix.c,v 1.14 2019/02/18 07:40:19 rswindell Exp $ */
+/* $Id: comio_nix.c,v 1.12 2015/04/18 00:39:40 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -37,7 +37,6 @@
 
 #include <sys/ioctl.h>
 #include <sys/file.h>
-#include <fcntl.h>		// O_NONBLOCK
 #include "comio.h"
 #include "genwrap.h"
 
@@ -199,7 +198,7 @@ char* COMIOCALL comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.12 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
