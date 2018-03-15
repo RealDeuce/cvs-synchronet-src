@@ -1,5 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.64 2019/04/12 00:11:34 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfgxtrn.c,v 1.58 2018/03/10 03:20:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +49,7 @@ static bool new_timed_event(unsigned new_event_num)
 		return false;
 	}
 	memset(new_event, 0, sizeof(*new_event));
-	new_event->node = NODE_ANY;
+	new_event->node = 1;
 	new_event->days = (uchar)0xff;
 
 	event_t** new_event_list = realloc(cfg.event, sizeof(event_t *)*(cfg.total_events + 1));
@@ -131,7 +130,6 @@ static bool new_external_editor(unsigned new_xedit_num)
 		return false;
 	}
 	memset(new_xedit, 0, sizeof(*new_xedit));
-	new_xedit->misc |= QUOTEWRAP;
 
 	xedit_t** new_xedit_list = realloc(cfg.xedit, sizeof(xedit_t *)*(cfg.total_xedits + 1));
 	if (new_xedit_list == NULL) {
@@ -309,8 +307,8 @@ void xprogs_cfg()
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					save_xtrn_cfg(&cfg,backup_level);
-					save_main_cfg(&cfg,backup_level);
+					write_xtrn_cfg(&cfg,backup_level);
+					write_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
@@ -485,11 +483,7 @@ void tevents_cfg()
 			sprintf(opt[k++],"%-32.32s%.40s","Command Line",cfg.event[i]->cmd);
 			sprintf(opt[k++],"%-32.32s%s","Enabled"
 				,cfg.event[i]->misc&EVENT_DISABLED ? "No":"Yes");
-			if(cfg.event[i]->node == NODE_ANY)
-				SAFECOPY(str, "Any");
-			else
-				SAFEPRINTF(str, "%u", cfg.event[i]->node);
-			sprintf(opt[k++],"%-32.32s%s","Execution Node", str);
+			sprintf(opt[k++],"%-32.32s%u","Execution Node",cfg.event[i]->node);
 			sprintf(opt[k++],"%-32.32s%s","Execution Months"
 				,monthstr(cfg.event[i]->months));
 			sprintf(opt[k++],"%-32.32s%s","Execution Days of Month"
@@ -594,19 +588,12 @@ void tevents_cfg()
 					uifc.helpbuf=
 						"`Timed Event Node:`\n"
 						"\n"
-						"This is the node number to execute the timed event (or `Any`).\n"
+						"This is the node number to execute the timed event.\n"
 					;
-					if(cfg.event[i]->node == NODE_ANY)
-						SAFECOPY(str, "Any");
-					else
-						SAFEPRINTF(str, "%u", cfg.event[i]->node);
-					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
-						,str,3,K_EDIT) > 0) {
-						if(isdigit(*str))
-							cfg.event[i]->node=atoi(str);
-						else
-							cfg.event[i]->node = NODE_ANY;
-					}
+					sprintf(str,"%u",cfg.event[i]->node);
+					uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
+						,str,3,K_EDIT|K_NUMBER);
+					cfg.event[i]->node=atoi(str);
 					break;
 				case 5:
 					uifc.helpbuf=
@@ -1252,7 +1239,7 @@ void xtrn_cfg(uint section)
 					uifc.helpbuf=
 						"`Use Shell to Execute Command:`\n"
 						"\n"
-						"If this command-line requires the system command shell to execute, (Unix\n"
+						"If this command-line requires the system command shell to execute, (Unix \n"
 						"shell script or DOS batch file), set this option to ~Yes~.\n"
 					;
 					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
@@ -1652,9 +1639,7 @@ void xedit_cfg()
 				,cfg.xedit[i]->misc&XTRN_NATIVE ? "Yes" : "No");
 			sprintf(opt[k++],"%-32.32s%s","Use Shell to Execute"
 				,cfg.xedit[i]->misc&XTRN_SH ? "Yes" : "No");
-			sprintf(opt[k++],"%-32.32s%s","Record Terminal Width"
-				,cfg.xedit[i]->misc&SAVECOLUMNS ? "Yes" : "No");
-			sprintf(opt[k++],"%-32.32s%s","Word-wrap Quoted Text"
+			sprintf(opt[k++],"%-32.32s%s","Word Wrap Quoted Text"
 				,cfg.xedit[i]->misc&QUOTEWRAP ? "Yes":"No");
 			sprintf(opt[k++],"%-32.32s%s","Automatically Quoted Text"
 				,cfg.xedit[i]->misc&QUOTEALL ? "All":cfg.xedit[i]->misc&QUOTENONE
@@ -1673,8 +1658,8 @@ void xedit_cfg()
 				"\n"
 				"This menu allows you to change the settings for the selected external\n"
 				"message editor. External message editors are very common on BBSs. Some\n"
-				"popular editors include `fseditor.js`, `SyncEdit`, `SlyEdit`, `WWIVedit`, `FEdit`,\n"
-				"`GEdit`, `IceEdit`, and many others.\n"
+				"popular editors include `SyncEdit`, `WWIVedit`, `FEdit`, `GEdit`, `IceEdit`,\n"
+				"and many others.\n"
 			;
 
 			sprintf(str,"%s Editor",cfg.xedit[i]->name);
@@ -1826,48 +1811,14 @@ void xedit_cfg()
 					}
 					break;
 				case 7:
-					k=(cfg.xedit[i]->misc&SAVECOLUMNS) ? 0:1;
-					uifc.helpbuf=
-						"`Record Terminal Width:`\n"
-						"\n"
-						"When set to `Yes`, Synchronet will store the current terminal width\n"
-						"(in columns) in the header of messages created with this editor and use\n"
-						"the saved value to nicely re-word-wrap the message text when displaying\n"
-						"or quoting the message for other users with different terminal sizes.\n"
-						"\n"
-						"If this editor correctly detects and supports terminal widths `other`\n"
-						"`than 80 columns`, set this option to `Yes`."
-					;
-					switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-						,"Record Terminal Width",uifcYesNoOpts)) {
-						case 0:
-							if(!(cfg.xedit[i]->misc&SAVECOLUMNS)) {
-								cfg.xedit[i]->misc |= SAVECOLUMNS;
-								uifc.changes = TRUE;
-							}
-							break;
-						case 1:
-							if(cfg.xedit[i]->misc&SAVECOLUMNS) {
-								cfg.xedit[i]->misc &= ~SAVECOLUMNS;
-								uifc.changes = TRUE; 
-							}
-							break;
-					}
-					break;
-				case 8:
 					k=(cfg.xedit[i]->misc&QUOTEWRAP) ? 0:1;
 					uifc.helpbuf=
-						"`Word-wrap Quoted Text:`\n"
+						"`Word Wrap Quoted Text:`\n"
 						"\n"
-						"Set to `Yes` to have Synchronet word-wrap quoted message text when\n"
-						"creating the quote file (e.g. QUOTES.TXT) or initial message text file\n"
-						"(e.g. MSGTMP) used by some external message editors.\n"
-						"\n"
-						"When set to `No`, the original unmodified message text is written to the\n"
-						"quote / message text file."
+						"FIXME\n"
 					;
 					switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-						,"Word-wrap Quoted Text",uifcYesNoOpts)) {
+						,"Word Wrap Quoted Text",uifcYesNoOpts)) {
 						case 0:
 							if(!(cfg.xedit[i]->misc&QUOTEWRAP)) {
 								cfg.xedit[i]->misc|=QUOTEWRAP;
@@ -1882,7 +1833,7 @@ void xedit_cfg()
 							break;
 					}
 					break;
-				case 9:
+				case 8:
 					switch(cfg.xedit[i]->misc&(QUOTEALL|QUOTENONE)) {
 						case 0:		/* prompt user */
 							k=2;
@@ -1928,7 +1879,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 10:
+				case 9:
 					k=cfg.xedit[i]->misc&QUICKBBS ? 0:1;
 					strcpy(opt[0],"QuickBBS MSGINF/MSGTMP");
 					strcpy(opt[1],"WWIV EDITOR.INF/RESULT.ED");
@@ -1950,7 +1901,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 11:
+				case 10:
 					k=(cfg.xedit[i]->misc&EXPANDLF) ? 0:1;
 					uifc.helpbuf=
 						"`Expand Line Feeds to Carriage Return/Line Feed Pairs:`\n"
@@ -1969,7 +1920,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 12:
+				case 11:
 					k=(cfg.xedit[i]->misc&STRIPKLUDGE) ? 0:1;
 					uifc.helpbuf=
 						"`Strip FidoNet Kludge Lines From Messages:`\n"
@@ -1989,7 +1940,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 13:
+				case 12:
 					k=0;
 					strcpy(opt[k++],"None");
 					sprintf(opt[k++],"%-15s %s","Synchronet","XTRN.DAT");
