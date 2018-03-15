@@ -1,5 +1,4 @@
-/* $Id: scfgnet.c,v 1.42 2019/02/21 23:37:05 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfgnet.c,v 1.36 2018/03/11 21:24:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +34,7 @@
 #include "scfg.h"
 
 void qhub_edit(int num);
+void phub_edit(int num);
 char *daystr(char days);
 void qhub_sub_edit(uint num);
 BOOL import_qwk_conferences(uint num);
@@ -158,8 +158,8 @@ uint getsub(void)
 
 void net_cfg()
 {
-	static	int net_dflt,qnet_dflt,fnet_dflt,inet_dflt
-			,qhub_dflt;
+	static	int net_dflt,qnet_dflt,pnet_dflt,fnet_dflt,inet_dflt
+			,qhub_dflt,phub_dflt;
 	char	str[81],done;
 	int 	i,j,k,l;
 	int		mode;
@@ -169,6 +169,7 @@ void net_cfg()
 		strcpy(opt[i++],"Internet E-mail");
 		strcpy(opt[i++],"QWK Packet Networks");
 		strcpy(opt[i++],"FidoNet EchoMail and NetMail");
+		strcpy(opt[i++],"PostLink Networks");
 		opt[i][0]=0;
 		uifc.helpbuf=
 			"`Configure Networks:`\n"
@@ -254,7 +255,7 @@ void net_cfg()
 								SAFECOPY(cfg.qhub[i]->pack,"%@zip -jD %f %s");
 								SAFECOPY(cfg.qhub[i]->unpack,"%@unzip -Coj %f %s -d %g");
 								SAFECOPY(cfg.qhub[i]->call,"*qnet-ftp %s hub.address YOURPASS");
-								cfg.qhub[i]->node = NODE_ANY;
+								cfg.qhub[i]->node=1;
 								cfg.qhub[i]->days=(uchar)0xff; /* all days */
 								uifc.changes=1;
 								continue; 
@@ -284,48 +285,40 @@ void net_cfg()
 			done=0;
 			while(!done) {
 				i=0;
-				tmp[0] = 0;
-				for(j=0; j < cfg.total_faddrs && strlen(tmp) < 24; j++)
-					sprintf(tmp + strlen(tmp), "%s%s", j ? ", " : "", smb_faddrtoa(&cfg.faddr[j], NULL));
-				if(j < cfg.total_faddrs)
-					strcat(tmp, ", ...");
-				sprintf(opt[i++],"%-33.33s%s"
-					,"System Addresses",tmp);
-				sprintf(opt[i++],"%-33.33s%.40s"
-					,"Default Origin Line", cfg.origline);
-				sprintf(opt[i++],"%-33.33s%.40s"
+				sprintf(opt[i++],"%-27.27s%s"
+					,"System Addresses",cfg.total_faddrs
+                		? smb_faddrtoa(&cfg.faddr[0],tmp) : nulstr);
+				sprintf(opt[i++],"%-27.27s"
+					,"Default Origin Line");
+				sprintf(opt[i++],"%-27.27s%.40s"
 					,"NetMail Semaphore",cfg.netmail_sem);
-				sprintf(opt[i++],"%-33.33s%.40s"
+				sprintf(opt[i++],"%-27.27s%.40s"
 					,"EchoMail Semaphore",cfg.echomail_sem);
-				sprintf(opt[i++],"%-33.33s%.40s"
+				sprintf(opt[i++],"%-27.27s%.40s"
 					,"NetMail Directory",cfg.netmail_dir);
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Allow Sending of NetMail"
 					,cfg.netmail_misc&NMAIL_ALLOW ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Allow File Attachments"
 					,cfg.netmail_misc&NMAIL_FILE ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Send NetMail Using Alias"
 					,cfg.netmail_misc&NMAIL_ALIAS ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"NetMail Defaults to Crash"
 					,cfg.netmail_misc&NMAIL_CRASH ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"NetMail Defaults to Direct"
 					,cfg.netmail_misc&NMAIL_DIRECT ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"NetMail Defaults to Hold"
 					,cfg.netmail_misc&NMAIL_HOLD ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Kill NetMail After Sent"
 					,cfg.netmail_misc&NMAIL_KILL ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%"PRIu32
+				sprintf(opt[i++],"%-27.27s%"PRIu32
 					,"Cost to Send NetMail",cfg.netmail_cost);
-				if(cfg.total_faddrs > 1)
-					sprintf(opt[i++],"%-33.33s%s"
-						,"Choose NetMail Source Address"
-						,cfg.netmail_misc&NMAIL_CHSRCADDR ? "Yes":"No");
 				opt[i][0]=0;
 				uifc.helpbuf=
 					"`FidoNet EchoMail and NetMail:`\n"
@@ -334,7 +327,7 @@ void net_cfg()
 					"networking E-mail (NetMail) and sub-boards (EchoMail) through networks\n"
 					"using FidoNet technology.\n"
 				;
-				i=uifc.list(WIN_ACT|WIN_MID|WIN_CHE,0,0,68,&fnet_dflt,0
+				i=uifc.list(WIN_ACT|WIN_MID|WIN_CHE,0,0,60,&fnet_dflt,0
 					,"FidoNet EchoMail and NetMail",opt);
 				switch(i) {
 					case -1:	/* ESC */
@@ -350,7 +343,7 @@ void net_cfg()
 							"The `Main` address is also used as the default address for Fido-Networked\n"
 							"sub-boards (EchoMail areas).\n"
 							"\n"
-							"The supported address format (so-called 3D or 4D): `Zone`:`Net`/`Node`[.`Point`]\n"
+							"The supported address format (so-called 3D or 4D): `Zone:Net/Node[.Point]`\n"
 						;
 						k=l=0;
 						while(1) {
@@ -615,29 +608,133 @@ void net_cfg()
 							,str,10,K_EDIT|K_NUMBER);
 						cfg.netmail_cost=atol(str);
 						break; 
-					case 13:
-						i=0;
-						uifc.helpbuf=
-							"`Choose NetMail Source Address:`\n"
-							"\n"
-							"When the system has multiple FidoNet-style addresses, you can allow\n"
-							"users to choose the source address when sending NetMail messages by\n"
-							"setting this option to `Yes`.\n"
-						;
-						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-							,"Allow Senders of NetMail to Choose the Source Address",uifcYesNoOpts);
-						if(!i && !(cfg.netmail_misc&NMAIL_CHSRCADDR)) {
-							uifc.changes=1;
-							cfg.netmail_misc|=NMAIL_CHSRCADDR; 
-						}
-						else if(i==1 && cfg.netmail_misc&NMAIL_CHSRCADDR) {
-							uifc.changes=1;
-							cfg.netmail_misc&=~NMAIL_CHSRCADDR; 
-						}
-						break;
 				} 
 			} 
 		}
+		else if(i==3) {
+			done=0;
+			while(!done) {
+				i=0;
+				strcpy(opt[i++],"Network Hubs...");
+				sprintf(opt[i++],"%-20.20s%-12s","Site Name",cfg.sys_psname);
+				sprintf(opt[i++],"%-20.20s%-"PRIu32,"Site Number",cfg.sys_psnum);
+				opt[i][0]=0;
+				uifc.helpbuf=
+					"`PostLink Networks:`\n"
+					"\n"
+					"From this menu you can configure PostLink or PCRelay Networks.\n"
+				;
+				i=uifc.list(WIN_ACT|WIN_RHT|WIN_BOT|WIN_CHE,0,0,0,&pnet_dflt,0
+					,"PostLink Networks",opt);
+				switch(i) {
+					case -1:	/* ESC */
+						done=1;
+						break;
+					case 1:
+						uifc.helpbuf=
+							"`PostLink Site Name:`\n"
+							"\n"
+							"If your system is networked via PostLink or PCRelay, this should be the\n"
+							"Site Name for your BBS.\n"
+						;
+						uifc.input(WIN_MID|WIN_SAV,0,0,"Site Name"
+							,cfg.sys_psname,sizeof(cfg.sys_psname)-1,K_UPPER|K_EDIT);
+						break;
+					case 2:
+						uifc.helpbuf=
+							"`PostLink Site Number:`\n"
+							"\n"
+							"If your system is networked via PostLink or PCRelay, this should be the\n"
+							"Site Number for your BBS.\n"
+						;
+						ultoa(cfg.sys_psnum,str,10);
+						uifc.input(WIN_MID|WIN_SAV,0,0,"Site Number"
+							,str,10,K_NUMBER|K_EDIT);
+						cfg.sys_psnum=atol(str);
+						break;
+					case 0:
+						while(1) {
+							for(i=0;i<cfg.total_phubs && i<MAX_OPTS;i++)
+								sprintf(opt[i],"%-10.10s",cfg.phub[i]->name);
+							opt[i][0]=0;
+							i=WIN_ACT|WIN_RHT|WIN_SAV;
+							if(cfg.total_phubs<MAX_OPTS)
+								i|=WIN_INS|WIN_INSACT|WIN_XTR;
+							if(cfg.total_phubs)
+								i|=WIN_DEL;
+							uifc.helpbuf=
+								"`PostLink Network Hubs:`\n"
+								"\n"
+								"This is a list of PostLink and/or PCRelay network hubs that your system\n"
+								"calls to exchange packets with.\n"
+								"\n"
+								"To add a hub, select the desired location with the arrow keys and hit\n"
+								"~ INS ~.\n"
+								"\n"
+								"To delete a hub, select it and hit ~ DEL ~.\n"
+								"\n"
+								"To configure a hub, select it and hit ~ ENTER ~.\n"
+							;
+							i=uifc.list(i,0,0,0,&phub_dflt,0
+								,"PostLink Hubs",opt);
+							if(i==-1)
+								break;
+							int msk = i & MSK_ON;
+							i &= MSK_OFF;
+							if (msk == MSK_INS) {
+								if((cfg.phub=(phub_t **)realloc(cfg.phub
+									,sizeof(phub_t *)*(cfg.total_phubs+1)))==NULL) {
+									errormsg(WHERE,ERR_ALLOC,nulstr
+										,sizeof(phub_t *)*(cfg.total_phubs+1));
+									cfg.total_phubs=0;
+									bail(1);
+									continue; 
+								}
+
+								uifc.helpbuf=
+									"`Network Hub Site Name:`\n"
+									"\n"
+									"This is the Site Name of this hub. It is used for only for reference.\n"
+								;
+								if(uifc.input(WIN_MID|WIN_SAV,0,0
+									,"Site Name",str,10,K_UPPER)<1)
+									continue;
+
+								for(j=cfg.total_phubs;j>i;j--)
+									cfg.phub[j]=cfg.phub[j-1];
+
+								if((cfg.phub[i]=(phub_t *)malloc(sizeof(phub_t)))
+									==NULL) {
+									errormsg(WHERE,ERR_ALLOC,nulstr
+										,sizeof(phub_t));
+									continue; 
+								}
+								memset(cfg.phub[i],0,sizeof(phub_t));
+								strcpy(cfg.phub[i]->name,str);
+								strcpy(cfg.phub[i]->call,"%!pnet");
+								cfg.phub[i]->node=1;
+								cfg.phub[i]->days=(uchar)0xff; /* all days */
+								cfg.total_phubs++;
+								uifc.changes=1;
+								continue; 
+							}
+							if (msk == MSK_DEL) {
+								free(cfg.phub[i]);
+								cfg.total_phubs--;
+								while(i<cfg.total_phubs) {
+									cfg.phub[i]=cfg.phub[i+1];
+									i++; 
+								}
+								uifc.changes=1;
+								continue; 
+							}
+							phub_edit(i); 
+						}
+						break; 
+				} 
+			} 
+		}
+
 		else if(i==0) { 	/* Internet E-mail */
 			done=0;
 			while(!done) {
@@ -786,7 +883,7 @@ void net_cfg()
 			if(i==-1)
 				continue;
 			if(!i) {
-				save_msgs_cfg(&cfg,backup_level);
+				write_msgs_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			break;
@@ -806,11 +903,7 @@ void qhub_edit(int num)
 		sprintf(opt[i++],"%-27.27s%.40s","Pack Command Line",cfg.qhub[num]->pack);
 		sprintf(opt[i++],"%-27.27s%.40s","Unpack Command Line",cfg.qhub[num]->unpack);
 		sprintf(opt[i++],"%-27.27s%.40s","Call-out Command Line",cfg.qhub[num]->call);
-		if(cfg.qhub[num]->node == NODE_ANY)
-			SAFECOPY(str, "Any");
-		else
-			SAFEPRINTF(str, "%u", cfg.qhub[num]->node);
-		sprintf(opt[i++],"%-27.27s%s","Call-out Node", str);
+		sprintf(opt[i++],"%-27.27s%u","Call-out Node",cfg.qhub[num]->node);
 		sprintf(opt[i++],"%-27.27s%s","Call-out Days",daystr(cfg.qhub[num]->days));
 		if(cfg.qhub[num]->freq) {
 			sprintf(str,"%u times a day",1440/cfg.qhub[num]->freq);
@@ -920,23 +1013,16 @@ void qhub_edit(int num)
 					,cfg.qhub[num]->call,sizeof(cfg.qhub[num]->call)-1,K_EDIT);
 				break;
 			case 4:
-				if(cfg.qhub[num]->node == NODE_ANY)
-					SAFECOPY(str, "Any");
-				else
-					SAFEPRINTF(str, "%u", cfg.qhub[num]->node);
+				sprintf(str,"%u",cfg.qhub[num]->node);
 				uifc.helpbuf=
 					"`Node to Perform Call-out:`\n"
 					"\n"
 					"This is the number of the node to perform the call-out for this QWK\n"
-					"network hub (or `Any`).\n"
+					"network hub.\n"
 				;
-				if(uifc.input(WIN_MID|WIN_SAV,0,0
-					,"Node to Perform Call-out",str,3,K_EDIT) > 0) {
-					if(isdigit(*str))
-						cfg.qhub[num]->node=atoi(str);
-					else
-						cfg.qhub[num]->node = NODE_ANY;
-				}
+				uifc.input(WIN_MID|WIN_SAV,0,0
+					,"Node to Perform Call-out",str,3,K_EDIT|K_NUMBER);
+				cfg.qhub[num]->node=atoi(str);
 				break;
 			case 5:
 				j=0;
@@ -1258,7 +1344,7 @@ BOOL import_qwk_conferences(uint qhubnum)
 	long added = 0;
 	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], &added);
 	fclose(fp);
-	uifc.pop(NULL);
+	uifc.pop(0);
 	if(ported < 0)
 		sprintf(str, "!ERROR %ld imported message areas", ported);
 	else {
@@ -1268,6 +1354,150 @@ BOOL import_qwk_conferences(uint qhubnum)
 	}
 	uifc.msg(str);
 	return TRUE;
+}
+
+void phub_edit(int num)
+{
+	static int phub_dflt;
+	char *p,done=0,str[256];
+	int i,j;
+
+	while(!done) {
+		i=0;
+		sprintf(opt[i++],"%-27.27s%s","Hub Site Name",cfg.phub[num]->name);
+		sprintf(opt[i++],"%-27.27s%.40s","Call-out Command Line",cfg.phub[num]->call);
+		sprintf(opt[i++],"%-27.27s%u","Call-out Node",cfg.phub[num]->node);
+		sprintf(opt[i++],"%-27.27s%s","Call-out Days",daystr(cfg.phub[num]->days));
+		if(cfg.phub[num]->freq) {
+			sprintf(str,"%u times a day",1440/cfg.phub[num]->freq);
+			sprintf(opt[i++],"%-27.27s%s","Call-out Frequency",str); 
+		}
+		else {
+			sprintf(str,"%2.2u:%2.2u",cfg.phub[num]->time/60
+				,cfg.phub[num]->time%60);
+			sprintf(opt[i++],"%-27.27s%s","Call-out Time",str); 
+		}
+		opt[i][0]=0;
+		sprintf(str,"%s Network Hub",cfg.phub[num]->name);
+		uifc.helpbuf=
+			"`PostLink Network Hub Configuration:`\n"
+			"\n"
+			"This menu allows you to configure options specific to this network hub.\n"
+		;
+		switch(uifc.list(WIN_ACT|WIN_MID|WIN_SAV,0,0,0,&phub_dflt,0
+			,str,opt)) {
+			case -1:
+				done=1;
+				break;
+			case 0:
+				uifc.helpbuf=
+					"`Network Hub Site Name:`\n"
+					"\n"
+					"This is the Site Name of this hub. It is used for only for reference.\n"
+				;
+				strcpy(str,cfg.phub[num]->name);	/* save */
+				if(!uifc.input(WIN_MID|WIN_SAV,0,0,"Hub Site Name"
+					,cfg.phub[num]->name,sizeof(cfg.phub[num]->name)-1,K_UPPER|K_EDIT))
+					strcpy(cfg.phub[num]->name,str);	/* restore */
+				break;
+			case 1:
+				uifc.helpbuf=
+					"`Network Hub Call-out Command Line:`\n"
+					"\n"
+					"This is the command line to use to initiate a call-out to this network\n"
+					"hub.\n"
+				;
+				uifc.input(WIN_MID|WIN_SAV,0,0,"Call-out Command"
+					,cfg.phub[num]->call,sizeof(cfg.phub[num]->call)-1,K_EDIT);
+				break;
+			case 2:
+				sprintf(str,"%u",cfg.phub[num]->node);
+				uifc.helpbuf=
+					"`Node to Perform Call-out:`\n"
+					"\n"
+					"This is the number of the node to perform the call-out for this network\n"
+					"hub.\n"
+				;
+				uifc.input(WIN_MID|WIN_SAV,0,0
+					,"Node to Perform Call-out",str,3,K_EDIT|K_NUMBER);
+				cfg.phub[num]->node=atoi(str);
+				break;
+			case 3:
+				j=0;
+				while(1) {
+					for(i=0;i<7;i++)
+						sprintf(opt[i],"%s        %s"
+							,wday[i],(cfg.phub[num]->days&(1<<i)) ? "Yes":"No");
+					opt[i][0]=0;
+					uifc.helpbuf=
+						"`Days to Perform Call-out:`\n"
+						"\n"
+						"These are the days that a call-out will be performed for this network\n"
+						"hub.\n"
+					;
+					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,0
+						,"Days to Perform Call-out",opt);
+					if(i==-1)
+						break;
+					cfg.phub[num]->days^=(1<<i);
+					uifc.changes=1; 
+				}
+				break;
+			case 4:
+				i=1;
+				uifc.helpbuf=
+					"`Perform Call-out at a Specific Time:`\n"
+					"\n"
+					"If you want the system call this network hub at a specific time, set\n"
+					"this option to `Yes`. If you want the system to call this hub more than\n"
+					"once a day at predetermined intervals, set this option to `No`.\n"
+				;
+				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
+					,"Perform Call-out at a Specific Time",uifcYesNoOpts);
+				if(i==0) {
+					sprintf(str,"%2.2u:%2.2u",cfg.phub[num]->time/60
+						,cfg.phub[num]->time%60);
+					uifc.helpbuf=
+						"`Time to Perform Call-out:`\n"
+						"\n"
+						"This is the time (in 24 hour HH:MM format) to perform the call-out to\n"
+						"this network hub.\n"
+					;
+					if(uifc.input(WIN_MID|WIN_SAV,0,0
+						,"Time to Perform Call-out (HH:MM)"
+						,str,5,K_UPPER|K_EDIT)>0) {
+						cfg.phub[num]->freq=0;
+						cfg.phub[num]->time=atoi(str)*60;
+						if((p=strchr(str,':'))!=NULL)
+							cfg.phub[num]->time+=atoi(p+1); 
+					} 
+				}
+				else if(i==1) {
+					sprintf(str,"%u",cfg.phub[num]->freq
+						&& cfg.phub[num]->freq<=1440 ? 1440/cfg.phub[num]->freq : 0);
+					uifc.helpbuf=
+						"`Number of Call-outs Per Day:`\n"
+						"\n"
+						"This is the maximum number of times the system will perform a call-out\n"
+						"per day to this network hub. This value is actually converted by\n"
+						"Synchronet into minutes between call-outs and when the BBS is idle\n"
+						"and this number of minutes since the last call-out is reached, it will\n"
+						"perform a call-out.\n"
+					;
+					if(uifc.input(WIN_MID|WIN_SAV,0,0
+						,"Number of Call-outs Per Day"
+						,str,4,K_NUMBER|K_EDIT)>0) {
+						cfg.phub[num]->time=0;
+						i=atoi(str);
+						if(i && i<=1440)
+							cfg.phub[num]->freq=1440/i;
+						else
+							cfg.phub[num]->freq=0; 
+					} 
+				}
+				break; 
+		} 
+	}
 }
 
 char *daystr(char days)
