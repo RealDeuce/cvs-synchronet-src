@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.213 2018/03/15 21:56:17 deuce Exp $ */
+/* $Id: js_socket.c,v 1.214 2018/03/15 22:06:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,7 +171,7 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			tv.tv_sec = timeout;
 			if(select(p->sock+1,&socket_set,NULL,NULL,&tv)==1)
 				ret = recv(p->sock, buf, len, flags);
-			return 0;
+			ret = 0;
 		}
 		else {
 			status = cryptPopData(p->session, buf, len, &copied);
