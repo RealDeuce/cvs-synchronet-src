@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.692 2018/03/14 05:39:47 deuce Exp $ */
+/* $Id: main.cpp,v 1.693 2018/03/15 07:05:39 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5466,17 +5466,6 @@ NO_SSH:
 				}
 			}
 			if(ssh_failed) {
-				if (ssh_failed > 1) {
-					identity = get_crypt_attribute(sbbs->ssh_session, CRYPT_SESSINFO_USERNAME);
-					p = get_crypt_attribute(sbbs->ssh_session, CRYPT_SESSINFO_PASSWORD);
-					sbbs->badlogin(identity, p);
-					if (identity != NULL)
-						free_crypt_attrstr(identity);
-					identity = NULL;
-					if (p != NULL)
-						free_crypt_attrstr(p);
-					p = NULL;
-				}
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
