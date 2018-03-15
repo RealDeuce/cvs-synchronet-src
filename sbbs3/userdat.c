@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.187 2018/03/10 05:13:11 rswindell Exp $ */
+/* $Id: userdat.c,v 1.188 2018/03/15 07:20:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2940,18 +2940,17 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 		return 0;
 	memset(&first, 0, sizeof(first));
 	listLock(list);
-	if(user == NULL)
-		user = "<unspecified>";
 	if((node=login_attempted(list, addr)) != NULL) {
 		attempt=node->data;
 		/* Don't count consecutive duplicate attempts (same name and password): */
-		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
+		if((user!=NULL && strcmp(attempt->user,user)==0) && (pass==NULL || strcmp(attempt->pass,pass)==0))
 			attempt->dupes++;
 	}
 	SAFECOPY(attempt->prot,prot);
 	attempt->time=time32(NULL);
 	memcpy(&attempt->addr, addr, sizeof(*addr));
-	SAFECOPY(attempt->user, user);
+	if(user != NULL)
+		SAFECOPY(attempt->user, user);
 	memset(attempt->pass, 0, sizeof(attempt->pass));
 	if(pass != NULL)
 		SAFECOPY(attempt->pass, pass);
