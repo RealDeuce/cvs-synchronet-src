@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.693 2018/03/15 07:05:39 deuce Exp $ */
+/* $Id: main.cpp,v 1.694 2018/03/15 07:28:07 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5444,6 +5444,7 @@ NO_SSH:
 							GCESS(i, client_socket, sbbs->ssh_session, "getting channel type");
 							if (tnamelen != 7 || strnicmp(tname, "session", 7)) {
 								lprintf(LOG_INFO, "%04d SSH active channel '%s' is not 'session', disconnecting.", client_socket, tname);
+								loginFailure(startup->login_attempt_list, &client_addr, "SSH", NULL, NULL);
 								// Fail because there's no session.
 								ssh_failed = 3;
 							}
