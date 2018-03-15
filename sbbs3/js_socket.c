@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.208 2018/03/15 08:27:21 deuce Exp $ */
+/* $Id: js_socket.c,v 1.209 2018/03/15 08:34:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1763,7 +1763,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 								do_cryptAttribute(p->session, CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_REDUCED);
 								if (tiny == SOCK_PROP_SSL_SESSION) {
 									// TODO: Make this configurable
-									do_cryptAttribute(p->session, CRYPT_SSLOPTION_DISABLE_NAMEVERIFY, 1);
+									do_cryptAttribute(p->session, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_NAMEVERIFY);
 									ret=do_cryptAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname));
 									p->tls_server = FALSE;
 								}
