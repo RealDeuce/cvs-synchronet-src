@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.210 2018/03/15 08:52:04 deuce Exp $ */
+/* $Id: js_socket.c,v 1.211 2018/03/15 09:27:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1026,7 +1026,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 		if(argc > 1 && argv[1]!=JSVAL_VOID) {
-			JS_ValueToInt32(cx,argv[0],&timeout);
+			JS_ValueToInt32(cx,argv[1],&timeout);
 		}
 	}
 
