@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.316 2018/03/12 03:21:44 rswindell Exp $ */
+/* $Id: services.c,v 1.317 2018/03/17 02:23:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1584,7 +1584,6 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		}
 
 		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
-			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
 			iniFreeStringList(sec_list);
@@ -1642,7 +1641,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.316 $", "%*s %s", revision);
+	sscanf("$Revision: 1.317 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
