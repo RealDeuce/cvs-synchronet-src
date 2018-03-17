@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.273 2019/01/08 00:13:06 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.267 2018/03/17 05:43:39 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -191,6 +191,7 @@ static const char* telnet_usage  = "Terminal server settings:\n\n"
 							"\tto<value>  set Terminal server options value (advanced)\n"
 							"\tta         enable auto-logon via IP address\n"
 							"\ttd         enable Telnet command debug output\n"
+							"\ttc         enable sysop availability for chat\n"
 							"\ttq         disable QWK events\n"
 							"\tt-         disable Terminal server\n"
 							;
@@ -744,7 +745,7 @@ static int stat_lputs(void* p, int level, const char *str)
 	if(level > bbs_startup.log_level)
 		return(0);
 
-	status_lputs(SERVICE_STATUS, level, str);
+	status_lputs(SERVICE_TERM, level, str);
 	if (is_daemon || syslog_always)  {
 		if(str==NULL)
 			return(0);
@@ -773,7 +774,7 @@ static int stat_lputs(void* p, int level, const char *str)
 
 static void stat_started(void* p)
 {
-	status_started(SERVICE_STATUS);
+	status_started(SERVICE_TERM);
 	status_running=TRUE;
 	status_stopped=FALSE;
 #ifdef _THREAD_SUID_BROKEN
@@ -786,7 +787,7 @@ static void stat_started(void* p)
 
 static void stat_terminated(void* p, int code)
 {
-	status_terminated(SERVICE_STATUS, code);
+	status_terminated(SERVICE_TERM, code);
 	status_running=FALSE;
 	status_stopped=TRUE;
 }
@@ -1355,7 +1356,7 @@ static void show_usage(char *cmd)
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
-#if defined(BUILD_JSDOCS) && defined(WITH_SDL)
+#ifdef BUILD_JSDOCS
 int CIOLIB_main(int argc, char** argv)
 #else
 int main(int argc, char** argv)
@@ -1442,7 +1443,6 @@ int main(int argc, char** argv)
 
 #endif
 
-#ifdef __unix__
 	/* Initialize status startup structure */
     memset(&status_startup,0,sizeof(status_startup));
     status_startup.size=sizeof(status_startup);
@@ -1455,12 +1455,13 @@ int main(int argc, char** argv)
 	status_startup.thread_up=thread_up;
     status_startup.socket_open=socket_open;
     status_startup.client_on=client_on;
+#ifdef __unix__
 	status_startup.seteuid=do_seteuid;
 	status_startup.setuid=do_setuid;
 	status_startup.clients=status_status_clients;
 	status_startup.status=status_status_status;	// Heh.
-    strcpy(status_startup.ctrl_dir,ctrl_dir);
 #endif
+    strcpy(status_startup.ctrl_dir,ctrl_dir);
 
 	/* Initialize FTP startup structure */
     memset(&ftp_startup,0,sizeof(ftp_startup));
@@ -1580,6 +1581,7 @@ int main(int argc, char** argv)
 			else
 				SAFECOPY(str, p);
 			sprintf(p, "status.%s", str);
+			_beginthread(status_thread, 0, &status_startup);
 		}
 	}
 #endif
@@ -1640,6 +1642,9 @@ int main(int argc, char** argv)
 						break;
 					case 'Q': /* No QWK events */
 						bbs_startup.options|=BBS_OPT_NO_QWK_EVENTS;
+						break;
+					case 'C': /* Sysop available for chat */
+						bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
 						break;
 					case 'O': /* Set options */
 						bbs_startup.options=strtoul(arg,NULL,0);
@@ -1895,7 +1900,7 @@ int main(int argc, char** argv)
     SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
 
 	if(chdir(scfg.ctrl_dir)!=0)
-		lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), scfg.ctrl_dir);
+		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, scfg.ctrl_dir);
 
     scfg.size=sizeof(scfg);
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
@@ -1946,7 +1951,7 @@ int main(int argc, char** argv)
 
 		lprintf(LOG_INFO,"Running as daemon");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			lprintf(LOG_ERR,"!ERROR %d (%s) running as daemon", errno, strerror(errno));
+			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
 	}
@@ -2065,7 +2070,6 @@ int main(int argc, char** argv)
 #endif /* !defined(DONT_BLAME_SYNCHRONET) */
     	}
     } /* end if(!capabilities_set) */    
-	_beginthread(status_thread, 0, &status_startup);
 #endif /* defined(__unix__) */
 
 	if(run_bbs)
