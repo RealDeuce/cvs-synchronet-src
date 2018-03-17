@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.201 2018/12/12 20:27:31 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.198 2018/03/09 03:55:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1014,8 +1014,8 @@ long js_exec(const char *fname, char** args)
 			strcpy(line,"\n");	/* To keep line count correct */
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
-			lprintf(LOG_ERR,"!Error allocating %lu bytes of memory"
-				,(ulong)(js_buflen+len));
+			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
+				,js_buflen+len);
 			if(fp!=stdin)
 				fclose(fp);
 			return(-1);
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.201 $", "%*s %s", revision);
+	sscanf("$Revision: 1.198 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1338,7 +1338,7 @@ int main(int argc, char **argv, char** env)
 	if(daemonize) {
 		fprintf(statfp,"\nRunning as daemon\n");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			fprintf(statfp,"!ERROR %d (%s) running as daemon\n", errno, strerror(errno));
+			fprintf(statfp,"!ERROR %d running as daemon\n",errno);
 			daemonize=FALSE;
 		}
 	}
