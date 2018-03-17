@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.458 2017/11/26 05:32:14 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.476 2018/03/12 18:24:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,14 +105,14 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
-#if defined(__GNUC__)
+#if __GNUC__ > 5
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
 	#pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
 #include <jsversion.h>
 #include <jsapi.h>
-#if defined(__GNUC_)
+#if __GNUC_ > 5
 	#pragma GCC diagnostic pop
 #endif
 #define JS_DestroyScript(cx,script)
@@ -133,8 +133,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 				*(sizeptr) = *JSSTSlenptr+1; \
 				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
 					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+					if((ret) != NULL) free(ret); \
 					(ret)=NULL; \
-					free(ret); \
 				} \
 				else { \
 					(ret)=JSSTStmpptr; \
@@ -217,9 +217,12 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
 }
 
-#define HANDLE_PENDING(cx) \
-	if(JS_IsExceptionPending(cx)) \
-		return JS_FALSE;
+#define HANDLE_PENDING(cx, p ) \
+	if(JS_IsExceptionPending(cx)) { \
+		if(p != NULL) \
+			free(p); \
+		return JS_FALSE; \
+	}
 
 #define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
 { \
@@ -325,6 +328,7 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
+	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -347,7 +351,10 @@ public:
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
 
-	int 	outcom(uchar ch); 	   // send character
+	#define OUTCOM_RETRY_DELAY		80		// milliseconds
+	#define OUTCOM_RETRY_ATTEMPTS	1000	// 80 seconds
+	int 	_outcom(uchar ch); 	   // send character, without retry (on buffer flow condition)
+	int		outcom(uchar ch, int max_attempts = OUTCOM_RETRY_ATTEMPTS);		// send character, with retry
 	int 	incom(unsigned long timeout=0);		   // receive character
 
 	void	spymsg(const char *msg);		// send message to active spies
@@ -451,7 +458,9 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
-	long 	autoterm;		/* Autodetected terminal type */
+	long	lastlinelen;	/* The previously displayed line length */
+	long 	autoterm;		/* Auto-detected terminal type */
+	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
 	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
 	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
 	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
@@ -462,6 +471,7 @@ public:
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
+			last_sysop_auth,/* Time sysop was last authenticated */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -519,6 +529,7 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
+	file_t*		current_file;	
 
 			/* Global command shell variables */
 	uint	global_str_vars;
@@ -588,6 +599,8 @@ public:
 	void	getusrdirs(void);
 	uint	getusrsub(uint subnum);
 	uint	getusrgrp(uint subnum);
+	uint	getusrdir(uint dirnum);
+	uint	getusrlib(uint dirnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del=false, bool next=false);
@@ -595,8 +608,10 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t intime);
+	char*	timestr(time_t);
+	char*	datestr(time_t);
     char	timestr_output[60];
+	char	datestr_output[60];
 	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
@@ -712,6 +727,7 @@ public:
 	void	printfile(char *str, long mode);
 	void	printtail(char *str, int lines, long mode);
 	void	menu(const char *code);
+	bool	menu_exists(const char *code);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -820,7 +836,7 @@ public:
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
-	bool	checkdszlog(file_t*);
+	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
 	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
 	bool	recvfile(char* fname, char prot=0);
@@ -1189,7 +1205,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
-#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1201,11 +1216,14 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+#ifdef USE_CRYPTLIB
 													,CRYPT_CONTEXT session		/* client */
+#else
+													,int unused
+#endif
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
-#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1313,6 +1331,12 @@ extern "C" {
 	/* js_cryptcon.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
 
+	/* js_cryptkeyset.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptKeysetClass(JSContext* cx, JSObject* parent);
+
+	/* js_cryptcert.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptCertClass(JSContext* cx, JSObject* parent);
+
 #endif
 
 /* str_util.c */
@@ -1334,6 +1358,7 @@ char*	prep_code(char *str, const char* prefix);
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...);	/* log output */
 	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
