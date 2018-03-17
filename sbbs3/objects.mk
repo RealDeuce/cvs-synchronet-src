@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.65 2017/11/26 00:09:56 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.68 2018/02/23 08:24:23 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -45,7 +45,9 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_client$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_com$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_console$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_cryptcert$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_cryptcon$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)js_cryptkeyset$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_file_area$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)js_global$(OFILE)\
@@ -334,4 +336,7 @@ DSTSEDIT_OBJS = \
 			$(OBJODIR)$(DIRSEP)dstsedit$(OFILE)\
 			$(OBJODIR)$(DIRSEP)date_str$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
+
+READSAUCE_OBJS = \
+			$(OBJODIR)$(DIRSEP)readsauce$(OFILE)
 
