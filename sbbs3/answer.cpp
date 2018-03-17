@@ -1,7 +1,6 @@
 /* Synchronet answer "caller" function */
-// vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.96 2018/04/24 07:02:12 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.94 2018/02/03 23:39:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,9 +163,9 @@ bool sbbs_t::answer()
 			}
 			else {
 				if(cfg.sys_misc&SM_ECHO_PW)
-					lprintf(LOG_NOTICE, "Node %d RLogin !UNKNOWN USER: '%s' (password: %s)",cfg.node_num, rlogin_name, rlogin_pass);
+					lprintf(LOG_INFO,"Node %d RLogin: UNKNOWN USER: '%s' (password: %s)",cfg.node_num, rlogin_name, rlogin_pass);
 				else
-					lprintf(LOG_NOTICE, "Node %d RLogin !UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
+					lprintf(LOG_INFO,"Node %d RLogin: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
 				badlogin(rlogin_name, rlogin_pass);
 			}
 		}
@@ -263,9 +262,9 @@ bool sbbs_t::answer()
 		}
 		else {
 			if(cfg.sys_misc&SM_ECHO_PW)
-				lprintf(LOG_NOTICE, "Node %d SSH !UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, truncsp(tmp));
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s' (password: %s)",cfg.node_num,rlogin_name, truncsp(tmp));
 			else
-				lprintf(LOG_NOTICE, "Node %d SSH !UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
+				lprintf(LOG_INFO,"Node %d SSH: UNKNOWN USER: '%s'",cfg.node_num,rlogin_name);
 			badlogin(rlogin_name, tmp);
 		}
 	}
@@ -424,13 +423,8 @@ bool sbbs_t::answer()
 	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
-	if(!useron.number 
-		&& rlogin_name[0]!=0 
-		&& !(cfg.sys_misc&SM_CLOSED) 
-		&& !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)
-		&& !::trashcan(&cfg, rlogin_name, "name")) {
-		lprintf(LOG_INFO, "Node %d %s !UNKNOWN specified username: '%s', starting new user signup"
-			,cfg.node_num,client.protocol,rlogin_name);
+	if(!useron.number && rlogin_name[0]!=0 && !(cfg.sys_misc&SM_CLOSED) && !matchuser(&cfg, rlogin_name, /* Sysop alias: */FALSE)) {
+		lprintf(LOG_INFO,"Node %d UNKNOWN %s-specified username: '%s', starting new user signup",cfg.node_num,client.protocol,rlogin_name);
 		bprintf("%s: %s\r\n", text[UNKNOWN_USER], rlogin_name);
 		newuser();
 	}
