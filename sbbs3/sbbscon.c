@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.267 2018/03/17 05:43:39 deuce Exp $ */
+/* $Id: sbbscon.c,v 1.268 2018/03/17 06:45:18 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1581,7 +1581,6 @@ int main(int argc, char** argv)
 			else
 				SAFECOPY(str, p);
 			sprintf(p, "status.%s", str);
-			_beginthread(status_thread, 0, &status_startup);
 		}
 	}
 #endif
@@ -2070,6 +2069,7 @@ int main(int argc, char** argv)
 #endif /* !defined(DONT_BLAME_SYNCHRONET) */
     	}
     } /* end if(!capabilities_set) */    
+	_beginthread(status_thread, 0, &status_startup);
 #endif /* defined(__unix__) */
 
 	if(run_bbs)
