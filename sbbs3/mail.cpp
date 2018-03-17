@@ -1,6 +1,6 @@
 /* Synchronet mail-related routines */
 
-/* $Id: mail.cpp,v 1.29 2017/11/24 21:39:04 rswindell Exp $ */
+/* $Id: mail.cpp,v 1.32 2018/03/05 00:38:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,7 @@
 /****************************************************************************/
 /* Removes all mail messages for usernumber that have been marked 'deleted' */
 /* smb_locksmbhdr() should be called prior to this function 				*/
-/* Returns the nubmer of messages removed									*/
+/* Returns the number of messages removed									*/
 /****************************************************************************/
 int sbbs_t::delmail(uint usernumber, int which)
 {
@@ -72,6 +72,7 @@ int sbbs_t::delmail(uint usernumber, int which)
 	}
 	smb_rewind(smb.sid_fp);
 	for(l=0;l<smb.status.total_msgs;) {
+		memset(&msg, 0, sizeof(msg));
 		if(smb_fread(&smb,&msg.idx,sizeof(idxrec_t),smb.sid_fp)!=sizeof(idxrec_t))
 			break;
 		if(!(msg.idx.attr&MSG_PERMANENT)
@@ -81,6 +82,10 @@ int sbbs_t::delmail(uint usernumber, int which)
 				|| which==MAIL_ALL)) {
 			if(smb.status.max_age && (now<0?0:(uintmax_t)now)>msg.idx.time
 				&& (now-msg.idx.time)/(24L*60L*60L)>smb.status.max_age)
+				msg.idx.attr|=MSG_DELETE;
+			else if((msg.idx.attr&MSG_SPAM)
+				&& cfg.max_spamage && (now<0?0:(uintmax_t)now) > msg.idx.time
+				&& (now-msg.idx.time)/(24L*60L*60L) > cfg.max_spamage)
 				msg.idx.attr|=MSG_DELETE;
 			else if(msg.idx.attr&MSG_KILLREAD && msg.idx.attr&MSG_READ)
 				msg.idx.attr|=MSG_DELETE;
@@ -108,13 +113,20 @@ int sbbs_t::delmail(uint usernumber, int which)
 		l++; 
 	}
 	smb_rewind(smb.sid_fp);
-	smb_fsetlength(smb.sid_fp,0);
-	for(i=0;i<l;i++)
-		smb_fwrite(&smb,&idxbuf[i],sizeof(idxrec_t),smb.sid_fp);
+	if(smb_fsetlength(smb.sid_fp,0) != 0)
+		errormsg(WHERE, "truncating", smb.file, 0);
+	else {
+		for(i=0;i<l;i++) {
+			if(smb_fwrite(&smb,&idxbuf[i],sizeof(idxrec_t),smb.sid_fp) != sizeof(idxrec_t)) {
+				errormsg(WHERE, ERR_WRITE, smb.file, i);
+				break;
+			}
+		}
+		smb.status.total_msgs=i;
+		smb_putstatus(&smb);
+		smb_fflush(smb.sid_fp);
+	}
 	free(idxbuf);
-	smb.status.total_msgs=l;
-	smb_putstatus(&smb);
-	smb_fflush(smb.sid_fp);
 	smb_close_ha(&smb);
 	smb_close_da(&smb);
 	return removed;
