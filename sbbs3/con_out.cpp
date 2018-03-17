@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.85 2018/07/01 09:40:27 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.84 2018/02/22 09:40:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,7 +230,7 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 	if(term_supports(NO_EXASCII) && ch&0x80)
 		ch=exascii_to_ascii_char(ch);  /* seven bit table */
-	if(ch==FF && lncntr > 0 && !tos) {
+	if(ch==FF && lncntr>1 && !tos) {
 		lncntr=0;
 		CRLF;
 		if(!(sys_status&SS_PAUSEOFF)) {
