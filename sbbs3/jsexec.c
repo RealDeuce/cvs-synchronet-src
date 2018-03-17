@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.197 2018/03/08 23:52:33 deuce Exp $ */
+/* $Id: jsexec.c,v 1.198 2018/03/09 03:55:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.197 $", "%*s %s", revision);
+	sscanf("$Revision: 1.198 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1393,7 +1393,7 @@ int main(int argc, char **argv, char** env)
 		YIELD();
 
 		if(result)
-			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
+			lprintf(LOG_ERR,"!Module (%s) set exit_code: %ld", module, result);
 
 		fprintf(statfp,"\n");
 		fprintf(statfp,"JavaScript: Destroying context\n");

@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.453 2018/03/08 23:25:30 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.462 2018/03/12 18:24:43 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -293,6 +293,16 @@ static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
 	return(result);
 }
 
+#define GCES(status, sock, session, estr, action) do {                      \
+	int GCES_level;                                                     \
+	get_crypt_error_string(status, session, &estr, action, &GCES_level);\
+	if (estr) {                                                         \
+		lprintf(GCES_level, "%04d TLS %s", sock, estr);                 \
+		free_crypt_attrstr(estr);                                   \
+	}                                                                   \
+} while (0)
+
+
 static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 {
 	int		len;
@@ -302,6 +312,7 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 	char	sbuf[1024];
 	fd_set	socket_set;
 	struct timeval tv;
+	char	*estr;
 
     va_start(argptr,fmt);
     len=vsnprintf(sbuf,maxlen=sizeof(sbuf)-2,fmt,argptr);
@@ -344,13 +355,13 @@ static int sockprintf(SOCKET sock, CRYPT_SESSION sess, char *fmt, ...)
 			if (result == CRYPT_OK)
 				sent += tls_sent;
 			else {
-				lprintf(LOG_DEBUG, "pushData returned %d\n", result);
-				if (result != -25)
-				return 0;
+				GCES(result, sock, sess, estr, "sending data");
+				if (result != CRYPT_ERROR_TIMEOUT)
+					return 0;
 			}
 			result = cryptFlushData(sess);
 			if (result != CRYPT_OK) {
-				lprintf(LOG_DEBUG, "cryptFlushData() returned %d\n", result);
+				GCES(result, sock, sess, estr, "flushing data");
 				return 0;
 			}
 		}
@@ -1163,6 +1174,7 @@ static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *las
 	struct	timeval	tv;
 	int ret;
 	int i;
+	char *estr;
 
 	if(ftp_set==NULL || terminate_server) {
 		sockprintf(sock,sess,"421 Server downed, aborting.");
@@ -1171,7 +1183,8 @@ static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *las
 	}
 	if (sess > -1) {
 		/* Try a read with no timeout first. */
-		cryptSetAttribute(sess, CRYPT_OPTION_NET_READTIMEOUT, 0);
+		if ((ret = cryptSetAttribute(sess, CRYPT_OPTION_NET_READTIMEOUT, 0)) != CRYPT_OK)
+			GCES(ret, sock, sess, estr, "setting read timeout");
 		while (1) {
 			ret = cryptPopData(sess, buf, 1, &len);
 			/* Successive reads will be with the full timeout after a select() */
@@ -1180,12 +1193,12 @@ static int sock_recvbyte(SOCKET sock, CRYPT_SESSION sess, char *buf, time_t *las
 				case CRYPT_OK:
 					break;
 				case CRYPT_ERROR_TIMEOUT:
-					lprintf(LOG_WARNING,"%04d !TIMEOUT in sock_recvbyte (%u seconds):  INACTIVE SOCKET",sock,startup->max_inactivity);
+					GCES(ret, sock, sess, estr, "popping data");
 					return -1;
 				case CRYPT_ERROR_COMPLETE:
 					return 0;
 				default:
-					lprintf(LOG_WARNING,"%04d !Cryptlib error in sock_recvbyte:  %d",sock,ret);
+					GCES(ret, sock, sess, estr, "popping data");
 					if (ret < -1)
 						return ret;
 					return -2;
@@ -1273,7 +1286,7 @@ int sockreadline(SOCKET socket, CRYPT_SESSION sess, char* buf, int len, time_t* 
 	while(rd<len-1) {
 		i = sock_recvbyte(socket, sess, &ch, lastactive);
 
-		if(i<1) {
+		if(i<1 && sess == -1) {
 			recverror(socket,i,__LINE__);
 			return(i);
 		}
@@ -1357,6 +1370,7 @@ static void send_thread(void* arg)
 	socklen_t	addr_len;
 	fd_set		socket_set;
 	struct timeval tv;
+	char		*estr;
 
 	xfer=*(xfer_t*)arg;
 	free(arg);
@@ -1449,13 +1463,13 @@ static void send_thread(void* arg)
 		if (*xfer.data_sess != -1) {
 			int status = cryptPushData(*xfer.data_sess, buf, rd, &wr);
 			if (status != CRYPT_OK) {
-				lprintf(LOG_DEBUG, "PushData() returned %d\n", status);
+				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "pushing data");
 				wr = -1;
 			}
 			else {
 				status = cryptFlushData(*xfer.data_sess);
 				if (status != CRYPT_OK) {
-					lprintf(LOG_DEBUG, "cryptFlushData() returned %d\n", status);
+					GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "flushing data");
 					wr = -1;
 				}
 			}
@@ -1633,6 +1647,7 @@ static void receive_thread(void* arg)
 	fd_set		socket_set;
 	struct timeval tv;
 	CRYPT_SESSION	sess = -1;
+	char		*estr;
 
 	xfer=*(xfer_t*)arg;
 	free(arg);
@@ -1721,8 +1736,10 @@ static void receive_thread(void* arg)
 #endif
 		if (*xfer.data_sess != -1) {
 			int status = cryptPopData(*xfer.data_sess, buf, sizeof(buf), &rd);
-			if (status != CRYPT_OK)
+			if (status != CRYPT_OK) {
+				GCES(status, *xfer.data_sock, *xfer.data_sess, estr, "popping data");
 				rd = -1;
+			}
 		}
 		else {
 			rd=recv(*xfer.data_sock,buf,sizeof(buf),0);
@@ -1913,29 +1930,37 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	ulong nb;
 	int status;
 	char *estr;
+	int level;
 
-	if (get_ssl_cert(&scfg, NULL) == -1) {
-		lprintf(LOG_ERR, "Unable to get certificate");
+	if (get_ssl_cert(&scfg, &estr, &level) == -1) {
+		if (estr) {
+			lprintf(level, "%04d FTP %s", estr);
+			free_crypt_attrstr(estr);
+		}
 		if (resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	if (cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to create TLS session");
+	if ((status = cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER)) != CRYPT_OK) {
+		GCES(status, *sock, CRYPT_UNUSED, estr, "creating session");
+		if (estr) {
+			lprintf(level, "%04d FTP %s", *sock, estr);
+			free(estr);
+		}
 		if (resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	if (cryptSetAttribute(*sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to disable certificate verification");
+	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY)) != CRYPT_OK) {
+		GCES(status, *sock, *sess, estr, "disabling certificate verification");
 		cryptDestroySession(*sess);
 		*sess = -1;
 		if(resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	if (cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to set private key");
+	if ((status=cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
+		GCES(status, *sock, *sess, estr, "setting private key");
 		cryptDestroySession(*sess);
 		*sess = -1;
 		if (resp)
@@ -1946,8 +1971,8 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	setsockopt(*sock,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 	nb=0;
 	ioctlsocket(*sock,FIONBIO,&nb);
-	if (cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock) != CRYPT_OK) {
-		lprintf(LOG_ERR, "Unable to set network socket");
+	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock)) != CRYPT_OK) {
+		GCES(status, *sock, *sess, estr, "setting network socket");
 		cryptDestroySession(*sess);
 		*sess = -1;
 		if (resp)
@@ -1957,14 +1982,12 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	if (resp)
 		sockprintf(*sock, -1, "234 Ready to start TLS");
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-		estr = get_crypt_error(*sess);
-		lprintf(LOG_ERR, "Unable to set session active (%d:%s)", status, estr);
-		free_crypt_attrstr(estr);
+		GCES(status, *sock, *sess, estr, "setting session active");
 		return TRUE;
 	}
 	if (startup->max_inactivity) {
-		if (cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity) != CRYPT_OK) {
-			lprintf(LOG_ERR, "Unable to set max inactivity");
+		if ((status = cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
+			GCES(status, *sock, *sess, estr, "setting read timeout");
 			return TRUE;
 		}
 	}
@@ -2621,7 +2644,7 @@ static BOOL send_mlsx_entry(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned 
 	return send_mlsx(fp, sock, sess, line, fname==NULL ? "" : fname);
 }
 
-static BOOL write_local_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned feats, const char *path)
+static BOOL write_local_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned feats, const char *path, BOOL full_path)
 {
 	const char *type;
 	char permstr[11];
@@ -2667,7 +2690,9 @@ static BOOL write_local_mlsx(FILE *fp, SOCKET sock, CRYPT_SESSION sess, unsigned
 		}
 	}
 	*p=0;
-	return send_mlsx_entry(fp, sock, sess, feats, type, permstr, (uint64_t)flength(path), fdate(path), NULL, NULL, 0, path);
+	if (is_file)
+		full_path = FALSE;
+	return send_mlsx_entry(fp, sock, sess, feats, type, permstr, (uint64_t)flength(path), fdate(path), NULL, NULL, 0, full_path ? path : getfname(path));
 }
 
 /*
@@ -3974,13 +3999,13 @@ static void ctrl_thread(void* arg)
 						memset(&cur_tm,0,sizeof(cur_tm));
 
 					if (cmd[3] == 'T') {
-						write_local_mlsx(NULL, sock, sess, mlsx_feats, path);
+						write_local_mlsx(NULL, sock, sess, mlsx_feats, path, TRUE);
 						sockprintf(sock, sess, "250 End");
 					}
 					else {
 						glob(path,0,NULL,&g);
 						for(i=0;i<(int)g.gl_pathc;i++)
-							write_local_mlsx(fp, INVALID_SOCKET, -1, mlsx_feats, g.gl_pathv[i]);
+							write_local_mlsx(fp, INVALID_SOCKET, -1, mlsx_feats, g.gl_pathv[i], FALSE);
 						globfree(&g);
 						fclose(fp);
 						filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
@@ -4080,8 +4105,12 @@ static void ctrl_thread(void* arg)
 
 				if(p[1]==':' || !strncmp(p,"\\\\",2))
 					SAFECOPY(path,p);
-				else if(*p=='/' || *p=='\\')
-					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p);
+				else if(*p=='/' || *p=='\\') {
+					SAFEPRINTF2(path,"%s%s",root_dir(local_dir),p+1);
+					p = FULLPATH(NULL, path, 0);
+					SAFECOPY(path, p);
+					free(p);
+				}
 				else {
 					SAFEPRINTF2(fname,"%s%s",local_dir,p);
 					FULLPATH(path,fname,sizeof(path));
@@ -4356,6 +4385,9 @@ static void ctrl_thread(void* arg)
 						send_mlsx_entry(fp, sock, sess, mlsx_feats, "dir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
 						l++;
 					}
+					else {
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
+					}
 					lprintf(LOG_INFO,"%04d %s listing: root in %s mode",sock,user.alias, mode);
 
 					/* QWK Packet */
@@ -4477,7 +4509,9 @@ static void ctrl_thread(void* arg)
 					}
 					if (cmd[3] == 'D') {
 						get_owner_name(NULL, str);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "..");
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
+						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
 					}
 					lprintf(LOG_INFO,"%04d %s listing: %s library in %s mode"
 						,sock,user.alias,scfg.lib[lib]->sname,mode);
@@ -4513,7 +4547,11 @@ static void ctrl_thread(void* arg)
 					if (cmd[3] == 'D') {
 						get_libperm(scfg.lib[lib], &user, &client, permstr);
 						get_owner_name(NULL, str);
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", permstr, UINT64_MAX, 0, str, NULL, 0, "..");
+						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "pdir", permstr, UINT64_MAX, 0, str, NULL, 0, aliaspath);
+						SAFEPRINTF2(aliaspath, "/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix);
+						get_unique(aliaspath, uniq);
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", permstr, UINT64_MAX, 0, str, NULL, 0, aliaspath);
 					}
 
 					SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,"*");
@@ -5830,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.453 $", "%*s %s", revision);
+	sscanf("$Revision: 1.462 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6039,7 +6077,6 @@ void DLLCALL ftp_server(void* arg)
 		 */
 		xpms_add_list(ftp_set, PF_UNSPEC, SOCK_STREAM, 0, startup->interfaces, startup->port, "FTP Server", ftp_open_socket_cb, startup->seteuid, NULL);
 
-		lprintf(LOG_INFO,"FTP Server listening");
 		status(STATUS_WFC);
 
 		/* Setup recycle/shutdown semaphore file lists */
