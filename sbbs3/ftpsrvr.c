@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.462 2018/03/12 18:24:43 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.463 2018/03/17 04:24:40 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3076,7 +3076,7 @@ static void ctrl_thread(void* arg)
 		return;
 	} 
 
-	protected_uint32_adjust(&active_clients, 1), 
+	protected_uint32_adjust(&active_clients, 1);
 	update_clients();
 
 	/* Initialize client display */
@@ -5868,7 +5868,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.462 $", "%*s %s", revision);
+	sscanf("$Revision: 1.463 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
