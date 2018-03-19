@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.472 2018/02/23 08:24:23 deuce Exp $ */
+/* $Id: sbbs.h,v 1.476 2018/03/12 18:24:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,8 +133,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 				*(sizeptr) = *JSSTSlenptr+1; \
 				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
 					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+					if((ret) != NULL) free(ret); \
 					(ret)=NULL; \
-					free(ret); \
 				} \
 				else { \
 					(ret)=JSSTStmpptr; \
@@ -328,6 +328,7 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
+	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -1027,10 +1028,6 @@ extern "C" {
 	DLLEXPORT int		DLLCALL sbbs_random(int);
 	DLLEXPORT void		DLLCALL sbbs_srand(void);
 
-	/* chat.cpp */
-	DLLEXPORT BOOL		DLLCALL sysop_available(scfg_t*);
-	DLLEXPORT BOOL		DLLCALL set_sysop_availability(scfg_t*, BOOL available);
-
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
@@ -1361,6 +1358,7 @@ char*	prep_code(char *str, const char* prefix);
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...);	/* log output */
 	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
