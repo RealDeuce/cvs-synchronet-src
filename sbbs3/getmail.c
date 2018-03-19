@@ -1,6 +1,6 @@
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.15 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: getmail.c,v 1.16 2018/03/10 03:19:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -161,11 +161,13 @@ mail_t* DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 			continue;
 		if(mode&LM_SPAMONLY && !(idx.attr&MSG_SPAM))
 			continue;
-		if((mail=(mail_t *)realloc(mail,sizeof(mail_t)*(l+1)))
-			==NULL) {
+		mail_t* np;
+		if((np = realloc(mail, sizeof(mail_t) * (l+1))) == NULL) {
+			free(mail);
 			smb_unlocksmbhdr(smb);
 			return(NULL); 
 		}
+		mail = np;
 		mail[l]=idx;
 		l++; 
 	}

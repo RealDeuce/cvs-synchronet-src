@@ -1,6 +1,6 @@
 /* SBBSecho configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.28 2018/02/20 11:17:26 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.29 2018/03/17 02:23:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -356,7 +356,6 @@ int main(int argc, char **argv)
 			p=getenv("SBBSNODE");
 			if(!p) {
 				goto USAGE;
-				exit(1); 
 			}
 			SAFECOPY(str,p);
 			backslash(str);
