@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.184 2018/02/20 11:43:08 rswindell Exp $ */
+/* $Id: userdat.c,v 1.190 2018/03/18 19:32:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -459,7 +459,8 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 	for(i=1;i<=cfg->sys_nodes;i++) { /* instant user data update */
 //		if(i==cfg->node_num)
 //			continue;
-		getnodedat(cfg, i,&node,NULL);
+		if(getnodedat(cfg, i,&node,NULL) != 0)
+			continue;
 		if(node.useron==usernumber && (node.status==NODE_INUSE
 			|| node.status==NODE_QUIET)) {
 			if(getnodedat(cfg, i,&node,&file) == 0) {
@@ -1668,7 +1669,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && !findstr_in_string(user->cursub,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->cursub,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1700,7 +1701,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && !findstr_in_string(user->curdir,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->curdir,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -2942,13 +2943,14 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	if((node=login_attempted(list, addr)) != NULL) {
 		attempt=node->data;
 		/* Don't count consecutive duplicate attempts (same name and password): */
-		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
+		if((user!=NULL && strcmp(attempt->user,user)==0) && (pass==NULL || strcmp(attempt->pass,pass)==0))
 			attempt->dupes++;
 	}
 	SAFECOPY(attempt->prot,prot);
 	attempt->time=time32(NULL);
 	memcpy(&attempt->addr, addr, sizeof(*addr));
-	SAFECOPY(attempt->user, user);
+	if(user != NULL)
+		SAFECOPY(attempt->user, user);
 	memset(attempt->pass, 0, sizeof(attempt->pass));
 	if(pass != NULL)
 		SAFECOPY(attempt->pass, pass);
@@ -3193,3 +3195,80 @@ BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
 	}
 	return TRUE;
 }
+
+static char* sysop_available_semfile(scfg_t* scfg)
+{
+	static char semfile[MAX_PATH+1];
+	SAFEPRINTF(semfile, "%ssysavail.chat", scfg->ctrl_dir);
+	return semfile;
+}
+
+BOOL DLLCALL sysop_available(scfg_t* scfg)
+{
+	return fexist(sysop_available_semfile(scfg));
+}
+
+BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
+{
+	if(available)
+		return ftouch(sysop_available_semfile(scfg));
+	return remove(sysop_available_semfile(scfg)) == 0;
+}
+
+#if !defined(NO_SOCKET_SUPPORT)	/* This brings in xpdev which then requires socket lib */
+
+/************************************/
+/* user .ini file get/set functions */
+/************************************/
+
+static FILE* user_ini_open(scfg_t* scfg, unsigned user_number, BOOL create)
+{
+	char path[MAX_PATH+1];
+
+	SAFEPRINTF2(path, "%suser/%04u.ini", scfg->data_dir, user_number);
+	return iniOpenFile(path, create);
+}
+
+BOOL DLLCALL user_get_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, char* value)
+{
+	FILE* fp;
+
+	fp = user_ini_open(scfg, user_number, /* create: */FALSE);
+	if(fp == NULL)
+		return FALSE;
+	char* result = iniReadValue(fp, section, key, NULL, value);
+	iniCloseFile(fp);
+	return result != NULL;
+}
+
+BOOL DLLCALL user_set_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, const char* value)
+{
+	FILE* fp;
+
+	fp = user_ini_open(scfg, user_number, /* create: */TRUE);
+	if(fp == NULL)
+		return FALSE;
+	str_list_t ini = iniReadFile(fp);
+	char* result = iniSetValue(&ini, section, key, value, /* style */NULL);
+	iniWriteFile(fp, ini);
+	iniFreeStringList(ini);
+	iniCloseFile(fp);
+	return result != NULL;
+}
+
+BOOL DLLCALL user_set_time_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, time_t value)
+{
+	FILE* fp;
+
+	fp = user_ini_open(scfg, user_number, /* create: */TRUE);
+	if(fp == NULL)
+		return FALSE;
+	str_list_t ini = iniReadFile(fp);
+	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, /* style */NULL);
+	iniWriteFile(fp, ini);
+	iniFreeStringList(ini);
+	iniCloseFile(fp);
+	return result != NULL;
+}
+
+#endif /* !NO_SOCKET_SUPPORT */

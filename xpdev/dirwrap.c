@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.98 2018/02/20 21:22:27 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.100 2018/03/07 02:44:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1032,7 +1032,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || filename[1]==':'
+		|| filename[0]=='\\' || (isalpha(filename[0]) && filename[1]==':')
 #endif
 		);
 }
