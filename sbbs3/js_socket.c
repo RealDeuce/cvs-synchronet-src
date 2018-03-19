@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.221 2018/07/08 23:44:08 deuce Exp $ */
+/* $Id: js_socket.c,v 1.218 2018/03/19 06:59:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -186,7 +186,7 @@ static void do_js_close(js_socket_private_t *p)
 	else
 		shutdown(p->sock, SHUT_RDWR);
 	// This is a lie for external sockets... don't tell anyone.
-	p->sock = INVALID_SOCKET;
+	p->sock = INVALID_SOCKET; 
 	p->is_connected = FALSE;
 }
 
@@ -238,8 +238,10 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 			FD_ZERO(&socket_set);
 			FD_SET(p->sock,&socket_set);
 			tv.tv_sec = timeout;
-			if((ret = select(p->sock+1,&socket_set,NULL,NULL,&tv))==1)
+			if(select(p->sock+1,&socket_set,NULL,NULL,&tv)==1)
 				ret = recv(p->sock, buf, len, flags);
+			else
+				ret = 0;
 		}
 		else {
 			status = cryptPopData(p->session, buf, len, &copied);
@@ -282,7 +284,7 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 	ptrdiff_t total=0;
 	int copied=0,ret;
 	char *estr;
-
+	
 	if(p->session==-1)
 		return sendsocket(p->sock, msg, len);
 	do {
@@ -586,7 +588,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
-
+	
 	memset(&addr,0,sizeof(addr));
 	memset(&hints, 0, sizeof(hints));
 
@@ -645,7 +647,7 @@ js_listen(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
-
+	
 	if(argc && argv[0]!=JSVAL_VOID)
 		backlog = JS_ValueToInt32(cx,argv[0],&backlog);
 
@@ -742,7 +744,7 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 	jsrefcount	rc;
 	char		ip_str[256];
 	struct addrinfo	hints,*res,*cur;
-
+	
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
 		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
@@ -768,7 +770,7 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	/* always set to nonblocking here */
 	val=1;
-	ioctlsocket(p->sock,FIONBIO,&val);
+	ioctlsocket(p->sock,FIONBIO,&val);	
 	for(cur=res,result=1; result && cur; cur=cur->ai_next) {
 		tv.tv_sec = 10;	/* default time-out */
 
@@ -832,6 +834,8 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
+	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+
 	str = JS_ValueToString(cx, argv[0]);
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
 	HANDLE_PENDING(cx, cp);
@@ -849,7 +853,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	free(cp);
 	JS_RESUMEREQUEST(cx, rc);
-
+		
 	return(JS_TRUE);
 }
 
@@ -889,7 +893,7 @@ js_sendline(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	free(cp);
 	JS_RESUMEREQUEST(cx, rc);
-
+		
 	return(JS_TRUE);
 }
 
@@ -1047,7 +1051,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && argv[0]!=JSVAL_VOID)
 		JS_ValueToInt32(cx,argv[0],&val);
-	if(argc>1 && argv[1]!=JSVAL_VOID)
+	if(argc>1 && argv[1]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[1],&size);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1068,7 +1072,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 				l=htonl(l);
 			wr=js_socket_sendsocket(p,(BYTE*)&l,size,TRUE);
 			break;
-		default:
+		default:	
 			/* unknown size */
 			dbprintf(TRUE, p, "unsupported binary write size: %d",size);
 			break;
@@ -1080,7 +1084,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 		p->last_error=ERROR_VALUE;
 		dbprintf(TRUE, p, "send of %u bytes (binary) failed",size);
 	}
-
+		
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -1139,7 +1143,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes",len);
 	JS_RESUMEREQUEST(cx, rc);
-
+	
 	free(buf);
 	return(JS_TRUE);
 }
@@ -1274,7 +1278,7 @@ js_recvfrom(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	dbprintf(FALSE, p, "received %u bytes from %s:%s",len,ip_addr,port);
 	JS_RESUMEREQUEST(cx, rc);
-
+		
 	return(JS_TRUE);
 }
 
@@ -1311,7 +1315,7 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 		len=0;
 	JS_RESUMEREQUEST(cx, rc);
 	if(len<0) {
-		p->last_error=ERROR_VALUE;
+		p->last_error=ERROR_VALUE;	
 		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 		free(buf);
 		return(JS_TRUE);
@@ -1328,7 +1332,7 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 	dbprintf(FALSE, p, "received %u bytes, lasterror=%d"
 		,len,ERROR_VALUE);
 	JS_RESUMEREQUEST(cx, rc);
-
+		
 	return(JS_TRUE);
 }
 
@@ -1449,7 +1453,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 	dbprintf(FALSE, p, "received %u bytes (recvline) lasterror=%d"
 		,i,ERROR_VALUE);
 	JS_RESUMEREQUEST(cx, rc);
-
+		
 	return(JS_TRUE);
 }
 
@@ -1473,7 +1477,7 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && argv[0]!=JSVAL_VOID)
+	if(argc && argv[0]!=JSVAL_VOID) 
 		JS_ValueToInt32(cx,argv[0],&size);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1500,7 +1504,7 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(rd!=size)
 		p->last_error=ERROR_VALUE;
-
+		
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -2087,13 +2091,13 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	,JSDOCSTR("place socket in a state to listen for incoming connections (use before an accept)")
 	,310
 	},
-	{"accept",		js_accept,		0,	JSTYPE_OBJECT,	JSDOCSTR("")
+	{"accept",		js_accept,		0,	JSTYPE_OBJECT,	JSDOCSTR("")					
 	,JSDOCSTR("accept an incoming connection, returns a new <i>Socket</i> object representing the new connection")
 	,310
 	},
 	{"write",		js_send,		1,	JSTYPE_ALIAS },
 	{"send",		js_send,		1,	JSTYPE_NUMBER,	JSDOCSTR("data")
-	,JSDOCSTR("send a string (AKA write).  Returns the number of bytes sent or undefined if an error occured.  "
+	,JSDOCSTR("send a string (AKA write).  Returns the number of bytes sent or null if an error occured.  "
 	"Versions before 3.17 returned a bool true if all bytes were sent and false otherwise.")
 	,310
 	},
@@ -2152,7 +2156,7 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	,310
 	},
 	{"ioctl",		js_ioctlsocket,	1,	JSTYPE_NUMBER,	JSDOCSTR("command [,argument=<tt>0</tt>]")
-	,JSDOCSTR("send socket IOCTL (advanced)")
+	,JSDOCSTR("send socket IOCTL (advanced)")					
 	,310
 	},
 	{"poll",		js_poll,		1,	JSTYPE_NUMBER,	JSDOCSTR("[timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
@@ -2170,7 +2174,7 @@ static JSBool js_socket_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
-
+		
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
@@ -2213,7 +2217,7 @@ static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type)
 	if((options=getSocketOptionList())==NULL)
 		return(FALSE);
 
-	if((array=JS_NewArrayObject(cx, 0, NULL))==NULL)
+	if((array=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 		return(FALSE);
 
 	if(!JS_DefineProperty(cx, obj, "option_list", OBJECT_TO_JSVAL(array)
