@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.200 2018/03/23 01:30:16 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.198 2018/03/20 03:41:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -311,9 +311,8 @@ static void log_msg(TRichEdit* Log, log_msg_t* msg)
     AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
     Line+=AnsiString(msg->buf).Trim();
 	if(msg->repeated)
-		Line += " [x" + AnsiString(msg->repeated + 1) + "]";
+		Line += " [x" + AnsiString(msg->repeated) + "]";
     Log->SelLength=0;
-	Log->SelStart=-1;
     Log->SelAttributes->Assign(
         MainForm->LogAttributes(msg->level, Log->Color, Log->Font));
 	Log->Lines->Add(Line);
@@ -479,7 +478,7 @@ static void mail_log_msg(log_msg_t* msg)
 			AnsiString Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
 		    Line+=AnsiString(msg->buf).Trim();
 			if(msg->repeated)
-				Line += " [x" + AnsiString(msg->repeated + 1) + "]";
+				Line += " [x" + AnsiString(msg->repeated) + "]";
 	        Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
@@ -588,7 +587,7 @@ static void ftp_log_msg(log_msg_t* msg)
             AnsiString Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
             Line+=AnsiString(msg->buf).Trim();
 			if(msg->repeated)
-				Line += " [x" + AnsiString(msg->repeated + 1) + "]";
+				Line += " [x" + AnsiString(msg->repeated) + "]";
             Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
@@ -2848,7 +2847,6 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
 {
 	int i,file;
 	char str[MAX_PATH+1];
-	static int selection;
 
 	Application->CreateForm(__classid(TCodeInputForm), &CodeInputForm);
 	CodeInputForm->Label->Caption="Event Internal Code";
@@ -2856,7 +2854,7 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
     for(i=0;i<cfg.total_events;i++)
     	CodeInputForm->ComboBox->Items->Add(
             AnsiString(cfg.event[i]->code).UpperCase());
-    CodeInputForm->ComboBox->ItemIndex=selection;
+    CodeInputForm->ComboBox->ItemIndex=0;
     if(CodeInputForm->ShowModal()==mrOk
        	&& CodeInputForm->ComboBox->Text.Length()) {
         for(i=0;i<cfg.total_events;i++) {
@@ -2865,7 +2863,6 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
             	if((file=_sopen(str,O_CREAT|O_TRUNC|O_WRONLY
 	                ,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 	                close(file);
-				selection = i;
                 break;
 	   		}
         }

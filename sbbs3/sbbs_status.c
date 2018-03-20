@@ -47,7 +47,7 @@ static int lprintf(int level, const char *fmt, ...)
 
 	if(level <= LOG_ERR) {
 		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "stat %s", sbuf);
+		SAFEPRINTF(errmsg, "ftp %s", sbuf);
 		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
 			startup->errormsg(startup->cbdata,level,errmsg);
@@ -473,7 +473,7 @@ void status_thread(void *arg)
 		sbbs_beep(100, 500);
 		sbbs_beep(300, 500);
 		sbbs_beep(100, 500);
-		fprintf(stderr, "Invalid status startup structure!\n");
+		fprintf(stderr, "Invalud status strartup structure!\n");
 		return;
 	}
 
@@ -537,7 +537,6 @@ void status_thread(void *arg)
 
 	startup->status(startup->cbdata, "Listening");
 	startup->started(startup->cbdata);
-	lprintf(LOG_INFO, "Listening on %s", startup->sock_fname);
 
 	pthread_mutex_lock(&status_thread_mutex);
 	while (!status_thread_terminated) {

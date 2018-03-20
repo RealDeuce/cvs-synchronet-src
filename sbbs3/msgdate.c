@@ -2,7 +2,7 @@
 
 /* Synchronet RFC822 message date/time string conversion routines */
 
-/* $Id: msgdate.c,v 1.6 2018/07/24 05:15:45 rswindell Exp $ */
+/* $Id: msgdate.c,v 1.5 2018/02/20 11:56:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,12 +173,4 @@ when_t DLLCALL rfc822date(char* date)
 	when.time=(uint32_t)mktime(&tm);
 
 	return(when);
-}
-
-BOOL DLLCALL newmsgs(smb_t* smb, time_t t)
-{
-	char index_fname[MAX_PATH + 1];
-
-	SAFEPRINTF(index_fname, "%s.sid", smb->file);
-	return fdate(index_fname) > t;
 }
