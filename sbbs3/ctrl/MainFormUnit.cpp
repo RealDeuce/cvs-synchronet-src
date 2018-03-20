@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.198 2018/03/20 03:41:49 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.199 2018/03/20 23:41:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,6 +313,7 @@ static void log_msg(TRichEdit* Log, log_msg_t* msg)
 	if(msg->repeated)
 		Line += " [x" + AnsiString(msg->repeated) + "]";
     Log->SelLength=0;
+	Log->SelStart=-1;
     Log->SelAttributes->Assign(
         MainForm->LogAttributes(msg->level, Log->Color, Log->Font));
 	Log->Lines->Add(Line);
