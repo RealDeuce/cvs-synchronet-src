@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.51 2016/11/20 22:15:33 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.52 2018/03/15 23:56:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,13 +355,15 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 	delfiles(cfg.temp_dir,"*.NDX");
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
-	remove(str);
+	removecase(str);
 	SAFEPRINTF(str,"%sDOOR.ID",cfg.temp_dir);
-	remove(str);
+	removecase(str);
 	SAFEPRINTF(str,"%sCONTROL.DAT",cfg.temp_dir);
-	remove(str);
+	removecase(str);
 	SAFEPRINTF(str,"%sNETFLAGS.DAT",cfg.temp_dir);
-	remove(str);
+	removecase(str);
+	SAFEPRINTF(str,"%sTOREADER.EXT",cfg.temp_dir);
+	removecase(str);
 
 	dir=opendir(cfg.temp_dir);
 	while(dir!=NULL && (dirent=readdir(dir))!=NULL) {
