@@ -1,4 +1,4 @@
-/* $Id: js_cryptcert.c,v 1.7 2018/02/24 21:58:38 rswindell Exp $ */
+/* $Id: js_cryptcert.c,v 1.8 2018/02/26 07:05:10 deuce Exp $ */
 
 // Cyrptlib Certificates...
 
@@ -2952,7 +2952,7 @@ static jsSyncMethodSpec js_cryptcert_functions[] = {
 	,JSDOCSTR("Destroys the certificate.")
 	,316
 	},
-	{"export",	js_export,	0,	JSTYPE_STRING,	"format"
+	{"export_cert",	js_export,	0,	JSTYPE_STRING,	"format"
 	,JSDOCSTR("Exports the certificate in the format chosen from CryptCert.CERTFORMAT.")
 	,316
 	},
