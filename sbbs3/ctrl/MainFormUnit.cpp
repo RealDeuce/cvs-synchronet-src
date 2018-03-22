@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.195 2017/11/28 05:21:27 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.199 2018/03/20 23:41:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,27 +281,48 @@ static void client_on(void* p, BOOL on, int sock, client_t* client, BOOL update)
 static int lputs(void* p, int level, const char *str)
 {
     log_msg_t   msg;
+	link_list_t* list = (link_list_t*)p;
+	log_msg_t*	last;
 
+	msg.repeated = 0;
     msg.level = level;
     GetLocalTime(&msg.time);
     SAFECOPY(msg.buf, str);
-    listPushNodeData((link_list_t*)p, &msg, sizeof(msg));
+	listLock(list);
+	BOOL unique = TRUE;
+	if(list->last != NULL) {
+		last = (log_msg_t*)list->last->data;
+		if(strcmp(last->buf, msg.buf) == 0) {
+			last->repeated++;
+			unique = FALSE;
+		}
+	}
+	if(unique)
+		listPushNodeData(list, &msg, sizeof(msg));
+	listUnlock(list);
     return strlen(msg.buf);
+}
+
+static void log_msg(TRichEdit* Log, log_msg_t* msg)
+{
+    while(MaxLogLen && Log->Lines->Count >= MaxLogLen)
+        Log->Lines->Delete(0);
+
+    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
+    Line+=AnsiString(msg->buf).Trim();
+	if(msg->repeated)
+		Line += " [x" + AnsiString(msg->repeated) + "]";
+    Log->SelLength=0;
+	Log->SelStart=-1;
+    Log->SelAttributes->Assign(
+        MainForm->LogAttributes(msg->level, Log->Color, Log->Font));
+	Log->Lines->Add(Line);
+    SendMessage(Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
 }
 
 static void bbs_log_msg(log_msg_t* msg)
 {
-    while(MaxLogLen && TelnetForm->Log->Lines->Count >= MaxLogLen)
-        TelnetForm->Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-
-    Line+=AnsiString(msg->buf).Trim();
-    TelnetForm->Log->SelLength=0;
-    TelnetForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, TelnetForm->Log->Color, TelnetForm->Log->Font));
-	TelnetForm->Log->Lines->Add(Line);
-    SendMessage(TelnetForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+	log_msg(TelnetForm->Log, msg);
 }
 
 static void bbs_status(void* p, const char *str)
@@ -379,30 +400,12 @@ static void bbs_start(void)
 
 static void event_log_msg(log_msg_t* msg)
 {
-    while(MaxLogLen && EventsForm->Log->Lines->Count >= MaxLogLen)
-        EventsForm->Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
-    EventsForm->Log->SelLength=0;
-    EventsForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, EventsForm->Log->Color, EventsForm->Log->Font));
-	EventsForm->Log->Lines->Add(Line);
-    SendMessage(EventsForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+	log_msg(EventsForm->Log, msg);
 }
 
 static void services_log_msg(log_msg_t* msg)
 {
-    while(MaxLogLen && ServicesForm->Log->Lines->Count >= MaxLogLen)
-        ServicesForm->Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
-    ServicesForm->Log->SelLength=0;
-    ServicesForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, ServicesForm->Log->Color, ServicesForm->Log->Font));
-	ServicesForm->Log->Lines->Add(Line);
-    SendMessage(ServicesForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+	log_msg(ServicesForm->Log, msg);
 }
 
 static void services_status(void* p, const char *str)
@@ -454,16 +457,7 @@ static void mail_log_msg(log_msg_t* msg)
         return;
     }
 
-    while(MaxLogLen && MailForm->Log->Lines->Count >= MaxLogLen)
-        MailForm->Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
-    MailForm->Log->SelLength=0;
-    MailForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, MailForm->Log->Color, MailForm->Log->Font));
-	MailForm->Log->Lines->Add(Line);
-    SendMessage(MailForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+	log_msg(MailForm->Log, msg);
 
     if(MainForm->MailLogFile && MainForm->MailStop->Enabled) {
         AnsiString LogFileName
@@ -482,8 +476,10 @@ static void mail_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-			Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+			AnsiString Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
 		    Line+=AnsiString(msg->buf).Trim();
+			if(msg->repeated)
+				Line += " [x" + AnsiString(msg->repeated) + "]";
 	        Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
@@ -569,16 +565,7 @@ static void ftp_log_msg(log_msg_t* msg)
         return;
     }
 
-    while(MaxLogLen && FtpForm->Log->Lines->Count >= MaxLogLen)
-        FtpForm->Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
-    FtpForm->Log->SelLength=0;
-    FtpForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, FtpForm->Log->Color, FtpForm->Log->Font));
-	FtpForm->Log->Lines->Add(Line);
-    SendMessage(FtpForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+	log_msg(FtpForm->Log, msg);
 
     if(MainForm->FtpLogFile && MainForm->FtpStop->Enabled) {
         AnsiString LogFileName
@@ -598,8 +585,10 @@ static void ftp_log_msg(log_msg_t* msg)
             LogStream=_fsopen(LogFileName.c_str(),"a",SH_DENYNONE);
 
         if(LogStream!=NULL) {
-            Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
+            AnsiString Line=SystemTimeToDateTime(msg->time).FormatString("hh:mm:ss")+"  ";
             Line+=AnsiString(msg->buf).Trim();
+			if(msg->repeated)
+				Line += " [x" + AnsiString(msg->repeated) + "]";
             Line+="\n";
         	fwrite(AnsiString(Line).c_str(),1,Line.Length(),LogStream);
         }
@@ -685,16 +674,7 @@ static void web_log_msg(log_msg_t* msg)
         return;
     }
 
-    while(MaxLogLen && WebForm->Log->Lines->Count >= MaxLogLen)
-        WebForm->Log->Lines->Delete(0);
-
-    AnsiString Line=SystemTimeToDateTime(msg->time).FormatString(LOG_TIME_FMT)+"  ";
-    Line+=AnsiString(msg->buf).Trim();
-    WebForm->Log->SelLength=0;
-    WebForm->Log->SelAttributes->Assign(
-        MainForm->LogAttributes(msg->level, WebForm->Log->Color, WebForm->Log->Font));
-	WebForm->Log->Lines->Add(Line);
-    SendMessage(WebForm->Log->Handle, WM_VSCROLL, SB_BOTTOM, NULL);
+	log_msg(WebForm->Log, msg);
 }
 
 static void web_status(void* p, const char *str)
@@ -805,6 +785,7 @@ static void recycle(void* cbdata)
         );
     if(fp!=NULL)
         fclose(fp);
+	MainForm->SetLogControls();
 }
 //---------------------------------------------------------------------------
 __fastcall TMainForm::TMainForm(TComponent* Owner)
@@ -843,7 +824,7 @@ __fastcall TMainForm::TMainForm(TComponent* Owner)
     bbs_startup.event_cbdata=&event_log_list;    
     bbs_startup.first_node=1;
     bbs_startup.last_node=4;
-	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE;
+	bbs_startup.options=BBS_OPT_XTRN_MINIMIZED;
 	bbs_startup.telnet_port=IPPORT_TELNET;
     bbs_startup.rlogin_port=513;
 	bbs_startup.lputs=lputs;
@@ -1654,6 +1635,20 @@ void __fastcall TMainForm::WriteFont(AnsiString subkey, TFont* Font)
     Registry->CloseKey();
     delete Registry;
 }
+
+void __fastcall TMainForm::SetLogControls(void)
+{
+    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
+    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
+    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
+    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
+    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
+    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
+    WebForm->LogLevelUpDown->Position=web_startup.log_level;
+    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
+    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
+    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
+}
 void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 {
     bool	TelnetFormFloating=false;
@@ -2248,7 +2243,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
     else
     	SoundToggle->Checked=true;
 
-    if(bbs_startup.options&BBS_OPT_SYSOP_AVAILABLE)
+    if(sysop_available(&cfg))
     	ChatToggle->Checked=true;
     else
     	ChatToggle->Checked=false;
@@ -2350,17 +2345,9 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
                 
     ServiceStatusTimer->Enabled=true;
 
-    TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
-    TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
-    FtpForm->LogLevelUpDown->Position=ftp_startup.log_level;
-    FtpForm->LogLevelText->Caption=LogLevelDesc[ftp_startup.log_level];
-    MailForm->LogLevelUpDown->Position=mail_startup.log_level;
-    MailForm->LogLevelText->Caption=LogLevelDesc[mail_startup.log_level];
-    WebForm->LogLevelUpDown->Position=web_startup.log_level;
-    WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
-    ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
-    ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
 
+	SetLogControls();
+	
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
 
@@ -2959,6 +2946,12 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     char    days[64];
     static  time_t start;
     ulong   up;
+    static  bool sysop_available;
+
+    if(ChatToggle->Checked != sysop_available) {
+        sysop_available = ChatToggle->Checked;
+        set_sysop_availability(&cfg, sysop_available);
+    }
 
     if(!start)
         start=time(NULL);
@@ -3032,16 +3025,8 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
 void __fastcall TMainForm::ChatToggleExecute(TObject *Sender)
 {
     ChatToggle->Checked=!ChatToggle->Checked;
-    if(ChatToggle->Checked)
-	    bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
-    else
-        bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
-
-	if(bbs_svc!=NULL && controlService!=NULL)
-        controlService(bbs_svc
-            ,ChatToggle->Checked ? SERVICE_CONTROL_SYSOP_AVAILABLE : SERVICE_CONTROL_SYSOP_UNAVAILABLE
-            ,&bbs_svc_status);
 }
+
 //---------------------------------------------------------------------------
 void __fastcall TMainForm::UserEditExecute(TObject *Sender)
 {
@@ -3374,7 +3359,7 @@ void __fastcall TMainForm::reload_config(void)
    	StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text="Configuration reloaded";
    	semfile_list_check(&initialized,recycle_semfiles);
 
-    if(bbs_startup.options&BBS_OPT_SYSOP_AVAILABLE)
+    if(sysop_available(&cfg))
     	ChatToggle->Checked=true;
     else
     	ChatToggle->Checked=false;
@@ -3383,6 +3368,7 @@ void __fastcall TMainForm::reload_config(void)
     	SoundToggle->Checked=false;
     else
     	SoundToggle->Checked=true;
+	SetLogControls();
 }
 //---------------------------------------------------------------------------
 
@@ -3607,6 +3593,7 @@ bool GetServerLogLine(HANDLE& log, const char* name, log_msg_t* msg)
         ) || !msgs)
         return(false);
 
+	memset(msg, 0, sizeof(*msg));
     DWORD rd=0;
     if(!ReadFile(
         log,				// handle of file to read
