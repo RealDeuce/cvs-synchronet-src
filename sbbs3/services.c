@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.317 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: services.c,v 1.318 2018/03/22 21:20:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -991,6 +991,7 @@ static void js_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
+	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
@@ -1194,6 +1195,7 @@ static void js_static_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
+	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1641,7 +1643,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.317 $", "%*s %s", revision);
+	sscanf("$Revision: 1.318 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1767,8 +1769,6 @@ void DLLCALL services_thread(void* arg)
 		DESCRIBE_COMPILER(compiler);
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
-
-		sbbs_srand();	/* Seed random number generator */
 
 		protected_uint32_init(&threads_pending_start,0);
 
