@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.700 2018/03/23 01:19:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.701 2018/03/23 23:57:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5476,6 +5476,7 @@ NO_SSH:
 				}
 			}
 			if(ssh_failed) {
+				lprintf(LOG_NOTICE, "%04d SSH session establishment failed", client_socket);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
