@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.482 2018/07/24 05:15:45 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.476 2018/03/12 18:24:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -380,7 +380,6 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
-	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
@@ -587,7 +586,7 @@ public:
 
 	void	reset_logon_vars(void);
 
-	uint	finduser(char *str, bool silent_failure = false);
+	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
 
@@ -675,7 +674,7 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which, long lm_mode = 0);
+	void	readmail(uint usernumber, int which);
 	bool	readmail_inside;
 	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
@@ -760,7 +759,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	void	badlogin(char* user, char* passwd);
 
 	/* answer.cpp */
 	bool	answer();
@@ -1106,11 +1105,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL seconds_to_str(uint, char*);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
-
-	/* msgdate.c */
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
-	DLLEXPORT BOOL		DLLCALL newmsgs(smb_t*, time_t);
 
 	/* load_cfg.c */
 	DLLEXPORT BOOL		DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error);
@@ -1360,16 +1356,8 @@ char*	prep_code(char *str, const char* prefix);
 
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
-	int 	lprintf(int level, const char *fmt, ...)	/* log output */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));
-#endif
-	;
-	int 	eprintf(int level, const char *fmt, ...)	/* event log */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));
-#endif
-	;
+	int 	lprintf(int level, const char *fmt, ...);	/* log output */
+	int 	eprintf(int level, const char *fmt, ...);	/* event log */
 	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
