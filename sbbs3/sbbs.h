@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.474 2018/03/10 03:19:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.476 2018/03/12 18:24:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,6 +328,7 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
+	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -1357,6 +1358,7 @@ char*	prep_code(char *str, const char* prefix);
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...);	/* log output */
 	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
