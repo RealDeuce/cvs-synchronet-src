@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.70 2018/06/10 08:54:54 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.69 2018/03/06 21:46:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,8 +43,6 @@
 
 static char* msg_area_prop_desc[] = {
 	  "message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
-	  "FidoNet NetMail settings (bitfield) - see <tt>NMAIL_*</tt> in <tt>sbbsdefs.js</tt> for details"
-	  "Internet NetMail settings (bitfield) - see <tt>NMAIL_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	,NULL
 };
 
@@ -399,26 +397,6 @@ JSBool DLLCALL js_msg_area_resolve(JSContext* cx, JSObject* areaobj, jsid id)
 		if(!JS_NewNumberValue(cx,p->cfg->msg_misc,&val))
 			return JS_FALSE;
 		if(!JS_SetProperty(cx, areaobj, "settings", &val)) 
-			return JS_FALSE;
-		if (name)
-			return JS_TRUE;
-	}
-	if (name==NULL || strcmp(name, "fido_netmail_settings")==0) {
-		if (name)
-			free(name);
-		if(!JS_NewNumberValue(cx,p->cfg->netmail_misc,&val))
-			return JS_FALSE;
-		if(!JS_SetProperty(cx, areaobj, "fido_netmail_settings", &val)) 
-			return JS_FALSE;
-		if (name)
-			return JS_TRUE;
-	}
-	if (name==NULL || strcmp(name, "inet_netmail_settings")==0) {
-		if (name)
-			free(name);
-		if(!JS_NewNumberValue(cx,p->cfg->inetmail_misc,&val))
-			return JS_FALSE;
-		if(!JS_SetProperty(cx, areaobj, "inet_netmail_settings", &val)) 
 			return JS_FALSE;
 		if (name)
 			return JS_TRUE;
