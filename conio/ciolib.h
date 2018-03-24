@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.101 2019/03/22 21:28:10 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.99 2018/02/14 19:24:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 
 #ifdef _WIN32
         #ifdef __BORLANDC__
-                #define CIOLIBCALL
+                #define CIOLIBCALL __stdcall
         #else
                 #define CIOLIBCALL
         #endif
@@ -261,8 +261,6 @@ struct ciolib_pixels {
 struct ciolib_screen {
 	uint32_t		fg_colour;
 	uint32_t		bg_colour;
-	int			flags;
-	int			fonts[5];
 	struct ciolib_pixels	*pixels;
 	void			*vmem;
 	uint32_t		*foreground;
