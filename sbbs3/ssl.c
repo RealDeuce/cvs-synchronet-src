@@ -41,7 +41,6 @@ static int DLLCALL crypt_ll(int error)
 	switch(error) {
 		case CRYPT_ERROR_INCOMPLETE:
 		case CRYPT_ERROR_NOSECURE:
-		case CRYPT_ERROR_BADDATA:
 			return LOG_WARNING;
 		case CRYPT_ERROR_INTERNAL:
 			return LOG_NOTICE;
@@ -185,7 +184,7 @@ bool DLLCALL get_crypt_error_string(int status, CRYPT_HANDLE sess, char **estr, 
 					emsg = "Not enough data available";
 					break;
 				case CRYPT_ERROR_BADDATA:
-					emsg = "Bad/unrecognized data format";
+					emsg = "Bad/unrecognised data format";
 					break;
 				case CRYPT_ERROR_SIGNATURE:
 					emsg = "Signature/integrity check failed";
@@ -264,16 +263,6 @@ bool DLLCALL is_crypt_initialized(void)
 	return cryptlib_initialized;
 }
 
-void lock_ssl_cert(void)
-{
-	pthread_mutex_lock(&ssl_cert_mutex);
-}
-
-void unlock_ssl_cert(void)
-{
-	pthread_mutex_unlock(&ssl_cert_mutex);
-}
-
 #define DO(action, handle, x)	get_crypt_error_string(x, handle, estr, action, level)
 
 CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
@@ -281,6 +270,7 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 	CRYPT_KEYSET		ssl_keyset;
 	CRYPT_CONTEXT		ssl_context = -1;	// MSVC requires this to be initialized
 	CRYPT_CERTIFICATE	ssl_cert;
+	int					i;
 	char				sysop_email[sizeof(cfg->sys_inetaddr)+6];
 	char				str[MAX_PATH+1];
 
@@ -303,7 +293,7 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 	}
 	else {
 		/* Couldn't do that... create a new context and use the cert from there... */
-		if(!DO("creating SSL context", CRYPT_UNUSED,cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
+		if(!DO("creating SSL context", CRYPT_UNUSED, cryptStatusOK(i=cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA)))) {
 			pthread_mutex_unlock(&ssl_cert_mutex);
 			return -1;
 		}
@@ -325,7 +315,7 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 			goto failure_return_3;
 		if(!DO("setting country name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_COUNTRYNAME, "ZZ", 2)))
 			goto failure_return_3;
-		if(!DO("setting organization name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_ORGANIZATIONNAME, cfg->sys_name, strlen(cfg->sys_name))))
+		if(!DO("setting orginization name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_ORGANIZATIONNAME, cfg->sys_name, strlen(cfg->sys_name))))
 			goto failure_return_3;
 		if(!DO("setting DNS name", ssl_cert, cryptSetAttributeString(ssl_cert, CRYPT_CERTINFO_DNSNAME, cfg->sys_inetaddr, strlen(cfg->sys_inetaddr))))
 			goto failure_return_3;
