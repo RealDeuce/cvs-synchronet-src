@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.301 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: services.c,v 1.319 2018/03/23 01:19:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -178,8 +178,6 @@ static BOOL winsock_startup(void)
 
 #endif
 
-static CRYPT_CONTEXT tls_context = -1;
-
 static ulong active_clients(void)
 {
 	ulong i;
@@ -284,7 +282,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	int32		level=LOG_INFO;
 	service_client_t* client;
 	jsrefcount	rc;
-	char		*line;
+	char		*line = NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -302,7 +300,7 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 	str[0]=0;
     for(;i<argc && strlen(str)<(sizeof(str)/2);i++) {
 		JSVALUE_TO_MSTRING(cx, argv[i], line, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, line);
 		if(line==NULL)
 		    return(JS_FALSE);
 		strncat(str,line,sizeof(str)/2);
@@ -359,7 +357,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name or number */
-	JSVALUE_TO_ASTRING(cx, argv[0], user, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	JSVALUE_TO_ASTRING(cx, argv[0], user, 128, NULL);
 	if(user==NULL)
 		return(JS_FALSE);
 
@@ -628,7 +626,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_MSTRING(cx, argv[1], cstr, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cstr);
 		client.user=cstr;
 	}
 
@@ -803,6 +801,14 @@ js_initcx(JSRuntime* js_runtime, SOCKET sock, service_client_t* service_client, 
 		if(js_CreateCryptContextClass(js_cx, *glob)==NULL)
 			break;
 
+		/* CryptKeyset Class */
+		if(js_CreateCryptKeysetClass(js_cx, *glob)==NULL)
+			break;
+
+		/* CryptCert Class */
+		if(js_CreateCryptCertClass(js_cx, *glob)==NULL)
+			break;
+
 		/* user-specific objects */
 		if(!js_CreateUserObjects(js_cx, *glob, &scfg, /*user: */NULL, service_client->client, NULL, service_client->subscan)) 
 			break;
@@ -918,26 +924,30 @@ static void js_init_args(JSContext* js_cx, JSObject* js_obj, const char* cmdline
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 }
 
-#define HANDLE_CRYPT_CALL(status, service_client)  handle_crypt_call(status, service_client, __FILE__, __LINE__)
+#define HANDLE_CRYPT_CALL(status, service_client, action)  handle_crypt_call(status, service_client, action, __FILE__, __LINE__)
 
-static BOOL handle_crypt_call(int status, service_client_t *service_client, const char *file, int line)
+static BOOL handle_crypt_call(int status, service_client_t *service_client, const char *action, const char *file, int line)
 {
 	char	*estr = NULL;
 	int		sock = 0;
+	CRYPT_HANDLE	sess;
+	int level;
 
 	if (status == CRYPT_OK)
 		return TRUE;
 	if (service_client != NULL) {
-		if (service_client->service->options & SERVICE_OPT_TLS)
-			estr = get_crypt_error(service_client->tls_sess);
 		sock = service_client->socket;
+		if (service_client->service->options & SERVICE_OPT_TLS) {
+			sess = service_client->tls_sess;
+			if (sess == -1)
+				sess = CRYPT_UNUSED;
+			get_crypt_error_string(status, sess, &estr, action, &level);
+			if (estr) {
+				lprintf(level, "%04d %s TLS %s", sock, service_client->service->protocol, estr);
+				free_crypt_attrstr(estr);
+			}
+		}
 	}
-	if (estr) {
-		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d (%s)", sock, status, file, line, estr);
-		free_crypt_attrstr(estr);
-	}
-	else
-		lprintf(LOG_ERR, "%04d cryptlib error %d at %s:%d", sock, status, file, line);
 	return FALSE;
 }
 
@@ -981,6 +991,7 @@ static void js_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
+	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
@@ -1010,7 +1021,7 @@ static void js_service_thread(void* arg)
 
 	if (service_client.service->options & SERVICE_OPT_TLS) {
 		/* Create and initialize the TLS session */
-		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&service_client.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &service_client)) {
+		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&service_client.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &service_client, "creating session")) {
 			js_service_failure_cleanup(service, socket);
 			return;
 		}
@@ -1023,19 +1034,19 @@ static void js_service_thread(void* arg)
 			if(user.misc&(DELETED|INACTIVE))
 				continue;
 			if (user.alias[0] && user.pass[0]) {
-				if(HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_USERNAME, user.alias, strlen(user.alias)), &session))
-					HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_PASSWORD, user.pass, strlen(user.pass)), &session);
+				if(HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_USERNAME, user.alias, strlen(user.alias)), &session, "adding PSK user"))
+					HANDLE_CRYPT_CALL(cryptSetAttributeString(service_client.tls_sess, CRYPT_SESSINFO_PASSWORD, user.pass, strlen(user.pass)), &session, "adding PSK key");
 			}
 		}
 #endif
-		if (tls_context != -1) {
-			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, tls_context), &service_client);
+		if (scfg.tls_certificate != -1) {
+			HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &service_client, "setting private key");
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
-		HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, socket), &service_client);
-		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &service_client)) {
+		HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, socket), &service_client, "setting network socket");
+		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &service_client, "setting session active")) {
 			js_service_failure_cleanup(service, socket);
 			return;
 		}
@@ -1184,6 +1195,7 @@ static void js_static_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
+	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1574,9 +1586,9 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		}
 
 		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
-			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
+			iniFreeStringList(sec_list);
 			return(service);
 		}
 		service=np;
@@ -1593,7 +1605,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 static void cleanup(int code)
 {
 	while(protected_uint32_value(threads_pending_start)) {
-		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
+		lprintf(LOG_NOTICE,"0000 Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
 		SLEEP(1000);
 	}
 	protected_uint32_destroy(threads_pending_start);
@@ -1605,11 +1617,6 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
-
-	if (tls_context != -1) {
-		cryptDestroyContext(tls_context);
-		tls_context = -1;
-	}
 
 	update_clients();
 
@@ -1636,7 +1643,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.301 $", "%*s %s", revision);
+	sscanf("$Revision: 1.319 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1704,7 +1711,9 @@ void DLLCALL services_thread(void* arg)
 	ulong			total_sockets;
 	struct timeval	tv;
 	service_client_t* client;
-	char			ssl_estr[SSL_ESTR_LEN];
+	char			*ssl_estr;
+	int			level;
+	BOOL			need_cert = FALSE;
 
 	services_ver();
 
@@ -1760,8 +1769,6 @@ void DLLCALL services_thread(void* arg)
 		DESCRIBE_COMPILER(compiler);
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
-
-		sbbs_srand();	/* Seed random number generator */
 
 		protected_uint32_init(&threads_pending_start,0);
 
@@ -1819,10 +1826,6 @@ void DLLCALL services_thread(void* arg)
 			return;
 		}
 
-		tls_context = get_ssl_cert(&scfg, ssl_estr);
-		if (tls_context == -1)
-			lprintf(LOG_ERR, "Error creating TLS certificate: %s", ssl_estr);
-
 		update_clients();
 
 		/* Open and Bind Listening Sockets */
@@ -1830,8 +1833,6 @@ void DLLCALL services_thread(void* arg)
 
 		for(i=0;i<(int)services && !startup->shutdown_now;i++) {
 			if (service[i].options & SERVICE_OPT_TLS) {
-				if (tls_context == -1)
-					continue;
 				if (service[i].options & SERVICE_OPT_UDP) {
 					lprintf(LOG_ERR, "Option error, TLS and UDP specified for %s", service[i].protocol);
 					continue;
@@ -1843,6 +1844,9 @@ void DLLCALL services_thread(void* arg)
 				if (service[i].options & SERVICE_OPT_STATIC) {
 					lprintf(LOG_ERR, "Option error, TLS not yet supported for static services (%s)", service[i].protocol);
 					continue;
+				}
+				if(scfg.tls_certificate == -1) {
+					need_cert = TRUE;
 				}
 			}
 			service[i].set=xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
@@ -1907,6 +1911,15 @@ void DLLCALL services_thread(void* arg)
 		/* signal caller that we've started up successfully */
 		if(startup->started!=NULL)
     		startup->started(startup->cbdata);
+
+		if (need_cert) {
+			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1) {
+				if (ssl_estr) {
+					lprintf(level, "No TLS certificiate %s", ssl_estr);
+					free_crypt_attrstr(ssl_estr);
+				}
+			}
+		}
 
 		lprintf(LOG_INFO,"0000 Services thread started (%u service sockets bound)", total_sockets);
 
@@ -2096,7 +2109,6 @@ void DLLCALL services_thread(void* arg)
 					if(service[i].max_clients && service[i].clients+1>service[i].max_clients) {
 						lprintf(LOG_WARNING,"%04d !%s MAXIMUM CLIENTS (%u) reached, access denied"
 							,client_socket, service[i].protocol, service[i].max_clients);
-						mswait(3000);
 						close_socket(client_socket);
 						continue;
 					}
@@ -2112,7 +2124,6 @@ void DLLCALL services_thread(void* arg)
 							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);
 						FREE_AND_NULL(udp_buf);
-						mswait(3000);
 						close_socket(client_socket);
 						continue;
 					}
@@ -2127,7 +2138,6 @@ void DLLCALL services_thread(void* arg)
 						FREE_AND_NULL(udp_buf);
 						lprintf(LOG_CRIT,"%04d !%s ERROR allocating %u bytes of memory for service_client"
 							,client_socket, service[i].protocol, sizeof(service_client_t));
-						mswait(3000);
 						close_socket(client_socket);
 						continue;
 					}
@@ -2172,11 +2182,11 @@ void DLLCALL services_thread(void* arg)
 
 		/* Wait for Dynamic Service Threads to terminate */
 		if(active_clients()) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",active_clients());
+			lprintf(LOG_INFO,"0000 Waiting for %d clients to disconnect",active_clients());
 			while(active_clients()) {
 				mswait(500);
 			}
-			lprintf(LOG_DEBUG,"0000 Done waiting");
+			lprintf(LOG_INFO,"0000 Done waiting for clients to disconnect");
 		}
 
 		/* Wait for Static Service Threads to terminate */
@@ -2184,7 +2194,7 @@ void DLLCALL services_thread(void* arg)
 		for(i=0;i<(int)services;i++) 
 			total_running+=service[i].running;
 		if(total_running) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d static services to terminate",total_running);
+			lprintf(LOG_INFO,"0000 Waiting for %d static services to terminate",total_running);
 			while(1) {
 				total_running=0;
 				for(i=0;i<(int)services;i++) 
@@ -2193,7 +2203,7 @@ void DLLCALL services_thread(void* arg)
 					break;
 				mswait(500);
 			}
-			lprintf(LOG_DEBUG,"0000 Done waiting");
+			lprintf(LOG_INFO,"0000 Done waiting for static services to terminate");
 		}
 
 		cleanup(0);
