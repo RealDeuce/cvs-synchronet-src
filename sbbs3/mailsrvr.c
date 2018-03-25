@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.661 2018/03/24 00:02:16 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.662 2018/03/25 22:05:13 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4332,13 +4332,13 @@ static void smtp_thread(void* arg)
 
 						fidoaddr_t faddr = scfg.faddr[0];
 						point = 0;
-						if((sscanf(dest_host,"p%hu.f%hu.n%hu.z%hu.fidonet"
+						if((sscanf(dest_host,"p%hu.f%hu.n%hu.z%hu"FIDO_TLD
 							,&point
 							,&node
 							,&net
 							,&zone)==4
 							||
-							sscanf(dest_host,"f%hu.n%hu.z%hu.fidonet"
+							sscanf(dest_host,"f%hu.n%hu.z%hu"FIDO_TLD
 							,&node
 							,&net
 							,&zone)==3
@@ -5666,7 +5666,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.661 $", "%*s %s", revision);
+	sscanf("$Revision: 1.662 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
