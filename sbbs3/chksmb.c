@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.64 2018/10/05 08:24:46 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.62 2018/03/26 04:30:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -35,7 +35,7 @@
  ****************************************************************************/
 
 /* ANSI */
-#include <stdio.h>
+#include <stdio.h>	
 #include <stdlib.h>		/* exit */
 #include <string.h>		/* strrchr */
 #include <time.h>		/* ctime */
@@ -64,7 +64,7 @@ char *ultoac(ulong l, char *string)
 	for(k=1;i>-1;k++) {
 		string[j--]=str[i--];
 		if(j>0 && !(k%3))
-			string[j--]=',';
+			string[j--]=','; 
 	}
 	return(string);
 }
@@ -80,7 +80,7 @@ char *faddrtoa(fidoaddr_t addr)
 	sprintf(str,"%hu:%hu/%hu",addr.zone,addr.net,addr.node);
 	if(addr.point) {
 		sprintf(point,".%u",addr.point);
-		strcat(str,point);
+		strcat(str,point); 
 	}
 	return(str);
 }
@@ -168,8 +168,6 @@ int main(int argc, char **argv)
 				,ctrl_chars;
 	off_t		shd_length;
 	ulong		oldest=0;
-	ulong		largest=0;
-	ulong		largest_msgnum=0;
 	ulong		msgids = 0;
 	smb_t		smb;
 	idxrec_t	idx;
@@ -178,7 +176,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.64 $", "%*s %s", revision);
+	sscanf("$Revision: 1.62 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -193,7 +191,7 @@ int main(int argc, char **argv)
 		if(stop_on_error && errors)
 			break;
 		if(pause_on_error && errlast!=errors) {
-			fprintf(stderr,"%s\nHit any key to continue...", beep);
+			fprintf(stderr,"\7\nHit any key to continue...");
 			if(!getch())
 				getch();
 			printf("\n"); 
@@ -338,8 +336,6 @@ int main(int argc, char **argv)
 	msgids = 0;
 	ctrl_chars = 0;
 	oldest = 0;
-	largest = 0;
-	largest_msgnum = 0;
 
 	for(l=smb.status.header_offset; l < (uint32_t)shd_length;l+=size) {
 		size=SHD_BLOCK_LEN;
@@ -381,7 +377,7 @@ int main(int argc, char **argv)
 		strip_ctrl(from);
 		fprintf(stderr,"#%-5"PRIu32" (%06lX) %-25.25s ",msg.hdr.number,l,from);
 
-		if(contains_ctrl_chars(msg.to)
+		if(contains_ctrl_chars(msg.to) 
 			|| (msg.to_net.type != NET_FIDO && contains_ctrl_chars(msg.to_net.addr))
 			|| contains_ctrl_chars(msg.from)
 			|| (msg.from_net.type != NET_FIDO && contains_ctrl_chars(msg.from_net.addr))
@@ -390,7 +386,7 @@ int main(int argc, char **argv)
 			msgerr=TRUE;
 			ctrl_chars++;
 		}
-
+	
 		if(msg.hdr.length!=smb_getmsghdrlen(&msg)) {
 			fprintf(stderr,"%sHeader length mismatch\n",beep);
 			msgerr=TRUE;
@@ -476,20 +472,15 @@ int main(int argc, char **argv)
 		FREE_AND_NULL(tail);
 
 		lzhmsg=FALSE;
-		ulong data_length = smb_getmsgdatlen(&msg);
-		if(data_length > largest) {
-			largest = data_length;
-			largest_msgnum = msg.hdr.number;
-		}
 		if(msg.hdr.attr&MSG_DELETE) {
 			deleted++;
 			if(number)
 				number[headers]=0;
 			if(smb.status.attr&SMB_HYPERALLOC)
-				deldatblocks+=smb_datblocks(data_length);
+				deldatblocks+=smb_datblocks(smb_getmsgdatlen(&msg)); 
 		}
 		else {
-			actdatblocks+=smb_datblocks(data_length);
+			actdatblocks+=smb_datblocks(smb_getmsgdatlen(&msg));
 			if(msg.hdr.number>smb.status.last_msg) {
 				fprintf(stderr,"%sOut-Of-Range message number\n",beep);
 				msgerr=TRUE;
@@ -632,7 +623,7 @@ int main(int argc, char **argv)
 							printf("MSGERR: Unsupported translation type (%04X) "
 								"in dfield[%u] (offset %"PRIu32")\n"
 								,xlat,i,msg.dfield[i].offset);
-						xlaterr++;
+						xlaterr++; 
 					}
 					else {
 						if(lzh) {
@@ -642,11 +633,11 @@ int main(int argc, char **argv)
 									-smb_datblocks(msg.dfield[i].length))
 									*SDT_BLOCK_LEN;
 								lzhblocks+=smb_datblocks(msg.dfield[i].length);
-							}
-						}
-					}
-				}
-			}
+							} 
+						} 
+					} 
+				} 
+			} 
 		}
 
 		if(chkalloc && !(smb.status.attr&SMB_HYPERALLOC)) {
@@ -657,7 +648,7 @@ int main(int argc, char **argv)
 					fprintf(stderr,"%sDeleted Header Block %lu marked %02X\n"
 						,beep,m/SHD_BLOCK_LEN,i);
 					msgerr=TRUE;
-					delalloc++;
+					delalloc++; 
 					}
 	***/
 				if(!(msg.hdr.attr&MSG_DELETE) && (i=fgetc(smb.sha_fp))!=1) {
@@ -920,10 +911,7 @@ int main(int argc, char **argv)
 		printf("%-35.35s ( ): %lu days (%u max)\n"
 			,"Oldest Message (import)"
 			,oldest/(24*60*60), smb.status.max_age);
-	if(largest)
-		printf("%-35.35s ( ): %lu bytes (#%lu)\n"
-			,"Largest Message (data)"
-			,largest, largest_msgnum);
+
 	if(orphan)
 		printf("%-35.35s (!): %lu\n"
 			,"Orphaned Headers"
@@ -1100,7 +1088,7 @@ int main(int argc, char **argv)
 			,totaldelmsgs,ultoac(packable,str));
 
 	if(pause_on_error && errlast!=errors) {
-		fprintf(stderr,"%s\nHit any key to continue...", beep);
+		fprintf(stderr,"\7\nHit any key to continue...");
 		if(!getch())
 			getch();
 		fprintf(stderr,"\n"); 
