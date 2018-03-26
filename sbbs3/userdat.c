@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.194 2018/03/25 04:14:43 rswindell Exp $ */
+/* $Id: userdat.c,v 1.195 2018/03/26 03:44:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3015,7 +3015,6 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 	}
 	return 0;
 }
-#endif
 
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
@@ -3220,8 +3219,6 @@ BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
 		return ftouch(sysop_available_semfile(scfg));
 	return remove(sysop_available_semfile(scfg)) == 0;
 }
-
-#if !defined(NO_SOCKET_SUPPORT)	/* This brings in xpdev which then requires socket lib */
 
 /************************************/
 /* user .ini file get/set functions */
