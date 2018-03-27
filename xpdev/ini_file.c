@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.154 2018/01/31 23:42:30 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.160 2018/03/16 05:24:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -430,9 +430,12 @@ BOOL DLLCALL iniRemoveSection(str_list_t* list, const char* section)
 
 BOOL DLLCALL iniRemoveSections(str_list_t* list, const char* prefix)
 {
-	str_list_t sections = iniGetSectionList(*list, prefix);
+	str_list_t sections;
 	const char* section;
 
+	if (list == NULL)
+		return FALSE;
+	sections = iniGetSectionList(*list, prefix);
 	while((section = strListPop(&sections)) != NULL)
 		if(!iniRemoveSection(list, section))
 			return(FALSE);
@@ -567,6 +570,12 @@ char* DLLCALL iniSetStringLiteral(str_list_t* list, const char* section, const c
 				 ,ini_style_t* style)
 {
 	return ini_set_string(list, section, key, value, /* literal: */TRUE, style);
+}
+
+char* DLLCALL iniSetValue(str_list_t* list, const char* section, const char* key, const char* value
+				 ,ini_style_t* style)
+{
+	return ini_set_string(list, section, key, value, /* literal: */FALSE, style);
 }
 
 char* DLLCALL iniSetInteger(str_list_t* list, const char* section, const char* key, long value
@@ -1864,11 +1873,12 @@ time_t DLLCALL iniGetDateTime(str_list_t list, const char* section, const char* 
 	return(parseDateTime(vp));
 }
 
-static unsigned parseEnum(const char* value, str_list_t names)
+static unsigned parseEnum(const char* value, str_list_t names, unsigned deflt)
 {
 	unsigned i,count;
 	char val[INI_MAX_VALUE_LEN];
 	char* p=val;
+	char* endptr;
 
 	/* Strip trailing words (enums must be a single word with no white-space) */
 	/* to support comments following enum values */
@@ -1889,7 +1899,9 @@ static unsigned parseEnum(const char* value, str_list_t names)
 		if(strnicmp(names[i],val,strlen(val))==0)
 			return(i);
 
-    i=strtoul(val,NULL,0);
+    i=strtoul(val, &endptr, 0);
+	if(*endptr != 0 && !isspace(*endptr))
+		return deflt;
 	if(i>=count)
 		i=count-1;
 	return i;
@@ -1921,7 +1933,7 @@ unsigned* DLLCALL parseEnumList(const char* values, const char* sep, str_list_t 
 
 	if((enum_list=(unsigned *)malloc((*count)*sizeof(unsigned)))!=NULL) {
 		for(i=0;i<*count;i++)
-			enum_list[i]=parseEnum(list[i], names);
+			enum_list[i]=parseEnum(list[i], names, /* default: */0);
 	}
 
 	strListFree(&list);
@@ -1940,7 +1952,7 @@ unsigned DLLCALL iniReadEnum(FILE* fp, const char* section, const char* key, str
 	if(*value==0)		/* blank value */
 		return(deflt);
 
-	return(parseEnum(value,names));
+	return(parseEnum(value,names,deflt));
 }
 
 unsigned* DLLCALL iniReadEnumList(FILE* fp, const char* section, const char* key
@@ -1971,7 +1983,7 @@ unsigned DLLCALL iniGetEnum(str_list_t list, const char* section, const char* ke
 	if(vp==NULL || *vp==0)		/* blank value or missing key */
 		return(deflt);
 
-	return(parseEnum(vp,names));
+	return(parseEnum(vp,names, deflt));
 }
 
 unsigned* DLLCALL iniGetEnumList(str_list_t list, const char* section, const char* key
