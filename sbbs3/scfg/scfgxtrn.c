@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.60 2019/01/12 12:09:16 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.58 2018/03/10 03:20:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,8 +307,8 @@ void xprogs_cfg()
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					save_xtrn_cfg(&cfg,backup_level);
-					save_main_cfg(&cfg,backup_level);
+					write_xtrn_cfg(&cfg,backup_level);
+					write_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
@@ -1239,7 +1239,7 @@ void xtrn_cfg(uint section)
 					uifc.helpbuf=
 						"`Use Shell to Execute Command:`\n"
 						"\n"
-						"If this command-line requires the system command shell to execute, (Unix\n"
+						"If this command-line requires the system command shell to execute, (Unix \n"
 						"shell script or DOS batch file), set this option to ~Yes~.\n"
 					;
 					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
