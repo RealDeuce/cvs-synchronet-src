@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.45 2019/02/20 05:43:18 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.42 2018/03/16 05:30:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,26 +181,32 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_MAIL_SEND:		 /* Send E-mail */
 			if(strchr(csi->str,'@')) {
 				i=1;
-				netmail(csi->str); 
+				netmail(csi->str,nulstr,0); 
 			}
 			else if((i=finduser(csi->str))!=0 
 				|| (cfg.msg_misc&MM_REALNAME && (i=userdatdupe(0,U_NAME,LEN_NAME,csi->str))!=0))
-				email(i);
+				email(i,nulstr,nulstr,WM_EMAIL);
 			csi->logic=!i;
 			return(0);
 		case CS_MAIL_SEND_FEEDBACK: 	  /* Feedback */
 			if((i=finduser(csi->str))!=0)
-				email(i,text[ReFeedback]);
+				email(i,text[ReFeedback],nulstr,WM_EMAIL);
 			csi->logic=!i;
 			return(0);
 		case CS_MAIL_SEND_NETMAIL:
 		case CS_MAIL_SEND_NETFILE:
 		{
+			char addr[INI_MAX_VALUE_LEN+1];
+			const char* section = "netmail sent";
+			ZERO_VAR(addr);
+			user_get_property(&cfg, useron.number, section, "address", addr);
 			bputs(text[EnterNetMailAddress]);
 			csi->logic=LOGIC_FALSE;
-			if(getstr(str,60,K_LINE)) {
-				if(netmail(str, NULL, cmd == CS_MAIL_SEND_NETFILE ? WM_FILE : WM_NONE)) {
+			if(getstr(addr,60,K_LINE|K_EDIT)) {
+				if(netmail(addr,nulstr,cmd == CS_MAIL_SEND_NETFILE ? WM_FILE : 0)) {
 					csi->logic=LOGIC_TRUE; 
+					user_set_property(&cfg, useron.number, section, "address", addr);
+					user_set_time_property(&cfg, useron.number, section, "localtime", time(NULL));
 				}
 			}
 			return(0);
@@ -208,11 +214,11 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_MAIL_SEND_FILE:   /* Upload Attached File to E-mail */
 			if(strchr(csi->str,'@')) {
 				i=1;
-				netmail(csi->str,NULL,WM_FILE); 
+				netmail(csi->str,nulstr,WM_FILE); 
 			}
 			else if((i=finduser(csi->str))!=0
 				|| (cfg.msg_misc&MM_REALNAME && (i=userdatdupe(0,U_NAME,LEN_NAME,csi->str))!=0))
-				email(i,NULL,NULL,WM_FILE);
+				email(i,nulstr,nulstr,WM_EMAIL|WM_FILE);
 			csi->logic=!i;
 			return(0);
 		case CS_MAIL_SEND_BULK:
