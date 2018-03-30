@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.201 2018/03/10 07:02:08 deuce Exp $ */
+/* $Id: js_socket.c,v 1.219 2018/03/19 21:45:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,11 +45,50 @@
 
 static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
 
+static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...);
+static bool do_CryptFlush(js_socket_private_t *p);
+static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val);
+static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, void *val, int len);
+static void do_js_close(js_socket_private_t *p);
+static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type);
+static JSBool js_accept(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_bind(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_close(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_connect(JSContext *cx, uintN argc, jsval *arglist);
+static void js_finalize_socket(JSContext *cx, JSObject *obj);
+static JSBool js_ioctlsocket(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_listen(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_getsockopt(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_peek(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_poll(JSContext *cx, uintN argc, jsval *arglist);
+static ushort js_port(JSContext* cx, jsval val, int type);
+static JSBool js_recv(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_recvbin(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_recvfrom(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_recvline(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_send(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_sendbin(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_sendfile(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_sendline(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_sendto(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_setsockopt(JSContext *cx, uintN argc, jsval *arglist);
+static int js_sock_read_check(js_socket_private_t *p, time_t start, int32 timeout, int i);
+static JSBool js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist);
+static JSBool js_socket_enumerate(JSContext *cx, JSObject *obj);
+static BOOL js_socket_peek_byte(js_socket_private_t *p);
+static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, int flags, int timeout);
+static JSBool js_socket_resolve(JSContext *cx, JSObject *obj, jsid id);
+static int js_socket_sendfilesocket(js_socket_private_t *p, int file, off_t *offset, off_t count);
+static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, size_t len, int flush);
+static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val)
 {
 	int ret;
 	int level;
 	char *estr;
+	char action[32];
 
 	/* Force "sane" values (requirements) */
 	switch(attr) {
@@ -65,9 +104,10 @@ static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE a
 
 	ret=cryptSetAttribute(session, attr, val);
 	if(ret != CRYPT_OK) {
-		get_crypt_error_string(ret, session, &estr, "setting attribute", &level);
+		sprintf(action, "setting attribute %d", attr);
+		get_crypt_error_string(ret, session, &estr, action, &level);
 		if (estr) {
-			lprintf(level, "%s", estr);
+			lprintf(level, "TLS %s", estr);
 			free_crypt_attrstr(estr);
 		}
 	}
@@ -78,12 +118,14 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 {
 	int level;
 	char *estr;
+	char action[48];
 
 	int ret=cryptSetAttributeString(session, attr, val, len);
 	if(ret != CRYPT_OK) {
+		sprintf(action, "setting attribute string %d", attr);
 		get_crypt_error_string(ret, session, &estr, "setting attribute string", &level);
 		if (estr) {
-			lprintf(level, "%s", estr);
+			lprintf(level, "TLS %s", estr);
 			free_crypt_attrstr(estr);
 		}
 	}
@@ -92,23 +134,23 @@ static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_
 
 #define GCES(status, pdata, estr, action) do {                                               \
 	int GCES_level;                                                                      \
-	get_crypt_error_string(status, pdata->session, &estr, "flushing data", &GCES_level); \
+	get_crypt_error_string(status, pdata->session, &estr, action, &GCES_level); \
 	if (estr) {                                                                          \
-		lprintf(GCES_level, "%04d %s", p->sock, estr);                               \
+		lprintf(GCES_level, "%04d TLS %s", p->sock, estr);                               \
 		free_crypt_attrstr(estr);                                                                  \
 	}                                                                                    \
 } while(0)
 
 #define GCESH(status, socket, handle, estr, action) do {                                     \
 	int GCESH_level;                                                                     \
-	get_crypt_error_string(status, handle, &estr, "flushing data", &GCESH_level);        \
+	get_crypt_error_string(status, handle, &estr, action, &GCESH_level);        \
 	if (estr) {                                                                          \
-		lprintf(GCESH_level, "%04d %s", socket, estr);                               \
+		lprintf(GCESH_level, "%04d TLS %s", socket, estr);                               \
 		free_crypt_attrstr(estr);                                                                  \
 	}                                                                                    \
 } while(0)
 
-static void do_CryptFlush(js_socket_private_t *p)
+static bool do_CryptFlush(js_socket_private_t *p)
 {
 	int ret;
 	char	*estr;
@@ -118,10 +160,13 @@ static void do_CryptFlush(js_socket_private_t *p)
 
 		if(ret==CRYPT_OK) {
 			p->unflushed = 0;
+			return true;
 		}
-		else
+		if (ret != CRYPT_ERROR_COMPLETE)
 			GCES(ret, p, estr, "flushing data");
+		return false;
 	}
+	return true;
 }
 
 static void do_js_close(js_socket_private_t *p)
@@ -145,6 +190,19 @@ static void do_js_close(js_socket_private_t *p)
 	p->is_connected = FALSE;
 }
 
+static BOOL js_socket_peek_byte(js_socket_private_t *p)
+{
+	if (do_cryptAttribute(p->session, CRYPT_OPTION_NET_READTIMEOUT, 0) != CRYPT_OK)
+		return FALSE;
+	if (p->peeked)
+		return TRUE;
+	if (js_socket_recv(p, &p->peeked_byte, 1, 0, 0) == 1) {
+		p->peeked = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, int flags, int timeout)
 {
 	ptrdiff_t	total=0;
@@ -152,40 +210,69 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 	fd_set		socket_set;
 	struct		timeval tv = {0, 0};
 	char *estr;
-	
+	time_t now = time(NULL);
+	int status;
+
 	if (len == 0)
 		return total;
-	if(p->session==-1) {
-		FD_ZERO(&socket_set);
-		FD_SET(p->sock,&socket_set);
-		tv.tv_sec = timeout;
-		if(select(p->sock+1,&socket_set,NULL,NULL,&tv)==1)
-			return(recv(p->sock, buf, len, flags));	/* Blocked here, indefinitely, in MSP-UDP service */
-		return 0;
-	}
-#if 0
-	if (do_cryptAttribute(p->session, CRYPT_OPTION_NET_READTIMEOUT, p->nonblocking?0:timeout) != CRYPT_OK)
-		return -1;
-#endif
-	do {
-		if((ret=cryptPopData(p->session, buf, len, &copied))==CRYPT_OK) {
-			if(p->nonblocking)
-				return copied;
-			total += copied;
-			if(total>=(ptrdiff_t)len)
+	if (p->session != -1) {
+		if (flags & MSG_PEEK)
+			js_socket_peek_byte(p);
+		if (p->peeked) {
+			*(uint8_t *)buf = p->peeked_byte;
+			buf=((uint8_t *)buf) + 1;
+			if (!(flags & MSG_PEEK))
+				p->peeked = FALSE;
+			total++;
+			len--;
+			if (len == 0)
 				return total;
-			len-=copied;
-			buf=((uint8_t *)buf) + copied;
+		}
+		if (flags & MSG_PEEK)
+			return total;
+		if (do_cryptAttribute(p->session, CRYPT_OPTION_NET_READTIMEOUT, p->nonblocking?0:timeout) != CRYPT_OK)
+			return -1;
+	}
+	do {
+		if(p->session==-1) {
+			FD_ZERO(&socket_set);
+			FD_SET(p->sock,&socket_set);
+			tv.tv_sec = timeout;
+			if((ret = select(p->sock+1,&socket_set,NULL,NULL,&tv))==1)
+				ret = recv(p->sock, buf, len, flags);
 		}
 		else {
-			GCES(ret, p, estr, "popping data");
+			status = cryptPopData(p->session, buf, len, &copied);
+			if(cryptStatusOK(status))
+				ret = copied;
+			else {
+				ret = -1;
+				if (status == CRYPT_ERROR_TIMEOUT)
+					ret = 0;
+				else if (status != CRYPT_ERROR_COMPLETE)
+					GCES(ret, p, estr, "popping data");
+			}
+		}
+		if (ret == -1) {
 			if (total > 0)
 				return total;
-			do_js_close(p);
+			return ret;
+		}
+		if ((!(flags & MSG_WAITALL)) || p->nonblocking)
+			return ret;
+		total += ret;
+		if(total>=(ptrdiff_t)len)
+			return total;
+		len-=ret;
+		buf=((uint8_t *)buf) + ret;
+
+		if(!socket_check(p->sock,NULL,NULL,0)) {
+			if (total > 0)
+				return total;
 			return -1;
 		}
-		if(!socket_check(p->sock,NULL,NULL,0))
-			break;
+		if (now + timeout > time(NULL))
+			return total;
 	} while(len);
 	return total;
 }
@@ -199,9 +286,11 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 	if(p->session==-1)
 		return sendsocket(p->sock, msg, len);
 	do {
-		if((ret=cryptPushData(p->session, msg, len, &copied))==CRYPT_OK) {
+		// If we don't limit this, we occasionally get errors on large sends...
+		if((ret=cryptPushData(p->session, msg, len > 0x2000 ? 0x2000 : len, &copied))==CRYPT_OK) {
 			p->unflushed += copied;
-			if(flush) do_CryptFlush(p);
+			if(flush)
+				do_CryptFlush(p);
 			if(p->nonblocking)
 				return copied;
 			total += copied;
@@ -212,14 +301,17 @@ static ptrdiff_t js_socket_sendsocket(js_socket_private_t *p, const void *msg, s
 			msg=((uint8_t *)msg) + copied;
 		}
 		else {
-			GCES(ret, p, estr, "pushing data");
-			if(flush) do_CryptFlush(p);
+			if (ret != CRYPT_ERROR_COMPLETE)
+				GCES(ret, p, estr, "pushing data");
+			if(flush)
+				do_CryptFlush(p);
 			return total;
 		}
 		if(!socket_check(p->sock,NULL,NULL,0))
 			break;
 	} while(len);
-	if(flush) do_CryptFlush(p);
+	if(flush)
+		do_CryptFlush(p);
 	return total;
 }
 
@@ -309,14 +401,7 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	if(p->session != -1) {
-		cryptDestroySession(p->session);
-		p->session=-1;
-	}
-	if(p->external==FALSE && p->sock!=INVALID_SOCKET) {
-		close_socket(p->sock);
-		dbprintf(FALSE, p, "closed/deleted");
-	}
+	do_js_close(p);
 
 	if(p->hostname)
 		free(p->hostname);
@@ -607,6 +692,7 @@ js_accept(JSContext *cx, uintN argc, jsval *arglist)
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
+		call_socket_open_callback(TRUE);
 	}
 	else {
 		if((new_socket=accept_socket(p->sock,&(p->remote_addr),&addrlen))==INVALID_SOCKET) {
@@ -1025,7 +1111,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ValueToInt32(cx,argv[0],&len);
 
 		if(argc > 1 && argv[1]!=JSVAL_VOID) {
-			JS_ValueToInt32(cx,argv[0],&timeout);
+			JS_ValueToInt32(cx,argv[1],&timeout);
 		}
 	}
 
@@ -1312,7 +1398,6 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 	start=time(NULL);
 	rc=JS_SUSPENDREQUEST(cx);
 	for(i=0;i<len;) {
-
 		if(p->session==-1) {
 			switch(js_sock_read_check(p,start,timeout,i)) {
 				case 1:
@@ -1334,21 +1419,13 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 				break;
 			}
 			else {
+				if (got == 0) {
+					free(buf);
+					return(JS_TRUE);	/* time-out */
+				}
 				if (got == -1) {
 					len = 0;
 					continue;
-				}
-				switch(js_sock_read_check(p,start,timeout,i)) {
-					case 1:
-						JS_SET_RVAL(cx, arglist, JSVAL_NULL);
-						JS_RESUMEREQUEST(cx, rc);
-						free(buf);
-						return(JS_TRUE);	/* time-out */
-					case 2:
-						len=0;
-						continue;
-					case 3:
-						continue;
 				}
 			}
 		}
@@ -1404,18 +1481,18 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	switch(size) {
 		case sizeof(BYTE):
-			if((rd=js_socket_recv(p,&b,size,0,120))==size)
+			if((rd=js_socket_recv(p,&b,size,MSG_WAITALL,120))==size)
 				JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(b));
 			break;
 		case sizeof(WORD):
-			if((rd=js_socket_recv(p,(BYTE*)&w,size,0,120))==size) {
+			if((rd=js_socket_recv(p,(BYTE*)&w,size,MSG_WAITALL,120))==size) {
 				if(p->network_byte_order)
 					w=ntohs(w);
 				JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(w));
 			}
 			break;
 		case sizeof(DWORD):
-			if((rd=js_socket_recv(p,(BYTE*)&l,size,0,120))==size) {
+			if((rd=js_socket_recv(p,(BYTE*)&l,size,MSG_WAITALL,120))==size) {
 				if(p->network_byte_order)
 					l=ntohl(l);
 				JS_SET_RVAL(cx, arglist, UINT_TO_JSVAL(l));
@@ -1625,7 +1702,10 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 	else
 		rd_set=&socket_set;
 
-	result = select(high+1,rd_set,wr_set,NULL,&tv);
+	if (p->peeked && !poll_for_write)
+		result = 1;
+	else
+		result = select(high+1,rd_set,wr_set,NULL,&tv);
 
 	p->last_error=ERROR_VALUE;
 
@@ -1670,7 +1750,7 @@ static char* socket_prop_desc[] = {
 	,"<i>true</i> if socket can accept written data - Setting to false will shutdown the write end of the socket."
 	,"alias for is_writeable"
 	,"<i>true</i> if data is waiting to be read from socket - <small>READ ONLY</small>"
-	,"number of bytes waiting to be read - <small>READ ONLY</small>"
+	,"number of bytes waiting to be read - TLS sockets will never return more than 1 - <small>READ ONLY</small>"
 	,"enable debug logging"
 	,"socket descriptor (advanced uses only)"
 	,"use non-blocking operation (default is <i>false</i>)"
@@ -1759,6 +1839,8 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 								// Reduced compliance checking... required for acme-staging-v02.api.letsencrypt.org
 								do_cryptAttribute(p->session, CRYPT_OPTION_CERT_COMPLIANCELEVEL, CRYPT_COMPLIANCELEVEL_REDUCED);
 								if (tiny == SOCK_PROP_SSL_SESSION) {
+									// TODO: Make this configurable
+									do_cryptAttribute(p->session, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_NAMEVERIFY);
 									ret=do_cryptAttributeString(p->session, CRYPT_SESSINFO_SERVER_NAME, p->hostname, strlen(p->hostname));
 									p->tls_server = FALSE;
 								}
@@ -1864,8 +1946,14 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SOCK_PROP_DATA_WAITING:
 			if(p->sock==INVALID_SOCKET && p->set)
 				rd = FALSE;
-			else
-				socket_check(p->sock,&rd,NULL,0);
+			else {
+				if (p->peeked)
+					rd = TRUE;
+				else if (p->session != -1)
+					rd = js_socket_peek_byte(p);
+				else
+					socket_check(p->sock,&rd,NULL,0);
+			}
 			*vp = BOOLEAN_TO_JSVAL(rd);
 			break;
 		case SOCK_PROP_NREAD:
@@ -1874,7 +1962,13 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				break;
 			}
 			cnt=0;
-			if(ioctlsocket(p->sock, FIONREAD, &cnt)==0) {
+			if (p->session != -1) {
+				if (js_socket_peek_byte(p))
+					*vp=DOUBLE_TO_JSVAL((double)1);
+				else
+					*vp = JSVAL_ZERO;
+			}
+			else if(ioctlsocket(p->sock, FIONREAD, &cnt)==0) {
 				*vp=DOUBLE_TO_JSVAL((double)cnt);
 			}
 			else
@@ -2029,7 +2123,7 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	,310
 	},
 	{"peek",		js_peek,		0,	JSTYPE_STRING,	JSDOCSTR("[maxlen=<tt>512</tt>]")
-	,JSDOCSTR("receive a string, default maxlen is 512 characters, leaves string in receive buffer")
+	,JSDOCSTR("receive a string, default maxlen is 512 characters, leaves string in receive buffer (TLS sockets will never return more than one byte)")
 	,310
 	},
 	{"readline",	js_recvline,	0,	JSTYPE_ALIAS },
