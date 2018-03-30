@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.163 2018/04/30 21:58:52 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.161 2018/03/30 08:35:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -831,12 +831,11 @@ char* DLLCALL iniSetStringList(str_list_t* list, const char* section, const char
 char* DLLCALL iniSetIntList(str_list_t* list, const char* section, const char* key
 					,const char* sep, int* val_list, unsigned count, ini_style_t* style)
 {
-	unsigned i;
 	char	value[INI_MAX_VALUE_LEN];
 
 	if(sep == NULL)
 		sep = ",";
-	for(i = 0; i < count; i++) {
+	for(unsigned i = 0; i < count; i++) {
 		if(i) {
 			int len = strlen(value);
 			if(len > INI_MAX_VALUE_LEN - 20)
@@ -2361,10 +2360,11 @@ BOOL DLLCALL iniWriteFile(FILE* fp, const str_list_t list)
 	size_t		count;
 
 	rewind(fp);
-	count = strListWriteFile(fp,list,"\n");
-	fflush(fp);
-	if(chsize(fileno(fp), ftell(fp))!=0)	/* truncate */
+
+	if(chsize(fileno(fp),0)!=0)	/* truncate */
 		return(FALSE);
+
+	count = strListWriteFile(fp,list,"\n");
 
 	return(count == strListCount(list));
 }

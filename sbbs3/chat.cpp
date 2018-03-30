@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.77 2018/06/21 20:22:01 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.76 2018/03/17 02:23:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -717,14 +717,8 @@ bool sbbs_t::sysop_page(void)
 				break;
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
-			long mode = 0;
-			if(cfg.page[i]->misc&XTRN_STDIO)
-				mode |= EX_STDIO;
-			if(cfg.page[i]->misc&XTRN_NATIVE)
-				mode|= EX_NATIVE;
-			if(cfg.page[i]->misc&XTRN_SH)
-				mode |= EX_SH;
-			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL), mode); 
+			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL)
+				,cfg.page[i]->misc&XTRN_STDIO ? EX_STDIO : 0); 
 		}
 		else if(cfg.sys_misc&SM_SHRTPAGE) {
 			bprintf(text[PagingGuru],cfg.sys_op);
