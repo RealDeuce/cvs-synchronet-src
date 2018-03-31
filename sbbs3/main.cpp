@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.703 2018/03/26 04:40:49 deuce Exp $ */
+/* $Id: main.cpp,v 1.704 2018/03/31 08:14:49 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1879,7 +1879,7 @@ void input_thread(void *arg)
 		}
 
 /*         ^          ^
- *		\______    ______/
+ *      \______    ______/
  *       \  * \   / *   /
  *        -----   ------           /----\
  *              ||               -< Boo! |
