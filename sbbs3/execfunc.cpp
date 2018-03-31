@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.43 2018/07/25 07:02:22 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.42 2018/03/16 05:30:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,11 +196,17 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_MAIL_SEND_NETMAIL:
 		case CS_MAIL_SEND_NETFILE:
 		{
+			char addr[INI_MAX_VALUE_LEN+1];
+			const char* section = "netmail sent";
+			ZERO_VAR(addr);
+			user_get_property(&cfg, useron.number, section, "address", addr);
 			bputs(text[EnterNetMailAddress]);
 			csi->logic=LOGIC_FALSE;
-			if(getstr(str,60,K_LINE|K_EDIT)) {
-				if(netmail(str,nulstr,cmd == CS_MAIL_SEND_NETFILE ? WM_FILE : 0)) {
+			if(getstr(addr,60,K_LINE|K_EDIT)) {
+				if(netmail(addr,nulstr,cmd == CS_MAIL_SEND_NETFILE ? WM_FILE : 0)) {
 					csi->logic=LOGIC_TRUE; 
+					user_set_property(&cfg, useron.number, section, "address", addr);
+					user_set_time_property(&cfg, useron.number, section, "localtime", time(NULL));
 				}
 			}
 			return(0);
