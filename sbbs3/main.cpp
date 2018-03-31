@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.704 2018/03/31 08:14:49 deuce Exp $ */
+/* $Id: main.cpp,v 1.705 2018/03/31 08:40:31 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2406,6 +2406,10 @@ void output_thread(void* arg)
 		if(sbbs->ssh_mode) {
 			int err;
 			pthread_mutex_lock(&sbbs->ssh_mutex);
+			if(sbbs->terminate_output_thread) {
+				pthread_mutex_unlock(&sbbs->ssh_mutex);
+				break;
+			}
 			if (cryptStatusError((err=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, sbbs->session_channel)))) {
 				GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "setting channel");
 				ssh_errors++;
