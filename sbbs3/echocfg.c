@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.30 2018/03/31 09:38:49 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.31 2018/03/31 09:43:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -281,7 +281,7 @@ static char* int_list(int* list, unsigned count)
 
 void binkp_settings(nodecfg_t* node)
 {
-	static cur;
+	static int cur;
 
 	while(1) {
 		char str[128];
