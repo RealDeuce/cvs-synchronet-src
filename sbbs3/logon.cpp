@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.66 2018/04/16 01:32:23 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.65 2017/12/06 04:49:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,11 +212,9 @@ bool sbbs_t::logon()
 		rows=useron.rows;
 	unixtodstr(&cfg,(time32_t)logontime,str);
 	if(!strncmp(str,useron.birth,5) && !(useron.rest&FLAG('Q'))) {
-		if(text[HappyBirthday][0]) {
-			bputs(text[HappyBirthday]);
-			pause();
-			CLS;
-		}
+		bputs(text[HappyBirthday]);
+		pause();
+		CLS;
 		user_event(EVENT_BIRTHDAY); 
 	}
 	useron.ltoday++;
