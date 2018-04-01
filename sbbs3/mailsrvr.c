@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.662 2018/03/25 22:05:13 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.663 2018/04/01 07:22:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3801,6 +3801,9 @@ static void smtp_thread(void* arg)
 				if(startup->lines_per_yield &&
 					!(lines%startup->lines_per_yield))	
 					YIELD();
+				if((lines%100) == 0 && (msgtxt != NULL))
+					lprintf(LOG_DEBUG,"%04d SMTP received %lu lines (%lu bytes) of body text"
+						,socket, lines, ftell(msgtxt)-hdr_len);
 				continue;
 			}
 			/* RFC822 Header parsing */
@@ -5666,7 +5669,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.662 $", "%*s %s", revision);
+	sscanf("$Revision: 1.663 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
