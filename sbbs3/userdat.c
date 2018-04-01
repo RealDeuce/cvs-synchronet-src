@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.183 2017/11/24 23:35:21 rswindell Exp $ */
+/* $Id: userdat.c,v 1.195 2018/03/26 03:44:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -459,7 +459,8 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 	for(i=1;i<=cfg->sys_nodes;i++) { /* instant user data update */
 //		if(i==cfg->node_num)
 //			continue;
-		getnodedat(cfg, i,&node,NULL);
+		if(getnodedat(cfg, i,&node,NULL) != 0)
+			continue;
 		if(node.useron==usernumber && (node.status==NODE_INUSE
 			|| node.status==NODE_QUIET)) {
 			if(getnodedat(cfg, i,&node,&file) == 0) {
@@ -1668,7 +1669,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_SUBCODE:
-				if(user!=NULL && !findstr_in_string(user->cursub,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->cursub,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -1700,7 +1701,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				(*ptrptr)++;
 				break;
 			case AR_DIRCODE:
-				if(user!=NULL && !findstr_in_string(user->curdir,(char *)*ptrptr)==0)
+				if(user!=NULL && findstr_in_string(user->curdir,(char *)*ptrptr)==0)
 					result=!not;
 				else
 					result=not;
@@ -2039,8 +2040,13 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		return(-4);
 	}
 
-	if(length==0)	/* auto-length */
+	if(length==0) {	/* auto-length */
 		length=user_rec_len(start);
+		if((long)length < 0) {
+			close(file);
+			return -2;
+		}
+	}
 
 	strcpy(str2,str);
 	if(strlen(str2)<length) {
@@ -2058,8 +2064,10 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		i++; 
 	}
 
-	if(i>=LOOP_NODEDAB) 
+	if(i>=LOOP_NODEDAB) {
+		close(file);
 		return(-3);
+	}
 
 	write(file,str2,length);
 	unlock(file,(long)((long)(usernumber-1)*U_LEN)+start,length);
@@ -2935,13 +2943,14 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	if((node=login_attempted(list, addr)) != NULL) {
 		attempt=node->data;
 		/* Don't count consecutive duplicate attempts (same name and password): */
-		if(strcmp(attempt->user,user)==0 && (pass==NULL || strcmp(attempt->pass,pass)==0))
+		if((user!=NULL && strcmp(attempt->user,user)==0) && (pass==NULL || strcmp(attempt->pass,pass)==0))
 			attempt->dupes++;
 	}
 	SAFECOPY(attempt->prot,prot);
 	attempt->time=time32(NULL);
 	memcpy(&attempt->addr, addr, sizeof(*addr));
-	SAFECOPY(attempt->user, user);
+	if(user != NULL)
+		SAFECOPY(attempt->user, user);
 	memset(attempt->pass, 0, sizeof(attempt->pass));
 	if(pass != NULL)
 		SAFECOPY(attempt->pass, pass);
@@ -3006,7 +3015,6 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 	}
 	return 0;
 }
-#endif
 
 /****************************************************************************/
 /* Message-new-scan pointer/configuration functions							*/
@@ -3036,7 +3044,30 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 
 	if(user->rest&FLAG('G'))
 		return initmsgptrs(cfg, subscan, cfg->guest_msgscan_init, progress, cbdata);
+
+	/* New way: */
+	SAFEPRINTF2(path,"%suser/%4.4u.subs", cfg->data_dir, user->number);
+	FILE* fp = fnopen(NULL, path, O_RDONLY|O_TEXT);
+	if (fp != NULL) {
+		str_list_t ini = iniReadFile(fp);
+		for(i = 0; i < cfg->total_subs; i++) {
+			if(progress != NULL)
+				progress(cbdata, i, cfg->total_subs);
+			subscan[i].ptr	= iniGetLongInt(ini, cfg->sub[i]->code, "ptr"	, subscan[i].ptr);
+			subscan[i].last	= iniGetLongInt(ini, cfg->sub[i]->code, "last"	, subscan[i].last);
+			subscan[i].cfg	= iniGetShortInt(ini, cfg->sub[i]->code, "cfg"	, subscan[i].cfg);
+			subscan[i].sav_ptr	= subscan[i].ptr;
+			subscan[i].sav_last	= subscan[i].last;
+			subscan[i].sav_cfg	= subscan[i].cfg; 
+		}
+		iniFreeStringList(ini);
+		fclose(fp);
+		if(progress != NULL)
+			progress(cbdata, i, cfg->total_subs);
+		return TRUE;
+	}
 	
+	/* Old way: */
 	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
 	if((stream=fnopen(&file,path,O_RDONLY))==NULL) {
 		if(fexist(path))
@@ -3065,61 +3096,44 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 }
 
 /****************************************************************************/
-/* Writes to data/user/ptrs/####.ixb the msgptr array for the current user	*/
+/* Writes to data/user/####.subs the msgptr array for the current user		*/
 /* Pass usernumber value of 0 to indicate "Guest" login						*/
 /****************************************************************************/
 BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 {
 	char		path[MAX_PATH+1];
-	ushort		idx;
-	uint16_t	scancfg;
-	uint		i,j;
-	int 		file;
-	ulong		length;
-	uint32_t	l=0L;
+	uint		i;
+	time_t		now = time(NULL);
 
 	if(user->number==0 || (user->rest&FLAG('G')))	/* Guest */
 		return(TRUE);
-	SAFEPRINTF2(path,"%suser/ptrs/%4.4u.ixb", cfg->data_dir, user->number);
-	if((file=nopen(path,O_WRONLY|O_CREAT))==-1) {
-		return(FALSE); 
-	}
-	fixmsgptrs(cfg, subscan);
-	length=(ulong)filelength(file);
-	for(i=0;i<cfg->total_subs;i++) {
+
+	SAFEPRINTF2(path,"%suser/%4.4u.subs", cfg->data_dir, user->number);
+	FILE* fp = fnopen(NULL, path, O_RDWR|O_CREAT|O_TEXT);
+	if (fp == NULL)
+		return FALSE;
+	str_list_t ini = iniReadFile(fp);
+	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "" };
+	BOOL modified = FALSE;
+	for(i=0; i < cfg->total_subs; i++) {
+		BOOL exists = iniSectionExists(ini, cfg->sub[i]->code);
 		if(subscan[i].sav_ptr==subscan[i].ptr 
 			&& subscan[i].sav_last==subscan[i].last
-			&& length>=((cfg->sub[i]->ptridx+1)*10UL)
-			&& subscan[i].sav_cfg==subscan[i].cfg)
+			&& subscan[i].sav_cfg==subscan[i].cfg
+			&& exists)
 			continue;
-		while(filelength(file)<(long)(cfg->sub[i]->ptridx)*10) {
-			lseek(file,0L,SEEK_END);
-			idx=(ushort)(tell(file)/10);
-			for(j=0;j<cfg->total_subs;j++)
-				if(cfg->sub[j]->ptridx==idx)
-					break;
-			write(file,&l,sizeof(l));
-			write(file,&l,sizeof(l));
-			scancfg=0xff;					
-			if(j<cfg->total_subs) {
-				if(!(cfg->sub[j]->misc&SUB_NSDEF))
-					scancfg&=~SUB_CFG_NSCAN;
-				if(!(cfg->sub[j]->misc&SUB_SSDEF))
-					scancfg&=~SUB_CFG_SSCAN; 
-			} else	/* default to scan OFF for unknown sub */
-				scancfg&=~(SUB_CFG_NSCAN|SUB_CFG_SSCAN);
-			write(file,&scancfg,sizeof(scancfg)); 
-		}
-		lseek(file,(long)((long)(cfg->sub[i]->ptridx)*10),SEEK_SET);
-		write(file,&(subscan[i].ptr),sizeof(subscan[i].ptr));
-		write(file,&(subscan[i].last),sizeof(subscan[i].last));
-		write(file,&(subscan[i].cfg),sizeof(subscan[i].cfg));
+		iniSetLongInt(&ini, cfg->sub[i]->code, "ptr", subscan[i].ptr, &ini_style);
+		iniSetLongInt(&ini, cfg->sub[i]->code, "last", subscan[i].last, &ini_style);
+		iniSetHexInt(&ini, cfg->sub[i]->code, "cfg", subscan[i].cfg, &ini_style);
+		iniSetDateTime(&ini, cfg->sub[i]->code, "updated", /* include_time: */TRUE, now, &ini_style);
+		modified = TRUE;
 	}
-	close(file);
-	if(!flength(path))			/* Don't leave 0 byte files */
-		remove(path);
+	if(modified)
+		iniWriteFile(fp, ini);
+	iniFreeStringList(ini);
+	fclose(fp);
 
-	return(TRUE);
+	return TRUE;
 }
 
 /****************************************************************************/
@@ -3186,3 +3200,80 @@ BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
 	}
 	return TRUE;
 }
+
+static char* sysop_available_semfile(scfg_t* scfg)
+{
+	static char semfile[MAX_PATH+1];
+	SAFEPRINTF(semfile, "%ssysavail.chat", scfg->ctrl_dir);
+	return semfile;
+}
+
+BOOL DLLCALL sysop_available(scfg_t* scfg)
+{
+	return fexist(sysop_available_semfile(scfg));
+}
+
+BOOL DLLCALL set_sysop_availability(scfg_t* scfg, BOOL available)
+{
+	if(available)
+		return ftouch(sysop_available_semfile(scfg));
+	return remove(sysop_available_semfile(scfg)) == 0;
+}
+
+/************************************/
+/* user .ini file get/set functions */
+/************************************/
+
+static FILE* user_ini_open(scfg_t* scfg, unsigned user_number, BOOL create)
+{
+	char path[MAX_PATH+1];
+
+	SAFEPRINTF2(path, "%suser/%04u.ini", scfg->data_dir, user_number);
+	return iniOpenFile(path, create);
+}
+
+BOOL DLLCALL user_get_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, char* value)
+{
+	FILE* fp;
+
+	fp = user_ini_open(scfg, user_number, /* create: */FALSE);
+	if(fp == NULL)
+		return FALSE;
+	char* result = iniReadValue(fp, section, key, NULL, value);
+	iniCloseFile(fp);
+	return result != NULL;
+}
+
+BOOL DLLCALL user_set_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, const char* value)
+{
+	FILE* fp;
+	str_list_t ini;
+
+	fp = user_ini_open(scfg, user_number, /* create: */TRUE);
+	if(fp == NULL)
+		return FALSE;
+	ini = iniReadFile(fp);
+	char* result = iniSetValue(&ini, section, key, value, /* style */NULL);
+	iniWriteFile(fp, ini);
+	iniFreeStringList(ini);
+	iniCloseFile(fp);
+	return result != NULL;
+}
+
+BOOL DLLCALL user_set_time_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, time_t value)
+{
+	FILE* fp;
+	str_list_t ini;
+
+	fp = user_ini_open(scfg, user_number, /* create: */TRUE);
+	if(fp == NULL)
+		return FALSE;
+	ini = iniReadFile(fp);
+	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, /* style */NULL);
+	iniWriteFile(fp, ini);
+	iniFreeStringList(ini);
+	iniCloseFile(fp);
+	return result != NULL;
+}
+
+#endif /* !NO_SOCKET_SUPPORT */
