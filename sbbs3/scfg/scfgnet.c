@@ -1,5 +1,4 @@
-/* $Id: scfgnet.c,v 1.42 2019/02/21 23:37:05 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: scfgnet.c,v 1.38 2018/03/31 09:16:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -254,7 +253,7 @@ void net_cfg()
 								SAFECOPY(cfg.qhub[i]->pack,"%@zip -jD %f %s");
 								SAFECOPY(cfg.qhub[i]->unpack,"%@unzip -Coj %f %s -d %g");
 								SAFECOPY(cfg.qhub[i]->call,"*qnet-ftp %s hub.address YOURPASS");
-								cfg.qhub[i]->node = NODE_ANY;
+								cfg.qhub[i]->node=1;
 								cfg.qhub[i]->days=(uchar)0xff; /* all days */
 								uifc.changes=1;
 								continue; 
@@ -284,48 +283,40 @@ void net_cfg()
 			done=0;
 			while(!done) {
 				i=0;
-				tmp[0] = 0;
-				for(j=0; j < cfg.total_faddrs && strlen(tmp) < 24; j++)
-					sprintf(tmp + strlen(tmp), "%s%s", j ? ", " : "", smb_faddrtoa(&cfg.faddr[j], NULL));
-				if(j < cfg.total_faddrs)
-					strcat(tmp, ", ...");
-				sprintf(opt[i++],"%-33.33s%s"
-					,"System Addresses",tmp);
-				sprintf(opt[i++],"%-33.33s%.40s"
-					,"Default Origin Line", cfg.origline);
-				sprintf(opt[i++],"%-33.33s%.40s"
+				sprintf(opt[i++],"%-27.27s%s"
+					,"System Addresses",cfg.total_faddrs
+                		? smb_faddrtoa(&cfg.faddr[0],tmp) : nulstr);
+				sprintf(opt[i++],"%-27.27s"
+					,"Default Origin Line");
+				sprintf(opt[i++],"%-27.27s%.40s"
 					,"NetMail Semaphore",cfg.netmail_sem);
-				sprintf(opt[i++],"%-33.33s%.40s"
+				sprintf(opt[i++],"%-27.27s%.40s"
 					,"EchoMail Semaphore",cfg.echomail_sem);
-				sprintf(opt[i++],"%-33.33s%.40s"
+				sprintf(opt[i++],"%-27.27s%.40s"
 					,"NetMail Directory",cfg.netmail_dir);
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Allow Sending of NetMail"
 					,cfg.netmail_misc&NMAIL_ALLOW ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Allow File Attachments"
 					,cfg.netmail_misc&NMAIL_FILE ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Send NetMail Using Alias"
 					,cfg.netmail_misc&NMAIL_ALIAS ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"NetMail Defaults to Crash"
 					,cfg.netmail_misc&NMAIL_CRASH ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"NetMail Defaults to Direct"
 					,cfg.netmail_misc&NMAIL_DIRECT ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"NetMail Defaults to Hold"
 					,cfg.netmail_misc&NMAIL_HOLD ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%s"
+				sprintf(opt[i++],"%-27.27s%s"
 					,"Kill NetMail After Sent"
 					,cfg.netmail_misc&NMAIL_KILL ? "Yes":"No");
-				sprintf(opt[i++],"%-33.33s%"PRIu32
+				sprintf(opt[i++],"%-27.27s%"PRIu32
 					,"Cost to Send NetMail",cfg.netmail_cost);
-				if(cfg.total_faddrs > 1)
-					sprintf(opt[i++],"%-33.33s%s"
-						,"Choose NetMail Source Address"
-						,cfg.netmail_misc&NMAIL_CHSRCADDR ? "Yes":"No");
 				opt[i][0]=0;
 				uifc.helpbuf=
 					"`FidoNet EchoMail and NetMail:`\n"
@@ -334,7 +325,7 @@ void net_cfg()
 					"networking E-mail (NetMail) and sub-boards (EchoMail) through networks\n"
 					"using FidoNet technology.\n"
 				;
-				i=uifc.list(WIN_ACT|WIN_MID|WIN_CHE,0,0,68,&fnet_dflt,0
+				i=uifc.list(WIN_ACT|WIN_MID|WIN_CHE,0,0,60,&fnet_dflt,0
 					,"FidoNet EchoMail and NetMail",opt);
 				switch(i) {
 					case -1:	/* ESC */
@@ -350,7 +341,7 @@ void net_cfg()
 							"The `Main` address is also used as the default address for Fido-Networked\n"
 							"sub-boards (EchoMail areas).\n"
 							"\n"
-							"The supported address format (so-called 3D or 4D): `Zone`:`Net`/`Node`[.`Point`]\n"
+							"The supported address format (so-called 3D or 4D): `Zone:Net/Node[.Point]`\n"
 						;
 						k=l=0;
 						while(1) {
@@ -615,26 +606,6 @@ void net_cfg()
 							,str,10,K_EDIT|K_NUMBER);
 						cfg.netmail_cost=atol(str);
 						break; 
-					case 13:
-						i=0;
-						uifc.helpbuf=
-							"`Choose NetMail Source Address:`\n"
-							"\n"
-							"When the system has multiple FidoNet-style addresses, you can allow\n"
-							"users to choose the source address when sending NetMail messages by\n"
-							"setting this option to `Yes`.\n"
-						;
-						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-							,"Allow Senders of NetMail to Choose the Source Address",uifcYesNoOpts);
-						if(!i && !(cfg.netmail_misc&NMAIL_CHSRCADDR)) {
-							uifc.changes=1;
-							cfg.netmail_misc|=NMAIL_CHSRCADDR; 
-						}
-						else if(i==1 && cfg.netmail_misc&NMAIL_CHSRCADDR) {
-							uifc.changes=1;
-							cfg.netmail_misc&=~NMAIL_CHSRCADDR; 
-						}
-						break;
 				} 
 			} 
 		}
@@ -786,7 +757,7 @@ void net_cfg()
 			if(i==-1)
 				continue;
 			if(!i) {
-				save_msgs_cfg(&cfg,backup_level);
+				write_msgs_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			break;
@@ -806,11 +777,7 @@ void qhub_edit(int num)
 		sprintf(opt[i++],"%-27.27s%.40s","Pack Command Line",cfg.qhub[num]->pack);
 		sprintf(opt[i++],"%-27.27s%.40s","Unpack Command Line",cfg.qhub[num]->unpack);
 		sprintf(opt[i++],"%-27.27s%.40s","Call-out Command Line",cfg.qhub[num]->call);
-		if(cfg.qhub[num]->node == NODE_ANY)
-			SAFECOPY(str, "Any");
-		else
-			SAFEPRINTF(str, "%u", cfg.qhub[num]->node);
-		sprintf(opt[i++],"%-27.27s%s","Call-out Node", str);
+		sprintf(opt[i++],"%-27.27s%u","Call-out Node",cfg.qhub[num]->node);
 		sprintf(opt[i++],"%-27.27s%s","Call-out Days",daystr(cfg.qhub[num]->days));
 		if(cfg.qhub[num]->freq) {
 			sprintf(str,"%u times a day",1440/cfg.qhub[num]->freq);
@@ -920,23 +887,16 @@ void qhub_edit(int num)
 					,cfg.qhub[num]->call,sizeof(cfg.qhub[num]->call)-1,K_EDIT);
 				break;
 			case 4:
-				if(cfg.qhub[num]->node == NODE_ANY)
-					SAFECOPY(str, "Any");
-				else
-					SAFEPRINTF(str, "%u", cfg.qhub[num]->node);
+				sprintf(str,"%u",cfg.qhub[num]->node);
 				uifc.helpbuf=
 					"`Node to Perform Call-out:`\n"
 					"\n"
 					"This is the number of the node to perform the call-out for this QWK\n"
-					"network hub (or `Any`).\n"
+					"network hub.\n"
 				;
-				if(uifc.input(WIN_MID|WIN_SAV,0,0
-					,"Node to Perform Call-out",str,3,K_EDIT) > 0) {
-					if(isdigit(*str))
-						cfg.qhub[num]->node=atoi(str);
-					else
-						cfg.qhub[num]->node = NODE_ANY;
-				}
+				uifc.input(WIN_MID|WIN_SAV,0,0
+					,"Node to Perform Call-out",str,3,K_EDIT|K_NUMBER);
+				cfg.qhub[num]->node=atoi(str);
 				break;
 			case 5:
 				j=0;
@@ -1258,7 +1218,7 @@ BOOL import_qwk_conferences(uint qhubnum)
 	long added = 0;
 	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], &added);
 	fclose(fp);
-	uifc.pop(NULL);
+	uifc.pop(0);
 	if(ported < 0)
 		sprintf(str, "!ERROR %ld imported message areas", ported);
 	else {
