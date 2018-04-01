@@ -1,7 +1,8 @@
-/* Synchronet JavaScript "User" Object */
-// vi: tabstop=4
+/* js_user.c */
 
-/* $Id: js_user.c,v 1.110 2019/05/04 03:09:19 rswindell Exp $ */
+/* Synchronet JavaScript "User" Object */
+
+/* $Id: js_user.c,v 1.103 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,11 +46,10 @@ typedef struct
 	user_t		storage;
 	BOOL		cached;
 	client_t*	client;
-	int			file;		// for fast read operations, only
 
 } private_t;
 
-/* User Object Properties */
+/* User Object Properites */
 enum {
 	 USER_PROP_NUMBER
 	,USER_PROP_ALIAS 	
@@ -128,13 +128,12 @@ enum {
 
 static void js_getuserdat(scfg_t* scfg, private_t* p)
 {
-	if(p->user->number != 0 && !p->cached) {
-		if(p->file < 1)
-			p->file = openuserdat(scfg, /* for_modify: */FALSE);
-		if(fgetuserdat(scfg, p->user, p->file)==0)
+	if(!p->cached) {
+		if(getuserdat(scfg,p->user)==0)
 			p->cached=TRUE;
 	}
 }
+
 
 static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
@@ -792,15 +791,15 @@ static char* user_prop_desc[] = {
 	,"external e-mail address"
 	,"local Internet e-mail address	- <small>READ ONLY</small>"
 	,"street address"
-	,"location (e.g. city, state)"
+	,"location (city, state)"
 	,"zip/postal code"
 	,"phone number"
-	,"birth date in either MM/DD/YY or DD/MM/YY format depending on system configuration"
+	,"birth date"
 	,"calculated age in years - <small>READ ONLY</small>"
-	,"connection type (protocol)"
+	,"connection type"
 	,"AKA connection"
 	,"terminal rows (lines)"
-	,"gender type (e.g. M or F)"
+	,"gender type"
 	,"current/last message sub-board (internal code)"
 	,"current/last file directory (internal code)"
 	,"current/last external program (internal code) run"
@@ -953,18 +952,16 @@ static char* user_stats_prop_desc[] = {
 
 static void js_user_finalize(JSContext *cx, JSObject *obj)
 {
-	private_t* p = (private_t*)JS_GetPrivate(cx,obj);
+	private_t* p;
 
-	if(p!=NULL) {
-		if(p->file > 0)
-			closeuserdat(p->file);
+	p=(private_t*)JS_GetPrivate(cx,obj);
+
+	if(p!=NULL)
 		free(p);
-	}
 
-	JS_SetPrivate(cx, obj, NULL);
+	p=NULL;
+	JS_SetPrivate(cx,obj,p);
 }
-
-extern JSClass js_user_class;
 
 static JSBool
 js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
@@ -981,7 +978,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	JSVALUE_TO_MSTRING(cx,argv[0], ars, NULL);
@@ -1018,7 +1015,7 @@ js_posted_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1050,7 +1047,7 @@ js_sent_email(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1084,7 +1081,7 @@ js_downloaded_file(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1120,7 +1117,7 @@ js_uploaded_file(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1155,7 +1152,7 @@ js_adjust_credits(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1186,7 +1183,7 @@ js_adjust_minutes(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1217,7 +1214,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1470,7 +1467,7 @@ static JSBool js_user_enumerate(JSContext *cx, JSObject *obj)
 	return(js_user_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_user_class = {
+static JSClass js_user_class = {
      "User"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
@@ -1569,7 +1566,6 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		p->storage = *user;
 		if(global_user)
 			p->user = user;
-		p->cached = TRUE;
 	}
 
 	JS_SetPrivate(cx, userobj, p);	
@@ -1579,7 +1575,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		,"Instance of <i>User</i> class, representing current user online"
 		,310);
 	js_DescribeSyncConstructor(cx,userobj
-		,"To create a new user object: <tt>var u = new User;</tt> or: <tt>var u = new User(<i>number</i>);</tt>");
+		,"To create a new user object: <tt>var u = new User(<i>number</i>)</tt>");
 	js_CreateArrayOfStrings(cx, userobj
 		,"_property_desc_list", user_prop_desc, JSPROP_READONLY);
 #endif
