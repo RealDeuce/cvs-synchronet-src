@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.43 2018/02/06 02:30:55 deuce Exp $ */
+/* $Id: x_cio.c,v 1.49 2018/03/10 09:50:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,13 +92,12 @@ static void write_event(struct x11_local_event *ev)
 	}
 }
 
-int x_beep(void)
+void x_beep(void)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_BEEP;
 	write_event(&ev);
-	return(0);
 }
 
 void x_textmode(int mode)
@@ -170,20 +169,7 @@ int x_get_window_info(int *width, int *height, int *xpos, int *ypos)
 	if(ypos)
 		*ypos=x11_window_ypos;
 	
-	return(0);
-}
-
-int x_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b)
-{
-	struct x11_local_event ev;
-
-	ev.type=X11_LOCAL_SETPALETTE;
-	ev.data.palette.index = entry;
-	ev.data.palette.r = r;
-	ev.data.palette.g = g;
-	ev.data.palette.b = b;
-	write_event(&ev);
-	return(0);
+	return(1);
 }
 
 /* Mouse event/keyboard thread */
@@ -398,6 +384,18 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
+	if((x11.XGetVisualInfo=xp_dlsym(dl,XGetVisualInfo))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateWindow=xp_dlsym(dl,XCreateWindow))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateColormap=xp_dlsym(dl,XCreateColormap))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
 
 	if(sem_init(&pastebuf_set, 0, 0)) {
 		xp_dlclose(dl);
@@ -432,7 +430,6 @@ int x_init(void)
 	}
 
 	_beginthread(x11_event_thread,1<<16,NULL);
-	_beginthread(x11_mouse_thread,1<<16,NULL);
 	sem_wait(&init_complete);
 	if(!x11_initialized) {
 		xp_dlclose(dl);
@@ -443,21 +440,18 @@ int x_init(void)
 		pthread_mutex_destroy(&copybuf_mutex);
 		return(-1);
 	}
-	cio_api.options |= CONIO_OPT_PALETTE_SETTING | CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
+	_beginthread(x11_mouse_thread,1<<16,NULL);
+	cio_api.options |= CONIO_OPT_SET_TITLE | CONIO_OPT_SET_NAME | CONIO_OPT_SET_ICON;
 	return(0);
 }
 
-void x11_drawrect(int xoffset,int yoffset,int width,int height,uint32_t *data)
+void x11_drawrect(struct rectlist *data)
 {
 	struct x11_local_event ev;
 
 	ev.type=X11_LOCAL_DRAWRECT;
 	if(x11_initialized) {
-		ev.data.rect.x=xoffset;
-		ev.data.rect.y=yoffset;
-		ev.data.rect.width=width;
-		ev.data.rect.height=height;
-		ev.data.rect.data=data;
+		ev.data.rect=data;
 		write_event(&ev);
 	}
 }
@@ -474,16 +468,11 @@ void x11_flush(void)
 void x_setscaling(int newval)
 {
 	pthread_mutex_lock(&vstatlock);
-	vstat.scaling = newval;
+	x_cvstat.scaling = vstat.scaling = newval;
 	pthread_mutex_unlock(&vstatlock);
 }
 
 int x_getscaling(void)
 {
-	int ret;
-
-	pthread_mutex_lock(&vstatlock);
-	ret = vstat.scaling;
-	pthread_mutex_unlock(&vstatlock);
-	return ret;
+	return x_cvstat.scaling;
 }
