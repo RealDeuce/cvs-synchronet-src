@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.32 2018/04/01 03:38:25 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.33 2018/04/01 03:42:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,6 +218,7 @@ static bool new_node(unsigned new_nodenum)
 
 	cfg.nodecfgs++;
 	memset(&cfg.nodecfg[new_nodenum], 0, sizeof(nodecfg_t));
+	cfg.nodecfg[new_nodenum].binkp_allowPlainText = true;
 	return true;
 }
 
