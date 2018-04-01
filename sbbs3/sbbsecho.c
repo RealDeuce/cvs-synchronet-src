@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.73 2018/03/31 09:38:49 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.74 2018/04/01 03:37:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1837,7 +1837,7 @@ bool add_sub_to_areafile(sub_t* sub, fidoaddr_t uplink)
 	if(added++ == 0)
 		backup(cfg.areafile, cfg.areafile_backups, /* ren: */FALSE);
 
-	fp = fopen(cfg.areafile, "r+");
+	fp = fopen(cfg.areafile, fexist(cfg.areafile) ? "r+" : "w+");
 	if(fp == NULL) {
 		lprintf(LOG_ERR, "Error %d opening %s", errno, cfg.areafile);
 		return false;
@@ -5928,7 +5928,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.73 $", "%*s %s", revision);
+	sscanf("$Revision: 3.74 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
