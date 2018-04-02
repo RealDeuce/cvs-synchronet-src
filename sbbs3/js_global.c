@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.372 2018/03/10 03:19:01 rswindell Exp $ */
+/* $Id: js_global.c,v 1.373 2018/03/10 06:12:50 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2421,7 +2421,7 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = 249;
+			outbuf[j++] = (char)249;
 			continue;
 		}
 
