@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.167 2016/12/01 21:42:08 rswindell Exp $ */
+/* $Id: js_file.c,v 1.172 2018/04/02 23:22:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,7 +84,6 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 }
 
 /* Converts fopen() style 'mode' string into open() style 'flags' integer */
-
 static int fopenflags(char *mode)
 {
 	int flags=0;
@@ -93,6 +92,9 @@ static int fopenflags(char *mode)
 		flags|=O_BINARY;
 	else
 		flags|=O_TEXT;
+
+	if(strchr(mode,'x'))
+		flags|=O_EXCL;
 
 	if(strchr(mode,'w')) {
 		flags|=O_CREAT|O_TRUNC;
@@ -119,9 +121,6 @@ static int fopenflags(char *mode)
 			flags|=O_RDONLY;
 	}
 
-	if(strchr(mode,'e'))
-		flags|=O_EXCL;
-
 	return(flags);
 }
 
@@ -133,7 +132,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	BOOL		shareable=FALSE;
-	int			file;
+	int			file = -1;
 	uintN		i;
 	jsint		bufsize=2*1024;
 	JSString*	str;
@@ -176,7 +175,13 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 			char *e=fdomode;
 
 			if(fdomode && e) {
-				for(e=strchr(fdomode, 'e'); e ; e=strchr(e, 'e'))
+				/* Remove deprecated (never-worked, non-standard) 'e'xclusive mode char (and warn): */
+				for(e=strchr(fdomode, 'e'); e ; e=strchr(e, 'e')) {
+					JS_ReportWarning(cx, "Deprecated file open mode: 'e'");
+					memmove(e, e+1, strlen(e));
+				}
+				/* Remove (C11 standard) 'x'clusive mode char to avoid MSVC assertion: */
+				for(e=strchr(fdomode, 'x'); e ; e=strchr(e, 'x'))
 					memmove(e, e+1, strlen(e));
 				if((p->fp=fdopen(file,fdomode))==NULL)
 					close(file);
@@ -196,7 +201,8 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 			setvbuf(p->fp,NULL,_IOFBF,bufsize);
 		}
-	}
+	} else if(file >= 0)
+		close(file);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -1005,10 +1011,17 @@ js_iniRemoveKey(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL)
+	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
+		HANDLE_PENDING(cx, section);
+	}
 	JSVALUE_TO_MSTRING(cx, argv[1], key, NULL);
-	HANDLE_PENDING(cx);
+	if(JS_IsExceptionPending(cx)) {
+		FREE_AND_NULL(key);
+		FREE_AND_NULL(section);
+		return JS_FALSE;
+	}
+	
 	if(key==NULL) {
 		JS_ReportError(cx, "Invalid NULL key specified");
 		FREE_AND_NULL(section);
@@ -1057,7 +1070,7 @@ js_iniRemoveSection(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, section);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1103,7 +1116,7 @@ js_iniGetSections(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc) {
 		JSVALUE_TO_MSTRING(cx, argv[0], prefix, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, prefix);
 	}
 
     array = JS_NewArrayObject(cx, 0, NULL);
@@ -1151,7 +1164,7 @@ js_iniGetKeys(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, section);
 	}
     array = JS_NewArrayObject(cx, 0, NULL);
 
@@ -1197,7 +1210,7 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>0 && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
 		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, section);
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1339,7 +1352,7 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc)
 		JSVALUE_TO_MSTRING(cx, argv[0], name, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, name);
 	if(name == NULL) {
 		JS_ReportError(cx, "Invalid NULL name property");
 		return JS_FALSE;
@@ -1484,7 +1497,7 @@ js_iniSetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1)
 		JSVALUE_TO_MSTRING(cx, argv[1], name, NULL);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, name);
 	if(name==NULL) {
 		JS_ReportError(cx, "Invalid NULL name property");
 		return JS_FALSE;
@@ -1501,6 +1514,8 @@ js_iniSetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((list=iniReadFile(p->fp))==NULL) {
 		JS_RESUMEREQUEST(cx, rc);
+		if(name != name_def)
+			free(name);
 		return JS_TRUE;
 	}
 	JS_RESUMEREQUEST(cx, rc);
@@ -1568,7 +1583,7 @@ js_raw_write(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp;
+	char*		cp = NULL;
 	size_t		len;	/* string length */
 	JSString*	str;
 	private_t*	p;
@@ -1588,7 +1603,7 @@ js_raw_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cp);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -1612,7 +1627,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		cp;
+	char*		cp = NULL;
 	char*		uubuf=NULL;
 	size_t		len;	/* string length */
 	int		decoded_len;
@@ -1636,7 +1651,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cp, &len);
-	HANDLE_PENDING(cx);
+	HANDLE_PENDING(cx, cp);
 	if(cp==NULL)
 		return JS_TRUE;
 
@@ -1730,7 +1745,7 @@ js_writeln_internal(JSContext *cx, JSObject *obj, jsval *arg, jsval *rval)
 			return(JS_FALSE);
 		}
 		JSSTRING_TO_MSTRING(cx, str, cp, NULL);
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, cp);
 		if(cp==NULL)
 			cp=(char *)cp_def;
 	}
@@ -2568,7 +2583,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>w+</tt> open an empty file for both reading and writing; if the given file exists, its contents are destroyed<br>"
 		"<tt>a+</tt> open for reading and appending<br>"
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
-		"<tt>e&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.12)</i><br>"
+		"<tt>x&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.17)</i><br>"
 		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
 		"the file must be opened for both reading and writing.<br>"
 		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
@@ -2666,7 +2681,8 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,317
 	},
 	{"write",			js_write,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("text [,length=<i>text_length</i>]")
-	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process)")
+	,JSDOCSTR("write a string to the file (optionally unix-to-unix or base64 decoding in the process). "
+		"If the specified <i>length</i> is longer than the <i>text</i>, the remaining length will be written as NUL bytes.")
 	,310
 	},
 	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[text]")
