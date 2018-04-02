@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "File" Object */
 
-/* $Id: js_file.c,v 1.172 2018/04/02 23:22:57 rswindell Exp $ */
+/* $Id: js_file.c,v 1.171 2018/04/02 22:37:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 			if(fdomode && e) {
 				/* Remove deprecated (never-worked, non-standard) 'e'xclusive mode char (and warn): */
 				for(e=strchr(fdomode, 'e'); e ; e=strchr(e, 'e')) {
-					JS_ReportWarning(cx, "Deprecated file open mode: 'e'");
+					JS_ReportWarning(cx, "Deprecated open flag used: 'e'");
 					memmove(e, e+1, strlen(e));
 				}
 				/* Remove (C11 standard) 'x'clusive mode char to avoid MSVC assertion: */
