@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.128 2018/07/08 22:38:21 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.126 2018/03/14 05:41:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -708,10 +708,9 @@ void maint(void)
 				hash_t*	hashes = malloc(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t));
 				if(hashes != NULL) {
 					if(fread(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp) == max_hashes * SMB_HASH_SOURCE_TYPES) {
+						CHSIZE_FP(smb.hash_fp,0);
 						rewind(smb.hash_fp);
 						fwrite(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp);
-						fflush(smb.hash_fp);
-						CHSIZE_FP(smb.hash_fp, sizeof(hash_t) * max_hashes * SMB_HASH_SOURCE_TYPES);
 					}
 					free(hashes);
 				}
@@ -861,16 +860,15 @@ void maint(void)
 
 	printf("Re-writing index...\n");
 	rewind(smb.sid_fp);
+	CHSIZE_FP(smb.sid_fp,0);
 	for(m=n=0;m<l;m++) {
 		if(idx[m].attr&MSG_DELETE)
 			continue;
-		n++;
-		printf("%lu of %lu\r", n, l-flagged);
+		printf("%lu of %lu\r",++n,l-flagged);
 		fwrite(&idx[m],sizeof(idxrec_t),1,smb.sid_fp); 
 	}
-	fflush(smb.sid_fp);
-	CHSIZE_FP(smb.sid_fp, n * sizeof(idxrec_t));
 	printf("\nDone.\n\n");
+	fflush(smb.sid_fp);
 
 	free(idx);
 	smb.status.total_msgs-=flagged;
@@ -1512,20 +1510,6 @@ short str2tzone(const char* str)
 	return 0;	/* UTC */
 }
 
-long getmsgnum(const char* str)
-{
-	if(*str == '-') {
-		time_t t = time(NULL) - (atol(str+1) * 24 * 60 * 60);
-		printf("%.24s\n", ctime(&t));
-		idxrec_t	idx;
-		int result = smb_getmsgidx_by_time(&smb, &idx, t);
-		printf("match = %d, num %d\n", result, idx.number);
-		if(result >= 0)
-			return result + 1;	/* 1-based offset */
-	}
-	return atol(str);
-}
-
 /***************/
 /* Entry point */
 /***************/
@@ -1559,7 +1543,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.128 $", "%*s %s", revision);
+	sscanf("$Revision: 1.126 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1750,11 +1734,11 @@ int main(int argc, char **argv)
 							config();
 							break;
 						case 'l':
-							listmsgs(getmsgnum(cmd+1),count);
+							listmsgs(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'x':
-							dumpindex(getmsgnum(cmd+1),count);
+							dumpindex(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'p':
@@ -1785,7 +1769,7 @@ int main(int argc, char **argv)
 								fprintf(errfp, "\nError %d (%s) unlocking %s\n", i, smb.last_error, smb.file);
 							break;
 						case 'r':
-							readmsgs(getmsgnum(cmd+1));
+							readmsgs(atol(cmd+1));
 							y=strlen(cmd)-1;
 							break;
 						case 'R':
@@ -1818,7 +1802,7 @@ int main(int argc, char **argv)
 							break;
 						case 'v':
 						case 'V':
-							viewmsgs(getmsgnum(cmd+1),count,cmd[y]=='V');
+							viewmsgs(atol(cmd+1),count,cmd[y]=='V');
 							y=strlen(cmd)-1;
 							break;
 						case 'h':
