@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.37 2018/02/02 22:21:35 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.38 2018/02/07 09:37:26 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 		orig_x=wherex();
 		orig_y=wherey();
 		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
-		ciolib_xlat = TRUE;
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
 		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
