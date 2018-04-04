@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.476 2018/03/12 18:24:43 deuce Exp $ */
+/* $Id: sbbs.h,v 1.478 2018/04/04 19:10:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -380,6 +380,7 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
+	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
@@ -759,7 +760,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd);
+	void	badlogin(char* user, char* passwd, char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
 
 	/* answer.cpp */
 	bool	answer();
