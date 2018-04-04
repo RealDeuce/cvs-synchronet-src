@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.664 2018/03/23 01:19:20 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.665 2018/04/04 19:11:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1806,9 +1806,11 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
-	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
-		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
+	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
+		SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
+		filter_ip(&scfg, prot, reason
 			,host, inet_addrtop(addr, addrstr, sizeof(addrstr)), user, /* fname: */NULL);
+	}
 	if(count>1)
 		mswait(startup->login_attempt.delay);
 }
@@ -6518,7 +6520,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.664 $", "%*s %s", revision);
+	sscanf("$Revision: 1.665 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

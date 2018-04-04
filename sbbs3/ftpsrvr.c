@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.465 2018/03/30 01:02:24 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.466 2018/04/04 19:11:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2552,9 +2552,10 @@ static BOOL badlogin(SOCKET sock, CRYPT_SESSION sess, ulong* login_attempts, cha
 		if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
 			ftp_hacklog("FTP LOGIN", user, passwd, host, addr);
 		if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
+			char reason[128];
+			SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
 			inet_addrtop(addr, host_ip, sizeof(host_ip));
-			filter_ip(&scfg, "FTP", "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-				,host, host_ip, user, /* fname: */NULL);
+			filter_ip(&scfg, "FTP", reason, host, host_ip, user, /* fname: */NULL);
 		}
 		if(count > *login_attempts)
 			*login_attempts=count;
@@ -5874,7 +5875,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.465 $", "%*s %s", revision);
+	sscanf("$Revision: 1.466 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

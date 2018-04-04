@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.663 2018/04/01 07:22:48 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.664 2018/04/04 19:11:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -919,9 +919,10 @@ static void badlogin(SOCKET sock, CRYPT_SESSION sess, const char* prot, const ch
 		if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold)
 			hacklog(&scfg, reason, user, passwd, host, addr);
 		inet_addrtop(addr, ip, sizeof(ip));
-		if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
-			filter_ip(&scfg, (char*)prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-				,host, ip, user, /* fname: */NULL);
+		if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
+			SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
+			filter_ip(&scfg, (char*)prot, reason ,host, ip, user, /* fname: */NULL);
+		}
 	}
 
 	mswait(startup->login_attempt.delay);
@@ -5669,7 +5670,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.663 $", "%*s %s", revision);
+	sscanf("$Revision: 1.664 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
