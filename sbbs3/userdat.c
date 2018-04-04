@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.195 2018/03/26 03:44:31 rswindell Exp $ */
+/* $Id: userdat.c,v 1.196 2018/04/04 19:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2771,8 +2771,10 @@ BOOL DLLCALL filter_ip(scfg_t* cfg, const char* prot, const char* reason, const 
     if((fp=fopen(fname,"a"))==NULL)
     	return(FALSE);
 
-    fprintf(fp,"\n; %s %s by %s on %s\n"
-    	,prot,reason,username,timestr(cfg,now,tstr));
+    fprintf(fp, "\n; %s %s ", prot, reason);
+	if(username != NULL)
+		fprintf(fp, "by %s ", username);
+    fprintf(fp,"on %s\n", timestr(cfg, now, tstr));
 
 	if(host!=NULL)
 		fprintf(fp,"; Hostname: %s\n",host);
