@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.467 2018/04/05 21:49:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.468 2018/04/05 22:26:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1950,7 +1950,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 		GCES(status, *sock, CRYPT_UNUSED, estr, "creating session");
 		if (estr) {
 			lprintf(level, "%04d FTP %s", *sock, estr);
-			free(estr);
+			free_crypt_attrstr(estr);
 		}
 		if (resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
@@ -5875,7 +5875,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.467 $", "%*s %s", revision);
+	sscanf("$Revision: 1.468 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
