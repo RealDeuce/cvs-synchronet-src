@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.312 2018/03/10 03:53:32 deuce Exp $ */
+/* $Id: services.c,v 1.321 2018/04/04 19:11:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -332,8 +332,8 @@ static void badlogin(SOCKET sock, char* prot, char* user, char* passwd, char* ho
 		hacklog(&scfg, reason, user, passwd, host, addr);
 	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
 		inet_addrtop(addr, addr_ip, sizeof(addr_ip));
-		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
-			,host, addr_ip, user, /* fname: */NULL);
+		SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
+		filter_ip(&scfg, prot, reason, host, addr_ip, user, /* fname: */NULL);
 	}
 
 	mswait(startup->login_attempt.delay);
@@ -943,8 +943,8 @@ static BOOL handle_crypt_call(int status, service_client_t *service_client, cons
 				sess = CRYPT_UNUSED;
 			get_crypt_error_string(status, sess, &estr, action, &level);
 			if (estr) {
-				lprintf(level, "%04d %s", sock, estr);
-				free(estr);
+				lprintf(level, "%04d %s TLS %s", sock, service_client->service->protocol, estr);
+				free_crypt_attrstr(estr);
 			}
 		}
 	}
@@ -991,6 +991,7 @@ static void js_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsService");
 	thread_up(TRUE /* setuid */);
+	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	/* Host name lookup and filtering */
@@ -1018,6 +1019,7 @@ static void js_service_thread(void* arg)
 		return;
 	}
 
+	service_client.tls_sess = -1;
 	if (service_client.service->options & SERVICE_OPT_TLS) {
 		/* Create and initialize the TLS session */
 		if (!HANDLE_CRYPT_CALL(cryptCreateSession(&service_client.tls_sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER), &service_client, "creating session")) {
@@ -1046,12 +1048,12 @@ static void js_service_thread(void* arg)
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, socket), &service_client, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(service_client.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &service_client, "setting session active")) {
+			if (service_client.tls_sess != -1)
+				cryptDestroySession(service_client.tls_sess);
 			js_service_failure_cleanup(service, socket);
 			return;
 		}
 	}
-	else
-		service_client.tls_sess = -1;
 
 #if 0	/* Need to export from SBBS.DLL */
 	identity=NULL;
@@ -1084,6 +1086,8 @@ static void js_service_thread(void* arg)
 		|| (js_cx=js_initcx(js_runtime,socket,&service_client,&js_glob))==NULL) {
 		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript context"
 			,socket,service->protocol);
+		if (service_client.tls_sess != -1)
+			cryptDestroySession(service_client.tls_sess);
 		client_off(socket);
 		close_socket(socket);
 		if(service->clients)
@@ -1130,7 +1134,7 @@ static void js_service_thread(void* arg)
 
 	js_script=JS_CompileFile(js_cx, js_glob, spath);
 
-	if(js_script==NULL) 
+	if(js_script==NULL)
 		lprintf(LOG_ERR,"%04d !JavaScript FAILED to compile script (%s)",socket,spath);
 	else  {
 		js_PrepareToExecute(js_cx, js_glob, spath, /* startup_dir */NULL, js_glob);
@@ -1194,6 +1198,7 @@ static void js_static_service_thread(void* arg)
 
 	SetThreadName("sbbs/jsStatic");
 	thread_up(TRUE /* setuid */);
+	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
 	memset(&service_client,0,sizeof(service_client));
@@ -1584,7 +1589,6 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 		}
 
 		if((np=(service_t*)realloc(service,sizeof(service_t)*((*services)+1)))==NULL) {
-			fclose(fp);
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 			free(default_interfaces);
 			iniFreeStringList(sec_list);
@@ -1604,7 +1608,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 static void cleanup(int code)
 {
 	while(protected_uint32_value(threads_pending_start)) {
-		lprintf(LOG_NOTICE,"#### Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
+		lprintf(LOG_NOTICE,"0000 Services cleanup waiting on %d threads pending start",protected_uint32_value(threads_pending_start));
 		SLEEP(1000);
 	}
 	protected_uint32_destroy(threads_pending_start);
@@ -1642,7 +1646,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.312 $", "%*s %s", revision);
+	sscanf("$Revision: 1.321 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1768,8 +1772,6 @@ void DLLCALL services_thread(void* arg)
 		DESCRIBE_COMPILER(compiler);
 
 		lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
-
-		sbbs_srand();	/* Seed random number generator */
 
 		protected_uint32_init(&threads_pending_start,0);
 
@@ -1915,8 +1917,10 @@ void DLLCALL services_thread(void* arg)
 
 		if (need_cert) {
 			if (get_ssl_cert(&scfg, &ssl_estr, &level) == -1) {
-				lprintf(level, "No TLS certificiate %s", ssl_estr);
-				free(ssl_estr);
+				if (ssl_estr) {
+					lprintf(level, "No TLS certificiate %s", ssl_estr);
+					free_crypt_attrstr(ssl_estr);
+				}
 			}
 		}
 
@@ -2181,11 +2185,11 @@ void DLLCALL services_thread(void* arg)
 
 		/* Wait for Dynamic Service Threads to terminate */
 		if(active_clients()) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d clients to disconnect",active_clients());
+			lprintf(LOG_INFO,"0000 Waiting for %d clients to disconnect",active_clients());
 			while(active_clients()) {
 				mswait(500);
 			}
-			lprintf(LOG_DEBUG,"0000 Done waiting");
+			lprintf(LOG_INFO,"0000 Done waiting for clients to disconnect");
 		}
 
 		/* Wait for Static Service Threads to terminate */
@@ -2193,7 +2197,7 @@ void DLLCALL services_thread(void* arg)
 		for(i=0;i<(int)services;i++) 
 			total_running+=service[i].running;
 		if(total_running) {
-			lprintf(LOG_DEBUG,"0000 Waiting for %d static services to terminate",total_running);
+			lprintf(LOG_INFO,"0000 Waiting for %d static services to terminate",total_running);
 			while(1) {
 				total_running=0;
 				for(i=0;i<(int)services;i++) 
@@ -2202,7 +2206,7 @@ void DLLCALL services_thread(void* arg)
 					break;
 				mswait(500);
 			}
-			lprintf(LOG_DEBUG,"0000 Done waiting");
+			lprintf(LOG_INFO,"0000 Done waiting for static services to terminate");
 		}
 
 		cleanup(0);
