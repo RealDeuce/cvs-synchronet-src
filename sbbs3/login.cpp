@@ -1,6 +1,6 @@
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.28 2019/04/23 23:07:26 rswindell Exp $ */
+/* $Id: login.cpp,v 1.26 2018/04/04 19:10:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,7 +145,7 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 	return(LOGIC_TRUE);
 }
 
-void sbbs_t::badlogin(char* user, char* passwd, const char* protocol, xp_sockaddr* addr, bool delay)
+void sbbs_t::badlogin(char* user, char* passwd, char* protocol, xp_sockaddr* addr, bool delay)
 {
 	char reason[128];
 	char host_name[128];
@@ -156,7 +156,7 @@ void sbbs_t::badlogin(char* user, char* passwd, const char* protocol, xp_sockadd
 	if(addr == NULL)
 		addr = &client_addr;
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
+	SAFECOPY(host_name, "<no name>");
 	socklen_t addr_len = sizeof(*addr);
 	SAFEPRINTF(reason,"%s LOGIN", protocol);
 	count=loginFailure(startup->login_attempt_list, addr, protocol, user, passwd);
