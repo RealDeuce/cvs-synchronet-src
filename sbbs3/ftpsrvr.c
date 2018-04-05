@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.466 2018/04/04 19:11:28 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.467 2018/04/05 21:49:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1934,7 +1934,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	BOOL nodelay;
 	ulong nb;
 	int status;
-	char *estr;
+	char *estr = NULL;
 	int level;
 
 	if (get_ssl_cert(&scfg, &estr, &level) == -1) {
@@ -5875,7 +5875,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.466 $", "%*s %s", revision);
+	sscanf("$Revision: 1.467 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
