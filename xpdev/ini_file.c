@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.166 2018/08/28 22:12:06 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.162 2018/03/30 16:03:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -358,8 +358,7 @@ str_list_t DLLCALL	iniGetSection(str_list_t list, const char *section)
 			SKIP_WHITESPACE(p);
 			if(*p==INI_OPEN_SECTION_CHAR)
 				break;
-			if(*p)
-				strListPush(&retval, list[i]);
+			strListPush(&retval, list[i]);
 		}
 	}
 	return(retval);
@@ -505,17 +504,6 @@ size_t DLLCALL iniAppendSection(str_list_t* list, const char* section, ini_style
 	return ini_add_section(list,section,style,strListCount(*list));
 }
 
-size_t DLLCALL iniAppendSectionWithKeys(str_list_t* list, const char* section, const str_list_t keys
-	, ini_style_t* style)
-{
-	if(section==ROOT_SECTION)
-		return(0);
-
-	ini_add_section(list,section,style,strListCount(*list));
-
-	return strListAppendList(list, keys);
-}
-
 static BOOL str_contains_ctrl_char(const char* str)
 {
 	while(*str) {
@@ -532,9 +520,7 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 	char	str[INI_MAX_LINE_LEN];
 	char	litstr[INI_MAX_VALUE_LEN];
 	char	curval[INI_MAX_VALUE_LEN];
-	const char* key_prefix = "";
-	const char* value_separator = "=";
-	const char* literal_separator = ":";
+	const char*	value_separator;
 	size_t	i;
 
 	if(style==NULL)
@@ -544,22 +530,23 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 
 	if(key==NULL)
 		return(NULL);
-	if(style->key_prefix != NULL)
-		key_prefix = style->key_prefix;
-	if(style->value_separator != NULL)
-		value_separator = style->value_separator;
-	if(style->literal_separator != NULL)
-		literal_separator = style->literal_separator;
+	if(style->key_prefix==NULL)
+		style->key_prefix="";
+	if(style->value_separator==NULL)
+		style->value_separator="=";
+	if(style->literal_separator==NULL)
+		style->literal_separator=":";
 	if(value==NULL)
 		value="";
 	if(literal) {
 		char cstr[INI_MAX_VALUE_LEN];
 		SAFEPRINTF(litstr, "\"%s\"", c_escape_str(value, cstr, sizeof(cstr)-1, /* ctrl_only: */FALSE));
 		value = litstr;
-		value_separator = literal_separator;
-	}
+		value_separator = style->literal_separator;
+	} else
+		value_separator = style->value_separator;
 	safe_snprintf(str, sizeof(str), "%s%-*s%s%s"
-		,key_prefix, style->key_len, key, value_separator, value);
+		,style->key_prefix, style->key_len, key, value_separator, value);
 	i=get_value(*list, section, key, curval, NULL, /* literals_supported: */literal);
 	if((*list)[i]==NULL || *(*list)[i]==INI_OPEN_SECTION_CHAR) {
         while(i && *(*list)[i-1]==0) i--;   /* Insert before blank lines, not after */
@@ -575,7 +562,7 @@ char* DLLCALL iniSetString(str_list_t* list, const char* section, const char* ke
 				 ,ini_style_t* style)
 {
 	BOOL literal = value != NULL && (str_contains_ctrl_char(value) || *value==' ' || *lastchar(value)==' ');
-
+		
 	return ini_set_string(list, section, key, value, literal, style);
 }
 
@@ -808,24 +795,23 @@ char* DLLCALL iniSetBitField(str_list_t* list, const char* section, const char* 
 {
 	char	str[INI_MAX_VALUE_LEN];
 	int		i;
-	const char* bit_separator = "|";
 
 	if(style==NULL)
 		style=&default_style;
 	if(style->bit_separator==NULL)
-		bit_separator = style->bit_separator;
+		style->bit_separator="|";
 	str[0]=0;
 	for(i=0;bitdesc[i].name;i++) {
 		if((value&bitdesc[i].bit)==0)
 			continue;
 		if(str[0])
-			strcat(str, bit_separator);
+			strcat(str,style->bit_separator);
 		strcat(str,bitdesc[i].name);
 		value&=~bitdesc[i].bit;
 	}
 	if(value) {	/* left over bits? */
 		if(str[0])
-			strcat(str, bit_separator);
+			strcat(str,style->bit_separator);
 		sprintf(str+strlen(str), "0x%lX", value);
 	}
 	return iniSetString(list, section, key, str, style);
@@ -1360,7 +1346,7 @@ static BOOL isTrue(const char* value)
 	char*	str;
 	char*	p;
 	BOOL	is_true;
-
+	
 	if(!isalpha(*value))
 		return FALSE;
 
@@ -1372,7 +1358,7 @@ static BOOL isTrue(const char* value)
 	p=str;
 	FIND_CHARSET(p, "; \t");
 	*p=0;
-
+	
 	is_true = (stricmp(str,"TRUE")==0 || stricmp(str,"YES")==0 || stricmp(str,"ON")==0);
 	free(str);
 	return is_true;
@@ -1546,7 +1532,7 @@ int DLLCALL iniGetSocketOptions(str_list_t list, const char* section, SOCKET soc
 	}
 #endif
 	for(i=0;socket_options[i].name!=NULL;i++) {
-		if(socket_options[i].type != 0
+		if(socket_options[i].type != 0 
 				&& socket_options[i].type != type)
 			continue;
 #ifdef IPPROTO_IPV6
@@ -2375,10 +2361,11 @@ BOOL DLLCALL iniWriteFile(FILE* fp, const str_list_t list)
 	size_t		count;
 
 	rewind(fp);
-	count = strListWriteFile(fp,list,"\n");
-	fflush(fp);
-	if(chsize(fileno(fp), ftell(fp))!=0)	/* truncate */
+
+	if(chsize(fileno(fp),0)!=0)	/* truncate */
 		return(FALSE);
+
+	count = strListWriteFile(fp,list,"\n");
 
 	return(count == strListCount(list));
 }
