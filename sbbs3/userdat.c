@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.211 2019/02/15 03:53:02 rswindell Exp $ */
+/* $Id: userdat.c,v 1.196 2018/04/04 19:13:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -418,10 +418,8 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
 		return(-1); 
 
-	if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0) {
-		user->number = 0;
+	if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0)
 		return file;
-	}
 
 	memset(userdat, 0, sizeof(userdat));
 	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
@@ -799,7 +797,7 @@ int DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* fdp)
 				&& lock(file,(long)number*sizeof(node_t),sizeof(node_t))!=0) 
 				continue; 
 			rd=read(file,node,sizeof(node_t));
-			if(rd!=sizeof(node_t))
+			if(fdp==NULL || rd!=sizeof(node_t))
 				unlock(file,(long)number*sizeof(node_t),sizeof(node_t));
 			if(rd==sizeof(node_t))
 				break;
@@ -1302,7 +1300,6 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	chsize(file,0L);
 	close(file);
 	buf[length]=0;
-	strip_invalid_attr(buf);
 
 	return(buf);	/* caller must free */
 }
@@ -1478,7 +1475,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 		artype=(**ptrptr);
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
-			case AR_PETSCII:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -1529,11 +1525,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				break;
 			case AR_ANSI:
 				if(user==NULL || !(user->misc&ANSI))
-					result=not;
-				else result=!not;
-				break;
-			case AR_PETSCII:
-				if(user==NULL || !(user->misc&PETSCII))
 					result=not;
 				else result=!not;
 				break;
@@ -1957,15 +1948,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
-				break;
-			case AR_TERM:
-				result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_ROWS:
-			case AR_COLS:
-				result=!not;
 				break;
 		} 
 	}
@@ -2878,17 +2860,6 @@ BOOL DLLCALL loginAttemptListFree(link_list_t* list)
 }
 
 /****************************************************************************/
-long DLLCALL loginAttemptListCount(link_list_t* list)
-{	
-	long count;
-	
-	listLock(list);
-	count=listCountNodes(list);
-	listUnlock(list);
-	return count;
-}
-
-/****************************************************************************/
 long DLLCALL loginAttemptListClear(link_list_t* list)
 {	
 	long count;
@@ -2899,7 +2870,6 @@ long DLLCALL loginAttemptListClear(link_list_t* list)
 	listUnlock(list);
 	return count;
 }
-
 
 /****************************************************************************/
 static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* addr)
@@ -3085,18 +3055,12 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 		for(i = 0; i < cfg->total_subs; i++) {
 			if(progress != NULL)
 				progress(cbdata, i, cfg->total_subs);
-			str_list_t keys = iniGetSection(ini, cfg->sub[i]->code);
-			if(keys == NULL)
-				continue;
-			subscan[i].ptr	= iniGetLongInt(keys, NULL, "ptr"	, subscan[i].ptr);
-			subscan[i].last	= iniGetLongInt(keys, NULL, "last"	, subscan[i].last);
-			subscan[i].cfg	= iniGetShortInt(keys, NULL, "cfg"	, subscan[i].cfg);
-			subscan[i].cfg &= (SUB_CFG_NSCAN|SUB_CFG_SSCAN|SUB_CFG_YSCAN);	// Sanitize the 'cfg' value
+			subscan[i].ptr	= iniGetLongInt(ini, cfg->sub[i]->code, "ptr"	, subscan[i].ptr);
+			subscan[i].last	= iniGetLongInt(ini, cfg->sub[i]->code, "last"	, subscan[i].last);
+			subscan[i].cfg	= iniGetShortInt(ini, cfg->sub[i]->code, "cfg"	, subscan[i].cfg);
 			subscan[i].sav_ptr	= subscan[i].ptr;
 			subscan[i].sav_last	= subscan[i].last;
 			subscan[i].sav_cfg	= subscan[i].cfg; 
-			iniFreeStringList(keys);
-			iniRemoveSection(&ini, cfg->sub[i]->code);
 		}
 		iniFreeStringList(ini);
 		fclose(fp);
@@ -3142,46 +3106,36 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 	char		path[MAX_PATH+1];
 	uint		i;
 	time_t		now = time(NULL);
-	BOOL		result = TRUE;
 
 	if(user->number==0 || (user->rest&FLAG('G')))	/* Guest */
 		return(TRUE);
 
-	fixmsgptrs(cfg, subscan);
 	SAFEPRINTF2(path,"%suser/%4.4u.subs", cfg->data_dir, user->number);
 	FILE* fp = fnopen(NULL, path, O_RDWR|O_CREAT|O_TEXT);
 	if (fp == NULL)
 		return FALSE;
-	str_list_t new = strListInit();
 	str_list_t ini = iniReadFile(fp);
 	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "" };
 	BOOL modified = FALSE;
 	for(i=0; i < cfg->total_subs; i++) {
-		str_list_t keys = iniGetSection(ini, cfg->sub[i]->code);
+		BOOL exists = iniSectionExists(ini, cfg->sub[i]->code);
 		if(subscan[i].sav_ptr==subscan[i].ptr 
 			&& subscan[i].sav_last==subscan[i].last
 			&& subscan[i].sav_cfg==subscan[i].cfg
-			&& keys != NULL && *keys != NULL)
-			iniAppendSectionWithKeys(&new, cfg->sub[i]->code, keys, &ini_style);
-		else {
-			iniSetLongInt(&new, cfg->sub[i]->code, "ptr", subscan[i].ptr, &ini_style);
-			iniSetLongInt(&new, cfg->sub[i]->code, "last", subscan[i].last, &ini_style);
-			iniSetHexInt(&new, cfg->sub[i]->code, "cfg", subscan[i].cfg, &ini_style);
-			iniSetDateTime(&new, cfg->sub[i]->code, "updated", /* include_time: */TRUE, now, &ini_style);
-			modified = TRUE;
-		}
-		if(keys != NULL) {
-			iniRemoveSection(&ini, cfg->sub[i]->code);
-			iniFreeStringList(keys);
-		}
+			&& exists)
+			continue;
+		iniSetLongInt(&ini, cfg->sub[i]->code, "ptr", subscan[i].ptr, &ini_style);
+		iniSetLongInt(&ini, cfg->sub[i]->code, "last", subscan[i].last, &ini_style);
+		iniSetHexInt(&ini, cfg->sub[i]->code, "cfg", subscan[i].cfg, &ini_style);
+		iniSetDateTime(&ini, cfg->sub[i]->code, "updated", /* include_time: */TRUE, now, &ini_style);
+		modified = TRUE;
 	}
-	if(modified || strListCount(ini))
-		result = iniWriteFile(fp, new);
-	strListFree(&new);
+	if(modified)
+		iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	fclose(fp);
 
-	return result;
+	return TRUE;
 }
 
 /****************************************************************************/
@@ -3198,25 +3152,21 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*
 	for(i=0;i<cfg->total_subs;i++) {
 		if(progress != NULL)
 			progress(cbdata, i, cfg->total_subs);
-		/* This value will be "fixed" (changed to the last msg) when saving */
-		subscan[i].ptr = ~0;
-		if(days == 0)
+		if(days == 0) {
+			/* This value will be "fixed" (changed to the last msg) when saving */
+			subscan[i].ptr = ~0;
 			continue;
+		}
 		ZERO_VAR(smb);
 		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
-
-		if(!newmsgs(&smb, t))
-			continue;
-
 		smb.retry_time=cfg->smb_retry_time;
 		smb.subnum=i;
-		if(smb_open_index(&smb) != SMB_SUCCESS)
+		if(smb_open(&smb) != SMB_SUCCESS)
 			continue;
-		memset(&idx, 0, sizeof(idx));
-		smb_getlastidx(&smb, &idx);
-		subscan[i].ptr = idx.number;
-		if(idx.time >= t && smb_getmsgidx_by_time(&smb, &idx, t) >= SMB_SUCCESS)
-			subscan[i].ptr = idx.number - 1;
+		if(days == 0)
+			subscan[i].ptr = smb.status.last_msg;
+		else if(smb_getmsgidx_by_time(&smb, &idx, t) == SMB_SUCCESS)
+			subscan[i].ptr = idx.number;
 		smb_close(&smb);
 	}
 	if(progress != NULL)
@@ -3236,23 +3186,18 @@ BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
 	for(i=0;i<cfg->total_subs;i++) {
 		if(subscan[i].ptr == 0)
 			continue;
-		if(subscan[i].ptr < ~0 && subscan[i].sav_ptr == subscan[i].ptr)
+		if(subscan[i].sav_ptr == subscan[i].ptr)
 			continue;
 		ZERO_VAR(smb);
 		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
 		smb.retry_time=cfg->smb_retry_time;
 		smb.subnum=i;
-		if(smb_open_index(&smb) != SMB_SUCCESS) {
-			subscan[i].ptr = 0;
+		if(smb_open(&smb) != SMB_SUCCESS)
 			continue;
-		}
-		idxrec_t idx;
-		memset(&idx, 0, sizeof(idx));
-		smb_getlastidx(&smb, &idx);
-		if(subscan[i].ptr > idx.number)
-			subscan[i].ptr = idx.number;
-		if(subscan[i].last > idx.number)
-			subscan[i].last = idx.number;
+		if(subscan[i].ptr > smb.status.last_msg)
+			subscan[i].ptr = smb.status.last_msg;
+		if(subscan[i].last > smb.status.last_msg)
+			subscan[i].last = smb.status.last_msg;
 		smb_close(&smb);
 	}
 	return TRUE;
@@ -3289,17 +3234,14 @@ static FILE* user_ini_open(scfg_t* scfg, unsigned user_number, BOOL create)
 	return iniOpenFile(path, create);
 }
 
-BOOL DLLCALL user_get_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, char* value, size_t maxlen)
+BOOL DLLCALL user_get_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, char* value)
 {
 	FILE* fp;
-	char buf[INI_MAX_VALUE_LEN];
 
 	fp = user_ini_open(scfg, user_number, /* create: */FALSE);
 	if(fp == NULL)
 		return FALSE;
-	char* result = iniReadValue(fp, section, key, NULL, buf);
-	if(result != NULL)
-		safe_snprintf(value, maxlen, "%s", result);
+	char* result = iniReadValue(fp, section, key, NULL, value);
 	iniCloseFile(fp);
 	return result != NULL;
 }
@@ -3313,8 +3255,7 @@ BOOL DLLCALL user_set_property(scfg_t* scfg, unsigned user_number, const char* s
 	if(fp == NULL)
 		return FALSE;
 	ini = iniReadFile(fp);
-	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = " };
-	char* result = iniSetValue(&ini, section, key, value, &ini_style);
+	char* result = iniSetValue(&ini, section, key, value, /* style */NULL);
 	iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	iniCloseFile(fp);
@@ -3330,8 +3271,7 @@ BOOL DLLCALL user_set_time_property(scfg_t* scfg, unsigned user_number, const ch
 	if(fp == NULL)
 		return FALSE;
 	ini = iniReadFile(fp);
-	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = " };
-	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, &ini_style);
+	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, /* style */NULL);
 	iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	iniCloseFile(fp);
