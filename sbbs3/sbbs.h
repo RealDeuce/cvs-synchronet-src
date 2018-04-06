@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.478 2018/04/04 19:10:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.479 2018/04/06 00:21:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -760,7 +760,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd, char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
 
 	/* answer.cpp */
 	bool	answer();
