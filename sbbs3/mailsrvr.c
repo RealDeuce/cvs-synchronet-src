@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.665 2018/04/06 00:14:06 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.666 2018/04/06 01:02:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -999,7 +999,7 @@ static void pop3_thread(void* arg)
 	if (pop3.tls_port) {
 		if (get_ssl_cert(&scfg, &estr, &level) == -1) {
 			if (estr) {
-				lprintf(level, "%04d !POP3 [%s] %s", socket, host_ip);
+				lprintf(level, "%04d !POP3/TLS Failure getting certificate: %s", socket, estr);
 				free_crypt_attrstr(estr);
 			}
 			mail_close_socket(&socket, &session);
@@ -5671,7 +5671,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.665 $", "%*s %s", revision);
+	sscanf("$Revision: 1.666 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
