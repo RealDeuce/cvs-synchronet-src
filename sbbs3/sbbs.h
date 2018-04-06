@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.474 2018/03/10 03:19:02 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.479 2018/04/06 00:21:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,6 +328,7 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
+	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -379,6 +380,7 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
+	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
@@ -758,7 +760,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd);
+	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
 
 	/* answer.cpp */
 	bool	answer();
@@ -1357,6 +1359,7 @@ char*	prep_code(char *str, const char* prefix);
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...);	/* log output */
 	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
