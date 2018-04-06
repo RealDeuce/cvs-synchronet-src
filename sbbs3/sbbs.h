@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.479 2018/04/06 00:21:34 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.480 2018/04/06 02:42:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1357,8 +1357,16 @@ char*	prep_code(char *str, const char* prefix);
 
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
-	int 	lprintf(int level, const char *fmt, ...);	/* log output */
-	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	int 	lprintf(int level, const char *fmt, ...)	/* log output */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
+	int 	eprintf(int level, const char *fmt, ...)	/* event log */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
 	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
