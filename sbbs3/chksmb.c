@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.63 2018/07/17 05:42:36 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.62 2018/03/26 04:30:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.63 $", "%*s %s", revision);
+	sscanf("$Revision: 1.62 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 		if(stop_on_error && errors)
 			break;
 		if(pause_on_error && errlast!=errors) {
-			fprintf(stderr,"%s\nHit any key to continue...", beep);
+			fprintf(stderr,"\7\nHit any key to continue...");
 			if(!getch())
 				getch();
 			printf("\n"); 
@@ -1088,7 +1088,7 @@ int main(int argc, char **argv)
 			,totaldelmsgs,ultoac(packable,str));
 
 	if(pause_on_error && errlast!=errors) {
-		fprintf(stderr,"%s\nHit any key to continue...", beep);
+		fprintf(stderr,"\7\nHit any key to continue...");
 		if(!getch())
 			getch();
 		fprintf(stderr,"\n"); 
