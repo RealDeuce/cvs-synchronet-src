@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.467 2018/02/05 06:07:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.479 2018/04/06 00:21:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,8 +133,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 				*(sizeptr) = *JSSTSlenptr+1; \
 				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
 					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+					if((ret) != NULL) free(ret); \
 					(ret)=NULL; \
-					free(ret); \
 				} \
 				else { \
 					(ret)=JSSTStmpptr; \
@@ -217,9 +217,12 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
 }
 
-#define HANDLE_PENDING(cx) \
-	if(JS_IsExceptionPending(cx)) \
-		return JS_FALSE;
+#define HANDLE_PENDING(cx, p ) \
+	if(JS_IsExceptionPending(cx)) { \
+		if(p != NULL) \
+			free(p); \
+		return JS_FALSE; \
+	}
 
 #define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
 { \
@@ -325,6 +328,7 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
+	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
     bool	passthru_output_thread_running;
@@ -376,6 +380,7 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
+	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
@@ -755,7 +760,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd);
+	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
 
 	/* answer.cpp */
 	bool	answer();
@@ -1024,10 +1029,6 @@ extern "C" {
 	DLLEXPORT int		DLLCALL sbbs_random(int);
 	DLLEXPORT void		DLLCALL sbbs_srand(void);
 
-	/* chat.cpp */
-	DLLEXPORT BOOL		DLLCALL sysop_available(scfg_t*);
-	DLLEXPORT BOOL		DLLCALL set_sysop_availability(scfg_t*, BOOL available);
-
 	/* getstats.c */
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
@@ -1205,7 +1206,6 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, char* str[], unsigned flags);
-#ifdef USE_CRYPTLIB
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1217,11 +1217,14 @@ extern "C" {
 													,js_startup_t*				/* js */
 													,client_t* client			/* client */
 													,SOCKET client_socket		/* client */
+#ifdef USE_CRYPTLIB
 													,CRYPT_CONTEXT session		/* client */
+#else
+													,int unused
+#endif
 													,js_server_props_t* props	/* server */
 													,JSObject** glob
 													);
-#endif
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1329,6 +1332,12 @@ extern "C" {
 	/* js_cryptcon.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
 
+	/* js_cryptkeyset.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptKeysetClass(JSContext* cx, JSObject* parent);
+
+	/* js_cryptcert.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptCertClass(JSContext* cx, JSObject* parent);
+
 #endif
 
 /* str_util.c */
@@ -1350,6 +1359,7 @@ char*	prep_code(char *str, const char* prefix);
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...);	/* log output */
 	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
