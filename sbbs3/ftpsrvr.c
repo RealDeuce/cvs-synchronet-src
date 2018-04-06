@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.468 2018/04/05 22:26:04 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.469 2018/04/06 01:05:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1939,7 +1939,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 
 	if (get_ssl_cert(&scfg, &estr, &level) == -1) {
 		if (estr) {
-			lprintf(level, "%04d FTP %s", estr);
+			lprintf(level, "%04d TLS %s", *sock, estr);
 			free_crypt_attrstr(estr);
 		}
 		if (resp)
@@ -1949,7 +1949,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	if ((status = cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER)) != CRYPT_OK) {
 		GCES(status, *sock, CRYPT_UNUSED, estr, "creating session");
 		if (estr) {
-			lprintf(level, "%04d FTP %s", *sock, estr);
+			lprintf(level, "%04d TLS %s", *sock, estr);
 			free_crypt_attrstr(estr);
 		}
 		if (resp)
@@ -5875,7 +5875,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.468 $", "%*s %s", revision);
+	sscanf("$Revision: 1.469 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
