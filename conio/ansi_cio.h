@@ -1,10 +1,10 @@
-/* $Id: ansi_cio.h,v 1.11 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: ansi_cio.h,v 1.10 2018/02/14 04:37:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*

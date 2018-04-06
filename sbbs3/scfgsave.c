@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.79 2019/04/16 08:48:18 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.75 2018/03/07 02:48:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,7 +341,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	int32_t	l;
 	FILE	*stream;
 	smb_t	smb;
-	BOOL	result = TRUE;
 
 	if(cfg->prepped)
 		return(FALSE);
@@ -398,19 +397,12 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of sub-boards that will be written */
 	n = 0;
 	for(i=0; i<cfg->total_subs; i++)
-		if(cfg->sub[i]->grp < cfg->total_grps	/* total VALID sub-boards */
-			&& cfg->sub[i]->lname[0]
-			&& cfg->sub[i]->sname[0]
-			&& cfg->sub[i]->code_suffix[0])
+		if(cfg->sub[i]->grp < cfg->total_grps)	/* total VALID sub-boards */
 			n++;
 	put_int(n,stream);
 	unsigned int subnum = 0;	/* New sub-board numbering (as saved) */
 	for(unsigned grp = 0; grp < cfg->total_grps; grp++) {
 		for(i=0;i<cfg->total_subs;i++) {
-			if(cfg->sub[i]->lname[0] == 0
-				|| cfg->sub[i]->sname[0] == 0
-				|| cfg->sub[i]->code_suffix[0] == 0)
-				continue;
 			if(cfg->sub[i]->grp != grp)
 				continue;
 			cfg->sub[i]->subnum = subnum++;
@@ -455,15 +447,14 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 				else
 					SAFECOPY(smb.file,cfg->sub[i]->data_dir);
 				prep_dir(cfg->ctrl_dir,smb.file,sizeof(smb.file));
-				md(smb.file);
 				SAFEPRINTF2(str,"%s%s"
 					,cfg->grp[cfg->sub[i]->grp]->code_prefix
 					,cfg->sub[i]->code_suffix);
 				strlwr(str);
 				strcat(smb.file,str);
-				if(smb_open(&smb) != SMB_SUCCESS) {
-					result = FALSE;
-					continue;
+				if(smb_open(&smb)!=0) {
+					/* errormsg(WHERE,ERR_OPEN,smb.file,x); */
+					continue; 
 				}
 				if(!filelength(fileno(smb.shd_fp))) {
 					smb.status.max_crcs=cfg->sub[i]->maxcrcs;
@@ -603,7 +594,6 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	if(!no_msghdr) {
 		strcpy(dir,cfg->data_dir);
 		prep_dir(cfg->ctrl_dir,dir,sizeof(dir));
-		md(dir);
 		SAFEPRINTF(smb.file,"%smail",dir);
 		if(smb_open(&smb)!=0) {
 			return(FALSE); 
@@ -635,7 +625,7 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 		smb_close(&smb); 
 	}
 
-	return result;
+	return(TRUE);
 }
 
 
@@ -791,19 +781,12 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of dirs that will be written */
 	n = 0;
 	for (i = 0; i < cfg->total_dirs; i++)
-		if (cfg->dir[i]->lib < cfg->total_libs	/* total VALID file dirs */
-			&& cfg->dir[i]->lname[0]
-			&& cfg->dir[i]->sname[0]
-			&& cfg->dir[i]->code_suffix[0])
+		if (cfg->dir[i]->lib < cfg->total_libs)	/* total VALID file dirs */
 			n++;
 	put_int(n,stream);
 	unsigned int dirnum = 0;	/* New directory numbering (as saved) */
 	for (j = 0; j < cfg->total_libs; j++) {
 		for (i = 0; i < cfg->total_dirs; i++) {
-			if (cfg->dir[i]->lname[0] == 0
-				|| cfg->dir[i]->sname[0] == 0
-				|| cfg->dir[i]->code_suffix[0] == 0)
-				continue;
 			if (cfg->dir[i]->lib == j) {
 				cfg->dir[i]->dirnum = dirnum++;
 				put_int(cfg->dir[i]->lib, stream);
@@ -1008,8 +991,7 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		c=0;
 		put_int(c,stream);
 		n=0;
-		put_int(cfg->xedit[i]->quotewrap_cols, stream);
-		for(j=0;j<6;j++)
+		for(j=0;j<7;j++)
 			put_int(n,stream);
 		}
 
@@ -1026,16 +1008,11 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of xtrn programs that will be written */
 	n = 0;
 	for (i = 0; i < cfg->total_xtrns; i++)
-		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs	/* Total VALID xtrn progs */
-			&& cfg->xtrn[i]->name[0]
-			&& cfg->xtrn[i]->code[0])
+		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs)	/* Total VALID xtrn progs */
 			n++;
 	put_int(n,stream);
 	for(sec=0;sec<cfg->total_xtrnsecs;sec++)
 		for(i=0;i<cfg->total_xtrns;i++) {
-			if(cfg->xtrn[i]->name[0] == 0
-				|| cfg->xtrn[i]->code[0] == 0)
-				continue;
 			if(cfg->xtrn[i]->sec!=sec)
 				continue;
 			put_int(cfg->xtrn[i]->sec,stream);
