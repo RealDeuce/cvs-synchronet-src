@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.662 2018/03/12 18:24:43 deuce Exp $ */
+/* $Id: websrvr.c,v 1.665 2018/04/04 19:11:28 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -638,11 +638,15 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 						status = CRYPT_OK;
 					}
 					if(cryptStatusOK(status)) {
-						HANDLE_CRYPT_CALL_EXCEPT(cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
-						if (failed)
-							*failed=TRUE;
+						HANDLE_CRYPT_CALL_EXCEPT(status = cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
+						if (cryptStatusError(status)) {
+							if (failed)
+								*failed=TRUE;
+						}
 						return tls_sent;
 					}
+					if (failed)
+						*failed=TRUE;
 					result = tls_sent;
 				}
 				else {
@@ -1802,9 +1806,11 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
-	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold)
-		filter_ip(&scfg, prot, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
+	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
+		SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
+		filter_ip(&scfg, prot, reason
 			,host, inet_addrtop(addr, addrstr, sizeof(addrstr)), user, /* fname: */NULL);
+	}
 	if(count>1)
 		mswait(startup->login_attempt.delay);
 }
@@ -6240,7 +6246,7 @@ void http_session_thread(void* arg)
 			thread_down();
 			return;
 		}
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 1), &session, "setting read timeout");
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
 	}
 
 	/* Start up the output buffer */
@@ -6461,10 +6467,11 @@ void DLLCALL web_terminate(void)
 static void cleanup(int code)
 {
 	if(protected_uint32_value(thread_count) > 1) {
-		lprintf(LOG_DEBUG,"#### Web Server waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
+		lprintf(LOG_INFO,"0000 Waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
 		while(protected_uint32_value(thread_count) > 1) {
 			mswait(100);
 		}
+		lprintf(LOG_INFO,"0000 Done waiting");
 	}
 	free_cfg(&scfg);
 
@@ -6489,7 +6496,7 @@ static void cleanup(int code)
 	update_clients();	/* active_clients is destroyed below */
 
 	if(protected_uint32_value(active_clients))
-		lprintf(LOG_WARNING,"#### Web Server terminating with %ld active clients", protected_uint32_value(active_clients));
+		lprintf(LOG_WARNING,"!!!! Terminating with %ld active clients", protected_uint32_value(active_clients));
 	else
 		protected_uint32_destroy(active_clients);
 
@@ -6513,7 +6520,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.662 $", "%*s %s", revision);
+	sscanf("$Revision: 1.665 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6989,7 +6996,7 @@ void DLLCALL web_server(void* arg)
 
 		/* Wait for active clients to terminate */
 		if(protected_uint32_value(active_clients)) {
-			lprintf(LOG_DEBUG,"Waiting for %d active clients to disconnect..."
+			lprintf(LOG_INFO, "Waiting for %d active clients to disconnect..."
 				, protected_uint32_value(active_clients));
 			start=time(NULL);
 			while(protected_uint32_value(active_clients)) {
@@ -7000,6 +7007,7 @@ void DLLCALL web_server(void* arg)
 				}
 				mswait(100);
 			}
+			lprintf(LOG_INFO, "Done waiting for active clients to disconnect");
 		}
 
 		if(http_logging_thread_running) {
@@ -7008,7 +7016,7 @@ void DLLCALL web_server(void* arg)
 			mswait(100);
 		}
 		if(http_logging_thread_running) {
-			lprintf(LOG_DEBUG,"Waiting for HTTP logging thread to terminate...");
+			lprintf(LOG_INFO, "Waiting for HTTP logging thread to terminate...");
 			start=time(NULL);
 			while(http_logging_thread_running) {
 				if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
@@ -7018,6 +7026,7 @@ void DLLCALL web_server(void* arg)
 				}
 				mswait(100);
 			}
+			lprintf(LOG_INFO, "Done waiting for HTTP logging thread to terminate");
 		}
 
 		cleanup(0);
