@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.79 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.80 2018/03/17 02:23:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,9 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(COPYRIGHT_NOTICE);
 
 	if(!strcmp(sp,"COMPILER")) {
-		DESCRIBE_COMPILER(str);
+		char compiler[32];
+		DESCRIBE_COMPILER(compiler);
+		strncpy(str, compiler, maxlen);
 		return(str);
 	}
 
