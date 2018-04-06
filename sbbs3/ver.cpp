@@ -1,8 +1,9 @@
 /* ver.cpp */
+// vi: tabstop=4
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.28 2018/01/18 01:12:19 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.30 2018/02/17 23:29:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +37,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "ssl.h"
 
 const char* beta_version = " "; /* Space if non-beta, " beta" otherwise */
 
@@ -108,11 +110,13 @@ void sbbs_t::ver()
 	socklib_version(str,SOCKLIB_DESC);
 
 #ifdef USE_CRYPTLIB
-	{
+	if(is_crypt_initialized()) {
 		int cl_major=0, cl_minor=0, cl_step=0;
-		cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MAJORVERSION, &cl_major);
-		cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MINORVERSION, &cl_minor);
-		cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_STEPPING, &cl_step);
+		int result;
+		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MAJORVERSION, &cl_major);
+		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MINORVERSION, &cl_minor);
+		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_STEPPING, &cl_step);
+		(void)result;
 		sprintf(str + strlen(str), "  cryptlib %u.%u.%u (%u)", cl_major, cl_minor, cl_step, CRYPTLIB_VERSION);
 	}
 #endif
