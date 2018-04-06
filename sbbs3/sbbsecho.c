@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.71 2018/02/22 20:59:03 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.76 2018/04/06 00:49:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -147,28 +147,20 @@ const char default_domain[] = "fidonet";
 
 const char* zone_domain(uint16_t zone)
 {
-	struct zone_mapping *i;
-
-	if (!cfg.use_ftn_domains)
-		return default_domain;
-
-	for (i=cfg.zone_map; i; i=i->next)
-		if (i->zone == zone)
-			return i->domain;
+	for(unsigned i = 0; i < cfg.domain_count; i++)
+		for(unsigned j = 0; j < cfg.domain_list[i].zone_count; j++)
+			if(cfg.domain_list[i].zone_list[j] == zone)
+				return cfg.domain_list[i].name;
 
 	return default_domain;
 }
 
 const char* zone_root_outbound(uint16_t zone)
 {
-	struct zone_mapping *i;
-
-	if (!cfg.use_ftn_domains)
-		return cfg.outbound;
-
-	for (i=cfg.zone_map; i; i=i->next)
-		if (i->zone == zone)
-			return i->root;
+	for(unsigned i = 0; i < cfg.domain_count; i++)
+		for(unsigned j = 0; j < cfg.domain_list[i].zone_count; j++)
+			if(cfg.domain_list[i].zone_list[j] == zone)
+				return cfg.domain_list[i].root;
 
 	return cfg.outbound;
 }
@@ -1845,7 +1837,7 @@ bool add_sub_to_areafile(sub_t* sub, fidoaddr_t uplink)
 	if(added++ == 0)
 		backup(cfg.areafile, cfg.areafile_backups, /* ren: */FALSE);
 
-	fp = fopen(cfg.areafile, "r+");
+	fp = fopen(cfg.areafile, fexist(cfg.areafile) ? "r+" : "w+");
 	if(fp == NULL) {
 		lprintf(LOG_ERR, "Error %d opening %s", errno, cfg.areafile);
 		return false;
@@ -3024,7 +3016,7 @@ ushort matchname(const char *inname)
 	ulong l;
 
 	if(!total_users) {		/* Load CRCs */
-		fprintf(stderr,"\n%-25s","Loading user names...");
+		fprintf(stdout,"\n%-25s","Loading user names...");
 		sprintf(str,"%suser/user.dat",scfg.data_dir);
 		if((userdat=nopen(str,O_RDONLY|O_DENYNONE))==-1)
 			return(0);
@@ -3066,8 +3058,8 @@ ushort matchname(const char *inname)
 			SAFECOPY(username[total_users].real, name);
 		}
 		close(userdat);
-		fprintf(stderr,"     \b\b\b\b\b");  /* Clear counter */
-		fprintf(stderr,
+		fprintf(stdout,"     \b\b\b\b\b");  /* Clear counter */
+		fprintf(stdout,
 			"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
 			"%25s"
 			"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
@@ -5274,12 +5266,13 @@ void pack_netmail(void)
 		addr.net		= hdr.destnet;
 		addr.node		= hdr.destnode;
 		addr.point		= hdr.destpoint;
+		printf("NetMail msg %s from %s (%s) to %s (%s): "
+			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
 		if(sysfaddr_is_valid(find_sysfaddr(addr)))	{				  /* In-bound, so ignore */
+			printf("in-bound\n");
 			fclose(fidomsg);
 			continue;
 		}
-		printf("NetMail msg %s from %s (%s) to %s (%s): "
-			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
 		if((hdr.attr&FIDO_SENT) && !cfg.ignore_netmail_recv_attr) {
 			printf("already sent\n");
 			fclose(fidomsg);
@@ -5474,15 +5467,19 @@ void find_stray_packets(void)
 		outpkt_t* pkt;
 		if((pkt = calloc(1, sizeof(outpkt_t))) == NULL)
 			continue;
-		if((pkt->filename = strdup(packet)) == NULL)
+		if((pkt->filename = strdup(packet)) == NULL) {
+			free(pkt);
 			continue;
+		}
 		if(terminator == FIDO_PACKET_TERMINATOR)
 			lprintf(LOG_DEBUG, "Stray packet already finalized: %s", packet);
-		else
+		else {
 			if((pkt->fp = fopen(pkt->filename, "ab")) == NULL) {
 				lprintf(LOG_ERR, "ERROR %d (%s) opening %s", errno, strerror(errno), pkt->filename);
+				free(pkt);
 				continue;
 			}
+		}
 		pkt->orig = pkt_orig;
 		pkt->dest = pkt_dest;
 		listAddNode(&outpkt_list, pkt, 0, LAST_NODE);
@@ -5931,7 +5928,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.71 $", "%*s %s", revision);
+	sscanf("$Revision: 3.76 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6080,11 +6077,6 @@ int main(int argc, char **argv)
 
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
-		bail(1);
-	}
-
-	if(!sbbsecho_read_ftn_domains(&cfg, scfg.ctrl_dir)) {
-		fprintf(stderr, "ERROR %d (%s) reading %sftn_domains.ini\n", errno, strerror(errno), scfg.ctrl_dir);
 		bail(1);
 	}
 
@@ -6483,8 +6475,9 @@ int main(int argc, char **argv)
 
 	if(cfg.outgoing_sem[0]) {
 		if (exported_netmail || exported_echomail || packed_netmail || packets_sent || bundles_sent) {
-			lprintf(LOG_DEBUG, "Touching outgoing semfile: %s\n", cfg.outgoing_sem);
-			ftouch(cfg.outgoing_sem);
+			lprintf(LOG_DEBUG, "Touching outgoing semfile: %s", cfg.outgoing_sem);
+			if(!ftouch(cfg.outgoing_sem))
+				lprintf(LOG_ERR, "Error %d (%s) touching outgoing semfile: %s", errno, strerror(errno), cfg.outgoing_sem);
 		}
 	}
 	bail(0);
