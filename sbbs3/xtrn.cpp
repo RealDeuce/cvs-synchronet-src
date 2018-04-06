@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.248 2019/05/05 10:58:11 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.231 2018/04/06 07:08:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
+#define XTERN_LOG_STDERR
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
@@ -254,13 +255,6 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
-static void petscii_convert(BYTE* buf, ulong len)
-{
-    for(ulong i=0; i<len; i++) {
-		buf[i] = cp437_to_petscii(buf[i]);
-	}
-}
-
 static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 {
 	char*	p;
@@ -288,11 +282,11 @@ static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 
 #define XTRN_LOADABLE_MODULE(cmdline,startup_dir)			\
 	if(cmdline[0]=='*')		/* Baja module or JavaScript */	\
-		return(exec_bin(cmdline+1,&main_csi,startup_dir))
+		return(exec_bin(cmdline+1,&main_csi,startup_dir))				
 #ifdef JAVASCRIPT
 	#define XTRN_LOADABLE_JS_MODULE(cmdline,startup_dir)	\
 	if(cmdline[0]=='?') 	/* JavaScript */				\
-		return(js_execfile(cmdline+1,startup_dir))
+		return(js_execfile(cmdline+1,startup_dir))						
 #else
 	#define XTRN_LOADABLE_JS_MODULE
 #endif
@@ -306,7 +300,7 @@ extern SOCKET node_socket[];
 // -------------------------------------------------------------------------
 // GetAddressOfOpenVxDHandle
 //
-// This function returns the address of OpenVxDHandle. OpenVxDHandle is a
+// This function returns the address of OpenVxDHandle. OpenVxDHandle is a 
 // KERNEL32 function that returns a ring 0 event handle that corresponds to a
 // given ring 3 event handle. The ring 0 handle can be used by VxDs to
 // synchronize with the Win32 app.
@@ -374,7 +368,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
     BYTE 	wwiv_buf[XTRN_IO_BUF_LEN*2];
     bool	wwiv_flag=false;
     bool	native=false;			// DOS program by default
-	bool	nt=false;				// WinNT/2K?
+	bool	nt=false;				// WinNT/2K? 
     bool	was_online=true;
 	bool	rio_abortable_save=rio_abortable;
 	bool	use_pipes=false;	// NT-compatible console redirection
@@ -406,7 +400,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	lprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	if(online!=ON_REMOTE || cfg.node_num==0)
+		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	else
+		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -421,21 +418,20 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	native = native_executable(&cfg, cmdline, mode);
 
 	if(!native && (startup->options&BBS_OPT_NO_DOS)) {
-		lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
 		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
 		return -1;
 	}
 
-	if(mode&EX_SH || strcspn(cmdline,"<>|")!=strlen(cmdline))
+	if(mode&EX_SH || strcspn(cmdline,"<>|")!=strlen(cmdline)) 
 		sprintf(comspec_str,"%s /C ", comspec);
 	else
 		comspec_str[0]=0;
 
     if(startup_dir && cmdline[1]!=':' && cmdline[0]!='/'
     	&& cmdline[0]!='\\' && cmdline[0]!='.')
-       	SAFEPRINTF3(fullcmdline, "%s%s%s", comspec_str, startup_dir, cmdline);
+       	sprintf(fullcmdline, "%s%s%s", comspec_str, startup_dir, cmdline);
     else
-    	SAFEPRINTF2(fullcmdline, "%s%s", comspec_str, cmdline);
+    	sprintf(fullcmdline, "%s%s", comspec_str, cmdline);
 
 	SAFECOPY(realcmdline, fullcmdline);	// for errormsg if failed to execute
 
@@ -445,7 +441,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	OpenVxDHandle=GetAddressOfOpenVxDHandle();
 
-	if(OpenVxDHandle==NULL)
+	if(OpenVxDHandle==NULL) 
 		nt=true;	// Windows NT/2000
 
 	if(!nt && !native && !(cfg.xtrn_misc&XTRN_NO_MUTEX)
@@ -466,7 +462,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 
 		// Current environment passed to child process
-		sprintf(str,"%sprotocol.log",cfg.node_dir);
+		sprintf(str,"%sprotocol.log",cfg.node_dir);			
 		add_env_var(&env_list,"DSZLOG",str);
 		add_env_var(&env_list,"SBBSNODE",cfg.node_dir);
 		add_env_var(&env_list,"SBBSCTRL",cfg.ctrl_dir);
@@ -475,7 +471,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		sprintf(str,"%d",cfg.node_num);
 		add_env_var(&env_list,"SBBSNNUM",str);
 		/* date/time env vars */
-		sprintf(str,"%02u",tm.tm_mday);
+		sprintf(str,"%02u",tm.tm_mday);	
 		add_env_var(&env_list,"DAY",str);
 		add_env_var(&env_list,"WEEKDAY",wday[tm.tm_wday]);
 		add_env_var(&env_list,"MONTHNAME",mon[tm.tm_mon]);
@@ -542,7 +538,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "YEAR=%u\n",1900+tm.tm_year);
         fclose(fp);
 
-        SAFEPRINTF2(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
+        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
@@ -655,7 +651,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(mode&EX_OFFLINE)
 		startup_info.lpTitle=NULL;
 	else {
-		SAFEPRINTF3(title,"%s running %s on node %d"
+		sprintf(title,"%s running %s on node %d"
 			,useron.number ? useron.alias : "Event"
 			,realcmdline
 			,cfg.node_num);
@@ -737,7 +733,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 		SetLastError(last_error);	/* Restore LastError */
         errormsg(WHERE, ERR_EXEC, realcmdline, mode);
-		SetLastError(last_error);	/* Restore LastError */
         return(GetLastError());
     }
 
@@ -745,10 +740,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	char dbgstr[256];
 	sprintf(dbgstr,"Node %d created: hProcess %X hThread %X processID %X threadID %X\n"
 		,cfg.node_num
-		,process_info.hProcess
-		,process_info.hThread
-		,process_info.dwProcessId
-		,process_info.dwThreadId);
+		,process_info.hProcess 
+		,process_info.hThread 
+		,process_info.dwProcessId 
+		,process_info.dwThreadId); 
 	OutputDebugString(dbgstr);
 #endif
 
@@ -800,7 +795,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gettimeleft();
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
-				logline(LOG_NOTICE,"X!","hung-up in external program");
+				sprintf(str,"%s hung-up in external program",useron.alias);
+				logline(LOG_NOTICE,"X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -822,11 +818,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	            was_online=false;
             }
             if(hungup && time(NULL)-hungup>5 && !processTerminated) {
-				lprintf(LOG_INFO,"Terminating process from line %d", __LINE__);
+				lprintf(LOG_INFO,"Node %d Terminating process from line %d",cfg.node_num,__LINE__);
 				processTerminated=TerminateProcess(process_info.hProcess, 2112);
 			}
         }
-		if((native && !use_pipes) || mode&EX_OFFLINE) {
+		if((native && !use_pipes) || mode&EX_OFFLINE) {	
 			/* Monitor for process termination only */
 			if(WaitForSingleObject(process_info.hProcess,1000)==WAIT_OBJECT_0)
 				break;
@@ -849,29 +845,29 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 							,FILE_ATTRIBUTE_NORMAL
 							,(HANDLE) NULL);
 						if(wrslot==INVALID_HANDLE_VALUE)
-							lprintf(LOG_DEBUG,"!ERROR %u (%s) opening %s", GetLastError(), strerror(errno), str);
+							lprintf(LOG_DEBUG,"Node %d !ERROR %u opening %s", cfg.node_num, GetLastError(), str);
 						else
-							lprintf(LOG_DEBUG,"CreateFile(%s)=0x%x", str, wrslot);
+							lprintf(LOG_DEBUG,"Node %d CreateFile(%s)=0x%x", cfg.node_num, str, wrslot);
 					}
-
+					
 					/* CR expansion */
-					if(use_pipes)
+					if(use_pipes) 
 						bp=cr_expand(buf,wr,output_buf,wr);
 					else
 						bp=buf;
 
 					len=0;
 					if(wrslot==INVALID_HANDLE_VALUE)
-						lprintf(LOG_WARNING,"VDD Open failed (not loaded yet?)");
+						lprintf(LOG_WARNING,"Node %d VDD Open failed (not loaded yet?)",cfg.node_num);
 					else if(!WriteFile(wrslot,bp,wr,&len,NULL)) {
-						lprintf(LOG_ERR,"!VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", wrslot, wr, GetLastError());
+						lprintf(LOG_ERR,"Node %d !VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", cfg.node_num, wrslot, wr, GetLastError());
 						if(GetMailslotInfo(wrslot,&wr,NULL,NULL,NULL))
-							lprintf(LOG_DEBUG,"!VDD MailSlot max_msg_size=%u", wr);
+							lprintf(LOG_DEBUG,"Node %d !VDD MailSlot max_msg_size=%u", cfg.node_num, wr);
 						else
-							lprintf(LOG_DEBUG,"!GetMailslotInfo(0x%x)=%u", wrslot, GetLastError());
+							lprintf(LOG_DEBUG,"Node %d !GetMailslotInfo(0x%x)=%u", cfg.node_num, wrslot, GetLastError());
 					} else {
 						if(len!=wr)
-							lprintf(LOG_WARNING,"VDD short write (%u instead of %u)", len,wr);
+							lprintf(LOG_WARNING,"Node %d VDD short write (%u instead of %u)",cfg.node_num,len,wr);
 						RingBufRead(&inbuf, NULL, len);
 						if(use_pipes && !(mode&EX_NOECHO)) {
 							/* echo */
@@ -908,11 +904,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 							);
 					else
 						GetMailslotInfo(
-							rdslot,				// mailslot handle
- 							NULL,				// address of maximum message size
-							NULL,				// address of size of next message
-							&waiting,			// address of number of messages
- 							NULL				// address of read time-out
+							rdslot,				// mailslot handle 
+ 							NULL,				// address of maximum message size 
+							NULL,				// address of size of next message 
+							&waiting,			// address of number of messages 
+ 							NULL				// address of read time-out 
 							);
 					if(!waiting)
 						break;
@@ -937,8 +933,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
@@ -970,7 +964,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				len=sizeof(buf);
 				avail=RingBufFree(&outbuf)/2;	// leave room for wwiv/telnet expansion
 #if 0
-				if(avail==0)
+				if(avail==0) 
 					lprintf("Node %d !output buffer full (%u bytes)"
 						,cfg.node_num,RingBufFull(&outbuf));
 #endif
@@ -1006,8 +1000,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			}
@@ -1037,7 +1029,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 
 				/* only check node for interrupt flag every 3 seconds of no I/O */
-				if((loop_since_io%30)==0) {
+				if((loop_since_io%30)==0) {	
 					// Check if the node has been interrupted
 					getnodedat(cfg.node_num,&thisnode,0);
 					if(thisnode.misc&NODE_INTR)
@@ -1084,7 +1076,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		if(retval==STILL_ACTIVE) {
 			lprintf(LOG_INFO,"Node %d Terminating process from line %d",cfg.node_num,__LINE__);
 			TerminateProcess(process_info.hProcess, GetLastError());
-		}
+		}	
 
 	 	// Get return value
 		if(!native) {
@@ -1103,7 +1095,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
 
 		if(native) {
-
+			
 			/* Re-enable blocking (incase disabled by xtrn program) */
 			ulong l=0;
 			ioctlsocket(client_socket, FIONBIO, &l);
@@ -1329,17 +1321,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	pid_t	pid;
 	int		in_pipe[2];
 	int		out_pipe[2];
+#ifdef XTERN_LOG_STDERR
 	int		err_pipe[2];
+#endif
 	fd_set ibits;
 	int	high_fd;
 	struct timeval timeout;
-    BYTE 	wwiv_buf[XTRN_IO_BUF_LEN*2];
-    bool	wwiv_flag=false;
-#if defined(__FreeBSD__) || (defined(__linux__) && defined(USE_DOSEMU))
- 	char* p;
-#endif
 
-	lprintf(LOG_DEBUG, "Executing external: %s", cmdline);
+	if(online!=ON_REMOTE || cfg.node_num==0)
+		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -1381,7 +1371,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	} else {
 		if(startup->options&BBS_OPT_NO_DOS) {
-			lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
 			bprintf("Sorry, DOS programs are not supported on this node.\r\n");
 			return -1;
 		}
@@ -1412,7 +1401,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		if((p=strrchr(str,'/'))!=NULL)
 			*p=0;
 		fprintf(doscmdrc,"assign E: %s\n",str);
-
+		
 		/* setup doscmd env here */
 		/* ToDo Note, this assumes that the BBS uses standard dir names */
 		fprintf(doscmdrc,"DSZLOG=E:\\node%d\\PROTOCOL.LOG\n",cfg.node_num);
@@ -1434,6 +1423,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		FILE *dosemubat;
 		int setup_override;
 		char tok[MAX_PATH+1];
+ 		char* p;
 
 		char dosemuconf[MAX_PATH+1];
 		char dosemubinloc[MAX_PATH+1];
@@ -1450,7 +1440,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		char datadir_dos[MAX_PATH+1];
 		char execdir_dos[MAX_PATH+1];
 
-		/* Default locations that can be overridden by
+		/* Default locations that can be overridden by 
 		 * the sysop in emusetup.bat */
 
 		const char nodedrive[] = "D:";
@@ -1507,7 +1497,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		 * error out. */
 				SAFECOPY(str,"/etc/dosemu/dosemu.conf");
 				if (!fexist(str)) {
-
+				
 					SAFECOPY(str,"/etc/dosemu.conf");
 					if (!fexist(str)) {
 						errormsg(WHERE,ERR_READ,str,0);
@@ -1524,6 +1514,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* same deal for emusetup.bat. */
 
 		sprintf(str,"%semusetup.bat",startup_dir);
+		fprintf(stderr, str);
 		if (!fexist(str)) {
 
 		/* If we can't find it in the door dir, look for a global one
@@ -1556,31 +1547,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"set SBBSEXEC=%s\r\n",execdrive);
 		fprintf(dosemubat,"set PCBNODE=%d\r\n",cfg.node_num);
 
-		// let's do this cleanly like dosemu's default autoexec.bat does -wk42
-		/* clear existing redirections on dos side and */
+		/* clear existing redirections on dos side */
+		fprintf(dosemubat,"lredir del %s\r\nlredir del %s\r\nlredir del %s\r\nlredir del %s\r\n",xtrndrive,ctrldrive,datadrive,execdrive);
+
 		/* redirect necessary drive letters to unix paths */
-		fprintf(dosemubat,"unix -s DOSDRIVE_E\r\n");
-		fprintf(dosemubat,"if '%%DOSDRIVE_E%%' == '' goto nodriveE\r\n");
-		fprintf(dosemubat,"lredir del %s\r\n",xtrndrive);
-		fprintf(dosemubat,":nodriveE\r\n");
 		fprintf(dosemubat,"lredir %s linux\\fs%s\r\n",xtrndrive,xtrndir_dos);
-
-		fprintf(dosemubat,"unix -s DOSDRIVE_F\r\n");
-		fprintf(dosemubat,"if '%%DOSDRIVE_F%%' == '' goto nodriveF\r\n");
-		fprintf(dosemubat,"lredir del %s\r\n",ctrldrive);
-		fprintf(dosemubat,":nodriveF\r\n");
 		fprintf(dosemubat,"lredir %s linux\\fs%s\r\n",ctrldrive,ctrldir_dos);
-
-		fprintf(dosemubat,"unix -s DOSDRIVE_G\r\n");
-		fprintf(dosemubat,"if '%%DOSDRIVE_G%%' == '' goto nodriveG\r\n");
-		fprintf(dosemubat,"lredir del %s\r\n",datadrive);
-		fprintf(dosemubat,":nodriveG\r\n");
 		fprintf(dosemubat,"lredir %s linux\\fs%s\r\n",datadrive,datadir_dos);
-
-		fprintf(dosemubat,"unix -s DOSDRIVE_H\r\n");
-		fprintf(dosemubat,"if '%%DOSDRIVE_H%%' == '' goto nodriveH\r\n");
-		fprintf(dosemubat,"lredir del %s\r\n",execdrive);
-		fprintf(dosemubat,":nodriveH\r\n");
 		fprintf(dosemubat,"lredir %s linux\\fs%s\r\n",execdrive,execdir_dos);
 
 		/* change to the drive where the parent of the startup_dir is mounted */
@@ -1593,7 +1566,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gamedir = getfname(str);
 		}
 		if(*gamedir == 0) {
-			lprintf(LOG_ERR, "No startup directory configured for DOS command-line: %s", cmdline);
+			lprintf(LOG_ERR, "No startup directory configured for: %s", cmdline);
 			return -1;
 		}
 		fprintf(dosemubat,"cd %s\r\n", gamedir);
@@ -1609,8 +1582,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		SAFECOPY(tok,cmdline);
 		truncstr(tok," ");
 
-		p = getfext(tok);  /*  check if it's a bat file  */
-		if (p != NULL && stricmp(p, ".bat") == 0)
+		p = strstr(tok, ".bat");  /*  check if it's a bat file  */
+		if (p)
 			fprintf(dosemubat,"call ");  /* if so, "call" it */
 
 		fprintf(dosemubat,"%s\r\n",cmdline);
@@ -1635,7 +1608,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* See if we have the dosemu link in the door's dir.  If so, use the dosemu
 		 * that it points to as our command to execute.  If not, use DOSemuPath.
 		 */
-
+ 
 		sprintf(str,"%sdosemu.bin",startup_dir);
 		if (!fexist(str)) {
 			SAFECOPY(dosemubinloc,(cmdstr(startup->dosemu_path,nulstr,nulstr,tok)));
@@ -1662,7 +1635,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		 * (dosemu won't start with no controlling terminal)
 		 * Also, redirect stdout to a log if it's a timed event.
 		 */
-
+		 
 		if (online==ON_LOCAL) {
 			SAFECOPY(dosterm,"TERM=linux");
 			sprintf(log_external,">> %sdosevent_%s.log",cfg.logs_dir,fname);
@@ -1675,32 +1648,32 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* Drum roll. */
 
 		sprintf(fullcmdline,
-		// remove unneeded redirection and fix faulty keystroke command -wk42
-		"/usr/bin/env %s HOME=%s QUIET=1 DOSDRIVE_D=%s %s -I\"video { none }\" -I'keystroke \"\\r\"' %s -f%s -E%s -o%sdosemu_boot.log %s",
-			dosterm,cfg.ctrl_dir,cfg.node_dir,dosemubinloc,virtualconf,dosemuconf,str,cfg.node_dir,log_external);
+		"/usr/bin/env %s HOME=%s QUIET=1 DOSDRIVE_D=%s %s -I\"video { none }\" -I\"keystroke \\r\" %s -f%s -E%s -o%sdosemu.log 2> %sdosemu_boot.log %s",
+			dosterm,cfg.ctrl_dir,cfg.node_dir,dosemubinloc,virtualconf,dosemuconf,str,cfg.node_dir,cfg.node_dir,log_external);
 
 		fprintf(dosemubat,"REM For debugging: %s\r\n",fullcmdline);
 		fclose(dosemubat);
 
 #else
-		lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
-		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
-
+		bprintf("\r\nExternal DOS programs are not yet supported in \r\n%s\r\n"
+			,VERSION_NOTICE);
 		return(-1);
 #endif
 	}
 
 	if(!(mode&EX_STDIN) && input_thread_running) {
-		lprintf(LOG_DEBUG,"Locking input thread mutex");
+		lprintf(LOG_DEBUG,"Locking input thread mutex"); 
 		if(pthread_mutex_lock(&input_thread_mutex)!=0)
 			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
 		input_thread_mutex_locked=true;
 	}
 
-	if(!(mode&EX_NOLOG) && pipe(err_pipe)!=0) {
+#ifdef XTERN_LOG_STDERR
+	if(pipe(err_pipe)!=0) {
 		errormsg(WHERE,ERR_CREATE,"err_pipe",0);
 		return(-1);
 	}
+#endif
 
 	if((mode&EX_STDIO)==EX_STDIO)  {
 		struct winsize winsize;
@@ -1805,8 +1778,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		if(mode&EX_STDOUT && !(mode&EX_STDIN)) {
 			close(out_pipe[0]);		/* close read-end of pipe */
 			dup2(out_pipe[1],1);	/* stdout */
-			if(!(mode&EX_NOLOG))
-				dup2(out_pipe[1],2);	/* stderr */
+#ifndef XTERN_LOG_STDERR
+			dup2(out_pipe[1],2);	/* stderr */
+#endif
 			close(out_pipe[1]);		/* close excess file descriptor */
 		}
 
@@ -1817,8 +1791,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			if ((fd = open(_PATH_DEVNULL, O_RDWR, 0)) != -1) {
 				dup2(fd, STDIN_FILENO);
 				dup2(fd, STDOUT_FILENO);
-				if(!(mode&EX_NOLOG))
-					dup2(fd, STDERR_FILENO);
+#ifndef XTERN_LOG_STDERR
+				dup2(fd, STDERR_FILENO);
+#endif
 				if (fd > 2)
 					close(fd);
 			}
@@ -1830,25 +1805,26 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			daemon(TRUE,FALSE);
    	    }
 
-		if(!(mode&EX_NOLOG)) {
-			close(err_pipe[0]);		/* close read-end of pipe */
-			dup2(err_pipe[1],2);	/* stderr */
-		}
-
+#ifdef XTERN_LOG_STDERR
+		close(err_pipe[0]);		/* close read-end of pipe */
+		dup2(err_pipe[1],2);	/* stderr */
+#endif
+	
 		execvp(argv[0],argv);
-		lprintf(LOG_ERR,"!ERROR %d (%s) executing: %s", errno, strerror(errno), argv[0]);
+		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
 		_exit(-1);	/* should never get here */
 	}
 
 	if(online==ON_REMOTE)
-		lprintf(LOG_INFO,"executing external: %s", fullcmdline);
+		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
 		rio_abortable=false;
-
-	if(!(mode&EX_NOLOG))
-		close(err_pipe[1]);	/* close write-end of pipe */
+	
+#ifdef XTERN_LOG_STDERR
+	close(err_pipe[1]);	/* close write-end of pipe */
+#endif
 
 	if(mode&EX_STDOUT) {
 		if(!(mode&EX_STDIN))
@@ -1859,61 +1835,63 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 			if(mode&EX_CHKTIME)
 				gettimeleft();
-
+			
 			if(!online && !(mode&EX_OFFLINE)) {
-				logline(LOG_NOTICE,"X!","hung-up in external program");
+				sprintf(str,"%s hung-up in external program",useron.alias);
+				logline(LOG_NOTICE,"X!",str);
 				break;
 			}
 
-			/* Input */
+			/* Input */	
 			if(mode&EX_STDIN && RingBufFull(&inbuf)) {
 				if((wr=RingBufRead(&inbuf,buf,sizeof(buf)))!=0)
 					write(in_pipe[1],buf,wr);
 			}
-
+				
 			/* Error Output */
 			FD_ZERO(&ibits);
-			if(!(mode&EX_NOLOG)) {
-				FD_SET(err_pipe[0],&ibits);
-				high_fd=err_pipe[0];
-			}
+#ifdef XTERN_LOG_STDERR
+			FD_SET(err_pipe[0],&ibits);
+			high_fd=err_pipe[0];
+#endif
 			FD_SET(out_pipe[0],&ibits);
-			if(!(mode&EX_NOLOG)) {
-				if(out_pipe[0]>err_pipe[0])
-					high_fd=out_pipe[0];
-			} else
+#ifdef XTERN_LOG_STDERR
+			if(out_pipe[0]>err_pipe[0])
 				high_fd=out_pipe[0];
+#else
+			high_fd=out_pipe[0];
+#endif
 			timeout.tv_sec=0;
 			timeout.tv_usec=1000;
 			bp=buf;
 			i=0;
-			if(mode&EX_NOLOG)
-				select(high_fd+1,&ibits,NULL,NULL,&timeout);
-			else {
-				while ((select(high_fd+1,&ibits,NULL,NULL,&timeout)>0) && FD_ISSET(err_pipe[0],&ibits) && (i<(int)sizeof(buf)-1))  {
-					if((rd=read(err_pipe[0],bp,1))>0)  {
-						i+=rd;
-						bp++;
-						if(*(bp-1)=='\n')
-							break;
-					}
-					else
+#ifndef XTERN_LOG_STDERR
+			select(high_fd+1,&ibits,NULL,NULL,&timeout);
+#else
+			while ((select(high_fd+1,&ibits,NULL,NULL,&timeout)>0) && FD_ISSET(err_pipe[0],&ibits) && (i<(int)sizeof(buf)-1))  {
+				if((rd=read(err_pipe[0],bp,1))>0)  {
+					i+=rd;
+					bp++;
+					if(*(bp-1)=='\n')
 						break;
-					FD_ZERO(&ibits);
-					FD_SET(err_pipe[0],&ibits);
-					FD_SET(out_pipe[0],&ibits);
-					timeout.tv_sec=0;
-					timeout.tv_usec=1000;
 				}
-				if(i && !(mode&EX_NOLOG))
-					lprintf(LOG_NOTICE,"%.*s",i,buf);		/* lprintf mangles i? */
-
-				/* Eat stderr if mode is EX_BIN */
-				if(mode&EX_BIN)  {
-					bp=buf;
-					i=0;
-				}
+				else
+					break;
+				FD_ZERO(&ibits);
+				FD_SET(err_pipe[0],&ibits);
+				FD_SET(out_pipe[0],&ibits);
+				timeout.tv_sec=0;
+				timeout.tv_usec=1000;
 			}
+			if(i)
+				lprintf(LOG_NOTICE,"%.*s",i,buf);		/* lprintf mangles i? */
+
+			/* Eat stderr if mode is EX_BIN */
+			if(mode&EX_BIN)  {
+				bp=buf;
+				i=0;
+			}
+#endif
 
 			data_waiting=FD_ISSET(out_pipe[0],&ibits);
 			if(i==0 && data_waiting==0)
@@ -1953,21 +1931,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
-			} else {
-				if ((mode & EX_STDIO) != EX_STDIO) {
-					/* LF to CRLF expansion */
-					bp=lf_expand(buf, rd, output_buf, output_len);
-				} else if(mode&EX_WWIV) {
-					bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
-					if(output_len > sizeof(wwiv_buf))
-						lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
-				} else {
-					bp=buf;
-					output_len=rd;
-				}
-				if (term_supports(PETSCII))
-					petscii_convert(bp, output_len);
+			} else if ((mode & EX_STDIO) != EX_STDIO) {
+				/* LF to CRLF expansion */
+				bp=lf_expand(buf, rd, output_buf, output_len);
 			}
+			else {
+				bp=buf;
+				output_len=rd;
+			}
+
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
 				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
@@ -1984,7 +1956,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 		}
 
-		if(waitpid(pid, &i, WNOHANG)==0)  {		// Child still running?
+		if(waitpid(pid, &i, WNOHANG)==0)  {		// Child still running? 
 			kill(pid, SIGHUP);					// Tell child user has hung up
 			time_t start=time(NULL);			// Wait up to 10 seconds
 			while(time(NULL)-start<10) {		// for child to terminate
@@ -2007,34 +1979,35 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 	}
 #endif
-	if(mode&EX_NOLOG)
-		waitpid(pid, &i, 0);
-	else {
-		while(waitpid(pid, &i, WNOHANG)==0)  {
-			FD_ZERO(&ibits);
-			FD_SET(err_pipe[0],&ibits);
-			timeout.tv_sec=1;
-			timeout.tv_usec=0;
-			bp=buf;
-			i=0;
-			while ((select(err_pipe[0]+1,&ibits,NULL,NULL,&timeout)>0) && (i<XTRN_IO_BUF_LEN-1))  {
-				if((rd=read(err_pipe[0],bp,1))>0)  {
-					i+=rd;
-					if(*bp=='\n') {
-						lprintf(LOG_NOTICE,"%.*s",i-1,buf);
-						i=0;
-						bp=buf;
-					}
-					else
-						bp++;
+#ifdef XTERN_LOG_STDERR
+	while(waitpid(pid, &i, WNOHANG)==0)  {
+		FD_ZERO(&ibits);
+		FD_SET(err_pipe[0],&ibits);
+		timeout.tv_sec=1;
+		timeout.tv_usec=0;
+		bp=buf;
+		i=0;
+		while ((select(err_pipe[0]+1,&ibits,NULL,NULL,&timeout)>0) && (i<XTRN_IO_BUF_LEN-1))  {
+			if((rd=read(err_pipe[0],bp,1))>0)  {
+				i+=rd;
+				if(*bp=='\n') {
+					lprintf(LOG_NOTICE,"%.*s",i-1,buf);
+					i=0;
+					bp=buf;
 				}
 				else
-					break;
+					bp++;
 			}
-			if(i)
-				lprintf(LOG_NOTICE,"%.*s",i,buf);
+			else
+				break;
 		}
+		if(i)
+			lprintf(LOG_NOTICE,"%.*s",i,buf);
 	}
+#else
+	waitpid(pid, &i, 0);
+#endif
+
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
 
 		/* Re-enable blocking (incase disabled by xtrn program) */
@@ -2054,8 +2027,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		request_telnet_opt(TELNET_DONT,TELNET_BINARY_TX);
 	}
 
-	if(!(mode&EX_NOLOG))
-		close(err_pipe[0]);
+#ifdef XTERN_LOG_STDERR
+	close(err_pipe[0]);
+#endif
 
 	if(input_thread_mutex_locked && input_thread_running) {
 		if(pthread_mutex_unlock(&input_thread_mutex)!=0)
@@ -2078,7 +2052,7 @@ const char* quoted_string(const char* str, char* buf, size_t maxlen)
 
 #define QUOTED_STRING(ch, str, buf, maxlen) \
 	((isalpha(ch) && isupper(ch)) ? str : quoted_string(str,buf,maxlen))
-
+	
 /*****************************************************************************/
 /* Returns command line generated from instr with %c replacments             */
 /*****************************************************************************/
@@ -2092,134 +2066,132 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-	int maxlen = (int)sizeof(cmdstr_output) - 1;
-    for(i=j=0; i<len && j < maxlen; i++) {
+    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
-			int avail = maxlen - j;
 			char ch=instr[i];
 			if(isalpha(ch))
 				ch=toupper(ch);
             switch(ch) {
                 case 'A':   /* User alias */
-                    strncat(cmd,QUOTED_STRING(instr[i],useron.alias,str,sizeof(str)), avail);
+                    strcat(cmd,QUOTED_STRING(instr[i],useron.alias,str,sizeof(str)));
                     break;
                 case 'B':   /* Baud (DTE) Rate */
-                    strncat(cmd,ultoa(dte_rate,str,10), avail);
+                    strcat(cmd,ultoa(dte_rate,str,10));
                     break;
                 case 'C':   /* Connect Description */
-                    strncat(cmd,connection, avail);
+                    strcat(cmd,connection);
                     break;
                 case 'D':   /* Connect (DCE) Rate */
-                    strncat(cmd,ultoa((ulong)cur_rate,str,10), avail);
+                    strcat(cmd,ultoa((ulong)cur_rate,str,10));
                     break;
                 case 'E':   /* Estimated Rate */
-                    strncat(cmd,ultoa((ulong)cur_cps*10,str,10), avail);
+                    strcat(cmd,ultoa((ulong)cur_cps*10,str,10));
                     break;
                 case 'F':   /* File path */
-                    strncat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)), avail);
+                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
                     break;
                 case 'G':   /* Temp directory */
-                    strncat(cmd,cfg.temp_dir, avail);
+                    strcat(cmd,cfg.temp_dir);
                     break;
                 case 'H':   /* Socket Handle */
-                    strncat(cmd,ultoa(client_socket_dup,str,10), avail);
+                    strcat(cmd,ultoa(client_socket_dup,str,10));
                     break;
                 case 'I':   /* IP address */
-                    strncat(cmd,cid, avail);
+                    strcat(cmd,cid);
                     break;
                 case 'J':
-                    strncat(cmd,cfg.data_dir, avail);
+                    strcat(cmd,cfg.data_dir);
                     break;
                 case 'K':
-                    strncat(cmd,cfg.ctrl_dir, avail);
+                    strcat(cmd,cfg.ctrl_dir);
                     break;
                 case 'L':   /* Lines per message */
-                    strncat(cmd,ultoa(cfg.level_linespermsg[useron.level],str,10), avail);
+                    strcat(cmd,ultoa(cfg.level_linespermsg[useron.level],str,10));
                     break;
                 case 'M':   /* Minutes (credits) for user */
-                    strncat(cmd,ultoa(useron.min,str,10), avail);
+                    strcat(cmd,ultoa(useron.min,str,10));
                     break;
                 case 'N':   /* Node Directory (same as SBBSNODE environment var) */
-                    strncat(cmd,cfg.node_dir, avail);
+                    strcat(cmd,cfg.node_dir);
                     break;
                 case 'O':   /* SysOp */
-                    strncat(cmd,QUOTED_STRING(instr[i],cfg.sys_op,str,sizeof(str)), avail);
+                    strcat(cmd,QUOTED_STRING(instr[i],cfg.sys_op,str,sizeof(str)));
                     break;
                 case 'P':   /* Client protocol */
-                    strncat(cmd,client.protocol, avail);
+                    strcat(cmd,client.protocol);
                     break;
                 case 'Q':   /* QWK ID */
-                    strncat(cmd,cfg.sys_id, avail);
+                    strcat(cmd,cfg.sys_id);
                     break;
                 case 'R':   /* Rows */
-                    strncat(cmd,ultoa(rows,str,10), avail);
+                    strcat(cmd,ultoa(rows,str,10));
                     break;
                 case 'S':   /* File Spec (or Baja command str) */
-                    strncat(cmd, fspec, avail);
+                    strcat(cmd,fspec);
                     break;
                 case 'T':   /* Time left in seconds */
                     gettimeleft();
-                    strncat(cmd,ultoa(timeleft,str,10), avail);
+                    strcat(cmd,ultoa(timeleft,str,10));
                     break;
                 case 'U':   /* UART I/O Address (in hex) */
-                    strncat(cmd,ultoa(cfg.com_base,str,16), avail);
+                    strcat(cmd,ultoa(cfg.com_base,str,16));
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
-					strncat(cmd,str, avail);
+					strcat(cmd,str);
                     break;
                 case 'W':   /* Columns (width) */
-                    strncat(cmd,ultoa(cols,str,10), avail);
+                    strcat(cmd,ultoa(cols,str,10));
                     break;
                 case 'X':
-                    strncat(cmd,cfg.shell[useron.shell]->code, avail);
+                    strcat(cmd,cfg.shell[useron.shell]->code);
                     break;
                 case '&':   /* Address of msr */
                     break;
                 case 'Y':
-                    strncat(cmd,comspec, avail);
+                    strcat(cmd,comspec);
                     break;
                 case 'Z':
-                    strncat(cmd,cfg.text_dir, avail);
+                    strcat(cmd,cfg.text_dir);
                     break;
 				case '~':	/* DOS-compatible (8.3) filename */
 #ifdef _WIN32
 					char sfpath[MAX_PATH+1];
 					SAFECOPY(sfpath,fpath);
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
-					strncat(cmd,sfpath, avail);
+					strcat(cmd,sfpath);
 #else
-                    strncat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)), avail);
-#endif
+                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+#endif			
 					break;
                 case '!':   /* EXEC Directory */
-                    strncat(cmd,cfg.exec_dir, avail);
+                    strcat(cmd,cfg.exec_dir);
                     break;
                 case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-                    strncat(cmd,cfg.exec_dir, avail);
+                    strcat(cmd,cfg.exec_dir);
 #endif
                     break;
 
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%d",cfg.node_num);
-                    strncat(cmd,str, avail);
+                    strcat(cmd,str);
                     break;
                 case '*':
                     sprintf(str,"%03d",cfg.node_num);
-                    strncat(cmd,str, avail);
+                    strcat(cmd,str);
                     break;
                 case '$':   /* Credits */
-                    strncat(cmd,ultoa(useron.cdt+useron.freecdt,str,10), avail);
+                    strcat(cmd,ultoa(useron.cdt+useron.freecdt,str,10));
                     break;
                 case '%':   /* %% for percent sign */
-                    strncat(cmd,"%", avail);
+                    strcat(cmd,"%");
                     break;
 				case '.':	/* .exe for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-					strncat(cmd,".exe", avail);
+					strcat(cmd,".exe");
 #endif
 					break;
 				case '?':	/* Platform */
@@ -2229,12 +2201,12 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
 					strcpy(str,PLATFORM_DESC);
 #endif
 					strlwr(str);
-					strncat(cmd,str, avail);
+					strcat(cmd,str);
 					break;
                 default:    /* unknown specification */
                     if(isdigit(instr[i])) {
                         sprintf(str,"%0*d",instr[i]&0xf,useron.number);
-                        strncat(cmd,str, avail); }
+                        strcat(cmd,str); }
                     break; }
             j=strlen(cmd); }
         else
@@ -2248,7 +2220,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
 /* Returns command line generated from instr with %c replacments            */
 /* This is the C-exported version											*/
 /****************************************************************************/
-extern "C"
+extern "C" 
 char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* fpath
 						,const char* fspec, char* cmd)
 {
@@ -2258,133 +2230,131 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-	int maxlen = (int)sizeof(buf) - 1;
-    for(i=j=0; i<len && j < maxlen; i++) {
+    for(i=j=0; i<len && j < (int)sizeof(buf)-1; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
-			int avail = maxlen - j;
 			char ch=instr[i];
 			if(isalpha(ch))
 				ch=toupper(ch);
             switch(ch) {
                 case 'A':   /* User alias */
 					if(user!=NULL)
-						strncat(cmd,QUOTED_STRING(instr[i],user->alias,str,sizeof(str)), avail);
+						strcat(cmd,QUOTED_STRING(instr[i],user->alias,str,sizeof(str)));
                     break;
                 case 'B':   /* Baud (DTE) Rate */
                     break;
                 case 'C':   /* Connect Description */
 					if(user!=NULL)
-						strncat(cmd,user->modem, avail);
+						strcat(cmd,user->modem);
                     break;
                 case 'D':   /* Connect (DCE) Rate */
                     break;
                 case 'E':   /* Estimated Rate */
                     break;
                 case 'F':   /* File path */
-                    strncat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)), avail);
+                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
                     break;
                 case 'G':   /* Temp directory */
-                    strncat(cmd,cfg->temp_dir, avail);
+                    strcat(cmd,cfg->temp_dir);
                     break;
                 case 'H':   /* Port Handle or Hardware Flow Control */
                     break;
                 case 'I':   /* IP address */
 					if(user!=NULL)
-						strncat(cmd,user->note, avail);
+						strcat(cmd,user->note);
                     break;
                 case 'J':
-                    strncat(cmd,cfg->data_dir, avail);
+                    strcat(cmd,cfg->data_dir);
                     break;
                 case 'K':
-                    strncat(cmd,cfg->ctrl_dir, avail);
+                    strcat(cmd,cfg->ctrl_dir);
                     break;
                 case 'L':   /* Lines per message */
 					if(user!=NULL)
-						strncat(cmd,ultoa(cfg->level_linespermsg[user->level],str,10), avail);
+						strcat(cmd,ultoa(cfg->level_linespermsg[user->level],str,10));
                     break;
                 case 'M':   /* Minutes (credits) for user */
 					if(user!=NULL)
-						strncat(cmd,ultoa(user->min,str,10), avail);
+						strcat(cmd,ultoa(user->min,str,10));
                     break;
                 case 'N':   /* Node Directory (same as SBBSNODE environment var) */
-                    strncat(cmd,cfg->node_dir, avail);
+                    strcat(cmd,cfg->node_dir);
                     break;
                 case 'O':   /* SysOp */
-                    strncat(cmd,QUOTED_STRING(instr[i],cfg->sys_op,str,sizeof(str)), avail);
+                    strcat(cmd,QUOTED_STRING(instr[i],cfg->sys_op,str,sizeof(str)));
                     break;
                 case 'P':   /* Client protocol */
                     break;
                 case 'Q':   /* QWK ID */
-                    strncat(cmd,cfg->sys_id, avail);
+                    strcat(cmd,cfg->sys_id);
                     break;
                 case 'R':   /* Rows */
 					if(user!=NULL)
-						strncat(cmd,ultoa(user->rows,str,10), avail);
+						strcat(cmd,ultoa(user->rows,str,10));
                     break;
                 case 'S':   /* File Spec */
-                    strncat(cmd, fspec, avail);
+                    strcat(cmd,fspec);
                     break;
                 case 'T':   /* Time left in seconds */
                     break;
                 case 'U':   /* UART I/O Address (in hex) */
-                    strncat(cmd,ultoa(cfg->com_base,str,16), avail);
+                    strcat(cmd,ultoa(cfg->com_base,str,16));
                     break;
                 case 'V':   /* Synchronet Version */
                     sprintf(str,"%s%c",VERSION,REVISION);
-					strncat(cmd,str, avail);
+					strcat(cmd,str);
                     break;
                 case 'W':   /* Columns/width */
                     break;
                 case 'X':
 					if(user!=NULL)
-						strncat(cmd,cfg->shell[user->shell]->code, avail);
+						strcat(cmd,cfg->shell[user->shell]->code);
                     break;
                 case '&':   /* Address of msr */
                     break;
                 case 'Y':
                     break;
                 case 'Z':
-                    strncat(cmd,cfg->text_dir, avail);
+                    strcat(cmd,cfg->text_dir);
                     break;
 				case '~':	/* DOS-compatible (8.3) filename */
 #ifdef _WIN32
 					char sfpath[MAX_PATH+1];
 					SAFECOPY(sfpath,fpath);
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
-					strncat(cmd,sfpath, avail);
+					strcat(cmd,sfpath);
 #else
-                    strncat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)), avail);
-#endif
+                    strcat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+#endif			
 					break;
                 case '!':   /* EXEC Directory */
-                    strncat(cmd,cfg->exec_dir, avail);
+                    strcat(cmd,cfg->exec_dir);
                     break;
                 case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-                    strncat(cmd,cfg->exec_dir, avail);
+                    strcat(cmd,cfg->exec_dir);
 #endif
                     break;
 
                 case '#':   /* Node number (same as SBBSNNUM environment var) */
                     sprintf(str,"%d",cfg->node_num);
-                    strncat(cmd,str, avail);
+                    strcat(cmd,str);
                     break;
                 case '*':
                     sprintf(str,"%03d",cfg->node_num);
-                    strncat(cmd,str, avail);
+                    strcat(cmd,str);
                     break;
                 case '$':   /* Credits */
 					if(user!=NULL)
-						strncat(cmd,ultoa(user->cdt+user->freecdt,str,10), avail);
+						strcat(cmd,ultoa(user->cdt+user->freecdt,str,10));
                     break;
                 case '%':   /* %% for percent sign */
-                    strncat(cmd,"%", avail);
+                    strcat(cmd,"%");
                     break;
 				case '.':	/* .exe for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-					strncat(cmd,".exe", avail);
+					strcat(cmd,".exe");
 #endif
 					break;
 				case '?':	/* Platform */
@@ -2394,19 +2364,19 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 					strcpy(str,PLATFORM_DESC);
 #endif
 					strlwr(str);
-					strncat(cmd,str, avail);
+					strcat(cmd,str);
 					break;
                 default:    /* unknown specification */
                     if(isdigit(instr[i]) && user!=NULL) {
                         sprintf(str,"%0*d",instr[i]&0xf,user->number);
-                        strncat(cmd,str, avail);
+                        strcat(cmd,str); 
 					}
-                    break;
+                    break; 
 			}
-            j=strlen(cmd);
+            j=strlen(cmd); 
 		}
         else
-            cmd[j++]=instr[i];
+            cmd[j++]=instr[i]; 
 	}
     cmd[j]=0;
 
