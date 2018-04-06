@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.113 2018/02/03 23:42:15 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.116 2018/03/21 17:41:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,6 +355,7 @@ static char* con_prop_desc[] = {
 	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
+	,"detected CTerm (SyncTERM) version as an integer > 1000 where major version is cterm_version / 1000 and minor version is cterm_version % 1000"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
 	,"number of seconds before disconnection due to user/keyboard inactivity"
 	,"user/keyboard inactivity timeout reference value (time_t format)"
@@ -531,8 +532,10 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(js_str!=NULL) {
 		JSSTRING_TO_MSTRING(cx, js_str, p2, NULL);
-		if(p2==NULL)
+		if(p2==NULL) {
+			free(p);
 			return JS_FALSE;
+		}
 		sprintf(p,"%.*s",(int)maxlen,p2);
 		free(p2);
 	}
@@ -1235,17 +1238,24 @@ js_uselect(JSContext *cx, uintN argc, jsval *arglist)
 	
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&num))
+			if(!JS_ValueToInt32(cx,argv[i],&num)) {
+				FREE_AND_NULL(title);
+				FREE_AND_NULL(item);
 				return JS_FALSE;
+			}
 			continue;
 		}
-		if((js_str=JS_ValueToString(cx, argv[i]))==NULL)
+		if((js_str=JS_ValueToString(cx, argv[i]))==NULL) {
+			FREE_AND_NULL(title);
+			FREE_AND_NULL(item);
 			return(JS_FALSE);
-
+		}
 		if(title==NULL) {
 			JSSTRING_TO_MSTRING(cx, js_str, title, NULL)	// Magicsemicolon
-			if(title==NULL)
+			if(title==NULL) {
+				FREE_AND_NULL(item);
 				return JS_FALSE;
+			}
 		}
 		else if(item==NULL) {
 			JSSTRING_TO_MSTRING(cx, js_str, item, NULL)	// Magicsemicolon
@@ -1958,7 +1968,7 @@ static JSBool js_console_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
