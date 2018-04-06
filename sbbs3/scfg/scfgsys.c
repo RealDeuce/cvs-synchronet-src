@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.47 2018/02/05 07:11:53 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.48 2018/02/18 03:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1827,7 +1827,7 @@ void sys_cfg(void)
 									,"Free Credits Per Day"
 									,tmp,10
 									,K_EDIT|K_UPPER) > 0)
-									cfg.level_freecdtperday[i] = parse_byte_count(tmp, 1);
+									cfg.level_freecdtperday[i] = (int32_t)parse_byte_count(tmp, 1);
 								break;
 							case 7:
 								j=0;
