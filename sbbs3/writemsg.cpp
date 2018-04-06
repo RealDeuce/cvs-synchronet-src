@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.123 2018/07/25 00:40:30 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.122 2018/03/10 06:20:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -827,14 +827,14 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		if(sys_status&SS_ABORT) {
 			if(line==lines)
 				free(str[line]);
-			continue;
+			continue; 
 		}
 		if(strin[0]=='/' && strlen(strin)<8) {
 			if(!stricmp(strin,"/DEBUG") && SYSOP) {
 				if(line==lines)
 					free(str[line]);
-				bprintf("\r\nline=%d lines=%d rows=%ld\r\n",line,lines,rows);
-				continue;
+				bprintf("\r\nline=%d lines=%d rows=%d\r\n",line,lines,rows);
+				continue; 
 			}
 			else if(!stricmp(strin,"/ABT")) {
 				if(line==lines) 		/* delete a line */
@@ -842,7 +842,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				for(i=0;i<lines;i++)
 					free(str[i]);
 				free(str);
-				return(0);
+				return(0); 
 			}
 			else if(toupper(strin[1])=='D') {
 				if(line==lines)         /* delete a line */
