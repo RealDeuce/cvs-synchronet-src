@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.231 2018/04/06 07:08:37 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.232 2018/04/07 07:15:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1514,7 +1514,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* same deal for emusetup.bat. */
 
 		sprintf(str,"%semusetup.bat",startup_dir);
-		fprintf(stderr, str);
 		if (!fexist(str)) {
 
 		/* If we can't find it in the door dir, look for a global one
