@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.669 2018/04/06 17:51:33 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.670 2018/04/07 06:01:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3389,7 +3389,7 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if(smb_error!=SMB_SUCCESS) {	/* SMB Error */
-					sockprintf(socket,session, errmsg);
+					sockprintf(socket,session, "%s", errmsg);
 					stats.msgs_refused++;
 					continue;
 				}
@@ -5673,7 +5673,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.669 $", "%*s %s", revision);
+	sscanf("$Revision: 1.670 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
