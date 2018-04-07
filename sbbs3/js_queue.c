@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.52 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.54 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -206,10 +206,13 @@ static queued_value_t* js_encode_value(JSContext *cx, jsval val, char* name)
 	if(name!=NULL)
 		SAFECOPY(v->name,name);
 
-	if(!JS_WriteStructuredClone(cx, val, &serialized, &v->size, NULL, NULL))
+	if(!JS_WriteStructuredClone(cx, val, &serialized, &v->size, NULL, NULL)) {
+		free(v);
 		return NULL;
+	}
 	if((v->value=(uint64 *)malloc(v->size))==NULL) {
 		JS_free(cx, serialized);
+		free(v);
 		return NULL;
 	}
 	memcpy(v->value, serialized, v->size);
@@ -256,7 +259,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	if(argn < argc) {
 		JSVALUE_TO_MSTRING(cx, argv[argn], name, NULL);
 		argn++;
-		HANDLE_PENDING(cx);
+		HANDLE_PENDING(cx, name);
 	}
 
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(js_enqueue_value(cx, q, val, name)));
@@ -377,7 +380,7 @@ static JSBool js_queue_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx);
+			HANDLE_PENDING(cx, name);
 		}
 	}
 
