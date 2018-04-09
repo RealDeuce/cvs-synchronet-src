@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.470 2018/04/06 01:35:21 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.471 2018/04/09 02:59:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -296,12 +296,13 @@ static int ftp_close_socket(SOCKET* sock, CRYPT_SESSION *sess, int line)
 	return(result);
 }
 
-#define GCES(status, sock, session, estr, action) do {                      \
+#define GCES(status, sock, session, estr, action) do {                  \
 	int GCES_level;                                                     \
 	get_crypt_error_string(status, session, &estr, action, &GCES_level);\
-	if (estr) {                                                         \
+	if (estr != NULL) {                                                 \
 		lprintf(GCES_level, "%04d TLS %s", sock, estr);                 \
-		free_crypt_attrstr(estr);                                   \
+		free_crypt_attrstr(estr);										\
+		estr=NULL;														\
 	}                                                                   \
 } while (0)
 
@@ -1954,10 +1955,6 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	}
 	if ((status = cryptCreateSession(sess, CRYPT_UNUSED, CRYPT_SESSION_SSL_SERVER)) != CRYPT_OK) {
 		GCES(status, *sock, CRYPT_UNUSED, estr, "creating session");
-		if (estr) {
-			lprintf(level, "%04d TLS %s", *sock, estr);
-			free_crypt_attrstr(estr);
-		}
 		if (resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
@@ -5884,7 +5881,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.470 $", "%*s %s", revision);
+	sscanf("$Revision: 1.471 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
