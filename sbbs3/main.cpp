@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.698 2018/03/16 06:06:52 rswindell Exp $ */
+/* $Id: main.cpp,v 1.710 2018/04/13 05:25:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -114,7 +114,7 @@ int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 	int GCES_level;                                                      \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "Node %d SSH %s", node, GCES_estr);             \
+		lprintf(GCES_level, "Node %d SSH %s from %s", node, GCES_estr, __FUNCTION__);             \
 		free_crypt_attrstr(GCES_estr);                                       \
 	}                                                                         \
 } while (0)
@@ -124,7 +124,7 @@ int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 	int GCES_level;                                                      \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "SSH %s", GCES_estr);                           \
+		lprintf(GCES_level, "SSH %s from %s", GCES_estr, __FUNCTION__);     \
 		free_crypt_attrstr(GCES_estr);                                       \
 	}                                                                         \
 } while (0)
@@ -134,10 +134,21 @@ int	thread_suid_broken=TRUE;			/* NPTL is no longer broken */
 	int GCES_level;                                                      \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
 	if (GCES_estr) {                                                       \
-		lprintf(GCES_level, "%04d SSH %s", sock, GCES_estr);                \
+		lprintf(GCES_level, "%04d SSH %s from %s", sock, GCES_estr, __FUNCTION__);                \
 		free_crypt_attrstr(GCES_estr);                                       \
 	}                                                                         \
 } while (0)
+
+#define GCESSTR(status, str, sess, action) do {                         \
+	char *GCES_estr;                                                    \
+	int GCES_level;                                                      \
+	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);\
+	if (GCES_estr) {                                                       \
+		lprintf(GCES_level, "%s SSH %s from %s", str, GCES_estr, __FUNCTION__);                \
+		free_crypt_attrstr(GCES_estr);                                       \
+	}                                                                         \
+} while (0)
+
 
 extern "C" {
 
@@ -1580,7 +1591,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
 						long rows = (sbbs->telnet_cmd[5]<<8) | sbbs->telnet_cmd[6];
-						lprintf(LOG_DEBUG,"Node %d %s telnet window size: %ux%u"
+						lprintf(LOG_DEBUG,"Node %d %s telnet window size: %ldx%ld"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,cols
@@ -1754,6 +1765,7 @@ static int crypt_pop_channel_data(sbbs_t *sbbs, char *inbuf, int want, int *got)
 	int cid;
 	char *cname;
 	int ret;
+	int closing_channel = -1;
 
 	*got=0;
 	while(sbbs->online && sbbs->client_socket!=INVALID_SOCKET
@@ -1762,6 +1774,8 @@ static int crypt_pop_channel_data(sbbs_t *sbbs, char *inbuf, int want, int *got)
 		if (ret == CRYPT_OK) {
 			status = cryptGetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, &cid);
 			if (status == CRYPT_OK) {
+				if (cid == closing_channel)
+					continue;
 				if (cid != sbbs->session_channel) {
 					if (cryptStatusError(status = cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, cid))) {
 						GCESS(status, sbbs->client_socket, sbbs->ssh_session, "setting channel");
@@ -1771,6 +1785,7 @@ static int crypt_pop_channel_data(sbbs_t *sbbs, char *inbuf, int want, int *got)
 					lprintf(LOG_WARNING, "%04d SSH ERROR attempt to use channel '%s' (%d != %d)", sbbs->client_socket, cname ? cname : "<unknown>", cid, sbbs->session_channel);
 					if (cname)
 						free_crypt_attrstr(cname);
+					closing_channel = cid;
 					if (cryptStatusError(status = cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL_ACTIVE, 0))) {
 						GCESS(status, sbbs->client_socket, sbbs->ssh_session, "closing channel");
 						return status;
@@ -1875,7 +1890,7 @@ void input_thread(void *arg)
 		}
 
 /*         ^          ^
- *		\______    ______/
+ *      \______    ______/
  *       \  * \   / *   /
  *        -----   ------           /----\
  *              ||               -< Boo! |
@@ -2010,7 +2025,7 @@ void input_thread(void *arg)
 		else
 			wrbuf=telnet_interpret(sbbs, inbuf, rd, telbuf, wr);
 		if(wr > (int)sizeof(telbuf)) 
-			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,sizeof(telbuf));
+			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%lu)",wr,sizeof(telbuf));
 
 		/* First level Ctrl-C checking */
 		if(!(sbbs->cfg.ctrlkey_passthru&(1<<CTRL_C))
@@ -2019,10 +2034,10 @@ void input_thread(void *arg)
 			&& sbbs->telnet_remote_option[TELNET_BINARY_TX]!=TELNET_WILL
 			&& memchr(wrbuf, CTRL_C, wr)) {	
 			if(RingBufFull(&sbbs->inbuf))
-    			lprintf(LOG_DEBUG,"Node %d Ctrl-C hit with %lu bytes in input buffer"
+    			lprintf(LOG_DEBUG,"Node %d Ctrl-C hit with %u bytes in input buffer"
 					,sbbs->cfg.node_num,RingBufFull(&sbbs->inbuf));
 			if(RingBufFull(&sbbs->outbuf))
-    			lprintf(LOG_DEBUG,"Node %d Ctrl-C hit with %lu bytes in output buffer"
+    			lprintf(LOG_DEBUG,"Node %d Ctrl-C hit with %u bytes in output buffer"
 					,sbbs->cfg.node_num,RingBufFull(&sbbs->outbuf));
 			sbbs->sys_status|=SS_ABORT;
 			RingBufReInit(&sbbs->inbuf);	/* Purge input buffer */
@@ -2044,6 +2059,7 @@ void input_thread(void *arg)
 	sbbs->sys_status|=SS_ABORT;	/* as though Ctrl-C were hit */
 
     sbbs->input_thread_running = false;
+	sbbs->terminate_output_thread = true;
 	if(node_socket[sbbs->cfg.node_num-1]==INVALID_SOCKET)	// Shutdown locally
 		sbbs->terminated = true;	// Signal JS to stop execution
 
@@ -2164,7 +2180,7 @@ void passthru_output_thread(void* arg)
 		else
 			wrbuf=telnet_interpret(sbbs, inbuf, rd, telbuf, wr);
 		if(wr > (int)sizeof(telbuf)) 
-			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,sizeof(telbuf));
+			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%lu)",wr,sizeof(telbuf));
 
 		/*
 		 * TODO: This should check for writability etc.
@@ -2265,14 +2281,14 @@ void output_thread(void* arg)
 {
 	char		node[128];
 	char		stats[128];
-    BYTE		buf[IO_THREAD_BUF_SIZE];
+	BYTE		buf[IO_THREAD_BUF_SIZE];
 	int			i=0;	// Assignment to silence Valgrind
-    ulong		avail;
+	ulong		avail;
 	ulong		total_sent=0;
 	ulong		total_pkts=0;
 	ulong		short_sends=0;
-    ulong		bufbot=0;
-    ulong		buftop=0;
+	ulong		bufbot=0;
+	ulong		buftop=0;
 	sbbs_t*		sbbs = (sbbs_t*) arg;
 	fd_set		socket_set;
 	struct timeval tv;
@@ -2282,10 +2298,10 @@ void output_thread(void* arg)
 	SetThreadName("sbbs/termOutput");
 	thread_up(TRUE /* setuid */);
 
-    if(sbbs->cfg.node_num)
-    	SAFEPRINTF(node,"Node %d",sbbs->cfg.node_num);
-    else
-    	SAFECOPY(node,sbbs->client_name);
+	if(sbbs->cfg.node_num)
+		SAFEPRINTF(node,"Node %d",sbbs->cfg.node_num);
+	else
+		SAFECOPY(node,sbbs->client_name);
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG,"%s output thread started",node);
 #endif
@@ -2295,7 +2311,7 @@ void output_thread(void* arg)
 #ifdef TCP_MAXSEG
 	/*
 	 * Auto-tune the highwater mark to be the negotiated MSS for the
-     * socket (when possible)
+	 * socket (when possible)
 	 */
 	if(!sbbs->outbuf.highwater_mark) {
 		socklen_t	sl;
@@ -2318,9 +2334,10 @@ void output_thread(void* arg)
 		}
 	}
 #endif
+	sbbs->terminate_output_thread = false;
 
 	/* Note: do not terminate when online==FALSE, that is expected for the terminal server output_thread */
-	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server) {
+	while(sbbs->client_socket!=INVALID_SOCKET && !terminate_server && !sbbs->terminate_output_thread) {
 		/*
 		 * I'd like to check the linear buffer against the highwater
 		 * at this point, but it would get too clumsy imho - Deuce
@@ -2328,7 +2345,7 @@ void output_thread(void* arg)
 		 * Actually, another option would just be to have the size
 		 * of the linear buffer equal to the MSS... any larger and
 		 * you could have small sends off the end.  this would
-		 * probobly be even clumbsier
+		 * probably be even clumsier
 		 */
 		if(bufbot == buftop) {
 			/* Wait for something to output in the RingBuffer */
@@ -2347,7 +2364,7 @@ void output_thread(void* arg)
 				if(avail<sbbs->outbuf.highwater_mark) {
 					sem_trywait_block(&sbbs->outbuf.highwater_sem,startup->outbuf_drain_timeout);
 					/* We (potentially) blocked, so get fill level again */
-		    		avail=RingBufFull(&sbbs->outbuf);
+					avail=RingBufFull(&sbbs->outbuf);
 				} else
 					sem_trywait(&sbbs->outbuf.highwater_sem);	
 			}
@@ -2358,16 +2375,16 @@ void output_thread(void* arg)
 			 * passed or we've hit highwater.  Read ring buffer
 			 * into linear buffer.
 			 */
-           	if(avail>sizeof(buf)) {
-               	lprintf(LOG_WARNING,"%s !Insufficient linear output buffer (%lu > %lu)"
+			if(avail>sizeof(buf)) {
+				lprintf(LOG_WARNING,"%s !Insufficient linear output buffer (%lu > %lu)"
 					,node, avail, sizeof(buf));
-               	avail=sizeof(buf);
-           	}
+				avail=sizeof(buf);
+			}
 			/* If we know the MSS, use it as the max send() size. */
 			if(avail>mss)
 				avail=mss;
-           	buftop=RingBufRead(&sbbs->outbuf, buf, avail);
-           	bufbot=0;
+			buftop=RingBufRead(&sbbs->outbuf, buf, avail);
+			bufbot=0;
 			if (buftop == 0)
 				continue;
 		}
@@ -2400,8 +2417,12 @@ void output_thread(void* arg)
 		if(sbbs->ssh_mode) {
 			int err;
 			pthread_mutex_lock(&sbbs->ssh_mutex);
+			if(sbbs->terminate_output_thread) {
+				pthread_mutex_unlock(&sbbs->ssh_mutex);
+				break;
+			}
 			if (cryptStatusError((err=cryptSetAttribute(sbbs->ssh_session, CRYPT_SESSINFO_SSH_CHANNEL, sbbs->session_channel)))) {
-				GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "setting channel");
+				GCESSTR(err, node, sbbs->ssh_session, "setting channel");
 				ssh_errors++;
 				sbbs->online=FALSE;
 				i=buftop-bufbot;	// Pretend we sent it all
@@ -2409,7 +2430,7 @@ void output_thread(void* arg)
 			else {
 				if(cryptStatusError((err=cryptPushData(sbbs->ssh_session, (char*)buf+bufbot, buftop-bufbot, &i)))) {
 					/* Handle the SSH error here... */
-					GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "pushing data");
+					GCESSTR(err, node, sbbs->ssh_session, "pushing data");
 					ssh_errors++;
 					sbbs->online=FALSE;
 					i=buftop-bufbot;	// Pretend we sent it all
@@ -2417,9 +2438,9 @@ void output_thread(void* arg)
 				else {
 					// READ = WRITE TIMEOUT HACK... REMOVE WHEN FIXED
 					if(cryptStatusError(err=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_WRITETIMEOUT, 5)))
-						GCESS(err, sbbs->client_socket, sbbs->ssh_session, "setting write timeout");
+						GCESSTR(err, node, sbbs->ssh_session, "setting write timeout");
 					if(cryptStatusError((err=cryptFlushData(sbbs->ssh_session)))) {
-						GCES(err, sbbs->cfg.node_num, sbbs->ssh_session, "flushing data");
+						GCESSTR(err, node, sbbs->ssh_session, "flushing data");
 						ssh_errors++;
 						if (err != CRYPT_ERROR_TIMEOUT) {
 							sbbs->online=FALSE;
@@ -2428,7 +2449,7 @@ void output_thread(void* arg)
 					}
 					// READ = WRITE TIMEOUT HACK... REMOVE WHEN FIXED
 					if(cryptStatusError(err=cryptSetAttribute(sbbs->ssh_session, CRYPT_OPTION_NET_WRITETIMEOUT, 0)))
-						GCESS(err, sbbs->client_socket, sbbs->ssh_session, "setting write timeout");
+						GCESSTR(err, node, sbbs->ssh_session, "setting write timeout");
 				}
 			}
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
@@ -2471,18 +2492,18 @@ void output_thread(void* arg)
 		}
 
 		if(i!=(int)(buftop-bufbot)) {
-			lprintf(LOG_WARNING,"%s !Short socket send (%u instead of %u)"
+			lprintf(LOG_WARNING,"%s !Short socket send (%u instead of %lu)"
 				,node, i ,buftop-bufbot);
 			short_sends++;
 		}
 		bufbot+=i;
 		total_sent+=i;
 		total_pkts++;
-    }
+	}
 
 	sbbs->spymsg("Disconnected");
 
-    sbbs->output_thread_running = false;
+	sbbs->output_thread_running = false;
 
 	if(total_sent)
 		safe_snprintf(stats,sizeof(stats),"(sent %lu bytes in %lu blocks, %lu average, %lu short)"
@@ -3015,7 +3036,7 @@ void event_thread(void* arg)
 						|| sbbs->cfg.event[i]->node>last_node) {
 						eprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
 							,sbbs->cfg.event[i]->node, event_code);
-						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08lx)"
+						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08x)"
 							,event_code
 							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
@@ -3191,7 +3212,7 @@ void event_thread(void* arg)
 	sbbs->cfg.node_num=0;
 	sbbs->js_cleanup(sbbs->client_name);
 
-    sbbs->event_thread_running = false;
+	sbbs->event_thread_running = false;
 
 	thread_down();
 	eprintf(LOG_INFO,"BBS Events thread terminated");
@@ -3211,7 +3232,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
     else
     	SAFECOPY(nodestr,name);
 
-	lprintf(LOG_DEBUG,"%s constructor using socket %d (settings=%lx)"
+	::lprintf(LOG_DEBUG,"%s constructor using socket %d (settings=%x)"
 		,nodestr, sd, global_cfg->node_misc);
 
 	startup = ::startup;	// Convert from global to class member
@@ -3240,7 +3261,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 			SAFECOPY(cfg.temp_dir,path);
 		}
 	}
-	lprintf(LOG_DEBUG,"%s temporary file directory: %s", nodestr, cfg.temp_dir);
+	::lprintf(LOG_DEBUG,"%s temporary file directory: %s", nodestr, cfg.temp_dir);
 
 	terminated = false;
 	event_thread_running = false;
@@ -4009,7 +4030,7 @@ void sbbs_t::hangup(void)
 		client_off(client_socket);
 		if(ssh_mode) {
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			cryptDestroySession(sbbs->ssh_session);
+			cryptDestroySession(ssh_session);
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		close_socket(client_socket);
@@ -4351,7 +4372,7 @@ void node_thread(void* arg)
 
 	if(startup->login_attempt.throttle
 		&& (login_attempts=loginAttempts(startup->login_attempt_list, &sbbs->client_addr)) > 1) {
-		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%u login attempts)"
+		lprintf(LOG_DEBUG,"Node %d Throttling suspicious connection from: %s (%lu login attempts)"
 			,sbbs->cfg.node_num, sbbs->client_ipaddr, login_attempts);
 		mswait(login_attempts*startup->login_attempt.throttle);
 	}
@@ -4452,7 +4473,7 @@ void node_thread(void* arg)
 		|| sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running
 #endif
 		) {
-		lprintf(LOG_DEBUG,"Node %d Waiting for %s to terminate..."
+		lprintf(LOG_INFO,"Node %d Waiting for %s to terminate..."
 			,sbbs->cfg.node_num
 			,(sbbs->input_thread_running && sbbs->output_thread_running) ?
                	"I/O threads" : sbbs->input_thread_running
@@ -4912,7 +4933,7 @@ void DLLCALL bbs_thread(void* arg)
 	#pragma warn -8066	/* Disable "Unreachable code" warning */
 #endif
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		lprintf(LOG_CRIT,"!COMPILER ERROR: sizeof(node_t)=%d instead of %d"
+		lprintf(LOG_CRIT,"!COMPILER ERROR: sizeof(node_t)=%lu instead of %d"
 			,sizeof(node_t),SIZEOF_NODE_T);
 		cleanup(1);
 		return;
@@ -4933,7 +4954,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 	t=time(NULL);
-	lprintf(LOG_INFO,"Initializing on %.24s with options: %lx"
+	lprintf(LOG_INFO,"Initializing on %.24s with options: %x"
 		,ctime_r(&t,str),startup->options);
 
 	if(chdir(startup->ctrl_dir)!=0)
@@ -5372,7 +5393,7 @@ NO_SSH:
 		if(banned || sbbs->trashcan(host_ip,"ip")) {
 			if(banned) {
 				char ban_duration[128];
-				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%u login attempts%s%s) - remaining: %s"
+				lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%lu login attempts%s%s) - remaining: %s"
 					,client_socket, host_ip, attempted.count-attempted.dupes
 					,attempted.user[0] ? ", last: " : "", attempted.user, seconds_to_str(banned, ban_duration));
 			} else
@@ -5453,7 +5474,7 @@ NO_SSH:
 							GCESS(i, client_socket, sbbs->ssh_session, "getting channel type");
 							if (tnamelen != 7 || strnicmp(tname, "session", 7)) {
 								lprintf(LOG_INFO, "%04d SSH active channel '%.*s' is not 'session', disconnecting.", client_socket, tnamelen, tname);
-								loginFailure(startup->login_attempt_list, &client_addr, "SSH", NULL, NULL);
+								sbbs->badlogin(/* user: */NULL, /* passwd: */NULL, "SSH", &client_addr, /* delay: */false);
 								// Fail because there's no session.
 								ssh_failed = 3;
 							}
@@ -5476,6 +5497,7 @@ NO_SSH:
 				}
 			}
 			if(ssh_failed) {
+				lprintf(LOG_NOTICE, "%04d SSH session establishment failed", client_socket);
 				cryptDestroySession(sbbs->ssh_session);
 				close_socket(client_socket);
 				continue;
@@ -5788,6 +5810,7 @@ NO_PASSTHRU:
 			}
 			mswait(100);
 		}
+		lprintf(LOG_INFO, "Done waiting for node threads to terminate");
 	}
 
 	// Wait for Events thread to terminate
@@ -5804,6 +5827,7 @@ NO_PASSTHRU:
 #endif
 			mswait(100);
 		}
+		lprintf(LOG_INFO, "Done waiting for events thread to terminate");
 	}
 
     // Wait for BBS output thread to terminate
@@ -5818,6 +5842,7 @@ NO_PASSTHRU:
 			}
 			mswait(100);
 		}
+		lprintf(LOG_INFO, "Done waiting for system output thread to terminate");
 	}
 
     // Wait for BBS passthru input thread to terminate
@@ -5833,6 +5858,7 @@ NO_PASSTHRU:
 			}
 			mswait(100);
 		}
+		lprintf(LOG_INFO, "Done waiting for passthru I/O threads to terminate");
 	}
 
     // Set all nodes' status to OFFLINE
