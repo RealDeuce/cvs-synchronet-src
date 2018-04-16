@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.711 2018/04/16 22:37:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.712 2018/04/16 22:39:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2682,7 +2682,7 @@ void event_thread(void* arg)
 					else {
 						char badpkt[MAX_PATH+1];
 						SAFECOPY(badpkt, g.gl_pathv[i]);
-						SAFEPRINTF(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
+						SAFEPRINTF2(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
 						rename(g.gl_pathv[i], badpkt);
 					}
 					remove(semfile);
