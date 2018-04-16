@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.115 2019/04/11 00:46:08 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.111 2018/02/16 05:25:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -244,10 +244,6 @@ extern "C" {
 	#endif
 #endif
 
-#if defined(_MSC_VER)
-	DLLEXPORT char* DLLCALL strcasestr(const char* haystack, const char* needle);
-#endif
-
 /* Skip white-space chars at beginning of string */
 DLLEXPORT char*		DLLCALL skipsp(char* str);
 /* Truncate white-space chars off end of string */
@@ -359,11 +355,7 @@ DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL os_cmdshell(void);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
-DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 3 , 4)));            // 1 is 'this'
-#endif
-;
+DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
 
 /* C string/char escape-sequence processing */
 DLLEXPORT char*		DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_only);
@@ -378,7 +370,6 @@ DLLEXPORT double	DLLCALL parse_duration(const char*);
 DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL duration_to_vstr(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
-DLLEXPORT char*		DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit, int precision);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;
