@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.67 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.66 2018/02/20 11:41:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -462,10 +462,11 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 		bprintf("\r\n!%s\r\n",smb.last_error);
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
-				SAFEPRINTF(str,"duplicate e-mail attempt (%s)", smb.last_error);
+				SAFEPRINTF2(str,"%s duplicate e-mail attempt (%s)",useron.alias,smb.last_error);
 				logline(LOG_NOTICE,"E!",str); 
 			} else {
-				SAFEPRINTF3(str,"duplicate message attempt in %s %s (%s)"
+				SAFEPRINTF4(str,"%s duplicate message attempt in %s %s (%s)"
+					,useron.alias
 					,cfg.grp[cfg.sub[subnum]->grp]->sname
 					,cfg.sub[subnum]->lname
 					,smb.last_error);

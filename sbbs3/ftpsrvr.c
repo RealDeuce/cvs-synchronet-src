@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.472 2018/04/24 19:56:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.471 2018/04/09 02:59:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -155,7 +155,7 @@ static int lprintf(int level, const char *fmt, ...)
 
 	if(level <= LOG_ERR) {
 		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "ftp  %s", sbuf);
+		SAFEPRINTF(errmsg, "ftp %s", sbuf);
 		errorlog(&scfg, startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
 			startup->errormsg(startup->cbdata,level,errmsg);
@@ -5881,7 +5881,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.472 $", "%*s %s", revision);
+	sscanf("$Revision: 1.471 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
