@@ -174,8 +174,8 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
 char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={     "Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
-char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37",        "132x52",       "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col",   "C128-80col",   "Atari", "Atari-XEP80", NULL};
+char *screen_modes[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
+char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37", "132x52", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -967,8 +967,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				i=item->screen_mode;
 				uifc.helpbuf=	"`Screen Mode`\n\n"
 								"Select the screen size for this connection\n";
-				j = i;
-				switch(uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),&j,"Screen Mode",screen_modes)) {
+				switch(uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes)) {
 					case -1:
 						check_exit(FALSE);
 						item->screen_mode=i;
@@ -1518,8 +1517,7 @@ void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaul
  */
 struct bbslist *show_bbslist(char *current, int connected)
 {
-#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist))
-	struct	bbslist	**list;
+	struct	bbslist	*list[MAX_OPTS+1];
 	int		i,j;
 	static int		opt=0,bar=0;
 	int		oldopt=-1;
@@ -1560,25 +1558,18 @@ struct bbslist *show_bbslist(char *current, int connected)
 		return(NULL);
 
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	list = malloc(BBSLIST_SIZE);
-	if (list == NULL)
-		return (NULL);
-	load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
+	load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
 
 	uifc.helpbuf="Help Button Hack";
-	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_ACT|WIN_INACT
+	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
 		,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 	for(;;) {
-		if (quitting) {
-			free(list);
+		if (quitting)
 			return NULL;
-		}
 		if (!at_settings) {
 			for(;!at_settings;) {
-				if (quitting) {
-					free(list);
+				if (quitting)
 					return NULL;
-				}
 				if(connected)
 					uifc.helpbuf=	"`SyncTERM Directory`\n\n"
 									"Commands:\n\n"
@@ -1600,20 +1591,20 @@ struct bbslist *show_bbslist(char *current, int connected)
 							*p=')';
 					}
 					else
-						strncpy(title, syncterm_version, sizeof(title));
+						strcpy(title,syncterm_version);
 					settitle(title);
 				}
 				oldopt=opt;
 				val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 					|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
-					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 					,0,0,0,&opt,&bar,"Directory",(char **)list);
 				if(val==listcount)
 					val=listcount|MSK_INS;
 				if(val==-7)	{ /* CTRL-E */
 					uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 						|WIN_SEL
 						,0,0,0,&opt,&bar,"Directory",(char **)list);
 					val=opt|MSK_EDIT;
@@ -1623,7 +1614,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x13:	/* CTRL-S - Sort */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
 							edit_sorting(list,&listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
@@ -1631,7 +1622,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -2-0x3000:	/* ALT-B - Scrollback */
 							if(!connected) {
 								viewofflinescroll();
-								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_ACT|WIN_INACT
+								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
 									,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 							}
 							break;
@@ -1644,7 +1635,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						case -11:		/* TAB */
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
 							at_settings=!at_settings;
@@ -1664,7 +1655,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 												"[(rlogin|telnet|ssh)://][user[:password]@]domainname[:port]\n";
 								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 									|WIN_SEL
 									,0,0,0,&opt,&bar,"Directory",(char **)list);
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Address",addy,LIST_ADDR_MAX,0);
@@ -1672,7 +1663,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 								if(uifc.changes) {
 									parse_url(addy,&retlist,defaults.conn_type,FALSE);
 									free_list(&list[0],listcount);
-									free(list);
 									return(&retlist);
 								}
 							}
@@ -1682,7 +1672,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 								if (!check_exit(TRUE))
 									continue;
 							free_list(&list[0],listcount);
-							free(list);
 							return(NULL);
 					}
 				}
@@ -1772,7 +1761,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(settings.list_path,list[listcount-1]);
-								load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1814,7 +1803,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,str,YesNo)!=0)
 								break;
 							del_bbs(settings.list_path,list[opt]);
-							load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, NULL, NULL, NULL);
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, NULL, NULL, NULL);
 							oldopt=-1;
 							break;
 						case MSK_EDIT:
@@ -1827,7 +1816,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								break;
 							}
 							if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-								load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1843,14 +1832,13 @@ struct bbslist *show_bbslist(char *current, int connected)
 							check_exit(FALSE);
 						}
 						else if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-							load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 							oldopt=-1;
 						}
 					}
 					else {
 						memcpy(&retlist,list[val],sizeof(struct bbslist));
 						free_list(&list[0],listcount);
-						free(list);
 						return(&retlist);
 					}
 				}
@@ -1874,7 +1862,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 				if(oldopt != -2)
 					settitle(syncterm_version);
 				oldopt=-2;
-				val=uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_ACT|WIN_ESC
+				val=uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_UNGETMOUSE|WIN_HLP|WIN_ACT|WIN_ESC
 					,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 				if(connected && val >= 1)
 					val++;
@@ -1884,7 +1872,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							viewofflinescroll();
 							uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 								|WIN_SEL|WIN_INACT
 								,0,0,0,&opt,&bar,"Directory",(char **)list);
 						}
@@ -1896,7 +1884,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
 					case -11:		/* TAB */
-						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_ACT|WIN_SEL
+						uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_SEL
 							,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 						at_settings=!at_settings;
 						break;
@@ -1905,7 +1893,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if (!check_exit(TRUE))
 								continue;
 						free_list(&list[0],listcount);
-						free(list);
 						return(NULL);
 					case 0:			/* Edit default connection settings */
 						edit_list(NULL, &defaults,settings.list_path,TRUE);
@@ -1936,13 +1923,12 @@ struct bbslist *show_bbslist(char *current, int connected)
 								init_uifc(TRUE, TRUE);
 								uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
+									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN|WIN_HLP
 									|WIN_SEL|WIN_INACT
 									,0,0,0,&opt,&bar,"Directory",(char **)list);
 							}
 							else if (check_exit(FALSE)) {
 								free_list(&list[0],listcount);
-								free(list);
 								return(NULL);
 							}
 						}
@@ -1955,7 +1941,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case 3:			/* Program settings */
 						change_settings();
-						load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 						oldopt=-1;
 						break;
 				}
