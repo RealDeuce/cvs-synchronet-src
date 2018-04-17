@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.79 2018/04/17 02:56:17 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.80 2018/04/17 04:14:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -814,6 +814,7 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	const char* flo_filename;
 	char attachment[MAX_PATH+1];
 	char searchstr[MAX_PATH+1];
+	char* p;
 	FILE *fp;
 	nodecfg_t* nodecfg;
 
@@ -829,7 +830,12 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	if(flo_filename == NULL)
 		return -2;
 
+#ifdef __unix__
+	if(isalpha(infile[0]) && infile[1] == ':')	// Ignore "C:" prefix
+		infile += 2;
+#endif
 	SAFECOPY(attachment, infile);
+	REPLACE_CHARS(attachment, '\\', '/', p);
 	if(!fexistcase(attachment))	{ /* just in-case it's the wrong case for a Unix file system */
 		lprintf(LOG_ERR, "ERROR line %u, attachment file not found: %s", __LINE__, attachment);
 		return -1;
@@ -5930,7 +5936,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.79 $", "%*s %s", revision);
+	sscanf("$Revision: 3.80 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
