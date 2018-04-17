@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.68 2018/02/23 08:24:23 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.69 2018/03/17 05:43:39 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -120,6 +120,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 
 # Must add new additions to MONO_OBJS too!
 CON_OBJS	= $(MTOBJODIR)$(DIRSEP)sbbscon$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)sbbs_status$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
@@ -339,4 +340,7 @@ DSTSEDIT_OBJS = \
 
 READSAUCE_OBJS = \
 			$(OBJODIR)$(DIRSEP)readsauce$(OFILE)
+
+SHOWSTAT_OBJS = \
+			$(OBJODIR)$(DIRSEP)showstat$(OFILE)
 
