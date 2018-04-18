@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.22 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.21 2015/09/01 03:19:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,6 @@ const char *sbbs_t::ansi(int atr)
 		case ANSI_NORMAL:
 			return("\x1b[0m");
 		case BLINK:
-		case BG_BRIGHT:
 			return("\x1b[5m");
 
 		/* Foreground */
@@ -196,16 +195,7 @@ extern "C" char* ansi_attr(int atr, int curatr, char* str, BOOL color)
 
 char* sbbs_t::ansi(int atr, int curatr, char* str)
 {
-	long term = term_supports();
-	if(term&ICE_COLOR) {
-		switch(atr&(BG_BRIGHT|BLINK)) {
-			case BG_BRIGHT:
-			case BLINK:
-				atr ^= BLINK;
-				break;
-		}
-	}
-	return ::ansi_attr(atr, curatr, str, (term&COLOR) ? TRUE:FALSE);
+	return ::ansi_attr(atr, curatr, str, term_supports(COLOR) ? TRUE:FALSE);
 }
 
 void sbbs_t::ansi_getlines()
