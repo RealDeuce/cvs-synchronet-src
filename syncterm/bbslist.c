@@ -174,8 +174,8 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
 char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
-char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x43", "80x50", "80x60", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col", "C128-80col", "Atari", "Atari-XEP80", NULL};
+char *screen_modes[]={     "Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
+char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37",        "132x52",       "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col",   "C128-80col",   "Atari", "Atari-XEP80", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -256,17 +256,15 @@ void viewofflinescroll(void)
 			top=1;
 		if(top>(int)scrollback_lines)
 			top=scrollback_lines;
-		pputtext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
+		vmem_puttext(((sbtxtinfo.screenwidth-scrollback_cols)/2)+1,1
 				,(sbtxtinfo.screenwidth-scrollback_cols)/2+scrollback_cols
 				,sbtxtinfo.screenheight
-				,scrollback_buf+(scrollback_cols*2*top)
-				,scrollback_fbuf?scrollback_fbuf+(scrollback_cols*top):NULL
-				,scrollback_bbuf?scrollback_bbuf+(scrollback_cols*top):NULL);
-		ciolib_xlat=TRUE;
+				,scrollback_buf+(scrollback_cols*top));
+		ciolib_xlat=CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(scrollback_cols-9,1);
 		cputs("Scrollback");
-		ciolib_xlat=FALSE;
+		ciolib_xlat=CIOLIB_XLAT_NONE;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -282,7 +280,7 @@ void viewofflinescroll(void)
 						getmouse(&mevent);
 						switch(mevent.event) {
 							case CIOLIB_BUTTON_1_DRAG_START:
-								mousedrag(scrollback_buf,scrollback_fbuf, scrollback_bbuf);
+								mousedrag(scrollback_buf);
 								break;
 						}
 						break;
@@ -969,7 +967,8 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 				i=item->screen_mode;
 				uifc.helpbuf=	"`Screen Mode`\n\n"
 								"Select the screen size for this connection\n";
-				switch(uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),NULL,"Screen Mode",screen_modes)) {
+				j = i;
+				switch(uifc.list(WIN_SAV,0,0,0,&(item->screen_mode),&j,"Screen Mode",screen_modes)) {
 					case -1:
 						check_exit(FALSE);
 						item->screen_mode=i;
@@ -1377,9 +1376,7 @@ void change_settings(void)
 							 "        This value MUST be greater than zero\n";
 				sprintf(str,"%d",settings.backlines);
 				if(uifc.input(WIN_SAV|WIN_MID,0,0,"Scrollback Lines",str,9,K_NUMBER|K_EDIT)!=-1) {
-					unsigned char *tmpscroll;
-					uint32_t *tmpscrollf;
-					uint32_t *tmpscrollb;
+					struct vmem_cell *tmpscroll;
 
 					j=atoi(str);
 					if(j<1) {
@@ -1388,13 +1385,9 @@ void change_settings(void)
 						check_exit(FALSE);
 					}
 					else {
-						tmpscroll=(unsigned char *)realloc(scrollback_buf,80*2*j);
-						tmpscrollf=realloc(scrollback_fbuf,80*sizeof(tmpscrollf[0])*j);
-						tmpscrollb=realloc(scrollback_bbuf,80*sizeof(tmpscrollb[0])*j);
+						tmpscroll=realloc(scrollback_buf,80*sizeof(*scrollback_buf)*j);
 						scrollback_buf = tmpscroll ? tmpscroll : scrollback_buf;
-						scrollback_fbuf = tmpscrollf ? tmpscrollf : scrollback_fbuf;
-						scrollback_bbuf = tmpscrollb ? tmpscrollb : scrollback_bbuf;
-						if(tmpscroll == NULL | tmpscrollf == NULL | tmpscrollb == NULL) {
+						if(tmpscroll == NULL) {
 							uifc.helpbuf="The selected scrollback size is too large.\n"
 										 "Please reduce the number of lines.";
 							uifc.msg("Cannot allocate space for scrollback.");
@@ -1599,7 +1592,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							*p=')';
 					}
 					else
-						strcpy(title,syncterm_version);
+						strncpy(title, syncterm_version, sizeof(title));
 					settitle(title);
 				}
 				oldopt=opt;
@@ -1631,11 +1624,12 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(!connected) {
 								viewofflinescroll();
 								uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_HLP|WIN_ACT|WIN_INACT
-									,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
+									,0,0,0,&sopt,&sbar,"SyncTERM Settings",settings_menu);
 							}
 							break;
 						case -2-CIO_KEY_MOUSE:	/* Clicked outside of window... */
 							getmouse(&mevent);
+							/* Fall-through */
 						case -2-0x0f00:	/* Backtab */
 						case -2-0x4b00:	/* Left Arrow */
 						case -2-0x4d00:	/* Right Arrow */
@@ -1768,7 +1762,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(settings.list_path,list[listcount-1]);
-								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[listcount-1]?strdup(list[listcount-1]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1823,7 +1817,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								break;
 							}
 							if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1839,7 +1833,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							check_exit(FALSE);
 						}
 						else if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 							oldopt=-1;
 						}
 					}
@@ -1886,6 +1880,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case -2-CIO_KEY_MOUSE:
 						getmouse(&mevent);
+						/* Fall-through */
 					case -2-0x0f00:	/* Backtab */
 					case -2-0x4b00:	/* Left Arrow */
 					case -2-0x4d00:	/* Right Arrow */
