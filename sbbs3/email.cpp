@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.66 2018/02/20 11:18:36 rswindell Exp $ */
+/* $Id: email.cpp,v 1.67 2018/04/17 04:32:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,9 +126,10 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		return(false); 
 	}
 
-	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM))
+	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM)) {
+		bputs(text[EmailFilesNotAllowed]);
 		mode&=~WM_FILE;
-
+	}
 
 	if(mode&WM_FILE) {
 		if(!checkfname(title)) {
