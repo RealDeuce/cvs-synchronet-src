@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.59 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: str_util.c,v 1.53 2017/10/28 20:16:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -73,7 +73,7 @@ char* DLLCALL strip_ctrl(const char *str, char* dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -121,7 +121,7 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 	for(i=j=0;str[i];i++)
 		if(str[i]==CTRL_A && str[i+1]!=0) {
 			i++;
-			if(str[i]==0 || str[i]=='Z')	/* EOF */
+			if(toupper(str[i])=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -159,7 +159,7 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 	SAFECOPY(str,string);
 
 	p=str;	
-//	SKIP_WHITESPACE(p);
+	SKIP_WHITESPACE(p);
 
 	if(*p==';')		/* comment */
 		return(FALSE);
@@ -258,7 +258,7 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 	ip_addr = parse_ipv4_address(insearchof);
 	for(index=0; list[index]!=NULL; index++) {
 		p=list[index];
-//		SKIP_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
 		if(ip_addr != 0 && (cidr = parse_cidr(p, &subnet)) != 0)
 			found = is_cidr_match(p, ip_addr, cidr, subnet);
 		else
@@ -290,13 +290,10 @@ BOOL DLLCALL findstr(const char* insearchof, const char* fname)
 	while(!feof(fp) && !ferror(fp) && !found) {
 		if(!fgets(str,sizeof(str),fp))
 			break;
-		char* p = str;
-		SKIP_WHITESPACE(p);
-		c_unescape_str(p);
-		if(ip_addr !=0 && (cidr = parse_cidr(p, &subnet)) != 0)
-			found = is_cidr_match(p, ip_addr, cidr, subnet);
+		if(ip_addr !=0 && (cidr = parse_cidr(str, &subnet)) != 0)
+			found = is_cidr_match(str, ip_addr, cidr, subnet);
 		else
-			found = findstr_in_string(insearchof, p);
+			found = findstr_in_string(insearchof, str);
 	}
 
 	fclose(fp);
@@ -321,23 +318,17 @@ char* DLLCALL trashcan_fname(scfg_t* cfg, const char* name, char* fname, size_t 
 	return fname;
 }
 
-static char* process_findstr_item(size_t index, char *str, void* cbdata)
-{
-	SKIP_WHITESPACE(str);
-	return c_unescape_str(str);
-}
-
 /****************************************************************************/
-str_list_t DLLCALL findstr_list(const char* fname)
+str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 {
+	char	fname[MAX_PATH+1];
 	FILE*	fp;
 	str_list_t	list;
 
-	if((fp=fopen(fname,"r"))==NULL)
+	if((fp=fopen(trashcan_fname(cfg, name, fname, sizeof(fname)),"r"))==NULL)
 		return NULL;
 
-	list=strListReadFile(fp, NULL, /* Max line length: */255);
-	strListModifyEach(list, process_findstr_item, /* cbdata: */NULL);
+	list=strListReadFile(fp,NULL,255);
 
 	fclose(fp);
 
@@ -345,15 +336,8 @@ str_list_t DLLCALL findstr_list(const char* fname)
 }
 
 /****************************************************************************/
-str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
-{
-	char	fname[MAX_PATH+1];
-
-	return findstr_list(trashcan_fname(cfg, name, fname, sizeof(fname)));
-}
-
-/****************************************************************************/
-/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
+/* Returns the number of characters in 'str' not counting ctrl-ax codes		*/
+/* or the null terminator													*/
 /****************************************************************************/
 size_t bstrlen(const char *str)
 {
@@ -362,7 +346,7 @@ size_t bstrlen(const char *str)
 	while(*str) {
 		if(*str==CTRL_A) {
 			str++;
-			if(*str==0 || *str=='Z')	/* EOF */
+			if(toupper(*str)=='Z')	/* EOF */
 				break;
 			if(*str=='[')
 				i=0;
@@ -521,7 +505,6 @@ BOOL DLLCALL valid_ctrl_a_attr(char a)
 		case 'C':   /* cyan     fg  */
 		case 'G':   /* green    fg  */
 		case 'H':   /* high     fg  */
-		case 'E':	/* high		bg	*/
 		case 'I':   /* blink        */
 		case 'K':   /* black    fg  */
 		case 'M':   /* magenta  fg  */
