@@ -1,6 +1,6 @@
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.62 2018/07/25 03:39:28 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.61 2018/04/13 23:59:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,8 +213,12 @@ void sbbs_t::logline(const char *code, const char *str)
 /****************************************************************************/
 void sbbs_t::logline(int level, const char *code, const char *str)
 {
-	if(strchr(str,'\n')==NULL) 	// Keep the console log pretty
-		lputs(level, str);
+	if(strchr(str,'\n')==NULL) {	// Keep the console log pretty
+		if(online==ON_LOCAL)
+			eprintf(level,"%s",str);
+		else
+			lprintf(level,"Node %d %s", cfg.node_num, str);
+	}
 	if(logfile_fp==NULL || (online==ON_LOCAL && strcmp(code,"!!"))) return;
 	if(logcol!=1)
 		fputs(log_line_ending, logfile_fp);
@@ -289,7 +293,7 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 		int savatr=curatr;
 		if(useron.number)
 			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
-		lprintf(LOG_ERR, "!%s", str);
+		lprintf(LOG_ERR,"Node %d !%s",cfg.node_num, str);
 		attr(cfg.color[clr_err]);
 		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
 		bputs("\r\nThe sysop has been notified.\r\n");
