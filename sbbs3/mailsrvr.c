@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.671 2018/04/18 06:00:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.672 2018/04/18 06:06:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1303,7 +1303,7 @@ static void pop3_thread(void* arg)
 			smb_unlockmsghdr(&smb,&msg);
 			if(i!=0) {
 				lprintf(LOG_ERR,"%04d !POP3 <%s> ERROR %d (%s) line %u, msg #%u"
-					,socket, user.alias, i, smb.last_error, __LINE__, mail[l].number);
+					,socket, user.alias, i, smb.last_error, __LINE__, msg.idx.number);
 				break;
 			}
 			bytes+=smb_getmsgtxtlen(&msg);
@@ -1359,7 +1359,7 @@ static void pop3_thread(void* arg)
 					if((i=smb_getmsghdr(&smb,&msg))!=SMB_SUCCESS) {
 						smb_unlockmsghdr(&smb,&msg);
 						lprintf(LOG_ERR,"%04d !POP3 <%s> ERROR %d (%s) line %u, msg #%u"
-							,socket, user.alias, i, smb.last_error, __LINE__, msg.hdr.number);
+							,socket, user.alias, i, smb.last_error, __LINE__, msg.idx.number);
 						break;
 					}
 					msg.hdr.attr=mail[l].attr;
@@ -1412,7 +1412,7 @@ static void pop3_thread(void* arg)
 					if(i!=0) {
 						smb_freemsgmem(&msg);
 						lprintf(LOG_ERR,"%04d !POP3 <%s> ERROR %d (%s) line %u, msg #%u"
-							,socket, user.alias, i, smb.last_error, __LINE__, msg.hdr.number);
+							,socket, user.alias, i, smb.last_error, __LINE__, msg.idx.number);
 						sockprintf(socket,session,"-ERR %d getting message header",i);
 						continue;
 					}
@@ -1445,7 +1445,7 @@ static void pop3_thread(void* arg)
 					if(i!=0) {
 						smb_freemsgmem(&msg);
 						lprintf(LOG_ERR,"%04d !POP3 <%s> ERROR %d (%s) line %u, msg #%u"
-							,socket, user.alias, i, smb.last_error, __LINE__, msg.hdr.number);
+							,socket, user.alias, i, smb.last_error, __LINE__, msg.idx.number);
 						break;
 					}
 					if(!strnicmp(buf, "LIST",4)) {
@@ -1506,7 +1506,7 @@ static void pop3_thread(void* arg)
 				smb_unlockmsghdr(&smb,&msg);
 				if(i!=0) {
 					lprintf(LOG_ERR,"%04d !POP3 <%s> ERROR %d (%s) line %u, msg #%u"
-						,socket, user.alias, i, smb.last_error, __LINE__, msg.hdr.number);
+						,socket, user.alias, i, smb.last_error, __LINE__, msg.idx.number);
 					sockprintf(socket,session,"-ERR %d getting message header",i);
 					continue;
 				}
@@ -1603,7 +1603,7 @@ static void pop3_thread(void* arg)
 					smb_unlockmsghdr(&smb,&msg);
 					smb_unlocksmbhdr(&smb);
 					lprintf(LOG_ERR,"%04d !POP3 <%s> ERROR %d (%s) line %u, msg #%u"
-						,socket, user.alias, i, smb.last_error, __LINE__, msg.hdr.number);
+						,socket, user.alias, i, smb.last_error, __LINE__, msg.idx.number);
 					sockprintf(socket,session,"-ERR %d getting message header",i);
 					continue;
 				}
@@ -5673,7 +5673,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.671 $", "%*s %s", revision);
+	sscanf("$Revision: 1.672 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
