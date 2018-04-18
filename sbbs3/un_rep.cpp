@@ -1,6 +1,6 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 
-/* $Id: un_rep.cpp,v 1.64 2018/04/16 22:37:48 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.65 2018/04/18 06:43:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,8 +377,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 					SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 					putsmsg(&cfg,usernum,str); 
 				} 
-			} else
-				errors++;
+			}
 			smb_close(&smb);
 		}    /* end of email */
 
@@ -539,8 +538,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				logline("P+",str); 
 				if(!(useron.rest&FLAG('Q')))
 					user_event(EVENT_POST);
-			} else
-				errors++;
+			}
 		}   /* end of public message */
 	}
 
