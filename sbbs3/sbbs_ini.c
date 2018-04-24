@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.164 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.163 2018/03/10 00:01:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -399,7 +399,7 @@ void sbbs_read_ini(
 			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
 		bbs->options
 			=iniGetBitField(list,section,strOptions,bbs_options
-				,BBS_OPT_XTRN_MINIMIZED);
+				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
 
 		bbs->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
