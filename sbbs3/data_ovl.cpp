@@ -1,6 +1,6 @@
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.28 2019/02/17 06:20:26 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.23 2018/03/08 08:19:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,8 +57,7 @@ void sbbs_t::getmsgptrs()
 
 void sbbs_t::putmsgptrs()
 {
-	if(!::putmsgptrs(&cfg,&useron,subscan))
-		errormsg(WHERE, ERR_WRITE, "message pointers", 0);
+	::putmsgptrs(&cfg,&useron,subscan);
 }
 
 static void ProgressSearchingUsers(void* cbdata, int count, int total)
