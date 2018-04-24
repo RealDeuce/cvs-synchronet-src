@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.34 2019/03/13 08:43:39 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.29 2018/03/14 05:55:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,8 +79,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
 		case SMB_EDITOR:		return("Editor");
-		case SMB_TAGS:			return("Tags");
-		case SMB_COLUMNS:		return("Columns");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
@@ -228,13 +226,9 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case BAN:   return("BAN");
 		case HON:   return("HON");
 		case TOK:   return("TOK");
-		case ACST:	return("ACST");
-		case ACDT:	return("ACDT");
-		case AEST:	return("AEST");
-		case AEDT:	return("AEDT");
+		case SYD:   return("SYD");
 		case NOU:   return("NOU");
-		case NZST:  return("NZST");
-		case NZDT:  return("NZDT");
+		case WEL:   return("WEL");
 	}
 
 	if(!OTHER_ZONE(zone)) {
@@ -338,15 +332,8 @@ enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 {
 	const char*	p;
 
-	if((p=strchr(str,'@')) == NULL) {
+	if((p=strchr(str,'@'))==NULL)
 		p = str;
-		SKIP_WHITESPACE(p);
-		if(*p == 0)
-			return NET_NONE;
-		if(smb_get_net_type_by_addr(p) == NET_FIDO)
-			return NET_FIDO;
-		return NET_NONE;
-	}
 	else
 		p++;
 	SKIP_WHITESPACE(p);
@@ -360,15 +347,11 @@ enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 /* Returns net_type for passed network address 								*/
 /* The only addresses expected with an '@' are Internet/SMTP addresses		*/
 /* Examples:																*/
-/*  ""					= NET_NONE											*/
-/*	"@"					= NET_NONE											*/
 /*	"VERT"				= NET_QWK											*/
-/*	"VERT/NIX"			= NET_QWK											*/
 /*	"1:103/705"			= NET_FIDO											*/
 /*	"705.0"				= NET_FIDO											*/
 /*	"705"				= NET_FIDO											*/
 /*	"192.168.1.0"		= NET_INTERNET										*/
-/*  "::1"				= NET_INTERNET										*/
 /*	"some.host"			= NET_INTERNET										*/
 /*	"someone@anywhere"	= NET_INTERNET										*/
 /*	"someone@some.host"	= NET_INTERNET										*/
@@ -377,55 +360,28 @@ enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr)
 {
 	const char*	p = addr;
 	const char*	tp;
+	char*	firstdot;
+	char*	lastdot;
 
-	char* at = strchr(p,'@');
-	if(at != NULL)
-		p = at + 1;
+	if(strchr(p,'@') != NULL)
+		return(NET_INTERNET);
 
-	if(*p == 0)
-		return NET_NONE;
+	firstdot=strchr(p,'.');
+	lastdot=strrchr(p,'.');
 
-	char* dot = strchr(p,'.');
-	char* colon = strchr(p,':');
-	char* slash = strchr(p,'/');
+	if(isalpha(*p) && firstdot==NULL)
+		return(NET_QWK);
 
-	if(at == NULL && isalpha(*p) && dot == NULL && colon == NULL)
-		return NET_QWK;
-
-	char last = 0;
-	for(tp = p; *tp != '\0'; tp++) {
-		last = *tp;
-		if(isdigit(*tp))
-			continue;
-		if(*tp == ':') {
-			if(tp != colon)
-				break;
-			if(dot != NULL && tp > dot)
-				break;
-			if(slash != NULL && tp > slash)
-				break;
-			continue;
-		}
-		if(*tp == '/') {
-			if(tp != slash)
-				break;
-			if(dot != NULL && tp > dot)
-				break;
-			continue;
-		}
-		if(*tp == '.') {
-			if(tp != dot)
-				break;
-			continue;
-		}
-		break;
+	for(tp=p;*tp;tp++) {
+		if(!isdigit(*tp) && *tp!=':' && *tp!='/' && *tp!='.')
+			break;
 	}
-	if(at == NULL && isdigit(*p) && *tp == '\0' && isdigit(last))
-		return NET_FIDO;
-	if(slash == NULL && (isalnum(*p) || p == colon))
-		return NET_INTERNET;
+	if(isdigit(*p) && *tp==0 && firstdot==lastdot)
+		return(NET_FIDO);
+	if(isalnum(*p))
+		return(NET_INTERNET);
 
-	return NET_UNKNOWN;
+	return(NET_UNKNOWN);
 }
 
 char* SMBCALL smb_nettype(enum smb_net_type type)
@@ -434,7 +390,7 @@ char* SMBCALL smb_nettype(enum smb_net_type type)
 		case NET_NONE:		return "NONE";
 		case NET_UNKNOWN:	return "UNKNOWN";
 		case NET_QWK:		return "QWKnet";
-		case NET_FIDO:		return "FidoNet";
+		case NET_FIDO:		return "Fidonet";
 		case NET_INTERNET:	return "Internet";
 		default:			return "Unsupported net type";
 	}

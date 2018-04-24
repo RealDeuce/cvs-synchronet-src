@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.750 2019/06/03 20:55:17 deuce Exp $ */
+/* $Id: main.cpp,v 1.717 2018/04/24 02:23:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -121,7 +121,6 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
-static	str_list_t clear_attempts_semfiles;
 static	link_list_t current_logins;
 static	link_list_t current_connections;
 #ifdef _THREAD_SUID_BROKEN
@@ -216,11 +215,9 @@ static void thread_down()
 int lputs(int level, const char* str)
 {
 	if(level <= LOG_ERR) {
-		char errmsg[1024];
-		SAFEPRINTF(errmsg, "term %s", str);
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,errmsg);
+			startup->errormsg(startup->cbdata,level,str);
 	}
 
 	if(startup==NULL || startup->lputs==NULL || str==NULL || level > startup->log_level)
@@ -240,11 +237,9 @@ int eputs(int level, const char *str)
 		return 0;
 
 	if(level <= LOG_ERR) {
-		char errmsg[1024];
-		SAFEPRINTF(errmsg, "evnt %s", str);
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata, level, errmsg);
+			startup->errormsg(startup->cbdata,level,str);
 	}
 
     if(startup==NULL || startup->event_lputs==NULL || level > startup->log_level)
@@ -281,26 +276,11 @@ int eprintf(int level, const char *fmt, ...)
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
-/* Prepends the current node number and user alias (if applicable) */
 int sbbs_t::lputs(int level, const char* str)
 {
-	char msg[2048];
-	char prefix[32] = "";
-	char user_str[64] = "";
-
-	if(is_event_thread && event_code != NULL && *event_code)
-		SAFEPRINTF(prefix, "%s ", event_code);
-	else if(cfg.node_num && !is_event_thread)
-		SAFEPRINTF(prefix, "Node %d ", cfg.node_num);
-	else if(client_name[0])
-		SAFEPRINTF(prefix, "%s ", client_name);
-	if(useron.number)
-		SAFEPRINTF(user_str, "<%s> ", useron.alias);
-	SAFEPRINTF3(msg, "%s%s%s", prefix, user_str, str);
-	strip_ctrl(msg, msg);
-	if(is_event_thread)
-		return ::eputs(level, msg);
-	return ::lputs(level, msg);
+	if(cfg.node_num == 0)
+		return ::eputs(level, str);
+	return ::lputs(level, str);
 }
 
 int sbbs_t::lprintf(int level, const char *fmt, ...)
@@ -463,18 +443,8 @@ int DLLCALL sbbs_random(int n)
 
 static js_server_props_t js_server_props;
 
-void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
-{
-	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
-
-	if(ret == NULL)
-		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
-			, cls == NULL ? "???" : cls->name);
-	return ret;
-}
-
 JSBool
-DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
+DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, char* str[],uintN flags)
 {
 	JSObject*	array;
 	JSString*	js_str;
@@ -612,7 +582,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		// If the first item is already in the list, don't do anything.
 		if(!JS_GetArrayLength(cx, method_array, &len))
 			return(JS_FALSE);
-		for(i=0; i<(int)len; i++) {
+		for(i=0; i<len; i++) {
 			if(JS_GetElement(cx, method_array, i, &val)!=JS_TRUE || val == JSVAL_VOID)
 				continue;
 			JS_GetProperty(cx, JSVAL_TO_OBJECT(val), "name", &val);
@@ -838,7 +808,12 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		if(line==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->lputs(level, line);
+		if(sbbs->online==ON_LOCAL) {
+			if(startup!=NULL && startup->event_lputs!=NULL && level <= startup->log_level) {
+				startup->event_lputs(startup->event_cbdata,level,line);
+			}
+		} else
+			lprintf(level,"Node %d %s", sbbs->cfg.node_num, line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 	if(line != NULL)
@@ -942,8 +917,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		if(!sbbs->online)
-			sbbs->lputs(LOG_INFO, cstr);
+		if(sbbs->online==ON_LOCAL)
+			eprintf(LOG_INFO,"%s",cstr);
 		else
 			sbbs->bputs(cstr);
 		JS_RESUMEREQUEST(cx, rc);
@@ -1028,8 +1003,8 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!sbbs->online)
-		sbbs->lputs(LOG_INFO, p);
+	if(sbbs->online==ON_LOCAL)
+		eprintf(LOG_INFO,"%s",p);
 	else
 		sbbs->bputs(p);
 	JS_RESUMEREQUEST(cx, rc);
@@ -1059,8 +1034,8 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!sbbs->online)
-		lputs(LOG_WARNING, cstr);
+	if(sbbs->online==ON_LOCAL)
+		eprintf(LOG_WARNING, "%s", cstr);
 	else {
 		sbbs->attr(sbbs->cfg.color[clr_err]);
 		sbbs->bputs(cstr);
@@ -1233,12 +1208,18 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	const char*	warning;
 	jsrefcount	rc;
 	int		log_level;
+	char	nodestr[128];
 
 	if((sbbs=(sbbs_t*)JS_GetContextPrivate(cx))==NULL)
 		return;
 
+    if(sbbs->cfg.node_num)
+    	SAFEPRINTF(nodestr,"Node %d",sbbs->cfg.node_num);
+    else
+    	SAFECOPY(nodestr,sbbs->client_name);
+
 	if(report==NULL) {
-		sbbs->lprintf(LOG_ERR,"!JavaScript: %s", message);
+		lprintf(LOG_ERR,"%s !JavaScript: %s", nodestr, message);
 		return;
     }
 
@@ -1264,25 +1245,35 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->lprintf(log_level, "!JavaScript %s%s%s: %s",warning,file,line,message);
-	if(sbbs->online==ON_REMOTE)
+	if(sbbs->online==ON_LOCAL)
+		eprintf(log_level,"!JavaScript %s%s%s: %s",warning,file,line,message);
+	else {
+		lprintf(log_level,"%s !JavaScript %s%s%s: %s",nodestr,warning,file,line,message);
 		sbbs->bprintf("!JavaScript %s%s%s: %s\r\n",warning,file,line,message);
+	}
 	JS_RESUMEREQUEST(cx, rc);
 }
 
 bool sbbs_t::js_init(ulong* stack_frame)
 {
+	char		node[128];
+
+    if(cfg.node_num)
+    	SAFEPRINTF(node,"Node %d",cfg.node_num);
+    else
+    	SAFECOPY(node,client_name);
+
 	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
-	lprintf(LOG_DEBUG,"JavaScript: Creating runtime: %lu bytes"
-		,startup->js.max_bytes);
+	lprintf(LOG_DEBUG,"%s JavaScript: Creating runtime: %lu bytes"
+		,node,startup->js.max_bytes);
 
 	if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
 		return(false);
 
-	lprintf(LOG_DEBUG,"JavaScript: Initializing context (stack: %lu bytes)"
-		,startup->js.cx_stack);
+	lprintf(LOG_DEBUG,"%s JavaScript: Initializing context (stack: %lu bytes)"
+		,node,startup->js.cx_stack);
 
     if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
 		return(false);
@@ -1347,11 +1338,11 @@ bool sbbs_t::js_init(ulong* stack_frame)
 	return(true);
 }
 
-void sbbs_t::js_cleanup(void)
+void sbbs_t::js_cleanup(const char* node)
 {
 	/* Free Context */
 	if(js_cx!=NULL) {
-		lprintf(LOG_DEBUG,"JavaScript: Destroying context");
+		lprintf(LOG_DEBUG,"%s JavaScript: Destroying context",node);
 		JS_BEGINREQUEST(js_cx);
 		JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
@@ -1360,7 +1351,7 @@ void sbbs_t::js_cleanup(void)
 	}
 
 	if(js_runtime!=NULL) {
-		lprintf(LOG_DEBUG,"JavaScript: Destroying runtime");
+		lprintf(LOG_DEBUG,"%s JavaScript: Destroying runtime",node);
 		jsrt_Release(js_runtime);
 		js_runtime=NULL;
 	}
@@ -1552,12 +1543,11 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
-						safe_snprintf(sbbs->telnet_terminal,sizeof(sbbs->telnet_terminal),"%.*s"
-							,(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
+						safe_snprintf(sbbs->terminal,sizeof(sbbs->terminal),"%.*s",(int)sbbs->telnet_cmdlen-6,sbbs->telnet_cmd+4);
 						lprintf(LOG_DEBUG,"Node %d %s telnet terminal type: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,sbbs->telnet_terminal);
+							,sbbs->terminal);
 
 					} else if(option==TELNET_TERM_SPEED
 						&& sbbs->telnet_cmd[3]==TELNET_TERM_IS) {
@@ -1567,7 +1557,8 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,speed);
-						sbbs->telnet_speed=atoi(speed);
+						sbbs->cur_rate=atoi(speed);
+						sbbs->cur_cps=sbbs->cur_rate/10;
 #ifdef SBBS_TELNET_ENVIRON_SUPPORT
 					} else if(option==TELNET_NEW_ENVIRON
 						&& sbbs->telnet_cmd[3]==TELNET_ENVIRON_IS) {
@@ -1623,8 +1614,11 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,cols
 							,rows);
-						sbbs->telnet_cols = cols;
-						sbbs->telnet_rows = rows;
+						if(rows && !sbbs->useron.rows)	/* auto-detect rows */
+							sbbs->rows=rows;
+						if(cols)
+							sbbs->cols=cols;
+
 					} else if(startup->options&BBS_OPT_DEBUG_TELNET)
             			lprintf(LOG_DEBUG,"Node %d %s unsupported telnet sub-negotiation cmd: %s, 0x%02X"
 	                		,sbbs->cfg.node_num
@@ -1728,7 +1722,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
                 sbbs->telnet_cmdlen=0;
 
             }
-			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
+			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commads
 				outbuf[outlen++]=inbuf[i];
         } else
         	outbuf[outlen++]=inbuf[i];
@@ -1745,13 +1739,15 @@ void sbbs_t::send_telnet_cmd(uchar cmd, uchar opt)
 
 	if(cmd<TELNET_WILL) {
 		if(startup->options&BBS_OPT_DEBUG_TELNET)
-            lprintf(LOG_DEBUG,"sending telnet cmd: %s"
+            lprintf(LOG_DEBUG,"Node %d sending telnet cmd: %s"
+	            ,cfg.node_num
                 ,telnet_cmd_desc(cmd));
 		sprintf(buf,"%c%c",TELNET_IAC,cmd);
 		putcom(buf,2);
 	} else {
 		if(startup->options&BBS_OPT_DEBUG_TELNET)
-			lprintf(LOG_DEBUG,"sending telnet cmd: %s %s"
+			lprintf(LOG_DEBUG,"Node %d sending telnet cmd: %s %s"
+				,cfg.node_num
 				,telnet_cmd_desc(cmd)
 				,telnet_opt_desc(opt));
 		sprintf(buf,"%c%c%c",TELNET_IAC,cmd,opt);
@@ -2048,7 +2044,7 @@ void input_thread(void *arg)
 		else
 			wrbuf=telnet_interpret(sbbs, inbuf, rd, telbuf, wr);
 		if(wr > (int)sizeof(telbuf))
-			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,(int)sizeof(telbuf));
+			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%lu)",wr,sizeof(telbuf));
 
 		/* First level Ctrl-C checking */
 		if(!(sbbs->cfg.ctrlkey_passthru&(1<<CTRL_C))
@@ -2159,10 +2155,10 @@ void passthru_output_thread(void* arg)
 
 		if(sbbs->ssh_mode) {
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if(!cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i))) {
-				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+			if(cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i)))
 				rd=0;
-			} else {
+			else {
+				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
 				if(!i) {
 					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
@@ -2172,7 +2168,7 @@ void passthru_output_thread(void* arg)
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
-    		rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
+    	rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
 
 		if(rd == SOCKET_ERROR)
 		{
@@ -2203,7 +2199,7 @@ void passthru_output_thread(void* arg)
 		else
 			wrbuf=telnet_interpret(sbbs, inbuf, rd, telbuf, wr);
 		if(wr > (int)sizeof(telbuf))
-			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,(int)sizeof(telbuf));
+			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%lu)",wr,sizeof(telbuf));
 
 		/*
 		 * TODO: This should check for writability etc.
@@ -2399,8 +2395,8 @@ void output_thread(void* arg)
 			 * into linear buffer.
 			 */
 			if(avail>sizeof(buf)) {
-				lprintf(LOG_WARNING,"%s !Insufficient linear output buffer (%lu > %d)"
-					,node, avail, (int)sizeof(buf));
+				lprintf(LOG_WARNING,"%s !Insufficient linear output buffer (%lu > %lu)"
+					,node, avail, sizeof(buf));
 				avail=sizeof(buf);
 			}
 			/* If we know the MSS, use it as the max send() size. */
@@ -2567,7 +2563,6 @@ void event_thread(void* arg)
 	sbbs_t*		sbbs = (sbbs_t*) arg;
 	struct tm	now_tm;
 	struct tm	tm;
-	char		event_code[LEN_CODE+1];
 
 	eprintf(LOG_INFO,"BBS Events thread started");
 
@@ -2661,27 +2656,23 @@ void event_thread(void* arg)
 
 		/* QWK events */
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
-			sbbs->event_code = "unpackREP";
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
 			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
 			strcat(str,"*.rep");
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
-				if(flength(g.gl_pathv[i]) < 1)
-					continue;
-				sbbs->useron.number = 0;
-				sbbs->lprintf(LOG_DEBUG, "Inbound QWK Reply Packet detected: %s", g.gl_pathv[i]);
-				sbbs->useron.number = atoi(g.gl_pathv[i]+offset);
+				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				getuserdat(&sbbs->cfg,&sbbs->useron);
-				if(sbbs->useron.number != 0 && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
+				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
 					if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
-						sbbs->lprintf(LOG_INFO," %s exists (unpack in progress?)", semfile);
+						eprintf(LOG_INFO,"%s exists (unpack in progress?)", semfile);
 						continue;
 					}
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
+					eprintf(LOG_INFO,"Un-packing QWK Reply packet from %s",sbbs->useron.alias);
 					sbbs->getusrsubs();
 					bool success = sbbs->unpack_rep(g.gl_pathv[i]);
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
@@ -2691,49 +2682,39 @@ void event_thread(void* arg)
 					sbbs->console&=~CON_L_ECHO;
 
 					/* putuserdat? */
-					if(success) {
-						if(remove(g.gl_pathv[i]))
-							sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
-					} else {
+					if(success)
+						remove(g.gl_pathv[i]);
+					else {
 						char badpkt[MAX_PATH+1];
 						SAFECOPY(badpkt, g.gl_pathv[i]);
 						SAFEPRINTF2(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
 						remove(badpkt);
 						if(rename(g.gl_pathv[i], badpkt) == 0)
-							sbbs->lprintf(LOG_NOTICE, "%s renamed to %s", g.gl_pathv[i], badpkt);
+							eprintf(LOG_NOTICE, "%s renamed to %s", g.gl_pathv[i], badpkt);
 						else
-							sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
+							eprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 								,errno, strerror(errno), g.gl_pathv[i], badpkt);
 					}
-					if(remove(semfile))
-						sbbs->errormsg(WHERE, ERR_REMOVE, semfile, 0);
-				}
-				else {
-					sbbs->lprintf(LOG_INFO, "Removing: %s", g.gl_pathv[i]);
-					if(remove(g.gl_pathv[i]))
-						sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
+					remove(semfile);
 				}
 			}
 			globfree(&g);
-			sbbs->useron.number = 0;
 
 			/* Create any QWK files that have magically appeared (via FTP perhaps) */
-			sbbs->event_code = "packQWK";
 			SAFEPRINTF(str,"%spack*.now",sbbs->cfg.data_dir);
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
-				sbbs->useron.number = 0;
-				sbbs->lprintf(LOG_INFO, "QWK pack semaphore signaled: %s", g.gl_pathv[i]);
-				sbbs->useron.number = atoi(g.gl_pathv[i]+offset);
+				eprintf(LOG_INFO,"QWK pack semaphore signaled: %s", g.gl_pathv[i]);
+				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
-					sbbs->lprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
+					eprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
-				if(sbbs->useron.number != 0 && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
-					sbbs->lprintf(LOG_INFO, "Packing QWK Message Packet");
+				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
+					eprintf(LOG_INFO,"Packing QWK Message Packet for %s",sbbs->useron.alias);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
 					sbbs->getmsgptrs();
@@ -2747,31 +2728,27 @@ void event_thread(void* arg)
 					SAFEPRINTF3(str,"%sfile%c%04u.qwk"
 						,sbbs->cfg.data_dir,PATH_DELIM,sbbs->useron.number);
 					if(sbbs->pack_qwk(str,&l,true /* pre-pack/off-line */)) {
-						sbbs->lprintf(LOG_INFO, "Packing completed: %s", str);
+						eprintf(LOG_INFO,"Packing completed: %s", str);
 						sbbs->qwk_success(l,0,1);
 						sbbs->putmsgptrs();
 						remove(bat_list);
 					} else
-						sbbs->lputs(LOG_INFO, "No packet created (no new messages)");
+						eprintf(LOG_INFO,"No packet created (no new messages)");
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
-				if(remove(g.gl_pathv[i]))
-					sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
-				if(remove(semfile))
-					sbbs->errormsg(WHERE, ERR_REMOVE, semfile, 0);
+				remove(g.gl_pathv[i]);
+				remove(semfile);
 			}
 			globfree(&g);
-			sbbs->useron.number = 0;
 
 			/* Create (pre-pack) QWK files for users configured as such */
-			sbbs->event_code = "prepackQWK";
 			SAFEPRINTF(semfile,"%sprepack.now",sbbs->cfg.data_dir);
 			if(sbbs->cfg.preqwk_ar[0]
 				&& (fexistcase(semfile) || (now-lastprepack)/60>(60*24))) {
 				j=lastuser(&sbbs->cfg);
-				sbbs->lputs(LOG_INFO,"Pre-packing QWK Message packets...");
+				eprintf(LOG_INFO,"Pre-packing QWK Message packets...");
 				int userfile = openuserdat(&sbbs->cfg, /* for_modify: */FALSE);
 				for(i=1;i<=j;i++) {
 
@@ -2792,7 +2769,7 @@ void event_thread(void* arg)
 						}
 						if(k<=sbbs->cfg.sys_nodes)	/* Don't pre-pack with user online */
 							continue;
-						sbbs->lprintf(LOG_INFO, "Pre-packing QWK");
+						eprintf(LOG_INFO,"Pre-packing QWK for %s",sbbs->useron.alias);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						sbbs->getmsgptrs();
@@ -2823,21 +2800,17 @@ void event_thread(void* arg)
 				remove(semfile);
 				//status(STATUS_WFC);
 			}
-			sbbs->useron.number = 0;
 		}
 
 		if(check_semaphores) {
 
 			/* Run daily maintenance? */
 			sbbs->cfg.node_num=0;
-			if(!(startup->options&BBS_OPT_NO_NEWDAY_EVENTS)) {
-				sbbs->event_code = "";
-				sbbs->logonstats();
-				if(sbbs->sys_status&SS_DAILY)
-					sbbs->daily_maint();
-			}
+			sbbs->logonstats();
+			if(sbbs->sys_status&SS_DAILY)
+				sbbs->daily_maint();
+
 			/* Node Daily Events */
-			sbbs->event_code = "DAILY";
 			for(i=first_node;i<=last_node;i++) {
 				// Node Daily Event
 				node.status=NODE_INVALID_STATUS;
@@ -2849,15 +2822,15 @@ void event_thread(void* arg)
 					sbbs->putnodedat(i,&node);
 					if(sbbs->cfg.node_daily[0]) {
 						sbbs->cfg.node_num=i;
-						SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[i-1]);
+						strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[i-1]);
 
-						sbbs->lprintf(LOG_INFO,"Running node %d daily event",i);
+						eprintf(LOG_INFO,"Running node %d daily event",i);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						sbbs->logentry("!:","Run node daily event");
-						const char* cmd = sbbs->cmdstr(sbbs->cfg.node_daily,nulstr,nulstr,NULL);
-						int result = sbbs->external(cmd, EX_OFFLINE);
-						eprintf(result ? LOG_ERR : LOG_INFO, "Node daily event: '%s' returned %d", cmd, result);
+						sbbs->external(
+							 sbbs->cmdstr(sbbs->cfg.node_daily,nulstr,nulstr,NULL)
+							,EX_OFFLINE);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					}
@@ -2869,25 +2842,25 @@ void event_thread(void* arg)
 				}
 			}
 
-			/* QWK Networking Call-out semaphores */
+			/* QWK Networking Call-out sempahores */
 			for(i=0;i<sbbs->cfg.total_qhubs;i++) {
-				if(sbbs->cfg.qhub[i]->node != NODE_ANY
-					&& (sbbs->cfg.qhub[i]->node<first_node || sbbs->cfg.qhub[i]->node>last_node))
+				if(sbbs->cfg.qhub[i]->node<first_node
+					|| sbbs->cfg.qhub[i]->node>last_node)
 					continue;
 				if(sbbs->cfg.qhub[i]->last==-1) // already signaled
 					continue;
 				SAFEPRINTF2(str,"%sqnet/%s.now",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str)) {
-					SAFECOPY(str,sbbs->cfg.qhub[i]->id);
+					strcpy(str,sbbs->cfg.qhub[i]->id);
 					eprintf(LOG_INFO,"Semaphore signaled for QWK Network Hub: %s",strupr(str));
 					sbbs->cfg.qhub[i]->last=-1;
 				}
 			}
 
-			/* Timed Event semaphores */
+			/* Timed Event sempahores */
 			for(i=0;i<sbbs->cfg.total_events;i++) {
-				if(sbbs->cfg.event[i]->node != NODE_ANY
-					&& (sbbs->cfg.event[i]->node<first_node || sbbs->cfg.event[i]->node>last_node)
+				if((sbbs->cfg.event[i]->node<first_node
+					|| sbbs->cfg.event[i]->node>last_node)
 					&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 					continue;	// ignore non-exclusive events for other instances
 				if(sbbs->cfg.event[i]->misc&EVENT_DISABLED)
@@ -2896,7 +2869,7 @@ void event_thread(void* arg)
 					continue;
 				SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 				if(fexistcase(str)) {
-					SAFECOPY(str,sbbs->cfg.event[i]->code);
+					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Semaphore signaled for Timed Event: %s",strupr(str));
 					sbbs->cfg.event[i]->last=-1;
 				}
@@ -2904,10 +2877,9 @@ void event_thread(void* arg)
 		}
 
 		/* QWK Networking Call-out Events */
-		sbbs->event_code = "QNET";
 		for(i=0;i<sbbs->cfg.total_qhubs && !sbbs->terminated;i++) {
-			if(sbbs->cfg.qhub[i]->node != NODE_ANY
-				&& (sbbs->cfg.qhub[i]->node<first_node || sbbs->cfg.qhub[i]->node>last_node))
+			if(sbbs->cfg.qhub[i]->node<first_node ||
+				sbbs->cfg.qhub[i]->node>last_node)
 				continue;
 
 			if(check_semaphores) {
@@ -2925,16 +2897,15 @@ void event_thread(void* arg)
 							SAFEPRINTF2(newname,"%s.%lx.bad",str,(long)now);
 							remove(newname);
 							if(rename(str,newname)==0)
-								sbbs->lprintf(LOG_NOTICE, "%s renamed to %s", str, newname);
+								eprintf(LOG_NOTICE, "%s renamed to %s", str, newname);
 							else
-								sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
+								eprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 									,errno, strerror(errno), str, newname);
 						}
 						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
-						if(remove(str))
-							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
+						remove(str);
 					}
 				}
 				globfree(&g);
@@ -2952,10 +2923,8 @@ void event_thread(void* arg)
 					&& sbbs->cfg.qhub[i]->days&(1<<now_tm.tm_wday))) {
 				SAFEPRINTF2(str,"%sqnet/%s.now"
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
-				if(fexistcase(str)) {
-					if(remove(str))					/* Remove semaphore file */
-						sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
-				}
+				if(fexistcase(str))
+					remove(str);					/* Remove semaphore file */
 				SAFEPRINTF2(str,"%sqnet/%s.ptr"
 					,sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				file=sbbs->nopen(str,O_RDONLY);
@@ -3002,21 +2971,17 @@ void event_thread(void* arg)
 				close(file);
 
 				if(sbbs->cfg.qhub[i]->call[0]) {
-					if(sbbs->cfg.qhub[i]->node == NODE_ANY)
-						sbbs->cfg.node_num = startup->first_node;
-					else
-						sbbs->cfg.node_num=sbbs->cfg.qhub[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.qhub[i]->node;
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
-					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
+					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
-					int result = sbbs->external(
+					sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
 							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					eprintf(result ? LOG_ERR : LOG_INFO, "QWK Network call-out to: %s returned %d", sbbs->cfg.qhub[i]->id, result);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
@@ -3024,10 +2989,9 @@ void event_thread(void* arg)
 		}
 
 		/* PostLink Networking Call-out Events */
-		sbbs->event_code = "PostLink";
 		for(i=0;i<sbbs->cfg.total_phubs && !sbbs->terminated;i++) {
-			if(sbbs->cfg.phub[i]->node != NODE_ANY
-				&& (sbbs->cfg.phub[i]->node<first_node || sbbs->cfg.phub[i]->node>last_node))
+			if(sbbs->cfg.phub[i]->node<first_node
+				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
 			/* PostLink call out based on time */
 			tmptime=sbbs->cfg.phub[i]->last;
@@ -3052,13 +3016,10 @@ void event_thread(void* arg)
 				close(file);
 
 				if(sbbs->cfg.phub[i]->call[0]) {
-					if(sbbs->cfg.phub[i]->node == NODE_ANY)
-						sbbs->cfg.node_num = startup->first_node;
-					else
-						sbbs->cfg.node_num=sbbs->cfg.phub[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.phub[i]->node;
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
-					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
+					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
@@ -3073,21 +3034,21 @@ void event_thread(void* arg)
 
 		/* Timed Events */
 		for(i=0;i<sbbs->cfg.total_events && !sbbs->terminated;i++) {
-			if(sbbs->cfg.event[i]->node != NODE_ANY
-				&& (!sbbs->cfg.event[i]->node || sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes))
+			char event_code[LEN_CODE+1];
+			if(!sbbs->cfg.event[i]->node
+				|| sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes)
 				continue;	// ignore events for invalid nodes
 
 			if(sbbs->cfg.event[i]->misc&EVENT_DISABLED)
 				continue;
 
-			if(sbbs->cfg.event[i]->node != NODE_ANY
-				&& (sbbs->cfg.event[i]->node<first_node || sbbs->cfg.event[i]->node>last_node)
+			if((sbbs->cfg.event[i]->node<first_node
+				|| sbbs->cfg.event[i]->node>last_node)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
 
 			SAFECOPY(event_code, sbbs->cfg.event[i]->code);
 			strupr(event_code);
-			sbbs->event_code = event_code;
 
 			tmptime=sbbs->cfg.event[i]->last;
 			if(localtime_r(&tmptime,&tm)==NULL)
@@ -3104,13 +3065,14 @@ void event_thread(void* arg)
 				&& (sbbs->cfg.event[i]->months==0
 					|| sbbs->cfg.event[i]->months&(1<<now_tm.tm_mon))))
 			{
-				if(sbbs->cfg.event[i]->node != NODE_ANY && (sbbs->cfg.event[i]->misc&EVENT_EXCL)) { /* exclusive event */
+				if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 
 					if(sbbs->cfg.event[i]->node<first_node
 						|| sbbs->cfg.event[i]->node>last_node) {
-						sbbs->lprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
+						eprintf(LOG_INFO,"Waiting for node %d to run timed event: %s"
 							,sbbs->cfg.event[i]->node, event_code);
-						sbbs->lprintf(LOG_DEBUG,"event last run: %s (0x%08x)"
+						eprintf(LOG_DEBUG,"%s event last run: %s (0x%08x)"
+							,event_code
 							,timestr(&sbbs->cfg, sbbs->cfg.event[i]->last, str)
 							,sbbs->cfg.event[i]->last);
 						lastnodechk=0;	 /* really last event time check */
@@ -3142,18 +3104,17 @@ void event_thread(void* arg)
 							if(now-sbbs->cfg.event[i]->last<(60*60))	/* event is done */
 								break;
 							if(now-start>(90*60)) {
-								sbbs->lprintf(LOG_WARNING,"!TIMEOUT waiting for event to complete");
+								eprintf(LOG_WARNING,"!TIMEOUT waiting for event (%s) to complete", event_code);
 								break;
 							}
 						}
 						SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
-						if(fexistcase(str)) {
-							if(remove(str))
-								sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
-						}
+						if(fexistcase(str))
+							remove(str);
 						sbbs->cfg.event[i]->last=(time32_t)now;
 					} else {	// Exclusive event to run on a node under our control
-						sbbs->lprintf(LOG_INFO,"Waiting for all nodes to become inactive before running timed event");
+						eprintf(LOG_INFO,"Waiting for all nodes to become inactive before "
+							"running timed event: %s", event_code);
 						lastnodechk=0;
 						start=time(NULL);
 						while(!sbbs->terminated) {
@@ -3190,11 +3151,11 @@ void event_thread(void* arg)
 							}
 							if(j>sbbs->cfg.sys_nodes) /* all nodes either offline or in limbo */
 								break;
-							sbbs->lprintf(LOG_DEBUG,"Waiting for node %d (status=%d)"
-								,j, node.status);
+							eprintf(LOG_DEBUG,"Waiting for node %d (status=%d), event: %s"
+								,j, node.status, event_code);
 							if(now-start>(90*60)) {
-								sbbs->lprintf(LOG_WARNING,"!TIMEOUT waiting for node %d to become inactive (status=%d)"
-									,j, node.status);
+								eprintf(LOG_WARNING,"!TIMEOUT waiting for node %d to become inactive (status=%d), event: %s"
+									,j, node.status, event_code);
 								break;
 							}
 						}
@@ -3207,10 +3168,10 @@ void event_thread(void* arg)
 						continue;
 				}
 #endif
-				if(sbbs->cfg.event[i]->node != NODE_ANY
-					&& (sbbs->cfg.event[i]->node<first_node || sbbs->cfg.event[i]->node>last_node)) {
-					sbbs->lprintf(LOG_NOTICE,"Changing node status for nodes %d through %d to WFC"
-						,first_node,last_node);
+				if(sbbs->cfg.event[i]->node<first_node
+					|| sbbs->cfg.event[i]->node>last_node) {
+					eprintf(LOG_NOTICE,"Changing node status for nodes %d through %d to WFC, event: %s"
+						,first_node,last_node, event_code);
 					sbbs->cfg.event[i]->last=(time32_t)now;
 					for(j=first_node;j<=last_node;j++) {
 						node.status=NODE_INVALID_STATUS;
@@ -3221,20 +3182,15 @@ void event_thread(void* arg)
 					}
 				}
 				else {
-					if(sbbs->cfg.event[i]->node == NODE_ANY)
-						sbbs->cfg.node_num = startup->first_node;
-					else
-						sbbs->cfg.node_num=sbbs->cfg.event[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.event[i]->node;
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
-					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
+					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 
 					SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
-					if(fexistcase(str)) {
-						if(remove(str))
-							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
-					}
-					if(sbbs->cfg.event[i]->node != NODE_ANY && (sbbs->cfg.event[i]->misc&EVENT_EXCL)) {
+					if(fexistcase(str))
+						remove(str);
+					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) {
 						sbbs->getnodedat(sbbs->cfg.event[i]->node,&node,1);
 						node.status=NODE_EVENT_RUNNING;
 						sbbs->putnodedat(sbbs->cfg.event[i]->node,&node);
@@ -3259,7 +3215,7 @@ void event_thread(void* arg)
 								,ex_mode
 								,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
-							eprintf(result ? LOG_ERR : LOG_INFO, "Timed event: %s returned %d", event_code, result);
+							eprintf(result ? LOG_ERR : LOG_INFO,"Timed event: %s returned %d", event_code, result);
 					}
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
@@ -3286,12 +3242,10 @@ void event_thread(void* arg)
 				}
 			}
 		}
-		sbbs->event_code = nulstr;
 		mswait(1000);
 	}
 	sbbs->cfg.node_num=0;
-	sbbs->useron.number = 0;
-	sbbs->js_cleanup();
+	sbbs->js_cleanup(sbbs->client_name);
 
 	sbbs->event_thread_running = false;
 
@@ -3302,28 +3256,27 @@ void event_thread(void* arg)
 
 //****************************************************************************
 sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const char* name, SOCKET sd,
-			   scfg_t* global_cfg, char* global_text[], client_t* client_info, bool is_event_thread)
+			   scfg_t* global_cfg, char* global_text[], client_t* client_info)
 {
+	char	nodestr[32];
 	char	path[MAX_PATH+1];
 	uint	i;
 
-	// Initialize some member variables used by lputs:
-	this->is_event_thread = is_event_thread;
-	cfg.node_num = node_num;
-	event_code = nulstr;
-	ZERO_VAR(useron);
-	SAFECOPY(client_name, name);
+    if(node_num)
+    	SAFEPRINTF(nodestr,"Node %d",node_num);
+    else
+    	SAFECOPY(nodestr,name);
 
-    lprintf(LOG_DEBUG,"constructor using socket %d (settings=%x)"
-		,sd, global_cfg->node_misc);
+	::lprintf(LOG_DEBUG,"%s constructor using socket %d (settings=%x)"
+		,nodestr, sd, global_cfg->node_misc);
 
 	startup = ::startup;	// Convert from global to class member
 
 	memcpy(&cfg, global_cfg, sizeof(cfg));
-	cfg.node_num = node_num;	// Restore the node_num passed to the constructor
 
+	cfg.node_num=node_num;
 	if(node_num>0) {
-		SAFECOPY(cfg.node_dir, cfg.node_path[node_num-1]);
+		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
 		SAFEPRINTF2(syspage_semfile, "%ssyspage.%u", cfg.ctrl_dir, node_num);
 		remove(syspage_semfile);
@@ -3342,9 +3295,8 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 			backslash(path);
 			SAFECOPY(cfg.temp_dir,path);
 		}
-		syspage_semfile[0] = 0;
 	}
-	lprintf(LOG_DEBUG, "temporary file directory: %s", cfg.temp_dir);
+	::lprintf(LOG_DEBUG,"%s temporary file directory: %s", nodestr, cfg.temp_dir);
 
 	terminated = false;
 	event_thread_running = false;
@@ -3358,16 +3310,12 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 		memcpy(&client,client_info,sizeof(client));
 	client_addr.store = addr->store;
 	client_socket = sd;
+	SAFECOPY(client_name, name);
 	client_socket_dup=INVALID_SOCKET;
 	client_ident[0]=0;
-	client_ipaddr[0]=0;
 
-	terminal[0]=0;
 	telnet_location[0]=0;
-	telnet_terminal[0]=0;
-	telnet_cols=0;
-	telnet_rows=0;
-	telnet_speed=0;
+	terminal[0]=0;
 	rlogin_name[0]=0;
 	rlogin_pass[0]=0;
 	rlogin_term[0]=0;
@@ -3390,6 +3338,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodemsg_inside = 0;	/* allows single nest */
 	hotkey_inside = 0;	/* allows single nest */
 	event_time = 0;
+	event_code = nulstr;
 	nodesync_inside = false;
 	errormsg_inside = false;
 	gettimeleft_inside = false;
@@ -3412,13 +3361,8 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	telnet_last_rxch=0;
 	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
-	listInit(&savedlines, /* flags: */0);
-	sys_status=lncntr=criterrs=0L;
-	tos = false;
-	msghdr_tos = false;
-	listInit(&smb_list, /* flags: */0);
+	sys_status=lncntr=tos=criterrs=slcnt=0L;
 	column=0;
-	tabstop=8;
 	lastlinelen=0;
 	curatr=LIGHTGRAY;
 	attr_sp=0;	/* attribute stack pointer */
@@ -3431,9 +3375,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
-	current_msg_subj=NULL;
-	current_msg_from=NULL;
-	current_msg_to=NULL;
 	current_file=NULL;
 	mnestr=NULL;
 
@@ -3447,6 +3388,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 
 	ZERO_VAR(main_csi);
 	ZERO_VAR(thisnode);
+	ZERO_VAR(useron);
 	ZERO_VAR(inbuf);
 	ZERO_VAR(outbuf);
 	ZERO_VAR(smb);
@@ -3461,8 +3403,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	global_int_var_name=NULL;
 	sysvar_li=0;
 	sysvar_pi=0;
-	memset(sysvar_p, 0, sizeof(sysvar_p));
-	memset(sysvar_l, 0, sizeof(sysvar_l));
 
 	cursub=NULL;
 	cursubnum=INVALID_SUB;
@@ -3531,21 +3471,21 @@ bool sbbs_t::init()
 			errormsg(WHERE,ERR_CREATE,"duplicate socket handle",client_socket);
 			return(false);
 		}
-		lprintf(LOG_DEBUG,"socket %u duplicated as %u", client_socket, client_socket_dup);
+		lprintf(LOG_DEBUG,"Node %d socket %u duplicated as %u", cfg.node_num, client_socket, client_socket_dup);
 #else
 		client_socket_dup = client_socket;
 #endif
 
 		addr_len=sizeof(addr);
 		if((result=getsockname(client_socket, &addr.addr, &addr_len))!=0) {
-			lprintf(LOG_ERR,"!ERROR %d (%d) getting address/port"
-				,result, ERROR_VALUE);
+			lprintf(LOG_ERR,"Node %d !ERROR %d (%d) getting address/port"
+				,cfg.node_num, result, ERROR_VALUE);
 			return(false);
 		}
 		inet_addrtop(&addr, local_addr, sizeof(local_addr));
 		inet_addrtop(&client_addr, client_ipaddr, sizeof(client_ipaddr));
-		lprintf(LOG_INFO,"socket %u attached to local interface %s port %u"
-			,client_socket, local_addr, inet_addrport(&addr));
+		lprintf(LOG_INFO,"Node %d socket %u attached to local interface %s port %u"
+			,cfg.node_num, client_socket, local_addr, inet_addrport(&addr));
 
 	}
 
@@ -3611,7 +3551,7 @@ bool sbbs_t::init()
 				,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900);
 			logline(LOG_NOTICE,"L!",str);
 			log(crlf);
-			catsyslog(TRUE);
+			catsyslog(1);
 		}
 
 		getnodedat(cfg.node_num,&thisnode,1);
@@ -3660,9 +3600,8 @@ bool sbbs_t::init()
 			errormsg(WHERE, ERR_ALLOC, "usrsub", sizeof(uint)*usrgrp_total);
 			return(false);
 		}
-	}
-	if(cfg.total_subs) {
-		if((subscan=(subscan_t *)calloc(cfg.total_subs, sizeof(subscan_t)))==NULL) {
+
+		if((subscan=(subscan_t *)malloc(sizeof(subscan_t)*cfg.total_subs))==NULL) {
 			errormsg(WHERE, ERR_ALLOC, "subscan", sizeof(subscan_t)*cfg.total_subs);
 			return(false);
 		}
@@ -3806,11 +3745,14 @@ bool sbbs_t::init()
 sbbs_t::~sbbs_t()
 {
 	uint i;
+	char node[32];
 
-	useron.number = 0;
-
+    if(cfg.node_num)
+    	SAFEPRINTF(node,"Node %d", cfg.node_num);
+    else
+    	SAFECOPY(node,client_name);
 #ifdef _DEBUG
-	lprintf(LOG_DEBUG,"destructor begin");
+	lprintf(LOG_DEBUG,"%s destructor begin", node);
 #endif
 
 //	if(!cfg.node_num)
@@ -3852,7 +3794,7 @@ sbbs_t::~sbbs_t()
 	/* Free allocated class members */
 	/********************************/
 
-	js_cleanup();
+	js_cleanup(node);
 
 	/* Reset text.dat */
 
@@ -3922,9 +3864,6 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_cdt);
 	FREE_AND_NULL(batdn_alt);
 
-	listFree(&savedlines);
-	listFree(&smb_list);
-
 #ifdef USE_CRYPTLIB
 	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
 		mswait(1);
@@ -3938,27 +3877,8 @@ sbbs_t::~sbbs_t()
 #endif
 
 #ifdef _DEBUG
-	lprintf(LOG_DEBUG, "destructor end");
+	lprintf(LOG_DEBUG,"%s destructor end", node);
 #endif
-}
-
-int sbbs_t::smb_stack(smb_t* smb, bool push)
-{
-	if(push) {
-		if(smb == NULL || !SMB_IS_OPEN(smb))
-			return SMB_SUCCESS;	  /* Msg base not open, do nothing */
-		if(listPushNodeData(&smb_list, smb, sizeof(*smb)) == NULL)
-			return SMB_FAILURE;
-		return SMB_SUCCESS;
-	}
-	/* pop */
-	smb_t* data = (smb_t*)listPopNode(&smb_list);
-	if(data == NULL)	/* Nothing on the stack, so do nothing */
-		return SMB_SUCCESS;
-
-	*smb = *data;
-	free(data);
-	return SMB_SUCCESS;
 }
 
 /****************************************************************************/
@@ -4133,7 +4053,7 @@ int sbbs_t::mv(char *src, char *dest, char copy)
 void sbbs_t::hangup(void)
 {
 	if(online) {
-		lprintf(LOG_DEBUG,"disconnecting client");
+		lprintf(LOG_DEBUG,"Node %d disconnecting client", cfg.node_num);
 		online=FALSE;	// moved from the bottom of this function on Jan-25-2009
 	}
 	if(client_socket_dup!=INVALID_SOCKET && client_socket_dup!=client_socket)
@@ -4316,12 +4236,13 @@ void sbbs_t::reset_logon_vars(void)
     question[0]=0;
     menu_dir[0]=0;
     menu_file[0]=0;
-    rows = TERM_ROWS_DEFAULT;
-	cols = TERM_COLS_DEFAULT;
+    rows=24;
+	cols=80;
     lncntr=0;
     autoterm=0;
 	cterm_version = 0;
     lbuflen=0;
+    slcnt=0;
     altul=0;
     timeleft_warn=0;
 	keybufbot=keybuftop=0;
@@ -4492,10 +4413,8 @@ void node_thread(void* arg)
 		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
-	bool login_success = false;
 	if(sbbs->answer()) {
 
-		login_success = true;
 		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
 		if(sbbs->qwklogon) {
 			sbbs->getsmsg(sbbs->useron.number);
@@ -4543,7 +4462,7 @@ void node_thread(void* arg)
 				sbbs->main_csi.ip=sbbs->main_csi.cs;
 				sbbs->menu_dir[0]=0;
 				sbbs->menu_file[0]=0;
-			}
+				}
 			if(sbbs->exec(&sbbs->main_csi))
 				break;
 		}
@@ -4615,12 +4534,7 @@ void node_thread(void* arg)
 		}
 	}
 
-	if(login_success)
-		sbbs->catsyslog(/* Crash: */FALSE);
-	else {
-		rewind(sbbs->logfile_fp);
-		chsize(fileno(sbbs->logfile_fp), 0);
-	}
+	sbbs->catsyslog(0);
 
 	status(STATUS_WFC);
 
@@ -4647,18 +4561,6 @@ void node_thread(void* arg)
     else
 		lprintf(LOG_WARNING,"Node %d !ORPHANED I/O THREAD(s)",sbbs->cfg.node_num);
 
-	/* crash here July-27-2018:
- 	ntdll.dll!77282e19()	Unknown
- 	[Frames below may be incorrect and/or missing, no symbols loaded for ntdll.dll]
- 	[External Code]
- 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex) Line 171	C
- 	sbbs.dll!protected_uint32_adjust(protected_uint32_t * i, int adjustment) Line 244	C
- 	sbbs.dll!update_clients() Line 185	C++
->	sbbs.dll!node_thread(void * arg) Line 4568	C++
- 	[External Code]
-
-	node_threads_running	{value=0 mutex={DebugInfo=0x00000000 <NULL> LockCount=-6 RecursionCount=0 ...} }	protected_uint32_t
-	*/
 	update_clients();
 	thread_down();
 }
@@ -4703,37 +4605,22 @@ void sbbs_t::daily_maint(void)
 
 	if(cfg.mail_backup_level) {
 		lputs(LOG_INFO,"DAILY: Backing-up mail data...");
-		smb_t mail;
-		int result = smb_open_sub(&cfg, &mail, INVALID_SUB);
-		if(result != SMB_SUCCESS)
-			lprintf(LOG_ERR, "ERROR %d (%s) opening mail base", result, mail.last_error);
-		else {
-			result = smb_lock(&mail);
-			if(result != SMB_SUCCESS)
-				lprintf(LOG_ERR, "ERROR %d (%s) locking mail base", result, mail.last_error);
-			else {
-				SAFEPRINTF(str,"%smail.shd",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.sha",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.sdt",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.sda",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.sid",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.sch",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.hash",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				SAFEPRINTF(str,"%smail.ini",cfg.data_dir);
-				backup(str,cfg.mail_backup_level,FALSE);
-				result = smb_unlock(&mail);
-				if(result != SMB_SUCCESS)
-					lprintf(LOG_ERR, "ERROR %d (%s) unlocking mail base", result, mail.last_error);
-			}
-			smb_close(&mail);
-		}
+		SAFEPRINTF(str,"%smail.shd",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sha",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sdt",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sda",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sid",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.sch",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.hash",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
+		SAFEPRINTF(str,"%smail.ini",cfg.data_dir);
+		backup(str,cfg.mail_backup_level,FALSE);
 	}
 
 	lputs(LOG_INFO, "DAILY: Checking for inactive/expired user records...");
@@ -4849,9 +4736,7 @@ void sbbs_t::daily_maint(void)
 
 	if(cfg.sys_daily[0]) {
 		lputs(LOG_INFO, "DAILY: Running system event");
-		const char* cmd = cmdstr(cfg.sys_daily,nulstr,nulstr,NULL);
-		int result = external(cmd, EX_OFFLINE);
-		eprintf(result ? LOG_ERR : LOG_INFO, "Daily event: '%s' returned %d", cmd, result);
+		external(cmdstr(cfg.sys_daily,nulstr,nulstr,NULL), EX_OFFLINE);
 	}
 	status(STATUS_WFC);
 	lputs(LOG_INFO, "DAILY: System maintenance ended");
@@ -4920,7 +4805,6 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
-	semfile_list_free(&clear_attempts_semfiles);
 
 	listFree(&current_logins);
 	listFree(&current_connections);
@@ -5087,8 +4971,8 @@ void DLLCALL bbs_thread(void* arg)
 	#pragma warn -8066	/* Disable "Unreachable code" warning */
 #endif
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		lprintf(LOG_CRIT,"!COMPILER ERROR: sizeof(node_t)=%d instead of %d"
-			,(int)sizeof(node_t),SIZEOF_NODE_T);
+		lprintf(LOG_CRIT,"!COMPILER ERROR: sizeof(node_t)=%lu instead of %d"
+			,sizeof(node_t),SIZEOF_NODE_T);
 		cleanup(1);
 		return;
 	}
@@ -5205,7 +5089,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300 && CRYPTLIB_VERSION > 999
+#if CRYPTLIB_VERSION < 3300
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
@@ -5270,7 +5154,7 @@ NO_SSH:
 
 	if(!(startup->options&BBS_OPT_NO_EVENTS)) {
 		events = new sbbs_t(0, &server_addr, sizeof(server_addr)
-			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL, true);
+			,"BBS Events", INVALID_SOCKET, &scfg, text, NULL);
 		if(events->init()==false) {
 			lputs(LOG_CRIT,"!Events initialization failed");
 			cleanup(1);
@@ -5327,10 +5211,11 @@ NO_SSH:
 #endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
-	shutdown_semfiles = semfile_list_init(scfg.ctrl_dir,"shutdown", "term");
-	recycle_semfiles = semfile_list_init(scfg.ctrl_dir,"recycle", "term");
-	clear_attempts_semfiles = semfile_list_init(scfg.ctrl_dir,"clear", "term");
+	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
+	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	semfile_list_add(&recycle_semfiles,startup->ini_fname);
+	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
+	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
@@ -5338,7 +5223,6 @@ NO_SSH:
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
-	semfile_list_check(&initialized,clear_attempts_semfiles);
 
 	listInit(&current_logins, LINK_LIST_MUTEX);
 	listInit(&current_connections, LINK_LIST_MUTEX);
@@ -5424,11 +5308,6 @@ NO_SSH:
 
 		if(terminate_server)	/* terminated */
 			break;
-
-		if((p=semfile_list_check(&initialized,clear_attempts_semfiles))!=NULL) {
-			lprintf(LOG_INFO,"Clear Failed Login Attempts semaphore file (%s) detected", p);
-			loginAttemptListClear(startup->login_attempt_list);
-		}
 
 		if(client_socket == INVALID_SOCKET)
 			continue;
@@ -5534,6 +5413,8 @@ NO_SSH:
 				lprintf(LOG_NOTICE, "%04d %s !Maximum concurrent connections without login (%u) reached from host: %s"
  					,client_socket, client.protocol, startup->max_concurrent_connections, host_ip);
 				close_socket(client_socket);
+				SAFEPRINTF(logstr, "Too many concurrent connections without login from host: %s",host_ip);
+				sbbs->syslog("@!",logstr);
 				continue;
 			}
 		}
@@ -5553,6 +5434,8 @@ NO_SSH:
 			} else
 				lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in ip.can: %s", client_socket, client.protocol, host_ip);
 			close_socket(client_socket);
+			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
+			sbbs->syslog("@!",logstr);
 			continue;
 		}
 
@@ -5673,23 +5556,13 @@ NO_SSH:
 		if(rlogin)
 			sbbs->outcom(0); /* acknowledge RLogin per RFC 1282 */
 
-		sbbs->autoterm=0;
-		sbbs->cols = TERM_COLS_DEFAULT;
-		SOCKADDR_IN local_addr;
-		memset(&local_addr, 0, sizeof(local_addr));
-		socklen_t addr_len=sizeof(local_addr);
-		if(getsockname(client_socket, (struct sockaddr *)&local_addr, &addr_len) == 0
-			&& (ntohs(local_addr.sin_port) == startup->pet40_port
-				|| ntohs(local_addr.sin_port) == startup->pet80_port)) {
-			sbbs->autoterm = PETSCII;
-			sbbs->cols = ntohs(local_addr.sin_port) == startup->pet40_port ? 40 : 80;
-			sbbs->outcom(PETSCII_UPPERLOWER);
-		}
+		sbbs->putcom(crlf);
+		sbbs->putcom(VERSION_NOTICE);
+		sbbs->putcom(crlf);
 
-		sbbs->bprintf("\r\n%s\r\n", VERSION_NOTICE);
 		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
-		SAFECOPY(host_name, STR_NO_HOSTNAME);
+		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
@@ -5702,6 +5575,8 @@ NO_SSH:
 			close_socket(client_socket);
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in host.can: %s"
 				,client_socket, client.protocol, host_name);
+			SAFEPRINTF(logstr, "Blocked Hostname: %s",host_name);
+			sbbs->syslog("@!",logstr);
 			continue;
 		}
 
@@ -5932,8 +5807,6 @@ NO_PASSTHRU:
 	    new_node->input_thread_running = true;
 		new_node->input_thread=(HANDLE)_beginthread(input_thread,0, new_node);
 	    new_node->output_thread_running = true;
-		new_node->autoterm = sbbs->autoterm;
-		new_node->cols = sbbs->cols;
 		_beginthread(output_thread, 0, new_node);
 		_beginthread(node_thread, 0, new_node);
 		served++;
