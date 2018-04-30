@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.326 2018/12/12 20:27:31 rswindell Exp $ */
+/* $Id: services.c,v 1.322 2018/04/06 02:18:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -425,7 +425,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	putuserdat(&scfg,&client->user);
 	if(client->subscan==NULL) {
-		client->subscan=(subscan_t*)calloc(scfg.total_subs, sizeof(subscan_t));
+		client->subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
 		if(client->subscan==NULL)
 			lprintf(LOG_CRIT,"!MALLOC FAILURE");
 	}
@@ -1013,7 +1013,7 @@ static void js_service_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
-		lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in host.can: %s"
+		lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in host.can: %s"
 			,socket, service->protocol, host_name);
 		close_socket(socket);
 		if(service->clients)
@@ -1087,7 +1087,7 @@ static void js_service_thread(void* arg)
 
 	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL
 		|| (js_cx=js_initcx(js_runtime,socket,&service_client,&js_glob))==NULL) {
-		lprintf(LOG_ERR,"%04d %s !ERROR initializing JavaScript context"
+		lprintf(LOG_ERR,"%04d !%s ERROR initializing JavaScript context"
 			,socket,service->protocol);
 		if (service_client.tls_sess != -1)
 			cryptDestroySession(service_client.tls_sess);
@@ -1214,7 +1214,7 @@ static void js_static_service_thread(void* arg)
 	service_client.callback.auto_terminate = TRUE;
 
 	if((js_runtime=jsrt_GetNew(service->js.max_bytes, 5000, __FILE__, __LINE__))==NULL) {
-		lprintf(LOG_ERR,"%s !ERROR initializing JavaScript runtime"
+		lprintf(LOG_ERR,"!%s ERROR initializing JavaScript runtime"
 			,service->protocol);
 		xpms_destroy(service->set, close_socket_cb, service);
 		service->set = NULL;
@@ -1230,7 +1230,7 @@ static void js_static_service_thread(void* arg)
 
 	do {
 		if((js_cx=js_initcx(js_runtime,INVALID_SOCKET,&service_client,&js_glob))==NULL) {
-			lprintf(LOG_ERR,"%s !ERROR initializing JavaScript context"
+			lprintf(LOG_ERR,"!%s ERROR initializing JavaScript context"
 				,service->protocol);
 			break;
 		}
@@ -1311,7 +1311,7 @@ static void native_static_service_thread(void* arg)
 			0,
 			TRUE, /* Inheritable */
 			DUPLICATE_SAME_ACCESS)) {
-		lprintf(LOG_ERR,"%04d %s !ERROR %d duplicating socket descriptor"
+		lprintf(LOG_ERR,"%04d !%s ERROR %d duplicating socket descriptor"
 			,inst.socket,inst.service->protocol,GetLastError());
 		close_socket(inst.socket);
 		thread_down();
@@ -1388,7 +1388,7 @@ static void native_service_thread(void* arg)
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
-		lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in host.can: %s"
+		lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in host.can: %s"
 			,socket, service->protocol, host_name);
 		close_socket(socket);
 		if(service->clients)
@@ -1429,7 +1429,7 @@ static void native_service_thread(void* arg)
 		0,
 		TRUE, /* Inheritable */
 		DUPLICATE_SAME_ACCESS)) {
-		lprintf(LOG_ERR,"%04d %s !ERROR %d duplicating socket descriptor"
+		lprintf(LOG_ERR,"%04d !%s ERROR %d duplicating socket descriptor"
 			,socket,service->protocol,GetLastError());
 		close_socket(socket);
 		thread_down();
@@ -1513,7 +1513,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 	char		*default_interfaces;
 
 	if((fp=fopen(services_ini,"r"))==NULL) {
-		lprintf(LOG_CRIT,"!ERROR %d (%s) opening %s", errno, strerror(errno), services_ini);
+		lprintf(LOG_CRIT,"!ERROR %d opening %s", errno, services_ini);
 		return(NULL);
 	}
 
@@ -1649,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.326 $", "%*s %s", revision);
+	sscanf("$Revision: 1.322 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1788,7 +1788,7 @@ void DLLCALL services_thread(void* arg)
 			,ctime_r(&t,str),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
-			lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), startup->ctrl_dir);
+			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -2113,7 +2113,7 @@ void DLLCALL services_thread(void* arg)
 						,service[i].protocol, host_ip, inet_addrport(&client_addr));
 
 					if(service[i].max_clients && service[i].clients+1>service[i].max_clients) {
-						lprintf(LOG_WARNING,"%04d %s !MAXIMUM CLIENTS (%u) reached, access denied"
+						lprintf(LOG_WARNING,"%04d !%s MAXIMUM CLIENTS (%u) reached, access denied"
 							,client_socket, service[i].protocol, service[i].max_clients);
 						close_socket(client_socket);
 						continue;
@@ -2127,7 +2127,7 @@ void DLLCALL services_thread(void* arg)
 							lprintf(LOG_NOTICE, "%04d !TEMPORARY BAN of %s (%lu login attempts, last: %s) - remaining: %s"
 								,client_socket, host_ip, attempted.count-attempted.dupes, attempted.user, seconds_to_str(banned, ban_duration));
 						} else
-							lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in ip.can: %s"
+							lprintf(LOG_NOTICE,"%04d !%s CLIENT BLOCKED in ip.can: %s"
 								,client_socket, service[i].protocol, host_ip);
 						FREE_AND_NULL(udp_buf);
 						close_socket(client_socket);
@@ -2142,8 +2142,8 @@ void DLLCALL services_thread(void* arg)
 
 					if((client=malloc(sizeof(service_client_t)))==NULL) {
 						FREE_AND_NULL(udp_buf);
-						lprintf(LOG_CRIT,"%04d %s !ERROR allocating %lu bytes of memory for service_client"
-							,client_socket, service[i].protocol, (ulong)sizeof(service_client_t));
+						lprintf(LOG_CRIT,"%04d !%s ERROR allocating %lu bytes of memory for service_client"
+							,client_socket, service[i].protocol, sizeof(service_client_t));
 						close_socket(client_socket);
 						continue;
 					}
