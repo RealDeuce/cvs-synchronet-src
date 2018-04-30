@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.97 2018/07/07 07:52:07 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.96 2018/04/24 07:02:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,7 +105,7 @@ bool sbbs_t::answer()
 			/* Truncate terminal speed (e.g. "/57600") from terminal-type string 
 			   (but keep full terminal type/speed string in rlogin_term): */
 			truncstr(terminal,"/");	
-			useron.number=matchuser(&cfg, rlogin_name, /* sysop_alias: */FALSE);
+			useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
 				useron.misc&=~TERM_FLAGS;
@@ -209,7 +209,7 @@ bool sbbs_t::answer()
 			rlogin_name[0] = 0;
 			pthread_mutex_unlock(&ssh_mutex);
 		}
-		useron.number=matchuser(&cfg, rlogin_name, /* sysop_alias: */FALSE);
+		useron.number=userdatdupe(0, U_ALIAS, LEN_ALIAS, rlogin_name);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			useron.misc&=~TERM_FLAGS;
