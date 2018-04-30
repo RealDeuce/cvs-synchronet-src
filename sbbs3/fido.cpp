@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.61 2018/06/25 21:13:27 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.59 2018/04/17 04:30:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ bool sbbs_t::lookup_netuser(char *into)
 
 	if(strchr(into,'@'))
 		return(false);
-	SAFECOPY(to,into);
+	strcpy(to,into);
 	strupr(to);
 	sprintf(str,"%sqnet/users.dat", cfg.data_dir);
 	if((stream=fnopen(&i,str,O_RDONLY))==NULL)
@@ -80,7 +80,7 @@ bool sbbs_t::lookup_netuser(char *into)
 			break;
 		str[25]=0;
 		truncsp(str);
-		SAFECOPY(name,str);
+		strcpy(name,str);
 		strupr(name);
 		str[35]=0;
 		truncsp(str+27);
@@ -102,10 +102,7 @@ bool sbbs_t::lookup_netuser(char *into)
 /****************************************************************************/
 bool sbbs_t::netmail(const char *into, const char *title, long mode)
 {
-	char	str[256],fname[128],*buf,*p,ch;
-	char	to[FIDO_NAME_LEN];
-	char	from[FIDO_NAME_LEN];
-	char	subj[FIDO_SUBJ_LEN];
+	char	str[256],subj[128],to[256],fname[128],*buf,*p,ch;
 	char	msgpath[MAX_PATH+1];
 	char 	tmp[512];
 	char*	editor=NULL;
@@ -115,6 +112,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	faddr_t src_addr;
 	faddr_t dest_addr;
 	uint16_t net_type;
+	fmsghdr_t hdr;
 	smbmsg_t msg;
 	memset(&msg, 0, sizeof(msg));
 
@@ -128,13 +126,14 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		return false;
 	}
 
-	SAFECOPY(subj, title);
-	SAFECOPY(to, into);
+	SAFECOPY(subj,title);
+
+	strcpy(to,into);
 
 	lookup_netuser(to);
 
 	net_type = smb_netaddr_type(to);
-	lprintf(LOG_DEBUG, "parsed net type of '%s' is %s", to, smb_nettype((enum smb_net_type)net_type));
+	lprintf(LOG_DEBUG, "parsed net type of '%s' is %s\r\n", to, smb_nettype((enum smb_net_type)net_type));
 	if(net_type == NET_QWK) {
 		if(mode&WM_FILE) {
 			bputs(text[EmailFilesNotAllowed]);
@@ -175,7 +174,9 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 
 	truncsp(to);				/* Truncate off space */
 
-	SAFECOPY(from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	memset(&hdr,0,sizeof(hdr));   /* Initialize header to null */
+	SAFECOPY(hdr.from, cfg.netmail_misc&NMAIL_ALIAS ? useron.alias : useron.name);
+	SAFECOPY(hdr.to,to);
 
 	/* Look-up in nodelist? */
 
@@ -199,19 +200,10 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	}
 	if(i >= cfg.total_faddrs)
 		i=0;
-
-	if((cfg.netmail_misc&NMAIL_CHSRCADDR) && cfg.total_faddrs > 1) {
-		for(uint j=0; j < cfg.total_faddrs; j++)
-			uselect(/* add: */TRUE, j, text[OriginFidoAddr], smb_faddrtoa(&cfg.faddr[j], tmp), /* ar: */NULL);
-		int choice = uselect(/* add: */FALSE, /* default: */i, NULL, NULL, NULL);
-		if(choice < 0)
-			return false;
-		i = choice;
-	}
 	src_addr = cfg.faddr[i];
 
-	smb_faddrtoa(&cfg.faddr[i], str);
-	bprintf(text[NetMailing], to, smb_faddrtoa(&dest_addr,tmp), from, str);
+	smb_faddrtoa(&cfg.faddr[i],str);
+	bprintf(text[NetMailing],hdr.to,smb_faddrtoa(&dest_addr,tmp),hdr.from,str);
 
 	if(cfg.netmail_misc&NMAIL_CRASH) msg.hdr.netattr |= MSG_CRASH;
 	if(cfg.netmail_misc&NMAIL_HOLD)  msg.hdr.netattr |= MSG_HOLD;
@@ -219,20 +211,20 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(mode&WM_FILE) msg.hdr.auxattr |= MSG_FILEATTACH; 
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB, into, from, &editor)) {
+	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB,into,hdr.from,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
 
 	if(mode&WM_FILE) {
-		SAFECOPY(fname, subj);
+		strcpy(fname,subj);
 		sprintf(str,"%sfile/%04u.out", cfg.data_dir, useron.number);
 		MKDIR(str);
-		SAFECOPY(tmp, cfg.data_dir);
+		strcpy(tmp, cfg.data_dir);
 		if(tmp[0]=='.')    /* Relative path */
 			sprintf(tmp,"%s%s", cfg.node_dir, cfg.data_dir);
 		sprintf(str,"%sfile/%04u.out/%s",tmp,useron.number,fname);
-		SAFECOPY(subj, str);
+		strcpy(subj,str);
 		if(fexistcase(str)) {
 			bputs(text[FileAlreadyThere]);
 			return(false); 
@@ -275,33 +267,32 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if((SYSOP || useron.exempt&FLAG('F'))
 		&& !strnicmp(p,"CR:",3)) {     /* Crash over-ride by sysop */
 		p+=3;				/* skip CR: */
-		SKIP_WHITESPACE(p);
+		if(*p==' ') p++; 	/* skip extra space if it exists */
 		msg.hdr.netattr |= MSG_CRASH; 
 	}
 
 	if((SYSOP || useron.exempt&FLAG('F'))
 		&& !strnicmp(p,"FR:",3)) {     /* File request */
 		p+=3;				/* skip FR: */
-		SKIP_WHITESPACE(p);
+		if(*p==' ') p++;
 		msg.hdr.auxattr |= MSG_FILEREQUEST; 
 	}
 
 	if((SYSOP || useron.exempt&FLAG('F'))
 		&& !strnicmp(p,"RR:",3)) {     /* Return receipt request */
 		p+=3;				/* skip RR: */
-		SKIP_WHITESPACE(p);
+		if(*p==' ') p++;
 		msg.hdr.auxattr |= MSG_RECEIPTREQ; 
 	}
 
 	if((SYSOP || useron.exempt&FLAG('F'))
 		&& !strnicmp(p,"FA:",3)) {     /* File Attachment */
 		p+=3;				/* skip FA: */
-		SKIP_WHITESPACE(p);
-//		hdr.attr|=FIDO_FILE;	TODO
+		if(*p==' ') p++;
+		hdr.attr|=FIDO_FILE; 
 	}
 
-	if(p != subj)
-		SAFECOPY(subj, p);
+	SAFECOPY(hdr.subj,p);
 
 	if((file=nopen(msgpath,O_RDONLY))==-1) {
 		errormsg(WHERE,ERR_OPEN,msgpath,O_RDONLY);
@@ -316,18 +307,16 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	read(file,buf,length);
 	close(file);
 
-	smb_net_type_t nettype = NET_FIDO;
-	smb_hfield_str(&msg,SENDER, from);
+	smb_hfield_str(&msg,SENDER,hdr.from);
 	sprintf(str,"%u",useron.number);
 	smb_hfield_str(&msg,SENDEREXT,str);
-	smb_hfield(&msg,SENDERNETTYPE, sizeof(nettype), &nettype); 
-	smb_hfield(&msg,SENDERNETADDR, sizeof(dest_addr), &src_addr); 
 
-	smb_hfield_str(&msg,RECIPIENT, to);
+	smb_hfield_str(&msg,RECIPIENT,hdr.to);
+	smb_net_type_t nettype = NET_FIDO;
 	smb_hfield(&msg,RECIPIENTNETTYPE, sizeof(nettype), &nettype); 
 	smb_hfield(&msg,RECIPIENTNETADDR, sizeof(dest_addr), &dest_addr); 
 
-	smb_hfield_str(&msg,SUBJECT, subj);
+	smb_hfield_str(&msg,SUBJECT,hdr.subj);
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
@@ -343,7 +332,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	smb_close(&smb);
 	smb_freemsgmem(&msg);
 	if(result != SMB_SUCCESS) {
-		errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
+		errormsg(WHERE, ERR_WRITE, smb.file, result);
 		return false;
 	}
 
@@ -355,11 +344,11 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(mode&WM_FILE)
 		SAFEPRINTF3(str,"%s sent NetMail file attachment to %s (%s)"
 			,useron.alias
-			,to, smb_faddrtoa(&dest_addr,tmp));
+			,hdr.to,smb_faddrtoa(&dest_addr,tmp));
 	else
 		SAFEPRINTF3(str,"%s sent NetMail to %s (%s)"
 			,useron.alias
-			,to, smb_faddrtoa(&dest_addr,tmp));
+			,hdr.to,smb_faddrtoa(&dest_addr,tmp));
 	logline("EN",str);
 
 	return true;
