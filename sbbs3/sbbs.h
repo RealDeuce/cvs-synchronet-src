@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.476 2018/03/12 18:24:43 deuce Exp $ */
+/* $Id: sbbs.h,v 1.480 2018/04/06 02:42:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -380,6 +380,7 @@ public:
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
+	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
@@ -759,7 +760,7 @@ public:
 
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
-	void	badlogin(char* user, char* passwd);
+	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
 
 	/* answer.cpp */
 	bool	answer();
@@ -1356,8 +1357,16 @@ char*	prep_code(char *str, const char* prefix);
 
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
-	int 	lprintf(int level, const char *fmt, ...);	/* log output */
-	int 	eprintf(int level, const char *fmt, ...);	/* event log */
+	int 	lprintf(int level, const char *fmt, ...)	/* log output */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
+	int 	eprintf(int level, const char *fmt, ...)	/* event log */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
 	void	call_socket_open_callback(BOOL open);
 	SOCKET	open_socket(int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
