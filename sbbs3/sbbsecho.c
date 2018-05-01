@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.80 2018/04/17 04:14:07 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.81 2018/05/01 01:17:34 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2690,10 +2690,14 @@ bool unpack_bundle(const char* inbound)
 			gi++;
 			lprintf(LOG_INFO,"Unpacking bundle: %s (%1.1fKB)", fname, flength(fname)/1024.0);
 			if(unpack(fname, inbound)) {	/* failure */
-				lprintf(LOG_ERR,"!Unpack failure");
+				lprintf(LOG_ERR, "!Unpack failure: %s", fname);
 				if(fdate(fname)+(48L*60L*60L)<time(NULL)) {	
-					/* If bundle file older than 48 hours, give up and rename
-					   to "*.?_?" or (if it exists) "*.?-?" */
+					/* If bundle file older than 48 hours, give up */
+					if(flength(fname) < 1) {
+						delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
+						continue;
+					}
+					/* rename to "*.?_?" or (if it exists) "*.?-?" */
 					SAFECOPY(str,fname);
 					str[strlen(str)-2]='_';
 					if(fexistcase(str))
@@ -5936,7 +5940,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.80 $", "%*s %s", revision);
+	sscanf("$Revision: 3.81 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
