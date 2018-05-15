@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.53 2017/12/29 06:03:57 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.55 2018/03/11 21:27:06 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -132,6 +132,7 @@ static bool new_grp(unsigned new_grpnum)
 
 	grp_t** new_grp_list;
 	if ((new_grp_list = (grp_t **)realloc(cfg.grp, sizeof(grp_t *)*(cfg.total_grps + 1))) == NULL) {
+		free(new_group);
 		errormsg(WHERE, ERR_ALLOC, "group list", cfg.total_grps + 1);
 		return false;
 	}
@@ -921,7 +922,7 @@ void msgs_cfg()
 					}
 
 					/* QWK Conference number range */
-					int min_confnum, max_confnum;
+					int min_confnum = 1, max_confnum = 99999;
 					if(k == IMPORT_LIST_TYPE_QWK_CONTROL_DAT) {
 						strcpy(str, "1000");
 						uifc.helpbuf = "`Minimum / Maximum QWK Conference Number:`\n"
