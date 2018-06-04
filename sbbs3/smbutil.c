@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.128 2018/07/08 22:38:21 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.127 2018/04/30 23:02:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1512,20 +1512,6 @@ short str2tzone(const char* str)
 	return 0;	/* UTC */
 }
 
-long getmsgnum(const char* str)
-{
-	if(*str == '-') {
-		time_t t = time(NULL) - (atol(str+1) * 24 * 60 * 60);
-		printf("%.24s\n", ctime(&t));
-		idxrec_t	idx;
-		int result = smb_getmsgidx_by_time(&smb, &idx, t);
-		printf("match = %d, num %d\n", result, idx.number);
-		if(result >= 0)
-			return result + 1;	/* 1-based offset */
-	}
-	return atol(str);
-}
-
 /***************/
 /* Entry point */
 /***************/
@@ -1559,7 +1545,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.128 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1750,11 +1736,11 @@ int main(int argc, char **argv)
 							config();
 							break;
 						case 'l':
-							listmsgs(getmsgnum(cmd+1),count);
+							listmsgs(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'x':
-							dumpindex(getmsgnum(cmd+1),count);
+							dumpindex(atol(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'p':
@@ -1785,7 +1771,7 @@ int main(int argc, char **argv)
 								fprintf(errfp, "\nError %d (%s) unlocking %s\n", i, smb.last_error, smb.file);
 							break;
 						case 'r':
-							readmsgs(getmsgnum(cmd+1));
+							readmsgs(atol(cmd+1));
 							y=strlen(cmd)-1;
 							break;
 						case 'R':
@@ -1818,7 +1804,7 @@ int main(int argc, char **argv)
 							break;
 						case 'v':
 						case 'V':
-							viewmsgs(getmsgnum(cmd+1),count,cmd[y]=='V');
+							viewmsgs(atol(cmd+1),count,cmd[y]=='V');
 							y=strlen(cmd)-1;
 							break;
 						case 'h':
