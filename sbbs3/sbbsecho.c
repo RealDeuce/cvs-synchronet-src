@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.84 2018/06/04 19:07:36 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.85 2018/06/04 20:56:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -353,7 +353,7 @@ echostat_msg_t smsg_to_echostat_msg(smbmsg_t smsg, size_t msglen, fidoaddr_t add
 	emsg.localtime		= time(NULL);
 	SAFECOPY(emsg.msg_tz, smb_zonestr(smsg.hdr.when_written.zone, NULL));
 	if(smsg.from_net.type == NET_FIDO && smsg.from_net.addr != NULL)
-		emsg.origaddr	= atofaddr(smsg.from_net.addr);
+		emsg.origaddr	= *(fidoaddr_t*)smsg.from_net.addr;
 	if((p = smsg.ftn_msgid) != NULL)
 		SAFECOPY(emsg.msg_id, p);
 	if((p = smsg.ftn_reply) != NULL)
@@ -1134,7 +1134,10 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		return(-1); 
 	}
 
-	faddr=getsysfaddr(dest.zone, dest.net);
+	if(msg != NULL && msg->from_net.type == NET_FIDO && msg->from_net.addr != NULL)
+		faddr = *(fidoaddr_t*)msg->from_net.addr;
+	else
+		faddr = getsysfaddr(dest.zone, dest.net);
 	memset(&hdr,0,sizeof(fmsghdr_t));
 	hdr.origzone=faddr.zone;
 	hdr.orignet=faddr.net;
@@ -5947,7 +5950,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.84 $", "%*s %s", revision);
+	sscanf("$Revision: 3.85 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
