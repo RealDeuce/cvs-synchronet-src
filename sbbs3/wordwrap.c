@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.44 2019/04/05 21:44:34 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.43 2018/02/22 10:00:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -372,12 +372,10 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 				case '\x1f':	// Strip delete chars.
 					break;
 				case '\x01':	// CTRL-A code.
-#if 0 // I'm not sure what this is supposed to be doing, but a literal Ctrl-A sequence is Ctrl-A/'A' (not Ctrl-A/Ctrl-A)
 					if (inbuf[inpos] == '\x01') {
 						// This is a literal CTRL-A... col advances and we can wrap
 						incol++;
 					}
-#endif
 					if (!paragraph_append(&ret[paragraph], inbuf+inpos, 2))
 						goto fail_return;
 					inpos++;
