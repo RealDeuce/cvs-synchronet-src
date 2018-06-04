@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.218 2018/02/22 10:29:28 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.220 2018/05/15 22:41:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -211,8 +211,10 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_net_type", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
+		if(!JS_ValueToInt32(cx,val,&i32)) {
+			free(cp);
 			return(FALSE);
+		}
 		nettype=(ushort)i32;
 	}
 
@@ -924,7 +926,7 @@ js_get_msg_index(JSContext *cx, uintN argc, jsval *arglist)
 	memset(&msg,0,sizeof(msg));
 
 	n=0;
-	if(JSVAL_IS_BOOLEAN(argv[n]))
+	if(n < argc && JSVAL_IS_BOOLEAN(argv[n]))
 		by_offset = JSVAL_TO_BOOLEAN(argv[n++]);
 
 	for(;n<argc;n++) {
@@ -1463,11 +1465,11 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	p->expand_fields=JS_TRUE;	/* This parameter defaults to true */
 	n=0;
-	if(JSVAL_IS_BOOLEAN(argv[n]))
+	if(n < argc && JSVAL_IS_BOOLEAN(argv[n]))
 		by_offset = JSVAL_TO_BOOLEAN(argv[n++]);
 
 	/* Now parse message offset/id and get message */
-	if(JSVAL_IS_NUMBER(argv[n])) {
+	if(n < argc && JSVAL_IS_NUMBER(argv[n])) {
 		if(by_offset) {							/* Get by offset */
 			if(!JS_ValueToInt32(cx,argv[n++],(int32*)&(p->msg).offset)) {
 				free(p);
@@ -1503,10 +1505,14 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 		smb_unlockmsghdr(&(p->p->smb),&(p->msg)); 
 		JS_RESUMEREQUEST(cx, rc);
-	} else if(JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
+	} else if(n < argc && JSVAL_IS_STRING(argv[n]))	{		/* Get by ID */
 		JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(argv[n]), cstr, NULL);
 		n++;
-		HANDLE_PENDING(cx, cstr);
+		if(JS_IsExceptionPending(cx)) {
+			free(cstr);
+			free(p);
+			return JS_FALSE;
+		}
 		if(cstr != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
 			if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
@@ -1526,10 +1532,10 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_TRUE;
 	}
 
-	if(JSVAL_IS_BOOLEAN(argv[n]))
+	if(n < argc && JSVAL_IS_BOOLEAN(argv[n]))
 		p->expand_fields = JSVAL_TO_BOOLEAN(argv[n++]);
 
-	if(JSVAL_IS_BOOLEAN(argv[n]))
+	if(n < argc && JSVAL_IS_BOOLEAN(argv[n]))
 		include_votes = JSVAL_TO_BOOLEAN(argv[n++]);
 
 	if(!include_votes && (p->msg.hdr.attr&MSG_VOTE)) {
@@ -2209,8 +2215,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		body=NULL;
 	uintN		n;
-    jsuint      i;
-    jsuint      rcpt_list_length=0;
+	jsuint      i;
+	jsuint      rcpt_list_length=0;
 	jsval       val;
 	JSObject*	hdr=NULL;
 	JSObject*	objarg;
@@ -2282,8 +2288,10 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	if(hdr==NULL)
+	if(hdr==NULL) {
+		FREE_AND_NULL(body);
 		return JS_TRUE;
+	}
 	if(body==NULL)
 		body=strdup("");
 
