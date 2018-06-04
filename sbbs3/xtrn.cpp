@@ -1,8 +1,9 @@
 /* xtrn.cpp */
+// vi: tabstop=4
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.228 2018/01/13 09:07:47 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.234 2018/04/24 04:26:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +35,7 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
+#define XTERN_LOG_STDERR
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
@@ -1305,7 +1306,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	char	fullpath[MAX_PATH+1];
 	char	fullcmdline[MAX_PATH+1];
 	char*	argv[MAX_ARGS];
-	char*	p;
 	BYTE*	bp;
 	BYTE	buf[XTRN_IO_BUF_LEN];
     BYTE 	output_buf[XTRN_IO_BUF_LEN*2];
@@ -1327,6 +1327,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	fd_set ibits;
 	int	high_fd;
 	struct timeval timeout;
+    BYTE 	wwiv_buf[XTRN_IO_BUF_LEN*2];
+    bool	wwiv_flag=false;
+#if defined(__FreeBSD__) || (defined(__linux__) && defined(USE_DOSEMU))
+ 	char* p;
+#endif
 
 	if(online!=ON_REMOTE || cfg.node_num==0)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
@@ -1423,7 +1428,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		FILE *dosemubat;
 		int setup_override;
 		char tok[MAX_PATH+1];
- 
+
 		char dosemuconf[MAX_PATH+1];
 		char dosemubinloc[MAX_PATH+1];
 		char virtualconf[75];
@@ -1513,7 +1518,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* same deal for emusetup.bat. */
 
 		sprintf(str,"%semusetup.bat",startup_dir);
-		fprintf(stderr, str);
 		if (!fexist(str)) {
 
 		/* If we can't find it in the door dir, look for a global one
@@ -1933,8 +1937,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			} else if ((mode & EX_STDIO) != EX_STDIO) {
 				/* LF to CRLF expansion */
 				bp=lf_expand(buf, rd, output_buf, output_len);
-			}
-			else {
+			} else if(mode&EX_WWIV) {
+                bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
+				if(output_len > sizeof(wwiv_buf))
+					lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
+			} else {
 				bp=buf;
 				output_len=rd;
 			}
@@ -2065,7 +2072,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-    for(i=j=0;i<len && j<(int)sizeof(cmdstr_output);i++) {
+    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2229,7 +2236,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-    for(i=j=0;i<len && j<MAX_PATH;i++) {
+    for(i=j=0; i<len && j < (int)sizeof(buf)-1; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
