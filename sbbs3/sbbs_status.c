@@ -473,7 +473,7 @@ void status_thread(void *arg)
 		sbbs_beep(100, 500);
 		sbbs_beep(300, 500);
 		sbbs_beep(100, 500);
-		fprintf(stderr, "Invalud status strartup structure!\n");
+		fprintf(stderr, "Invalid status startup structure!\n");
 		return;
 	}
 
@@ -537,6 +537,7 @@ void status_thread(void *arg)
 
 	startup->status(startup->cbdata, "Listening");
 	startup->started(startup->cbdata);
+	lprintf(LOG_INFO, "Listening on %s", startup->sock_fname);
 
 	pthread_mutex_lock(&status_thread_mutex);
 	while (!status_thread_terminated) {
