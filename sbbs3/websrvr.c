@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.680 2019/04/23 23:07:27 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.668 2018/05/01 06:00:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -42,13 +42,13 @@
  * Add in support to pass connections through to a different webserver...
  *      probobly in access.ars... with like a simplified mod_rewrite.
  *      This would allow people to run apache and Synchronet as the same site.
- *
+ * 
  * Add support for multipart/form-data
  *
  * Add support for UNIX-domain sockets for FastCGI
  *
  * Improved Win32 support for POST data... currently will read past Content-Length
- *
+ * 
  */
 
 /* Headers for CGI stuff */
@@ -96,7 +96,7 @@ static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
 #define MAX_REQUEST_LINE		1024	/* NOT including terminator */
-#define MAX_HEADERS_SIZE		16384	/* Maximum total size of all headers
+#define MAX_HEADERS_SIZE		16384	/* Maximum total size of all headers 
 										   (Including terminator )*/
 #define MAX_REDIR_LOOPS			20		/* Max. times to follow internal redirects for a single request */
 #define MAX_POST_LEN			1048576	/* Max size of body for POSTS */
@@ -307,7 +307,7 @@ static char* http_vers[] = {
 	,NULL	/* terminator */
 };
 
-enum {
+enum { 
 	 HTTP_HEAD
 	,HTTP_GET
 	,HTTP_POST
@@ -325,6 +325,7 @@ static char* methods[] = {
 enum {
 	 IS_STATIC
 	,IS_CGI
+	,IS_JS
 	,IS_SSJS
 	,IS_FASTCGI
 };
@@ -655,9 +656,9 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 				else {
 					result=sendsocket(session->socket,buf+sent,len-sent);
 					if(result==SOCKET_ERROR) {
-						if(ERROR_VALUE==ECONNRESET)
+						if(ERROR_VALUE==ECONNRESET) 
 							lprintf(LOG_NOTICE,"%04d Connection reset by peer on send",session->socket);
-						else if(ERROR_VALUE==ECONNABORTED)
+						else if(ERROR_VALUE==ECONNABORTED) 
 							lprintf(LOG_NOTICE,"%04d Connection aborted by peer on send",session->socket);
 #ifdef EPIPE
 						else if(ERROR_VALUE==EPIPE)
@@ -1097,7 +1098,7 @@ static void close_request(http_session_t * session)
 	if(session->socket==INVALID_SOCKET)
 		session->finished=TRUE;
 
-	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS)) {
+	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)) {
 		JS_BEGINREQUEST(session->js_cx);
 		JS_GC(session->js_cx);
 		JS_ENDREQUEST(session->js_cx);
@@ -1131,7 +1132,7 @@ static int get_header_type(char *header)
 }
 
 /* Opposite of get_header_type() */
-static char *get_header(int id)
+static char *get_header(int id) 
 {
 	int i;
 	if(headers[id].id==id)
@@ -1279,12 +1280,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 
 		/* Status-Line */
-		/* TODO: This Status-Line appears to violate RFC 2145:
-			"An HTTP server SHOULD send a response version equal to the highest
-   			 version for which the server is at least conditionally compliant, and
-			 whose major version is less than or equal to the one received in the
-   			 request."
-		*/
 		safe_snprintf(header,sizeof(header),"%s %s",http_vers[session->http_ver],status_line);
 
 		lprintf(LOG_DEBUG,"%04d Result: %s",session->socket,header);
@@ -1338,10 +1333,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 
 		/* DO NOT send a content-length for chunked */
-		/* TODO: Why aren't we sending a Content-Length header for GET responses?
-		 * Per RFC 2068 (HTTP/1.1):
-		 * "it SHOULD be sent whenever the message's length can be determined prior to being transferred"
-		 */
 		if(send_entity) {
 			if((session->req.keep_alive || session->req.method == HTTP_HEAD) && session->req.dynamic!=IS_CGI&& session->req.dynamic!=IS_FASTCGI && (!chunked)) {
 				if(ret)  {
@@ -1350,7 +1341,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 				}
 				else  {
 					if((session->req.range_start || session->req.range_end) && atoi(status_line)==206) {
-						safe_snprintf(header,sizeof(header),"%s: %ld",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
+						safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 					}
 					else {
@@ -1374,7 +1365,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			if(session->req.range_start || session->req.range_end) {
 				switch(atoi(status_line)) {
 					case 206:	/* Partial reply */
-						safe_snprintf(header,sizeof(header),"%s: bytes %ld-%ld/%ld",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
+						safe_snprintf(header,sizeof(header),"%s: bytes %d-%d/%d",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 						break;
 					default:
@@ -1591,7 +1582,7 @@ void http_logoff(http_session_t* session, SOCKET socket, int line)
 
 BOOL http_checkuser(http_session_t * session)
 {
-	if(session->req.dynamic==IS_SSJS) {
+	if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 		if(session->last_js_user_num==session->user.number)
 			return(TRUE);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing User Objects",session->socket);
@@ -1812,7 +1803,7 @@ static void badlogin(SOCKET sock, const char* prot, const char* user, const char
 	if(startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold) {
 		hacklog(&scfg, reason, user, passwd, host, addr);
 #ifdef _WIN32
-		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE))
+		if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 			PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 	}
@@ -1980,7 +1971,7 @@ static BOOL check_ars(http_session_t * session)
 		,session->socket,session->req.auth.username,session->req.ars);
 
 #ifdef _WIN32
-	if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE))
+	if(startup->hack_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 		PlaySound(startup->hack_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
@@ -2001,7 +1992,7 @@ static named_string_t** read_ini_list(char* path, char* section, char* desc
 		COUNT_LIST_ITEMS(list,i);
 		if(i)
 			lprintf(LOG_DEBUG,"Read %lu %s from %s section of %s"
-				,(ulong)i,desc,section==NULL ? "root":section,path);
+				,i,desc,section==NULL ? "root":section,path);
 	} else
 		lprintf(LOG_WARNING, "Error %d opening %s", errno, path);
 	return(list);
@@ -2225,7 +2216,7 @@ static void unescape(char *p)
 {
 	char *	dst;
 	char	code[3];
-
+	
 	dst=p;
 	for(;*p;p++) {
 		if(*p=='%' && isxdigit((uchar)*(p+1)) && isxdigit((uchar)*(p+2))) {
@@ -2335,7 +2326,7 @@ static void js_add_request_prop(http_session_t * session, char *key, char *value
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 }
 
-static void js_add_header(http_session_t * session, char *key, char *value)
+static void js_add_header(http_session_t * session, char *key, char *value)  
 {
 	JSString*	js_str;
 	char		*lckey;
@@ -2740,40 +2731,40 @@ static BOOL parse_js_headers(http_session_t * session)
 			js_add_header(session,head_line,value);
 			switch(i) {
 				case HEAD_TYPE:
-					if(session->req.dynamic==IS_SSJS) {
+					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 						/*
 						 * We need to parse out the files based on RFC1867
 						 *
 						 * And example reponse looks like this:
 						 * Content-type: multipart/form-data, boundary=AaB03x
-						 *
+						 * 
 						 * --AaB03x
 						 * content-disposition: form-data; name="field1"
-						 *
+						 * 
 						 * Joe Blow
 						 * --AaB03x
 						 * content-disposition: form-data; name="pics"
 						 * Content-type: multipart/mixed, boundary=BbC04y
-						 *
+						 * 
 						 * --BbC04y
 						 * Content-disposition: attachment; filename="file1.txt"
-						 *
+						 * 
 						 * Content-Type: text/plain
-						 *
+						 * 
 						 * ... contents of file1.txt ...
 						 * --BbC04y
 						 * Content-disposition: attachment; filename="file2.gif"
 						 * Content-type: image/gif
 						 * Content-Transfer-Encoding: binary
-						 *
+						 * 
 						 * ...contents of file2.gif...
 						 * --BbC04y--
-						 * --AaB03x--
+						 * --AaB03x--						 
 						 */
 					}
 					break;
 				case HEAD_COOKIE:
-					if(session->req.dynamic==IS_SSJS) {
+					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 						char	*key;
 						char	*val;
 
@@ -2836,6 +2827,8 @@ static int is_dynamic_req(http_session_t* session)
 		i=IS_SSJS;
 	else if(get_xjs_handler(ext,session))
 		i=IS_SSJS;
+	else if(stricmp(ext,startup->js_ext)==0)
+		i=IS_JS;
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && i)  {
 		lprintf(LOG_DEBUG,"%04d Setting up JavaScript support", session->socket);
 		if(!js_setup(session)) {
@@ -2949,7 +2942,7 @@ static char *get_request(http_session_t * session, char *req_line)
 
 		/* Sets p to point to the first character after the first slash */
 		p=strchr(session->req.physical_path, '/');
-
+		
 		/*
 		 * If we have a slash, make it the first char in the string.
 		 * otherwise, set path to "/"
@@ -3151,7 +3144,7 @@ static BOOL get_req(http_session_t * session, char *request_line)
 				add_env(session,"QUERY_STRING",session->req.query_str);
 
 			add_env(session,"REQUEST_METHOD",methods[session->req.method]);
-			add_env(session,"SERVER_PROTOCOL",session->http_ver ?
+			add_env(session,"SERVER_PROTOCOL",session->http_ver ? 
 				http_vers[session->http_ver] : "HTTP/0.9");
 			return(TRUE);
 		}
@@ -3367,7 +3360,7 @@ static void read_webctrl_section(FILE *file, char *section, http_session_t *sess
 
 	p = iniReadExistingString(file, section, "AccessRequirements", session->req.ars, str);
 	/*
-	 * If p == NULL, the key doesn't exist, retain default
+	 * If p == NULL, the key doesn't exist, retain default 
 	 * If p == default, zero-length string present, truncate req.ars
 	 * Otherwise, p is new value and is updated
 	 */
@@ -3519,7 +3512,7 @@ static BOOL check_request(http_session_t * session)
 		sprintf(str,"%saccess.ars",curdir);
 		if(!stat(str,&sb)) {
 			/* NEVER serve up an access.ars file */
-			lprintf(LOG_WARNING,"%04d !WARNING! access.ars support is deprecated and will be REMOVED very soon.",session->socket);
+			lprintf(LOG_WARNING,"%04d !WARNING! access.ars support is depreciated and will be REMOVED very soon.",session->socket);
 			lprintf(LOG_WARNING,"%04d !WARNING! access.ars found at %s.",session->socket,str);
 			if(!strcmp(path,str)) {
 				send_error(session,__LINE__,"403 Forbidden");
@@ -3608,7 +3601,7 @@ static BOOL check_request(http_session_t * session)
 	if(!check_ars(session)) {
 		unsigned *auth_list;
 		unsigned auth_list_len;
-
+	
 		/* No authentication provided */
 		strcpy(str,"401 Unauthorized");
 		auth_list=parseEnumList(session->req.auth_list?session->req.auth_list:default_auth_list, ",", auth_type_names, &auth_list_len);
@@ -4358,7 +4351,6 @@ static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_
 						directive=strtok_r(header,":",&last);
 						if(directive != NULL)  {
 							value=strtok_r(NULL,"",&last);
-							SKIP_WHITESPACE(value);
 							i=get_header_type(directive);
 							switch (i)  {
 								case HEAD_LOCATION:
@@ -4378,12 +4370,6 @@ static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_
 									break;
 								case HEAD_STATUS:
 									SAFECOPY(cgi_status,value);
-									/*
-									 * 1xx, 204, and 304 responses don't have bodies, so don't
-									 * need a Location or Content-Type header to be valid.
-									 */
-									if (value[0] == '1' || ((value[0] == '2' || value[0] == '3') && value[1] == '0' && value[2] == '4'))
-										ret |= CGI_STUFF_VALID_HEADERS;
 									break;
 								case HEAD_LENGTH:
 									session->req.keep_alive=orig_keep;
@@ -4723,7 +4709,7 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 	}
 
-	/* Drain STDERR & STDOUT */
+	/* Drain STDERR & STDOUT */	
 	tv.tv_sec=1;
 	tv.tv_usec=0;
 	FD_ZERO(&read_set);
@@ -4877,7 +4863,7 @@ static BOOL exec_cgi(http_session_t *session)
 		);
 
 	strListFreeBlock(env_block);
-
+	
 	if(!success) {
 		lprintf(LOG_ERR,"%04d !ERROR %d running %s",session->socket,GetLastError(),cmdline);
 		return(FALSE);
@@ -4902,7 +4888,7 @@ static BOOL exec_cgi(http_session_t *session)
 		lprintf(LOG_WARNING,"%04d Terminating CGI process: %s"
 			,session->socket,getfname(cmdline));
 		TerminateProcess(process_info.hProcess, GetLastError());
-	}
+	}	
 
 	if(rdpipe!=INVALID_HANDLE_VALUE)
 		CloseHandle(rdpipe);
@@ -4913,7 +4899,7 @@ static BOOL exec_cgi(http_session_t *session)
 	if(!got_valid_headers)
 		lprintf(LOG_WARNING,"%04d !CGI Process %s did not generate valid headers"
 			,session->socket,getfname(cmdline));
-
+	
 	if(!done_parsing_headers)
 		lprintf(LOG_WARNING,"%04d !CGI Process %s did not send data header termination"
 			,session->socket,getfname(cmdline));
@@ -4933,7 +4919,7 @@ JSObject* DLLCALL js_CreateHttpReplyObject(JSContext* cx
 	JSObject*	headers;
 	jsval		val;
 	JSString*	js_str;
-
+	
 	/* Return existing object if it's already been created */
 	if(JS_GetProperty(cx,parent,"http_reply",&val) && val!=JSVAL_VOID)  {
 		reply = JSVAL_TO_OBJECT(val);
@@ -5025,7 +5011,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 
 	if((session=(http_session_t*)JS_GetContextPrivate(cx))==NULL)
 		return;
-
+	
 	if(report==NULL) {
 		lprintf(LOG_ERR,"%04d !JavaScript: %s", session->socket, message);
 		if(session->req.fp!=NULL)
@@ -5277,7 +5263,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	/* User name */
 	JSVALUE_TO_ASTRING(cx, argv[0], p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
-	if(p==NULL)
+	if(p==NULL) 
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -5307,7 +5293,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	/* Password */
 	if(user.pass[0]) {
 		JSVALUE_TO_ASTRING(cx, argv[1], p, LEN_PASS+2, NULL);
-		if(p==NULL)
+		if(p==NULL) 
 			return(JS_FALSE);
 
 		if(stricmp(user.pass,p)) { /* Wrong password */
@@ -5573,7 +5559,7 @@ js_OperationCallback(JSContext *cx)
 	return ret;
 }
 
-static JSContext*
+static JSContext* 
 js_initcx(http_session_t *session)
 {
 	JSContext*	js_cx;
@@ -5652,7 +5638,7 @@ static BOOL js_setup_cx(http_session_t* session)
 	}
 	else
 		JS_BEGINREQUEST(session->js_cx);
-
+	
 	lprintf(LOG_DEBUG,"%04d JavaScript: Initializing HttpRequest object",session->socket);
 	if(js_CreateHttpRequestObject(session->js_cx, session->js_glob, session)==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR initializing JavaScript HttpRequest object",session->socket);
@@ -5820,7 +5806,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 	session->req.dynamic=IS_SSJS;
 	JS_ENDREQUEST(session->js_cx);
-
+	
 	return(retval);
 }
 
@@ -5978,7 +5964,7 @@ int read_post_data(http_session_t * session)
 					/* FREE()d in close_request */
 					p=realloc(session->req.post_data, s);
 					if(p==NULL) {
-						lprintf(LOG_CRIT,"%04d !ERROR Allocating %lu bytes of memory",session->socket, (ulong)session->req.post_len);
+						lprintf(LOG_CRIT,"%04d !ERROR Allocating %lu bytes of memory",session->socket,session->req.post_len);
 						send_error(session,__LINE__,"413 Request entity too large");
 						if(fp) fclose(fp);
 						return(FALSE);
@@ -6035,14 +6021,14 @@ int read_post_data(http_session_t * session)
 				if(s < (MAX_POST_LEN+1) && (session->req.post_data=malloc((size_t)(s+1))) != NULL)
 					session->req.post_len=recvbufsocket(session,session->req.post_data,s);
 				else  {
-					lprintf(LOG_CRIT,"%04d !ERROR Allocating %lu bytes of memory",session->socket, (ulong)s);
+					lprintf(LOG_CRIT,"%04d !ERROR Allocating %lu bytes of memory",session->socket,s);
 					send_error(session,__LINE__,"413 Request entity too large");
 					return(FALSE);
 				}
 			}
 		}
 		if(session->req.post_len != s)
-				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %lu bytes, but I got %lu",session->socket, (ulong)s, (ulong)session->req.post_len);
+				lprintf(LOG_DEBUG,"%04d !ERROR Browser said they sent %lu bytes, but I got %lu",session->socket,s,session->req.post_len);
 		if(session->req.post_len > s)
 			session->req.post_len = s;
 		session->req.post_data[session->req.post_len]=0;
@@ -6139,7 +6125,7 @@ void http_output_thread(void *arg)
 		if(avail>mss)
 			len=(avail=mss);
 
-		/*
+		/* 
 		 * Read the current value of write_chunked... since we wait until the
 		 * ring buffer is empty before fiddling with it.
 		 */
@@ -6221,7 +6207,7 @@ void http_session_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d !!! DANGER WILL ROBINSON, DANGER !!!", session.socket);
 
 #ifdef _WIN32
-	if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE))
+	if(startup->answer_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 		PlaySound(startup->answer_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
@@ -6248,22 +6234,19 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		lock_ssl_cert();
 		if (scfg.tls_certificate != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session, "disabling certificate verification");
-			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session, "setting private key");
+			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session, "setting provate key");
 		}
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
-			unlock_ssl_cert();
 			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
-		unlock_ssl_cert();
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
 	}
 
@@ -6283,18 +6266,19 @@ void http_session_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	char host_name[128] = "";
+	if(getnameinfo(&session.addr.addr, session.addr_len, session.host_name, sizeof(session.host_name), NULL, 0, (startup->options&BBS_OPT_NO_HOST_LOOKUP)?NI_NUMERICHOST:0)!=0)
+		SAFECOPY(session.host_name, session.host_ip);
+
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
-		getnameinfo(&session.addr.addr, session.addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name[0] ? host_name : STR_NO_HOSTNAME);
+		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
-		for(i=0;host!=NULL && host->h_aliases!=NULL
+		for(i=0;host!=NULL && host->h_aliases!=NULL 
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 #endif
-		if(host_name[0] && trashcan(&scfg, host_name,"host")) {
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
+		if(trashcan(&scfg,session.host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
 			close_session_socket(&session);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
@@ -6303,15 +6287,9 @@ void http_session_thread(void* arg)
 			return;
 		}
 	}
-	if(host_name[0])
-		SAFECOPY(session.host_name, host_name);
-	else {
-		SAFECOPY(session.host_name, session.host_ip);
-		SAFECOPY(host_name, STR_NO_HOSTNAME);
-	}
 
 	login_attempt_t attempted;
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, host_name, startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
 
 	/* host_ip wasn't defined in http_session_thread */
 	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
@@ -6334,7 +6312,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.username,unknown);
 
 	SAFECOPY(session.client.addr,session.host_ip);
-	SAFECOPY(session.client.host, host_name);
+	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=inet_addrport(&session.addr);
 	session.client.time=time32(NULL);
 	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
@@ -6353,7 +6331,7 @@ void http_session_thread(void* arg)
 	session.last_js_user_num=-1;
 	session.logon_time=0;
 
-	session.subscan=(subscan_t*)calloc(scfg.total_subs, sizeof(subscan_t));
+	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished) {
 		init_error=FALSE;
@@ -6381,7 +6359,7 @@ void http_session_thread(void* arg)
 			session.req.ld->hostname=strdup(session.host_name);
 		}
 		while((redirp==NULL || session.req.send_location >= MOVED_TEMP)
-				 && !session.finished && !session.req.finished
+				 && !session.finished && !session.req.finished 
 				 && session.socket!=INVALID_SOCKET) {
 			SAFECOPY(session.req.status,"200 OK");
 			session.req.send_location=NO_LOCATION;
@@ -6457,7 +6435,7 @@ void http_session_thread(void* arg)
 	}
 
 #ifdef _WIN32
-	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE))
+	if(startup->hangup_sound[0] && !(startup->options&BBS_OPT_MUTE)) 
 		PlaySound(startup->hangup_sound, NULL, SND_ASYNC|SND_FILENAME);
 #endif
 
@@ -6465,7 +6443,7 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	FREE_AND_NULL(session.subscan);
+	free(session.subscan);
 
 	clients_remain=protected_uint32_adjust(&active_clients, -1);
 	update_clients();
@@ -6509,7 +6487,7 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
-
+	
 	if(!terminated) {	/* Can this be changed to a if(ws_set!=NULL) check instead? */
 		xpms_destroy(ws_set, close_socket_cb, NULL);
 		ws_set=NULL;
@@ -6524,7 +6502,7 @@ static void cleanup(int code)
 		protected_uint32_destroy(active_clients);
 
 #ifdef _WINSOCKAPI_
-	if(WSAInitialized && WSACleanup()!=0)
+	if(WSAInitialized && WSACleanup()!=0) 
 		lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
@@ -6543,7 +6521,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.680 $", "%*s %s", revision);
+	sscanf("$Revision: 1.668 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6737,6 +6715,7 @@ void DLLCALL web_server(void* arg)
 		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 		if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
+		if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
 
 		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
@@ -6852,7 +6831,7 @@ void DLLCALL web_server(void* arg)
 
 		/* open a socket and wait for a client */
 		ws_set = xpms_create(startup->bind_retry_count, startup->bind_retry_delay, lprintf);
-
+		
 		if(ws_set == NULL) {
 			lprintf(LOG_CRIT,"!ERROR %d creating HTTP socket set", ERROR_VALUE);
 			cleanup(1);
@@ -6937,13 +6916,13 @@ void DLLCALL web_server(void* arg)
 					}
 					break;
 				}
-			}
+			}	
 
 			/* Startup next session thread */
 			if(session==NULL) {
 				/* FREE()d at the start of the session thread */
 				if((session=malloc(sizeof(http_session_t)))==NULL) {
-					lprintf(LOG_CRIT,"!ERROR allocating %lu bytes of memory for http_session_t", (ulong)sizeof(http_session_t));
+					lprintf(LOG_CRIT,"!ERROR allocating %lu bytes of memory for http_session_t", sizeof(http_session_t));
 					continue;
 				}
 				memset(session, 0, sizeof(http_session_t));
