@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.81 2018/02/05 17:56:52 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.83 2018/02/20 21:06:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -464,7 +464,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 				j=0;	/* Can use clrtoeol? */
 				for(cx=x; cx<ti.screenwidth; cx++) {
 					/* First, make sure that the rest are spaces or NULLs */
-					if(out[(cx-x)*2] != ' ' || out[(cx-x)*2] != 0)
+					if(out[(cx-x)*2] != ' ' && out[(cx-x)*2] != 0)
 						break;
 					/* Next, make sure that the attribute is the same */
 					if(out[(cx-x)*2+1] != out[cx*2+1])
@@ -859,10 +859,9 @@ int ansi_getch(void)
 	return(ch);
 }
 
-int ansi_beep(void)
+void ansi_beep(void)
 {
 	ansi_sendstr("\7",1);
-	return(0);
 }
 
 #if defined(__BORLANDC__)
