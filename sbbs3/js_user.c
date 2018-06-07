@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.107 2018/08/07 02:16:26 rswindell Exp $ */
+/* $Id: js_user.c,v 1.104 2018/06/07 02:21:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,7 +128,7 @@ enum {
 
 static void js_getuserdat(scfg_t* scfg, private_t* p)
 {
-	if(p->user->number != 0 && !p->cached) {
+	if(!p->cached) {
 		if(p->file < 1)
 			p->file = openuserdat(scfg, /* for_modify: */FALSE);
 		if(fgetuserdat(scfg, p->user, p->file)==0)
@@ -793,15 +793,15 @@ static char* user_prop_desc[] = {
 	,"external e-mail address"
 	,"local Internet e-mail address	- <small>READ ONLY</small>"
 	,"street address"
-	,"location (e.g. city, state)"
+	,"location (city, state)"
 	,"zip/postal code"
 	,"phone number"
-	,"birth date in either MM/DD/YY or DD/MM/YY format depending on system configuration"
+	,"birth date"
 	,"calculated age in years - <small>READ ONLY</small>"
-	,"connection type (protocol)"
+	,"connection type"
 	,"AKA connection"
 	,"terminal rows (lines)"
-	,"gender type (e.g. M or F)"
+	,"gender type"
 	,"current/last message sub-board (internal code)"
 	,"current/last file directory (internal code)"
 	,"current/last external program (internal code) run"
@@ -1568,7 +1568,6 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		p->storage = *user;
 		if(global_user)
 			p->user = user;
-		p->cached = TRUE;
 	}
 
 	JS_SetPrivate(cx, userobj, p);	

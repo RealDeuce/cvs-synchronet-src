@@ -1,6 +1,6 @@
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.49 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.48 2018/03/20 03:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,17 @@ static void svc_ctrl_handler(sbbs_ntsvc_t* svc, DWORD dwCtrlCode)
 /* Service-specific control handler stub functions */
 static void WINAPI bbs_ctrl_handler(DWORD dwCtrlCode)
 {
-	svc_ctrl_handler(&bbs, dwCtrlCode);
+	switch(dwCtrlCode) {
+		case SERVICE_CONTROL_SYSOP_AVAILABLE:
+			bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		case SERVICE_CONTROL_SYSOP_UNAVAILABLE:
+			bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		default:
+			svc_ctrl_handler(&bbs, dwCtrlCode);
+			break;
+	}
 }
 
 static void WINAPI ftp_ctrl_handler(DWORD dwCtrlCode)
