@@ -1,11 +1,12 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.h,v 1.16 2011/09/08 23:25:30 deuce Exp $ */
+/* $Id: term.h,v 1.19 2018/02/13 08:13:07 deuce Exp $ */
 
 #ifndef _TERM_H_
 #define _TERM_H_
 
 #include "bbslist.h"
+#include "ciolib.h"
 
 struct terminal {
 	int	height;
@@ -20,6 +21,6 @@ extern struct cterminal	*cterm;
 extern int log_level;
 
 BOOL doterm(struct bbslist *);
-void mousedrag(unsigned char *scrollback);
+void mousedrag(struct vmem_cell *scrollback);
 
 #endif
