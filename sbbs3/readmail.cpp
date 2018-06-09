@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.75 2018/06/08 21:59:54 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.76 2018/06/09 00:24:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -800,7 +800,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 			{
 				domsg = false;
 				if(!(lm_mode&LM_UNREAD)) {
-					if(!getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */0)) {
+					if(getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */0)
+						== getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */MSG_READ)) {
 						bprintf(text[NoMailWaiting], "Un-read");
 						break;
 					}
