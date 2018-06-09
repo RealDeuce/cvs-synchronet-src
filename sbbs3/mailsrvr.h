@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.87 2018/07/20 01:38:07 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.85 2018/04/06 02:11:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -263,9 +263,9 @@ int mail_close_socket(SOCKET *sock, int *sess);
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
 #endif
 
-int sockprintf(SOCKET sock, const char* prot, int sess, char *fmt, ...)
+int sockprintf(SOCKET sock, int sess, char *fmt, ...)
 #if defined(__GNUC__)   // Catch printf-format errors 
-	__attribute__ ((format (printf, 4, 5)));
+	__attribute__ ((format (printf, 3, 4)));
 #endif
 ;
 
