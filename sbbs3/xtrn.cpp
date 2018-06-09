@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.235 2018/06/21 20:23:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.234 2018/04/24 04:26:25 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1569,7 +1569,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gamedir = getfname(str);
 		}
 		if(*gamedir == 0) {
-			lprintf(LOG_ERR, "No startup directory configured for DOS command-line: %s", cmdline);
+			lprintf(LOG_ERR, "No startup directory configured for: %s", cmdline);
 			return -1;
 		}
 		fprintf(dosemubat,"cd %s\r\n", gamedir);

@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.483 2018/07/25 00:40:30 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.480 2018/04/06 02:42:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,7 +587,7 @@ public:
 
 	void	reset_logon_vars(void);
 
-	uint	finduser(char *str, bool silent_failure = false);
+	uint	finduser(char *str);
 
 	int 	sub_op(uint subnum);
 
@@ -675,7 +675,7 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which, long lm_mode = 0);
+	void	readmail(uint usernumber, int which);
 	bool	readmail_inside;
 	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
@@ -686,16 +686,8 @@ public:
 	/* con_out.cpp */
 	int		bputs(const char *str);					/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
-	int		bprintf(const char *fmt, ...)			/* BBS printf function */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
-	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
+	int		bprintf(const char *fmt, ...);			/* BBS printf function */
+	int		rprintf(const char *fmt, ...);			/* BBS raw printf function */
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
@@ -819,11 +811,7 @@ public:
 
 	/* main.cpp */
 	int		lputs(int level, const char* str);
-	int		lprintf(int level, const char *fmt, ...)
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this'
-#endif
-	;
+	int		lprintf(int level, const char *fmt, ...);
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
@@ -1118,11 +1106,8 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL seconds_to_str(uint, char*);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
-
-	/* msgdate.c */
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
-	DLLEXPORT BOOL		DLLCALL newmsgs(smb_t*, time_t);
 
 	/* load_cfg.c */
 	DLLEXPORT BOOL		DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error);
