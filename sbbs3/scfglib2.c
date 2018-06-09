@@ -2,13 +2,13 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.44 2017/10/23 03:39:00 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.46 2018/03/17 02:23:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -267,6 +267,7 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 	for(i=0;i<cfg->altpaths;i++) {
 		if(feof(instream)) break;
 		fread(str,LEN_DIR+1,1,instream);
+		str[LEN_DIR] = 0;
 		offset+=LEN_DIR+1;
 		backslash(str);
 		j=LEN_DIR+1;

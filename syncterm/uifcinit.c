@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.35 2015/02/27 11:27:07 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.39 2018/04/18 06:51:24 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ int	init_uifc(BOOL scrn, BOOL bottom) {
 		orig_x=wherex();
 		orig_y=wherey();
 		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
-		ciolib_xlat = TRUE;
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
 		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
@@ -92,14 +92,15 @@ void uifcbail(void)
 void uifcmsg(char *msg, char *helpbuf)
 {
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
+	struct ciolib_screen *savscrn;
 
-    gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		savscrn = savescreen();
+		setfont(0, FALSE, 1);
+		setfont(0, FALSE, 2);
+		setfont(0, FALSE, 3);
+		setfont(0, FALSE, 4);
 	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
@@ -111,21 +112,23 @@ void uifcmsg(char *msg, char *helpbuf)
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		restorescreen(savscrn);
+		freescreen(savscrn);
 	}
 }
 
 void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 {
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
+	struct ciolib_screen *savscrn;
 
-    gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		savscrn = savescreen();
+		setfont(0, FALSE, 1);
+		setfont(0, FALSE, 2);
+		setfont(0, FALSE, 3);
+		setfont(0, FALSE, 4);
 	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
@@ -137,15 +140,15 @@ void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		restorescreen(savscrn);
+		freescreen(savscrn);
 	}
 }
 
 int confirm(char *msg, char *helpbuf)
 {
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
+	struct ciolib_screen *savscrn;
 	char	*options[] = {
 				 "Yes"
 				,"No"
@@ -153,11 +156,13 @@ int confirm(char *msg, char *helpbuf)
 	int		ret=TRUE;
 	int		copt=0;
 
-    gettextinfo(&txtinfo);
 	i=uifc_initialized;
 	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		savscrn = savescreen();
+		setfont(0, FALSE, 1);
+		setfont(0, FALSE, 2);
+		setfont(0, FALSE, 3);
+		setfont(0, FALSE, 4);
 	}
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
@@ -169,7 +174,8 @@ int confirm(char *msg, char *helpbuf)
 	}
 	if(!i) {
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		restorescreen(savscrn);
+		freescreen(savscrn);
 	}
 	return(ret);
 }
