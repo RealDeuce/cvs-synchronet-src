@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.480 2018/04/06 02:42:37 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.481 2018/06/10 08:53:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -587,7 +587,7 @@ public:
 
 	void	reset_logon_vars(void);
 
-	uint	finduser(char *str);
+	uint	finduser(char *str, bool silent_failure = false);
 
 	int 	sub_op(uint subnum);
 
@@ -675,7 +675,7 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which);
+	void	readmail(uint usernumber, int which, long lm_mode = 0);
 	bool	readmail_inside;
 	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
