@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.52 2018/03/15 23:56:16 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.53 2018/04/06 02:42:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
 			eprintf(LOG_NOTICE,"!Filtering QWK message from %s due to age: %u days"
 				,msg.from
-				,(now-msg.hdr.when_written.time)/(24*60*60)); 
+				,(unsigned int)(now-msg.hdr.when_written.time)/(24*60*60)); 
 			continue;
 		}
 
