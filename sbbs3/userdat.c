@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.196 2018/04/04 19:13:05 rswindell Exp $ */
+/* $Id: userdat.c,v 1.197 2018/06/10 08:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3106,6 +3106,7 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 	char		path[MAX_PATH+1];
 	uint		i;
 	time_t		now = time(NULL);
+	BOOL		result = TRUE;
 
 	if(user->number==0 || (user->rest&FLAG('G')))	/* Guest */
 		return(TRUE);
@@ -3131,11 +3132,11 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 		modified = TRUE;
 	}
 	if(modified)
-		iniWriteFile(fp, ini);
+		result = iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	fclose(fp);
 
-	return TRUE;
+	return result;
 }
 
 /****************************************************************************/
