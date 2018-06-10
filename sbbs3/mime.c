@@ -1,6 +1,6 @@
 /* Synchronet MIME functions, originally written/submitted by Marc Lanctot */
 
-/* $Id: mime.c,v 1.10 2018/03/04 07:11:56 deuce Exp $ */
+/* $Id: mime.c,v 1.11 2018/04/07 07:17:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,7 +103,7 @@ BOOL base64out(SOCKET socket, int sess, char* pathfile)
     while(1) {
         bytesread=fread(in,1,sizeof(in),fp);
 		if((b64_encode(out,sizeof(out),in,bytesread)==-1)
-				|| !sockprintf(socket,sess,out))  {
+				|| !sockprintf(socket,sess, "%s", out))  {
 			fclose(fp);
 			return(FALSE);
 		}
