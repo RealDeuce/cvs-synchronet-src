@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.672 2018/04/18 06:06:36 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.673 2018/06/11 20:00:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1132,7 +1132,11 @@ static void pop3_thread(void* arg)
 				i++;
 			}
 			else if (!stricmp(buf, "STLS")) {
-				if (get_ssl_cert(&scfg, NULL, NULL) == -1) {
+				if (get_ssl_cert(&scfg, &estr, &level) == -1) {
+					if (estr) {
+						lprintf(level, "%04d !POP3/TLS Failure getting certificate: %s", socket, estr);
+						free_crypt_attrstr(estr);
+					}
 					sockprintf(socket,session,"-ERR STLS command not supported");
 					continue;
 				}
@@ -5088,7 +5092,16 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 				return sock;
 			case 1:
 				/* We NEVER bounce() because of TLS errors, so we don't need to set err */
-				if ((!tls_retry) && get_ssl_cert(&scfg, NULL, NULL) != -1) {
+				if (!tls_retry) {
+					char* estr = NULL;
+					int level;
+					if(get_ssl_cert(&scfg, &estr, &level) == -1) {
+						if (estr) {
+							lprintf(level, "%04d !SEND/TLS %s", sock, estr);
+							free_crypt_attrstr(estr);
+						}
+						continue;
+					}
 					sockprintf(sock, *session, "STARTTLS");
 					if (sockgetrsp(sock, *session, "220", buf, sizeof(buf))) {
 						if ((status=cryptCreateSession(session, CRYPT_UNUSED, CRYPT_SESSION_SSL)) != CRYPT_OK) {
@@ -5673,7 +5686,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.672 $", "%*s %s", revision);
+	sscanf("$Revision: 1.673 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
