@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.53 2016/05/21 02:21:40 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.55 2018/06/04 22:02:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -257,12 +257,20 @@ DLLEXPORT BOOL DLLCALL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockadd
 #ifndef IPPORT_POP3
 #define IPPORT_POP3			110
 #endif
+#ifndef IPPORT_POP3S
+#define IPPORT_POP3S			995
+#endif
 #ifndef IPPORT_IDENT
 #define IPPORT_IDENT		113
 #endif
 #ifndef IPPORT_SUBMISSION
 #define IPPORT_SUBMISSION	587
 #endif
-
+#ifndef IPPORT_SUBMISSIONS
+#define IPPORT_SUBMISSIONS	465
+#endif
+#ifndef IPPORT_BINKP
+#define IPPORT_BINKP		24554
+#endif
 
 #endif	/* Don't add anything after this line */
