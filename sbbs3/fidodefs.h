@@ -1,6 +1,6 @@
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.21 2019/04/29 06:13:29 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.20 2018/03/31 09:40:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -212,8 +212,6 @@ struct _PACK fidoaddr {		/* FidoNet 5D address (zone:net/node.point@domain) */
 
 #define FIDO_STORED_MSG_HDR_LEN		190
 #define FIDO_STORED_MSG_TERMINATOR	'\0'	/* 8-bits */
-
-#define FIDO_SOFT_CR				0x8d
 
 #if defined(PRAGMA_PACK)
 #pragma pack(pop)		/* original packing */
