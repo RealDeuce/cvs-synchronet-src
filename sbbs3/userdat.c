@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.198 2018/07/08 03:51:25 rswindell Exp $ */
+/* $Id: userdat.c,v 1.197 2018/06/10 08:56:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3166,7 +3166,7 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*
 			continue;
 		if(days == 0)
 			subscan[i].ptr = smb.status.last_msg;
-		else if(smb_getmsgidx_by_time(&smb, &idx, t) >= SMB_SUCCESS)
+		else if(smb_getmsgidx_by_time(&smb, &idx, t) == SMB_SUCCESS)
 			subscan[i].ptr = idx.number;
 		smb_close(&smb);
 	}

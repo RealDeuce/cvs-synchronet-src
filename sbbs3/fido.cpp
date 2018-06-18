@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.61 2018/06/25 21:13:27 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.60 2018/06/04 21:50:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,7 +200,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(i >= cfg.total_faddrs)
 		i=0;
 
-	if((cfg.netmail_misc&NMAIL_CHSRCADDR) && cfg.total_faddrs > 1) {
+	if(cfg.total_faddrs > 1) {
 		for(uint j=0; j < cfg.total_faddrs; j++)
 			uselect(/* add: */TRUE, j, text[OriginFidoAddr], smb_faddrtoa(&cfg.faddr[j], tmp), /* ar: */NULL);
 		int choice = uselect(/* add: */FALSE, /* default: */i, NULL, NULL, NULL);

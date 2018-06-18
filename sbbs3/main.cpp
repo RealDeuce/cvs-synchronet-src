@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.720 2018/06/30 01:11:08 rswindell Exp $ */
+/* $Id: main.cpp,v 1.719 2018/06/18 01:28:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1724,7 +1724,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
                 sbbs->telnet_cmdlen=0;
 
             }
-			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
+			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commads
 				outbuf[outlen++]=inbuf[i];
         } else
         	outbuf[outlen++]=inbuf[i];
@@ -2157,10 +2157,10 @@ void passthru_output_thread(void* arg)
 
 		if(sbbs->ssh_mode) {
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if(!cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i))) {
-				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+			if(cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i)))
 				rd=0;
-			} else {
+			else {
+				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
 				if(!i) {
 					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
@@ -2170,7 +2170,7 @@ void passthru_output_thread(void* arg)
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
-    		rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
+    	rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
 
 		if(rd == SOCKET_ERROR)
 		{
