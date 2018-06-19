@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.37 2018/03/24 06:49:06 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.38 2018/03/31 09:16:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
 #include "scfg.h"
 
 void qhub_edit(int num);
-void phub_edit(int num);
 char *daystr(char days);
 void qhub_sub_edit(uint num);
 BOOL import_qwk_conferences(uint num);
@@ -158,8 +157,8 @@ uint getsub(void)
 
 void net_cfg()
 {
-	static	int net_dflt,qnet_dflt,pnet_dflt,fnet_dflt,inet_dflt
-			,qhub_dflt,phub_dflt;
+	static	int net_dflt,qnet_dflt,fnet_dflt,inet_dflt
+			,qhub_dflt;
 	char	str[81],done;
 	int 	i,j,k,l;
 	int		mode;
