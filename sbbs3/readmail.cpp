@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.79 2018/07/07 06:14:04 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.78 2018/06/10 08:53:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,9 +406,9 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}-+/");
+		sprintf(str,"ADFLNQRTU?<>[]{}-+/");
 		if(SYSOP)
-			strcat(str,"CUSPH");
+			strcat(str,"C!SPH");
 		if(which == MAIL_YOUR)
 			strcat(str,"K");	// kill all (visible)
 		else
@@ -781,21 +781,17 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				}
 				smb.curmsg=(u-1);
 				break;
-			case 'U':   /* user edit */
+			case '!':   /* user edit */
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				unum = msg.idx.from;
-				if(unum == 0)
-					unum = matchuser(&cfg, msg.from, /*sysop_alias: */FALSE);
-				if(unum == 0 && which != MAIL_YOUR)
-					unum = msg.idx.to;
+				if((unum=(which==MAIL_SENT ? msg.idx.to : msg.idx.from)) == 0)
+					unum=(which==MAIL_SENT ? msg.idx.from : msg.idx.to);
 				if(unum == 0 || unum > lastuser(&cfg)) {
 					bputs(text[UnknownUser]);
 					domsg=false;
 				} else
 					useredit(unum);
 				break;
-#if 0
 			case 'U':	/* View Unread-Only (toggle) */
 			{
 				domsg = false;
@@ -813,7 +809,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				CRLF;
 				break;
 			}
-#endif
 			case 'V':	/* View SPAM (toggle) */
 			{
 				domsg = false;

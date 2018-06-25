@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.24 2018/07/19 04:13:47 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.23 2018/06/04 21:52:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -213,7 +213,6 @@ typedef struct {
 	ulong		bso_lock_delay;			/* in seconds */
 	ulong		max_netmail_age;
 	ulong		max_echomail_age;
-	int64_t		min_free_diskspace;
 	struct fido_domain* domain_list;
 	unsigned	domain_count;
 	char		binkp_caps[64];
