@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.74 2018/07/29 00:26:16 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.73 2018/03/07 00:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -450,7 +450,7 @@ char* prep_code(char *str, const char* prefix)
 			str+=i;
 	}
 	for(i=j=0;str[i] && i<sizeof(tmp);i++)
-		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?' && str[i]!='.'
+		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?'
 			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
 			tmp[j++]=toupper(str[i]);
 	tmp[j]=0;

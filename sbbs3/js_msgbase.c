@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.223 2018/10/03 08:13:19 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.220 2018/05/15 22:41:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -43,7 +43,7 @@
 typedef struct
 {
 	smb_t	smb;
-	int		smb_result;
+	int		status;
 	BOOL	debug;
 
 } private_t;
@@ -109,7 +109,7 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if((p->smb_result=smb_open(&(p->smb)))!=SMB_SUCCESS) {
+	if((p->status=smb_open(&(p->smb)))!=SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		return JS_TRUE;
 	}
@@ -169,8 +169,8 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 		cp=strdup("All");
 	}
 
-	if((p->smb_result=smb_hfield_str(msg, RECIPIENT, cp))!=SMB_SUCCESS) {
-		JS_ReportError(cx, "Error %d adding RECIPIENT field to message header", p->smb_result);
+	if((p->status=smb_hfield_str(msg, RECIPIENT, cp))!=SMB_SUCCESS) {
+		JS_ReportError(cx, "Error %d adding RECIPIENT field to message header", p->status);
 		free(cp);
 		return(FALSE);
 	}
@@ -187,9 +187,9 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 			JS_ReportError(cx, "Invalid \"to_ext\" string in recipient object");
 			return(FALSE);
 		}
-		if((p->smb_result=smb_hfield_str(msg, RECIPIENTEXT, cp))!=SMB_SUCCESS) {
+		if((p->status=smb_hfield_str(msg, RECIPIENTEXT, cp))!=SMB_SUCCESS) {
 			free(cp);
-			JS_ReportError(cx, "Error %d adding RECIPIENTEXT field to message header", p->smb_result);
+			JS_ReportError(cx, "Error %d adding RECIPIENTEXT field to message header", p->status);
 			return(FALSE);
 		}
 		if(p->smb.status.attr&SMB_EMAIL)
@@ -203,9 +203,9 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 			JS_ReportError(cx, "Invalid \"to_org\" string in recipient object");
 			return(FALSE);
 		}
-		if((p->smb_result=smb_hfield_str(msg, RECIPIENTORG, cp))!=SMB_SUCCESS) {
+		if((p->status=smb_hfield_str(msg, RECIPIENTORG, cp))!=SMB_SUCCESS) {
 			free(cp);
-			JS_ReportError(cx, "Error %d adding RECIPIENTORG field to message header", p->smb_result);
+			JS_ReportError(cx, "Error %d adding RECIPIENTORG field to message header", p->status);
 			return(FALSE);
 		}
 	}
@@ -225,9 +225,9 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 			JS_ReportError(cx, "Invalid \"to_net_addr\" string in recipient object");
 			return(FALSE);
 		}
-		if((p->smb_result=smb_hfield_netaddr(msg, RECIPIENTNETADDR, cp, &nettype))!=SMB_SUCCESS) {
+		if((p->status=smb_hfield_netaddr(msg, RECIPIENTNETADDR, cp, &nettype))!=SMB_SUCCESS) {
 			free(cp);
-			JS_ReportError(cx, "Error %d adding RECIPIENTADDR field to message header", p->smb_result);
+			JS_ReportError(cx, "Error %d adding RECIPIENTADDR field to message header", p->status);
 			return(FALSE);
 		}
 	}
@@ -243,25 +243,25 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 						,msg->to_net.addr);
 					return(FALSE);
 				}
-				if((p->smb_result=smb_hfield_str(msg, RECIPIENTNETADDR, fulladdr))!=SMB_SUCCESS) {
+				if((p->status=smb_hfield_str(msg, RECIPIENTNETADDR, fulladdr))!=SMB_SUCCESS) {
 					JS_ReportError(cx, "Error %d adding RECIPIENTADDR field to message header"
-						,p->smb_result);
+						,p->status);
 					return(FALSE);
 				}
 				if(msg->idx.to != 0) {
 					char ext[32];
 					sprintf(ext,"%u",msg->idx.to);
-					if((p->smb_result=smb_hfield_str(msg, RECIPIENTEXT, ext))!=SMB_SUCCESS) {
+					if((p->status=smb_hfield_str(msg, RECIPIENTEXT, ext))!=SMB_SUCCESS) {
 						JS_ReportError(cx, "Error %d adding RECIPIENTEXT field to message header"
-							,p->smb_result);
+							,p->status);
 						return(FALSE);
 					}
 				}
 			} else
 				msg->idx.to=0;
 		}
-		if((p->smb_result=smb_hfield_bin(msg, RECIPIENTNETTYPE, nettype))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding RECIPIENTNETTYPE field to message header", p->smb_result);
+		if((p->status=smb_hfield_bin(msg, RECIPIENTNETTYPE, nettype))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding RECIPIENTNETTYPE field to message header", p->status);
 			return(FALSE);
 		}
 	}
@@ -270,8 +270,8 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 		if(!JS_ValueToInt32(cx,val,&i32))
 			return FALSE;
 		agent=(ushort)i32;
-		if((p->smb_result=smb_hfield_bin(msg, RECIPIENTAGENT, agent))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding RECIPIENTAGENT field to message header", p->smb_result);
+		if((p->status=smb_hfield_bin(msg, RECIPIENTAGENT, agent))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding RECIPIENTAGENT field to message header", p->status);
 			return(FALSE);
 		}
 	}
@@ -315,8 +315,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		} else
 			cp=strdup("");
 
-		if((p->smb_result=smb_hfield_str(msg, SUBJECT, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SUBJECT field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SUBJECT, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SUBJECT field to message header", p->status);
 			goto err;
 		}
 		msg->idx.subj=smb_subject_crc(cp);
@@ -332,8 +332,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		JS_ReportError(cx, "\"from\" property required in header");
 		goto err;	/* "from" property required */
 	}
-	if((p->smb_result=smb_hfield_str(msg, SENDER, cp))!=SMB_SUCCESS) {
-		JS_ReportError(cx, "Error %d adding SENDER field to message header", p->smb_result);
+	if((p->status=smb_hfield_str(msg, SENDER, cp))!=SMB_SUCCESS) {
+		JS_ReportError(cx, "Error %d adding SENDER field to message header", p->status);
 		goto err;
 	}
 	if(!(p->smb.status.attr&SMB_EMAIL) && msg->hdr.type != SMB_MSG_TYPE_BALLOT) {
@@ -350,8 +350,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_ext\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDEREXT, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDEREXT field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDEREXT, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDEREXT field to message header", p->status);
 			goto err;
 		}
 		if(p->smb.status.attr&SMB_EMAIL)
@@ -365,8 +365,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_org\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERORG, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERORG field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERORG, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERORG field to message header", p->status);
 			goto err;
 		}
 	}
@@ -385,8 +385,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_net_addr\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_netaddr(msg, SENDERNETADDR, cp, &nettype))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERNETADDR field to message header", p->smb_result);
+		if((p->status=smb_hfield_netaddr(msg, SENDERNETADDR, cp, &nettype))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERNETADDR field to message header", p->status);
 			goto err;
 		}
 	}
@@ -394,8 +394,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
 		if(p->smb.status.attr&SMB_EMAIL)
 			msg->idx.from=0;
-		if((p->smb_result=smb_hfield_bin(msg, SENDERNETTYPE, nettype))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERNETTYPE field to message header", p->smb_result);
+		if((p->status=smb_hfield_bin(msg, SENDERNETTYPE, nettype))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERNETTYPE field to message header", p->status);
 			goto err;
 		}
 	}
@@ -404,8 +404,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		agent=(ushort)i32;
-		if((p->smb_result=smb_hfield_bin(msg, SENDERAGENT, agent))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERAGENT field to message header", p->smb_result);
+		if((p->status=smb_hfield_bin(msg, SENDERAGENT, agent))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERAGENT field to message header", p->status);
 			goto err;
 		}
 	}
@@ -417,8 +417,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_ip_addr\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERIPADDR, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERIPADDR field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERIPADDR, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERIPADDR field to message header", p->status);
 			goto err;
 		}
 	}
@@ -430,8 +430,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_host_name\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERHOSTNAME, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERHOSTNAME field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERHOSTNAME, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERHOSTNAME field to message header", p->status);
 			goto err;
 		}
 	}
@@ -443,8 +443,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_protocol\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERPROTOCOL, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERPROTOCOL field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERPROTOCOL, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERPROTOCOL field to message header", p->status);
 			goto err;
 		}
 	}
@@ -456,8 +456,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"from_port\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERPORT, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERPORT field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERPORT, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERPORT field to message header", p->status);
 			goto err;
 		}
 	}
@@ -469,8 +469,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"sender_userid\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERUSERID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERUSERID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERUSERID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERUSERID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -482,8 +482,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"sender_server\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERSERVER, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERSERVER field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERSERVER, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERSERVER field to message header", p->status);
 			goto err;
 		}
 	}
@@ -495,8 +495,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"sender_time\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SENDERTIME, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SENDERTIME field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SENDERTIME, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SENDERTIME field to message header", p->status);
 			goto err;
 		}
 	}
@@ -508,8 +508,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"replyto\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, REPLYTO, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding REPLYTO field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, REPLYTO, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding REPLYTO field to message header", p->status);
 			goto err;
 		}
 	}
@@ -521,8 +521,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"replyto_ext\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, REPLYTOEXT, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding REPLYTOEXT field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, REPLYTOEXT, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding REPLYTOEXT field to message header", p->status);
 			goto err;
 		}
 	}
@@ -534,8 +534,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"replyto_org\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, REPLYTOORG, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding REPLYTOORG field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, REPLYTOORG, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding REPLYTOORG field to message header", p->status);
 			goto err;
 		}
 	}
@@ -553,14 +553,14 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"replyto_net_addr\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_netaddr(msg, REPLYTONETADDR, cp, &nettype))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding REPLYTONETADDR field to message header", p->smb_result);
+		if((p->status=smb_hfield_netaddr(msg, REPLYTONETADDR, cp, &nettype))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding REPLYTONETADDR field to message header", p->status);
 			goto err;
 		}
 	}
 	if(nettype!=NET_UNKNOWN && nettype!=NET_NONE) {
-		if((p->smb_result=smb_hfield_bin(msg, REPLYTONETTYPE, nettype))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding REPLYTONETTYPE field to message header", p->smb_result);
+		if((p->status=smb_hfield_bin(msg, REPLYTONETTYPE, nettype))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding REPLYTONETTYPE field to message header", p->status);
 			goto err;
 		}
 	}
@@ -569,8 +569,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		agent=(ushort)i32;
-		if((p->smb_result=smb_hfield_bin(msg, REPLYTOAGENT, agent))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding REPLYTOAGENT field to message header", p->smb_result);
+		if((p->status=smb_hfield_bin(msg, REPLYTOAGENT, agent))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding REPLYTOAGENT field to message header", p->status);
 			goto err;
 		}
 	}
@@ -583,8 +583,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"id\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, RFC822MSGID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding RFC822MSGID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, RFC822MSGID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding RFC822MSGID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -596,8 +596,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"reply_id\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, RFC822REPLYID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding RFC822REPLYID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, RFC822REPLYID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding RFC822REPLYID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -610,8 +610,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"reverse_path\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SMTPREVERSEPATH, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SMTPREVERSEPATH field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SMTPREVERSEPATH, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SMTPREVERSEPATH field to message header", p->status);
 			goto err;
 		}
 	}
@@ -623,8 +623,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"forward_path\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, SMTPFORWARDPATH, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding SMTPFORWARDPATH field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, SMTPFORWARDPATH, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding SMTPFORWARDPATH field to message header", p->status);
 			goto err;
 		}
 	}
@@ -637,8 +637,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"path\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, USENETPATH, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding USENETPATH field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, USENETPATH, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding USENETPATH field to message header", p->status);
 			goto err;
 		}
 	}
@@ -650,8 +650,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"newsgroups\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, USENETNEWSGROUPS, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding USENETNEWSGROUPS field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, USENETNEWSGROUPS, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding USENETNEWSGROUPS field to message header", p->status);
 			goto err;
 		}
 	}
@@ -664,8 +664,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"ftn_msgid\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, FIDOMSGID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOMSGID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, FIDOMSGID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding FIDOMSGID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -677,8 +677,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"ftn_reply\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, FIDOREPLYID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOREPLYID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, FIDOREPLYID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding FIDOREPLYID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -690,8 +690,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"ftn_area\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, FIDOAREA, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOAREA field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, FIDOAREA, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding FIDOAREA field to message header", p->status);
 			goto err;
 		}
 	}
@@ -703,8 +703,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"ftn_flags\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, FIDOFLAGS, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOFLAGS field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, FIDOFLAGS, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding FIDOFLAGS field to message header", p->status);
 			goto err;
 		}
 	}
@@ -716,8 +716,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"ftn_pid\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, FIDOPID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOPID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, FIDOPID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding FIDOPID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -729,8 +729,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			JS_ReportError(cx, "Invalid \"ftn_tid\" string in header object");
 			goto err;
 		}
-		if((p->smb_result=smb_hfield_str(msg, FIDOTID, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOTID field to message header", p->smb_result);
+		if((p->status=smb_hfield_str(msg, FIDOTID, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding FIDOTID field to message header", p->status);
 			goto err;
 		}
 	}
@@ -743,36 +743,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			goto err;
 		}
 		msg->hdr.when_written=rfc822date(cp);
-	}
-
-	const char* prop_name = "summary";
-	uint16_t hfield_type = SMB_SUMMARY;
-	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"%s\" string in header object", prop_name);
-			goto err;
-		}
-		if((p->smb_result=smb_hfield_str(msg, hfield_type, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding %s field to message header", p->smb_result, smb_hfieldtype(hfield_type));
-			goto err;
-		}
-	}
-
-	prop_name = "tags";
-	hfield_type = SMB_TAGS;
-	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"%s\" string in header object", prop_name);
-			goto err;
-		}
-		if((p->smb_result=smb_hfield_str(msg, hfield_type, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding %s field to message header", p->smb_result, smb_hfieldtype(hfield_type));
-			goto err;
-		}
 	}
 
 	/* Numeric Header Fields */
@@ -876,8 +846,8 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 				JS_ReportError(cx, "Invalid data string in \"field_list\" array");
 				goto err;
 			}
-			if((p->smb_result=smb_hfield_str(msg, type, cp))!=SMB_SUCCESS) {
-				JS_ReportError(cx, "Error %d adding field (type %02Xh) to message header", p->smb_result, type);
+			if((p->status=smb_hfield_str(msg, type, cp))!=SMB_SUCCESS) {
+				JS_ReportError(cx, "Error %d adding field (type %02Xh) to message header", p->status, type);
 				goto err;
 			}
 		}
@@ -921,7 +891,7 @@ static BOOL msg_offset_by_id(private_t* p, char* id, int32_t* offset)
 {
 	smbmsg_t msg;
 
-	if((p->smb_result=smb_getmsgidx_by_msgid(&(p->smb),&msg,id))!=SMB_SUCCESS)
+	if((p->status=smb_getmsgidx_by_msgid(&(p->smb),&msg,id))!=SMB_SUCCESS)
 		return(FALSE);
 
 	*offset = msg.offset;
@@ -975,9 +945,9 @@ js_get_msg_index(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	p->smb_result = smb_getmsgidx(&(p->smb), &msg);
+	p->status = smb_getmsgidx(&(p->smb), &msg);
 	JS_RESUMEREQUEST(cx, rc);
-	if(p->smb_result != SMB_SUCCESS)
+	if(p->status != SMB_SUCCESS)
 		return JS_TRUE;
 
 	if(!include_votes && (msg.idx.attr&MSG_VOTE))
@@ -1162,7 +1132,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("tags", p->msg.tags, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("from_ext", p->msg.from_ext, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("from_org", p->msg.from_org, JSPROP_ENUMERATE);
@@ -1515,19 +1484,19 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		rc=JS_SUSPENDREQUEST(cx);
-		if((p->p->smb_result=smb_getmsgidx(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
+		if((p->p->status=smb_getmsgidx(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			free(p);
 			return JS_TRUE;
 		}
 
-		if((p->p->smb_result=smb_lockmsghdr(&(p->p->smb),&(p->msg)))!=SMB_SUCCESS) {
+		if((p->p->status=smb_lockmsghdr(&(p->p->smb),&(p->msg)))!=SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			free(p);
 			return JS_TRUE;
 		}
 
-		if((p->p->smb_result=smb_getmsghdr(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
+		if((p->p->status=smb_getmsghdr(&(p->p->smb), &(p->msg)))!=SMB_SUCCESS) {
 			smb_unlockmsghdr(&(p->p->smb),&(p->msg)); 
 			JS_RESUMEREQUEST(cx, rc);
 			free(p);
@@ -1546,7 +1515,7 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		if(cstr != NULL) {
 			rc=JS_SUSPENDREQUEST(cx);
-			if((p->p->smb_result=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
+			if((p->p->status=smb_getmsghdr_by_msgid(&(p->p->smb),&(p->msg)
 					,cstr))!=SMB_SUCCESS) {
 				free(cstr);
 				JS_RESUMEREQUEST(cx, rc);
@@ -1642,7 +1611,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
     JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(retobj));
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if((priv->smb_result=smb_locksmbhdr(&(priv->smb)))!=SMB_SUCCESS) {
+	if((priv->status=smb_locksmbhdr(&(priv->smb)))!=SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		free(post);
 		return JS_TRUE;
@@ -1666,9 +1635,9 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 		msg.offset = off;
 
 		rc=JS_SUSPENDREQUEST(cx);
-		priv->smb_result = smb_getmsgidx(&(priv->smb), &msg);
+		priv->status = smb_getmsgidx(&(priv->smb), &msg);
 		JS_RESUMEREQUEST(cx, rc);
-		if(priv->smb_result != SMB_SUCCESS) {
+		if(priv->status != SMB_SUCCESS) {
 			smb_unlocksmbhdr(&(priv->smb)); 
 			free(post);
 			return JS_TRUE;
@@ -1718,9 +1687,9 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 		p->msg.idx = post[off].idx;
 
 		rc=JS_SUSPENDREQUEST(cx);
-		priv->smb_result = smb_getmsghdr(&(priv->smb), &(p->msg));
+		priv->status = smb_getmsghdr(&(priv->smb), &(p->msg));
 		JS_RESUMEREQUEST(cx, rc);
-		if(priv->smb_result != SMB_SUCCESS) {
+		if(priv->status != SMB_SUCCESS) {
 			smb_unlocksmbhdr(&(priv->smb)); 
 			free(post);
 			free(p);
@@ -1849,18 +1818,18 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if((p->smb_result=smb_getmsgidx(&(p->smb), &msg))!=SMB_SUCCESS) {
+	if((p->status=smb_getmsgidx(&(p->smb), &msg))!=SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		return JS_TRUE;
 	}
 
-	if((p->smb_result=smb_lockmsghdr(&(p->smb),&msg))!=SMB_SUCCESS) {
+	if((p->status=smb_lockmsghdr(&(p->smb),&msg))!=SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		return JS_TRUE;
 	}
 
 	do {
-		if((p->smb_result=smb_getmsghdr(&(p->smb), &msg))!=SMB_SUCCESS)
+		if((p->status=smb_getmsghdr(&(p->smb), &msg))!=SMB_SUCCESS)
 			break;
 
 		smb_freemsghdrmem(&msg);	/* prevent duplicate header fields */
@@ -1873,7 +1842,7 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		rc=JS_SUSPENDREQUEST(cx);
 
-		if((p->smb_result=smb_putmsg(&(p->smb), &msg))!=SMB_SUCCESS)
+		if((p->status=smb_putmsg(&(p->smb), &msg))!=SMB_SUCCESS)
 			break;
 
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
@@ -1951,12 +1920,12 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_TRUE;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if((p->smb_result=smb_getmsgidx(&(p->smb), &msg))==SMB_SUCCESS
-		&& (p->smb_result=smb_getmsghdr(&(p->smb), &msg))==SMB_SUCCESS) {
+	if((p->status=smb_getmsgidx(&(p->smb), &msg))==SMB_SUCCESS
+		&& (p->status=smb_getmsghdr(&(p->smb), &msg))==SMB_SUCCESS) {
 
 		msg.hdr.attr|=MSG_DELETE;
 
-		if((p->smb_result=smb_updatemsg(&(p->smb), &msg))==SMB_SUCCESS)
+		if((p->status=smb_updatemsg(&(p->smb), &msg))==SMB_SUCCESS)
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 	}
 
@@ -1971,17 +1940,17 @@ static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL r
 	char*		buf;
 
 	if(existing) {
-		if((p->smb_result=smb_lockmsghdr(&(p->smb),msg))!=SMB_SUCCESS)
+		if((p->status=smb_lockmsghdr(&(p->smb),msg))!=SMB_SUCCESS)
 			return(NULL);
 	}
 	else {
-		if((p->smb_result=smb_getmsgidx(&(p->smb), msg))!=SMB_SUCCESS)
+		if((p->status=smb_getmsgidx(&(p->smb), msg))!=SMB_SUCCESS)
 			return(NULL);
 
-		if((p->smb_result=smb_lockmsghdr(&(p->smb),msg))!=SMB_SUCCESS)
+		if((p->status=smb_lockmsghdr(&(p->smb),msg))!=SMB_SUCCESS)
 			return(NULL);
 
-		if((p->smb_result=smb_getmsghdr(&(p->smb), msg))!=SMB_SUCCESS) {
+		if((p->status=smb_getmsghdr(&(p->smb), msg))!=SMB_SUCCESS) {
 			smb_unlockmsghdr(&(p->smb), msg); 
 			return(NULL);
 		}
@@ -2338,7 +2307,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 		if(body[0])
 			truncsp(body);
 		rc=JS_SUSPENDREQUEST(cx);
-		if((p->smb_result=savemsg(scfg, &(p->smb), &msg, client, /* ToDo server hostname: */NULL, body))==SMB_SUCCESS) {
+		if((p->status=savemsg(scfg, &(p->smb), &msg, client, /* ToDo server hostname: */NULL, body))==SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 
@@ -2358,7 +2327,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 						break;
 
 					rc=JS_SUSPENDREQUEST(cx);
-					if((p->smb_result=smb_copymsgmem(&(p->smb), &rcpt_msg, &msg))!=SMB_SUCCESS) {
+					if((p->status=smb_copymsgmem(&(p->smb), &rcpt_msg, &msg))!=SMB_SUCCESS) {
 						JS_RESUMEREQUEST(cx, rc);
 						break;
 					}
@@ -2368,7 +2337,7 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 						break;
 
 					rc=JS_SUSPENDREQUEST(cx);
-					if((p->smb_result=smb_addmsghdr(&(p->smb), &rcpt_msg, smb_storage_mode(scfg, &(p->smb))))!=SMB_SUCCESS) {
+					if((p->status=smb_addmsghdr(&(p->smb), &rcpt_msg, smb_storage_mode(scfg, &(p->smb))))!=SMB_SUCCESS) {
 						JS_RESUMEREQUEST(cx, rc);
 						break;
 					}
@@ -2449,7 +2418,7 @@ js_vote_msg(JSContext *cx, uintN argc, jsval *arglist)
 	if(parse_header_object(cx, p, hdr, &msg, FALSE)) {
 
 		rc = JS_SUSPENDREQUEST(cx);
-		if((p->smb_result=votemsg(scfg, &(p->smb), &msg, NULL, NULL)) == SMB_SUCCESS) {
+		if((p->status=votemsg(scfg, &(p->smb), &msg, NULL)) == SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 		}
@@ -2517,7 +2486,7 @@ js_add_poll(JSContext *cx, uintN argc, jsval *arglist)
 	if(parse_header_object(cx, p, hdr, &msg, FALSE)) {
 
 		rc=JS_SUSPENDREQUEST(cx);
-		if((p->smb_result=postpoll(scfg, &(p->smb), &msg)) == SMB_SUCCESS) {
+		if((p->status=postpoll(scfg, &(p->smb), &msg)) == SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 		}
@@ -2688,7 +2657,7 @@ static JSBool js_msgbase_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			s=p->smb.last_error;
 			break;
 		case SMB_PROP_STATUS:
-			*vp = INT_TO_JSVAL(p->smb_result);
+			*vp = INT_TO_JSVAL(p->status);
 			break;
 		case SMB_PROP_RETRY_TIME:
 			*vp = INT_TO_JSVAL(p->smb.retry_time);
@@ -2885,8 +2854,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>replyto_net_type</tt><td>Replies should be sent to this network type"
 	"<tr><td align=top><tt>replyto_net_addr</tt><td>Replies should be sent to this network address"
 	"<tr><td align=top><tt>replyto_agent</tt><td>Replies should be sent to this agent type"
-	"<tr><td align=top><tt>summary</tt><td>Message Summary (optional)"
-	"<tr><td align=top><tt>tags</tt><td>Message Tags (space-delimited, optional)"
 	"<tr><td align=top><tt>id</tt><td>Message's RFC-822 compliant Message-ID"
 	"<tr><td align=top><tt>reply_id</tt><td>Message's RFC-822 compliant Reply-ID"
 	"<tr><td align=top><tt>reverse_path</tt><td>Message's SMTP sender address"
