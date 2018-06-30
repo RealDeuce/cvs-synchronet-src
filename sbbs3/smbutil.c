@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.126 2018/03/14 05:41:41 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.127 2018/04/30 23:02:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -708,9 +708,10 @@ void maint(void)
 				hash_t*	hashes = malloc(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t));
 				if(hashes != NULL) {
 					if(fread(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp) == max_hashes * SMB_HASH_SOURCE_TYPES) {
-						CHSIZE_FP(smb.hash_fp,0);
 						rewind(smb.hash_fp);
 						fwrite(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp);
+						fflush(smb.hash_fp);
+						CHSIZE_FP(smb.hash_fp, sizeof(hash_t) * max_hashes * SMB_HASH_SOURCE_TYPES);
 					}
 					free(hashes);
 				}
@@ -860,15 +861,16 @@ void maint(void)
 
 	printf("Re-writing index...\n");
 	rewind(smb.sid_fp);
-	CHSIZE_FP(smb.sid_fp,0);
 	for(m=n=0;m<l;m++) {
 		if(idx[m].attr&MSG_DELETE)
 			continue;
-		printf("%lu of %lu\r",++n,l-flagged);
+		n++;
+		printf("%lu of %lu\r", n, l-flagged);
 		fwrite(&idx[m],sizeof(idxrec_t),1,smb.sid_fp); 
 	}
-	printf("\nDone.\n\n");
 	fflush(smb.sid_fp);
+	CHSIZE_FP(smb.sid_fp, n * sizeof(idxrec_t));
+	printf("\nDone.\n\n");
 
 	free(idx);
 	smb.status.total_msgs-=flagged;
@@ -1543,7 +1545,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.127 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
