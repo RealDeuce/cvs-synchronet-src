@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.88 2019/03/22 21:29:12 rswindell Exp $ */
+/* $Id: smblib.h,v 1.85 2017/11/27 06:29:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -45,7 +45,7 @@
 
 #ifdef _WIN32
 	#ifdef __BORLANDC__
-		#define SMBCALL
+		#define SMBCALL __stdcall
 	#else
 		#define SMBCALL
 	#endif
@@ -70,7 +70,7 @@
 
 #define SMB_SUCCESS			0			/* Successful result/return code */
 #define SMB_FAILURE			-1			/* Generic error (discouraged) */
-#define SMB_BAD_PARAMETER	-2			/* Invalid API function parameter value */
+
 										/* Standard smblib errors values */
 #define SMB_ERR_NOT_OPEN	-100		/* Message base not open */
 #define SMB_ERR_HDR_LEN		-101		/* Invalid message header length (>64k) */
@@ -131,7 +131,6 @@ extern "C" {
 SMBEXPORT int 		SMBCALL smb_ver(void);
 SMBEXPORT char*		SMBCALL smb_lib_ver(void);
 SMBEXPORT int 		SMBCALL smb_open(smb_t* smb);
-SMBEXPORT int		SMBCALL smb_open_index(smb_t* smb);
 SMBEXPORT void		SMBCALL smb_close(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_create(smb_t* smb);
@@ -230,7 +229,7 @@ SMBEXPORT int		SMBCALL smb_addhashes(smb_t* smb, hash_t** hash_list, BOOL skip_m
 SMBEXPORT uint16_t	SMBCALL smb_name_crc(const char* name);
 SMBEXPORT uint16_t	SMBCALL smb_subject_crc(const char *subj);
 SMBEXPORT void		SMBCALL smb_freehashes(hash_t**);
-SMBEXPORT long		SMBCALL	smb_getmsgidx_by_time(smb_t*, idxrec_t*, time_t);
+SMBEXPORT int		SMBCALL	smb_getmsgidx_by_time(smb_t*, idxrec_t*, time_t);
 
 /* Fast look-up functions (using hashes) */
 SMBEXPORT int 		SMBCALL smb_getmsgidx_by_hash(smb_t* smb, smbmsg_t* msg, unsigned source
