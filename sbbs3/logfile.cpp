@@ -1,6 +1,6 @@
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.60 2016/12/01 21:42:09 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.61 2018/04/13 23:59:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -285,9 +285,11 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 		,src, line, function, action, object, access
 		,extinfo==NULL ? "":"info="
 		,extinfo==NULL ? "":extinfo);
-	if(online==ON_LOCAL)
+	if(online==ON_LOCAL) {
+		if(useron.number)
+			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
 		eprintf(LOG_ERR,"%s",str);
-	else {
+	} else {
 		int savatr=curatr;
 		if(useron.number)
 			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
