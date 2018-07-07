@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.136 2018/03/09 06:57:05 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.137 2018/04/18 06:33:39 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -302,6 +302,8 @@ static void set_vmem_cell(struct vstat_vmem *vmem_ptr, size_t pos, uint16_t cell
 	if (!vstat.blink_altcharset)
 		altfont &= ~0x02;
 	font=current_font[altfont];
+	if (font == -99)
+		font = default_font;
 	if (font < 0 || font > 255)
 		font = 0;
 
