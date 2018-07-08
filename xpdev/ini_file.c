@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.162 2018/03/30 16:03:04 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.163 2018/04/30 21:58:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2361,11 +2361,10 @@ BOOL DLLCALL iniWriteFile(FILE* fp, const str_list_t list)
 	size_t		count;
 
 	rewind(fp);
-
-	if(chsize(fileno(fp),0)!=0)	/* truncate */
-		return(FALSE);
-
 	count = strListWriteFile(fp,list,"\n");
+	fflush(fp);
+	if(chsize(fileno(fp), ftell(fp))!=0)	/* truncate */
+		return(FALSE);
 
 	return(count == strListCount(list));
 }
