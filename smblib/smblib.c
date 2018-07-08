@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.176 2018/03/09 04:53:58 rswindell Exp $ */
+/* $Id: smblib.c,v 1.178 2018/07/08 04:02:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -290,7 +290,7 @@ int SMBCALL smb_stack(smb_t* smb, int op)
 
 /****************************************************************************/
 /* Truncates header file													*/
-/* Retrys for smb.retry_time number of seconds								*/
+/* Retries for smb.retry_time number of seconds								*/
 /* Return 0 on success, non-zero otherwise									*/
 /****************************************************************************/
 int SMBCALL smb_trunchdr(smb_t* smb)
@@ -336,6 +336,9 @@ int SMBCALL smb_locksmbhdr(smb_t* smb)
 {
 	time_t	start=0;
 
+	if(smb->locked)
+		return SMB_SUCCESS;
+
 	if(smb->shd_fp==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
 		return(SMB_ERR_NOT_OPEN);
@@ -348,8 +351,8 @@ int SMBCALL smb_locksmbhdr(smb_t* smb)
 		if(!start)
 			start=time(NULL);
 		else
-			if(time(NULL)-start>=(time_t)smb->retry_time) 
-				break;						
+			if(time(NULL)-start>=(time_t)smb->retry_time)
+				break;
 		/* In case we've already locked it */
 		if(unlock(fileno(smb->shd_fp),0L,sizeof(smbhdr_t)+sizeof(smbstatus_t))==0)
 			smb->locked=FALSE;
@@ -654,60 +657,68 @@ int SMBCALL smb_getlastidx(smb_t* smb, idxrec_t *idx)
 
 /****************************************************************************/
 /* Finds index of last message imported at or after specified time			*/
+/* Returns >= 0 on success, negative (SMB_* error) on failure.				*/
 /****************************************************************************/
-int	SMBCALL	smb_getmsgidx_by_time(smb_t* smb, idxrec_t* idx, time_t t)
+long SMBCALL smb_getmsgidx_by_time(smb_t* smb, idxrec_t* match, time_t t)
 {
-    int     i;
-	ulong	l,total,bot,top;
+    int			result;
+	long		match_offset;
+	ulong		total, bot, top;
+	idxrec_t	idx;
 
-	if(idx == NULL)
-		return SMB_FAILURE;
+	if(match == NULL)
+		return SMB_BAD_PARAMETER;
 
-	memset(idx, 0, sizeof(idxrec_t));
+	memset(match, 0, sizeof(*match));
 
 	if(t <= 0)
-		return SMB_FAILURE;
+		return SMB_BAD_PARAMETER;
 
 	total = filelength(fileno(smb->sid_fp))/sizeof(idxrec_t);
 
 	if(!total)	/* Empty base */
-		return SMB_ERR_NOT_FOUND; 
+		return SMB_ERR_NOT_FOUND;
 
-	if((i=smb_locksmbhdr(smb)) != SMB_SUCCESS)
-		return i; 
+	if((result=smb_locksmbhdr(smb)) != SMB_SUCCESS)
+		return result;
 
-	if((i=smb_getlastidx(smb,idx)) != SMB_SUCCESS) {
+	if((result=smb_getlastidx(smb, &idx)) != SMB_SUCCESS) {
 		smb_unlocksmbhdr(smb);
-		return i;
+		return result;
+	}
+	if((time_t)idx.time < t) {
+		smb_unlocksmbhdr(smb);
+		return SMB_ERR_NOT_FOUND;
 	}
 
-	if((time_t)idx->time > t) {
-		bot=0;
-		top=total;
-		l=total/2; /* Start at middle index */
-		clearerr(smb->sid_fp);
-		while(1) {
-			fseek(smb->sid_fp,l*sizeof(idxrec_t),SEEK_SET);
-			if(!fread(idx,sizeof(idxrec_t),1,smb->sid_fp))
-				break;
-			if(bot==top-1)
-				break;
-			if((time_t)idx->time > t) {
-				top=l;
-				l=bot+((top-bot)/2);
-				continue; 
-			}
-			if((time_t)idx->time < t) {
-				bot=l;
-				l=top-((top-bot)/2);
-				continue; 
-			}
-			break; 
+	match_offset = total - 1;
+	*match = idx;
+
+	bot = 0;
+	top = total-1;
+	clearerr(smb->sid_fp);
+	while(bot <= top) {
+		long idx_offset = (bot + top) / 2;
+		if(fseek(smb->sid_fp, idx_offset * sizeof(idxrec_t), SEEK_SET) != 0)
+			break;
+		if(fread(&idx, 1, sizeof(idx), smb->sid_fp) != sizeof(idxrec_t))
+			break;
+		if((time_t)idx.time < t) {
+			bot = idx_offset + 1;
+			continue;
 		}
+		*match = idx;
+		match_offset = idx_offset;
+		if((time_t)idx.time > t && idx_offset > 0) {
+			top = idx_offset - 1;
+			continue;
+		}
+		break;
 	}
 	smb_unlocksmbhdr(smb);
-	return SMB_SUCCESS;
+	return match_offset;
 }
+
 
 /****************************************************************************/
 /* Figures out the total length of the header record for 'msg'              */
