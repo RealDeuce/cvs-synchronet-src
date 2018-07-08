@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.220 2018/07/08 23:33:45 deuce Exp $ */
+/* $Id: js_socket.c,v 1.221 2018/07/08 23:44:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2093,7 +2093,7 @@ static jsSyncMethodSpec js_socket_functions[] = {
 	},
 	{"write",		js_send,		1,	JSTYPE_ALIAS },
 	{"send",		js_send,		1,	JSTYPE_NUMBER,	JSDOCSTR("data")
-	,JSDOCSTR("send a string (AKA write).  Returns the number of bytes sent or null if an error occured.  "
+	,JSDOCSTR("send a string (AKA write).  Returns the number of bytes sent or undefined if an error occured.  "
 	"Versions before 3.17 returned a bool true if all bytes were sent and false otherwise.")
 	,310
 	},
