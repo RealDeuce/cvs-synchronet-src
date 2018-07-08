@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.87 2018/07/19 04:13:47 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.86 2018/06/19 19:01:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5898,19 +5898,6 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 	globfree(&g);
 }
 
-void check_free_diskspace(const char* path)
-{
-	if(cfg.min_free_diskspace) {
-		ulong freek = getfreediskspace(path, 1024);
-
-		if(freek < cfg.min_free_diskspace / 1024) {
-			fprintf(stderr, "!Insufficient free disk space (%luK < %"PRId64"K bytes) in %s\n"
-				, freek, cfg.min_free_diskspace / 1024, path);
-			bail(1);
-		}
-	}
-}
-
 /***********************************/
 /* Synchronet/FidoNet Message util */
 /***********************************/
@@ -5974,7 +5961,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.87 $", "%*s %s", revision);
+	sscanf("$Revision: 3.86 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6151,14 +6138,12 @@ int main(int argc, char **argv)
 		bail(1);
 	}
 	backslash(cfg.temp_dir);
-
 	char* inbound = FULLPATH(NULL, cfg.inbound, sizeof(cfg.inbound)-1);
 	if(inbound != NULL) {
 		SAFECOPY(cfg.inbound, inbound);
 		free(inbound);
 	}
 	backslash(cfg.inbound);
-
 	if(cfg.secure_inbound[0]) {
 		char* secure_inbound = FULLPATH(NULL, cfg.secure_inbound, sizeof(cfg.secure_inbound)-1);
 		if(secure_inbound != NULL) {
@@ -6167,24 +6152,15 @@ int main(int argc, char **argv)
 		}
 		backslash(cfg.secure_inbound);
 	}
-
+	backslash(cfg.temp_dir);
 	char* outbound = FULLPATH(NULL, cfg.outbound, sizeof(cfg.outbound)-1);
 	if(outbound != NULL) {
 		SAFECOPY(cfg.outbound, outbound);
 		free(outbound);
 	}
-
-	check_free_diskspace(scfg.data_dir);
-	check_free_diskspace(scfg.logs_dir);
-	check_free_diskspace(scfg.netmail_dir);
-	check_free_diskspace(cfg.outbound);
-	check_free_diskspace(cfg.temp_dir);
-
 	for(uint u=0; u<cfg.nodecfgs; u++) {
 		if(cfg.nodecfg[u].inbox[0])
 			backslash(cfg.nodecfg[u].inbox);
-		if(cfg.nodecfg[u].outbox[0])
-			check_free_diskspace(cfg.nodecfg[u].outbox);
 	}
 	
 	truncsp(cmdline);
