@@ -1,10 +1,10 @@
-/* $Id: PreviewFormUnit.cpp,v 1.5 2018/07/24 01:11:29 rswindell Exp $ */
+/* $Id: PreviewFormUnit.cpp,v 1.4 2005/10/12 08:25:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
