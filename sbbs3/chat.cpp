@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.75 2018/02/25 23:01:08 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.77 2018/06/21 20:22:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -582,8 +582,8 @@ bool sbbs_t::guru_page(void)
 		return(false);
 	}
 	if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
-		close(file);
 		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
+		close(file);
 		return(false);
 	}
 	read(file,gurubuf,(size_t)filelength(file));
@@ -717,8 +717,14 @@ bool sbbs_t::sysop_page(void)
 				break;
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
-			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL)
-				,cfg.page[i]->misc&XTRN_STDIO ? EX_STDIO : 0); 
+			long mode = 0;
+			if(cfg.page[i]->misc&XTRN_STDIO)
+				mode |= EX_STDIO;
+			if(cfg.page[i]->misc&XTRN_NATIVE)
+				mode|= EX_NATIVE;
+			if(cfg.page[i]->misc&XTRN_SH)
+				mode |= EX_SH;
+			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL), mode); 
 		}
 		else if(cfg.sys_misc&SM_SHRTPAGE) {
 			bprintf(text[PagingGuru],cfg.sys_op);
