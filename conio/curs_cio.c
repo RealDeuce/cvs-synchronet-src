@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.37 2018/02/10 10:31:31 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.40 2018/03/09 06:48:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,7 +575,10 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 				attrib |= 128;
 			}
 			colour=PAIR_NUMBER(attr&A_COLOR)-1;
-			colour=((colour&56)<<1)|(colour&7);
+			if (COLORS >= 16)
+				colour=colour&0x7f;
+			else
+				colour=((colour&56)<<1)|(colour&7);
 			fill[fillpos++]=colour|attrib;
 		}
 	}
@@ -1030,9 +1033,9 @@ int curs_showmouse(void)
 	return(-1);
 }
 
-int curs_beep(void)
+void curs_beep(void)
 {
-	return(beep());
+	beep();
 }
 
 int curs_getvideoflags(void)
@@ -1045,4 +1048,5 @@ void curs_setvideoflags(int flags)
 	flags &= (CIOLIB_VIDEO_NOBRIGHT|CIOLIB_VIDEO_BGBRIGHT|CIOLIB_VIDEO_NOBLINK);
 	if (COLORS < 16)
 		flags &= ~CIOLIB_VIDEO_BGBRIGHT;
+	vflags = flags;
 }
