@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.76 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.73 2018/03/07 00:57:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,7 +331,7 @@ BOOL md(char *inpath)
 	if(!isdir(path)) {
 		/* lprintf("Creating directory: %s",path); */
 		if(mkpath(path)) {
-			lprintf(LOG_WARNING,"!ERROR %d (%s) creating directory: %s", errno, strerror(errno), path);
+			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
@@ -344,7 +344,7 @@ BOOL md(char *inpath)
 /****************************************************************************/
 BOOL read_attr_cfg(scfg_t* cfg, char* error)
 {
-	uint*	clr;
+	char*	p;
     char    str[256],fname[13];
 	long	offset=0;
     FILE    *instream;
@@ -356,7 +356,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 		return(FALSE); 
 	}
 	FREE_AND_NULL(cfg->color);
-	if((cfg->color=malloc(MIN_COLORS * sizeof(uint)))==NULL) {
+	if((cfg->color=malloc(MIN_COLORS))==NULL) {
 		sprintf(error,"Error allocating memory (%u bytes) for colors"
 			,MIN_COLORS);
 		fclose(instream);
@@ -370,9 +370,9 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
 		if(cfg->total_colors>=MIN_COLORS) {
-			if((clr=realloc(cfg->color,(cfg->total_colors+1) * sizeof(uint)))==NULL)
+			if((p=realloc(cfg->color,cfg->total_colors+1))==NULL)
 				break;
-			cfg->color=clr;
+			cfg->color=p;
 		}
 		cfg->color[cfg->total_colors]=attrstr(str); 
 	}
@@ -450,7 +450,7 @@ char* prep_code(char *str, const char* prefix)
 			str+=i;
 	}
 	for(i=j=0;str[i] && i<sizeof(tmp);i++)
-		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?' && str[i]!='.'
+		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?'
 			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
 			tmp[j++]=toupper(str[i]);
 	tmp[j]=0;
