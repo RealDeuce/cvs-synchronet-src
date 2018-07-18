@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.49 2018/02/12 05:49:01 deuce Exp $
+$Id: cterm.txt,v 1.51 2018/02/14 04:37:26 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -667,15 +667,14 @@ CSI Ps... m
 	The default palette is the XTerm 256-colour palette.  See here:
 	https://jonasjacek.github.io/colors/
 
-	For direct colour selection, an additional five parameters are required
+	For direct colour selection, an additional four parameters are required
 	after that value.  They are considered part of the 38/48, not separate
-	values.  The first additional parameter must be a 2.  The second
-	additional parameter is ignored.  The third, fourth, and fifth specify
-	the R/G/B values respectively. CTerm handles this with an internal
-	temporary palette, so scrollback may not have the correct colours.
-	The internal palette is large enough for all cells in a 132x60 screen
-	to have unique foreground and background colours though, so the current
-	screen should always be as expected.
+	values.  The first additional parameter must be a 2.  The second,
+	third, and fourth specify the R/G/B values respectively. CTerm handles
+	this with an internal temporary palette, so scrollback may not have the
+	correct colours.  The internal palette is large enough for all cells in
+	a 132x60 screen to have unique foreground and background colours
+	though, so the current screen should always be as expected.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE: XTerm
@@ -711,14 +710,7 @@ CSI = Ps n
 	pF is the first available loadable-font slot number
 	pR is the result of the previous "Font Selection" request:
 		0 = successful font selection
-		1 = font selection requests are not supported by client
-		2 = required subsystem for font use has not been initialized
-		3 = selected font is not available or is incompatible with
-		    current video mode
-		4 = invalid font slot number specified in request
-		5 = required video mode for selected font is incompatible
-		    with current video mode
-		6 = memory allocation failure
+		1 = failed font selection
 		99 = no font selection request has been received
 	pS0 - pS3 contain the font slots numbers of previously successful
 	"Font Selection" requests into the 4 available alternate-font
