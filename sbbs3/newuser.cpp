@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.72 2018/07/27 01:23:40 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.71 2015/10/31 00:09:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -373,7 +373,7 @@ BOOL sbbs_t::newuser()
 
 		c=0;
 		while(online) {
-			bputs(text[NewUserPasswordVerify]);
+			bprintf(text[NewUserPasswordVerify]);
 			console|=CON_R_ECHOX;
 			str[0]=0;
 			getstr(str,LEN_PASS*2,K_UPPER);

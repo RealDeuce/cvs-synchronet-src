@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.88 2018/07/29 00:27:14 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.87 2018/07/19 04:13:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1869,13 +1869,9 @@ bool add_sub_to_areafile(sub_t* sub, fidoaddr_t uplink)
 
 	/* Replace spaces in the sub short-name with underscores (for use as the echotag) */
 	char echotag[FIDO_AREATAG_LEN+1];
-	if(sub->newsgroup[0])
-		SAFECOPY(echotag, sub->newsgroup);
-	else {
-		SAFECOPY(echotag, sub->sname);
-		char* p;
-		REPLACE_CHARS(echotag, ' ', '_', p);
-	}
+	SAFECOPY(echotag, sub->sname);
+	char* p;
+	REPLACE_CHARS(echotag, ' ', '_', p);
 	strupr(echotag);
 	fprintf(fp, "%-*s %-*s %s\n"
 		,LEN_EXTCODE, sub->code, FIDO_AREATAG_LEN, echotag, smb_faddrtoa(&uplink, NULL));
@@ -5978,7 +5974,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.88 $", "%*s %s", revision);
+	sscanf("$Revision: 3.87 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
