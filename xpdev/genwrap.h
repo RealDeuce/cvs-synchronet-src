@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.111 2018/02/16 05:25:18 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.112 2018/07/19 18:23:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -242,6 +242,10 @@ extern "C" {
 		#define stricmp			strcasecmp
 		#define strnicmp		strncasecmp
 	#endif
+#endif
+
+#if defined(_MSC_VER)
+	DLLEXPORT char* DLLCALL strcasestr(const char* haystack, const char* needle);
 #endif
 
 /* Skip white-space chars at beginning of string */
