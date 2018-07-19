@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.86 2018/07/25 03:39:28 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.85 2018/07/01 09:40:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ int sbbs_t::bputs(const char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
-		return(lputs(LOG_INFO, str));
+		return(eprintf(LOG_INFO,"%s",str));
 
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
