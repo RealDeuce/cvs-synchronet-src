@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.673 2018/06/11 20:00:33 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.674 2018/07/19 23:18:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5095,6 +5095,7 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 				if (!tls_retry) {
 					char* estr = NULL;
 					int level;
+					lprintf(LOG_DEBUG, "%04d SEND Starting TLS session", sock);
 					if(get_ssl_cert(&scfg, &estr, &level) == -1) {
 						if (estr) {
 							lprintf(level, "%04d !SEND/TLS %s", sock, estr);
@@ -5144,6 +5145,7 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 							lprintf(LOG_INFO, "%04d SEND %s", sock, err);
 							continue;
 						}
+						lprintf(LOG_INFO, "%04d SEND/TLS Session started successfully", sock);
 					}
 				}
 				return sock;
@@ -5546,7 +5548,7 @@ static void sendmail_thread(void* arg)
 			bytes=strlen(msgtxt);
 			lprintf(LOG_DEBUG,"%04d SEND sending message text (%lu bytes) begin"
 				,sock, bytes);
-			lines=sockmsgtxt(sock,session,&msg,msgtxt,session);
+			lines=sockmsgtxt(sock,session,&msg,msgtxt,/* max_lines: */-1);
 			lprintf(LOG_DEBUG,"%04d SEND send of message text (%lu bytes, %lu lines) complete, waiting for acknowledgment (250)"
 				,sock, bytes, lines);
 			if(!sockgetrsp(sock,session,"250", buf, sizeof(buf))) {
@@ -5686,7 +5688,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.673 $", "%*s %s", revision);
+	sscanf("$Revision: 1.674 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
