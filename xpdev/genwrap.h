@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.112 2018/07/19 18:23:49 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.113 2018/07/20 05:44:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -374,6 +374,7 @@ DLLEXPORT double	DLLCALL parse_duration(const char*);
 DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL duration_to_vstr(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
+DLLEXPORT char*		DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;
