@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.677 2018/07/30 20:29:51 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.675 2018/07/20 01:34:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1810,9 +1810,7 @@ static BOOL chk_email_addr(SOCKET socket, const char* prot, char* p, char* host_
 	char	tmp[128];
 
 	SKIP_WHITESPACE(p);
-	char* lt = strrchr(p, '<');
-	if(lt!= NULL)
-		p = lt+1;
+	if(*p=='<') p++;		/* Skip '<' */
 	SAFECOPY(addr,p);
 	truncstr(addr,">( ");
 
@@ -4953,7 +4951,7 @@ void get_dns_server(char* dns_server, size_t len)
 	}
 }
 
-static BOOL sendmail_open_socket(SOCKET *sock, CRYPT_SESSION *session)
+static BOOL sendmail_open_socket(SOCKET *sock, CRYPT_SESSION *session, smb_t *smb, smbmsg_t *msg)
 {
 	int i;
 	SOCKADDR_IN	addr;
@@ -4962,6 +4960,7 @@ static BOOL sendmail_open_socket(SOCKET *sock, CRYPT_SESSION *session)
 		mail_close_socket(sock, session);
 
 	if((*sock=socket(AF_INET, SOCK_STREAM, IPPROTO_IP))==INVALID_SOCKET) {
+		remove_msg_intransit(smb,msg);
 		lprintf(LOG_ERR,"0000 SEND !ERROR %d opening socket", ERROR_VALUE);
 		return FALSE;
 	}
@@ -4970,6 +4969,7 @@ static BOOL sendmail_open_socket(SOCKET *sock, CRYPT_SESSION *session)
 	if(startup->connect_timeout) {	/* Use non-blocking socket */
 		long nbio=1;
 		if((i=ioctlsocket(*sock, FIONBIO, &nbio))!=0) {
+			remove_msg_intransit(smb,msg);
 			lprintf(LOG_ERR,"%04d SEND !ERROR %d (%d) disabling blocking on socket"
 				,*sock, i, ERROR_VALUE);
 			return FALSE;
@@ -4982,6 +4982,7 @@ static BOOL sendmail_open_socket(SOCKET *sock, CRYPT_SESSION *session)
 
 	i=bind(*sock,(struct sockaddr *)&addr, sizeof(addr));
 	if(i!=0) {
+		remove_msg_intransit(smb,msg);
 		lprintf(LOG_ERR,"%04d SEND !ERROR %d (%d) binding socket", *sock, i, ERROR_VALUE);
 		return FALSE;
 	}
@@ -5007,7 +5008,7 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 	strcpy(err,"UNKNOWN ERROR");
 
 	for (tls_retry = 0; tls_retry < 2; tls_retry++) {
-		if (!sendmail_open_socket(&sock, session))
+		if (!sendmail_open_socket(&sock, session, smb, msg))
 			continue;
 
 		success=FALSE;
@@ -5698,7 +5699,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.677 $", "%*s %s", revision);
+	sscanf("$Revision: 1.675 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
