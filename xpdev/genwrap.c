@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.109 2018/07/23 22:52:54 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.107 2018/07/19 18:23:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -89,12 +89,11 @@ char* DLLCALL strcasestr(const char* haystack, const char* needle)
 	char* p = NULL;
 	if(h != NULL && n != NULL)
 		p = strstr(strupr(h), strupr(n));
-	int offset = p - h;
 	FREE_AND_NULL(h);
 	FREE_AND_NULL(n);
 	if(p == NULL)
 		return NULL;
-	return (char*)haystack + offset;
+	return (char*)haystack + (p-h);
 }
 #endif
 
@@ -281,52 +280,25 @@ int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
 	return((int64_t)(unit>1 ? (bytes/unit):bytes));
 }
 
-static const double one_tebibyte = 1024.0*1024.0*1024.0*1024.0;
-static const double one_gibibyte = 1024.0*1024.0*1024.0;
-static const double one_mebibyte = 1024.0*1024.0;
-static const double one_kibibyte = 1024.0;
-
-/* Convert an exact byte count to a string with a floating point value
+/* Convert a byte count to a string with a floating point value
    and a single letter multiplier/suffix.
    For values evenly divisible by 1024, no suffix otherwise.
 */
 char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
 {
-	if(bytes && fmod((double)bytes,one_tebibyte)==0)
-		safe_snprintf(str, size, "%gT",bytes/one_tebibyte);
-	else if(bytes && fmod((double)bytes,one_gibibyte)==0)
-		safe_snprintf(str, size, "%gG",bytes/one_gibibyte);
-	else if(bytes && fmod((double)bytes,one_mebibyte)==0)
-		safe_snprintf(str, size, "%gM",bytes/one_mebibyte);
-	else if(bytes && fmod((double)bytes,one_kibibyte)==0)
-		safe_snprintf(str, size, "%gK",bytes/one_kibibyte);
+	if(bytes && fmod((double)bytes,1024.0*1024.0*1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gT",bytes/(1024.0*1024.0*1024.0*1024.0));
+	else if(bytes && fmod((double)bytes,1024.0*1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gG",bytes/(1024.0*1024.0*1024.0));
+	else if(bytes && fmod((double)bytes,1024.0*1024.0)==0)
+		safe_snprintf(str, size, "%gM",bytes/(1024.0*1024.0));
+	else if(bytes && fmod((double)bytes,1024.0)==0)
+		safe_snprintf(str, size, "%gK",bytes/1024.0);
 	else
 		safe_snprintf(str, size, "%"PRIi64, bytes);
 
 	return str;
 }
-
-/* Convert a rounded byte count to a string with a floating point value
-   with a single decimal place and a single letter multiplier/suffix.
-   This function also appends 'B' for exact byte counts (< 1024).
-   'unit' is the smallest divisor used.
-*/
-char* DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit, int precision)
-{
-	if(bytes >= one_tebibyte)
-		safe_snprintf(str, size, "%1.*fT", precision, bytes/one_tebibyte);
-	else if(bytes >= one_gibibyte || unit == one_gibibyte)
-		safe_snprintf(str, size, "%1.*fG", precision, bytes/one_gibibyte);
-	else if(bytes >= one_mebibyte || unit == one_mebibyte)
-		safe_snprintf(str, size, "%1.*fM", precision, bytes/one_mebibyte);
-	else if(bytes >= one_kibibyte || unit == one_kibibyte)
-		safe_snprintf(str, size, "%1.*fK", precision, bytes/one_kibibyte);
-	else
-		safe_snprintf(str, size, "%"PRIi64"B", bytes);
-
-	return str;
-}
-
 
 /* Parse a duration string, default unit is in seconds */
 /* (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes */
