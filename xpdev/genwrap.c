@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.104 2017/11/06 06:57:09 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.107 2018/07/19 18:23:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -67,7 +67,8 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	va_start(argptr,fmt);
 	numchars= vsnprintf(dst,size,fmt,argptr);
 	va_end(argptr);
-	dst[size-1]=0;
+	if (size > 0)
+		dst[size-1]=0;
 #ifdef _MSC_VER
 	if(numchars==-1)
 		numchars=strlen(dst);
@@ -76,6 +77,25 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 		numchars=size-1;
 	return(numchars);
 }
+
+#ifdef _MSC_VER
+/****************************************************************************/
+/* Case insensitive version of strstr()										*/
+/****************************************************************************/
+char* DLLCALL strcasestr(const char* haystack, const char* needle)
+{
+	char* h = strdup(haystack);
+	char* n = strdup(needle);
+	char* p = NULL;
+	if(h != NULL && n != NULL)
+		p = strstr(strupr(h), strupr(n));
+	FREE_AND_NULL(h);
+	FREE_AND_NULL(n);
+	if(p == NULL)
+		return NULL;
+	return (char*)haystack + (p-h);
+}
+#endif
 
 /****************************************************************************/
 /* Return last character of string											*/
@@ -214,7 +234,7 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 			strncpy(d,e,maxlen-(d-dst));
 			d+=strlen(d);
 		} else if((uchar)*s < ' ') {
-			d += snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
+			d += safe_snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
 		} else *d++=*s;
 	}
 	*d=0;
