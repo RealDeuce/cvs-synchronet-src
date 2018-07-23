@@ -1,6 +1,6 @@
 /* Synchronet MIME functions, originally written/submitted by Marc Lanctot */
 
-/* $Id: mime.h,v 1.4 2017/11/26 01:08:13 rswindell Exp $ */
+/* $Id: mime.h,v 1.6 2018/07/20 01:34:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,10 +38,10 @@
 
 /* mime.c */
 char *  mimegetboundary(void);
-void    mimeheaders(SOCKET socket, char * boundary);
-void    mimeblurb(SOCKET socket, char * boundary);
-void    mimetextpartheader(SOCKET socket, char * boundary, const char* charset);
-BOOL    mimeattach(SOCKET socket, char * boundary, char * pathfile);
-void    endmime(SOCKET socket, char * boundary);
+void    mimeheaders(SOCKET socket, const char* prot, int sess, char * boundary);
+void    mimeblurb(SOCKET socket, const char* prot, int sess, char * boundary);
+void    mimetextpartheader(SOCKET socket, const char* prot, int sess, char * boundary, const char* charset);
+BOOL    mimeattach(SOCKET socket, const char* prot, int sess, char * boundary, char * pathfile);
+void    endmime(SOCKET socket, const char* prot, int sess, char * boundary);
 
 #endif	/* Don't add anything after this line */
