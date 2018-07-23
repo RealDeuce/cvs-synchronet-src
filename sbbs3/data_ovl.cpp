@@ -1,6 +1,6 @@
 /* Synchronet hi-level data access routines */
 
-/* $Id: data_ovl.cpp,v 1.26 2018/07/24 23:55:29 rswindell Exp $ */
+/* $Id: data_ovl.cpp,v 1.24 2018/06/10 08:57:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,10 +50,7 @@ void sbbs_t::getmsgptrs()
 {
 	if(!useron.number)
 		return;
-	msclock_t start = msclock();
 	::getmsgptrs(&cfg,&useron,subscan,online == ON_REMOTE ? ProgressLoadingMsgPtrs : NULL,this);
-	lprintf(LOG_DEBUG, "Node %d %s read %u message scan cfg/pointers in %lu ms"
-		, cfg.node_num, useron.alias, cfg.total_subs, msclock() - start);
 	if(online == ON_REMOTE)
 		bputs(text[LoadedMsgPtrs]);
 }
