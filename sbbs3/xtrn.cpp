@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.239 2018/10/30 01:22:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.235 2018/06/21 20:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -255,13 +255,6 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
-static void petscii_convert(BYTE* buf, ulong len)
-{
-    for(ulong i=0; i<len; i++) {
-		buf[i] = cp437_to_petscii(buf[i]);
-	}
-}
-
 static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 {
 	char*	p;
@@ -407,7 +400,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	lprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	if(online!=ON_REMOTE || cfg.node_num==0)
+		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	else
+		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -799,7 +795,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gettimeleft();
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
-				logline(LOG_NOTICE,"X!","hung-up in external program");
+				sprintf(str,"%s hung-up in external program",useron.alias);
+				logline(LOG_NOTICE,"X!",str);
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -821,7 +818,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	            was_online=false;
             }
             if(hungup && time(NULL)-hungup>5 && !processTerminated) {
-				lprintf(LOG_INFO,"Terminating process from line %d", __LINE__);
+				lprintf(LOG_INFO,"Node %d Terminating process from line %d",cfg.node_num,__LINE__);
 				processTerminated=TerminateProcess(process_info.hProcess, 2112);
 			}
         }
@@ -848,9 +845,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 							,FILE_ATTRIBUTE_NORMAL
 							,(HANDLE) NULL);
 						if(wrslot==INVALID_HANDLE_VALUE)
-							lprintf(LOG_DEBUG,"!ERROR %u opening %s", GetLastError(), str);
+							lprintf(LOG_DEBUG,"Node %d !ERROR %u opening %s", cfg.node_num, GetLastError(), str);
 						else
-							lprintf(LOG_DEBUG,"CreateFile(%s)=0x%x", str, wrslot);
+							lprintf(LOG_DEBUG,"Node %d CreateFile(%s)=0x%x", cfg.node_num, str, wrslot);
 					}
 					
 					/* CR expansion */
@@ -861,16 +858,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 					len=0;
 					if(wrslot==INVALID_HANDLE_VALUE)
-						lprintf(LOG_WARNING,"VDD Open failed (not loaded yet?)");
+						lprintf(LOG_WARNING,"Node %d VDD Open failed (not loaded yet?)",cfg.node_num);
 					else if(!WriteFile(wrslot,bp,wr,&len,NULL)) {
-						lprintf(LOG_ERR,"!VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", wrslot, wr, GetLastError());
+						lprintf(LOG_ERR,"Node %d !VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", cfg.node_num, wrslot, wr, GetLastError());
 						if(GetMailslotInfo(wrslot,&wr,NULL,NULL,NULL))
-							lprintf(LOG_DEBUG,"!VDD MailSlot max_msg_size=%u", wr);
+							lprintf(LOG_DEBUG,"Node %d !VDD MailSlot max_msg_size=%u", cfg.node_num, wr);
 						else
-							lprintf(LOG_DEBUG,"!GetMailslotInfo(0x%x)=%u", wrslot, GetLastError());
+							lprintf(LOG_DEBUG,"Node %d !GetMailslotInfo(0x%x)=%u", cfg.node_num, wrslot, GetLastError());
 					} else {
 						if(len!=wr)
-							lprintf(LOG_WARNING,"VDD short write (%u instead of %u)", len,wr);
+							lprintf(LOG_WARNING,"Node %d VDD short write (%u instead of %u)",cfg.node_num,len,wr);
 						RingBufRead(&inbuf, NULL, len);
 						if(use_pipes && !(mode&EX_NOECHO)) {
 							/* echo */
@@ -936,8 +933,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
@@ -1005,8 +1000,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			}
@@ -1340,7 +1333,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
  	char* p;
 #endif
 
-	lprintf(LOG_DEBUG, "Executing external: %s", cmdline);
+	if(online!=ON_REMOTE || cfg.node_num==0)
+		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -1846,7 +1840,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				gettimeleft();
 			
 			if(!online && !(mode&EX_OFFLINE)) {
-				logline(LOG_NOTICE,"X!","hung-up in external program");
+				sprintf(str,"%s hung-up in external program",useron.alias);
+				logline(LOG_NOTICE,"X!",str);
 				break;
 			}
 
@@ -1939,21 +1934,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
+			} else if ((mode & EX_STDIO) != EX_STDIO) {
+				/* LF to CRLF expansion */
+				bp=lf_expand(buf, rd, output_buf, output_len);
+			} else if(mode&EX_WWIV) {
+                bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
+				if(output_len > sizeof(wwiv_buf))
+					lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
 			} else {
-				if ((mode & EX_STDIO) != EX_STDIO) {
-					/* LF to CRLF expansion */
-					bp=lf_expand(buf, rd, output_buf, output_len);
-				} else if(mode&EX_WWIV) {
-					bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
-					if(output_len > sizeof(wwiv_buf))
-						lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
-				} else {
-					bp=buf;
-					output_len=rd;
-				}
-				if (term_supports(PETSCII))
-					petscii_convert(bp, output_len);
+				bp=buf;
+				output_len=rd;
 			}
+
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
 				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
