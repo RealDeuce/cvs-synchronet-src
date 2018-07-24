@@ -1,4 +1,4 @@
-/* $Id: text_defaults.c,v 1.45 2018/07/23 23:06:34 rswindell Exp $ */
+/* $Id: text_defaults.c,v 1.46 2018/07/24 01:11:08 rswindell Exp $ */
 
 /* Synchronet default text strings */
 

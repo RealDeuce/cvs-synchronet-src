@@ -2,13 +2,13 @@
 
 /* Synchronet for *nix user editor */
 
-/* $Id$ */
+/* $Id: uifctest.c,v 1.8 2018/07/24 01:13:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,9 +69,9 @@ int main(int argc, char** argv)  {
 	char	ini_file[MAX_PATH+1];
 	FILE*				fp;
 
-	sscanf("$Revision$", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
-    printf("\nSynchronet UIFC Test Suite Copyright 2004 "
+    printf("\nSynchronet UIFC Test Suite Copyright "
         "Rob Swindell\n");
 
     memset(&uifc,0,sizeof(uifc));
