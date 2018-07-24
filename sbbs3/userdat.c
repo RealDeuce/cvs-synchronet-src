@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.200 2018/07/24 05:36:59 rswindell Exp $ */
+/* $Id: userdat.c,v 1.201 2018/07/24 07:03:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3058,9 +3058,9 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 			str_list_t keys = iniGetSection(ini, cfg->sub[i]->code);
 			if(keys == NULL)
 				continue;
-			subscan[i].ptr	= iniGetLongInt(keys, cfg->sub[i]->code, "ptr"	, subscan[i].ptr);
-			subscan[i].last	= iniGetLongInt(keys, cfg->sub[i]->code, "last"	, subscan[i].last);
-			subscan[i].cfg	= iniGetShortInt(keys, cfg->sub[i]->code, "cfg"	, subscan[i].cfg);
+			subscan[i].ptr	= iniGetLongInt(keys, NULL, "ptr"	, subscan[i].ptr);
+			subscan[i].last	= iniGetLongInt(keys, NULL, "last"	, subscan[i].last);
+			subscan[i].cfg	= iniGetShortInt(keys, NULL, "cfg"	, subscan[i].cfg);
 			subscan[i].sav_ptr	= subscan[i].ptr;
 			subscan[i].sav_last	= subscan[i].last;
 			subscan[i].sav_cfg	= subscan[i].cfg; 
