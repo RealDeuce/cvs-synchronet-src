@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.76 2018/10/26 03:33:14 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.74 2018/07/24 05:15:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -132,10 +132,10 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 	else
 		CRLF;
 
-	if(!menu("msghdr", P_NOERROR)) {
+	if(menu_exists("msghdr")) {
+		menu("msghdr");
+	} else {
 		bprintf(text[MsgSubj],msg->subj);
-		if(msg->tags && *msg->tags)
-			bprintf(text[MsgTags], msg->tags);
 		if(msg->hdr.attr)
 			show_msgattr(msg);
 		if(msg->to && *msg->to) {
