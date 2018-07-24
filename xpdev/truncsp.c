@@ -1,14 +1,14 @@
-/* netwrap.h */
+/* truncsp.c */
 
-/* Network related wrapper functions */
+/* Static functions to truncate white-space chars off end of ASCIIZ strings */
 
-/* $Id: netwrap.h,v 1.4 2014/02/10 09:20:44 deuce Exp $ */
+/* $Id: truncsp.c,v 1.3 2004/08/04 04:44:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,25 +35,30 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _NETWRAP_H
-#define _NETWRAP_H
+/****************************************************************************/
+/* Truncates all white-space chars off end of 'str'							*/
+/****************************************************************************/
+static char* truncsp(char* str)
+{
+	unsigned c;
 
-#include <stddef.h>		/* size_t */
-#include "str_list.h"	/* string list functions and types */
-#include "wrapdll.h"
+	c=strlen(str);
+	while(c && (str[c-1]==' ' || str[c-1]=='\t' || str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
 
-#define IPv4_LOCALHOST	0x7f000001U	/* 127.0.0.1 */
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-DLLEXPORT const char* 	DLLCALL getHostNameByAddr(const char*);
-DLLEXPORT str_list_t	DLLCALL getNameServerList(void);
-DLLEXPORT void			DLLCALL freeNameServerList(str_list_t);
-
-#if defined(__cplusplus)
+	return(str);
 }
-#endif
 
-#endif	/* Don't add anything after this line */
+/****************************************************************************/
+/* Truncates carriage-return and line-feed chars off end of 'str'			*/
+/****************************************************************************/
+static char* truncnl(char* str)
+{
+	unsigned c;
+
+	c=strlen(str);
+	while(c && (str[c-1]=='\r' || str[c-1]=='\n')) c--;
+	str[c]=0;
+
+	return(str);
+}
