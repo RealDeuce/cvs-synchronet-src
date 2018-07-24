@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.22 2018/03/31 09:38:49 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.24 2018/07/19 04:13:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		4
+#define SBBSECHO_VERSION_MINOR		5
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -213,6 +213,7 @@ typedef struct {
 	ulong		bso_lock_delay;			/* in seconds */
 	ulong		max_netmail_age;
 	ulong		max_echomail_age;
+	int64_t		min_free_diskspace;
 	struct fido_domain* domain_list;
 	unsigned	domain_count;
 	char		binkp_caps[64];

@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.233 2018/04/18 01:41:25 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.235 2018/06/21 20:23:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1329,6 +1329,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	struct timeval timeout;
     BYTE 	wwiv_buf[XTRN_IO_BUF_LEN*2];
     bool	wwiv_flag=false;
+#if defined(__FreeBSD__) || (defined(__linux__) && defined(USE_DOSEMU))
+ 	char* p;
+#endif
 
 	if(online!=ON_REMOTE || cfg.node_num==0)
 		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
@@ -1425,7 +1428,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		FILE *dosemubat;
 		int setup_override;
 		char tok[MAX_PATH+1];
- 		char* p;
 
 		char dosemuconf[MAX_PATH+1];
 		char dosemubinloc[MAX_PATH+1];
@@ -1567,7 +1569,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gamedir = getfname(str);
 		}
 		if(*gamedir == 0) {
-			lprintf(LOG_ERR, "No startup directory configured for: %s", cmdline);
+			lprintf(LOG_ERR, "No startup directory configured for DOS command-line: %s", cmdline);
 			return -1;
 		}
 		fprintf(dosemubat,"cd %s\r\n", gamedir);
