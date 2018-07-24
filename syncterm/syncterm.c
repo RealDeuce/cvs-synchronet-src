@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.220 2019/05/30 06:24:44 deuce Exp $ */
+/* $Id: syncterm.c,v 1.218 2018/03/09 06:59:56 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -54,7 +54,7 @@ char* syncterm_version = "SyncTERM 1.1b"
 #endif
 	;
 
-char	*usage =
+char	*usage = 
 		"\nusage: syncterm [options] [URL]"
         "\n\noptions:\n\n"
         "-e# =  set escape delay to #msec\n"
@@ -135,7 +135,7 @@ static BOOL winsock_startup(void)
 static const struct {
   unsigned int 	 width;
   unsigned int 	 height;
-  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */
+  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */ 
   unsigned char	 pixel_data[64 * 64 * 4 + 1];
 } syncterm_icon = {
   64, 64, 4,
@@ -788,8 +788,7 @@ BOOL check_exit(BOOL force)
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
-#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist *))
-	struct	bbslist	**list;
+	struct	bbslist	*list[MAX_OPTS+1]={NULL};
 	int		listcount=0, i;
 
 	bbs->id=-1;
@@ -871,7 +870,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
-	list = calloc(1, BBSLIST_SIZE);
 	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
 	for(i=0;i<listcount;i++) {
 		if((stricmp(bbs->addr,list[i]->addr)==0)
@@ -892,7 +890,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		}
 	}
 	free_list(&list[0],listcount);
-	free(list);
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -1202,7 +1199,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 						rmdir(oldlst);
 					}
 				}
-
+				
 			}
 		}
 	}
@@ -1506,8 +1503,8 @@ int main(int argc, char **argv)
 		return(1);
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	setscaling(settings.scaling_factor);
 	textmode(text_mode);
+	setscaling(settings.scaling_factor);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1684,7 +1681,7 @@ int main(int argc, char **argv)
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
-	if(WSAInitialized && WSACleanup()!=0)
+	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 	return(0);
