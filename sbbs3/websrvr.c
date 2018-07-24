@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.669 2018/10/06 22:34:11 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.668 2018/05/01 06:00:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6331,7 +6331,7 @@ void http_session_thread(void* arg)
 	session.last_js_user_num=-1;
 	session.logon_time=0;
 
-	session.subscan=(subscan_t*)calloc(scfg.total_subs, sizeof(subscan_t));
+	session.subscan=(subscan_t*)malloc(sizeof(subscan_t)*scfg.total_subs);
 
 	while(!session.finished) {
 		init_error=FALSE;
@@ -6443,7 +6443,7 @@ void http_session_thread(void* arg)
 	sem_wait(&session.output_thread_terminated);
 	sem_destroy(&session.output_thread_terminated);
 	RingBufDispose(&session.outbuf);
-	FREE_AND_NULL(session.subscan);
+	free(session.subscan);
 
 	clients_remain=protected_uint32_adjust(&active_clients, -1);
 	update_clients();
@@ -6521,7 +6521,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.669 $", "%*s %s", revision);
+	sscanf("$Revision: 1.668 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
