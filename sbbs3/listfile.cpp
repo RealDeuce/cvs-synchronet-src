@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.61 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.62 2018/07/23 22:41:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -716,10 +716,9 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				f.datoffset=bf[0].datoffset;
 				f.size=0;
 				getfiledat(&cfg,&f);
+				addtobatdl(&f);
 				if(ch=='D')
-					downloadfile(&f);
-				else
-					addtobatdl(&f);
+					start_batch_download();
 				CRLF;
 				return(2); 
 			}
