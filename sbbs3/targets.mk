@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.47 2018/10/08 00:07:17 rswindell Exp $
+# $Id: targets.mk,v 1.46 2018/03/17 05:43:39 deuce Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -38,8 +38,6 @@ SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
 DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
 READSAUCE	= $(EXEODIR)$(DIRSEP)readsauce$(EXEFILE)
 SHOWSTAT	= $(EXEODIR)$(DIRSEP)showstat$(EXEFILE)
-PKTDUMP		= $(EXEODIR)$(DIRSEP)pktdump$(EXEFILE)
-FMSGDUMP	= $(EXEODIR)$(DIRSEP)fmsgdump$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -48,8 +46,7 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT) \
-			  $(PKTDUMP) $(FMSGDUMP)
+			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT)
 
 all:	dlls utils console scfg uedit umonitor
 
