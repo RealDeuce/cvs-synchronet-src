@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.202 2018/07/24 08:39:07 rswindell Exp $ */
+/* $Id: userdat.c,v 1.203 2018/07/24 11:37:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3065,6 +3065,7 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 			subscan[i].sav_last	= subscan[i].last;
 			subscan[i].sav_cfg	= subscan[i].cfg; 
 			iniFreeStringList(keys);
+			iniRemoveSection(&ini, cfg->sub[i]->code);
 		}
 		iniFreeStringList(ini);
 		fclose(fp);
@@ -3175,7 +3176,7 @@ BOOL DLLCALL initmsgptrs(scfg_t* cfg, subscan_t* subscan, unsigned days, void (*
 		memset(&idx, 0, sizeof(idx));
 		smb_getlastidx(&smb, &idx);
 		subscan[i].ptr = idx.number;
-		if(idx.time > t && smb_getmsgidx_by_time(&smb, &idx, t) >= SMB_SUCCESS)
+		if(idx.time >= t && smb_getmsgidx_by_time(&smb, &idx, t) >= SMB_SUCCESS)
 			subscan[i].ptr = idx.number - 1;
 		smb_close(&smb);
 	}
