@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.222 2018/09/06 02:21:10 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.221 2018/07/16 05:42:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2418,7 +2418,7 @@ js_vote_msg(JSContext *cx, uintN argc, jsval *arglist)
 	if(parse_header_object(cx, p, hdr, &msg, FALSE)) {
 
 		rc = JS_SUSPENDREQUEST(cx);
-		if((p->smb_result=votemsg(scfg, &(p->smb), &msg, NULL, NULL)) == SMB_SUCCESS) {
+		if((p->smb_result=votemsg(scfg, &(p->smb), &msg, NULL)) == SMB_SUCCESS) {
 			JS_RESUMEREQUEST(cx, rc);
 			JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 		}
