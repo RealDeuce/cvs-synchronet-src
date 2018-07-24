@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.61 2018/08/03 06:18:57 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.60 2015/08/28 02:04:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,7 +69,8 @@ bool sbbs_t::uploadfile(file_t *f)
 		mv(tmp,path,0);
 	if(!fexistcase(path)) {
 		bprintf(text[FileNotReceived],f->name);
-		sprintf(str,"attempted to upload %s to %s %s (Not received)"
+		sprintf(str,"%s attempted to upload %s to %s %s (Not received)"
+			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 		logline(LOG_NOTICE,"U!",str);
@@ -99,7 +100,8 @@ bool sbbs_t::uploadfile(file_t *f)
 				fclose(stream); 
 			}
 			if(external(cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL),EX_OFFLINE)) {
-				sprintf(str,"attempted to upload %s to %s %s (%s Errors)"
+				sprintf(str,"%s attempted to upload %s to %s %s (%s Errors)"
+					,useron.alias
 					,f->name
 					,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname,cfg.ftest[i]->ext);
 				logline(LOG_NOTICE,"U!",str);
@@ -140,7 +142,8 @@ bool sbbs_t::uploadfile(file_t *f)
 	if((length=(long)flength(path))==0L) {
 		bprintf(text[FileZeroLength],f->name);
 		remove(path);
-		sprintf(str,"attempted to upload %s to %s %s (Zero length)"
+		sprintf(str,"%s attempted to upload %s to %s %s (Zero length)"
+			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 		logline(LOG_NOTICE,"U!",str);
@@ -210,7 +213,8 @@ bool sbbs_t::uploadfile(file_t *f)
 	if(f->misc&FM_EXTDESC)
 		putextdesc(&cfg,f->dir,f->datoffset,ext);
 
-	sprintf(str,"uploaded %s to %s %s"
+	sprintf(str,"%s uploaded %s to %s %s"
+		,useron.alias
 		,f->name,cfg.lib[cfg.dir[f->dir]->lib]->sname
 		,cfg.dir[f->dir]->sname);
 	if(cfg.dir[f->dir]->upload_sem[0])
