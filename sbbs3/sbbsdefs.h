@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.220 2018/02/03 23:39:28 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.222 2018/07/24 01:11:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,8 +57,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
-#define COPYRIGHT_CRC		0x5891b729
+#define COPYRIGHT_NOTICE	"Copyright 2018 Rob Swindell"
+#define COPYRIGHT_CRC		0x930AE2A9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -211,6 +211,7 @@ typedef struct js_callback {
 #define NMAIL_ALIAS 	(1<<4)		/* Use Aliases in NetMail */
 #define NMAIL_FILE		(1<<5)		/* Allow file attachments */
 #define NMAIL_DIRECT	(1<<6)		/* Default netmail to direct */
+#define NMAIL_CHSRCADDR	(1<<7)		/* Allow sender to choose source address */
 
 									/* Bit values for subscan_t.cfg and sav_cfg	*/
 #define SUB_CFG_NSCAN	0x0005		/* Auto-scan for new messages				*/
