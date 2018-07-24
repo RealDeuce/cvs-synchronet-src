@@ -1,6 +1,6 @@
 { Synchronet User Editor (Delphi 5 for Win32 project) }
 
-{ $Id: MainFormUnit.pas,v 1.11 2019/02/17 00:04:25 rswindell Exp $ }
+{ $Id: MainFormUnit.pas,v 1.10 2015/08/20 05:21:57 deuce Exp $ }
 
 {****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -838,9 +838,9 @@ begin
     { Open file and read current user record }
     Str:=data_dir+'user/user.dat';
     if FileExists(Str) then
-        f:=TFileStream.Create(Str,fmOpenReadWrite or fmShareDenyNone)
+        f:=TFileStream.Create(Str,fmOpenReadWrite or fmShareExclusive)
     else
-        f:=TFileStream.Create(Str,fmCreate or fmShareDenyNone);
+        f:=TFileStream.Create(Str,fmCreate or fmShareExclusive);
 
     f.Seek((usernumber-1)*U_LEN,soFromBeginning);
     f.Read(buf,U_LEN);
