@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.80 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.79 2018/07/07 06:14:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -181,11 +181,14 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			domsg=0; 
 	}
 	if(which==MAIL_SENT) {
-		logline("E","read sent mail");
+		sprintf(str,"%s read sent mail",useron.alias);
+		logline("E",str);
 	} else if(which==MAIL_ALL) {
-		logline("S+","read all mail");
+		sprintf(str,"%s read all mail",useron.alias);
+		logline("S+",str);
 	} else {
-		logline("E","read mail");
+		sprintf(str,"%s read mail",useron.alias);
+		logline("E",str);
 	}
 	const char* menu_file = (which == MAIL_ALL ? "allmail" : which==MAIL_SENT ? "sentmail" : "mailread");
 	if(useron.misc&RIP)
@@ -347,7 +350,8 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 										bprintf(text[FileNBytesSent]
 											,fd.name,ultoac(length,tmp));
 										sprintf(str3
-											,"downloaded attached file: %s"
+											,"%s downloaded attached file: %s"
+											,useron.alias
 											,fd.name);
 										logline("D-",str3); 
 									}
