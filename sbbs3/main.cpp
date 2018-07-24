@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.717 2018/04/24 02:23:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.720 2018/06/30 01:11:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -215,9 +215,11 @@ static void thread_down()
 int lputs(int level, const char* str)
 {
 	if(level <= LOG_ERR) {
-		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, str);
+		char errmsg[1024];
+		SAFEPRINTF(errmsg, "term %s", str);
+		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
-			startup->errormsg(startup->cbdata,level,str);
+			startup->errormsg(startup->cbdata,level,errmsg);
 	}
 
 	if(startup==NULL || startup->lputs==NULL || str==NULL || level > startup->log_level)
@@ -1722,7 +1724,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
                 sbbs->telnet_cmdlen=0;
 
             }
-			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commads
+			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
 				outbuf[outlen++]=inbuf[i];
         } else
         	outbuf[outlen++]=inbuf[i];
@@ -2155,10 +2157,10 @@ void passthru_output_thread(void* arg)
 
 		if(sbbs->ssh_mode) {
 			pthread_mutex_lock(&sbbs->ssh_mutex);
-			if(cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i)))
-				rd=0;
-			else {
+			if(!cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i))) {
 				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+				rd=0;
+			} else {
 				if(!i) {
 					pthread_mutex_unlock(&sbbs->ssh_mutex);
 					continue;
@@ -2168,7 +2170,7 @@ void passthru_output_thread(void* arg)
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
 		else
-    	rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
+    		rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
 
 		if(rd == SOCKET_ERROR)
 		{
@@ -3295,6 +3297,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 			backslash(path);
 			SAFECOPY(cfg.temp_dir,path);
 		}
+		syspage_semfile[0] = 0;
 	}
 	::lprintf(LOG_DEBUG,"%s temporary file directory: %s", nodestr, cfg.temp_dir);
 
@@ -3313,6 +3316,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	SAFECOPY(client_name, name);
 	client_socket_dup=INVALID_SOCKET;
 	client_ident[0]=0;
+	client_ipaddr[0]=0;
 
 	telnet_location[0]=0;
 	terminal[0]=0;
@@ -3403,6 +3407,8 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	global_int_var_name=NULL;
 	sysvar_li=0;
 	sysvar_pi=0;
+	memset(sysvar_p, 0, sizeof(sysvar_p));
+	memset(sysvar_l, 0, sizeof(sysvar_l));
 
 	cursub=NULL;
 	cursubnum=INVALID_SUB;

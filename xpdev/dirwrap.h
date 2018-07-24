@@ -1,13 +1,13 @@
 /* Directory system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.h,v 1.48 2017/11/16 07:16:28 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.49 2018/07/24 01:13:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
