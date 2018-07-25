@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.62 2018/07/23 22:41:09 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.63 2018/07/25 00:40:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -530,7 +530,7 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
 			attr(cfg.color[clr_filedesc]^HIGH);
 			bprintf("%.*s",i,str+j);
 			attr(cfg.color[clr_filedesc]);
-			bprintf("%.*s",strlen(str)-(j+i),str+j+i); 
+			bprintf("%.*s",(int)(strlen(str)-(j+i)),str+j+i); 
 		}
 		else
 			bputs(str);

@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.482 2018/07/24 05:15:45 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.483 2018/07/25 00:40:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -686,8 +686,16 @@ public:
 	/* con_out.cpp */
 	int		bputs(const char *str);					/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
-	int		bprintf(const char *fmt, ...);			/* BBS printf function */
-	int		rprintf(const char *fmt, ...);			/* BBS raw printf function */
+	int		bprintf(const char *fmt, ...)			/* BBS printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
@@ -811,7 +819,11 @@ public:
 
 	/* main.cpp */
 	int		lputs(int level, const char* str);
-	int		lprintf(int level, const char *fmt, ...);
+	int		lprintf(int level, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this'
+#endif
+	;
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
