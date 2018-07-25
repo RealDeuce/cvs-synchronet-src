@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.207 2018/10/22 04:18:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.203 2018/07/24 11:37:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -418,10 +418,8 @@ int DLLCALL getuserdat(scfg_t* cfg, user_t *user)
 	if(!VALID_CFG(cfg) || user==NULL || user->number < 1)
 		return(-1); 
 
-	if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0) {
-		user->number = 0;
+	if((file = openuserdat(cfg, /* for_modify: */FALSE)) < 0)
 		return file;
-	}
 
 	memset(userdat, 0, sizeof(userdat));
 	if((retval = readuserdat(cfg, user->number, userdat, file)) != 0) {
@@ -799,7 +797,7 @@ int DLLCALL getnodedat(scfg_t* cfg, uint number, node_t *node, int* fdp)
 				&& lock(file,(long)number*sizeof(node_t),sizeof(node_t))!=0) 
 				continue; 
 			rd=read(file,node,sizeof(node_t));
-			if(rd!=sizeof(node_t))
+			if(fdp==NULL || rd!=sizeof(node_t))
 				unlock(file,(long)number*sizeof(node_t),sizeof(node_t));
 			if(rd==sizeof(node_t))
 				break;
@@ -1302,7 +1300,6 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	chsize(file,0L);
 	close(file);
 	buf[length]=0;
-	strip_invalid_attr(buf);
 
 	return(buf);	/* caller must free */
 }
@@ -1478,7 +1475,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 		artype=(**ptrptr);
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
-			case AR_PETSCII:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -1529,11 +1525,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				break;
 			case AR_ANSI:
 				if(user==NULL || !(user->misc&ANSI))
-					result=not;
-				else result=!not;
-				break;
-			case AR_PETSCII:
-				if(user==NULL || !(user->misc&PETSCII))
 					result=not;
 				else result=!not;
 				break;
@@ -1957,15 +1948,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
-				break;
-			case AR_TERM:
-				result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_ROWS:
-			case AR_COLS:
-				result=!not;
 				break;
 		} 
 	}
@@ -3079,7 +3061,6 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 			subscan[i].ptr	= iniGetLongInt(keys, NULL, "ptr"	, subscan[i].ptr);
 			subscan[i].last	= iniGetLongInt(keys, NULL, "last"	, subscan[i].last);
 			subscan[i].cfg	= iniGetShortInt(keys, NULL, "cfg"	, subscan[i].cfg);
-			subscan[i].cfg &= (SUB_CFG_NSCAN|SUB_CFG_SSCAN|SUB_CFG_YSCAN);	// Sanitize the 'cfg' value
 			subscan[i].sav_ptr	= subscan[i].ptr;
 			subscan[i].sav_last	= subscan[i].last;
 			subscan[i].sav_cfg	= subscan[i].cfg; 
@@ -3140,32 +3121,24 @@ BOOL DLLCALL putmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan)
 	FILE* fp = fnopen(NULL, path, O_RDWR|O_CREAT|O_TEXT);
 	if (fp == NULL)
 		return FALSE;
-	str_list_t new = strListInit();
 	str_list_t ini = iniReadFile(fp);
 	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "" };
 	BOOL modified = FALSE;
 	for(i=0; i < cfg->total_subs; i++) {
-		str_list_t keys = iniGetSection(ini, cfg->sub[i]->code);
+		BOOL exists = iniSectionExists(ini, cfg->sub[i]->code);
 		if(subscan[i].sav_ptr==subscan[i].ptr 
 			&& subscan[i].sav_last==subscan[i].last
 			&& subscan[i].sav_cfg==subscan[i].cfg
-			&& keys != NULL && *keys != NULL)
-			iniAppendSectionWithKeys(&new, cfg->sub[i]->code, keys, &ini_style);
-		else {
-			iniSetLongInt(&new, cfg->sub[i]->code, "ptr", subscan[i].ptr, &ini_style);
-			iniSetLongInt(&new, cfg->sub[i]->code, "last", subscan[i].last, &ini_style);
-			iniSetHexInt(&new, cfg->sub[i]->code, "cfg", subscan[i].cfg, &ini_style);
-			iniSetDateTime(&new, cfg->sub[i]->code, "updated", /* include_time: */TRUE, now, &ini_style);
-			modified = TRUE;
-		}
-		if(keys != NULL) {
-			iniRemoveSection(&ini, cfg->sub[i]->code);
-			iniFreeStringList(keys);
-		}
+			&& exists)
+			continue;
+		iniSetLongInt(&ini, cfg->sub[i]->code, "ptr", subscan[i].ptr, &ini_style);
+		iniSetLongInt(&ini, cfg->sub[i]->code, "last", subscan[i].last, &ini_style);
+		iniSetHexInt(&ini, cfg->sub[i]->code, "cfg", subscan[i].cfg, &ini_style);
+		iniSetDateTime(&ini, cfg->sub[i]->code, "updated", /* include_time: */TRUE, now, &ini_style);
+		modified = TRUE;
 	}
-	if(modified || strListCount(ini))
-		result = iniWriteFile(fp, new);
-	strListFree(&new);
+	if(modified)
+		result = iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	fclose(fp);
 
@@ -3230,12 +3203,10 @@ BOOL DLLCALL fixmsgptrs(scfg_t* cfg, subscan_t* subscan)
 		SAFEPRINTF2(smb.file,"%s%s",cfg->sub[i]->data_dir,cfg->sub[i]->code);
 		smb.retry_time=cfg->smb_retry_time;
 		smb.subnum=i;
-		if(smb_open_index(&smb) != SMB_SUCCESS) {
-			subscan[i].ptr = 0;
+		if(smb_open_index(&smb) != SMB_SUCCESS)
 			continue;
-		}
 		idxrec_t idx;
-		memset(&idx, 0, sizeof(idx));
+		memset(&idx, 0xff, sizeof(idx));
 		smb_getlastidx(&smb, &idx);
 		if(subscan[i].ptr > idx.number)
 			subscan[i].ptr = idx.number;
