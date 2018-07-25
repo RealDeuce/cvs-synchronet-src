@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.722 2018/07/25 04:00:55 rswindell Exp $ */
+/* $Id: main.cpp,v 1.723 2018/07/25 06:12:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3255,6 +3255,7 @@ void event_thread(void* arg)
 		mswait(1000);
 	}
 	sbbs->cfg.node_num=0;
+	sbbs->useron.number = 0;
 	sbbs->js_cleanup();
 
 	sbbs->event_thread_running = false;
