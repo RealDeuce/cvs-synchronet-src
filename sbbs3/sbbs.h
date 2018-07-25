@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.484 2018/07/25 03:39:28 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.485 2018/07/25 03:43:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -376,7 +376,7 @@ public:
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
-	char*	event_code;				// Internal code of next exclusive event
+	const char*	event_code;				// Internal code of next exclusive event
 	bool	is_event_thread;
 	bool	event_thread_running;
     bool	output_thread_running;
