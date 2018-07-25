@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.75 2018/06/08 21:59:54 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.79 2018/07/07 06:14:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,7 @@ static char mail_listing_flag(smbmsg_t* msg)
 /****************************************************************************/
 /* Reads mail waiting for usernumber.                                       */
 /****************************************************************************/
-void sbbs_t::readmail(uint usernumber, int which)
+void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 {
 	char	str[256],str2[256],str3[256],done=0,domsg=1
 			,*p,*tp,*sp,ch;
@@ -66,7 +66,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 	int		error;
 	int		mismatches=0,act;
 	uint	unum;
-    long    length,l,lm_mode, last_mode;
+    long    length,l,last_mode;
 	ulong	last;
 	bool	replied;
 	file_t	fd;
@@ -78,7 +78,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 		char cmdline[256];
 
 		readmail_inside = true;
-		safe_snprintf(cmdline, sizeof(cmdline), "%s %d %u", cfg.readmail_mod, which, usernumber);
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %d %u %lu", cfg.readmail_mod, which, usernumber, lm_mode);
 		exec_bin(cmdline, &main_csi);
 		readmail_inside = false;
 		return;
@@ -107,9 +107,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 	}
 
 	if(cfg.sys_misc&SM_SYSVDELM && (SYSOP || cfg.sys_misc&SM_USRVDELM))
-		lm_mode=LM_INCDEL;
-	else
-		lm_mode=0;
+		lm_mode |= LM_INCDEL;
 	mail=loadmail(&smb,&smb.msgs,usernumber,which,lm_mode);
 	last_mode = lm_mode;
 	if(!smb.msgs) {
@@ -118,7 +116,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 		else if(which==MAIL_ALL)
 			bputs(text[NoMailOnSystem]);
 		else
-			bprintf(text[NoMailWaiting], "mail");
+			bprintf(text[NoMailWaiting], lm_mode&LM_UNREAD ? "un-read mail" : "mail");
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
 		return; 
@@ -192,11 +190,9 @@ void sbbs_t::readmail(uint usernumber, int which)
 		sprintf(str,"%s read mail",useron.alias);
 		logline("E",str);
 	}
-	if(useron.misc&RIP) {
-		strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL ?
-			"allmail" : "sentmail");
-		menu(str); 
-	}
+	const char* menu_file = (which == MAIL_ALL ? "allmail" : which==MAIL_SENT ? "sentmail" : "mailread");
+	if(useron.misc&RIP)
+		menu(menu_file); 
 	current_msg=&msg;	/* For MSG_* @-codes and bbs.msg_* property values */
 	while(online && !done) {
 		action=act;
@@ -312,6 +308,9 @@ void sbbs_t::readmail(uint usernumber, int which)
 					padfname(tp,fd.name);
 					SAFEPRINTF3(path,"%sfile/%04u.in/%s"  /* path is path/fname */
 						,cfg.data_dir,msg.idx.to,tp);
+					if(!fexistcase(path) && msg.idx.from)
+						SAFEPRINTF3(path,"%sfile/%04u.out/%s"  /* path is path/fname */
+							,cfg.data_dir,msg.idx.from,tp);
 					length=(long)flength(path);
 					if(length<1)
 						bprintf(text[FileDoesNotExist], tp);
@@ -397,11 +396,8 @@ void sbbs_t::readmail(uint usernumber, int which)
 		}
 		else domsg=1;
 
-		if(useron.misc&WIP) {
-			strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL ?
-				"allmail" : "sentmail");
-			menu(str); 
-		}
+		if(useron.misc&WIP)
+			menu(menu_file); 
 
 		ASYNC;
 		if(which==MAIL_SENT)
@@ -410,9 +406,9 @@ void sbbs_t::readmail(uint usernumber, int which)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRTU?<>[]{}-+/");
+		sprintf(str,"ADFLNQRT?<>[]{}-+/");
 		if(SYSOP)
-			strcat(str,"C!SPH");
+			strcat(str,"CUSPH");
 		if(which == MAIL_YOUR)
 			strcat(str,"K");	// kill all (visible)
 		else
@@ -785,32 +781,39 @@ void sbbs_t::readmail(uint usernumber, int which)
 				}
 				smb.curmsg=(u-1);
 				break;
-			case '!':   /* user edit */
+			case 'U':   /* user edit */
 				msg.hdr.number=msg.idx.number;
 				smb_getmsgidx(&smb,&msg);
-				if((unum=(which==MAIL_SENT ? msg.idx.to : msg.idx.from)) == 0)
-					unum=(which==MAIL_SENT ? msg.idx.from : msg.idx.to);
+				unum = msg.idx.from;
+				if(unum == 0)
+					unum = matchuser(&cfg, msg.from, /*sysop_alias: */FALSE);
+				if(unum == 0 && which != MAIL_YOUR)
+					unum = msg.idx.to;
 				if(unum == 0 || unum > lastuser(&cfg)) {
 					bputs(text[UnknownUser]);
 					domsg=false;
 				} else
 					useredit(unum);
 				break;
+#if 0
 			case 'U':	/* View Unread-Only (toggle) */
 			{
 				domsg = false;
 				if(!(lm_mode&LM_UNREAD)) {
-					if(!getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */0)) {
-						bprintf(text[NoMailWaiting], "Un-read");
+					if(getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */0)
+						== getmail(&cfg, usernumber, /* Sent: */FALSE, /* attr: */MSG_READ)) {
+						bprintf(text[NoMailWaiting], "un-read mail");
 						break;
 					}
 				}
 				lm_mode ^= LM_UNREAD;
-				bputs(text[DisplayUnreadMessagesOnlyQ]);
-				bputs((lm_mode&LM_UNREAD) ? text[On] : text[Off]);
+				bprintf("%s: %s"
+					,text[DisplayUnreadMessagesOnlyQ]
+					,(lm_mode&LM_UNREAD) ? text[On] : text[Off]);
 				CRLF;
 				break;
 			}
+#endif
 			case 'V':	/* View SPAM (toggle) */
 			{
 				domsg = false;
@@ -865,9 +868,7 @@ void sbbs_t::readmail(uint usernumber, int which)
 				searchmail(mail, (long)i64, smb.msgs, which, search_str);
 				break;
 			case '?':
-				strcpy(str,which==MAIL_YOUR ? "mailread" : which==MAIL_ALL
-						? "allmail" : "sentmail");
-				menu(str);
+				menu(menu_file);
 				if(SYSOP && which==MAIL_SENT)
 					menu("syssmail");
 				else if(SYSOP && which==MAIL_YOUR)
