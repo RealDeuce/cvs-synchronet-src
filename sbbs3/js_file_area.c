@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.53 2017/10/23 03:20:14 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.54 2018/02/20 11:25:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,6 +171,8 @@ JSBool DLLCALL js_file_area_resolve(JSContext* cx, JSObject* areaobj, jsid id)
 			if(!JS_SetElement(cx, alt_list, l, &val))
 				return JS_FALSE;
 		}
+		if(name)
+			return(JS_TRUE);
 	}
 
 #ifdef BUILD_JSDOCS
