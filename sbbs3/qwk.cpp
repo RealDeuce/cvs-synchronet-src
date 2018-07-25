@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.87 2019/01/01 10:56:31 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.83 2018/07/23 23:05:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -295,13 +295,11 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 		SAFECOPY(id,useron.alias);
 		strlwr(id);
 		sprintf(str,"%sqnet/%s.out/",cfg.data_dir,id);
-		long result = delfiles(str,ALLFILES);
-		if(result < 0)
-			errormsg(WHERE, ERR_REMOVE, str, result);
+		delfiles(str,ALLFILES);
 	}
 
 	if(!prepack) {
-		SAFECOPY(str, "downloaded QWK packet");
+		sprintf(str,"%s downloaded QWK packet",useron.alias);
 		logline("D-",str);
 		posts_read+=msgcnt;
 
@@ -1187,22 +1185,14 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 			msg.hdr.votes = iniGetShortInt(ini, section, "votes", 0);
 			notice = text[PollVoteNotice];
 		}
-		result = votemsg(&cfg, &smb, &msg, notice, text[VoteNoticeFmt]);
-		if(result != SMB_SUCCESS && result != SMB_DUPE_MSG) {
-			if(hubnum >= 0)
-				lprintf(LOG_DEBUG, "Error %s (%d) writing vote-msg to %s", smb.last_error, result, smb.file);
-			else
-				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
-		}
+		result = votemsg(&cfg, &smb, &msg, notice);
+		if(result != SMB_SUCCESS && result != SMB_DUPE_MSG)
+			errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 	}
 	else if(strnicmp(section, "close:", 6) == 0) {
 		smb_hfield_str(&msg, RFC822MSGID, section + 6);
-		if((result = smb_addpollclosure(&smb, &msg, smb_storage_mode(&cfg, &smb))) != SMB_SUCCESS) {
-			if(hubnum >= 0)
-				lprintf(LOG_DEBUG, "Error %s (%d) writing poll-close-msg to %s", smb.last_error, result, smb.file);
-			else
-				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
-		}
+		if((result = smb_addpollclosure(&smb, &msg, smb_storage_mode(&cfg, &smb))) != SMB_SUCCESS)
+			errormsg(WHERE,ERR_WRITE,smb.file,result,smb.last_error);
 	}
 	else result = SMB_SUCCESS;
 
