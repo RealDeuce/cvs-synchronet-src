@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.79 2018/07/25 00:40:30 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.80 2018/07/25 03:39:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -590,12 +590,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			break; 
 	}
 
-	if(online==ON_LOCAL) /* event */
-		eprintf(LOG_INFO,"%s scanned %lu sub-boards for new messages"
-			,useron.alias,subs_scanned);
-	else
-		lprintf(LOG_INFO,"Node %d %s scanned %lu sub-boards for new messages"
-			,cfg.node_num,useron.alias,subs_scanned);
+	lprintf(LOG_INFO,"scanned %lu sub-boards for new messages", subs_scanned);
 
 	if((*msgcnt)+mailmsgs) {
 		time_t elapsed = time(NULL)-start;
@@ -608,15 +603,11 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				,ftell(qwk)
 				,elapsed
 				,((*msgcnt)+mailmsgs) / elapsed);
-		SAFEPRINTF4(str,"Packed %lu messages (%lu bytes) in %lu seconds (%lu msgs/sec)"
+		lprintf(LOG_INFO, "packed %lu messages (%lu bytes) in %lu seconds (%lu msgs/sec)"
 			,(*msgcnt)+mailmsgs
 			,ftell(qwk)
 			,(ulong)elapsed
 			,((*msgcnt)+mailmsgs)/elapsed);
-		if(online==ON_LOCAL) /* event */
-			eprintf(LOG_INFO,"%s",str);
-		else
-			lprintf(LOG_INFO,"%s",str);
 	}
 
 	BOOL voting_data = FALSE;
@@ -652,10 +643,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				continue;
 			SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
 			lncntr=0;	/* Defeat pause */
-			if(online==ON_LOCAL)
-				eprintf(LOG_INFO,"Including %s in packet",str);
-			else
-				lprintf(LOG_INFO,"Including %s in packet",str);
+			lprintf(LOG_INFO,"Including %s in packet",str);
 			bprintf(text[RetrievingFile],str);
 			if(!mv(str,tmp2,/* copy: */TRUE))
 				netfiles++;
