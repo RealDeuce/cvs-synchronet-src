@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.49 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: baja.c,v 1.50 2018/06/30 02:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3412,7 +3412,13 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.49 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
+
+	p = getenv("BAJAINCLUDE");
+	if(p != NULL) {
+		SAFECOPY(include_dir, p);
+		backslash(include_dir);
+	}
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
