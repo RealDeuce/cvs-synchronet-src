@@ -2,7 +2,7 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.12 2019/01/11 12:16:26 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.11 2017/10/18 07:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,15 +40,11 @@
 #include <ctype.h>		/* isdigit */
 #include <string.h>		/* strcmp */
 
-#ifndef CTRL_Z
-#define CTRL_Z 0x1a
-#endif
-
 static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.12 $", "%*s %s", revision);
+	sscanf("$Revision: 1.11 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet ANSI-Terminal-Sequence to Ctrl-A-Code Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.ans [outfile.asc] [[option] [...]]\n",prog);
@@ -110,7 +106,7 @@ int main(int argc, char **argv)
 	if(clear)
 		fprintf(out,"\1n\1l");
 	esc=0;
-	while((ch=fgetc(in))!=EOF && ch != CTRL_Z) {
+	while((ch=fgetc(in))!=EOF) {
 		if(ch=='[' && esc) {    /* ANSI escape sequence */
 			ni=0;				/* zero number index */
 			memset(n,1,sizeof(n));
@@ -144,16 +140,9 @@ int main(int argc, char **argv)
 						if(isdigit(ch)) ch=fgetc(in);
 						if(isdigit(ch)) fgetc(in);
 						break;
-					case 'f':
-					case 'H':
-						if(n[0]<=1 && n[1]<=1)			/* home cursor */
-							fputs("\1`", out);
-						break;
 					case 'J':
 						if(n[0]==2) 					/* clear screen */
-							fputs("\1L",out);           /* ctrl-aL */
-						else if(n[0]==0)				/* clear to EOS */
-							fputs("\1J",out);           /* ctrl-aJ */
+							fputs("\1l",out);           /* ctrl-al */
 						break;
 					case 'K':
 						fputs("\1>",out);               /* clear to eol */
@@ -164,44 +153,44 @@ int main(int argc, char **argv)
 							switch(n[i]) {
 								case 0:
 								case 2: 				/* no attribute */
-									fputc('N',out);
+									fputc('n',out);
 									break;
 								case 1: 				/* high intensity */
-									fputc('H',out);
+									fputc('h',out);
 									break;
 								case 3:
 								case 4:
 								case 5: 				/* blink */
 								case 6:
 								case 7:
-									fputc('I',out);
+									fputc('i',out);
 									break;
 								case 8: 				/* concealed */
-									fputc('E',out);		/* Elite-text, long unsupported (but should be resurrected?) */
+									fputc('e',out);		/* Elite-text, long unsupported (but should be resurrected?) */
 									break;
 								case 30:
-									fputc('K',out);
+									fputc('k',out);
 									break;
 								case 31:
-									fputc('R',out);
+									fputc('r',out);
 									break;
 								case 32:
-									fputc('G',out);
+									fputc('g',out);
 									break;
 								case 33:
-									fputc('Y',out);
+									fputc('y',out);
 									break;
 								case 34:
-									fputc('B',out);
+									fputc('b',out);
 									break;
 								case 35:
-									fputc('M',out);
+									fputc('m',out);
 									break;
 								case 36:
-									fputc('C',out);
+									fputc('c',out);
 									break;
 								case 37:
-									fputc('W',out);
+									fputc('w',out);
 									break;
 								case 40:
 									fputc('0',out);
@@ -235,7 +224,7 @@ int main(int argc, char **argv)
 						break;
 					case 'B':	/* cursor down */
 						while(n[0]) {
-							fprintf(out,"\1]");	/* linefeed */
+							fprintf(out,"\n");
 							n[0]--;
 						}
 						break;
@@ -244,10 +233,10 @@ int main(int argc, char **argv)
 						break;
 					case 'D':	/* cursor left */
 						if(n[0]>=80)
-							fprintf(out,"\1[");
+							fprintf(out,"\r");
 						else
 							while(n[0]) {
-								fprintf(out,"\1<");
+								fprintf(out,"\b");
 								n[0]--;
 							}
 						break;
