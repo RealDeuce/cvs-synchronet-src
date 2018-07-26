@@ -1,6 +1,6 @@
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.26 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.25 2018/07/24 05:15:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,8 +80,8 @@ void sbbs_t::scansubs(long mode)
 						found=listsub(usrsub[curgrp][i],SCAN_FIND,0,str);
 						subs_scanned++;
 					}
-				sprintf(tmp,"searched %lu sub-boards for '%s'"
-					,subs_scanned,str);
+				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
+					,useron.alias,subs_scanned,str);
 				logline(nulstr,tmp);
 				if(!found)
 					CRLF;
@@ -185,8 +185,8 @@ void sbbs_t::scanallsubs(long mode)
 				}
 				if(!found)
 					CRLF;
-				sprintf(tmp,"searched %lu sub-boards for '%s'"
-					,subs_scanned,str);
+				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
+					,useron.alias,subs_scanned,str);
 				logline(nulstr,tmp);
 				return; 
 			}
