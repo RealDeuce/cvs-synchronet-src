@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.63 2018/10/15 04:08:57 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.61 2018/06/25 21:13:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,7 +270,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		} 
 	}
 
-	lprintf(LOG_DEBUG, "NetMail subject: %s", subj);
+	lprintf(LOG_DEBUG, "Node %d NetMail subject: %s", cfg.node_num, subj);
 	p=subj;
 	if((SYSOP || useron.exempt&FLAG('F'))
 		&& !strnicmp(p,"CR:",3)) {     /* Crash over-ride by sysop */
@@ -353,10 +353,12 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(!(useron.exempt&FLAG('S')))
 		subtract_cdt(&cfg,&useron,cfg.netmail_cost);
 	if(mode&WM_FILE)
-		SAFEPRINTF2(str,"sent NetMail file attachment to %s (%s)"
+		SAFEPRINTF3(str,"%s sent NetMail file attachment to %s (%s)"
+			,useron.alias
 			,to, smb_faddrtoa(&dest_addr,tmp));
 	else
-		SAFEPRINTF2(str,"sent NetMail to %s (%s)"
+		SAFEPRINTF3(str,"%s sent NetMail to %s (%s)"
+			,useron.alias
 			,to, smb_faddrtoa(&dest_addr,tmp));
 	logline("EN",str);
 
@@ -861,7 +863,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	while(l<length) {
 		if(qwkbuf[l]==CTRL_A) {   /* Ctrl-A, so skip it and the next char */
 			l++;
-			if(l>=length)
+			if(l>=length || toupper(qwkbuf[l])=='Z')	/* EOF */
 				break;
 			if((ch=ctrl_a_to_ascii_char(qwkbuf[l])) != 0)
 				write(fido,&ch,1);
