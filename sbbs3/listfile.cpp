@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.61 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.63 2018/07/25 00:40:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -530,7 +530,7 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
 			attr(cfg.color[clr_filedesc]^HIGH);
 			bprintf("%.*s",i,str+j);
 			attr(cfg.color[clr_filedesc]);
-			bprintf("%.*s",strlen(str)-(j+i),str+j+i); 
+			bprintf("%.*s",(int)(strlen(str)-(j+i)),str+j+i); 
 		}
 		else
 			bputs(str);
@@ -716,10 +716,9 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				f.datoffset=bf[0].datoffset;
 				f.size=0;
 				getfiledat(&cfg,&f);
+				addtobatdl(&f);
 				if(ch=='D')
-					downloadfile(&f);
-				else
-					addtobatdl(&f);
+					start_batch_download();
 				CRLF;
 				return(2); 
 			}

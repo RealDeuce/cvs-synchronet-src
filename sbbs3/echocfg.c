@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.31 2018/03/31 09:43:21 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.35 2018/07/19 04:13:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,12 +78,16 @@ void global_settings(void)
 		sprintf(opt[i++], "%-25s %s", "Log Level", logLevelStringList[cfg.log_level]);
 		sprintf(opt[i++], "%-25s %s", "Log Timestamp Format", cfg.logtime);
 		sprintf(opt[i++], "%-25s %s", "Strict Packet Passwords", cfg.strict_packet_passwords ? "Enabled" : "Disabled");
-		sprintf(opt[i++], "%-25s %s", "BSY Mutex File Timeout", duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration)));
-		sprintf(opt[i++], "%-25s %s", "BSO Lock Attempt Delay", duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration)));
-		sprintf(opt[i++], "%-25s %lu", "BSO Lock Attempt Limit", cfg.bso_lock_attempts);
 		sprintf(opt[i++], "%-25s %u", "Config File Backups", cfg.cfgfile_backups);
-		sprintf(opt[i++], "%-25s %s", "BinkP Capabilities", cfg.binkp_caps);
-		sprintf(opt[i++], "%-25s %s", "BinkP Sysop Name", cfg.binkp_sysop);
+		sprintf(opt[i++], "%-25s %s bytes", "Minimum Free Disk Space"
+			, byte_count_to_str(cfg.min_free_diskspace, str, sizeof(str)));
+		sprintf(opt[i++], "%-25s %s", "BSY Mutex File Timeout", duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration)));
+		if(cfg.flo_mailer) {
+			sprintf(opt[i++], "%-25s %s", "BSO Lock Attempt Delay", duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration)));
+			sprintf(opt[i++], "%-25s %lu", "BSO Lock Attempt Limit", cfg.bso_lock_attempts);
+			sprintf(opt[i++], "%-25s %s", "BinkP Capabilities", cfg.binkp_caps);
+			sprintf(opt[i++], "%-25s %s", "BinkP Sysop Name", cfg.binkp_sysop);
+		}
 		opt[i][0] = 0;
 		uifc.helpbuf=
 			"~ Global Settings ~\n"
@@ -93,7 +97,7 @@ void global_settings(void)
 			"    If you are using an `Attach`, `ArcMail`, or `FrontDoor` style FidoNet\n"
 			"    mailer, then set this setting to `ArcMail/Attach`, but know that most\n"
 			"    modern FidoNet mailers are Binkley-Style and therefore that mode of\n"
-			"    operation in SBBSecho is more widely tested and supported.\n"
+			"    operation in SBBSecho is much more widely tested and supported.\n"
 			"\n"
 			"`Log Level` should normally be set to `Informational` but if you're\n"
 			"    experiencing problems with SBBSecho and would like more verbose log\n"
@@ -113,6 +117,15 @@ void global_settings(void)
 			"    enforcement of matching packet passwords, disable this option.\n"
 			"    Default: Enabled\n"
 			"\n"
+			"`Config File Backups` determines the number of automatic backups of your\n"
+			"    SBBSecho configuration file (e.g. `sbbsecho.ini`) that will be\n"
+			"    maintained by FidoNet Config (`echocfg`) and SBBSecho AreaFix.\n"
+			"\n"
+			"`Minimum Free Disk Space` determines the minimum amount of free disk\n"
+			"    space for SBBSecho to run.  SBBSecho will just exit with an error\n"
+			"    message (and an error level of 1) if the minimum amount of free\n"
+			"    space is not found in directories into which SBBSecho may write.\n"
+			"\n"
 			"`BSY Mutex File Timeout` determines the maximum age of an existing\n"
 			"    mutex file (`*.bsy`) before SBBSecho will act as though the mutex\n"
 			"    file was not present.  This setting applies to the global\n"
@@ -131,9 +144,13 @@ void global_settings(void)
 			"    Delay` should be much less than the `BSY Mutex File Timeout` value.\n"
 			"    Default: 60 attempts\n"
 			"\n"
-			"`Config File Backups` determines the number of automatic backups of your\n"
-			"    SBBSecho configuration file (e.g. `sbbsecho.ini`) that will be\n"
-			"    maintained by FidoNet Config (`echocfg`) and SBBSecho AreaFix.\n"
+			"`BinkP Capabilities` may be used to over-ride the default BinkP node\n"
+			"    capabilities sent during a `BinkIT` mailer session (via the NDL\n"
+			"    command). Default capabilities value is '115200,TCP,BINKP'\n"
+			"\n"
+			"`BinkP Sysop` may be used to over-ride the default BinkP sysop name\n"
+			"    sent during a `BinkIT` mailer session (via the ZYZ comamnd).\n"
+			"    Default sysop name is that set in `SCFG->System->Operator`\n"
 			;
 
 		int key = uifc.list(WIN_BOT|WIN_L2R|WIN_ACT|WIN_SAV, 0, 0, 0, &global_opt,0, "Global Settings", opt);
@@ -169,37 +186,43 @@ void global_settings(void)
 				break;
 
 			case 4:
-				duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration));
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "BSY Mutex File Timeout", duration, 10, K_EDIT) > 0)
-					cfg.bsy_timeout = (ulong)parse_duration(duration);
-				break;
-
-			case 5:
-				duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration));
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Delay Between BSO Lock Attempts", duration, 10, K_EDIT) > 0)
-					cfg.bso_lock_delay = (ulong)parse_duration(duration);
-				break;
-
-			case 6:
-				sprintf(str, "%lu", cfg.bso_lock_attempts);
-				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Maximum BSO Lock Attempts", str, 5, K_EDIT|K_NUMBER) > 0)
-					cfg.bso_lock_attempts = atoi(str);
-				break;
-
-			case 7:
 				sprintf(str, "%u", cfg.cfgfile_backups);
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Configuration File Backups", str, 5, K_EDIT|K_NUMBER) > 0)
 					cfg.cfgfile_backups = atoi(str);
 				break;
 
+			case 5:
+				byte_count_to_str(cfg.min_free_diskspace, str, sizeof(str));
+				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Minimum Free Disk Space (in bytes)", str, 10, K_EDIT) > 0)
+					cfg.min_free_diskspace = parse_byte_count(str, 1);
+				break;
+
+			case 6:
+				duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration));
+				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "BSY Mutex File Timeout", duration, 10, K_EDIT) > 0)
+					cfg.bsy_timeout = (ulong)parse_duration(duration);
+				break;
+
+			case 7:
+				duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration));
+				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Delay Between BSO Lock Attempts", duration, 10, K_EDIT) > 0)
+					cfg.bso_lock_delay = (ulong)parse_duration(duration);
+				break;
+
 			case 8:
-				uifc.input(WIN_MID|WIN_SAV,0,0
-					,"BinkP Capabilities", cfg.binkp_caps, sizeof(cfg.binkp_caps)-1, K_EDIT);
+				sprintf(str, "%lu", cfg.bso_lock_attempts);
+				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Maximum BSO Lock Attempts", str, 5, K_EDIT|K_NUMBER) > 0)
+					cfg.bso_lock_attempts = atoi(str);
 				break;
 
 			case 9:
 				uifc.input(WIN_MID|WIN_SAV,0,0
-					,"BinkP Sysop Name", cfg.binkp_sysop, sizeof(cfg.binkp_sysop)-1, K_EDIT);
+					,"BinkP Capabilities (BinkIT)", cfg.binkp_caps, sizeof(cfg.binkp_caps)-1, K_EDIT);
+				break;
+
+			case 10:
+				uifc.input(WIN_MID|WIN_SAV,0,0
+					,"BinkP Sysop Name (BinkIT)", cfg.binkp_sysop, sizeof(cfg.binkp_sysop)-1, K_EDIT);
 				break;
 		}
 	}
@@ -218,6 +241,8 @@ static bool new_node(unsigned new_nodenum)
 
 	cfg.nodecfgs++;
 	memset(&cfg.nodecfg[new_nodenum], 0, sizeof(nodecfg_t));
+	cfg.nodecfg[new_nodenum].binkp_allowPlainText = true;
+	cfg.nodecfg[new_nodenum].binkp_port = IPPORT_BINKP;
 	return true;
 }
 
@@ -295,6 +320,33 @@ void binkp_settings(nodecfg_t* node)
 		opt[i][0]=0;
 		char title[128];
 		SAFEPRINTF(title, "%s BinkP Settings", faddrtoa(&node->addr));
+		uifc.helpbuf=
+			"~ BinkP Settings ~\n"
+			"\nThese settings are used by the Synchronet `BinkIT` BinkP/BSO mailer.\n"
+			"\n"
+			"`Host` defines the TCP/IP address or host name with which to connect for\n"
+			"    sessions with this linked node.  If the host is not set, then a\n"
+			"    DNS-based look-up will be attempted (e.g. the IP address for\n"
+			"    `1:103/705` would be looked-up via host name `f705.n103.z1.binkp.net`).\n"
+			"    Nodelist-based look-ups are also supported.\n"
+			"\n"
+			"`Port` defines the TCP port used by this linked node for BinkP sessions.\n"
+			"    The default BinkP TCP port is `24554`.\n"
+			"\n"
+			"`Poll` defines whether or not to periodically poll this linked node.\n"
+			"\n"
+			"`Allow Plain Auth` determines whether plain-text authenticated sessions\n"
+			"    will be allowed.  With this setting set to `No`, ~only~ CRAM-MD5\n"
+			"    authenticated BinkP sessions will be allowed.\n"
+			"\n"
+			"`Allow Plain Text` determines whether unencrypted file transfers will\n"
+			"    be allowed.  With this setting set to `No`, ~only~ BinkD-style-encrypted\n"
+			"    BinkP sessions will be supported.\n"
+			"\n"
+			"`Source Address` allows you to override the source FTN address used\n"
+			"    with outgoing BinkP mailer sessions with this linked node.\n"
+			"    Normally, this setting is left blank (not set).\n"
+			;
 		int k = uifc.list(WIN_RHT|WIN_BOT|WIN_SAV|WIN_ACT,0,0,0,&cur,0, title, opt);
 		if(k < 0)
 			break;
@@ -548,7 +600,7 @@ int main(int argc, char **argv)
 	"\n"
 	"The `Archive Types` sub-menu is where you configure your archive\n"
 	"programs (a.k.a. \"packers\") used for the packing and unpacking of\n"
-	"EchoMail bundle files (usually in 'zip' format).\n"
+	"EchoMail bundle files (usually in 'PKZIP' format).\n"
 	"\n"
 	"The `NetMail Settings` sub-menu is where you configure settings specific\n"
 	"to NetMail (private one-on-one networked mail).\n"
@@ -928,8 +980,8 @@ int main(int argc, char **argv)
 							case __COUNTER__:
 	uifc.helpbuf=
 	"~ AreaFix Support ~\n\n"
-	"If you wish for this node to be able to remotely configure their configuration\n"
-	"via `AreaFix` NetMail messages, set to option to `Yes`.\n";
+	"If you wish for this node to be able to remotely query or change their\n"
+	"configuration via `AreaFix` NetMail messages, set to option to `Yes`.\n";
 								k = cfg.nodecfg[i].areafix;
 								switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 									,"AreaFix Support",uifcYesNoOpts)) {
@@ -950,8 +1002,8 @@ int main(int argc, char **argv)
 							case __COUNTER__:
 	uifc.helpbuf=
 	"~ EchoList Keys ~\n\n"
-	"These are a named-keys to be given to this node allowing access to one or\n"
-	"more of the configured `EchoLists`\n";
+	"These are a named-keys to be given to this node allowing access to one\n"
+	"or more of the configured `EchoLists` for remote area-add requests.\n";
 								while(1) {
 									for(j=0; cfg.nodecfg[i].keys!=NULL && cfg.nodecfg[i].keys[j]!=NULL ;j++)
 										strcpy(opt[j],cfg.nodecfg[i].keys[j]);
