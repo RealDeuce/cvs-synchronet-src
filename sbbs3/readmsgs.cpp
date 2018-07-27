@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.108 2018/10/30 03:16:08 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.104 2018/07/25 00:40:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,12 +120,9 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* variable fields */
 	for(i=0;i<msg->total_hfields;i++) {
-		char* p = str;
+		char *p;
 		bprintf("%-16.16s ",smb_hfieldtype(msg->hfield[i].type));
 		switch(msg->hfield[i].type) {
-			case SMB_COLUMNS:
-				sprintf(str, "%u", *(uint8_t*)msg->hfield_dat[i]);
-				break;
 			case SENDERNETTYPE:
 			case RECIPIENTNETTYPE:
 			case REPLYTONETTYPE:
@@ -497,6 +494,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
 			,done=0,domsg=1,*buf,*p;
+	char	subj[128];
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -754,8 +752,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							domsg=0;
 					continue; 
 				}
-				if(strcasestr(buf,find) == NULL && strcasestr(msg.subj, find) == NULL
-					&& (msg.tags == NULL || strcasestr(msg.tags, find) == NULL)) {
+				strupr(buf);
+				strip_ctrl(buf, buf);
+				SAFECOPY(subj,msg.subj);
+				strupr(subj);
+				if(!strstr(buf,find) && !strstr(subj,find)) {
 					free(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -1003,7 +1004,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						smb_unlockmsghdr(&smb,&msg);
 						if(i==0 && msg.idx.attr&MSG_DELETE) {
-							sprintf(str,"removed post from %s %s"
+							sprintf(str,"%s removed post from %s %s"
+								,useron.alias
 								,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 							logline("P-",str);
 							if(!stricmp(cfg.sub[subnum]->misc&SUB_NAME
@@ -1253,7 +1255,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				msg_client_hfields(&vote, &client);
 				smb_hfield_str(&vote, SENDERSERVER, startup->host_name);
 
-				if((i=votemsg(&cfg, &smb, &vote, notice, text[VoteNoticeFmt])) != SMB_SUCCESS)
+				if((i=votemsg(&cfg, &smb, &vote, notice)) != SMB_SUCCESS)
 					errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 
 				break;
@@ -1701,6 +1703,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 	, const char *search)
 {
 	char*	buf;
+	char	subj[128];
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1715,8 +1718,11 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			smb_freemsgmem(&msg);
 			continue; 
 		}
-		if(strcasestr(buf, search) != NULL || strcasestr(msg.subj, search) != NULL
-			|| (msg.tags != NULL && strcasestr(msg.tags, search) != NULL)) {
+		strupr(buf);
+		strip_ctrl(buf, buf);
+		SAFECOPY(subj,msg.subj);
+		strupr(subj);
+		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
 			bprintf(text[SubMsgLstFmt],l+1
