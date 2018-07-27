@@ -1,7 +1,6 @@
 /* Synchronet user create/post public message routine */
-// vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.123 2019/07/08 00:11:50 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.108 2017/11/24 21:53:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,26 +35,56 @@
 
 #include "sbbs.h"
 
-int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, long* dupechk_hashes, uint16_t* xlat)
+/****************************************************************************/
+/* FTN-compliant "Program Identifier"/PID									*/
+/****************************************************************************/
+extern "C" char* DLLCALL msg_program_id(char* pid)
+{
+	char compiler[64];
+
+	DESCRIBE_COMPILER(compiler);
+	sprintf(pid,"%.10s %s%c-%s%s%s %s %s"
+		,VERSION_NOTICE,VERSION,REVISION,PLATFORM_DESC
+		,beta_version
+#ifdef _DEBUG
+		," Debug"
+#else
+		,""
+#endif
+		,__DATE__,compiler);
+	return(pid);
+}
+
+int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, uint16_t* xlat)
 {
 	int i;
 
 	*dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	*xlat=XLAT_NONE;
 
-	if((i=smb_open_sub(cfg, smb, subnum)) != SMB_SUCCESS)
-		return i;
-
+	smb->retry_time=cfg->smb_retry_time;
 	if(smb->subnum==INVALID_SUB) {
+		safe_snprintf(smb->file,sizeof(smb->file),"%smail",cfg->data_dir);
+		smb->status.max_crcs=cfg->mail_maxcrcs;
+		smb->status.max_age=cfg->mail_maxage;
+		smb->status.max_msgs=0;	/* unlimited */
+		smb->status.attr=SMB_EMAIL;
 		/* duplicate message-IDs must be allowed in mail database */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
 	} else {
+		safe_snprintf(smb->file,sizeof(smb->file),"%s%s",cfg->sub[smb->subnum]->data_dir,cfg->sub[smb->subnum]->code);
+		smb->status.max_crcs=cfg->sub[smb->subnum]->maxcrcs;
+		smb->status.max_msgs=cfg->sub[smb->subnum]->maxmsgs;
+		smb->status.max_age=cfg->sub[smb->subnum]->maxage;
+		smb->status.attr=0;
 		if(cfg->sub[smb->subnum]->misc&SUB_LZH)
 			*xlat=XLAT_LZH;
 	}
-
 	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+
+	if((i=smb_open(smb)) != SMB_SUCCESS)
+		return i;
 
 	if(filelength(fileno(smb->shd_fp)) < 1) /* MsgBase doesn't exist yet, create it */
 		i=smb_create(smb);
@@ -67,48 +96,48 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, lon
 
 
 /****************************************************************************/
-/* Posts a message on sub-board number 'subnum'								*/
-/* Returns true if posted, false if not.                                    */
+/* Posts a message on subboard number sub, with 'top' as top of message.    */
+/* Returns 1 if posted, 0 if not.                                           */
 /****************************************************************************/
-bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
+bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 {
-	char	str[256];
-	char	title[LEN_TITLE+1] = "";
-	char	top[256] = "";
-	char	touser[64] = "";
+	char	str[256],title[LEN_TITLE+1],top[256];
+	char	msg_id[256];
+	char	touser[64];
 	char	from[64];
-	char	tags[64] = "";
+	char	pid[128];
 	char*	editor=NULL;
 	char*	msgbuf=NULL;
 	uint16_t xlat;
-	ushort	msgattr = 0;
+	ushort	msgattr;
 	int 	i,storage;
 	long	dupechk_hashes;
 	long	length;
 	FILE*	fp;
 	smbmsg_t msg;
 	uint	reason;
-	bool	utf8 = false;
 
 	if(remsg) {
-		SAFECOPY(title, remsg->subj);
+		sprintf(title,"%.*s",LEN_TITLE,remsg->subj);
 		if(remsg->hdr.attr&MSG_ANONYMOUS)
 			SAFECOPY(from,text[Anonymous]);
 		else
 			SAFECOPY(from,remsg->from);
 		// If user posted this message, reply to the original recipient again
-		if(remsg->to != NULL
-			&& ((remsg->from_ext != NULL && atoi(remsg->from_ext)==useron.number)
-				|| stricmp(useron.alias,remsg->from) == 0 || stricmp(useron.name,remsg->from) == 0))
+		if((remsg->from_ext!=NULL && atoi(remsg->from_ext)==useron.number)
+			|| stricmp(useron.alias,remsg->from)==0 || stricmp(useron.name,remsg->from)==0)
 			SAFECOPY(touser,remsg->to);
 		else
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn],title,from,remsg->to
 			,timestr(remsg->hdr.when_written.time)
-			,smb_zonestr(remsg->hdr.when_written.zone,NULL));
-		if(remsg->tags != NULL)
-			SAFECOPY(tags, remsg->tags);
+			,smb_zonestr(remsg->hdr.when_written.zone,NULL)); 
+	} else {
+		title[0]=0;
+		touser[0]=0;
+		top[0]=0;
+		msgattr=0; 
 	}
 
 	/* Security checks */
@@ -143,7 +172,7 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 			i=FIDO_NAME_LEN-1;
 		if(cfg.sub[subnum]->misc&(SUB_PNET|SUB_INET))
 			i=60;
-		getstr(touser,i,K_LINE|K_EDIT|K_AUTODEL|K_TRIM);
+		getstr(touser,i,K_LINE|K_EDIT|K_AUTODEL);
 		if(stricmp(touser,"ALL")
 		&& !(cfg.sub[subnum]->misc&(SUB_PNET|SUB_FIDO|SUB_QNET|SUB_INET|SUB_ANON))) {
 			if(cfg.sub[subnum]->misc&SUB_NAME) {
@@ -197,34 +226,27 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 		bputs(text[UsingRealName]);
 
 	msg_tmp_fname(useron.xedit, str, sizeof(str));
+	if(!writemsg(str,top,title,wm_mode,subnum,touser
+		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
+		,&editor)
+		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
+		bputs(text[Aborted]);
+		return(false); 
+	}
+
+	bputs(text[WritingIndx]);
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i,smb.last_error);
 		return(false); 
 	}
 
-	if((i=msgbase_open(&cfg,&smb,subnum,&storage,&dupechk_hashes,&xlat))!=SMB_SUCCESS) {
+	smb.subnum=subnum;
+	if((i=msgbase_open(&cfg,&smb,&storage,&dupechk_hashes,&xlat))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
-
-	if(remsg != NULL && resmb != NULL && !(wm_mode&WM_QUOTE)) {
-		if(quotemsg(resmb, remsg))
-			wm_mode |= WM_QUOTE;
-	}
-
-	if(!writemsg(str,top,title,wm_mode,subnum,touser
-		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
-		,&editor, &utf8)
-		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
-		bputs(text[Aborted]);
-		smb_close(&smb);
-		smb_stack(&smb,SMB_STACK_POP);
-		return(false); 
-	}
-
-	bputs(text[WritingIndx]);
 
 	if((i=smb_locksmbhdr(&smb))!=SMB_SUCCESS) {
 		smb_close(&smb);
@@ -275,6 +297,24 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 
 	msg.hdr.number=smb.status.last_msg+1; /* this *should* be the new message number */
 
+	if(remsg) {
+		char* p;
+		char replyid[256];
+
+		msg.hdr.thread_back=remsg->hdr.number;	/* needed for threading backward */
+
+		if((msg.hdr.thread_id=remsg->hdr.thread_id) == 0)
+			msg.hdr.thread_id=remsg->hdr.number;
+
+		/* Add RFC-822 Reply-ID (generate if necessary) */
+		if((p = get_replyid(&cfg, &smb, &msg, replyid, sizeof(replyid))) != NULL)
+			smb_hfield_str(&msg, RFC822REPLYID, p);
+
+		/* Add FidoNet Reply if original message has FidoNet MSGID */
+		if(remsg->ftn_msgid!=NULL)
+			smb_hfield_str(&msg,FIDOREPLYID,remsg->ftn_msgid);
+	}
+
 	smb_hfield_str(&msg,RECIPIENT,touser);
 
 	SAFECOPY(str,cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias);
@@ -289,20 +329,21 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	add_msg_ids(&cfg, &smb, &msg, remsg);
+	/* Generate default (RFC822) message-id (always) */
+	get_msgid(&cfg,subnum,&msg,msg_id,sizeof(msg_id));
+	smb_hfield_str(&msg,RFC822MSGID,msg_id);
 
-	editor_info_to_msg(&msg, editor);
-
-	if(utf8)
-		smb_hfield_str(&msg, FIDOCTRL, FIDO_CHARSET_UTF8);
-	
-	if((cfg.sub[subnum]->misc&SUB_MSGTAGS)
-		&& (tags[0] || text[TagMessageQ][0] == 0 || !noyes(text[TagMessageQ]))) {
-		bputs(text[TagMessagePrompt]);
-		getstr(tags, sizeof(tags)-1, K_EDIT|K_LINE|K_TRIM);
+	/* Generate FTN (FTS-9) MSGID */
+	if(cfg.sub[subnum]->misc&SUB_FIDO) {
+		ftn_msgid(cfg.sub[subnum],&msg,msg_id,sizeof(msg_id));
+		smb_hfield_str(&msg,FIDOMSGID,msg_id);
 	}
-	if(tags[0])
-		smb_hfield_str(&msg, SMB_TAGS, tags);
+
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
+
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
 
 	i=smb_addmsg(&smb,&msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL);
 	free(msgbuf);
@@ -323,8 +364,8 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 	user_posted_msg(&cfg, &useron, 1);
 	bprintf(text[Posted],cfg.grp[cfg.sub[subnum]->grp]->sname
 		,cfg.sub[subnum]->lname);
-	sprintf(str,"posted on %s %s"
-		,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
+	sprintf(str,"%s posted on %s %s"
+		,useron.alias,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 	logline("P+",str);
 
 	signal_sub_sem(&cfg,subnum);
@@ -374,9 +415,10 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 }
 
 /* Note: support MSG_BODY only, no tails or other data fields (dfields) */
-/* Adds/generates Message-IDs when needed */
-extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf, smbmsg_t* remsg)
+extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf)
 {
+	char	pid[128];
+	char	msg_id[256];
 	ushort	xlat=XLAT_NONE;
 	int 	i;
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
@@ -448,7 +490,22 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	if(server!=NULL)
 		smb_hfield_str(msg,SENDERSERVER,server);
  
-	add_msg_ids(cfg, smb, msg, remsg);
+ 	/* Generate RFC-822 Message-id  */
+ 	if(msg->id==NULL) {
+ 		get_msgid(cfg,smb->subnum,msg,msg_id,sizeof(msg_id));
+ 		smb_hfield_str(msg,RFC822MSGID,msg_id);
+ 	}
+ 
+ 	/* Generate FidoNet MSGID (for FidoNet sub-boards) */
+ 	if(smb->subnum!=INVALID_SUB && cfg->sub[smb->subnum]->misc&SUB_FIDO 
+		&& msg->ftn_msgid==NULL) {
+ 		ftn_msgid(cfg->sub[smb->subnum],msg,msg_id,sizeof(msg_id));
+ 		smb_hfield_str(msg,FIDOMSGID,msg_id);
+ 	}
+
+	/* Generate FidoNet Program Identifier */
+ 	if(msg->ftn_pid==NULL) 	
+ 		smb_hfield_str(msg,FIDOPID,msg_program_id(pid));
 
 	if((i=smb_addmsg(smb,msg,smb_storage_mode(cfg, smb),dupechk_hashes,xlat,(uchar*)msgbuf, /* tail: */NULL))==SMB_SUCCESS
 		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
@@ -461,7 +518,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	return(i);
 }
 
-extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const char* smsgfmt, const char* votefmt)
+extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const char* smsgfmt)
 {
 	int result;
 	smbmsg_t remsg;
@@ -475,7 +532,14 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
 		msg->hdr.when_written = msg->hdr.when_imported;
 
-	add_msg_ids(cfg, smb, msg, /* remsg: */NULL);
+	if(msg->hdr.number == 0)
+		msg->hdr.number = get_new_msg_number(smb);
+
+ 	if(msg->id==NULL) {
+		char msg_id[256];
+ 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
+ 		smb_hfield_str(msg, RFC822MSGID, msg_id);
+ 	}
 
 	/* Look-up thread_back if RFC822 Reply-ID was specified */
 	if(msg->hdr.thread_back == 0 && msg->reply_id != NULL) {
@@ -501,32 +565,17 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 			(stricmp(remsg.from, user.alias) == 0 || stricmp(remsg.from, user.name) == 0)) {
 			char from[256];
 			char tstr[128];
-			char smsg[4000];
-			char votes[3000] = "";
+			char smsg[256];
 			if(msg->from_net.type)
 				safe_snprintf(from, sizeof(from), "%s (%s)", msg->from, smb_netaddr(&msg->from_net));
 			else
 				SAFECOPY(from, msg->from);
-			if(remsg.hdr.type == SMB_MSG_TYPE_POLL && votefmt != NULL) {
-				int answers = 0;
-				for(int i=0; i<remsg.total_hfields; i++) {
-					if(remsg.hfield[i].type == SMB_POLL_ANSWER) {
-						if(msg->hdr.votes&(1<<answers)) {
-							char vote[128];
-							SAFEPRINTF(vote, votefmt, (char*)remsg.hfield_dat[i]);
-							SAFECAT(votes, vote);
-						}
-						answers++;
-					}
-				}
-			}
 			safe_snprintf(smsg, sizeof(smsg), smsgfmt
 				,timestr(cfg, msg->hdr.when_written.time, tstr)
 				,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
 				,cfg->sub[smb->subnum]->sname
 				,from
 				,remsg.subj);
-			SAFECAT(smsg, votes);
 			putsmsg(cfg, user.number, smsg);
 		}
 	}
@@ -538,6 +587,7 @@ extern "C" int DLLCALL closepoll(scfg_t* cfg, smb_t* smb, uint32_t msgnum, const
 {
 	int result;
 	smbmsg_t msg;
+	char msg_id[256];
 
 	ZERO_VAR(msg);
 
@@ -547,7 +597,10 @@ extern "C" int DLLCALL closepoll(scfg_t* cfg, smb_t* smb, uint32_t msgnum, const
 	msg.hdr.thread_back = msgnum;
 	smb_hfield_str(&msg, SENDER, username);
 
-	add_msg_ids(cfg, smb, &msg, /* remsg: */NULL);
+	msg.hdr.number = get_new_msg_number(smb);
+
+	get_msgid(cfg, smb->subnum, &msg, msg_id, sizeof(msg_id));
+	smb_hfield_str(&msg,RFC822MSGID, msg_id);
 
 	result = smb_addpollclosure(smb, &msg, smb_storage_mode(cfg, smb));
 
@@ -564,7 +617,13 @@ extern "C" int DLLCALL postpoll(scfg_t* cfg, smb_t* smb, smbmsg_t* msg)
 	if(msg->hdr.when_written.time == 0)
 		msg->hdr.when_written = msg->hdr.when_imported;
 
-	add_msg_ids(cfg, smb, msg, /* remsg: */NULL);
+	if(msg->hdr.number == 0)
+		msg->hdr.number = get_new_msg_number(smb);
 
+ 	if(msg->id==NULL) {
+		char msg_id[256];
+ 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
+ 		smb_hfield_str(msg, RFC822MSGID, msg_id);
+ 	}
 	return smb_addpoll(smb, msg, smb_storage_mode(cfg, smb));
 }
