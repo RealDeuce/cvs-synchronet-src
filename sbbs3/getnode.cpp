@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.47 2016/01/10 07:10:22 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.48 2018/07/26 06:22:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		}
 		lseek(nodefile,(long)number*sizeof(node_t),SEEK_SET);
 		rd=read(nodefile,node,sizeof(node_t));
-		if(!lockit || rd!=sizeof(node_t))
+		if(rd!=sizeof(node_t))
 			unlock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 		if(rd==sizeof(node_t))
 			break;
