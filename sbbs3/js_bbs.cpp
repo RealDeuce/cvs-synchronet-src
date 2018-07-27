@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.167 2018/07/27 21:32:58 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.168 2018/07/27 21:37:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -351,10 +351,10 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			val=sbbs->cfg.node_misc;
 			break;
 		case BBS_PROP_NODE_STATUS:
-			val=sbbs->thisnode.action;
+			val=sbbs->thisnode.status;
 			break;
 		case BBS_PROP_NODE_ERRORS:
-			val=sbbs->thisnode.action;
+			val=sbbs->thisnode.errors;
 			break;
 		case BBS_PROP_NODE_ACTION:
 			val=sbbs->action;
