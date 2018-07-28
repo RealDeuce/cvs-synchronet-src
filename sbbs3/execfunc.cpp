@@ -2,7 +2,7 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.44 2018/07/29 05:33:46 rswindell Exp $ */
+/* $Id: execfunc.cpp,v 1.43 2018/07/25 07:02:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,7 +198,7 @@ int sbbs_t::exec_function(csi_t *csi)
 		{
 			bputs(text[EnterNetMailAddress]);
 			csi->logic=LOGIC_FALSE;
-			if(getstr(str,60,K_LINE)) {
+			if(getstr(str,60,K_LINE|K_EDIT)) {
 				if(netmail(str,nulstr,cmd == CS_MAIL_SEND_NETFILE ? WM_FILE : 0)) {
 					csi->logic=LOGIC_TRUE; 
 				}
