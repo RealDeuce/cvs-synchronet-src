@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.68 2018/12/17 06:02:40 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.66 2018/07/25 00:24:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -360,8 +360,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				putuserrec(&cfg,useron.number,U_ETODAY,5
 					,ultoa(useron.etoday,tmp,10));
 				bprintf(text[Emailed],username(&cfg,usernum,tmp),usernum);
-				SAFEPRINTF2(str,"sent QWK e-mail to %s #%d"
-					,username(&cfg,usernum,tmp),usernum);
+				SAFEPRINTF3(str,"%s sent QWK e-mail to %s #%d"
+					,useron.alias,username(&cfg,usernum,tmp),usernum);
 				logline("E+",str);
 				if(cfg.node_num) {
 					for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
@@ -389,7 +389,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				/**************************/
 			if((n=resolve_qwkconf(confnum))==INVALID_SUB) {
 				bprintf(text[QWKInvalidConferenceN],confnum);
-				SAFEPRINTF(str,"Invalid QWK conference number %ld", confnum);
+				SAFEPRINTF2(str,"%s: Invalid QWK conference number %ld",useron.alias,confnum);
 				logline(LOG_NOTICE,"P!",str);
 				errors++;
 				continue; 
@@ -535,8 +535,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				user_posted_msg(&cfg, &useron, 1);
 				bprintf(text[Posted],cfg.grp[cfg.sub[n]->grp]->sname
 					,cfg.sub[n]->lname);
-				SAFEPRINTF2(str,"posted QWK message on %s %s"
-					,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
+				SAFEPRINTF3(str,"%s posted QWK message on %s %s"
+					,useron.alias,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
 				signal_sub_sem(&cfg,n);
 				logline("P+",str); 
 				if(!(useron.rest&FLAG('Q')))
@@ -627,21 +627,15 @@ bool sbbs_t::unpack_rep(char* repfile)
 			if(isdir(str))
 				continue;
 
-			if(::trashcan(&cfg, dirent->d_name, "file")) {
-				lprintf(LOG_NOTICE, "Ignored blocked filename: %s", dirent->d_name);
-				continue;
-			}
-
 			// Create directory if necessary
 			SAFEPRINTF2(inbox,"%sqnet/%s.in",cfg.data_dir,useron.alias);
-			MKDIR(inbox);
+			MKDIR(inbox); 
 
 			SAFEPRINTF2(fname,"%s/%s",inbox,dirent->d_name);
 			mv(str,fname,1);
 			SAFEPRINTF2(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
 			putsmsg(&cfg,1,str);
-			lprintf(LOG_NOTICE, "Received file: %s", dirent->d_name);
-		}
+		} 
 		if(dir!=NULL)
 			closedir(dir);
 		SAFEPRINTF(fname,"%sqnet-rep.now",cfg.data_dir);

@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.102 2019/01/12 08:01:43 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.101 2018/07/25 04:20:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,10 +83,6 @@
 
 #include "genwrap.h"	/* strupr/strlwr */
 #include "dirwrap.h"	/* DLLCALL */
-
-#if !defined(S_ISDIR)
-	#define S_ISDIR(x)	((x)&S_IFDIR)
-#endif
 
 /****************************************************************************/
 /* Return the filename portion of a full pathname							*/
@@ -400,6 +396,9 @@ time_t DLLCALL fcdate(const char* filename)
 {
 	struct stat st;
 
+	if(access(filename, 0) < 0)
+		return -1;
+
 	if(stat(filename, &st) != 0)
 		return -1;
 
@@ -412,6 +411,9 @@ time_t DLLCALL fcdate(const char* filename)
 time_t DLLCALL fdate(const char* filename)
 {
 	struct stat st;
+
+	if(access(filename,0)==-1)
+		return(-1);
 
 	if(stat(filename, &st)!=0)
 		return(-1);
@@ -445,6 +447,9 @@ off_t DLLCALL flength(const char *filename)
 	long	handle;
 	struct _finddata_t f;
 
+	if(access((char*)filename,0)==-1)
+		return(-1);
+
 	if((handle=_findfirst((char*)filename,&f))==-1)
 		return(-1);
 
@@ -456,6 +461,9 @@ off_t DLLCALL flength(const char *filename)
 
 	struct stat st;
 
+	if(access(filename,0)==-1)
+		return(-1);
+
 	if(stat(filename, &st)!=0)
 		return(-1);
 
@@ -466,21 +474,17 @@ off_t DLLCALL flength(const char *filename)
 
 
 /****************************************************************************/
-/* Checks the file system for the existence of a file.						*/
+/* Checks the file system for the existence of one or more files.			*/
 /* Returns TRUE if it exists, FALSE if it doesn't.                          */
-/* 'filename' may *NOT* contain wildcards!									*/
+/* 'filespec' may *NOT* contain wildcards!									*/
 /****************************************************************************/
 static BOOL fnameexist(const char *filename)
 {
-	struct stat st;
-
-	if(stat(filename, &st) != 0)
-		return FALSE;
-
-	if(S_ISDIR(st.st_mode))
-		return FALSE;
-
-	return TRUE;
+	if(access(filename,0)==-1)
+		return(FALSE);
+	if(!isdir(filename))
+		return(TRUE);
+	return(FALSE);
 }
 
 /****************************************************************************/
@@ -557,7 +561,7 @@ BOOL DLLCALL fexistcase(char *path)
 	long	handle;
 	struct _finddata_t f;
 
-	if(access(path, F_OK)==-1 && !strchr(path,'*') && !strchr(path,'?'))
+	if(access(path,0)==-1 && !strchr(path,'*') && !strchr(path,'?'))
 		return(FALSE);
 
 	if((handle=_findfirst((char*)path,&f))==-1)
@@ -626,6 +630,10 @@ BOOL DLLCALL fexistcase(char *path)
 
 #endif
 }
+
+#if !defined(S_ISDIR)
+	#define S_ISDIR(x)	((x)&S_IFDIR)
+#endif
 
 /****************************************************************************/
 /* Returns TRUE if the filename specified is a directory					*/
