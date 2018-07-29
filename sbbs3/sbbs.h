@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.485 2018/07/25 03:43:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.486 2018/07/29 04:53:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -714,7 +714,7 @@ public:
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
-	size_t	getstr(char *str, size_t length, long mode);
+	size_t	getstr(char *str, size_t length, long mode, const str_list_t history = NULL);
 	long	getnum(ulong max, ulong dflt=0);
 	void	insert_indicator(void);
 
