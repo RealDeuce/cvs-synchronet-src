@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.67 2018/02/20 11:56:27 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.71 2018/07/29 00:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,6 +43,8 @@
 
 static char* msg_area_prop_desc[] = {
 	  "message area settings (bitfield) - see <tt>MM_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	  "FidoNet NetMail settings (bitfield) - see <tt>NMAIL_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	  "Internet NetMail settings (bitfield) - see <tt>NMAIL_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	,NULL
 };
 
@@ -155,9 +157,29 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		SAFECOPY(str,sub->newsgroup);
 	else {
 		sprintf(str,"%s.%s",cfg->grp[sub->grp]->sname,sub->sname);
-		for(c=0;str[c];c++)
-			if(str[c]==' ')
-				str[c]='_';
+		/*
+		 * From RFC5536:
+		 * newsgroup-name  =  component *( "." component )
+		 * component       =  1*component-char
+		 * component-char  =  ALPHA / DIGIT / "+" / "-" / "_"
+		 */
+		if (str[0] == '.')
+			str[0] = '_';
+		for(c=0;str[c];c++) {
+			/* Legal characters */
+			if ((str[c] >= 'A' && str[c] <= 'Z')
+					|| (str[c] >= 'a' && str[c] <= 'z')
+					|| (str[c] >= '0' && str[c] <= '9')
+					|| str[c] == '+'
+					|| str[c] == '-'
+					|| str[c] == '_'
+					|| str[c] == '.')
+				continue;
+			str[c] = '_';
+		}
+		c--;
+		if (str[c] == '.')
+			str[c] = '_';
 	}
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
 		return(FALSE);
@@ -377,6 +399,26 @@ JSBool DLLCALL js_msg_area_resolve(JSContext* cx, JSObject* areaobj, jsid id)
 		if(!JS_NewNumberValue(cx,p->cfg->msg_misc,&val))
 			return JS_FALSE;
 		if(!JS_SetProperty(cx, areaobj, "settings", &val)) 
+			return JS_FALSE;
+		if (name)
+			return JS_TRUE;
+	}
+	if (name==NULL || strcmp(name, "fido_netmail_settings")==0) {
+		if (name)
+			free(name);
+		if(!JS_NewNumberValue(cx,p->cfg->netmail_misc,&val))
+			return JS_FALSE;
+		if(!JS_SetProperty(cx, areaobj, "fido_netmail_settings", &val)) 
+			return JS_FALSE;
+		if (name)
+			return JS_TRUE;
+	}
+	if (name==NULL || strcmp(name, "inet_netmail_settings")==0) {
+		if (name)
+			free(name);
+		if(!JS_NewNumberValue(cx,p->cfg->inetmail_misc,&val))
+			return JS_FALSE;
+		if(!JS_SetProperty(cx, areaobj, "inet_netmail_settings", &val)) 
 			return JS_FALSE;
 		if (name)
 			return JS_TRUE;
