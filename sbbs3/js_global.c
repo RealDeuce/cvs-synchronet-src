@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.380 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_global.c,v 1.374 2018/04/06 02:47:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,9 +52,7 @@
 
 #ifdef JAVASCRIPT
 
-extern JSClass js_global_class;
-
-/* Global Object Properties */
+/* Global Object Properites */
 enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
@@ -270,7 +268,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
-	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -400,11 +398,11 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if (JS_HasProperty(cx, obj, "console", &success) && success)
 			js_CreateConsoleObject(bg->cx, bg->obj);
 		if (JS_HasProperty(cx, obj, "stdin", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdin", STDIN_FILENO, "r");
+			js_CreateFileObject(bg->cx, bg->obj, "stdin", stdin);
 		if (JS_HasProperty(cx, obj, "stdout", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdout", STDOUT_FILENO, "w");
+			js_CreateFileObject(bg->cx, bg->obj, "stdout", stdout);
 		if (JS_HasProperty(cx, obj, "stderr", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stderr", STDERR_FILENO, "w");
+			js_CreateFileObject(bg->cx, bg->obj, "stderr", stderr);
 		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
@@ -1604,7 +1602,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], inbuf, NULL);
@@ -2189,8 +2187,8 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 						outbuf[j++]='\r';
 						hpos=0;
 						break;
-					case 'Z':	/* EOF */
-						outbuf[j++] = 0;
+					case 'Z':
+						outbuf[j++]=0;
 						break;
 					case 'A':
 					default:
@@ -4184,19 +4182,19 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"file_attrib",		js_fattr,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's permissions/attributes. Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
+	,JSDOCSTR("get a file's permissions/attributes")
 	,310
 	},		
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's last modified date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
+	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
 	,310
 	},
 	{"file_cdate",		js_fcdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's creation date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
+	,JSDOCSTR("get a file's creation date/time (in time_t format)")
 	,317
 	},
 	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's length (in bytes). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
+	,JSDOCSTR("get a file's length (in bytes)")
 	,310
 	},
 	{"file_utime",		js_utime,			3,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename [,access_time=<i>current</i>] [,mod_time=<i>current</i>]")
@@ -4277,7 +4275,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
 	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
-		"<i>line_length</i> defaults to <i>79</i>, <i>orig_line_length</i> defaults to <i>79</i>, "
+		"<i>line_length</i> defaults to <i>79</i> <i>orig_line_length</i> defaults to <i>79</i> "
 		"and <i>handle_quotes</i> defaults to <i>true</i>")
 	,311
 	},
@@ -4487,7 +4485,7 @@ static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
 	return(js_global_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_global_class = {
+static JSClass js_global_class = {
      "Global"				/* name			*/
     ,JSCLASS_HAS_PRIVATE|JSCLASS_GLOBAL_FLAGS	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/

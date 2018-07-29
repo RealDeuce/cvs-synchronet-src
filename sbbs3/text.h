@@ -807,26 +807,11 @@ enum {
 	,Only
 	,SPAMVisibilityIsNow
 	,VoteInThisPollNow
-	,MIMEDecodedPlainTextFmt
+	,MIMEDecodedPlainText
 	,MsgHdrBodySeparator
 	,FileHdrDescSeparator
 	,RemoveFileQ
 	,OriginFidoAddr
-	,VoteNoticeFmt
-	,TagMessageQ
-	,TagMessagePrompt
-	,MsgTags
-	,NoAccessTerminal
-	,LongLineContinuationPrefix
-	,Scanning
-	,Done
-	,Scanned
-	,HitYourBackspaceKey
-	,CharacterReceivedFmt
-	,InvalidBackspaceKeyFmt
-	,SwapDeleteKeyQ
-	,PetTermDetected
-	,MsgCarbonCopyList
 
 	,TOTAL_TEXT
 };
