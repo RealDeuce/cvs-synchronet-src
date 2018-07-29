@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.93 2017/12/29 06:04:36 rswindell Exp $ */
+/* $Id: scfg.c,v 1.95 2018/07/29 01:01:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 						"-m  =  force monochrome mode\r\n"
                         "-e# =  set escape delay to #msec\r\n"
 						"-import=<filename> = import a message area list file\r\n"
-						"-g# =  set group number to import into\r\n"
+						"-g# =  set group number (or name) to import into\r\n"
 						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
 #ifdef __unix__
 						"       X = X11 mode\r\n"
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
 			printf("!Invalid group specified!\n");
 			return EXIT_FAILURE;
 		}
-		printf("Importing %s from %s\n", "Areas", fname);
+		printf("\nImporting %s from %s\n", "Areas", fname);
 		long ported = 0;
 		long added = 0;
 		switch(base) {
@@ -2158,15 +2158,18 @@ void bail(int code)
         read_file_cfg(&cfg,error);
         read_chat_cfg(&cfg,error);
         read_xtrn_cfg(&cfg,error);
-        uifc.pop(0);
+		uifc.pop(NULL);
+        uifc.pop("Writing Configs...");
 		cfg.new_install=new_install;
         write_main_cfg(&cfg,backup_level);
         write_msgs_cfg(&cfg,backup_level);
         write_file_cfg(&cfg,backup_level);
         write_chat_cfg(&cfg,backup_level);
         write_xtrn_cfg(&cfg,backup_level); 
+		uifc.pop(NULL);
 	}
 
+	uifc.pop("Exiting");
     uifc.bail();
 
     exit(code);
