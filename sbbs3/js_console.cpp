@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.119 2018/10/09 01:34:09 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.116 2018/03/21 17:41:54 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@
 /*****************************/
 enum {
 	 CON_PROP_STATUS
-	,CON_PROP_LNCNTR
+	,CON_PROP_LNCNTR 
 	,CON_PROP_COLUMN
 	,CON_PROP_LASTLINELEN
 	,CON_PROP_ATTR
@@ -270,7 +270,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 				sbbs->sys_status&=~SS_ABORT;
 			break;
 		case CON_PROP_ABORTABLE:
-			sbbs->rio_abortable=val
+			sbbs->rio_abortable=val 
 				? true:false; // This is a dumb bool conversion to make BC++ happy
 			break;
 		case CON_PROP_TELNET_MODE:
@@ -500,7 +500,6 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
 	jsrefcount	rc;
-	str_list_t	history = NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -517,32 +516,12 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 				if(!JS_ValueToInt32(cx,argv[i],&mode))
 					return JS_FALSE;
 			}
+			continue;
 		}
-		else if(JSVAL_IS_STRING(argv[i])) {
+		if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
 			if (!js_str)
 			    return(JS_FALSE);
-		}
-		else if(JSVAL_IS_OBJECT(argv[i])) {
-			JSObject* array = JSVAL_TO_OBJECT(argv[i]);
-			jsuint len=0;
-			if(!JS_GetArrayLength(cx, array, &len))
-				return JS_FALSE;
-			history = (str_list_t)alloca(sizeof(char*) * (len + 1));
-			memset(history, 0, sizeof(char*) * (len + 1));
-			for(jsuint j=0; j < len; j++) {
-				jsval		val;
-				if(!JS_GetElement(cx, array, j, &val))
-					break;
-				JSString* hist = JS_ValueToString(cx, val);
-				if (hist == NULL)
-					return JS_FALSE;
-				char* cstr = NULL;
-				JSSTRING_TO_ASTRING(cx, hist, cstr, (uint)(maxlen ? maxlen : 80), NULL);
-				if(cstr == NULL)
-					return JS_FALSE;
-				history[j] = cstr;
-			}
 		}
 	}
 
@@ -562,7 +541,7 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->getstr(p, maxlen, mode, history);
+	sbbs->getstr(p,maxlen,mode);
 	JS_RESUMEREQUEST(cx, rc);
 
 	js_str = JS_NewStringCopyZ(cx, p);
@@ -728,7 +707,7 @@ js_ungetstr(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
-
+	
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
@@ -758,7 +737,7 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
-
+	
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
@@ -785,7 +764,7 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
-
+	
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
@@ -815,7 +794,7 @@ js_mnemonics(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
-
+	
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
@@ -987,7 +966,7 @@ js_beep(JSContext *cx, uintN argc, jsval *arglist)
 	for(i=0;i<count;i++)
 		sbbs->outchar('\a');
 	JS_RESUMEREQUEST(cx, rc);
-
+	
     return(JS_TRUE);
 }
 
@@ -1192,7 +1171,7 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(js_str==NULL)
 		return(JS_FALSE);
 
-	if(!lines)
+	if(!lines) 
 		lines=5;
 
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
@@ -1251,12 +1230,12 @@ js_uselect(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
-
+	
 	if(!argc) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->uselect(0,0,NULL,NULL,NULL)));
 		return(JS_TRUE);
 	}
-
+	
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!JS_ValueToInt32(cx,argv[i],&num)) {
@@ -1340,10 +1319,18 @@ js_saveline(JSContext *cx, uintN argc, jsval *arglist)
 {
 	sbbs_t*		sbbs;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->saveline()));
+	if(sbbs->slcnt<SAVE_LINES) {
+		sbbs->slatr[sbbs->slcnt]=sbbs->latr; 
+		sbbs->slcuratr[sbbs->slcnt]=sbbs->curatr;
+		sprintf(sbbs->slbuf[sbbs->slcnt],"%.*s",sbbs->lbuflen,sbbs->lbuf);
+		sbbs->slcnt++;
+		sbbs->lbuflen=0; 
+	}
     return(JS_TRUE);
 }
 
@@ -1353,11 +1340,18 @@ js_restoreline(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->restoreline()));
+	sbbs->lbuflen=0; 
+	if(sbbs->slcnt)
+		sbbs->slcnt--;
+	sbbs->attr(sbbs->slatr[sbbs->slcnt]);
+	sbbs->rputs(sbbs->slbuf[sbbs->slcnt]); 
+	sbbs->curatr=sbbs->slcuratr[sbbs->slcnt];
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1477,7 +1471,7 @@ js_getxy(JSContext *cx, uintN argc, jsval *arglist)
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, obj))==NULL)
  		return(JS_FALSE);
-
+ 
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->ansi_getxy(&x,&y);
 	JS_RESUMEREQUEST(cx, rc);
@@ -1754,48 +1748,46 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a single key with optional <i>timeout</i> in milliseconds (defaults to 0, for no wait), "
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,311
-	},
+	},		
 	{"getkey",			js_getkey,			0, JSTYPE_STRING,	JSDOCSTR("[mode=<tt>K_NONE</tt>]")
 	,JSDOCSTR("get a single key, with wait, "
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
-	},
-	{"getstr",			js_getstr,			0, JSTYPE_STRING,	JSDOCSTR("[string] [,maxlen=<tt>128</tt>] [,mode=<tt>K_NONE</tt>] [,history[]]")
+	},		
+	{"getstr",			js_getstr,			0, JSTYPE_STRING,	JSDOCSTR("[string] [,maxlen=<tt>128</tt>] [,mode=<tt>K_NONE</tt>]")
 	,JSDOCSTR("get a text string from the user, "
-		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits.<br>"
-		"<i>history[]</i>, added in v3.17, allows a command history (string array) to be recalled using the up/down arrow keys."
-		)
+		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
-	},
+	},		
 	{"getnum",			js_getnum,			0, JSTYPE_NUMBER,	JSDOCSTR("[maxnum[, default]]")
 	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user with a default value of <i>default</i>")
 	,310
-	},
+	},		
 	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("string keys [,maxnum]")
 	,JSDOCSTR("get one key from of a list of valid command <i>keys</i>, "
 		"or a number between 1 and <i>maxnum</i>")
 	,310
-	},
+	},		
 	{"gettemplate",		js_gettemplate,		1, JSTYPE_STRING,	JSDOCSTR("format [,string] [,mode=<tt>0</tt>]")
 	,JSDOCSTR("get a string based on template")
 	,310
-	},
+	},		
 	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("keys")
 	,JSDOCSTR("put a data (e.g. a string of characters) in the keyboard input buffer")
 	,310
-	},
+	},		
 	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
 	,JSDOCSTR("YES/no question - returns <i>true</i> if yes is selected")
 	,310
-	},
+	},		
 	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
 	,JSDOCSTR("NO/yes question - returns <i>true</i> if no is selected")
 	,310
-	},
+	},		
 	{"mnemonics",		js_mnemonics,		1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("print a mnemonics string, command keys highlighted with tilde (~) characters")
 	,310
-	},
+	},		
 	{"clear",           js_clear,			0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
 	,JSDOCSTR("clear screen and home cursor, "
 		"optionally (in v3.13b+) setting current attribute first")
@@ -1809,16 +1801,16 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("clear current line, "
 		"optionally (in v3.13b+) setting current attribute first")
 	,310
-	},
+	},		
 	{"cleartoeol",      js_cleartoeol,		0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
 	,JSDOCSTR("clear to end-of-line (ANSI), "
 		"optionally (in v3.13b+) setting current attribute first")
 	,311
-	},
+	},		
 	{"crlf",            js_crlf,			0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("output <i>count</i> number of carriage-return/line-feed pairs (new-lines)")
 	,310
-	},
+	},		
 	{"pause",			js_pause,			0, JSTYPE_VOID,		JSDOCSTR("")
 	,JSDOCSTR("display pause prompt and wait for key hit")
 	,310
@@ -1830,20 +1822,20 @@ static jsSyncMethodSpec js_console_functions[] = {
 	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
 	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.)")
 	,310
-	},
+	},		
 	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
 	,JSDOCSTR("display one or more values as raw strings (may include NULs)")
 	,310
-	},
+	},		
 	{"writeln",			js_writeln,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
 	,JSDOCSTR("display one or more values as raw strings followed by a single carriage-return/line-feed pair (new-line)")
 	,315
-	},
+	},		
 	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
 		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
-	},
+	},		
 	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("display a string centered on the screen")
 	,310
@@ -1855,43 +1847,43 @@ static jsSyncMethodSpec js_console_functions[] = {
 	{"printfile",		js_printfile,		1, JSTYPE_VOID,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print a message text file with optional mode")
 	,310
-	},
+	},		
 	{"printtail",		js_printtail,		2, JSTYPE_VOID,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
-	},
+	},		
 	{"editfile",		js_editfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename")
 	,JSDOCSTR("edit/create a text file using the user's preferred message editor")
 	,310
-	},
+	},		
 	{"uselect",			js_uselect,			0, JSTYPE_NUMBER,	JSDOCSTR("[number, title, item] [,ars]")
 	,JSDOCSTR("user selection menu, call for each item, then with no args to display select menu")
 	,312
-	},
-	{"saveline",		js_saveline,		0, JSTYPE_BOOLEAN,	JSDOCSTR("")
-	,JSDOCSTR("push the current console line of text and attributes to a (local) LIFO list of //saved lines//")
+	},		
+	{"saveline",		js_saveline,		0, JSTYPE_VOID,		JSDOCSTR("")
+	,JSDOCSTR("save last output line")
 	,310
-	},
-	{"restoreline",		js_restoreline,		0, JSTYPE_BOOLEAN,	JSDOCSTR("")
-	,JSDOCSTR("pop the most recently //saved line// of text and attributes and display it on the remote console")
+	},		
+	{"restoreline",		js_restoreline,		0, JSTYPE_VOID,		JSDOCSTR("")
+	,JSDOCSTR("restore last output line")
 	,310
-	},
+	},		
 	{"ansi",			js_ansi,			1, JSTYPE_STRING,	JSDOCSTR("attribute [,current_attribute]")
 	,JSDOCSTR("returns ANSI sequence required to generate specified terminal <i>attribute</i> "
 	"(e.g. <tt>YELLOW|HIGH|BG_BLUE</tt>), "
 	"if <i>current_attribute</i> is specified, an optimized ANSI sequence may be returned")
 	,310
-	},
+	},		
 	{"ansi_save",		js_pushxy,			0, JSTYPE_ALIAS	},
 	{"ansi_pushxy",		js_pushxy,			0, JSTYPE_ALIAS	},
 	{"pushxy",			js_pushxy,			0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("save the current cursor position (x and y coordinates) in the remote terminal")
+	,JSDOCSTR("save current cursor position (AKA ansi_save)")
 	,311
 	},
 	{"ansi_restore",	js_popxy,			0, JSTYPE_ALIAS },
 	{"ansi_popxy",		js_popxy,			0, JSTYPE_ALIAS },
 	{"popxy",			js_popxy,			0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("restore a saved cursor position to the remote terminal (requires terminal support, e.g. ANSI)")
+	,JSDOCSTR("restore saved cursor position (AKA ansi_restore)")
 	,311
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
@@ -1972,7 +1964,7 @@ static JSBool js_console_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
-
+		
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
