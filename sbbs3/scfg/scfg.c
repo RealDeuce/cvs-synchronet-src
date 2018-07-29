@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.94 2018/07/29 00:17:33 rswindell Exp $ */
+/* $Id: scfg.c,v 1.95 2018/07/29 01:01:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2158,15 +2158,18 @@ void bail(int code)
         read_file_cfg(&cfg,error);
         read_chat_cfg(&cfg,error);
         read_xtrn_cfg(&cfg,error);
-        uifc.pop(0);
+		uifc.pop(NULL);
+        uifc.pop("Writing Configs...");
 		cfg.new_install=new_install;
         write_main_cfg(&cfg,backup_level);
         write_msgs_cfg(&cfg,backup_level);
         write_file_cfg(&cfg,backup_level);
         write_chat_cfg(&cfg,backup_level);
         write_xtrn_cfg(&cfg,backup_level); 
+		uifc.pop(NULL);
 	}
 
+	uifc.pop("Exiting");
     uifc.bail();
 
     exit(code);
