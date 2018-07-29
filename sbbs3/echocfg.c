@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.37 2018/09/08 21:35:49 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.35 2018/07/19 04:13:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,7 +62,7 @@ void bail(int code)
 }
 
 /* These correlate with the LOG_* definitions in syslog.h/gen_defs.h */
-static char* logLevelStringList[]
+static char* logLevelStringList[] 
 	= {"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Informational", "Debugging", NULL};
 
 void global_settings(void)
@@ -231,7 +231,7 @@ void global_settings(void)
 static bool new_node(unsigned new_nodenum)
 {
 	nodecfg_t* nodecfg = realloc(cfg.nodecfg, sizeof(nodecfg_t)*(cfg.nodecfgs+1));
-
+	
 	if(nodecfg == NULL)
 		return false;
 
@@ -314,17 +314,8 @@ void binkp_settings(nodecfg_t* node)
 		sprintf(opt[i++], "%-20s %s", "Host", node->binkp_host);
 		sprintf(opt[i++], "%-20s %u", "Port", node->binkp_port);
 		sprintf(opt[i++], "%-20s %s", "Poll", node->binkp_poll ? "Yes" : "No");
-		char* auth = "Plain Only";
-		char* crypt = "Unsupported";
-		if(!node->binkp_plainAuthOnly) {
-			crypt = node->binkp_allowPlainText ? "Supported" : "Required";
-			if(node->binkp_allowPlainAuth) 
-				auth = "Plain or CRAM-MD5";
-			else
-				auth = "CRAM-MD5 Only";
-		}
-		sprintf(opt[i++], "%-20s %s", "Authentication", auth);
-		sprintf(opt[i++], "%-20s %s", "Encryption", crypt);
+		sprintf(opt[i++], "%-20s %s", "Allow Plain Auth", node->binkp_allowPlainAuth ? "Yes" : "No");
+		sprintf(opt[i++], "%-20s %s", "Allow Plain Text", node->binkp_allowPlainText ? "Yes" : "No");
 		sprintf(opt[i++], "%-20s %s", "Source Address", node->binkp_src);
 		opt[i][0]=0;
 		char title[128];
@@ -344,15 +335,13 @@ void binkp_settings(nodecfg_t* node)
 			"\n"
 			"`Poll` defines whether or not to periodically poll this linked node.\n"
 			"\n"
-			"`Authentication` determines what types of authentication will be supported\n"
-			"    during both inbound and outbound sessions with this linked node.\n"
-			"    The supported BinkP-auth methods are `Plain-Password` and `CRAM-MD5`.\n"
+			"`Allow Plain Auth` determines whether plain-text authenticated sessions\n"
+			"    will be allowed.  With this setting set to `No`, ~only~ CRAM-MD5\n"
+			"    authenticated BinkP sessions will be allowed.\n"
 			"\n"
-			"`Encryption` determines whether unencrypted data transfers will be\n"
-			"    supported or required when communicating with this linked node.\n"
-			"    With this setting set to `Required`, ~only~ BinkD-style-encrypted BinkP\n"
-			"    sessions will be supported.\n"
-			"    CRAM-MD5 authentication `must` be used when encrypting BinkP sessions.\n"
+			"`Allow Plain Text` determines whether unencrypted file transfers will\n"
+			"    be allowed.  With this setting set to `No`, ~only~ BinkD-style-encrypted\n"
+			"    BinkP sessions will be supported.\n"
 			"\n"
 			"`Source Address` allows you to override the source FTN address used\n"
 			"    with outgoing BinkP mailer sessions with this linked node.\n"
@@ -383,47 +372,22 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 3:
-				k = node->binkp_plainAuthOnly ? 0 : (1 + !node->binkp_allowPlainAuth);
-				strcpy(opt[0], "Plain-Password Only");
-				strcpy(opt[1], "Plain-Password or CRAM-MD5");
-				strcpy(opt[2], "CRAM-MD5 Only");
-				opt[3][0] = 0;
+				k = !node->binkp_allowPlainAuth;
+				strcpy(opt[0], "CRAM-MD5 or Plain Password");
+				strcpy(opt[1], "CRAM-MD5 Only");
+				opt[2][0] = 0;
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"Authentication",opt)) {
-					case 0:	
-						node->binkp_plainAuthOnly = true;
-						node->binkp_allowPlainAuth = true;
-						node->binkp_allowPlainText = true;
-						uifc.changes=TRUE;
-						break;
-					case 1:
-						node->binkp_allowPlainAuth = true;
-						node->binkp_plainAuthOnly = false;
-						node->binkp_allowPlainText = true;
-						uifc.changes=TRUE;
-						break;
-					case 2:
-						node->binkp_allowPlainAuth = false;
-						node->binkp_plainAuthOnly = false;
-						uifc.changes=TRUE;
-						break;
+					,"Inbound Authentication",opt)) {
+					case 0:	node->binkp_allowPlainAuth = true;	uifc.changes=TRUE; break;
+					case 1:	node->binkp_allowPlainAuth = false;	uifc.changes=TRUE; break;
 				}
 				break;
 			case 4:
 				k = !node->binkp_allowPlainText;
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Allow Plain-Text (Unencrypted) Sessions",uifcYesNoOpts)) {
-					case 0:
-						node->binkp_allowPlainText = true;
-						node->binkp_allowPlainAuth = true;
-						uifc.changes=TRUE;
-						break;
-					case 1:
-						node->binkp_allowPlainText = false;
-						node->binkp_allowPlainAuth = false;
-						node->binkp_plainAuthOnly = false;
-						uifc.changes=TRUE;
-						break;
+					case 0:	node->binkp_allowPlainText = true;	uifc.changes=TRUE; break;
+					case 1:	node->binkp_allowPlainText = false;	uifc.changes=TRUE; break;
 				}
 				break;
 			case 5:
@@ -552,13 +516,13 @@ int main(int argc, char **argv)
 			}
 			SAFECOPY(str,p);
 			backslash(str);
-			SAFECAT(str,"../ctrl/sbbsecho.ini");
+			SAFECAT(str,"../ctrl/sbbsecho.ini"); 
 		}
 		else {
 			SAFECOPY(str,p);
 			backslash(str);
-			SAFECAT(str,"sbbsecho.ini");
-		}
+			SAFECAT(str,"sbbsecho.ini"); 
+		} 
 	}
 	SAFECOPY(cfg.cfgfile,str);
 
@@ -571,12 +535,12 @@ int main(int argc, char **argv)
 	// savnum=0;
 	if((opt=(char **)malloc(sizeof(char *)*1000))==NULL) {
 		puts("memory allocation error\n");
-		exit(1);
+		exit(1); 
 	}
 	for(i=0;i<1000;i++)
 		if((opt[i]=(char *)malloc(MAX_OPLN+1))==NULL) {
 			puts("memory allocation error\n");
-			exit(1);
+			exit(1); 
 		}
 	uifc.size=sizeof(uifc);
 	if(!door_mode) {
@@ -647,10 +611,6 @@ int main(int argc, char **argv)
 	"The `Paths and Filenames` sub-menu is where you configure your system's\n"
 	"directory and file paths used by SBBSecho.\n"
 	"\n"
-	"The `Domains` sub-menu is where FidoNet-style domains (the '@domain'\n"
-	"of 5D FTN address) are mapped to zone numbers, DNS suffixes, NodeLists\n"
-	"and BSO root directories for use by the BinkIT mailer.\n"
-	"\n"
 	"The `EchoLists` sub-menu is for configuring additional (optional)\n"
 	"lists of FidoNet-style message areas (echoes) in `BACKBONE.NA` file\n"
 	"format.  These lists, if configured, are used in addition to your main\n"
@@ -703,7 +663,7 @@ int main(int argc, char **argv)
 							,cfg.nodecfg[u].name[0] ? cfg.nodecfg[u].name : cfg.nodecfg[u].comment);
 					}
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
 					if(cfg.nodecfgs)
 						mode |= WIN_COPY | WIN_CUT;
@@ -727,11 +687,11 @@ int main(int argc, char **argv)
 							continue;
 						if(!new_node(i)) {
 							printf("\nMemory Allocation Error\n");
-							exit(1);
+							exit(1); 
 						}
 						cfg.nodecfg[i].addr=atofaddr(str);
 						uifc.changes=TRUE;
-						continue;
+						continue; 
 					}
 
 					if (msk == MSK_DEL || msk == MSK_CUT) {
@@ -740,24 +700,24 @@ int main(int argc, char **argv)
 						cfg.nodecfgs--;
 						if(cfg.nodecfgs<=0) {
 							cfg.nodecfgs=0;
-							continue;
+							continue; 
 						}
 						for(u=i;u<cfg.nodecfgs;u++)
 							memcpy(&cfg.nodecfg[u],&cfg.nodecfg[u+1]
 								,sizeof(nodecfg_t));
 						uifc.changes=TRUE;
-						continue;
+						continue; 
 					}
 					if (msk == MSK_COPY) {
 						memcpy(&savnodecfg,&cfg.nodecfg[i],sizeof(nodecfg_t));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_PASTE) {
 						if(!new_node(i))
 							continue;
 						memcpy(&cfg.nodecfg[i],&savnodecfg,sizeof(nodecfg_t));
 						uifc.changes=TRUE;
-						continue;
+						continue; 
 					}
 					while(1) {
 	uifc.helpbuf=
@@ -769,7 +729,7 @@ int main(int argc, char **argv)
 	"    will apply to *all* nodes matching that address pattern.\n"
 	"    e.g. '`1:ALL`' matches all nodes within FidoNet Zone 1.\n"
 	"\n"
-	"`Name` is name of the system operator of the configured node. This is used\n"
+	"`Name` is name of the system operator of the configured node. This is\n"
 	"    as the destination name for AreaFix Notification NetMail messages.\n"
 	"\n"
 	"`Comment` is a note to yourself about this node. Setting this to the\n"
@@ -805,7 +765,7 @@ int main(int argc, char **argv)
 	"\n"
 	"`AreaFix Support` is a toggle that determines whether or not this node\n"
 	"    may send AreaFix NetMail requests to your system to perform remote\n"
-	"    area and account management.\n"
+	"    area management.\n"
 	"\n"
 	"`AreaFix Password` is an optional password used to authenticate inbound\n"
 	"    AreaFix NetMail requests (Remote Area Management) from this node.\n"
@@ -833,12 +793,6 @@ int main(int argc, char **argv)
 	"    names) for which this node is a hub/uplink for your system.  This\n"
 	"    setting is used in combination with the `Auto Add Sub-boards` feature\n"
 	"    to auto-link hubs with the newly added areas in your Area File.\n"
-	"\n"
-	"`Local Address` is an optional local system address (AKA) to use when\n"
-	"    sending packets to this node.  When a Local Address is not specified\n"
-	"    SBBSecho will automatically choose the local address that matches\n"
-	"    the destination address (zone and net number) the closest\n"
-	"    (Best Match).\n"
 	"\n"
 	"`Route To` is only used in Binkley-Style Outbound (BSO/FLO) operating\n"
 	"    mode and is used to set the FTN address to route mail for this node.\n"
@@ -889,9 +843,6 @@ int main(int argc, char **argv)
 							,cfg.nodecfg[i].send_notify ? "Yes" : "No");
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Uplink for Message Groups"
 							,strListCombine(cfg.nodecfg[i].grphub,str,sizeof(str),","));
-						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Local Address (AKA)"
-							,cfg.nodecfg[i].local_addr.zone
-							? faddrtoa(&cfg.nodecfg[i].local_addr) : "Best Match");
 						if(cfg.flo_mailer) {
 							snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Route To"
 								,cfg.nodecfg[i].route.zone
@@ -1070,21 +1021,21 @@ int main(int argc, char **argv)
 											continue;
 										strListInsert(&cfg.nodecfg[i].keys, str, k);
 										uifc.changes=TRUE;
-										continue;
+										continue; 
 									}
 
 									if((k&MSK_ON)==MSK_DEL) {
 										k&=MSK_OFF;
 										strListRemove(&cfg.nodecfg[i].keys, k);
 										uifc.changes=TRUE;
-										continue;
+										continue; 
 									}
 									SAFECOPY(str,cfg.nodecfg[i].keys[k]);
 									uifc.input(WIN_MID|WIN_SAV,0,0,"EchoList Key"
 										,str,SBBSECHO_MAX_KEY_LEN,K_EDIT|K_UPPER);
 									strListReplace(cfg.nodecfg[i].keys, k, str);
 									uifc.changes=TRUE;
-									continue;
+									continue; 
 								}
 								break;
 							case __COUNTER__:
@@ -1152,33 +1103,21 @@ int main(int argc, char **argv)
 											continue;
 										strListInsert(&cfg.nodecfg[i].grphub, str, k);
 										uifc.changes=TRUE;
-										continue;
+										continue; 
 									}
 
 									if((k&MSK_ON)==MSK_DEL) {
 										k&=MSK_OFF;
 										strListRemove(&cfg.nodecfg[i].grphub, k);
 										uifc.changes=TRUE;
-										continue;
+										continue; 
 									}
 									SAFECOPY(str,cfg.nodecfg[i].grphub[k]);
 									uifc.input(WIN_MID|WIN_SAV,0,0,"Message Group (short name)"
 										,str,LEN_GSNAME,K_EDIT|K_UPPER);
 									strListReplace(cfg.nodecfg[i].grphub, k, str);
 									uifc.changes=TRUE;
-									continue;
-								}
-								break;
-							case __COUNTER__:
-								SAFECOPY(str,faddrtoa(&cfg.nodecfg[i].local_addr));
-								if(uifc.input(WIN_MID|WIN_SAV,0,0
-									,"Local Source Address (AKA) to Use",str
-									,25,K_EDIT) >= 0) {
-									if(str[0])
-										cfg.nodecfg[i].local_addr = atofaddr(str);
-									else
-										cfg.nodecfg[i].local_addr.zone = 0;
-									uifc.changes=TRUE;
+									continue; 
 								}
 								break;
 							case __COUNTER__:
@@ -1214,8 +1153,8 @@ int main(int argc, char **argv)
 							case __COUNTER__:
 								binkp_settings(&cfg.nodecfg[i]);
 								break;
-						}
-					}
+						} 
+					} 
 				}
 				break;
 
@@ -1373,7 +1312,7 @@ int main(int argc, char **argv)
 							uifc.input(WIN_L2R|WIN_SAV,0,0,"Log File"
 								,cfg.logfile,sizeof(cfg.logfile)-1
 								,K_EDIT);
-							break;
+							break; 
 
 						case 6:
 	uifc.helpbuf=
@@ -1384,7 +1323,7 @@ int main(int argc, char **argv)
 							uifc.input(WIN_L2R|WIN_SAV,0,0,"EchoStats File"
 								,cfg.echostats,sizeof(cfg.echostats)-1
 								,K_EDIT);
-							break;
+							break; 
 
 						case 7:
 	uifc.helpbuf=
@@ -1395,7 +1334,7 @@ int main(int argc, char **argv)
 							uifc.input(WIN_L2R|WIN_SAV,0,0,"Temp Dir"
 								,cfg.temp_dir,sizeof(cfg.temp_dir)-1
 								,K_EDIT);
-							break;
+							break; 
 
 						case 8:
 	uifc.helpbuf=
@@ -1406,8 +1345,8 @@ int main(int argc, char **argv)
 							uifc.input(WIN_L2R|WIN_SAV,0,0,"Outgoing Sem File"
 								,cfg.outgoing_sem,sizeof(cfg.outgoing_sem)-1
 								,K_EDIT);
-							break;
-					}
+							break; 
+					} 
 				}
 				break;
 
@@ -1599,7 +1538,7 @@ int main(int argc, char **argv)
 								cfg.max_netmail_age = (ulong)parse_duration(str);
 							break;
 
-					}
+					} 
 				}
 				break;
 
@@ -1865,7 +1804,7 @@ int main(int argc, char **argv)
 								cfg.max_echomail_age = (ulong)parse_duration(str);
 							break;
 
-					}
+					} 
 				}
 				break;
 
@@ -1904,10 +1843,10 @@ int main(int argc, char **argv)
 							continue;
 						if(!new_arcdef(i)) {
 							printf("\nMemory Allocation Error\n");
-							exit(1);
+							exit(1); 
 						}
 						SAFECOPY(cfg.arcdef[i].name,str);
-						continue;
+						continue; 
 					}
 
 					if (msk == MSK_DEL || msk == MSK_CUT) {
@@ -1916,22 +1855,22 @@ int main(int argc, char **argv)
 						cfg.arcdefs--;
 						if(cfg.arcdefs<=0) {
 							cfg.arcdefs=0;
-							continue;
+							continue; 
 						}
 						for(u=i;u<cfg.arcdefs;u++)
 							memcpy(&cfg.arcdef[u],&cfg.arcdef[u+1]
 								,sizeof(arcdef_t));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_COPY) {
 						memcpy(&savarcdef,&cfg.arcdef[i],sizeof(arcdef_t));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_PASTE) {
 						if(!new_arcdef(i))
 							continue;
 						memcpy(&cfg.arcdef[i],&savarcdef,sizeof(arcdef_t));
-						continue;
+						continue; 
 					}
 					if (msk != 0)
 						continue;
@@ -2042,25 +1981,22 @@ int main(int argc, char **argv)
 									,cfg.arcdef[i].unpack,sizeof(cfg.arcdef[i].unpack)-1
 									,K_EDIT);
 								break;
-						}
-					}
+						} 
+					} 
 				}
 				break;
 
 			case 6:
-				uifc.helpbuf=
-					"~ Domains ~\n\n"
-					"The `Domains` sub-menu is where FidoNet-style domains (the '@domain'\n"
-					"of 5D FTN address) are mapped to zone numbers, DNS suffixes, NodeLists\n"
-					"and BSO root directories for use by the BinkIT mailer.\n"
-				;
+	uifc.helpbuf=
+	"~ Domains ~\n\n"
+	;
 				i=0;
 				while(1) {
 					for(u=0; u < cfg.domain_count; u++)
 						snprintf(opt[u], MAX_OPLN-1, "%-*s  %s"
 							,FIDO_DOMAIN_LEN, cfg.domain_list[u].name, cfg.domain_list[u].dns_suffix);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
 					if(cfg.domain_count)
 						mode |= WIN_COPY | WIN_CUT;
@@ -2073,15 +2009,18 @@ int main(int argc, char **argv)
 					i &= MSK_OFF;
 					if (msk == MSK_INS) {
 						str[0]=0;
+	uifc.helpbuf=
+	"~ Domain ~\n\n"
+	;
 						if(uifc.input(WIN_MID|WIN_SAV,0,0
 							,"FTN Domain Name", str, FIDO_DOMAIN_LEN, K_EDIT)<1)
 							continue;
 						if(!new_domain(i)) {
 							printf("\nMemory Allocation Error\n");
-							exit(1);
+							exit(1); 
 						}
 						SAFECOPY(cfg.domain_list[i].name, str);
-						continue;
+						continue; 
 					}
 
 					if (msk == MSK_DEL || msk == MSK_CUT) {
@@ -2090,26 +2029,29 @@ int main(int argc, char **argv)
 						cfg.domain_count--;
 						if(cfg.domain_count <= 0) {
 							cfg.domain_count = 0;
-							continue;
+							continue; 
 						}
 						for(u=i; u < cfg.domain_count; u++)
 							memcpy(&cfg.domain_list[u], &cfg.domain_list[u+1], sizeof(struct fido_domain));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_COPY) {
 						memcpy(&savedomain, &cfg.domain_list[i], sizeof(savedomain));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_PASTE) {
 						if(!new_domain(i))
 							continue;
 						memcpy(&cfg.domain_list[i], &savedomain, sizeof(savedomain));
-						continue;
+						continue; 
 					}
 					if (msk != 0)
 						continue;
 					while(1) {
 						j=0;
+						uifc.helpbuf=
+						"Configuring a Domain"
+						;
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Name"
 							,cfg.domain_list[i].name);
 						snprintf(opt[j++],MAX_OPLN-1,"%-30.30s %s","Zones"
@@ -2160,8 +2102,8 @@ int main(int argc, char **argv)
 									,cfg.domain_list[i].nodelist,sizeof(cfg.domain_list[i].nodelist)-1
 									,K_EDIT);
 								break;
-						}
-					}
+						} 
+					} 
 				}
 				break;
 
@@ -2176,7 +2118,7 @@ int main(int argc, char **argv)
 					for(u=0;u<cfg.listcfgs;u++)
 						snprintf(opt[u],MAX_OPLN-1,"%s",cfg.listcfg[u].listpath);
 					opt[u][0]=0;
-					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT
+					int mode = WIN_SAV | WIN_INS | WIN_DEL | WIN_ACT 
 						| WIN_INSACT | WIN_DELACT | WIN_XTR;
 					if(cfg.listcfgs)
 						mode |= WIN_COPY | WIN_CUT;
@@ -2198,10 +2140,10 @@ int main(int argc, char **argv)
 							continue;
 						if(!new_list(i)) {
 							printf("\nMemory Allocation Error\n");
-							exit(1);
+							exit(1); 
 						}
 						SAFECOPY(cfg.listcfg[i].listpath,str);
-						continue;
+						continue; 
 					}
 
 					if (msk == MSK_DEL || msk == MSK_CUT) {
@@ -2210,22 +2152,22 @@ int main(int argc, char **argv)
 						cfg.listcfgs--;
 						if(cfg.listcfgs<=0) {
 							cfg.listcfgs=0;
-							continue;
+							continue; 
 						}
 						for(u=i;u<cfg.listcfgs;u++)
 							memcpy(&cfg.listcfg[u],&cfg.listcfg[u+1]
 								,sizeof(echolist_t));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_COPY) {
 						memcpy(&savlistcfg,&cfg.listcfg[i],sizeof(echolist_t));
-						continue;
+						continue; 
 					}
 					if (msk == MSK_PASTE) {
 						if(!new_list(i))
 							continue;
 						memcpy(&cfg.listcfg[i],&savlistcfg,sizeof(echolist_t));
-						continue;
+						continue; 
 					}
 					if (msk != 0)
 						continue;
@@ -2287,19 +2229,19 @@ int main(int argc, char **argv)
 											,K_EDIT|K_UPPER)<1)
 											continue;
 										strListInsert(&cfg.listcfg[i].keys,str,x);
-										continue;
+										continue; 
 									}
 
 									if((x&MSK_ON)==MSK_DEL) {
 										x&=MSK_OFF;
 										strListRemove(&cfg.listcfg[i].keys,x);
-										continue;
+										continue; 
 									}
 									SAFECOPY(str,cfg.listcfg[i].keys[x]);
 										uifc.input(WIN_MID|WIN_SAV,0,0,"EchoList Keys"
 											,str,SBBSECHO_MAX_KEY_LEN,K_EDIT|K_UPPER);
 										strListReplace(cfg.listcfg[i].keys,x,str);
-										continue;
+										continue; 
 								}
 								break;
 							case 2:
@@ -2331,8 +2273,8 @@ int main(int argc, char **argv)
 									,cfg.listcfg[i].password,sizeof(cfg.listcfg[i].password)-1
 									,K_EDIT|K_UPPER);
 								break;
-						}
-					}
+						} 
+					} 
 				}
 				break;
 
@@ -2353,15 +2295,12 @@ int main(int argc, char **argv)
 					i=0;
 					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
 					if(i==-1) break;
-					if(i == 0) {
-						if(!sbbsecho_write_ini(&cfg))
-							uifc.msg("Error saving configuration file");
-					}
+					if(i) {uifc.bail(); exit(0);}
+					if(!sbbsecho_write_ini(&cfg))
+						uifc.msg("Error saving configuration file");
 				}
-				uifc.pop("Exiting");
 				uifc.bail();
 				exit(0);
-				break;
 		}
 	}
 }
