@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.174 2019/07/11 05:44:27 deuce Exp $ */
+/* $Id: ciolib.c,v 1.172 2018/04/18 06:44:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1134,7 +1134,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void)
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void)
 {
 	CIOLIB_INIT();
-
+	
 	if(cio_api.normvideo) {
 		cio_api.normvideo();
 		return;
@@ -1209,7 +1209,7 @@ static char c64_color_xlat(char colour)
 			return 15;
 		case DARKGRAY:
 			return 11;
-		case LIGHTBLUE:
+		case LIGHTBLUE:	
 			return 14;
 		case LIGHTGREEN:
 			return 13;
@@ -1556,7 +1556,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 	puttext_can_move=old_puttext_can_move;
 
 	return(a1);
-
+	
 }
 
 /* **MUST** be implemented */
@@ -1673,7 +1673,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename)
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos)
 {
 	CIOLIB_INIT();
-
+	
 	if(cio_api.get_window_info!=NULL)
 		return(cio_api.get_window_info(width,height,xpos,ypos));
 	else {
@@ -1842,6 +1842,19 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 		free(ret);
 		return NULL;
 	}
+	ret->foreground = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->foreground[0]));
+	if (ret->foreground == NULL) {
+		free(ret->vmem);
+		free(ret);
+		return NULL;
+	}
+	ret->background = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->background[0]));
+	if (ret->background == NULL) {
+		free(ret->foreground);
+		free(ret->vmem);
+		free(ret);
+		return NULL;
+	}
 
 	if (vmode != -1) {
 		ret->pixels = ciolib_getpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1);
@@ -1862,6 +1875,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *scrn)
 		return;
 
 	ciolib_freepixels(scrn->pixels);
+	FREE_AND_NULL(scrn->background);
+	FREE_AND_NULL(scrn->foreground);
 	FREE_AND_NULL(scrn->vmem);
 	free(scrn);
 }
@@ -1950,7 +1965,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr)
 	flags = ciolib_getvideoflags();
 	if ((flags & CIOLIB_VIDEO_ALTCHARS) && (attr & 0x08))
 		font |= 1;
-	if ((flags & CIOLIB_VIDEO_BLINKALTCHARS) && (attr & 0x80))
+	if ((flags * CIOLIB_VIDEO_BLINKALTCHARS) && (attr & 0x80))
 		font |= 2;
 	return ciolib_getfont(font+1);
 }

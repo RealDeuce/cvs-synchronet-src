@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.102 2019/07/11 05:44:28 deuce Exp $ */
+/* $Id: ciolib.h,v 1.100 2018/04/18 06:44:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 
 #ifdef _WIN32
         #ifdef __BORLANDC__
-                #define CIOLIBCALL
+                #define CIOLIBCALL __stdcall
         #else
                 #define CIOLIBCALL
         #endif
@@ -258,22 +258,24 @@ struct ciolib_pixels {
 	uint32_t	height;
 };
 
-struct vmem_cell {
-	uint8_t legacy_attr;
-	uint8_t ch;
-	uint8_t font;
-	uint32_t fg;	// RGB 00RRGGBB High bit indicates palette colour
-	uint32_t bg;	// RGB 00RRGGBB High bit indicates palette colour
-};
-
 struct ciolib_screen {
 	uint32_t		fg_colour;
 	uint32_t		bg_colour;
 	int			flags;
 	int			fonts[5];
 	struct ciolib_pixels	*pixels;
-	struct vmem_cell	*vmem;
+	void			*vmem;
+	uint32_t		*foreground;
+	uint32_t		*background;
 	struct text_info	text_info;
+};
+
+struct vmem_cell {
+	uint8_t legacy_attr;
+	uint8_t ch;
+	uint8_t font;
+	uint32_t fg;	// RGB 00RRGGBB High bit indicates palette colour
+	uint32_t bg;	// RGB 00RRGGBB High bit indicates palette colour
 };
 
 #define CONIO_FIRST_FREE_FONT	43
