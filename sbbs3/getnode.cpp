@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.48 2018/07/26 06:22:27 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.49 2018/07/29 08:21:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,10 +248,8 @@ int sbbs_t::getnmsg()
 	close(file);
 	buf[length]=0;
 
-	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
-		|| sys_status&SS_IN_CTRLP) {
+	if(cols)
 		CRLF; 
-	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
@@ -353,10 +351,8 @@ int sbbs_t::getsmsg(int usernumber)
 	close(file);
 	buf[length]=0;
 	getnodedat(cfg.node_num,&thisnode,0);
-	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
-		|| sys_status&SS_IN_CTRLP) {
+	if(cols)
 		CRLF; 
-	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
