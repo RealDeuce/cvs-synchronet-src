@@ -812,10 +812,6 @@ enum {
 	,FileHdrDescSeparator
 	,RemoveFileQ
 	,OriginFidoAddr
-	,VoteNoticeFmt
-	,TagMessageQ
-	,TagMessagePrompt
-	,MsgTags
 
 	,TOTAL_TEXT
 };
