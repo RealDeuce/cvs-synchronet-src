@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.115 2018/02/20 11:25:55 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.118 2018/07/29 04:57:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -355,6 +355,7 @@ static char* con_prop_desc[] = {
 	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
+	,"detected CTerm (SyncTERM) version as an integer > 1000 where major version is cterm_version / 1000 and minor version is cterm_version % 1000"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
 	,"number of seconds before disconnection due to user/keyboard inactivity"
 	,"user/keyboard inactivity timeout reference value (time_t format)"
@@ -499,6 +500,7 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
 	jsrefcount	rc;
+	str_list_t	history = NULL;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -515,12 +517,32 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 				if(!JS_ValueToInt32(cx,argv[i],&mode))
 					return JS_FALSE;
 			}
-			continue;
 		}
-		if(JSVAL_IS_STRING(argv[i])) {
+		else if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
 			if (!js_str)
 			    return(JS_FALSE);
+		}
+		else if(JSVAL_IS_OBJECT(argv[i])) {
+			JSObject* array = JSVAL_TO_OBJECT(argv[i]);
+			jsuint len=0;
+			if(!JS_GetArrayLength(cx, array, &len))
+				return JS_FALSE;
+			history = (str_list_t)alloca(sizeof(char*) * (len + 1));
+			memset(history, 0, sizeof(char*) * (len + 1));
+			for(jsuint j=0; j < len; j++) {
+				jsval		val;
+				if(!JS_GetElement(cx, array, j, &val))
+					break;
+				JSString* hist = JS_ValueToString(cx, val);
+				if (hist == NULL)
+					return JS_FALSE;
+				char* cstr = NULL;
+				JSSTRING_TO_ASTRING(cx, hist, cstr, (uint)(maxlen ? maxlen : 80), NULL);
+				if(cstr == NULL)
+					return JS_FALSE;
+				history[j] = cstr;
+			}
 		}
 	}
 
@@ -540,7 +562,7 @@ js_getstr(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->getstr(p,maxlen,mode);
+	sbbs->getstr(p, maxlen, mode, history);
 	JS_RESUMEREQUEST(cx, rc);
 
 	js_str = JS_NewStringCopyZ(cx, p);
@@ -1753,9 +1775,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},		
-	{"getstr",			js_getstr,			0, JSTYPE_STRING,	JSDOCSTR("[string] [,maxlen=<tt>128</tt>] [,mode=<tt>K_NONE</tt>]")
+	{"getstr",			js_getstr,			0, JSTYPE_STRING,	JSDOCSTR("[string] [,maxlen=<tt>128</tt>] [,mode=<tt>K_NONE</tt>] [,history[]]")
 	,JSDOCSTR("get a text string from the user, "
-		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
+		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits.<br>"
+		"<i>history[]</i>, added in v3.17, allows a command history (string array) to be recalled using the up/down arrow keys."
+		)
 	,310
 	},		
 	{"getnum",			js_getnum,			0, JSTYPE_NUMBER,	JSDOCSTR("[maxnum[, default]]")

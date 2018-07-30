@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.68 2018/02/23 08:24:23 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.70 2018/07/24 06:39:39 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -120,6 +120,7 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 
 # Must add new additions to MONO_OBJS too!
 CON_OBJS	= $(MTOBJODIR)$(DIRSEP)sbbscon$(OFILE) \
+			$(MTOBJODIR)$(DIRSEP)sbbs_status$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)sbbs_ini$(OFILE)
 
 # Must add new additions to MONO_OBJS too!
@@ -188,6 +189,7 @@ SBBSECHO_OBJS = \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
 			$(OBJODIR)$(DIRSEP)rechocfg$(OFILE) \
 			$(OBJODIR)$(DIRSEP)msg_id$(OFILE) \
+			$(OBJODIR)$(DIRSEP)msgdate$(OFILE) \
 			$(OBJODIR)$(DIRSEP)getmail$(OFILE) \
 			$(SMB_OBJS)
 
@@ -209,6 +211,7 @@ ADDFILES_OBJS = \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
 			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
+			$(OBJODIR)$(DIRSEP)msgdate$(OFILE) \
 			$(OBJODIR)$(DIRSEP)filedat$(OFILE)
 
 FILELIST_OBJS = \
@@ -233,7 +236,8 @@ MAKEUSER_OBJS = \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE) \
 			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)dat_rec$(OFILE) \
-			$(OBJODIR)$(DIRSEP)userdat$(OFILE)
+			$(OBJODIR)$(DIRSEP)userdat$(OFILE) \
+			$(OBJODIR)$(DIRSEP)msgdate$(OFILE)
 
 JSEXEC_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)jsexec$(OFILE) \
@@ -339,4 +343,7 @@ DSTSEDIT_OBJS = \
 
 READSAUCE_OBJS = \
 			$(OBJODIR)$(DIRSEP)readsauce$(OFILE)
+
+SHOWSTAT_OBJS = \
+			$(OBJODIR)$(DIRSEP)showstat$(OFILE)
 
