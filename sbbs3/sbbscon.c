@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.274 2019/03/31 04:32:47 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.271 2018/07/24 08:41:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1355,7 +1355,7 @@ static void show_usage(char *cmd)
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
-#if defined(BUILD_JSDOCS) && defined(WITH_SDL)
+#ifdef BUILD_JSDOCS
 int CIOLIB_main(int argc, char** argv)
 #else
 int main(int argc, char** argv)
@@ -1895,7 +1895,7 @@ int main(int argc, char** argv)
     SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
 
 	if(chdir(scfg.ctrl_dir)!=0)
-		lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), scfg.ctrl_dir);
+		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, scfg.ctrl_dir);
 
     scfg.size=sizeof(scfg);
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
@@ -1946,7 +1946,7 @@ int main(int argc, char** argv)
 
 		lprintf(LOG_INFO,"Running as daemon");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			lprintf(LOG_ERR,"!ERROR %d (%s) running as daemon", errno, strerror(errno));
+			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
 	}
@@ -2043,32 +2043,23 @@ int main(int argc, char** argv)
 #if !defined(DONT_BLAME_SYNCHRONET)
     		if(!thread_suid_broken) {
      			if(bbs_startup.telnet_port < IPPORT_RESERVED
-    				|| ((bbs_startup.options & BBS_OPT_ALLOW_RLOGIN)
+    				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
     					&& bbs_startup.rlogin_port < IPPORT_RESERVED)
 #ifdef USE_CRYPTLIB
-    				|| ((bbs_startup.options & BBS_OPT_ALLOW_SSH)
+    				|| (bbs_startup.options & BBS_OPT_ALLOW_SSH
     					&& bbs_startup.ssh_port < IPPORT_RESERVED)
 #endif
-    				) {
-					lputs(LOG_WARNING, "Disabling Terminal Server recycle support");
+    				)
     				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
-				}
-    			if(ftp_startup.port < IPPORT_RESERVED) {
-					lputs(LOG_WARNING, "Disabling FTP Server recycle support");
+    			if(ftp_startup.port < IPPORT_RESERVED)
     				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
-				}
-    			if(web_startup.port < IPPORT_RESERVED) {
-					lputs(LOG_WARNING, "Disabling Web Server recycle support");
+    			if(web_startup.port < IPPORT_RESERVED)
     				web_startup.options|=BBS_OPT_NO_RECYCLE;
-				}
-    			if(((mail_startup.options & MAIL_OPT_ALLOW_POP3)
+    			if((mail_startup.options & MAIL_OPT_ALLOW_POP3
     				&& mail_startup.pop3_port < IPPORT_RESERVED)
-    				|| mail_startup.smtp_port < IPPORT_RESERVED) {
-					lputs(LOG_WARNING, "Disabling Mail Server recycle support");
+    				|| mail_startup.smtp_port < IPPORT_RESERVED)
     				mail_startup.options|=MAIL_OPT_NO_RECYCLE;
-				}
-				/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
-				lputs(LOG_WARNING, "Disabling Services recycle support");
+    			/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
     			services_startup.options|=BBS_OPT_NO_RECYCLE;
     		}
 #endif /* !defined(DONT_BLAME_SYNCHRONET) */
