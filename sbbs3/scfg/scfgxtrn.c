@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.58 2018/03/10 03:20:06 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.59 2018/06/21 20:24:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1239,7 +1239,7 @@ void xtrn_cfg(uint section)
 					uifc.helpbuf=
 						"`Use Shell to Execute Command:`\n"
 						"\n"
-						"If this command-line requires the system command shell to execute, (Unix \n"
+						"If this command-line requires the system command shell to execute, (Unix\n"
 						"shell script or DOS batch file), set this option to ~Yes~.\n"
 					;
 					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
