@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.90 2018/08/03 05:48:00 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.91 2018/08/03 06:37:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5187,8 +5187,6 @@ int export_netmail(void)
 			if((i = smb_updatemsg(email, &msg)) != SMB_SUCCESS)
 				lprintf(LOG_ERR,"!ERROR %d (%s) deleting mail msg #%u"
 					,i, email->last_error, msg.hdr.number);
-			if(msg.hdr.auxattr&MSG_FILEATTACH)
-				del_file_attachments(&msg);
 			(void)fseek(email->sid_fp, (msg.offset+1)*sizeof(msg.idx), SEEK_SET);
 		} else {
 			/* Just mark as "sent" */
@@ -5196,8 +5194,6 @@ int export_netmail(void)
 			if(smb_putmsghdr(email, &msg) != SMB_SUCCESS)
 				lprintf(LOG_ERR,"!ERROR %s updating msg header for mail msg #%u"
 					, email->last_error, msg.hdr.number);
-			if(msg.hdr.auxattr&MSG_KILLFILE)
-				del_file_attachments(&msg);
 		}
 		exported++;
 	}
@@ -5986,7 +5982,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.90 $", "%*s %s", revision);
+	sscanf("$Revision: 3.91 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
