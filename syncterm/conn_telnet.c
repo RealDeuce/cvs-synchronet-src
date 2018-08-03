@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.15 2019/07/11 18:46:55 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.11 2018/02/01 08:17:39 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -11,7 +11,6 @@
 
 #include "bbslist.h"
 #include "conn.h"
-#include "term.h"
 #include "uifcinit.h"
 
 #include "telnet_io.h"
@@ -30,7 +29,6 @@ void telnet_input_thread(void *args)
 	size_t	buffer;
 	char	rbuf[BUFFER_SIZE];
 	char	*buf;
-	struct bbslist *bbs = args;
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
@@ -58,7 +56,7 @@ void telnet_input_thread(void *args)
 				break;
 		}
 		if(rd>0)
-			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd, bbs);
+			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd);
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -163,7 +161,7 @@ int telnet_connect(struct bbslist *bbs)
 	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 
 	_beginthread(telnet_output_thread, 0, NULL);
-	_beginthread(telnet_input_thread, 0, bbs);
+	_beginthread(telnet_input_thread, 0, NULL);
 
 	uifc.pop(NULL);
 
