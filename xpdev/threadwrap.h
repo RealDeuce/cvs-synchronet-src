@@ -1,13 +1,13 @@
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.h,v 1.50 2016/11/19 09:21:37 sbbs Exp $ */
+/* $Id: threadwrap.h,v 1.51 2018/07/24 01:13:09 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
