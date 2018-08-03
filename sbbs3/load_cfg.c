@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.75 2018/10/18 21:28:23 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.74 2018/07/29 00:26:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,7 +331,7 @@ BOOL md(char *inpath)
 	if(!isdir(path)) {
 		/* lprintf("Creating directory: %s",path); */
 		if(mkpath(path)) {
-			lprintf(LOG_WARNING,"!ERROR %d (%s) creating directory: %s", errno, strerror(errno), path);
+			lprintf(LOG_WARNING,"!ERROR %d creating directory: %s",errno,path);
 			return(FALSE); 
 		} 
 	}
