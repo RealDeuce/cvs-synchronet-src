@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.105 2018/06/07 02:35:50 rswindell Exp $ */
+/* $Id: js_user.c,v 1.106 2018/08/07 00:49:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1568,6 +1568,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		p->storage = *user;
 		if(global_user)
 			p->user = user;
+		p->cached = TRUE;
 	}
 
 	JS_SetPrivate(cx, userobj, p);	
