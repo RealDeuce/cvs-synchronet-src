@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.46 2018/03/24 06:49:06 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.49 2018/07/29 02:10:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,7 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 	if (cfg.total_faddrs)
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
-	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_HDRMOD | SUB_FAST);
+	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_FAST);
 	new_subboard->maxmsgs = 500;
 
 	/* Use last sub in group (if exists) as a template for new subs */
@@ -57,8 +57,9 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 				break;
 		}
 	}
+	new_subboard->misc |= SUB_HDRMOD;
 
-	/* Allocate a new (unused) pointer index */
+	/* Allocate a new (unused) pointer index (deprecated!) */
 	for (; new_subboard->ptridx < USHRT_MAX; new_subboard->ptridx++) {
 		int n;
 		for (n = 0; n < cfg.total_subs; n++)
@@ -284,10 +285,8 @@ void sub_cfg(uint grpnum)
 						,str2,uifcYesNoOpts);
 					if(j==-1)
 						continue;
-					if(j==0) {
-							delfiles(data_dir,str);
-							clearptrs(subnum[i]); 
-					}
+					if(j==0)
+						delfiles(data_dir,str);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -420,11 +419,16 @@ void sub_cfg(uint grpnum)
 					break;
 				case 4:
 					uifc.helpbuf=
-						"Newsgroup Name:\n"
+						"`Newsgroup Name:`\n"
 						"\n"
 						"This is the name of the sub-board used for newsgroup readers. If no name\n"
 						"is configured here, a name will be automatically generated from the\n"
 						"Sub-board's Short Name and message group's Short Name.\n"
+						"\n"
+						"This field may also be used to specify the FidoNet-style `Echo Tag` for\n"
+						"this message area.\n"
+						"\n"
+						"This name should ~ not ~ contain spaces."
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,""
 						,cfg.sub[i]->newsgroup,sizeof(cfg.sub[i]->newsgroup)-1,K_EDIT);
@@ -1344,7 +1348,7 @@ void sub_cfg(uint grpnum)
 									opt[2][0]=0;
 									m=0;
 									if(uifc.list(WIN_SAV|WIN_MID,0,0,0,&m,0
-										,"Delete all messages in this sub-board?",opt)!=0)
+										,"Delete all data for this sub-board?",opt)!=0)
 										break;
 									if(cfg.sub[i]->data_dir[0])
 										sprintf(str,"%s",cfg.sub[i]->data_dir);
