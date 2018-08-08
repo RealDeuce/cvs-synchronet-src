@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.32 2018/02/20 05:19:32 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.33 2018/08/08 22:14:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -309,6 +309,8 @@ static BOOL mime_getattachment(char* beg, char* end, char* attachment)
 			term = filename;
 			FIND_WHITESPACE(term);
 		}
+		if(term - filename >= sizeof(fname))
+			term = filename + sizeof(fname) - 1;
 		memcpy(fname, filename, term - filename);
 		fname[term - filename] = 0;
 		strcpy(attachment, getfname(fname));
