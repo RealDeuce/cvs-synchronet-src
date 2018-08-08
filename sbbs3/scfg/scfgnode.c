@@ -1,4 +1,4 @@
-/* $Id: scfgnode.c,v 1.35 2019/01/12 12:09:15 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.34 2018/07/29 02:05:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,7 +88,7 @@ void node_menu()
 			if(!i) {
 				--cfg.sys_nodes;
 				cfg.new_install=new_install;
-				save_main_cfg(&cfg,backup_level);
+				write_main_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			continue; 
@@ -96,7 +96,9 @@ void node_menu()
 		if(msk == MSK_INS) {
 			SAFECOPY(cfg.node_dir,cfg.node_path[cfg.sys_nodes-1]);
 			i=cfg.sys_nodes+1;
-			load_node_cfg(&cfg,error);
+			uifc.pop("Reading node.cnf ...");
+			read_node_cfg(&cfg,error);
+			uifc.pop(0);
 			sprintf(str,"../node%d/",i);
 			sprintf(tmp,"Node %d Path",i);
 			uifc.helpbuf=
@@ -122,8 +124,8 @@ void node_menu()
 			SAFEPRINTF(cfg.node_name,"Node %u",cfg.node_num);
 			SAFECOPY(cfg.node_phone,"N/A");
 			cfg.new_install=new_install;
-			save_node_cfg(&cfg,backup_level);
-			save_main_cfg(&cfg,backup_level);
+			write_node_cfg(&cfg,backup_level);
+			write_main_cfg(&cfg,backup_level);
 			free_node_cfg(&cfg);
 			refresh_cfg(&cfg);
 			continue;
@@ -133,7 +135,9 @@ void node_menu()
 				free_node_cfg(&cfg);
 			i&=MSK_OFF;
 			SAFECOPY(cfg.node_dir,cfg.node_path[i]);
-			load_node_cfg(&cfg,error);
+			uifc.pop("Reading node.cnf ...");
+			read_node_cfg(&cfg,error);
+			uifc.pop(0);
 			savnode=1;
 			continue; 
 		}
@@ -141,7 +145,7 @@ void node_menu()
 			i&=MSK_OFF;
 			SAFECOPY(cfg.node_dir,cfg.node_path[i]);
 			cfg.node_num=i+1;
-			save_node_cfg(&cfg,backup_level);
+			write_node_cfg(&cfg,backup_level);
 			refresh_cfg(&cfg);
 			uifc.changes=1;
 			continue;
@@ -154,10 +158,12 @@ void node_menu()
 		SAFECOPY(cfg.node_dir,cfg.node_path[i]);
 		prep_dir(cfg.ctrl_dir, cfg.node_dir, sizeof(cfg.node_dir));
 
-		load_node_cfg(&cfg,error);
+		uifc.pop("Reading node.cnf ...");
+		read_node_cfg(&cfg,error);
+		uifc.pop(0);
 		if (cfg.node_num != i + 1) { 	/* Node number isn't right? */
 			cfg.node_num = i + 1;		/* so fix it */
-			save_node_cfg(&cfg, backup_level); /* and write it back */
+			write_node_cfg(&cfg, backup_level); /* and write it back */
 		}
 		node_cfg();
 
@@ -193,7 +199,7 @@ void node_cfg()
 			case -1:
 				i=save_changes(WIN_MID|WIN_SAV);
 				if(!i) {
-					save_node_cfg(&cfg,backup_level);
+					write_node_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				if(i!=-1)
