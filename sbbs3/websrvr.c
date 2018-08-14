@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.666 2018/04/06 02:23:28 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.668 2018/05/01 06:00:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -533,7 +533,7 @@ static int lprintf(int level, const char *fmt, ...)
 
 	if(level <= LOG_ERR) {
 		char errmsg[sizeof(sbuf)+16];
-		SAFEPRINTF(errmsg, "web %s", sbuf);
+		SAFEPRINTF(errmsg, "web  %s", sbuf);
 		errorlog(&scfg,startup==NULL ? NULL:startup->host_name, errmsg);
 		if(startup!=NULL && startup->errormsg!=NULL)
 			startup->errormsg(startup->cbdata,level,errmsg);
@@ -619,8 +619,12 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 	fd_set	wr_set;
 	struct timeval tv;
 	int status;
+	BOOL local_failed = FALSE;
 
-	while(sent<len && session->socket!=INVALID_SOCKET) {
+	if (failed == NULL)
+		failed = &local_failed;
+
+	while(sent<len && session->socket!=INVALID_SOCKET && *failed == FALSE) {
 		FD_ZERO(&wr_set);
 		FD_SET(session->socket,&wr_set);
 		/* Convert timeout from ms to sec/usec */
@@ -642,14 +646,11 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 					}
 					if(cryptStatusOK(status)) {
 						HANDLE_CRYPT_CALL_EXCEPT(status = cryptFlushData(session->tls_sess), session, "flushing data", CRYPT_ERROR_COMPLETE);
-						if (cryptStatusError(status)) {
-							if (failed)
-								*failed=TRUE;
-						}
+						if (cryptStatusError(status))
+							*failed=TRUE;
 						return tls_sent;
 					}
-					if (failed)
-						*failed=TRUE;
+					*failed=TRUE;
 					result = tls_sent;
 				}
 				else {
@@ -665,26 +666,23 @@ static int sess_sendbuf(http_session_t *session, const char *buf, size_t len, BO
 #endif
 						else
 							lprintf(LOG_WARNING,"%04d !ERROR %d sending on socket",session->socket,ERROR_VALUE);
-						if (failed)
-							*failed=TRUE;
+						*failed=TRUE;
 						return(sent);
 					}
 				}
 				break;
 			case 0:
 				lprintf(LOG_WARNING,"%04d Timeout selecting socket for write",session->socket);
-				if(failed)
-					*failed=TRUE;
+				*failed=TRUE;
 				return(sent);
 			case -1:
 				lprintf(LOG_WARNING,"%04d !ERROR %d selecting socket for write",session->socket,ERROR_VALUE);
-				if(failed)
-					*failed=TRUE;
+				*failed=TRUE;
 				return(sent);
 		}
 		sent+=result;
 	}
-	if(failed && sent<len)
+	if(sent<len)
 		*failed=TRUE;
 	if(session->is_tls)
 		HANDLE_CRYPT_CALL(cryptFlushData(session->tls_sess), session, "flushing data");
@@ -6523,7 +6521,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.666 $", "%*s %s", revision);
+	sscanf("$Revision: 1.668 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
