@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.79 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.81 2018/07/25 00:40:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ int sbbs_t::show_atcode(const char *instr)
 	} else if(zero_padded) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len)
-			bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+			bprintf("%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
 		else
 			bprintf("%.*s", disp_len, cp);
 	} else
@@ -158,7 +158,9 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(COPYRIGHT_NOTICE);
 
 	if(!strcmp(sp,"COMPILER")) {
-		DESCRIBE_COMPILER(str);
+		char compiler[32];
+		DESCRIBE_COMPILER(compiler);
+		strncpy(str, compiler, maxlen);
 		return(str);
 	}
 
