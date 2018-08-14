@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.82 2018/03/27 01:08:02 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.85 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -295,11 +295,13 @@ void sbbs_t::qwk_success(ulong msgcnt, char bi, char prepack)
 		SAFECOPY(id,useron.alias);
 		strlwr(id);
 		sprintf(str,"%sqnet/%s.out/",cfg.data_dir,id);
-		delfiles(str,ALLFILES);
+		long result = delfiles(str,ALLFILES);
+		if(result < 0)
+			errormsg(WHERE, ERR_REMOVE, str, result);
 	}
 
 	if(!prepack) {
-		sprintf(str,"%s downloaded QWK packet",useron.alias);
+		SAFECOPY(str, "downloaded QWK packet");
 		logline("D-",str);
 		posts_read+=msgcnt;
 
@@ -647,7 +649,8 @@ void sbbs_t::qwk_sec()
 
 			l=(long)flength(str);
 			bprintf(text[FiFilename],getfname(str));
-			bprintf(text[FiFileSize],ultoac(l,tmp));
+			bprintf(text[FiFileSize],ultoac(l,tmp)
+				, byte_estimate_to_str(l, tmp2, sizeof(tmp), /* units: */1024, /* precision: */1));
 			if(l>0L && cur_cps)
 				i=l/(ulong)cur_cps;
 			else

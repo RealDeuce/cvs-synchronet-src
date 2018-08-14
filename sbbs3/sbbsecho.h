@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.22 2018/03/31 09:38:49 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.25 2018/08/07 18:59:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		4
+#define SBBSECHO_VERSION_MINOR		6
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -68,7 +68,7 @@ enum pkt_type {
 	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
 	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
 	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
-	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
+	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/
 	,PKT_TYPES_SUPPORTED
 };
 
@@ -103,7 +103,8 @@ typedef struct {
 
 typedef struct {
 	fidoaddr_t 	addr			/* Fido address of this node */
-			   ,route;			/* Address to route FLO stuff through */
+			   ,route			/* Address to route FLO stuff through */
+			   ,local_addr;		/* Preferred local address (AKA) to use when sending packets to this node */
 	char		domain[FIDO_DOMAIN_LEN+1];
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
@@ -213,6 +214,7 @@ typedef struct {
 	ulong		bso_lock_delay;			/* in seconds */
 	ulong		max_netmail_age;
 	ulong		max_echomail_age;
+	int64_t		min_free_diskspace;
 	struct fido_domain* domain_list;
 	unsigned	domain_count;
 	char		binkp_caps[64];
