@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.221 2018/07/08 23:44:08 deuce Exp $ */
+/* $Id: js_socket.c,v 1.222 2018/08/14 07:59:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1411,7 +1411,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 			}
 		}
 
-		if((got=js_socket_recv(p, &ch, 1, 0, i?1000:timeout))!=1) {
+		if((got=js_socket_recv(p, &ch, 1, 0, i?1:timeout))!=1) {
 			if(p->session==-1) {
 				p->last_error=ERROR_VALUE;
 				break;
