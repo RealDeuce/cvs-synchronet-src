@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.162 2018/03/30 16:03:04 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.164 2018/07/26 05:36:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -358,7 +358,8 @@ str_list_t DLLCALL	iniGetSection(str_list_t list, const char *section)
 			SKIP_WHITESPACE(p);
 			if(*p==INI_OPEN_SECTION_CHAR)
 				break;
-			strListPush(&retval, list[i]);
+			if(*p)
+				strListPush(&retval, list[i]);
 		}
 	}
 	return(retval);
@@ -502,6 +503,17 @@ size_t DLLCALL iniAppendSection(str_list_t* list, const char* section, ini_style
 		return(0);
 
 	return ini_add_section(list,section,style,strListCount(*list));
+}
+
+size_t DLLCALL iniAppendSectionWithKeys(str_list_t* list, const char* section, const str_list_t keys
+	, ini_style_t* style)
+{
+	if(section==ROOT_SECTION)
+		return(0);
+
+	ini_add_section(list,section,style,strListCount(*list));
+
+	return strListAppendList(list, keys);
 }
 
 static BOOL str_contains_ctrl_char(const char* str)
@@ -2361,11 +2373,10 @@ BOOL DLLCALL iniWriteFile(FILE* fp, const str_list_t list)
 	size_t		count;
 
 	rewind(fp);
-
-	if(chsize(fileno(fp),0)!=0)	/* truncate */
-		return(FALSE);
-
 	count = strListWriteFile(fp,list,"\n");
+	fflush(fp);
+	if(chsize(fileno(fp), ftell(fp))!=0)	/* truncate */
+		return(FALSE);
 
 	return(count == strListCount(list));
 }

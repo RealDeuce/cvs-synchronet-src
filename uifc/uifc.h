@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.92 2017/11/11 10:17:39 rswindell Exp $ */
+/* $Id: uifc.h,v 1.93 2018/07/29 01:00:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,7 @@
 	#endif
 #endif
 
-#define MAX_OPTS			10000
+#define MAX_OPTS			100000
 #define MSK_ON				0xf0000000
 #define MSK_OFF 			0x0fffffff
 #define MSK_INS 			0x10000000
