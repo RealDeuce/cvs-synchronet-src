@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.183 2018/10/30 03:12:24 rswindell Exp $ */
+/* $Id: smblib.c,v 1.180 2018/07/24 05:15:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -854,12 +854,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_SUMMARY:
 			msg->summary=(char*)hfield_dat;
 			break;
-		case SMB_TAGS:
-			msg->tags=(char*)hfield_dat;
-			break;
-		case SMB_COLUMNS:
-			msg->columns=*(uint8_t*)hfield_dat;
-			break;
 		case SMB_EXPIRATION:
 			msg->expiration=*(uint32_t*)hfield_dat;
 			break;
@@ -925,7 +919,6 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 
 	msg->subj=NULL;
 	msg->summary=NULL;
-	msg->tags=NULL;
 	msg->id=NULL;
 	msg->reply_id=NULL;
 	msg->reverse_path=NULL;
@@ -1290,7 +1283,7 @@ int	SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, const char* add
 			p++;
 			SKIP_WHITESPACE(p);
 			if(*p == 0)
-				return SMB_ERR_NOT_FOUND;
+				return SMB_ERR_NOT_FOUND;;
 			addr = p;
 		}
 	}
