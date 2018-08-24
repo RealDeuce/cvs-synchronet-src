@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.29 2019/05/27 02:42:46 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.25 2018/08/07 18:59:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		7
+#define SBBSECHO_VERSION_MINOR		6
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -125,7 +125,6 @@ typedef struct {
 	arcdef_t*	archive;
 	str_list_t	grphub;			/* This link is hub of these groups (short names */
 	/* BinkP settings */
-	bool		binkp_plainAuthOnly;
 	bool		binkp_allowPlainAuth;
 	bool		binkp_allowPlainText;
 	bool		binkp_poll;
@@ -194,7 +193,6 @@ typedef struct {
 	bool		secure_echomail;
 	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
 	bool		strip_lf;
-	bool		strip_soft_cr;
 	bool		convert_tear;
 	bool		fuzzy_zone;
 	bool		flo_mailer;				/* Binkley-Style-Outbound / FLO mailer */
@@ -221,7 +219,6 @@ typedef struct {
 	unsigned	domain_count;
 	char		binkp_caps[64];
 	char		binkp_sysop[64];
-	bool		binkp_plainAuthOnly;
 } sbbsecho_cfg_t;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
