@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.54 2018/10/30 01:22:43 rswindell Exp $ */
+/* $Id: download.cpp,v 1.53 2018/08/03 06:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,12 +226,12 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	/* enable telnet binary transmission in both directions */
 	request_telnet_opt(TELNET_DO,TELNET_BINARY_TX);
 	request_telnet_opt(TELNET_WILL,TELNET_BINARY_TX);
-	ex_mode = EX_BIN;
+	ex_mode=0;
 	if(prot->misc&PROT_NATIVE)
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=EX_STDIO;
+		ex_mode|=(EX_STDIO|EX_BIN);
 #endif
 
 	i=external(cmdline,ex_mode,p);
