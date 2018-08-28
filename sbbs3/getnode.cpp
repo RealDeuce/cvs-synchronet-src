@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.47 2016/01/10 07:10:22 deuce Exp $ */
+/* $Id: getnode.cpp,v 1.49 2018/07/29 08:21:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		}
 		lseek(nodefile,(long)number*sizeof(node_t),SEEK_SET);
 		rd=read(nodefile,node,sizeof(node_t));
-		if(!lockit || rd!=sizeof(node_t))
+		if(rd!=sizeof(node_t))
 			unlock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 		if(rd==sizeof(node_t))
 			break;
@@ -248,10 +248,8 @@ int sbbs_t::getnmsg()
 	close(file);
 	buf[length]=0;
 
-	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
-		|| sys_status&SS_IN_CTRLP) {
+	if(cols)
 		CRLF; 
-	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
@@ -353,10 +351,8 @@ int sbbs_t::getsmsg(int usernumber)
 	close(file);
 	buf[length]=0;
 	getnodedat(cfg.node_num,&thisnode,0);
-	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
-		|| sys_status&SS_IN_CTRLP) {
+	if(cols)
 		CRLF; 
-	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 

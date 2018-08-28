@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.27 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.28 2018/08/24 20:48:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -167,8 +167,13 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 					result=!_not;
 				#endif
 				break;
-			case AR_DOS:
+			case AR_DOS:	/* DOS program support */
 				result=_not;
+				if(startup->options&BBS_OPT_NO_DOS)
+					break;
+				#if defined(_WIN32) || (defined(__linux__) && defined(USE_DOSEMU)) || defined(__FreeBSD__)
+					result=!_not;
+				#endif
 				break;
 			case AR_WIN32:
 				#ifndef _WIN32
