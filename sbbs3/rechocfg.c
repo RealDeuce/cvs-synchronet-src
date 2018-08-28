@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.36 2019/05/27 02:42:46 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.32 2018/08/07 18:59:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,6 +266,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	SAFECOPY(cfg->temp_dir		, iniGetString(ini, ROOT_SECTION, "TempDirectory"	,DEFAULT_TEMP_DIR		, value));
 	SAFECOPY(cfg->outgoing_sem	, iniGetString(ini, ROOT_SECTION, "OutgoingSemaphore",	"", value));
 	cfg->log_level				= iniGetLogLevel(ini, ROOT_SECTION, "LogLevel", cfg->log_level);
+	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
 	cfg->flo_mailer				= iniGetBool(ini, ROOT_SECTION, "BinkleyStyleOutbound", cfg->flo_mailer);
 	cfg->bsy_timeout			= (ulong)iniGetDuration(ini, ROOT_SECTION, "BsyTimeout", cfg->bsy_timeout);
 	cfg->bso_lock_attempts		= iniGetLongInt(ini, ROOT_SECTION, "BsoLockAttempts", cfg->bso_lock_attempts);
@@ -276,8 +277,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->areafile_backups		= iniGetInteger(ini, ROOT_SECTION, "AreaFileBackups", cfg->areafile_backups);
 	cfg->cfgfile_backups		= iniGetInteger(ini, ROOT_SECTION, "CfgFileBackups", cfg->cfgfile_backups);
 	cfg->min_free_diskspace		= iniGetBytes(ini, ROOT_SECTION, "MinFreeDiskSpace", 1, cfg->min_free_diskspace);
-	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
-	cfg->strip_soft_cr			= iniGetBool(ini, ROOT_SECTION, "StripSoftCRs", cfg->strip_soft_cr);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -311,7 +310,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	/* BinkP options: */
 	SAFECOPY(cfg->binkp_caps, iniGetString(ini, "BinkP", "Capabilities", "", value));
 	SAFECOPY(cfg->binkp_sysop, iniGetString(ini, "BinkP", "Sysop", "", value));
-	cfg->binkp_plainAuthOnly = iniGetBool(ini, "BinkP", "PlainAuthOnly", FALSE);
 
 	/******************/
 	/* Archive Types: */
@@ -407,9 +405,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		SAFECOPY(ncfg->binkp_host	, iniGetString(ini, node, "BinkpHost", "", value));
 		ncfg->binkp_port			= iniGetShortInt(ini, node, "BinkpPort", 24554);
 		ncfg->binkp_poll			= iniGetBool(ini, node, "BinkpPoll", FALSE);
-		ncfg->binkp_plainAuthOnly	= iniGetBool(ini, node, "BinkpPlainAuthOnly", FALSE);
 		ncfg->binkp_allowPlainAuth	= iniGetBool(ini, node, "BinkpAllowPlainAuth", FALSE);
-		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", TRUE);
+		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", FALSE);
 	}
 	strListFree(&nodelist);
 
@@ -516,7 +513,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetBool(&ini,		ROOT_SECTION, "SecureEchomail"			,cfg->secure_echomail			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "EchomailNotify"			,cfg->echomail_notify			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "StripLineFeeds"			,cfg->strip_lf					,NULL);
-	iniSetBool(&ini,		ROOT_SECTION, "StripLineSoftCRs"		,cfg->strip_soft_cr				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "ConvertTearLines"		,cfg->convert_tear				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "FuzzyNetmailZones"		,cfg->fuzzy_zone				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "BinkleyStyleOutbound"	,cfg->flo_mailer				,NULL);
@@ -547,7 +543,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	/******************/
 	iniSetString(&ini,		"BinkP"	,	"Capabilities"				,cfg->binkp_caps				,&style);
 	iniSetString(&ini,		"BinkP"	,	"Sysop"						,cfg->binkp_sysop				,&style);
-	iniSetBool(&ini,		"BinkP"	,	"PlainAuthOnly"				,cfg->binkp_plainAuthOnly		,&style);
 
 	/******************/
 	/* Archive Types: */
@@ -602,7 +597,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 		iniSetString(&ini	,section,	"BinkpHost"		,node->binkp_host	,&style);
 		iniSetShortInt(&ini	,section,	"BinkpPort"		,node->binkp_port	,&style);
 		iniSetBool(&ini		,section,	"BinkpPoll"		,node->binkp_poll	,&style);
-		iniSetBool(&ini		,section,	"BinkpPlainAuthOnly",node->binkp_plainAuthOnly, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainAuth",node->binkp_allowPlainAuth, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainText",node->binkp_allowPlainText, &style);
 		iniSetString(&ini	,section,	"BinkpSourceAddress",node->binkp_src, &style);
