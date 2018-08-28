@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.58 2019/01/12 12:09:15 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.57 2018/07/29 02:10:02 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -449,7 +449,7 @@ void msgs_cfg()
 			if(j==-1)
 			   continue;
 			if(!j) {
-				save_msgs_cfg(&cfg,backup_level);
+				write_msgs_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -1024,8 +1024,8 @@ void msg_opts()
 				   continue;
 				if(!i) {
 					cfg.new_install=new_install;
-					save_msgs_cfg(&cfg,backup_level);
-					save_main_cfg(&cfg,backup_level);
+					write_msgs_cfg(&cfg,backup_level);
+					write_main_cfg(&cfg,backup_level);
                     refresh_cfg(&cfg);
                 }
 				return;

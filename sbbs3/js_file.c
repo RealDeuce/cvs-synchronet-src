@@ -1,7 +1,6 @@
 /* Synchronet JavaScript "File" Object */
-// vi: tabstop=4
 
-/* $Id: js_file.c,v 1.177 2019/01/20 05:25:19 rswindell Exp $ */
+/* $Id: js_file.c,v 1.173 2018/08/28 21:47:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -917,14 +916,14 @@ js_iniSetValue_internal(JSContext *cx, JSObject *obj, uintN argc, jsval* argv, s
 
 	if(value==JSVAL_VOID) { 	/* unspecified value */
 		rc=JS_SUSPENDREQUEST(cx);
-		result = iniSetString(list,section,key,"",&p->ini_style);
+		result = iniSetString(list,section,key,"",NULL);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 	else if(JSVAL_IS_BOOLEAN(value)) {
-		result = iniSetBool(list,section,key,JSVAL_TO_BOOLEAN(value),&p->ini_style);
+		result = iniSetBool(list,section,key,JSVAL_TO_BOOLEAN(value),NULL);
 	}
 	else if(JSVAL_IS_DOUBLE(value)) {
-		result = iniSetFloat(list,section,key,JSVAL_TO_DOUBLE(value),&p->ini_style);
+		result = iniSetFloat(list,section,key,JSVAL_TO_DOUBLE(value),NULL);
 	}
 	else if(JSVAL_IS_NUMBER(value)) {
 		if(!JS_ValueToInt32(cx,value,&i)) {
@@ -933,14 +932,14 @@ js_iniSetValue_internal(JSContext *cx, JSObject *obj, uintN argc, jsval* argv, s
 			return JS_FALSE;
 		}
 		rc=JS_SUSPENDREQUEST(cx);
-		result = iniSetInteger(list,section,key,i,&p->ini_style);
+		result = iniSetInteger(list,section,key,i,NULL);
 		JS_RESUMEREQUEST(cx, rc);
 	} else if(JSVAL_IS_OBJECT(value)
 			&& (value_obj = JSVAL_TO_OBJECT(value))!=NULL
 			&& (strcmp("Date",JS_GetClass(cx, value_obj)->name)==0)) {
 		tt=(time_t)(js_DateGetMsecSinceEpoch(cx,value_obj)/1000.0);
 		rc=JS_SUSPENDREQUEST(cx);
-		result = iniSetDateTime(list,section,key,/* include_time */TRUE, tt, &p->ini_style);
+		result = iniSetDateTime(list,section,key,/* include_time */TRUE, tt,NULL);
 		JS_RESUMEREQUEST(cx, rc);
 	} else {
 		cstr=NULL;
@@ -952,7 +951,7 @@ js_iniSetValue_internal(JSContext *cx, JSObject *obj, uintN argc, jsval* argv, s
 			return JS_FALSE;
 		}
 		rc=JS_SUSPENDREQUEST(cx);
-		result = iniSetString(list,section,key, cstr, &p->ini_style);
+		result = iniSetString(list,section,key, cstr,NULL);
 		FREE_AND_NULL(cstr);
 		JS_RESUMEREQUEST(cx, rc);
 	}
@@ -2313,44 +2312,29 @@ static JSBool js_file_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 			p->ini_style.key_len = i;
 			break;
 		case FILE_INI_KEY_PREFIX:
-			FREE_AND_NULL(p->ini_style.key_prefix);
-			if(!JSVAL_NULL_OR_VOID(*vp)) {
-				JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-				HANDLE_PENDING(cx, str);
-				p->ini_style.key_prefix = str;
-			}
+			JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
+			HANDLE_PENDING(cx, str);
+			p->ini_style.key_prefix = str;
 			break;
 		case FILE_INI_SECTION_SEPARATOR:
-			FREE_AND_NULL(p->ini_style.section_separator);
-			if(!JSVAL_NULL_OR_VOID(*vp)) {
-				JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-				HANDLE_PENDING(cx, str);
-				p->ini_style.section_separator = str;
-			}
+			JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
+			HANDLE_PENDING(cx, str);
+			p->ini_style.section_separator = str;
 			break;
 		case FILE_INI_VALUE_SEPARATOR:
-			FREE_AND_NULL(p->ini_style.value_separator);
-			if(!JSVAL_NULL_OR_VOID(*vp)) {
-				JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-				HANDLE_PENDING(cx, str);
-				p->ini_style.value_separator = str;
-			}
+			JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
+			HANDLE_PENDING(cx, str);
+			p->ini_style.value_separator = str;
 			break;
 		case FILE_INI_BIT_SEPARATOR:
-			FREE_AND_NULL(p->ini_style.bit_separator);
-			if(!JSVAL_NULL_OR_VOID(*vp)) {
-				JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-				HANDLE_PENDING(cx, str);
-				p->ini_style.bit_separator = str;
-			}
+			JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
+			HANDLE_PENDING(cx, str);
+			p->ini_style.bit_separator = str;
 			break;
 		case FILE_INI_LITERAL_SEPARATOR:
-			FREE_AND_NULL(p->ini_style.literal_separator);
-			if(!JSVAL_NULL_OR_VOID(*vp)) {
-				JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
-				HANDLE_PENDING(cx, str);
-				p->ini_style.literal_separator = str;
-			}
+			JSVALUE_TO_MSTRING(cx, *vp, str, NULL);
+			HANDLE_PENDING(cx, str);
+			p->ini_style.literal_separator = str;
 			break;
 	}
 
@@ -2561,28 +2545,18 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case FILE_INI_KEY_PREFIX:
 			s = p->ini_style.key_prefix;
-			if(s == NULL)
-				*vp = JSVAL_NULL;
 			break;
 		case FILE_INI_SECTION_SEPARATOR:
 			s = p->ini_style.section_separator;
-			if(s == NULL)
-				*vp = JSVAL_NULL;
 			break;
 		case FILE_INI_VALUE_SEPARATOR:
 			s = p->ini_style.value_separator;
-			if(s == NULL)
-				*vp = JSVAL_NULL;
 			break;
 		case FILE_INI_BIT_SEPARATOR:
 			s = p->ini_style.bit_separator;
-			if(s == NULL)
-				*vp = JSVAL_NULL;
 			break;
 		case FILE_INI_LITERAL_SEPARATOR:
 			s = p->ini_style.literal_separator;
-			if(s == NULL)
-				*vp = JSVAL_NULL;
 			break;
 
 	}
@@ -2635,7 +2609,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static const char* file_prop_desc[] = {
+static char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
 	,"<i>true</i> if the file is open or exists (case-insensitive) - <small>READ ONLY</small>"
@@ -2660,11 +2634,11 @@ static const char* file_prop_desc[] = {
 	,"calculated 128-bit MD5 digest of file contents as hexadecimal string - <small>READ ONLY</small>"
 	,"calculated 128-bit MD5 digest of file contents as base64-encoded string - <small>READ ONLY</small>"
 	,"ini style: minimum key length (for left-justified white-space padded keys)"
-	,"ini style: key prefix (e.g. '\t', null = default prefix)"
-	,"ini style: section separator (e.g. '\n', null = default separator)"
-	,"ini style: value separator (e.g. ' = ', null = default separator)"
-	,"ini style: bit separator (e.g. ' | ', null = default separator)"
-	,"ini style: literal separator (null = default separator)"
+	,"ini style: key prefix (e.g. ' ', or '\t')"
+	,"ini style: section separator (e.g. '\n')"
+	,"ini style: value separator (e.g. '=' or ' = ')"
+	,"ini style: bit separator (e.g. '|' or ' | ')"
+	,"ini style: literal separator (e.g. ':' or ' : ')"
 	,NULL
 };
 #endif
@@ -2683,7 +2657,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
 		"<tt>x&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.17)</i><br>"
 		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
-		"the file must be opened for both reading <b>and</b> writing.<br>"
+		"the file must be opened for both reading and writing.<br>"
 		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
 		"(e.g. updating an <tt>.ini</tt> file) "
 		"use the <i>exists</i> property like so:<br>"
@@ -2823,9 +2797,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
 		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
 		"will return a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
-		"determined by the type of <i>default</i> value specified. "
-		"<br><b>Note:</b> To insure that any/all values are returned as a string (e.g. numeric passwords are <b>not</b> returned as a <i>number</i>), "
-		"pass an empty string ('') for the <i>default</i> value." )
+		"determined by the type of <i>default</i> value specified")
 	,311
 	},
 	{"iniSetValue",		js_iniSetValue,		3,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key, [value=<i>none</i>]")
@@ -2837,15 +2809,13 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
 	,JSDOCSTR("parse an entire section from a .ini file "
 		"and return all of its keys and values as properties of an object. "
-		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section")
+		"if <i>section</i> is undefined, returns key and values from the <i>root</i> section")
 	,311
 	},
 	{"iniSetObject",	js_iniSetObject,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, object")
 	,JSDOCSTR("write all the properties of the specified <i>object</i> as separate <tt>key=value</tt> pairs "
 		"in the specified <i>section</i> of a <tt>.ini</tt> file. "
-		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
-		"<br><b>Note:</b> this method does not remove unreferenced keys from an existing section. "
-		"If your intention is to <i>replace</i> an existing section, use the <tt>iniRemoveSection</tt> function first." )
+		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,312
 	},
 	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>]")
@@ -2946,7 +2916,7 @@ js_file_constructor(JSContext *cx, uintN argc, jsval *arglist)
 
 	obj=JS_NewObject(cx, &js_file_class, NULL, NULL);
 	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
-	if(argc < 1 || (str = JS_ValueToString(cx, argv[0]))==NULL) {
+	if((str = JS_ValueToString(cx, argv[0]))==NULL) {
 		JS_ReportError(cx,"No filename specified");
 		return(JS_FALSE);
 	}
@@ -3015,14 +2985,10 @@ JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 	return(obj);
 }
 
-JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode)
+JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp)
 {
 	JSObject* obj;
 	private_t*	p;
-	FILE* fp = fdopen(fd, mode);
-
-	if(fp == NULL)
-		return NULL;
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -3041,6 +3007,7 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
+
 	dbprintf(FALSE, p, "object created");
 
 	return(obj);
