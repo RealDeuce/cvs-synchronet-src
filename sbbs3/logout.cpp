@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.32 2018/10/06 22:31:35 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.31 2018/07/25 03:39:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,9 +108,7 @@ void sbbs_t::logout()
 		remove(path);
 
 	delfiles(cfg.temp_dir,ALLFILES);
-	if(sys_status&SS_USERON) {	// Insures the useron actually when through logon()/getmsgptrs() first
-		putmsgptrs();
-	}
+	putmsgptrs();
 	if(!REALSYSOP)
 		logofflist();
 	useron.laston=(time32_t)now;

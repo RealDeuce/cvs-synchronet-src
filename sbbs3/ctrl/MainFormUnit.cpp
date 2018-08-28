@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.202 2019/01/12 23:53:59 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.200 2018/03/23 01:30:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1002,7 +1002,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
     long bbs_ver = bbs_ver_num();
     if(bbs_ver != VERSION_HEX) {
         char str[128];
-        sprintf(str,"Incorrect SBBS.DLL Version (%lX, expected %lx)", bbs_ver, VERSION_HEX);
+        sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
@@ -2865,7 +2865,7 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
             	if((file=_sopen(str,O_CREAT|O_TRUNC|O_WRONLY
 	                ,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 	                close(file);
-				selection = CodeInputForm->ComboBox->ItemIndex;
+				selection = i;
                 break;
 	   		}
         }
