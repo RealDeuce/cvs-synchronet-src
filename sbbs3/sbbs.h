@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.480 2018/04/06 02:42:37 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.487 2018/08/03 06:24:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,7 +310,7 @@ class sbbs_t
 public:
 
 	sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const char* host_name, SOCKET
-		,scfg_t*, char* text[], client_t* client_info);
+		,scfg_t*, char* text[], client_t* client_info, bool is_event_thread = false);
 	~sbbs_t();
 
 	bbs_startup_t*	startup;
@@ -376,7 +376,8 @@ public:
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
-	char*	event_code;				// Internal code of next exclusive event
+	const char*	event_code;				// Internal code of next exclusive event
+	bool	is_event_thread;
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
@@ -390,7 +391,7 @@ public:
 	js_callback_t	js_callback;
 	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
 	bool			js_init(ulong* stack_frame);
-	void			js_cleanup(const char* node);
+	void			js_cleanup(void);
 	void			js_create_user_objects(void);
 
 #endif
@@ -587,7 +588,7 @@ public:
 
 	void	reset_logon_vars(void);
 
-	uint	finduser(char *str);
+	uint	finduser(char *str, bool silent_failure = false);
 
 	int 	sub_op(uint subnum);
 
@@ -675,7 +676,7 @@ public:
 	ulong	getmsgnum(uint subnum, time_t t);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int which);
+	void	readmail(uint usernumber, int which, long lm_mode = 0);
 	bool	readmail_inside;
 	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
 
@@ -686,8 +687,16 @@ public:
 	/* con_out.cpp */
 	int		bputs(const char *str);					/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
-	int		bprintf(const char *fmt, ...);			/* BBS printf function */
-	int		rprintf(const char *fmt, ...);			/* BBS raw printf function */
+	int		bprintf(const char *fmt, ...)			/* BBS printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	void	outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
@@ -705,7 +714,7 @@ public:
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
-	size_t	getstr(char *str, size_t length, long mode);
+	size_t	getstr(char *str, size_t length, long mode, const str_list_t history = NULL);
 	long	getnum(ulong max, ulong dflt=0);
 	void	insert_indicator(void);
 
@@ -811,7 +820,11 @@ public:
 
 	/* main.cpp */
 	int		lputs(int level, const char* str);
-	int		lprintf(int level, const char *fmt, ...);
+	int		lprintf(int level, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this'
+#endif
+	;
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
@@ -1039,7 +1052,7 @@ extern "C" {
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
-	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
+	DLLEXPORT BOOL		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
 	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
@@ -1106,8 +1119,11 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL seconds_to_str(uint, char*);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
+
+	/* msgdate.c */
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
+	DLLEXPORT BOOL		DLLCALL newmsgs(smb_t*, time_t);
 
 	/* load_cfg.c */
 	DLLEXPORT BOOL		DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error);
