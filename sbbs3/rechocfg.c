@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.33 2018/09/08 21:35:49 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.32 2018/08/07 18:59:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -405,9 +405,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		SAFECOPY(ncfg->binkp_host	, iniGetString(ini, node, "BinkpHost", "", value));
 		ncfg->binkp_port			= iniGetShortInt(ini, node, "BinkpPort", 24554);
 		ncfg->binkp_poll			= iniGetBool(ini, node, "BinkpPoll", FALSE);
-		ncfg->binkp_plainAuthOnly	= iniGetBool(ini, node, "BinkpPlainAuthOnly", FALSE);
 		ncfg->binkp_allowPlainAuth	= iniGetBool(ini, node, "BinkpAllowPlainAuth", FALSE);
-		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", TRUE);
+		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", FALSE);
 	}
 	strListFree(&nodelist);
 
@@ -598,7 +597,6 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 		iniSetString(&ini	,section,	"BinkpHost"		,node->binkp_host	,&style);
 		iniSetShortInt(&ini	,section,	"BinkpPort"		,node->binkp_port	,&style);
 		iniSetBool(&ini		,section,	"BinkpPoll"		,node->binkp_poll	,&style);
-		iniSetBool(&ini		,section,	"BinkpPlainAuthOnly",node->binkp_plainAuthOnly, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainAuth",node->binkp_allowPlainAuth, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainText",node->binkp_allowPlainText, &style);
 		iniSetString(&ini	,section,	"BinkpSourceAddress",node->binkp_src, &style);
