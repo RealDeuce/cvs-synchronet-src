@@ -1,6 +1,7 @@
 /* Synchronet string input routines */
+// vi: tabstop=4
 
-/* $Id: getstr.cpp,v 1.32 2018/07/29 04:53:09 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.33 2018/09/05 23:07:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +134,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 			console|=CON_DOWNARROW;
 			break;
 		}
-		if(ch==TAB && (mode&K_TAB || !(mode&K_WRAP)))	/* TAB same as CR */
+		if(ch==TAB && (mode&K_TAB || (!(mode&K_WRAP) && history == NULL)))	/* TAB same as CR */
 			break;
 		if(!i && mode&K_UPRLWR && (ch==' ' || ch==TAB))
 			continue;	/* ignore beginning white space if upper/lower */
@@ -271,6 +272,23 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 					backspace();
 				break;
 			case CTRL_I:	/* Ctrl-I/TAB */
+				if(history != NULL) {
+					if(l < 1)
+						break;
+					int hi;
+					for(hi=0; history[hi] != NULL; hi++)
+						if(strnicmp(history[hi], str1, l) == 0) {
+							hidx = hi;
+							SAFECOPY(str1, history[hi]);
+							while(i--)
+								backspace();
+							i=l=strlen(str1);
+							rputs(str1);
+							cleartoeol();
+							break;
+						}
+					break;
+				}
 				if(!(i%EDIT_TABSIZE)) {
 					if(console&CON_INSERT) {
 						if(l<maxlen)
