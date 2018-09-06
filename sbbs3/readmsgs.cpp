@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.105 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.106 2018/09/06 02:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1254,7 +1254,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				msg_client_hfields(&vote, &client);
 				smb_hfield_str(&vote, SENDERSERVER, startup->host_name);
 
-				if((i=votemsg(&cfg, &smb, &vote, notice)) != SMB_SUCCESS)
+				if((i=votemsg(&cfg, &smb, &vote, notice, text[VoteNoticeFmt])) != SMB_SUCCESS)
 					errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 
 				break;
