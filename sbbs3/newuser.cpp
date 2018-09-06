@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.75 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.73 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -141,7 +141,7 @@ BOOL sbbs_t::newuser()
 
 	useron.alias[0]=0;
 
-	kmode=(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL|K_TRIM;
+	kmode=(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL;
 	if(!(cfg.uq&UQ_NOUPRLWR))
 		kmode|=K_UPRLWR;
 
@@ -169,7 +169,7 @@ BOOL sbbs_t::newuser()
 		}
 		else
 			useron.rows=24;
-		if(!(useron.misc&PETSCII) && text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		else
 			useron.misc&=~NO_EXASCII;
