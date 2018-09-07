@@ -1,4 +1,4 @@
-/* $Id: msgdump.c,v 3.1 2018/09/07 02:44:29 rswindell Exp $ */
+/* $Id: msgdump.c,v 3.2 2018/09/07 02:49:30 rswindell Exp $ */
 // vi: tabstop=4
 
 #include "gen_defs.h"
@@ -10,26 +10,6 @@
 
 FILE* nulfp;
 FILE* bodyfp;
-
-/****************************************************************************/
-/* Returns an ASCII string for FidoNet address 'addr'                       */
-/****************************************************************************/
-char *faddrtoa(faddr4d_t* addr, char* outstr)
-{
-	static char str[64];
-    char point[25];
-
-	if(addr==NULL)
-		return("0:0/0");
-	sprintf(str,"%hu:%hu/%hu",addr->zone,addr->net,addr->node);
-	if(addr->point) {
-		sprintf(point,".%hu",addr->point);
-		strcat(str,point); }
-	if(outstr==NULL)
-		return(str);
-	strcpy(outstr,str);
-	return(outstr);
-}
 
 char* freadstr(FILE* fp, char* str, size_t maxlen)
 {
@@ -46,7 +26,6 @@ char* freadstr(FILE* fp, char* str, size_t maxlen)
 
 	return(str);
 }
-	
 
 int msgdump(FILE* fp, const char* fname)
 {
@@ -120,7 +99,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 3.1 $", "%*s %s", revision);
+	sscanf("$Revision: 3.2 $", "%*s %s", revision);
 
 	fprintf(stderr,"msgdump rev %s - Dump FidoNet Stored Messages\n\n"
 		,revision
