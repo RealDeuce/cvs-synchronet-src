@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.28 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.26 2018/02/27 08:03:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,7 +184,10 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 }
 
 /****************************************************************************/
-/* Displays a menu file (e.g. from the text/menu directory)                 */
+/* Prints the menu number 'menunum' from the text directory. Checks for ^A  */
+/* ,ANSI sequences, pauses and aborts. Usually accessed by user inputing '?'*/
+/* Called from every function that has an available menu.                   */
+/* The code definitions are as follows:                                     */
 /****************************************************************************/
 void sbbs_t::menu(const char *code)
 {
@@ -200,22 +203,18 @@ void sbbs_t::menu(const char *code)
 			backslash(menu_dir);
 			SAFEPRINTF3(str, "%smenu/%s%s", cfg.text_dir, menu_dir, code);
 		}
-		long term = term_supports();
-		sprintf(path,"%s.%s",str, (term&WIP) ? "wip": (term&RIP) ? "rip" : "html");
-		if(!(term&(RIP|WIP|HTML)) || !fexistcase(path)) {
+		sprintf(path,"%s.%s",str,term_supports(WIP) ? "wip": term_supports(RIP) ? "rip" : "html");
+		if(!(term_supports()&(RIP|WIP|HTML)) || !fexistcase(path)) {
 			SAFEPRINTF(path, "%s.mon", str);
-			if((term&(COLOR|ANSI))!=ANSI || !fexistcase(path)) {
+			if((term_supports()&(COLOR|ANSI))!=ANSI || !fexistcase(path)) {
 				SAFEPRINTF(path, "%s.ans", str);
-				if(!(term&ANSI) || !fexistcase(path)) {
-					SAFEPRINTF2(path, "%s.%ucol.asc", str, cols);
-					if(!fexistcase(path))
-						SAFEPRINTF(path, "%s.asc", str); 
-				}
-			}
+				if(!term_supports(ANSI) || !fexistcase(path))
+					SAFEPRINTF(path, "%s.asc", str); 
+			} 
 		} 
 	}
 
-	long mode = P_OPENCLOSE | P_CPM_EOF;
+	long mode = P_OPENCLOSE;
 	if(column == 0)
 		mode |= P_NOCRLF;
 	printfile(path, mode);
@@ -229,9 +228,6 @@ bool sbbs_t::menu_exists(const char *code)
 		return fexistcase(menu_file) ? true : false;
 
 	backslash(menu_dir);
-	SAFEPRINTF4(path, "%smenu/%s%s.%ucol.asc", cfg.text_dir, menu_dir, code, cols);
-	if(fexistcase(path))
-		return true;
 	SAFEPRINTF3(path, "%smenu/%s%s.asc", cfg.text_dir, menu_dir, code);
 	return fexistcase(path) ? true : false;
 }
