@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.77 2018/10/26 03:33:14 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.73 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,9 @@ BOOL sbbs_t::newuser()
 			logline(LOG_NOTICE,"N!",tmp); 
 		}
 		if(c==4) {
-			menu("../nupguess", P_NOABORT|P_NOERROR);
+			SAFEPRINTF(str,"%snupguess.msg",cfg.text_dir);
+			if(fexist(str))
+				printfile(str,P_NOABORT);
 			hangup();
 			return(FALSE); 
 		} 
@@ -139,7 +141,7 @@ BOOL sbbs_t::newuser()
 
 	useron.alias[0]=0;
 
-	kmode=(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL|K_TRIM;
+	kmode=(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL;
 	if(!(cfg.uq&UQ_NOUPRLWR))
 		kmode|=K_UPRLWR;
 
@@ -160,14 +162,14 @@ BOOL sbbs_t::newuser()
 
 		if(useron.misc&ANSI) {
 			useron.rows=0;	/* Auto-rows */
-			if(!(cfg.uq&UQ_COLORTERM) || useron.misc&(RIP|WIP|HTML) || yesno(text[ColorTerminalQ]))
+			if(!(cfg.uq&UQ_COLORTERM) || useron.misc&(RIP|WIP|HTML) || text[ColorTerminalQ][0]==0 || yesno(text[ColorTerminalQ]))
 				useron.misc|=COLOR; 
 			else
 				useron.misc&=~COLOR;
 		}
 		else
 			useron.rows=24;
-		if(!(useron.misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
+		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		else
 			useron.misc&=~NO_EXASCII;
@@ -304,9 +306,15 @@ BOOL sbbs_t::newuser()
 	SAFEPRINTF(str,"New user: %s",useron.alias);
 	logline("N",str);
 	if(!online) return(FALSE);
-	menu("../sbbs", P_NOABORT|P_NOERROR);
-	menu("../system", P_NOABORT|P_NOERROR);
-	menu("../newuser", P_NOABORT|P_NOERROR);
+	SAFEPRINTF(str,"%ssbbs.msg",cfg.text_dir);
+	if(fexist(str))
+		printfile(str,P_NOABORT);
+	SAFEPRINTF(str,"%ssystem.msg",cfg.text_dir);
+	if(fexist(str))
+		printfile(str,P_NOABORT);
+	SAFEPRINTF(str,"%snewuser.msg",cfg.text_dir);
+	if(fexist(str))
+		printfile(str,P_NOABORT);
 	answertime=time(NULL);		/* could take 10 minutes to get this far */
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
@@ -421,7 +429,9 @@ BOOL sbbs_t::newuser()
 	delallmail(useron.number, MAIL_ANY);
 
 	if(useron.number!=1 && cfg.node_valuser) {
-		menu("../feedback", P_NOABORT|P_NOERROR);
+		SAFEPRINTF(str,"%sfeedback.msg",cfg.text_dir);
+		if(fexist(str))
+			printfile(str,P_NOABORT);
 		safe_snprintf(str,sizeof(str),text[NewUserFeedbackHdr]
 			,nulstr,getage(&cfg,useron.birth),useron.sex,useron.birth
 			,useron.name,useron.phone,useron.comp,useron.modem);
