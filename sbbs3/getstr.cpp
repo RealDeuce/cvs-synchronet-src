@@ -1,7 +1,7 @@
 /* Synchronet string input routines */
 // vi: tabstop=4
 
-/* $Id: getstr.cpp,v 1.35 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.33 2018/09/05 23:07:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,15 +53,13 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 	uchar	atr;
 	int		hidx = -1;
 
-	long term = term_supports();
 	console&=~(CON_UPARROW|CON_DOWNARROW|CON_LEFTARROW|CON_BACKSPACE|CON_DELETELINE);
 	if(!(mode&K_WRAP))
 		console&=~CON_INSERT;
 	sys_status&=~SS_ABORT;
-	if(cols >= TERM_COLS_MIN
-		&& column + (long)maxlen >= cols)	/* Don't allow the terminal to auto line-wrap */
-		maxlen = cols-column-1;
-	if(mode&K_LINE && (term&(ANSI|PETSCII)) && !(mode&K_NOECHO)) {
+	if(mode&K_LINE && term_supports(ANSI) && !(mode&K_NOECHO)) {
+		if(column + (long)maxlen >= cols)	/* Don't cause the terminal to line-wrap, just shorten the max input string length instead */
+			maxlen = cols-column-1;
 		attr(cfg.color[clr_inputline]);
 		for(i=0;i<maxlen;i++)
 			outchar(' ');
@@ -119,7 +117,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 		}
 	}
 
-	if(console&CON_INSERT && !(mode&K_NOECHO))
+	if(console&CON_INSERT && term_supports(ANSI) && !(mode&K_NOECHO))
 		insert_indicator();
 
 	while(!(sys_status&SS_ABORT) && online && input_thread_running) {
@@ -138,7 +136,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 		}
 		if(ch==TAB && (mode&K_TAB || (!(mode&K_WRAP) && history == NULL)))	/* TAB same as CR */
 			break;
-		if(!i && (mode&(K_UPRLWR|K_TRIM)) && (ch==' ' || ch==TAB))
+		if(!i && mode&K_UPRLWR && (ch==' ' || ch==TAB))
 			continue;	/* ignore beginning white space if upper/lower */
 		if(mode&K_E71DETECT && (uchar)ch==(CR|0x80) && l>1) {
 			if(strstr(str1,"çç")) {
@@ -198,13 +196,13 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 				}
 				break;
 			case TERM_KEY_END: /* Ctrl-E End of line */
-				if(term&(ANSI|PETSCII) && i<l) {
+				if(term_supports(ANSI) && i<l) {
 					cursor_right(l-i);  /* move cursor to eol */
 					i=l; 
 				}
 				break;
 			case TERM_KEY_RIGHT: /* Ctrl-F move cursor forward */
-				if(i<l && term&(ANSI|PETSCII)) {
+				if(i<l && term_supports(ANSI)) {
 					cursor_right();   /* move cursor right one */
 					i++; 
 				}
@@ -351,7 +349,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 				return(l);
 
 			case CTRL_N:    /* Ctrl-N Next word */
-				if(i<l && term&(ANSI|PETSCII)) {
+				if(i<l && term_supports(ANSI)) {
 					x=i;
 					while(str1[i]!=' ' && i<l)
 						i++;
@@ -568,8 +566,6 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 					return(x); 
 				}
 				if(i<maxlen && ch>=' ') {
-					if(ch==' ' && (mode&K_TRIM) && i && str1[i-1] == ' ')
-						continue;
 					if(mode&K_UPRLWR) {
 						if(!i || (i && (str1[i-1]==' ' || str1[i-1]=='-'
 							|| str1[i-1]=='.' || str1[i-1]=='_')))
@@ -610,8 +606,6 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 	str1[l]=0;
 	if(!(sys_status&SS_ABORT)) {
 		strcpy(strout,str1);
-		if(mode&K_TRIM)
-			truncsp(strout);
 		if((strip_invalid_attr(strout) || console&CON_INSERT) && !(mode&K_NOECHO))
 			redrwstr(strout,i,l,K_MSG); 
 	}
@@ -619,10 +613,9 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 		l=0;
 	if(mode&K_LINE && !(mode&K_NOECHO)) attr(LIGHTGRAY);
 	if(!(mode&(K_NOCRLF|K_NOECHO))) {
-		if(!(mode&K_MSG && sys_status&SS_ABORT)) {
-			CRLF;
-		} else
-			carriage_return();
+		outchar(CR);
+		if(!(mode&K_MSG && sys_status&SS_ABORT))
+			outchar(LF);
 		lncntr=0; 
 	}
 	return(l);
