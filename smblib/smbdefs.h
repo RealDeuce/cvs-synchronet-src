@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.103 2018/10/03 07:35:14 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.101 2018/09/24 05:04:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -174,7 +174,7 @@
 										/* Used for the SMTP Originator-Info header field: */
 #define SENDERUSERID		0x0c		/* user-id */
 #define SENDERTIME			0x0d		/* authentication/connection time */
-#define SENDERSERVER		0x0e		/* server hostname that authenticated user */
+#define SENDERSERVER		0x0e		/* server hostname that authenticed user */
 
 #define AUTHOR				0x10
 #define AUTHORAGENT 		0x11
@@ -233,8 +233,7 @@
 #define SMB_PRIORITY		0x66
 #define SMB_COST			0x67
 #define	SMB_EDITOR			0x68
-#define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
-#define SMB_TAG_DELIMITER	" "
+#define SMB_TAGS			0x69	/* List of tags (ala hashtags) related to this message */
 
 #define FILEATTACH			0x70
 #define DESTFILE			0x71
@@ -286,7 +285,7 @@
 #define SMTPFORWARDPATH		0xd2		/* RCPT TO: argument, "forward path" */
 #define SMTPRECEIVED		0xd3		/* SMTP "Received" information */
 
-#define SMTPSYSMSG			0xd8		/* for delivery failure notification (deprecated) */
+#define SMTPSYSMSG			0xd8		/* for delivery failure notification */
 
 #define SMB_POLL_ANSWER		0xe0		/* the subject is the question */
 
@@ -625,7 +624,6 @@ typedef struct {				/* Message */
 				*ftn_reply;		/* FTN REPLY */
 	char*		summary;		/* Summary  */
 	char*		subj;			/* Subject  */
-	char*		tags;			/* Message tags (space-delimited) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
