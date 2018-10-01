@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.375 2018/10/15 04:08:57 rswindell Exp $ */
+/* $Id: js_global.c,v 1.374 2018/04/06 02:47:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2188,7 +2188,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 						hpos=0;
 						break;
 					case 'Z':
-						outbuf[j++]=CTRL_Z;
+						outbuf[j++]=0;
 						break;
 					case 'A':
 					default:
