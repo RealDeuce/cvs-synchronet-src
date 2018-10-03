@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.493 2018/10/25 21:22:59 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.488 2018/09/06 02:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,7 +301,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
-#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -371,14 +370,9 @@ public:
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
-	/* 	input_thread() writes to these variables: */
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
-	char	telnet_terminal[TELNET_TERM_MAXLEN+1];
-	long 	telnet_rows;	
-	long	telnet_cols;
-	long	telnet_speed;
-
+	char	terminal[TELNET_TERM_MAXLEN+1];
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
@@ -466,12 +460,13 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
-	long	tabstop;		/* Current symmetric-tabstop (size) */
 	long	lastlinelen;	/* The previously displayed line length */
 	long 	autoterm;		/* Auto-detected terminal type */
-	char	terminal[TELNET_TERM_MAXLEN+1];	// <- answer() writes to this
 	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
-	link_list_t savedlines;
+	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
+	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
+	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
+	int 	slcnt;			/* Number of lines currently saved */
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
 	char 	latr;			/* Starting attribute of line buffer */
@@ -536,7 +531,7 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
-	file_t*		current_file;
+	file_t*		current_file;	
 
 			/* Global command shell variables */
 	uint	global_str_vars;
@@ -713,14 +708,9 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	void	carriage_return(void);
-	void	line_feed(void);
-	void	newline(void);
 	long	term_supports(long cmp_flags=0);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
-	bool	saveline(void);
-	bool	restoreline(void);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -744,10 +734,10 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	bool	printfile(char *str, long mode);
-	bool	printtail(char *str, int lines, long mode);
-	bool	menu(const char *code, long mode = 0);
-	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
+	void	printfile(char *str, long mode);
+	void	printtail(char *str, int lines, long mode);
+	void	menu(const char *code);
+	bool	menu_exists(const char *code);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -763,13 +753,13 @@ public:
 	const char*	atcode(char* sp, char* str, size_t maxlen);
 
 	/* getnode.cpp */
-	int		getsmsg(int usernumber, bool clearline = false);
-	int		getnmsg(bool clearline = false);
+	int		getsmsg(int usernumber);
+	int		getnmsg(void);
 	int		whos_online(bool listself);/* Lists active nodes, returns active nodes */
 	void	nodelist(void);
 	int		getnodeext(uint number, char * str);
 	int		getnodedat(uint number, node_t * node, bool lock);
-	void	nodesync(bool clearline = false);
+	void	nodesync(void);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
 
