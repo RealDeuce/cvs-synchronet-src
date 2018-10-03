@@ -75,6 +75,8 @@ static unsigned long base_pixel;
 static int r_shift;
 static int g_shift;
 static int b_shift;
+static struct rectlist *last = NULL;
+
 
 /* Array of Graphics Contexts */
 static GC gc;
@@ -203,6 +205,10 @@ static void resize_xim(void)
 #else
 		x11.XDestroyImage(xim);
 #endif
+	}
+	if (last) {
+		bitmap_drv_free_rect(last);
+		last = NULL;
 	}
     xim=x11.XCreateImage(dpy,&visual,depth,ZPixmap,0,NULL,bitmap_width*x_cvstat.scaling,bitmap_height*x_cvstat.scaling*x_cvstat.vmultiplier,32,0);
     xim->data=(char *)malloc(xim->bytes_per_line*xim->height);
@@ -410,15 +416,37 @@ static void local_draw_rect(struct rectlist *rect)
 	int x,y,xscale,yscale;
 	unsigned int r, g, b;
 	unsigned long pixel;
+	int cleft = rect->rect.width;
+	int cright = -1;
+	int ctop = rect->rect.height;
+	int cbottom = -1;
+	int idx;
 
 	/* TODO: Translate into local colour depth */
 	for(y=0;y<rect->rect.height;y++) {
+		idx = y*rect->rect.width;
 		for(x=0; x<rect->rect.width; x++) {
+			if (last) {
+				if (last->data[idx] != rect->data[idx]) {
+					if (x < cleft)
+						cleft = x;
+					if (x > cright)
+						cright = x;
+					if (y < ctop)
+						ctop = y;
+					if (y > cbottom)
+						cbottom = y;
+				}
+				else {
+					idx++;
+					continue;
+				}
+			}
 			for(yscale=0; yscale<x_cvstat.scaling*x_cvstat.vmultiplier; yscale++) {
 				for(xscale=0; xscale<x_cvstat.scaling; xscale++) {
-					r = rect->data[y*rect->rect.width+x] >> 16 & 0xff;
-					g = rect->data[y*rect->rect.width+x] >> 8 & 0xff;
-					b = rect->data[y*rect->rect.width+x] & 0xff;
+					r = rect->data[idx] >> 16 & 0xff;
+					g = rect->data[idx] >> 8 & 0xff;
+					b = rect->data[idx] & 0xff;
 					r = (r<<8)|r;
 					g = (g<<8)|g;
 					b = (b<<8)|b;
@@ -442,12 +470,22 @@ static void local_draw_rect(struct rectlist *rect)
 #endif
 				}
 			}
+			idx++;
+		}
+		/* This line was changed */
+		if (last && (((y & 0x1f) == 0x1f) || (y == rect->rect.height-1)) && cright >= 0) {
+			x11.XPutImage(dpy,win,gc,xim,cleft*x_cvstat.scaling,ctop*x_cvstat.scaling*x_cvstat.vmultiplier,cleft*x_cvstat.scaling,ctop*x_cvstat.scaling*x_cvstat.vmultiplier,(cright-cleft+1)*x_cvstat.scaling,(cbottom-ctop+1)*x_cvstat.scaling*x_cvstat.vmultiplier);
+			cleft = rect->rect.width;
+			cright = cbottom = -1;
+			ctop = rect->rect.height;
 		}
 	}
 
-	x11.XPutImage(dpy,win,gc,xim,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.width*x_cvstat.scaling,rect->rect.height*x_cvstat.scaling*x_cvstat.vmultiplier);
-
-	bitmap_drv_free_rect(rect);
+	if (last == NULL)
+		x11.XPutImage(dpy,win,gc,xim,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.width*x_cvstat.scaling,rect->rect.height*x_cvstat.scaling*x_cvstat.vmultiplier);
+	else
+		bitmap_drv_free_rect(last);
+	last = rect;
 }
 
 static void handle_resize_event(int width, int height)
