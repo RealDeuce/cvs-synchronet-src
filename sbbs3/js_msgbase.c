@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.225 2019/01/22 03:18:04 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.222 2018/09/06 02:21:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -745,36 +745,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		msg->hdr.when_written=rfc822date(cp);
 	}
 
-	const char* prop_name = "summary";
-	uint16_t hfield_type = SMB_SUMMARY;
-	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"%s\" string in header object", prop_name);
-			goto err;
-		}
-		if((p->smb_result=smb_hfield_str(msg, hfield_type, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding %s field to message header", p->smb_result, smb_hfieldtype(hfield_type));
-			goto err;
-		}
-	}
-
-	prop_name = "tags";
-	hfield_type = SMB_TAGS;
-	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"%s\" string in header object", prop_name);
-			goto err;
-		}
-		if((p->smb_result=smb_hfield_str(msg, hfield_type, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding %s field to message header", p->smb_result, smb_hfieldtype(hfield_type));
-			goto err;
-		}
-	}
-
 	/* Numeric Header Fields */
 	if(JS_GetProperty(cx, hdr, "attr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
@@ -1162,7 +1132,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("tags", p->msg.tags, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("from_ext", p->msg.from_ext, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("from_org", p->msg.from_org, JSPROP_ENUMERATE);
@@ -2801,7 +2770,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("close message base (if open)")
 	,310
 	},
-	{"get_msg_header",	js_get_msg_header,	4, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id [,expand_fields=<tt>true</tt>] [,include_votes=<tt>false</tt>]")
+	{"get_msg_header",	js_get_msg_header,	4, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,expand_fields=<tt>true</tt>] [,include_votes=<tt>false</tt>]")
 	,JSDOCSTR("returns a specific message header, <i>null</i> on failure. "
 	"<br><i>New in v3.12:</i> Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
 	"if you will be re-writing the header later with <i>put_msg_header()</i>")
@@ -2813,26 +2782,23 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"Vote messages are excluded by default.")
 	,316
 	},
-	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset, object header")
+	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number, object header")
 	,JSDOCSTR("modify an existing message header")
 	,310
 	},
-	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id_or_header [,strip_ctrl_a=<tt>false</tt>] "
+	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [, message_header] [,strip_ctrl_a=<tt>false</tt>] "
 		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>] [,plain_text=<tt>false</tt>]")
 	,JSDOCSTR("returns the entire body text of a specific message as a single String, <i>null</i> on failure. "
 		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
-		"returned body text. When <i>plain_text</i> is true, only the first plain-text portion of a multi-part MIME encoded message body is returned. "
-		"The first argument (following the optional <i>by_offset</i> boolean) must be either a number (message number or index-offset), string (message-ID), or object (message header). "
-		"The <i>by_offfset</i> (<tt>true</tt>) argument should only be passed when the argument following it is the numeric index-offset of the message to be "
-		"retrieved. By default (<i>by_offset</i>=<tt>false</tt>), a numeric argument would be interpreted as the message <i>number</i> to be retrieved. "
+		"returned body text. When <i>plain_text</i> is true, only the first plain-text portion of a multi-part MIME encoded message body is returned."
 	)
 	,310
 	},
-	{"get_msg_tail",	js_get_msg_tail,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id_or_header [,strip_ctrl_a]=<tt>false</tt>")
+	{"get_msg_tail",	js_get_msg_tail,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [, message_header] [,strip_ctrl_a]=<tt>false</tt>")
 	,JSDOCSTR("returns the tail text of a specific message, <i>null</i> on failure")
 	,310
 	},
-	{"get_msg_index",	js_get_msg_index,	3, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset, [include_votes=<tt>false</tt>]")
+	{"get_msg_index",	js_get_msg_index,	3, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number, [include_votes=<tt>false</tt>]")
 	,JSDOCSTR("returns a specific message index, <i>null</i> on failure. "
 	"The index object will contain the following properties:<br>"
 	"<table>"
@@ -2855,7 +2821,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	)
 	,311
 	},
-	{"remove_msg",		js_remove_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id")
+	{"remove_msg",		js_remove_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id")
 	,JSDOCSTR("mark message for deletion")
 	,311
 	},
@@ -2888,8 +2854,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>replyto_net_type</tt><td>Replies should be sent to this network type"
 	"<tr><td align=top><tt>replyto_net_addr</tt><td>Replies should be sent to this network address"
 	"<tr><td align=top><tt>replyto_agent</tt><td>Replies should be sent to this agent type"
-	"<tr><td align=top><tt>summary</tt><td>Message Summary (optional)"
-	"<tr><td align=top><tt>tags</tt><td>Message Tags (space-delimited, optional)"
 	"<tr><td align=top><tt>id</tt><td>Message's RFC-822 compliant Message-ID"
 	"<tr><td align=top><tt>reply_id</tt><td>Message's RFC-822 compliant Reply-ID"
 	"<tr><td align=top><tt>reverse_path</tt><td>Message's SMTP sender address"
@@ -3061,14 +3025,7 @@ js_msgbase_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	js_DescribeSyncObject(cx,obj,"Class used for accessing message bases",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new MsgBase object: "
 		"<tt>var msgbase = new MsgBase('<i>code</i>')</tt><br>"
-		"where <i>code</i> is a sub-board internal code, or <tt>mail</tt> for the e-mail message base."
-		"<p>"
-		"The MsgBase retrieval methods that accept a <tt>by_offset</tt> argument as their optional first boolean argument "
-		"will interpret the following <i>number</i> argument as either a 1-based unique message number (by_offset=<tt>false</tt>) "
-		"or a 0-based message index-offset (by_offset=<tt>true</tt>). Retrieving messages by offset is faster than by number or "
-		"message-id (string). Passing an existing message header to the retrieval methods that support it (e.g. <tt>get_msg_body()</tt>) "
-		"is even faster. "
-		);
+		"where <i>code</i> is a sub-board internal code, or <tt>mail</tt> for the e-mail message base");
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", msgbase_prop_desc, JSPROP_READONLY);
 #endif
 
