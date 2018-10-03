@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.220 2018/02/03 23:39:28 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.223 2018/10/03 06:07:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,8 +57,8 @@
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2016 Rob Swindell"
-#define COPYRIGHT_CRC		0x5891b729
+#define COPYRIGHT_NOTICE	"Copyright 2018 Rob Swindell"
+#define COPYRIGHT_CRC		0x930AE2A9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -211,6 +211,7 @@ typedef struct js_callback {
 #define NMAIL_ALIAS 	(1<<4)		/* Use Aliases in NetMail */
 #define NMAIL_FILE		(1<<5)		/* Allow file attachments */
 #define NMAIL_DIRECT	(1<<6)		/* Default netmail to direct */
+#define NMAIL_CHSRCADDR	(1<<7)		/* Allow sender to choose source address */
 
 									/* Bit values for subscan_t.cfg and sav_cfg	*/
 #define SUB_CFG_NSCAN	0x0005		/* Auto-scan for new messages				*/
@@ -221,6 +222,7 @@ typedef struct js_callback {
 									/* Bit values for sub[x].misc */
 #define SUB_NOVOTING	(1L<<0)		/* No voting allowed in this sub-board */
 #define SUB_TEMPLATE	(1L<<1)		/* Use this sub as template for new subs (in this group) */
+#define SUB_MSGTAGS		(1L<<2)		/* Allow messages to be tagged (ala hashtags) */
 #define SUB_QNET		(1L<<3) 	/* Sub-board is netted via QWK network */
 #define SUB_PNET		(1L<<4) 	/* Sub-board is netted via PostLink */
 #define SUB_FIDO		(1L<<5) 	/* Sub-board is netted via FidoNet */
