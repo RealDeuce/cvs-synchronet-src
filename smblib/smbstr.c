@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.32 2018/11/04 23:26:45 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.30 2018/10/03 04:25:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMB_COST:			return("Cost");
 		case SMB_EDITOR:		return("Editor");
 		case SMB_TAGS:			return("Tags");
-		case SMB_COLUMNS:		return("Columns");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
@@ -228,13 +227,9 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case BAN:   return("BAN");
 		case HON:   return("HON");
 		case TOK:   return("TOK");
-		case ACST:	return("ACST");
-		case ACDT:	return("ACDT");
-		case AEST:	return("AEST");
-		case AEDT:	return("AEDT");
+		case SYD:   return("SYD");
 		case NOU:   return("NOU");
-		case NZST:  return("NZST");
-		case NZDT:  return("NZDT");
+		case WEL:   return("WEL");
 	}
 
 	if(!OTHER_ZONE(zone)) {
