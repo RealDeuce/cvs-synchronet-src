@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.30 2018/03/31 09:38:49 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.33 2018/09/08 21:35:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ faddr_t atofaddr(const char *instr)
 	*p=0;
 	if(!stricmp(str,"ALL")) {
 		addr.zone=addr.net=addr.node=addr.point=0xffff;
-		return(addr); 
+		return(addr);
 	}
 	addr.zone=addr.net=addr.node=addr.point=0;
 	if((p=strchr(str,':'))!=NULL) {
@@ -134,10 +134,10 @@ const char *faddrtoa(const faddr_t* addr)
 					strcat(str,".ALL");
 				else if(addr->point) {
 					sprintf(tmp,".%u",addr->point);
-					strcat(str,tmp); 
-				} 
-			} 
-		} 
+					strcat(str,tmp);
+				}
+			}
+		}
 	}
 	return(str);
 }
@@ -227,6 +227,7 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->areafile_backups			= 100;
 	cfg->cfgfile_backups			= 100;
 	cfg->auto_add_subs				= true;
+	cfg->min_free_diskspace			= 10*1024*1024;
 }
 
 char* pktTypeStringList[] = {"2+", "2e", "2.2", "2", NULL};		// Must match enum pkt_type
@@ -275,6 +276,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->umask					= iniGetInteger(ini, ROOT_SECTION, "umask", cfg->umask);
 	cfg->areafile_backups		= iniGetInteger(ini, ROOT_SECTION, "AreaFileBackups", cfg->areafile_backups);
 	cfg->cfgfile_backups		= iniGetInteger(ini, ROOT_SECTION, "CfgFileBackups", cfg->cfgfile_backups);
+	cfg->min_free_diskspace		= iniGetBytes(ini, ROOT_SECTION, "MinFreeDiskSpace", 1, cfg->min_free_diskspace);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -349,8 +351,16 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		char* domain = strchr(node+5, '@');
 		if(domain != NULL)
 			SAFECOPY(ncfg->domain, domain + 1);
-		if(iniGetString(ini, node, "route", NULL, value) != NULL && value[0])
-			ncfg->route = atofaddr(value);
+		if(iniGetString(ini, node, "route", NULL, value) != NULL && value[0]) {
+			fidoaddr_t addr = atofaddr(value);
+			if(addr.zone != 0 && memcmp(&addr, &ncfg->addr, sizeof(addr)) != 0)
+				ncfg->route = addr;
+		}
+		if(iniGetString(ini, node, "LocalAddress", NULL, value) != NULL && value[0]) {
+			fidoaddr_t addr = atofaddr(value);
+			if(addr.zone != 0 && memcmp(&addr, &ncfg->addr, sizeof(addr)) != 0)
+				ncfg->local_addr = addr;
+		}
 		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreaFixPwd", "", value));
 		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
 		SAFECOPY(ncfg->sesspwd	, iniGetString(ini, node, "SessionPwd", "", value));
@@ -395,8 +405,9 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		SAFECOPY(ncfg->binkp_host	, iniGetString(ini, node, "BinkpHost", "", value));
 		ncfg->binkp_port			= iniGetShortInt(ini, node, "BinkpPort", 24554);
 		ncfg->binkp_poll			= iniGetBool(ini, node, "BinkpPoll", FALSE);
+		ncfg->binkp_plainAuthOnly	= iniGetBool(ini, node, "BinkpPlainAuthOnly", FALSE);
 		ncfg->binkp_allowPlainAuth	= iniGetBool(ini, node, "BinkpAllowPlainAuth", FALSE);
-		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", FALSE);
+		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", TRUE);
 	}
 	strListFree(&nodelist);
 
@@ -482,6 +493,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetString(&ini,		ROOT_SECTION, "AreaFile"				,cfg->areafile					,NULL);
 	iniSetInteger(&ini,		ROOT_SECTION, "AreaFileBackups"			,cfg->areafile_backups			,NULL);
 	iniSetInteger(&ini,		ROOT_SECTION, "CfgFileBackups"			,cfg->cfgfile_backups			,NULL);
+	iniSetBytes(&ini,		ROOT_SECTION, "MinFreeDiskSpace"		,1,cfg->min_free_diskspace		,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "BadAreaFile"				,cfg->badareafile				,NULL);
 	iniSetString(&ini,		ROOT_SECTION, "EchoStats"				,cfg->echostats					,NULL);
 	if(cfg->logfile[0])
@@ -577,11 +589,16 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 			iniSetString(&ini,section,	"Route"			,faddrtoa(&node->route), &style);
 		else
 			iniRemoveKey(&ini,section,	"Route");
+		if(node->local_addr.zone)
+			iniSetString(&ini,section,	"LocalAddress"	,faddrtoa(&node->local_addr), &style);
+		else
+			iniRemoveKey(&ini,section,	"LocalAddress");
 		iniSetStringList(&ini, section, "GroupHub", ","	,node->grphub		,&style);
 		/* BinkP-related */
 		iniSetString(&ini	,section,	"BinkpHost"		,node->binkp_host	,&style);
 		iniSetShortInt(&ini	,section,	"BinkpPort"		,node->binkp_port	,&style);
 		iniSetBool(&ini		,section,	"BinkpPoll"		,node->binkp_poll	,&style);
+		iniSetBool(&ini		,section,	"BinkpPlainAuthOnly",node->binkp_plainAuthOnly, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainAuth",node->binkp_allowPlainAuth, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainText",node->binkp_allowPlainText, &style);
 		iniSetString(&ini	,section,	"BinkpSourceAddress",node->binkp_src, &style);
