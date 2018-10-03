@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.85 2018/07/01 09:40:27 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.87 2018/08/15 19:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ int sbbs_t::bputs(const char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
-		return(eprintf(LOG_INFO,"%s",str));
+		return(lputs(LOG_INFO, str));
 
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
@@ -300,7 +300,7 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 
 	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON) 
-		&& !(sys_status&SS_PAUSEOFF)) {
+		&& !(sys_status&(SS_PAUSEOFF|SS_ABORT))) {
 		lncntr=0;
 		pause(); 
 	}
