@@ -45,11 +45,6 @@ ifeq ($(os),linux)
  endif
 endif
 
-ifdef USE_GUTS
- CFLAGS +=	-I../guts -DGUTS_BUILTIN
- OBJS	+=	$(MTOBJODIR)$(DIRSEP)gutsz$(OFILE)
-endif
-
 DESTDIR	?=
 PREFIX	?= /usr/local
 DESKTOPDIR ?= $(PREFIX)/share/applications
@@ -65,9 +60,9 @@ endif
 CFLAGS	+=	-DSYSTEM_LIST_DIR=\"${SYSTEM_LIST_DIR}\"
 
 CFLAGS	+=	$(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) -I../sbbs3 -I../smblib -I../comio
-LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CRYPT_LDFLAGS)
+LDFLAGS	+=	$(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(CRYPT_LDFLAGS)
 
-vpath %.c ../sbbs3 ../smblib ../uifc ../guts ../comio
+vpath %.c ../sbbs3 ../smblib ../uifc ../comio
 
 ifdef DEBUG
  INSTALL_EXE	?=	install
@@ -106,7 +101,7 @@ $(MTOBJODIR)$(DIRSEP)ciolib_res$(OFILE):
 
 $(SYNCTERM): $(CRYPT_DEPS) $(EXEODIR) $(OBJS) $(BUILD_DEPENDS)
 	@echo Linking $@
-	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(EXTRA_LIBS) $(CIOLIB-MT_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
+	${QUIET}$(CC) $(LDFLAGS) $(MT_LDFLAGS) $(OBJS) -o $@ $(UIFC-MT_LIBS) $(EXTRA_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 ifeq ($(os),darwin)
 	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app
 	-${QUIET}mkdir $(EXEODIR)/SyncTERM.app/Contents
