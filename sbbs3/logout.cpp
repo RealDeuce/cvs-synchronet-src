@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.29 2015/11/30 09:07:43 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.31 2018/07/25 03:39:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ void sbbs_t::logout()
 		}
 		return; 
 	}
-	lprintf(LOG_INFO, "Node %d %s logout initiated", cfg.node_num, useron.alias);
+	lprintf(LOG_INFO, "logout initiated");
 	SAFECOPY(lastuseron,useron.alias);
 	if(!online && getnodedat(cfg.node_num, &node, /* lock: */true) == 0) {
 		node.status = NODE_LOGOUT;
@@ -93,13 +93,13 @@ void sbbs_t::logout()
 
 	if(!online) {		/* NOT re-login */
 		if(cfg.sys_logout[0]) {		/* execute system logout event */
-			lprintf(LOG_DEBUG, "Node %d executing logout event", cfg.node_num);
+			lprintf(LOG_DEBUG, "executing logout event");
 			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL|EX_OFFLINE);
 		}
 	}
 
 	if(cfg.logout_mod[0]) {
-		lprintf(LOG_DEBUG, "Node %d executing logout module", cfg.node_num);
+		lprintf(LOG_DEBUG, "executing logout module");
 		exec_bin(cfg.logout_mod,&main_csi);
 	}
 	backout();
@@ -150,7 +150,7 @@ void sbbs_t::logout()
 	if(usrlibs>0)
 		putuserrec(&cfg,useron.number,U_CURDIR,0,cfg.dir[usrdir[curlib][curdir[curlib]]]->code);
 	hhmmtostr(&cfg,&tm,str);
-	strcat(str,"  ");
+	SAFECAT(str,"  ");
 	if(sys_status&SS_USERON)
 		safe_snprintf(tmp,sizeof(tmp),"T:%3u   R:%3lu   P:%3lu   E:%3lu   F:%3lu   "
 			"U:%3luk %lu   D:%3luk %lu"
@@ -159,13 +159,13 @@ void sbbs_t::logout()
 			,logon_dlb/1024UL,logon_dls);
 	else
 		SAFEPRINTF(tmp,"T:%3u sec",(uint)(now-answertime));
-	strcat(str,tmp);
-	strcat(str,"\r\n");
+	SAFECAT(str,tmp);
+	SAFECAT(str,"\r\n");
 	logline("@-",str);
 	sys_status&=~SS_USERON;
-	answertime=now; // Incase we're relogging on
+	answertime=now; // In case we're re-logging on
 
-	lprintf(LOG_DEBUG, "Node %d %s logout completed", cfg.node_num, useron.alias);
+	lprintf(LOG_DEBUG, "logout completed");
 }
 
 /****************************************************************************/
