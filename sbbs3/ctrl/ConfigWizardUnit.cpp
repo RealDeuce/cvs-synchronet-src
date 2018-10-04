@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.26 2018/11/06 01:49:51 rswindell Exp $ */
+/* $Id: ConfigWizardUnit.cpp,v 1.25 2017/07/08 04:49:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,10 +82,9 @@ short tz_val[]= {
     ,BAN
     ,HON
     ,TOK
-    ,ACST
-    ,AEST
+    ,SYD
     ,NOU
-    ,NZST
+    ,WEL
 };
 
 char* tz_str[]={
@@ -120,10 +119,9 @@ char* tz_str[]={
     ,"Bangkok"
     ,"Hong Kong"
     ,"Tokyo"
-    ,"Australian Central"
-    ,"Australian Eastern"
+    ,"Sydney"
     ,"Noumea"
-    ,"New Zealand"
+    ,"Wellington"
 };
 
 //---------------------------------------------------------------------------
