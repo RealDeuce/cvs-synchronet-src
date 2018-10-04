@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.81 2018/10/23 02:49:50 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.80 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -402,7 +402,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}()-+/");
+		sprintf(str,"ADFLNQRT?<>[]{}-+/");
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which == MAIL_YOUR)
@@ -650,7 +650,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					bputs(text[NoMessagesFound]);
 				}
 				break;
-			case ')':
 			case '}':   /* Search Author forward */
 				strcpy(str,msg.from);
 				for(u=smb.curmsg+1;u<smb.msgs;u++)
@@ -674,7 +673,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					bputs(text[NoMessagesFound]);
 				}
 				break;
-			case '(':
 			case '{':   /* Search Author backward */
 				strcpy(str,msg.from);
 				if(smb.curmsg > 0) {
