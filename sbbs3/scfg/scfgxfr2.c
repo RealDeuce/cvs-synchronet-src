@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.54 2018/03/10 03:20:06 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.55 2018/08/16 06:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -840,6 +840,8 @@ void xfer_cfg()
 							if(cfg.dir[j]->lib == i) {	/* same lib */
 								if(tmpdir.path[0]
 									&& strcmp(cfg.dir[j]->path, tmpdir.path) == 0)	/* same path? overwrite the dir entry */
+									break;
+								if(stricmp(cfg.dir[j]->sname, tmpdir.sname) == 0)
 									break;
 							} else {
 								if((cfg.lib[i]->code_prefix[0] || cfg.lib[cfg.dir[j]->lib]->code_prefix[0]))
