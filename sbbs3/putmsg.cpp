@@ -1,6 +1,6 @@
 /* Synchronet message/menu display routine */
  
-/* $Id: putmsg.cpp,v 1.34 2018/01/04 08:33:26 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.36 2018/10/04 04:03:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,14 +37,14 @@
 #include "wordwrap.h"
 
 /****************************************************************************/
-/* Outputs a NULL terminated string locally and remotely (if applicable)	*/
+/* Outputs a NULL terminated string with @-code parsing,                    */
 /* checking for message aborts, pauses, ANSI escape and ^A sequences.		*/
-/* Changes local text attributes if necessary. Max length of str is 4 gig	*/
+/* Changes local text attributes if necessary.                              */
 /* Returns the last char of the buffer access.. 0 if not aborted.           */
 /* If P_SAVEATR bit is set in mode, the attributes set by the message       */
 /* will be the current attributes after the message is displayed, otherwise */
-/* the attributes prior to diplaying the message are always restored.       */
-/* Ignores Ctrl-Z's  (only in P_CPM_EOF mode)                               */
+/* the attributes prior to displaying the message are always restored.      */
+/* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
 /****************************************************************************/
 char sbbs_t::putmsg(const char *buf, long mode)
 {
@@ -55,6 +55,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 	int 	orgcon=console,i;
 	ulong	l=0,sys_status_sav=sys_status;
 	int		defered_pause=FALSE;
+	uint	lines_printed = 0;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -91,7 +92,9 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				break;
 			else {
 				ctrl_a(str[l+1]);
-				l+=2; 
+				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
+					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
+				l+=2;
 			} 
 		}
 		else if((str[l]=='`' || str[l]=='ú') && str[l+1]=='[') {   
@@ -227,6 +230,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					attr(LIGHTGRAY);
 				if(l==0 || str[l-1]!='\r')	/* expand sole LF to CR/LF */
 					outchar('\r');
+				lines_printed++;
 			}
 
 			/* ansi escape sequence */
@@ -259,6 +263,8 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				}
 				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
+				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
+					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				if(i)					/* if valid string, go to top */
 					continue; 
 			}
