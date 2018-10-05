@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.475 2018/10/05 06:27:57 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.476 2018/10/05 08:32:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5022,7 +5022,7 @@ static void ctrl_thread(void* arg)
 						lprintf(LOG_ERR,"%04d <%s> !ERROR creating semaphore file: %s"
 							,sock, user.alias, str);
 					t=time(NULL);
-					while(fexist(str)) {
+					while(fexist(str) && !terminate_server) {
 						if(!socket_check(sock,NULL,NULL,0))
 							break;
 						if(time(NULL)-t>startup->qwk_timeout)
@@ -5898,7 +5898,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.475 $", "%*s %s", revision);
+	sscanf("$Revision: 1.476 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6204,7 +6204,7 @@ void DLLCALL ftp_server(void* arg)
 				, protected_uint32_value(active_clients));
 			start=time(NULL);
 			while(protected_uint32_value(active_clients)) {
-				if(time(NULL)-start>startup->max_inactivity) {
+				if(time(NULL)-start > startup->max_inactivity * 2) {
 					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d active clients"
 						, protected_uint32_value(active_clients));
 					break;
