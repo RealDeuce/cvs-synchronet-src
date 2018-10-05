@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.82 2018/02/16 05:46:44 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.87 2018/08/15 19:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ int sbbs_t::bputs(const char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
-		return(eprintf(LOG_INFO,"%s",str));
+		return(lputs(LOG_INFO, str));
 
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
@@ -177,8 +177,6 @@ long sbbs_t::term_supports(long cmp_flags)
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
-	int		i;
-
 	/*
 	 * outchar_esc values:
 	 * 0: No sequence
@@ -232,7 +230,7 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 	if(term_supports(NO_EXASCII) && ch&0x80)
 		ch=exascii_to_ascii_char(ch);  /* seven bit table */
-	if(ch==FF && lncntr>1 && !tos) {
+	if(ch==FF && lncntr > 0 && !tos) {
 		lncntr=0;
 		CRLF;
 		if(!(sys_status&SS_PAUSEOFF)) {
@@ -302,7 +300,7 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 
 	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON) 
-		&& !(sys_status&SS_PAUSEOFF)) {
+		&& !(sys_status&(SS_PAUSEOFF|SS_ABORT))) {
 		lncntr=0;
 		pause(); 
 	}
@@ -712,6 +710,8 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 {
 	char str[128];
 
+	if(cfg.node_num == 0)
+		return;	// Don't output this for events
 	if((count%interval) != 0)
 		return;
 	if(text == NULL) text = "";
