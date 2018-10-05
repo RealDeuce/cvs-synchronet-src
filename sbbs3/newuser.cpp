@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.83 2019/07/09 05:38:46 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.74 2018/10/03 23:49:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
 #include "cmdshell.h"
 
 /****************************************************************************/
@@ -82,7 +81,9 @@ BOOL sbbs_t::newuser()
 			logline(LOG_NOTICE,"N!",tmp); 
 		}
 		if(c==4) {
-			menu("../nupguess", P_NOABORT|P_NOERROR);
+			SAFEPRINTF(str,"%snupguess.msg",cfg.text_dir);
+			if(fexist(str))
+				printfile(str,P_NOABORT);
 			hangup();
 			return(FALSE); 
 		} 
@@ -161,43 +162,17 @@ BOOL sbbs_t::newuser()
 
 		if(useron.misc&ANSI) {
 			useron.rows=0;	/* Auto-rows */
-			if(!(cfg.uq&UQ_COLORTERM) || useron.misc&(RIP|WIP|HTML) || yesno(text[ColorTerminalQ]))
+			if(!(cfg.uq&UQ_COLORTERM) || useron.misc&(RIP|WIP|HTML) || text[ColorTerminalQ][0]==0 || yesno(text[ColorTerminalQ]))
 				useron.misc|=COLOR; 
 			else
 				useron.misc&=~COLOR;
 		}
 		else
-			useron.rows = TERM_ROWS_DEFAULT;
-
-		while(text[HitYourBackspaceKey][0] && !(useron.misc&(PETSCII|SWAP_DELETE)) && online) {
-			bputs(text[HitYourBackspaceKey]);
-			uchar key = getkey(K_NONE);
-			bprintf(text[CharacterReceivedFmt], key, key);
-			if(key == '\b')
-				break;
-			if(key == DEL) {
-				if(text[SwapDeleteKeyQ][0] == 0 || yesno(text[SwapDeleteKeyQ]))
-					useron.misc |= SWAP_DELETE;
-			}
-			else if(key == PETSCII_DELETE)
-				useron.misc |= (AUTOTERM|PETSCII|COLOR);
-			else {
-				bprintf(text[InvalidBackspaceKeyFmt], key, key);
-				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
-					return FALSE;
-			}
-		}
-
-		if(useron.misc&PETSCII) {
-			autoterm |= PETSCII;
-			outcom(PETSCII_UPPERLOWER);
-			bputs(text[PetTerminalDetected]);
-		} else {
-			if(!yesno(text[ExAsciiTerminalQ]))
-				useron.misc|=NO_EXASCII;
-			else
-				useron.misc&=~NO_EXASCII;
-		}
+			useron.rows=24;
+		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+			useron.misc|=NO_EXASCII;
+		else
+			useron.misc&=~NO_EXASCII;
 
 		if(rlogin_name[0])
 			SAFECOPY(useron.alias,rlogin_name);
@@ -331,9 +306,15 @@ BOOL sbbs_t::newuser()
 	SAFEPRINTF(str,"New user: %s",useron.alias);
 	logline("N",str);
 	if(!online) return(FALSE);
-	menu("../sbbs", P_NOABORT|P_NOERROR);
-	menu("../system", P_NOABORT|P_NOERROR);
-	menu("../newuser", P_NOABORT|P_NOERROR);
+	SAFEPRINTF(str,"%ssbbs.msg",cfg.text_dir);
+	if(fexist(str))
+		printfile(str,P_NOABORT);
+	SAFEPRINTF(str,"%ssystem.msg",cfg.text_dir);
+	if(fexist(str))
+		printfile(str,P_NOABORT);
+	SAFEPRINTF(str,"%snewuser.msg",cfg.text_dir);
+	if(fexist(str))
+		printfile(str,P_NOABORT);
 	answertime=time(NULL);		/* could take 10 minutes to get this far */
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
@@ -448,15 +429,17 @@ BOOL sbbs_t::newuser()
 	delallmail(useron.number, MAIL_ANY);
 
 	if(useron.number!=1 && cfg.node_valuser) {
-		menu("../feedback", P_NOABORT|P_NOERROR);
+		SAFEPRINTF(str,"%sfeedback.msg",cfg.text_dir);
+		if(fexist(str))
+			printfile(str,P_NOABORT);
 		safe_snprintf(str,sizeof(str),text[NewUserFeedbackHdr]
 			,nulstr,getage(&cfg,useron.birth),useron.sex,useron.birth
 			,useron.name,useron.phone,useron.comp,useron.modem);
-		email(cfg.node_valuser,str,"New User Validation",WM_SUBJ_RO|WM_FORCEFWD);
+		email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO|WM_FORCEFWD);
 		if(!useron.fbacks && !useron.emails) {
 			if(online) {						/* didn't hang up */
 				bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
-				email(cfg.node_valuser,str,"New User Validation",WM_SUBJ_RO|WM_FORCEFWD);
+				email(cfg.node_valuser,str,"New User Validation",WM_EMAIL|WM_SUBJ_RO|WM_FORCEFWD);
 				} /* give 'em a 2nd try */
 			if(!useron.fbacks && !useron.emails) {
         		bprintf(text[NoFeedbackWarning],username(&cfg,cfg.node_valuser,tmp));
