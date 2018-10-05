@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.474 2018/10/05 06:26:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.475 2018/10/05 06:27:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5396,7 +5396,7 @@ static void ctrl_thread(void* arg)
 					,tm.tm_hour,tm.tm_min,tm.tm_sec);
 			} else if(delecmd && success) {
 				if(removecase(fname)!=0) {
-					lprintf(LOG_ERR,"%04d <%d> !ERROR %d (%s) deleting %s",sock,user.alias, errno, strerror(errno), fname);
+					lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) deleting %s", sock, user.alias, errno, strerror(errno), fname);
 					sockprintf(sock,sess,"450 %s could not be deleted (error: %d)"
 						,fname,errno);
 				} else {
@@ -5898,7 +5898,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.474 $", "%*s %s", revision);
+	sscanf("$Revision: 1.475 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
