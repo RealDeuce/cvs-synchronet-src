@@ -1,9 +1,8 @@
 /* exec.cpp */
-// vi: tabstop=4
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.110 2019/05/28 08:49:00 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.106 2018/10/05 04:23:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +39,7 @@
 #include "cmdshell.h"
 #include "js_request.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
+char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -125,7 +124,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-int32_t * sbbs_t::getintvar(csi_t *bin, uint32_t name)
+int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -562,6 +561,13 @@ js_OperationCallback(JSContext *cx)
 	return ret;
 }
 
+static const char* js_ext(const char* fname)
+{
+	if(getfext(fname)==NULL)
+		return(".js");
+	return("");
+}
+
 long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope)
 {
 	char*		p;
@@ -593,15 +599,12 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 
 	path[0]=0;
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		const char* js_ext = "";
-		if(getfext(fname) == NULL)
-			js_ext = ".js";
 		if(startup_dir!=NULL && *startup_dir)
-			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext);
+			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext(fname));
 		if(path[0]==0 || !fexistcase(path)) {
-			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext);
+			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 			if(cfg.mods_dir[0]==0 || !fexistcase(path))
-				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext);
+				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
 		}
 	} else
 		SAFECOPY(path,fname);
@@ -738,8 +741,6 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 	int 	file;
     csi_t   bin;
 
-	if(cmdline == NULL || *cmdline == 0)
-		return -33;
 	SAFECOPY(mod,cmdline);
 	p=mod;
 	FIND_CHAR(p,' ');
