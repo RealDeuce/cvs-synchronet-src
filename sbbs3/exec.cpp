@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.105 2016/11/16 07:58:21 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.106 2018/10/05 04:23:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,7 +790,12 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 
 	memcpy(&bin,csi,sizeof(csi_t));
 	clearvars(&bin);
-	bin.length=(uint32_t)filelength(file);
+	bin.length = filelength(file);
+	if(bin.length < 1) {
+		close(file);
+		errormsg(WHERE, ERR_LEN, str, bin.length);
+		return -1;
+	}
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,bin.length);
