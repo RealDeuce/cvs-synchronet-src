@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.729 2018/10/01 23:21:09 rswindell Exp $ */
+/* $Id: main.cpp,v 1.730 2018/10/05 06:25:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -292,7 +292,7 @@ int sbbs_t::lputs(int level, const char* str)
 	else if(client_name[0])
 		SAFEPRINTF(prefix, "%s ", client_name);
 	if(useron.number)
-		SAFEPRINTF(user_str, "%s ", useron.alias);
+		SAFEPRINTF(user_str, "<%s> ", useron.alias);
 	SAFEPRINTF3(msg, "%s%s%s", prefix, user_str, str);
 	strip_ctrl(msg, msg);
 	if(is_event_thread)
