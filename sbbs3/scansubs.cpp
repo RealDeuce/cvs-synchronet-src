@@ -1,6 +1,6 @@
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.24 2016/12/10 08:02:25 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.26 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,8 +80,8 @@ void sbbs_t::scansubs(long mode)
 						found=listsub(usrsub[curgrp][i],SCAN_FIND,0,str);
 						subs_scanned++;
 					}
-				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
-					,useron.alias,subs_scanned,str);
+				sprintf(tmp,"searched %lu sub-boards for '%s'"
+					,subs_scanned,str);
 				logline(nulstr,tmp);
 				if(!found)
 					CRLF;
@@ -185,8 +185,8 @@ void sbbs_t::scanallsubs(long mode)
 				}
 				if(!found)
 					CRLF;
-				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
-					,useron.alias,subs_scanned,str);
+				sprintf(tmp,"searched %lu sub-boards for '%s'"
+					,subs_scanned,str);
 				logline(nulstr,tmp);
 				return; 
 			}
@@ -301,6 +301,10 @@ void sbbs_t::new_scan_ptr_cfg()
 				for(j=0;j<usrsubs[i] && online;j++) {
 					progress(text[LoadingMsgPtrs], subs++, total_subs, 10);
 					checkline();
+					if(s == 0) {
+						subscan[usrsub[i][j]].ptr = ~0;
+						continue;
+					}
 					getlastmsg(usrsub[i][j],&l,0);
 					if(s>(long)l)
 						subscan[usrsub[i][j]].ptr=0;
@@ -358,6 +362,10 @@ void sbbs_t::new_scan_ptr_cfg()
 				for(j=0;j<usrsubs[i] && online;j++) {
 					progress(text[LoadingMsgPtrs], j, usrsubs[i], 10);
 					checkline();
+					if(s == 0) {
+						subscan[usrsub[i][j]].ptr = ~0;
+						continue;
+					}
 					getlastmsg(usrsub[i][j],&l,0);
 					if(s>(long)l)
 						subscan[usrsub[i][j]].ptr=0;
@@ -382,8 +390,10 @@ void sbbs_t::new_scan_ptr_cfg()
 					}
 					continue; 
 				}
-				if(s=='L')
-					s=0;
+				if(s=='L') {
+					subscan[usrsub[i][j]].ptr = ~0;
+					continue;
+				}
 				if(s)
 					s&=~0x80000000L;
 				getlastmsg(usrsub[i][j],&l,0);
