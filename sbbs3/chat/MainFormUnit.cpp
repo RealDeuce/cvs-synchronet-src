@@ -2,7 +2,7 @@
 
 /* Local sysop chat module (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.9 2018/10/15 08:31:12 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.8 2018/07/24 01:11:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -306,13 +306,4 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
 
 
 
-
-
-void __fastcall TMainForm::LocalEnter(TObject *Sender)
-{
-    Local->SelLength=0;
-    Local->SelStart=Local->Text.Length();
-   
-}
-//---------------------------------------------------------------------------
 

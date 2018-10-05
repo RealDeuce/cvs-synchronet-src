@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.342 2018/10/25 09:08:29 rswindell Exp $ */
+/* $Id: term.c,v 1.339 2018/09/05 23:37:45 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2276,6 +2276,7 @@ BOOL doterm(struct bbslist *bbs)
 	}
 	cterm=cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf, emulation);
 	if(!cterm) {
+		FREE_AND_NULL(cterm);
 		return FALSE;
 	}
 	cterm->apc_handler = apc_handler;
@@ -2314,7 +2315,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							return(FALSE);
@@ -2565,7 +2565,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm,cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2593,7 +2592,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2634,7 +2632,6 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
-							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2748,10 +2745,6 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=19;
 						conn_send(ch,1,0);
 						break;
-					case CIO_KEY_END:
-						ch[0]=147;			/* Clear / Shift-Home */
-						conn_send(ch,1,0);
-						break;
 					case '\b':
 					case CIO_KEY_DC:		/* "Delete" key */
 						ch[0]=20;
@@ -2808,7 +2801,10 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<65) {
+							if(key<32) {
+								break;
+							}
+							else if(key<65) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}

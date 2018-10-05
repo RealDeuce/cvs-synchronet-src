@@ -3,7 +3,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.108 2019/05/30 06:48:28 rswindell Exp $
+# $Id: Common.gmake,v 1.107 2018/03/09 03:11:06 rswindell Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -318,10 +318,7 @@ ifeq ($(os),haiku)
  CFLAGS	+=	-D__unix__ -DNEEDS_FORKPTY
 endif
 ifeq ($(os),darwin)
- MIN_MAC_OSX_VERSION = 10.5
  CFLAGS +=  -D__unix__ -fno-common -D__DARWIN__
- CFLAGS +=  -mmacosx-version-min=$(MIN_MAC_OSX_VERSION)
- LDFLAGS += -mmacosx-version-min=$(MIN_MAC_OSX_VERSION)
 endif
 
 # PThread-specific flags
