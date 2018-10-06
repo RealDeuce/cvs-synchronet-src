@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.86 2018/07/25 03:39:28 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.87 2018/08/15 19:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -300,7 +300,7 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 
 	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON) 
-		&& !(sys_status&SS_PAUSEOFF)) {
+		&& !(sys_status&(SS_PAUSEOFF|SS_ABORT))) {
 		lncntr=0;
 		pause(); 
 	}
