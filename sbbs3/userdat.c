@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.204 2018/07/26 06:21:07 rswindell Exp $ */
+/* $Id: userdat.c,v 1.205 2018/10/05 08:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1302,6 +1302,7 @@ char* DLLCALL getsmsg(scfg_t* cfg, int usernumber)
 	chsize(file,0L);
 	close(file);
 	buf[length]=0;
+	strip_invalid_attr(buf);
 
 	return(buf);	/* caller must free */
 }
