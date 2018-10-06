@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.106 2018/11/04 23:26:45 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.103 2018/10/03 07:35:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -123,7 +123,7 @@
 #define HDT 				0xC258		/* Hawaii/Alaska		(-09:00) */
 #define BDT 				0xC294		/* Bering				(-10:00) */
 
-										/* Non-US Time Zones */
+										/* Non-standard Time Zones */
 #define MID 				0x2294		/* Midway				(-11:00) */
 #define VAN 				0x21E0		/* Vancouver			(-08:00) */
 #define EDM 				0x21A4		/* Edmonton 			(-07:00) */
@@ -149,18 +149,13 @@
 #define BAN 				0x11A4		/* Bangkok				(+07:00) */
 #define HON 				0x11E0		/* Hong Kong			(+08:00) */
 #define TOK 				0x121C		/* Tokyo				(+09:00) */
-#define ACST				0x123a		/* Australian Central	(+09:30) */
-#define AEST 				0x1258		/* Australian Eastern	(+10:00) (Sydney) */
-#define ACDT				0x923a		/* Australian Central D	(+10:30) */
-#define AEDT 				0x9258		/* Australian Eastern D	(+11:00) (Sydney) */
+#define SYD 				0x1258		/* Sydney				(+10:00) */
 #define NOU 				0x1294		/* Noumea				(+11:00) */
-#define NZST 				0x12D0		/* New Zealand 			(+12:00) (Wellington) */
-#define NZDT				0x92D0		/* New Zealand Daylight	(+13:00) (Wellington) */
+#define WEL 				0x12D0		/* Wellington			(+12:00) */
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
 
-#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) \
-								|| zone==WET || zone==CET || zone==EET || zone==NZST || zone==AEST || zone==ACST))
+#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET))
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
@@ -240,7 +235,6 @@
 #define	SMB_EDITOR			0x68
 #define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
 #define SMB_TAG_DELIMITER	" "
-#define SMB_COLUMNS			0x6a	/* original text editor width in fixed-width columns */
 
 #define FILEATTACH			0x70
 #define DESTFILE			0x71
@@ -652,7 +646,6 @@ typedef struct {				/* Message */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
-	uint8_t		columns;		/* 0 means unknown or N/A */
 
 } smbmsg_t;
 
