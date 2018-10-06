@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.72 2018/03/03 02:02:31 deuce Exp $ */
+/* $Id: load_cfg.c,v 1.74 2018/07/29 00:26:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +199,7 @@ void prep_cfg(scfg_t* cfg)
 		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
 		if(!cfg->dir[i]->path[0])		/* no file storage path specified */
-            sprintf(cfg->dir[i]->path,"%sdirs/%s/",cfg->data_dir,cfg->dir[i]->code);
+            sprintf(cfg->dir[i]->path,"%s%s/",cfg->dir[i]->data_dir,cfg->dir[i]->code);
 		else if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
@@ -450,7 +450,7 @@ char* prep_code(char *str, const char* prefix)
 			str+=i;
 	}
 	for(i=j=0;str[i] && i<sizeof(tmp);i++)
-		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?'
+		if(str[i]>' ' && !(str[i]&0x80) && str[i]!='*' && str[i]!='?' && str[i]!='.'
 			&& strchr(ILLEGAL_FILENAME_CHARS,str[i])==NULL)
 			tmp[j++]=toupper(str[i]);
 	tmp[j]=0;
