@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
 
-/* $Id: js_socket.c,v 1.224 2019/01/07 07:11:51 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.223 2018/08/14 09:36:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -608,7 +608,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((ret=getaddrinfo(cstr, portstr, &hints, &res)) != 0) {
 		JS_RESUMEREQUEST(cx,rc);
-		dbprintf(TRUE, p, "getaddrinfo(%s, %s) failed with error %d", cstr, portstr, ret);
+		dbprintf(TRUE, p, "getaddrinfo (%s %s) failed with error %d", cstr, portstr, ret);
 		p->last_error=ERROR_VALUE;
 		return(JS_TRUE);
 	}
@@ -765,8 +765,7 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 	result = getaddrinfo(p->hostname, NULL, &hints, &res);
 	if(result != 0) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
-		p->last_error = ERROR_VALUE;
-		dbprintf(TRUE, p, "getaddrinfo(%s) failed with error %d", p->hostname, result);
+		dbprintf(TRUE, p, "looking up addresses for %s", p->hostname);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -951,8 +950,7 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 	dbprintf(FALSE, p, "resolving hostname: %s", p->hostname);
 
 	if((result=getaddrinfo(p->hostname, NULL, &hints, &res) != 0)) {
-		p->last_error = ERROR_VALUE;
-		dbprintf(TRUE, p, "getaddrinfo(%s) failed with error %d", p->hostname, result);
+		dbprintf(TRUE, p, "getaddrinfo failed with error %d",result);
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		free(cp);
 		JS_RESUMEREQUEST(cx, rc);
