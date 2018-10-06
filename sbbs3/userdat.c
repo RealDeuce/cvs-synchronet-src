@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.205 2018/10/05 08:38:46 rswindell Exp $ */
+/* $Id: userdat.c,v 1.206 2018/10/06 22:39:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3064,6 +3064,7 @@ BOOL DLLCALL getmsgptrs(scfg_t* cfg, user_t* user, subscan_t* subscan, void (*pr
 			subscan[i].ptr	= iniGetLongInt(keys, NULL, "ptr"	, subscan[i].ptr);
 			subscan[i].last	= iniGetLongInt(keys, NULL, "last"	, subscan[i].last);
 			subscan[i].cfg	= iniGetShortInt(keys, NULL, "cfg"	, subscan[i].cfg);
+			subscan[i].cfg &= (SUB_CFG_NSCAN|SUB_CFG_SSCAN|SUB_CFG_YSCAN);	// Sanitize the 'cfg' value
 			subscan[i].sav_ptr	= subscan[i].ptr;
 			subscan[i].sav_last	= subscan[i].last;
 			subscan[i].sav_cfg	= subscan[i].cfg; 
