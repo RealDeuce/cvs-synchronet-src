@@ -2,7 +2,7 @@
 
 /* Local sysop chat module (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.4 2018/10/15 08:31:12 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.3 2018/07/24 01:11:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@ __published:	// IDE-managed Components
     void __fastcall InputTimerTick(TObject *Sender);
     void __fastcall TimerTick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
-    void __fastcall LocalEnter(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
