@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.51 2018/10/31 08:09:19 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.47 2018/07/07 07:22:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,27 +263,27 @@ char sbbs_t::getkey(long mode)
 		}
 			
 		if(online==ON_REMOTE && !(console&CON_NO_INACT)
-			&& (now-timeout >= cfg.sec_warn || now-timeout >= cfg.sec_hangup)) {
-			if(sys_status&SS_USERON && cfg.sec_warn < cfg.sec_hangup) {
+			&& now-timeout>=cfg.sec_warn) { 					/* warning */
+			if(sys_status&SS_USERON && cfg.sec_warn!=cfg.sec_hangup) {
 				SAVELINE;
 				bputs(text[AreYouThere]); 
 			}
 			else
 				bputs("\7\7");
-			while(!inkey(K_NONE,100) && online && now-timeout < cfg.sec_hangup) {
+			while(!inkey(K_NONE,100) && online && now-timeout>=cfg.sec_warn) {
 				now=time(NULL);
-			}
-			if(now-timeout >= cfg.sec_hangup) {
-				if(online==ON_REMOTE) {
-					console|=CON_R_ECHO;
-					console&=~CON_R_ECHOX; 
+				if(now-timeout>=cfg.sec_hangup) {
+					if(online==ON_REMOTE) {
+						console|=CON_R_ECHO;
+						console&=~CON_R_ECHOX; 
+					}
+					bputs(text[CallBackWhenYoureThere]);
+					logline(LOG_NOTICE,nulstr,"Inactive");
+					hangup();
+					return(0); 
 				}
-				bputs(text[CallBackWhenYoureThere]);
-				logline(LOG_NOTICE,nulstr,"Inactive");
-				hangup();
-				return(0); 
 			}
-			if(sys_status&SS_USERON) {
+			if(sys_status&SS_USERON && cfg.sec_warn!=cfg.sec_hangup) {
 				bputs("\r\1n\1>");
 				RESTORELINE; 
 			}
@@ -319,17 +319,16 @@ void sbbs_t::mnemonics(const char *str)
 		attr(cfg.color[clr_mnelow]); 
 	}
 	l=0L;
-	long term = term_supports();
 	while(str[l]) {
 		if(str[l]=='~' && str[l+1]!=0) {
-			if(!(term&(ANSI|PETSCII)))
+			if(!term_supports(ANSI))
 				outchar('(');
 			l++;
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnehigh]);
 			outchar(str[l]);
 			l++;
-			if(!(term&(ANSI|PETSCII)))
+			if(!term_supports(ANSI))
 				outchar(')');
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnelow]); 
@@ -337,6 +336,8 @@ void sbbs_t::mnemonics(const char *str)
 		else {
 			if(str[l]==CTRL_A && str[l+1]!=0) {
 				l++;
+				if(toupper(str[l])=='Z')	/* EOF */
+					break;
 				ctrl_a(str[l++]);
 			} else {
 				if(str[l] == '@') {
@@ -356,15 +357,13 @@ void sbbs_t::mnemonics(const char *str)
 
 /****************************************************************************/
 /* Prompts user for Y or N (yes or no) and CR is interpreted as a Y         */
-/* Returns true for Yes or false for No                                     */
+/* Returns 1 for Y or 0 for N                                               */
 /* Called from quite a few places                                           */
 /****************************************************************************/
 bool sbbs_t::yesno(const char *str)
 {
     char ch;
 
-	if(*str == 0)
-		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[YesNoQuestion],str);
@@ -391,14 +390,13 @@ bool sbbs_t::yesno(const char *str)
 
 /****************************************************************************/
 /* Prompts user for N or Y (no or yes) and CR is interpreted as a N         */
-/* Returns true for No or false for Yes                                     */
+/* Returns 1 for N or 0 for Y                                               */
+/* Called from quite a few places                                           */
 /****************************************************************************/
 bool sbbs_t::noyes(const char *str)
 {
     char ch;
 
-	if(*str == 0)
-		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[NoYesQuestion],str);
