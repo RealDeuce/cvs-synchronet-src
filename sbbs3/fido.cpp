@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.61 2018/06/25 21:13:27 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.62 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -270,7 +270,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 		} 
 	}
 
-	lprintf(LOG_DEBUG, "Node %d NetMail subject: %s", cfg.node_num, subj);
+	lprintf(LOG_DEBUG, "NetMail subject: %s", subj);
 	p=subj;
 	if((SYSOP || useron.exempt&FLAG('F'))
 		&& !strnicmp(p,"CR:",3)) {     /* Crash over-ride by sysop */
@@ -353,12 +353,10 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 	if(!(useron.exempt&FLAG('S')))
 		subtract_cdt(&cfg,&useron,cfg.netmail_cost);
 	if(mode&WM_FILE)
-		SAFEPRINTF3(str,"%s sent NetMail file attachment to %s (%s)"
-			,useron.alias
+		SAFEPRINTF2(str,"sent NetMail file attachment to %s (%s)"
 			,to, smb_faddrtoa(&dest_addr,tmp));
 	else
-		SAFEPRINTF3(str,"%s sent NetMail to %s (%s)"
-			,useron.alias
+		SAFEPRINTF2(str,"sent NetMail to %s (%s)"
 			,to, smb_faddrtoa(&dest_addr,tmp));
 	logline("EN",str);
 
