@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.48 2018/07/26 06:22:27 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.50 2018/10/05 08:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -248,10 +248,8 @@ int sbbs_t::getnmsg()
 	close(file);
 	buf[length]=0;
 
-	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
-		|| sys_status&SS_IN_CTRLP) {
+	if(cols)
 		CRLF; 
-	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
@@ -321,6 +319,8 @@ int sbbs_t::getsmsg(int usernumber)
 	int		i;
 
 	for(i=1;i<=cfg.sys_nodes;i++) {	/* clear msg waiting flag */
+		if(getnodedat(i,&node,false) != 0 || node.useron != usernumber)
+			continue;
 		if(getnodedat(i,&node,true)==0) {
 			if(node.useron==usernumber
 					&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
@@ -353,10 +353,9 @@ int sbbs_t::getsmsg(int usernumber)
 	close(file);
 	buf[length]=0;
 	getnodedat(cfg.node_num,&thisnode,0);
-	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
-		|| sys_status&SS_IN_CTRLP) {
-		CRLF; 
-	}
+	if(cols)
+		CRLF;
+	strip_invalid_attr(buf);
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
@@ -376,7 +375,7 @@ int sbbs_t::whos_online(bool listself)
 	CRLF;
 	bputs(text[NodeLstHdr]);
 	for(j=0,i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
-		getnodedat(i,&node,0);
+		getnodedat(i,&node,false);
 		if(i==cfg.node_num) {
 			if(listself)
 				printnodedat(i,&node);
@@ -401,7 +400,7 @@ void sbbs_t::nodelist(void)
 	CRLF;
 	bputs(text[NodeLstHdr]);
 	for(int i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
-		getnodedat(i,&node,0);
+		getnodedat(i,&node,false);
 		printnodedat(i,&node); 
 	}
 }
