@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.47 2018/07/28 22:04:19 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.50 2018/10/03 06:07:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -285,10 +285,8 @@ void sub_cfg(uint grpnum)
 						,str2,uifcYesNoOpts);
 					if(j==-1)
 						continue;
-					if(j==0) {
-							delfiles(data_dir,str);
-							clearptrs(subnum[i]); 
-					}
+					if(j==0)
+						delfiles(data_dir,str);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -421,11 +419,16 @@ void sub_cfg(uint grpnum)
 					break;
 				case 4:
 					uifc.helpbuf=
-						"Newsgroup Name:\n"
+						"`Newsgroup Name:`\n"
 						"\n"
 						"This is the name of the sub-board used for newsgroup readers. If no name\n"
 						"is configured here, a name will be automatically generated from the\n"
 						"Sub-board's Short Name and message group's Short Name.\n"
+						"\n"
+						"This field may also be used to specify the FidoNet-style `Echo Tag` for\n"
+						"this message area.\n"
+						"\n"
+						"This name should ~ not ~ contain spaces."
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,""
 						,cfg.sub[i]->newsgroup,sizeof(cfg.sub[i]->newsgroup)-1,K_EDIT);
@@ -539,6 +542,8 @@ void sub_cfg(uint grpnum)
 							,cfg.sub[i]->misc&SUB_NOVOTING ? "No":"Yes");
 						sprintf(opt[n++],"%-27.27s%s","Allow Message Quoting"
 							,cfg.sub[i]->misc&SUB_QUOTE ? "Yes":"No");
+						sprintf(opt[n++],"%-27.27s%s","Allow Message Tagging"
+							,cfg.sub[i]->misc&SUB_MSGTAGS ? "Yes":"No");
 						sprintf(opt[n++],"%-27.27s%s","Suppress User Signatures"
 							,cfg.sub[i]->misc&SUB_NOUSERSIG ? "Yes":"No");
 						sprintf(opt[n++],"%-27.27s%s","Permanent Operator Msgs"
@@ -560,7 +565,7 @@ void sub_cfg(uint grpnum)
 							"This menu allows you to toggle certain options for the selected\n"
 							"sub-board between two or more settings, such as `Yes` and `No`.\n"
 						;
-						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,2,36,&tog_dflt,0
+						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,1,36,&tog_dflt,0
 							,"Toggle Options",opt);
 						if(n==-1)
 							break;
@@ -887,6 +892,28 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 11:
+								n=(cfg.sub[i]->misc&SUB_MSGTAGS) ? 0:1;
+								uifc.helpbuf=
+									"`Allow Message Tagging:`\n"
+									"\n"
+									"If you want users to be allowed to add tags to messages on this sub-board, \n"
+									"set this option to `Yes` (not to be confused with 'tag-lines').\n"
+								;
+								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
+									,"Allow Message Tagging",uifcYesNoOpts);
+								if(n==-1)
+									break;
+								if(!n && !(cfg.sub[i]->misc&SUB_MSGTAGS)) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->misc|=SUB_MSGTAGS;
+									break; 
+								}
+								if(n==1 && cfg.sub[i]->misc&SUB_MSGTAGS) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->misc&=~SUB_MSGTAGS; 
+								}
+								break;
+							case 12:
 								n=(cfg.sub[i]->misc&SUB_NOUSERSIG) ? 0:1;
 								uifc.helpbuf=
 									"Suppress User Signatures:\n"
@@ -908,7 +935,7 @@ void sub_cfg(uint grpnum)
 									cfg.sub[i]->misc&=~SUB_NOUSERSIG; 
 								}
 								break;
-							case 12:
+							case 13:
 								n=(cfg.sub[i]->misc&SUB_SYSPERM) ? 0:1;
 								uifc.helpbuf=
 									"`Operator Messages Automatically Permanent:`\n"
@@ -970,7 +997,7 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 	#endif
-							case 13:
+							case 14:
 								n=(cfg.sub[i]->misc&SUB_LZH) ? 0:1;
 								uifc.helpbuf=
 									"`Compress Messages with LZH Encoding:`\n"
@@ -999,7 +1026,7 @@ void sub_cfg(uint grpnum)
 									cfg.sub[i]->misc&=~SUB_LZH; 
 								}
 								break;
-							case 14:
+							case 15:
 								n=(cfg.sub[i]->misc&SUB_TEMPLATE) ? 0:1;
 								uifc.helpbuf=
 									"`Use this Sub-board as a Template for New Subs:`\n"
@@ -1345,7 +1372,7 @@ void sub_cfg(uint grpnum)
 									opt[2][0]=0;
 									m=0;
 									if(uifc.list(WIN_SAV|WIN_MID,0,0,0,&m,0
-										,"Delete all messages in this sub-board?",opt)!=0)
+										,"Delete all data for this sub-board?",opt)!=0)
 										break;
 									if(cfg.sub[i]->data_dir[0])
 										sprintf(str,"%s",cfg.sub[i]->data_dir);

@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.222 2018/07/24 01:11:07 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.224 2018/10/03 23:49:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -222,6 +222,7 @@ typedef struct js_callback {
 									/* Bit values for sub[x].misc */
 #define SUB_NOVOTING	(1L<<0)		/* No voting allowed in this sub-board */
 #define SUB_TEMPLATE	(1L<<1)		/* Use this sub as template for new subs (in this group) */
+#define SUB_MSGTAGS		(1L<<2)		/* Allow messages to be tagged (ala hashtags) */
 #define SUB_QNET		(1L<<3) 	/* Sub-board is netted via QWK network */
 #define SUB_PNET		(1L<<4) 	/* Sub-board is netted via PostLink */
 #define SUB_FIDO		(1L<<5) 	/* Sub-board is netted via FidoNet */
@@ -731,6 +732,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_USEOFFSET	(1L<<20)	/* Use getstr_offset for cursor	position	*/
 #define K_NOSPIN	(1L<<21)	/* Do not honor the user's spinning cursor	*/
 #define K_ANSI_CPR	(1L<<22)	/* Expect ANSI Cursor Position Report		*/
+#define K_TRIM		(1L<<23)	/* Trimmed white-space						*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
