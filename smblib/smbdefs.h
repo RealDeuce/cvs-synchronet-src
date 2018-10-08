@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.104 2018/10/30 03:12:23 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.103 2018/10/03 07:35:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -235,7 +235,6 @@
 #define	SMB_EDITOR			0x68
 #define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
 #define SMB_TAG_DELIMITER	" "
-#define SMB_COLUMNS			0x6a	/* original text editor width in fixed-width columns */
 
 #define FILEATTACH			0x70
 #define DESTFILE			0x71
@@ -647,7 +646,6 @@ typedef struct {				/* Message */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
-	uint8_t		columns;		/* 0 means unknown or N/A */
 
 } smbmsg_t;
 
