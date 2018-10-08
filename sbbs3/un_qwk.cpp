@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.55 2019/02/08 02:39:04 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.53 2018/04/06 02:42:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,10 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	twit_list = findstr_list(fname);
+	if((fp=fopen(fname,"r"))!=NULL) {
+		twit_list=strListReadFile(fp,NULL,128);
+		fclose(fp);
+	}
 
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
 		if(terminated) {
@@ -368,11 +371,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		if(isdir(str))	/* sub-dir */
 			continue;
 
-		if(::trashcan(&cfg, dirent->d_name, "file")) {
-			eprintf(LOG_NOTICE,"Ignored blocked filename from %s: %s", cfg.qhub[hubnum]->id, dirent->d_name);
-			continue;
-		}
-
 		// Create directory if necessary
 		sprintf(inbox,"%sqnet/%s.in",cfg.data_dir,cfg.qhub[hubnum]->id);
 		MKDIR(inbox);
@@ -382,7 +380,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		mv(str,fname,1 /* overwrite */);
 		sprintf(str,text[ReceivedFileViaQWK],dirent->d_name,cfg.qhub[hubnum]->id);
 		putsmsg(&cfg,1,str);
-		eprintf(LOG_INFO,"Received file from %s: %s", cfg.qhub[hubnum]->id, dirent->d_name);
+		eprintf(LOG_INFO,"Received %s from %s", dirent->d_name, cfg.qhub[hubnum]->id);
 	}
 	if(dir!=NULL)
 		closedir(dir);
