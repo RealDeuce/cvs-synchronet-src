@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.207 2018/10/22 04:18:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.206 2018/10/06 22:39:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1478,7 +1478,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 		artype=(**ptrptr);
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
-			case AR_PETSCII:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -1529,11 +1528,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				break;
 			case AR_ANSI:
 				if(user==NULL || !(user->misc&ANSI))
-					result=not;
-				else result=!not;
-				break;
-			case AR_PETSCII:
-				if(user==NULL || !(user->misc&PETSCII))
 					result=not;
 				else result=!not;
 				break;
@@ -1957,15 +1951,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 					result=!not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
-				break;
-			case AR_TERM:
-				result=!not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				break;
-			case AR_ROWS:
-			case AR_COLS:
-				result=!not;
 				break;
 		} 
 	}
