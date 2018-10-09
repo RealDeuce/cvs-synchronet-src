@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.52 2018/10/09 08:33:04 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.51 2018/10/09 01:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,7 +250,7 @@ int sbbs_t::getnmsg(bool clearline)
 
 	if(clearline)
 		this->clearline();
-	else if(column)
+	else if(cols)
 		CRLF; 
 	putmsg(buf,P_NOATCODES);
 	free(buf);
@@ -358,7 +358,7 @@ int sbbs_t::getsmsg(int usernumber, bool clearline)
 	if(clearline)
 		this->clearline();
 	else
-		if(column)
+		if(cols)
 			CRLF;
 	strip_invalid_attr(buf);
 	putmsg(buf,P_NOATCODES);

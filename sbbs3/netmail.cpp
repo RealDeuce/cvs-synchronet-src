@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.54 2019/02/17 03:13:04 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.51 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,6 +45,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 	char	str[256],str2[256],msgpath[256],title[256],name[256],ch
 			,buf[SDT_BLOCK_LEN],*p,addr[256];
 	char 	tmp[512];
+	char	pid[128];
 	char*	editor=NULL;
 	char	your_addr[128];
 	ushort	xlat=XLAT_NONE,net=NET_INTERNET;
@@ -258,11 +259,11 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -302,6 +303,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 	char	str[256],msgpath[128],title[128],to[128],fulladdr[128]
 			,buf[SDT_BLOCK_LEN],*addr;
 	char 	tmp[512];
+	char	pid[128];
 	char*	editor=NULL;
 	ushort	xlat=XLAT_NONE,net=NET_QWK,touser;
 	int 	i,j,x,file;
@@ -463,11 +465,11 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
