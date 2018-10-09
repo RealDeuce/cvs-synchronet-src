@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.73 2018/01/12 22:21:50 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.75 2018/10/03 08:10:39 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -136,6 +136,8 @@ void sbbs_t::show_msghdr(smbmsg_t* msg)
 		menu("msghdr");
 	} else {
 		bprintf(text[MsgSubj],msg->subj);
+		if(msg->tags && *msg->tags)
+			bprintf(text[MsgTags], msg->tags);
 		if(msg->hdr.attr)
 			show_msgattr(msg);
 		if(msg->to && *msg->to) {
@@ -328,14 +330,15 @@ ulong sbbs_t::getmsgnum(uint subnum, time_t t)
 	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
-	if((i=smb_open(&smb)) != SMB_SUCCESS) {
+	if((i=smb_open_index(&smb)) != SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		return(0); 
+		return 0; 
 	}
-	smb_getmsgidx_by_time(&smb, &idx, t);
-
+	int result = smb_getmsgidx_by_time(&smb, &idx, t);
 	smb_close(&smb);
-	return idx.number;
+	if(result >= SMB_SUCCESS)
+		return idx.number - 1;
+	return ~0;
 }
 
 /****************************************************************************/
