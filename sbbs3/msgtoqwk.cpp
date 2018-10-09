@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.50 2017/11/24 23:35:20 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.51 2018/10/03 04:28:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -203,6 +203,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 
 		/* Synchronet */
 		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_EDITOR,NULL))!=NULL)	
+			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
+		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_TAGS,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 
 		/* USENET */
