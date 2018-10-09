@@ -2,7 +2,7 @@
 
 /* Verification of cross-platform development wrappers */
 
-/* $Id: wraptest.c,v 1.43 2005/01/20 06:18:07 deuce Exp $ */
+/* $Id: wraptest.c,v 1.44 2006/04/21 02:47:43 deuce Exp $ */
 
 #include <time.h>	/* ctime */
 
@@ -13,6 +13,7 @@
 #include "sockwrap.h"
 #include "threadwrap.h"
 #include "xpbeep.h"
+#include "xpendian.h"
 
 #define LOCK_FNAME	"test.fil"
 #define LOCK_OFFSET	0
@@ -229,14 +230,18 @@ int main()
 	/* Thread (and inter-process communication) test */
 	printf("\nSemaphore test\n");
 	getkey();
-	sem_init(&thread_data.parent_sem
+	if(sem_init(&thread_data.parent_sem
 		,0 /* shared between processes */
 		,0 /* initial count */
-		);
-	sem_init(&thread_data.child_sem
+		)) {
+		printf("sem_init failed\n");
+	}
+	if(sem_init(&thread_data.child_sem
 		,0	/* shared between processes */
 		,0	/* initial count */
-		);
+		)) {
+		printf("sem_init failed\n");
+	}
 	if(_beginthread(
 		  sem_test_thread	/* entry point */
 		 ,0					/* stack size (0=auto) */
@@ -287,6 +292,14 @@ int main()
 	printf("\ntimed-out after %ld seconds (should be 5 seconds)\n",time(NULL)-t);
 	sem_destroy(&thread_data.parent_sem);
 	sem_destroy(&thread_data.child_sem);
+	printf("\nendian check...");
+	memcpy(&i,"\x01\x02\x03\x04",4);
+	if(LE_LONG(i)==67305985) {
+		printf("OK!\n");
+	}
+	else {
+		printf("FAILED!\n");
+	}
 	return 0;
 }
 
