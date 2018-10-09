@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.489 2018/10/09 01:34:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.490 2018/10/09 01:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -752,13 +752,13 @@ public:
 	const char*	atcode(char* sp, char* str, size_t maxlen);
 
 	/* getnode.cpp */
-	int		getsmsg(int usernumber);
-	int		getnmsg(void);
+	int		getsmsg(int usernumber, bool clearline = false);
+	int		getnmsg(bool clearline = false);
 	int		whos_online(bool listself);/* Lists active nodes, returns active nodes */
 	void	nodelist(void);
 	int		getnodeext(uint number, char * str);
 	int		getnodedat(uint number, node_t * node, bool lock);
-	void	nodesync(void);
+	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
 
