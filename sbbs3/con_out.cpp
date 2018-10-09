@@ -1,6 +1,6 @@
 /* Synchronet console output routines */
 
-/* $Id: con_out.cpp,v 1.81 2018/02/10 00:22:39 deuce Exp $ */
+/* $Id: con_out.cpp,v 1.88 2018/10/09 01:34:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -51,7 +51,7 @@ int sbbs_t::bputs(const char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
-		return(eprintf(LOG_INFO,"%s",str));
+		return(lputs(LOG_INFO, str));
 
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
@@ -59,7 +59,7 @@ int sbbs_t::bputs(const char *str)
 			if(toupper(str[l])=='Z')	/* EOF */
 				break;
 			ctrl_a(str[l++]);
-			continue; 
+			continue;
 		}
 		if(str[l]=='@') {           /* '@' */
 			if(str==mnestr			/* Mnemonic string or */
@@ -68,7 +68,7 @@ int sbbs_t::bputs(const char *str)
 				i=show_atcode(str+l);	/* return 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
 				if(i)					/* if valid string, go to top */
-					continue; 
+					continue;
 			}
 			for(i=0;i<TOTAL_TEXT;i++)
 				if(str==text[i])
@@ -77,10 +77,10 @@ int sbbs_t::bputs(const char *str)
 				i=show_atcode(str+l);
 				l+=i;
 				if(i)
-					continue; 
-			} 
+					continue;
+			}
 		}
-		outchar(str[l++]); 
+		outchar(str[l++]);
 	}
 	return(l);
 }
@@ -105,7 +105,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		if(outcom(str[l])!=0)
 			break;
 		if(lbuflen<LINE_BUFSIZE)
-			lbuf[lbuflen++]=str[l]; 
+			lbuf[lbuflen++]=str[l];
 	}
 	return(l);
 }
@@ -177,8 +177,6 @@ long sbbs_t::term_supports(long cmp_flags)
 /****************************************************************************/
 void sbbs_t::outchar(char ch)
 {
-	int		i;
-
 	/*
 	 * outchar_esc values:
 	 * 0: No sequence
@@ -192,7 +190,7 @@ void sbbs_t::outchar(char ch)
 
 	if(console&CON_ECHO_OFF)
 		return;
-	if(ch==ESC)
+	if(ch==ESC && outchar_esc < 4)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
 		if(ch=='[')
@@ -201,6 +199,8 @@ void sbbs_t::outchar(char ch)
 			outchar_esc=4;
 		else if(ch=='X')
 			outchar_esc=5;
+		else if(ch >= 0x40 && ch <= 0x5f)
+			outchar_esc=3;
 		else
 			outchar_esc=0;
 	}
@@ -230,13 +230,13 @@ void sbbs_t::outchar(char ch)
 		outchar_esc=0;
 	if(term_supports(NO_EXASCII) && ch&0x80)
 		ch=exascii_to_ascii_char(ch);  /* seven bit table */
-	if(ch==FF && lncntr>1 && !tos) {
+	if(ch==FF && lncntr > 0 && !tos) {
 		lncntr=0;
 		CRLF;
 		if(!(sys_status&SS_PAUSEOFF)) {
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
-				pause(); 
+				pause();
 		}
 	}
 
@@ -252,7 +252,7 @@ void sbbs_t::outchar(char ch)
 			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 			outcom(ch);
-		} 
+		}
 	}
 	if(!outchar_esc) {
 		if((uchar)ch>=' ') {
@@ -294,15 +294,15 @@ void sbbs_t::outchar(char ch)
 		if(!lbuflen)
 			latr=curatr;
 		if(lbuflen<LINE_BUFSIZE)
-			lbuf[lbuflen++]=ch; 
+			lbuf[lbuflen++]=ch;
 	}
 	if(outchar_esc==3)
 		outchar_esc=0;
 
-	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON) 
-		&& !(sys_status&SS_PAUSEOFF)) {
+	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON)
+		&& !(sys_status&(SS_PAUSEOFF|SS_ABORT))) {
 		lncntr=0;
-		pause(); 
+		pause();
 	}
 }
 
@@ -407,7 +407,7 @@ void sbbs_t::cleartoeol(void)
 		while(++i<cols)
 			outcom(' ');
 		while(++j<cols)
-			outcom(BS); 
+			outcom(BS);
 	}
 }
 
@@ -428,11 +428,11 @@ void sbbs_t::ctrl_a(char x)
 	if(x && (uchar)x<=CTRL_Z) {    /* Ctrl-A through Ctrl-Z for users with MF only */
 		if(!(useron.flags1&FLAG(x+64)))
 			console^=(CON_ECHO_OFF);
-		return; 
+		return;
 	}
 	if((uchar)x>0x7f) {
 		cursor_right((uchar)x-0x7f);
-		return; 
+		return;
 	}
 	switch(toupper(x)) {
 		case '!':   /* level 10 or higher */
@@ -637,7 +637,7 @@ void sbbs_t::ctrl_a(char x)
 		case '7':	/* White Background */
 			atr=(atr&0x8f)|(uchar)BG_LIGHTGRAY;
 			attr(atr);
-			break; 
+			break;
 	}
 }
 
@@ -670,7 +670,7 @@ bool sbbs_t::msgabort()
 {
 	static ulong counter;
 
-	if(sys_status&SS_SYSPAGE && !(++counter%100)) 
+	if(sys_status&SS_SYSPAGE && !(++counter%100))
 		sbbs_beep(sbbs_random(800),1);
 
 	checkline();
@@ -710,10 +710,45 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 {
 	char str[128];
 
+	if(cfg.node_num == 0)
+		return;	// Don't output this for events
 	if((count%interval) != 0)
 		return;
 	if(text == NULL) text = "";
 	float pct = ((float)count/total)*100.0F;
 	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);
 	cursor_left(backfill(str, pct, cfg.color[clr_progress_full], cfg.color[clr_progress_empty]));
+}
+
+struct savedline {
+	char 	buf[LINE_BUFSIZE+1];	/* Line buffer (i.e. ANSI-encoded) */
+	char 	beg_attr;				/* Starting attribute of each line */
+	char 	end_attr;				/* Ending attribute of each line */
+	long	column;					/* Current column number */
+};
+
+bool sbbs_t::saveline(void)
+{
+	struct savedline line;
+	line.beg_attr = latr;
+	line.end_attr = curatr;
+	line.column = column;
+	snprintf(line.buf, sizeof(line.buf), "%.*s", lbuflen, lbuf);
+	TERMINATE(line.buf);
+	lbuflen=0;
+	return listPushNodeData(&savedlines, &line, sizeof(line)) != NULL;
+}
+
+bool sbbs_t::restoreline(void)
+{
+	struct savedline* line = (struct savedline*)listPopNode(&savedlines);
+	if(line == NULL)
+		return false;
+	lbuflen=0;
+	attr(line->beg_attr);
+	rputs(line->buf);
+	curatr = line->end_attr;
+	column = line->column;
+	free(line);
+	return true;
 }
