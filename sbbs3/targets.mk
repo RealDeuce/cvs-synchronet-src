@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.49 2018/10/20 20:31:21 rswindell Exp $
+# $Id: targets.mk,v 1.47 2018/10/08 00:07:17 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -72,15 +72,15 @@ mono:	xpdev-mt smblib \
 
 .PHONY: scfg
 scfg:
-	$(MAKE) -C scfg $(MAKEFLAGS)
+	$(MAKE) -C scfg
 
 .PHONY: uedit
 uedit:
-	$(MAKE) -C uedit $(MAKEFLAGS)
+	$(MAKE) -C uedit
 
 .PHONY: umonitor
 umonitor:
-	$(MAKE) -C umonitor $(MAKEFLAGS)
+	$(MAKE) -C umonitor
 
 
 ifdef SBBSEXEC
@@ -88,17 +88,11 @@ ifdef SBBSEXEC
 install: all
 	install $(EXEODIR)/* $(SBBSEXEC)
 	install $(LIBODIR)/* $(SBBSEXEC)
-	install scfg/$(EXEODIR)/* $(SBBSEXEC)
-	install uedit/$(EXEODIR)/* $(SBBSEXEC)
-	install umonitor/$(EXEODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
 symlinks: all
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr $(LIBODIR)/* $(SBBSEXEC)
-	ln -sfr scfg/$(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr uedit/$(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
 endif
 
 .PHONY: sexyz
