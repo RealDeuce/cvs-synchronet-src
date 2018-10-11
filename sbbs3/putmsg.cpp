@@ -1,6 +1,7 @@
 /* Synchronet message/menu display routine */
+// vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.36 2018/10/04 04:03:53 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.37 2018/10/11 04:11:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,8 +89,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				printfile(tmp3,0);
 				sys_status&=~SS_NEST_PF; 
 			}
-			else if(toupper(str[l+1])=='Z')             /* Ctrl-AZ==EOF */
-				break;
 			else {
 				ctrl_a(str[l+1]);
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
