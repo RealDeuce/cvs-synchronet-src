@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.37 2018/10/11 04:11:33 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.38 2018/10/15 04:16:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,6 +247,8 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			if(str[l]==ESC && str[l+1]=='$')    /* WIP command */
 				lncntr=0;
 			if(str[l]=='@' && !(mode&P_NOATCODES)) {
+				if(memcmp(str+l, "@EOF@", 5) == 0)
+					break;
 				/* In HTML mode, defer PAUSE and MORE to end and supress message */
 				if(mode&P_HTML) {
 					if(!memcmp(str+l,"@MORE@",6)) {
