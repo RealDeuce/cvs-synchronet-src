@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement Strings (ARS) constants */
 
-/* $Id: ars_defs.h,v 1.14 2018/10/22 04:18:04 rswindell Exp $ */
+/* $Id: ars_defs.h,v 1.13 2018/07/24 01:11:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -124,10 +124,6 @@ enum {                              /* Access requirement binaries */
 	,AR_DLM
 	,AR_HOST	/* Remote/client hostname (wildcards allowed) */
 	,AR_IP		/* Remote/client IP address (wildcards allowed) */
-	,AR_TERM
-	,AR_COLS
-	,AR_ROWS
-	,AR_PETSCII
     };
 
 #endif		/* Don't add anything after this line */
