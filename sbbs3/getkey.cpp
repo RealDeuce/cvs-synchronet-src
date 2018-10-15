@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.48 2018/10/11 06:13:31 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.49 2018/10/15 04:08:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -336,8 +336,6 @@ void sbbs_t::mnemonics(const char *str)
 		else {
 			if(str[l]==CTRL_A && str[l+1]!=0) {
 				l++;
-				if(toupper(str[l])=='Z')	/* EOF */
-					break;
 				ctrl_a(str[l++]);
 			} else {
 				if(str[l] == '@') {
