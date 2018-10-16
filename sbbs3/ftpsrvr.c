@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.481 2018/11/17 14:55:43 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.476 2018/10/05 08:32:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1710,9 +1710,9 @@ static void receive_thread(void* arg)
 			last_report=now;
 		}
 		if(startup->max_fsize && (xfer.filepos+total) > startup->max_fsize) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA received %lu bytes of %s exceeds maximum allowed (%"PRIu64" bytes)"
+			lprintf(LOG_WARNING,"%04d <%s> !DATA received %lu bytes of %s exceeds maximum allowed (%lu bytes)"
 				,xfer.ctrl_sock, xfer.user->alias, xfer.filepos+total, xfer.filename, startup->max_fsize);
-			sockprintf(xfer.ctrl_sock,sess,"552 File size exceeds maximum allowed (%"PRIu64" bytes)", startup->max_fsize);
+			sockprintf(xfer.ctrl_sock,sess,"552 File size exceeds maximum allowed (%lu bytes)", startup->max_fsize);
 			error=TRUE;
 			break;
 		}
@@ -1813,9 +1813,9 @@ static void receive_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d closed",xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
 	
 	if(xfer.filepos+total < startup->min_fsize) {
-		lprintf(LOG_WARNING,"%04d <%s> DATA received %lu bytes for %s, less than minimum required (%"PRIu64" bytes)"
+		lprintf(LOG_WARNING,"%04d <%s> DATA received %lu bytes for %s, less than minimum required (%lu bytes)"
 			,xfer.ctrl_sock, xfer.user->alias, xfer.filepos+total, xfer.filename, startup->min_fsize);
-		sockprintf(xfer.ctrl_sock,sess,"550 File size less than minimum required (%"PRIu64" bytes)"
+		sockprintf(xfer.ctrl_sock,sess,"550 File size less than minimum required (%lu bytes)"
 			,startup->min_fsize);
 		error=TRUE;
 	}
@@ -2289,11 +2289,15 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		return(FALSE);
 
 	SAFECOPY(alias,fullalias);
-	p = getfname(alias);
+	p=strrchr(alias+1,'/');
 	if(p) {
-		fname = p;
-		if(p != alias)
-			*(p-1) = 0;
+		*p=0;
+		fname=p+1;
+	}
+
+	if(filename==NULL /* directory */ && *fname /* filename specified */) {
+		fclose(fp);
+		return(FALSE);
 	}
 
 	while(!feof(fp)) {
@@ -2318,11 +2322,6 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		tp=p;		/* terminator */
 		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
-
-		if(filename == NULL /* CWD? */ && (*lastchar(p) != '/' || *fname != 0)) {
-			fclose(fp);
-			return FALSE;
-		}
 
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 			if((dir=getdir(p+strlen(BBS_VIRTUAL_PATH),user,client))<0)	{
@@ -3298,8 +3297,8 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 			if((i=getuserdat(&scfg, &user))!=0) {
-				lprintf(LOG_ERR,"%04d <%s> !ERROR %d getting data for user #%d"
-					,sock, user.alias, i, user.number);
+				lprintf(LOG_ERR,"%04d !ERROR %d getting data for user #%d (%s)"
+					,sock,i,user.number,user.alias);
 				sockprintf(sock,sess,"530 Database error %d",i);
 				user.number=0;
 				continue;
@@ -3339,7 +3338,7 @@ static void ctrl_thread(void* arg)
 			SAFEPRINTF2(sys_pass,"%s:%s",user.pass,scfg.sys_pass);
 			if(!user.pass[0]) {	/* Guest/Anonymous */
 				if(trashcan(&scfg,password,"email")) {
-					lprintf(LOG_NOTICE,"%04d <%s> !BLOCKED e-mail address: %s", sock, user.alias, password);
+					lprintf(LOG_NOTICE,"%04d !BLOCKED e-mail address: %s",sock,password);
 					user.number=0;
 					if(badlogin(sock, sess, &login_attempts, NULL, NULL, NULL, NULL))
 						break;
@@ -5290,7 +5289,7 @@ static void ctrl_thread(void* arg)
 					JS_BEGINREQUEST(js_cx);
 					js_val=INT_TO_JSVAL(timeleft);
 					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
-						lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR setting user.time_left",sock, user.alias);
+						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
 					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user, &client);
 					JS_ENDREQUEST(js_cx);
 #endif
@@ -5368,8 +5367,8 @@ static void ctrl_thread(void* arg)
 
 				if(strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)) {
 					success=FALSE;
-					lprintf(LOG_WARNING,"%04d <%s> !ILLEGAL FILENAME ATTEMPT by %s [%s]: %s"
-						,sock, user.alias, host_name, host_ip, p);
+					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
+						,sock,user.alias,p);
 					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 				} else {
 					if(fexistcase(fname)) {
@@ -5451,7 +5450,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			if(transfer_inprogress==TRUE) {
-				lprintf(LOG_WARNING,"%04d <%s> !TRANSFER already in progress (%s)",sock, user.alias, cmd);
+				lprintf(LOG_WARNING,"%04d !TRANSFER already in progress (%s)",sock,cmd);
 				sockprintf(sock,sess,"425 Transfer already in progress.");
 				continue;
 			}
@@ -5541,8 +5540,8 @@ static void ctrl_thread(void* arg)
 				if(*p=='-'
 					|| strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
 					|| trashcan(&scfg,p,"file")) {
-					lprintf(LOG_WARNING,"%04d <%s> !ILLEGAL FILENAME ATTEMPT by %s [%s]: %s"
-						,sock, user.alias, host_name, host_ip, p);
+					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
+						,sock,user.alias,p);
 					sockprintf(sock,sess,"553 Illegal filename attempt");
 					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 					continue;
@@ -5716,7 +5715,7 @@ static void ctrl_thread(void* arg)
 			if(success)
 				sockprintf(sock,sess,"250 CWD command successful.");
 			else {
-				sockprintf(sock,sess,"550 %s: No such directory.",p);
+				sockprintf(sock,sess,"550 %s: No such file or directory.",p);
 				curlib=orglib;
 				curdir=orgdir;
 			}
@@ -5899,7 +5898,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.481 $", "%*s %s", revision);
+	sscanf("$Revision: 1.476 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6180,8 +6179,8 @@ void DLLCALL ftp_server(void* arg)
 			}
 
 			if((ftp=malloc(sizeof(ftp_t)))==NULL) {
-				lprintf(LOG_CRIT,"%04d !ERROR allocating %d bytes of memory for ftp_t"
-					,client_socket,(int)sizeof(ftp_t));
+				lprintf(LOG_CRIT,"%04d !ERROR allocating %lu bytes of memory for ftp_t"
+					,client_socket,sizeof(ftp_t));
 				sockprintf(client_socket,-1,"421 System error, please try again later.");
 				mswait(3000);
 				ftp_close_socket(&client_socket,&none,__LINE__);
