@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.38 2018/10/15 04:16:35 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.39 2018/10/16 01:17:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,11 +83,13 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				i=0;
 				while(i<(int)sizeof(tmp2)-1 && isprint((unsigned char)str[l]) && str[l]!='\\' && str[l]!='/')
 					tmp2[i++]=str[l++];
-				tmp2[i]=0;
-				sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
-				SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
-				printfile(tmp3,0);
-				sys_status&=~SS_NEST_PF; 
+				if(i > 0) {
+					tmp2[i]=0;
+					sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
+					SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
+					printfile(tmp3,0);
+					sys_status&=~SS_NEST_PF; 
+				}
 			}
 			else {
 				ctrl_a(str[l+1]);
