@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.325 2018/10/17 19:43:56 rswindell Exp $ */
+/* $Id: services.c,v 1.324 2018/10/06 22:34:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1649,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.325 $", "%*s %s", revision);
+	sscanf("$Revision: 1.324 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -2143,7 +2143,7 @@ void DLLCALL services_thread(void* arg)
 					if((client=malloc(sizeof(service_client_t)))==NULL) {
 						FREE_AND_NULL(udp_buf);
 						lprintf(LOG_CRIT,"%04d %s !ERROR allocating %lu bytes of memory for service_client"
-							,client_socket, service[i].protocol, (ulong)sizeof(service_client_t));
+							,client_socket, service[i].protocol, sizeof(service_client_t));
 						close_socket(client_socket);
 						continue;
 					}
