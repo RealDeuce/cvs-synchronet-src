@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.230 2018/03/17 05:43:39 deuce Exp $
+# $Id: GNUmakefile,v 1.231 2018/10/08 00:07:17 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -268,3 +268,13 @@ $(READSAUCE): $(READSAUCE_OBJS) $(OBJODIR) $(EXEODIR)
 $(SHOWSTAT): $(SHOWSTAT_OBJS) $(OBJODIR) $(EXEODIR)
 	@echo Linking $@
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(SHOWSTAT_OBJS) $(XPDEV_LIBS)
+
+# PKTDUMP
+$(PKTDUMP): $(PKTDUMP_OBJS) $(OBJODIR) $(EXEODIR)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(PKTDUMP_OBJS)
+
+# FMSGDUMP
+$(FMSGDUMP): $(FMSGDUMP_OBJS) $(OBJODIR) $(EXEODIR)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(FMSGDUMP_OBJS)

@@ -1,7 +1,7 @@
 /* Synchronet hi-level console routines */
 // vi: tabstop=4
 
-/* $Id: con_hi.cpp,v 1.26 2018/07/01 09:40:27 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.27 2018/08/03 06:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,8 +169,7 @@ bool sbbs_t::chksyspass(const char* sys_pw)
 			SAFEPRINTF3(str2,"%s #%u System password attempt: '%s'"
 				,useron.alias,useron.number,str);
 		else
-			SAFEPRINTF2(str2,"%s #%u System password verification failure"
-				,useron.alias,useron.number);
+			SAFECOPY(str2,"System password verification failure");
 		logline(LOG_NOTICE,"S!",str2);
 		return(false); 
 	}
