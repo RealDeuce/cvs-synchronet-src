@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.45 2018/02/28 03:37:58 rswindell Exp $
+# $Id: targets.mk,v 1.47 2018/10/08 00:07:17 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -37,6 +37,9 @@ DUPEFIND	= $(EXEODIR)$(DIRSEP)dupefind$(EXEFILE)
 SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
 DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
 READSAUCE	= $(EXEODIR)$(DIRSEP)readsauce$(EXEFILE)
+SHOWSTAT	= $(EXEODIR)$(DIRSEP)showstat$(EXEFILE)
+PKTDUMP		= $(EXEODIR)$(DIRSEP)pktdump$(EXEFILE)
+FMSGDUMP	= $(EXEODIR)$(DIRSEP)fmsgdump$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -45,7 +48,8 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE)
+			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT) \
+			  $(PKTDUMP) $(FMSGDUMP)
 
 all:	dlls utils console scfg uedit umonitor
 
@@ -129,3 +133,4 @@ $(DUPEFIND): $(XPDEV_LIB) $(SMBLIB)
 $(SMBACTIV): $(XPDEV_LIB) $(SMBLIB)
 $(DSTSEDIT): $(XPDEV_LIB)
 $(READSAUCE): $(XPDEV_LIB)
+$(SHOWSTAT): $(XPDEV_LIB)
