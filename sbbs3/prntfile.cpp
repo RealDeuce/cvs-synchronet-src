@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.26 2018/02/27 08:03:26 deuce Exp $ */
+/* $Id: prntfile.cpp,v 1.27 2018/10/01 01:56:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,10 +184,7 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 }
 
 /****************************************************************************/
-/* Prints the menu number 'menunum' from the text directory. Checks for ^A  */
-/* ,ANSI sequences, pauses and aborts. Usually accessed by user inputing '?'*/
-/* Called from every function that has an available menu.                   */
-/* The code definitions are as follows:                                     */
+/* Displays a menu file (e.g. from the text/menu directory)                 */
 /****************************************************************************/
 void sbbs_t::menu(const char *code)
 {
@@ -214,7 +211,7 @@ void sbbs_t::menu(const char *code)
 		} 
 	}
 
-	long mode = P_OPENCLOSE;
+	long mode = P_OPENCLOSE | P_CPM_EOF;
 	if(column == 0)
 		mode |= P_NOCRLF;
 	printfile(path, mode);

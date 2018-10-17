@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.80 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.82 2018/10/04 03:42:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ int sbbs_t::show_atcode(const char *instr)
 	} else if(zero_padded) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len)
-			bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+			bprintf("%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
 		else
 			bprintf("%.*s", disp_len, cp);
 	} else
@@ -1029,6 +1029,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		return(current_msg->subj==NULL ? nulstr : current_msg->subj);
+	if(!strcmp(sp,"MSG_SUMMARY") && current_msg!=NULL)
+		return(current_msg->summary==NULL ? nulstr : current_msg->summary);
+	if(!strcmp(sp,"MSG_TAGS") && current_msg!=NULL)
+		return(current_msg->tags==NULL ? nulstr : current_msg->tags);
 	if(!strcmp(sp,"MSG_DATE") && current_msg!=NULL)
 		return(timestr(current_msg->hdr.when_written.time));
 	if(!strcmp(sp,"MSG_AGE") && current_msg!=NULL)
