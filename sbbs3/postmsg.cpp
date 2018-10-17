@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.116 2018/11/06 06:06:59 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.114 2018/10/04 04:00:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -339,9 +339,8 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	/* Generate FTN (FTS-9) MSGID */
 	if(cfg.sub[subnum]->misc&SUB_FIDO) {
-		char* p;
-		if((p = ftn_msgid(cfg.sub[subnum],&msg,msg_id,sizeof(msg_id))) != NULL)
-			smb_hfield_str(&msg, FIDOMSGID, p);
+		ftn_msgid(cfg.sub[subnum],&msg,msg_id,sizeof(msg_id));
+		smb_hfield_str(&msg,FIDOMSGID,msg_id);
 	}
 
 	/* Generate FidoNet Program Identifier */
@@ -349,7 +348,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 	
 	if((cfg.sub[subnum]->misc&SUB_MSGTAGS)
 		&& (tags[0] || text[TagMessageQ][0] == 0 || !noyes(text[TagMessageQ]))) {
@@ -513,9 +511,8 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  	/* Generate FidoNet MSGID (for FidoNet sub-boards) */
  	if(smb->subnum!=INVALID_SUB && cfg->sub[smb->subnum]->misc&SUB_FIDO 
 		&& msg->ftn_msgid==NULL) {
-		char* p;
- 		if((p = ftn_msgid(cfg->sub[smb->subnum],msg,msg_id,sizeof(msg_id))) != NULL)
- 			smb_hfield_str(msg, FIDOMSGID, p);
+ 		ftn_msgid(cfg->sub[smb->subnum],msg,msg_id,sizeof(msg_id));
+ 		smb_hfield_str(msg,FIDOMSGID,msg_id);
  	}
 
 	/* Generate FidoNet Program Identifier */
