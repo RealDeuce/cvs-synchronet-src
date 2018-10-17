@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.338 2018/04/18 06:51:24 deuce Exp $ */
+/* $Id: term.c,v 1.339 2018/09/05 23:37:45 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -726,6 +726,16 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	setfont(0, FALSE, 4);
 
 	init_uifc(FALSE, FALSE);
+	if(!isdir(bbs->uldir)) {
+		SAFEPRINTF(str, "Invalid upload directory: %s", bbs->uldir);
+		uifcmsg(str, "An invalid `UploadPath` was specified in the `syncterm.lst` file");
+		uifcbail();
+		setup_mouse_events();
+		restorescreen(savscrn);
+		freescreen(savscrn);
+		gotoxy(txtinfo.curx, txtinfo.cury);
+		return;
+	}
 	result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
 	
 	if(result==-1 || fpick.files<1) {

@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.68 2018/06/10 08:45:02 rswindell Exp $ */
+/* $Id: email.cpp,v 1.69 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -342,8 +342,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		logon_emails++;
 	user_sent_email(&cfg, &useron, 1, usernumber==1);
 	bprintf(text[Emailed],username(&cfg,usernumber,tmp),usernumber);
-	safe_snprintf(str,sizeof(str),"%s sent e-mail to %s #%d"
-		,useron.alias,username(&cfg,usernumber,tmp),usernumber);
+	safe_snprintf(str,sizeof(str),"sent e-mail to %s #%d"
+		,username(&cfg,usernumber,tmp),usernumber);
 	logline("E+",str);
 	if(mode&WM_FILE && online==ON_REMOTE)
 		autohangup();
