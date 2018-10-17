@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.46 2017/10/12 08:56:49 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.49 2018/10/15 04:08:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,27 +263,27 @@ char sbbs_t::getkey(long mode)
 		}
 			
 		if(online==ON_REMOTE && !(console&CON_NO_INACT)
-			&& now-timeout>=cfg.sec_warn) { 					/* warning */
-			if(sys_status&SS_USERON && cfg.sec_warn!=cfg.sec_hangup) {
+			&& (now-timeout >= cfg.sec_warn || now-timeout >= cfg.sec_hangup)) {
+			if(sys_status&SS_USERON && cfg.sec_warn < cfg.sec_hangup) {
 				SAVELINE;
 				bputs(text[AreYouThere]); 
 			}
 			else
 				bputs("\7\7");
-			while(!inkey(K_NONE,100) && online && now-timeout>=cfg.sec_warn) {
+			while(!inkey(K_NONE,100) && online && now-timeout < cfg.sec_hangup) {
 				now=time(NULL);
-				if(now-timeout>=cfg.sec_hangup) {
-					if(online==ON_REMOTE) {
-						console|=CON_R_ECHO;
-						console&=~CON_R_ECHOX; 
-					}
-					bputs(text[CallBackWhenYoureThere]);
-					logline(LOG_NOTICE,nulstr,"Inactive");
-					hangup();
-					return(0); 
-				}
 			}
-			if(sys_status&SS_USERON && cfg.sec_warn!=cfg.sec_hangup) {
+			if(now-timeout >= cfg.sec_hangup) {
+				if(online==ON_REMOTE) {
+					console|=CON_R_ECHO;
+					console&=~CON_R_ECHOX; 
+				}
+				bputs(text[CallBackWhenYoureThere]);
+				logline(LOG_NOTICE,nulstr,"Inactive");
+				hangup();
+				return(0); 
+			}
+			if(sys_status&SS_USERON) {
 				bputs("\r\1n\1>");
 				RESTORELINE; 
 			}
@@ -336,11 +336,17 @@ void sbbs_t::mnemonics(const char *str)
 		else {
 			if(str[l]==CTRL_A && str[l+1]!=0) {
 				l++;
-				if(toupper(str[l])=='Z')	/* EOF */
-					break;
 				ctrl_a(str[l++]);
-			} else
-				outchar(str[l++]); 
+			} else {
+				if(str[l] == '@') {
+					int i = show_atcode(str + l);
+					if(i) {
+						l += i;
+						continue;
+					}
+				}
+				outchar(str[l++]);
+			}
 		} 
 	}
 	if(!ctrl_a_codes)
