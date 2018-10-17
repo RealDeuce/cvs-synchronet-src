@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.239 2018/10/30 01:22:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.238 2018/08/03 06:18:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -253,13 +253,6 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
 	}
     newlen=outlen;
     return(outbuf);
-}
-
-static void petscii_convert(BYTE* buf, ulong len)
-{
-    for(ulong i=0; i<len; i++) {
-		buf[i] = cp437_to_petscii(buf[i]);
-	}
 }
 
 static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
@@ -936,8 +929,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
@@ -1005,8 +996,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			}
@@ -1939,21 +1928,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
+			} else if ((mode & EX_STDIO) != EX_STDIO) {
+				/* LF to CRLF expansion */
+				bp=lf_expand(buf, rd, output_buf, output_len);
+			} else if(mode&EX_WWIV) {
+                bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
+				if(output_len > sizeof(wwiv_buf))
+					lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
 			} else {
-				if ((mode & EX_STDIO) != EX_STDIO) {
-					/* LF to CRLF expansion */
-					bp=lf_expand(buf, rd, output_buf, output_len);
-				} else if(mode&EX_WWIV) {
-					bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
-					if(output_len > sizeof(wwiv_buf))
-						lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
-				} else {
-					bp=buf;
-					output_len=rd;
-				}
-				if (term_supports(PETSCII))
-					petscii_convert(bp, output_len);
+				bp=buf;
+				output_len=rd;
 			}
+
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
 				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");

@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.51 2018/10/31 08:09:19 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.49 2018/10/15 04:08:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -319,17 +319,16 @@ void sbbs_t::mnemonics(const char *str)
 		attr(cfg.color[clr_mnelow]); 
 	}
 	l=0L;
-	long term = term_supports();
 	while(str[l]) {
 		if(str[l]=='~' && str[l+1]!=0) {
-			if(!(term&(ANSI|PETSCII)))
+			if(!term_supports(ANSI))
 				outchar('(');
 			l++;
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnehigh]);
 			outchar(str[l]);
 			l++;
-			if(!(term&(ANSI|PETSCII)))
+			if(!term_supports(ANSI))
 				outchar(')');
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnelow]); 
@@ -356,15 +355,13 @@ void sbbs_t::mnemonics(const char *str)
 
 /****************************************************************************/
 /* Prompts user for Y or N (yes or no) and CR is interpreted as a Y         */
-/* Returns true for Yes or false for No                                     */
+/* Returns 1 for Y or 0 for N                                               */
 /* Called from quite a few places                                           */
 /****************************************************************************/
 bool sbbs_t::yesno(const char *str)
 {
     char ch;
 
-	if(*str == 0)
-		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[YesNoQuestion],str);
@@ -391,14 +388,13 @@ bool sbbs_t::yesno(const char *str)
 
 /****************************************************************************/
 /* Prompts user for N or Y (no or yes) and CR is interpreted as a N         */
-/* Returns true for No or false for Yes                                     */
+/* Returns 1 for N or 0 for Y                                               */
+/* Called from quite a few places                                           */
 /****************************************************************************/
 bool sbbs_t::noyes(const char *str)
 {
     char ch;
 
-	if(*str == 0)
-		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[NoYesQuestion],str);
