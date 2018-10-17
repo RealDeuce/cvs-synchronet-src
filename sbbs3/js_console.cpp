@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.122 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: js_console.cpp,v 1.119 2018/10/09 01:34:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ enum {
 	,CON_PROP_TOS
 	,CON_PROP_ROWS
 	,CON_PROP_COLUMNS
-	,CON_PROP_TABSTOP
 	,CON_PROP_AUTOTERM
 	,CON_PROP_TERMINAL
 	,CON_PROP_CTERM_VERSION
@@ -112,9 +111,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_COLUMNS:
 			val=sbbs->cols;
-			break;
-		case CON_PROP_TABSTOP:
-			val=sbbs->tabstop;
 			break;
 		case CON_PROP_AUTOTERM:
 			val=sbbs->autoterm;
@@ -237,15 +233,10 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			sbbs->tos=val;
 			break;
 		case CON_PROP_ROWS:
-			if(val >= TERM_ROWS_MIN && val <= TERM_ROWS_MAX)
-				sbbs->rows=val;
+			sbbs->rows=val;
 			break;
 		case CON_PROP_COLUMNS:
-			if(val >= TERM_COLS_MIN && val <= TERM_COLS_MAX)
-				sbbs->cols=val;
-			break;
-		case CON_PROP_TABSTOP:
-			sbbs->tabstop=val;
+			sbbs->cols=val;
 			break;
 		case CON_PROP_AUTOTERM:
 			sbbs->autoterm=val;
@@ -330,7 +321,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"top_of_screen"		,CON_PROP_TOS				,CON_PROP_FLAGS	,310},
 	{	"screen_rows"		,CON_PROP_ROWS				,CON_PROP_FLAGS	,310},
 	{	"screen_columns"	,CON_PROP_COLUMNS			,CON_PROP_FLAGS	,311},
-	{	"tabstop"			,CON_PROP_TABSTOP			,CON_PROP_FLAGS	,31700},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
 	{	"cterm_version"		,CON_PROP_CTERM_VERSION		,CON_PROP_FLAGS ,317},
@@ -353,7 +343,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static const char* con_prop_desc[] = {
+static char* con_prop_desc[] = {
 	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
@@ -362,7 +352,6 @@ static const char* con_prop_desc[] = {
 	,"set to <i>true</i> if the terminal cursor is already at the top of the screen"
 	,"number of remote terminal screen rows (in lines)"
 	,"number of remote terminal screen columns (in character cells)"
-	,"current tab stop interval (tab size), in columns"
 	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"terminal type description (e.g. 'ANSI')"
@@ -464,56 +453,6 @@ js_getkey(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
     return(JS_TRUE);
 }
-
-static JSBool
-js_getbyte(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	int32		timeout=0;
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
-
-	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
-		return JS_FALSE;
-
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0], &timeout))
-			return JS_FALSE;
-	}
-	rc=JS_SUSPENDREQUEST(cx);
-	int32 byte = sbbs->incom(timeout);
-	JS_RESUMEREQUEST(cx, rc);
-
-	if(byte != NOINP)
-		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(byte));
-    return JS_TRUE;
-}
-
-static JSBool
-js_putbyte(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	int32		byte=0;
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-
-	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
-		return JS_FALSE;
-
-	if(argc) {
-		if(!JS_ValueToInt32(cx,argv[0], &byte))
-			return JS_FALSE;
-	}
-	rc=JS_SUSPENDREQUEST(cx);
-	int result = sbbs->outcom(byte);
-	JS_RESUMEREQUEST(cx, rc);
-
-	JS_SET_RVAL(cx, arglist, result == 0 ? JSVAL_TRUE : JSVAL_FALSE);
-    return JS_TRUE ;
-}
-
 
 static JSBool
 js_handle_ctrlkey(JSContext *cx, uintN argc, jsval *arglist)
@@ -1195,6 +1134,8 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr;
 	jsrefcount	rc;
 
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
@@ -1211,12 +1152,9 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->printfile(cstr,mode);
+	sbbs->printfile(cstr,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
-
-	JS_SET_RVAL(cx, arglist, result ? JS_TRUE : JS_FALSE);
-
     return(JS_TRUE);
 }
 
@@ -1231,6 +1169,8 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	js_str=NULL;
 	char*		cstr;
 	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
@@ -1259,12 +1199,9 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->printtail(cstr,lines,mode);
+	sbbs->printtail(cstr,lines,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
-
-	JS_SET_RVAL(cx, arglist, result ? JS_TRUE : JS_FALSE);
-
     return(JS_TRUE);
 }
 
@@ -1684,24 +1621,6 @@ js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_creturn(JSContext *cx, uintN argc, jsval *arglist)
-{
-	sbbs_t*		sbbs;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
-		return(JS_FALSE);
-
-	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->carriage_return();
-	JS_RESUMEREQUEST(cx, rc);
-    return(JS_TRUE);
-}
-
-
-static JSBool
 js_clearkeybuf(JSContext *cx, uintN argc, jsval *arglist)
 {
 	sbbs_t*		sbbs;
@@ -1833,7 +1752,6 @@ js_term_supports(JSContext *cx, uintN argc, jsval *arglist)
 static jsSyncMethodSpec js_console_functions[] = {
 	{"inkey",			js_inkey,			0, JSTYPE_STRING,	JSDOCSTR("[mode=<tt>K_NONE</tt>] [,timeout=<tt>0</tt>]")
 	,JSDOCSTR("get a single key with optional <i>timeout</i> in milliseconds (defaults to 0, for no wait), "
-		"returns an empty string if there is no input (e.g. timeout occurs), "
 		"see <tt>K_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,311
 	},
@@ -1893,7 +1811,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,310
 	},
 	{"cleartoeol",      js_cleartoeol,		0, JSTYPE_VOID,		JSDOCSTR("[attribute]")
-	,JSDOCSTR("clear to end-of-line, "
+	,JSDOCSTR("clear to end-of-line (ANSI), "
 		"optionally (in v3.13b+) setting current attribute first")
 	,311
 	},
@@ -1934,11 +1852,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
-	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
+	{"printfile",		js_printfile,		1, JSTYPE_VOID,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print a message text file with optional mode")
 	,310
 	},
-	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
+	{"printtail",		js_printtail,		2, JSTYPE_VOID,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
 	},
@@ -1985,33 +1903,33 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_up",			js_cursor_up,		0, JSTYPE_ALIAS },
 	{"up",				js_cursor_up,		0, JSTYPE_VOID,		JSDOCSTR("[rows=<tt>1</tt>]")
-	,JSDOCSTR("move cursor up one or more rows")
+	,JSDOCSTR("move cursor up one or more rows (ANSI)")
 	,311
 	},
 	{"ansi_down",		js_cursor_down,		0, JSTYPE_ALIAS },
 	{"down",			js_cursor_down,		0, JSTYPE_VOID,		JSDOCSTR("[rows=<tt>1</tt>]")
-	,JSDOCSTR("move cursor down one or more rows")
+	,JSDOCSTR("move cursor down one or more rows (ANSI)")
 	,311
 	},
 	{"ansi_right",		js_cursor_right,	0, JSTYPE_ALIAS },
 	{"right",			js_cursor_right,	0, JSTYPE_VOID,		JSDOCSTR("[columns=<tt>1</tt>]")
-	,JSDOCSTR("move cursor right one or more columns")
+	,JSDOCSTR("move cursor right one or more columns (ANSI)")
 	,311
 	},
 	{"ansi_left",		js_cursor_left,		0, JSTYPE_ALIAS },
 	{"left",			js_cursor_left,		0, JSTYPE_VOID,		JSDOCSTR("[columns=<tt>1</tt>]")
-	,JSDOCSTR("move cursor left one or more columns")
+	,JSDOCSTR("move cursor left one or more columns (ANSI)")
 	,311
 	},
 	{"ansi_getlines",	js_getlines,		0, JSTYPE_ALIAS },
 	{"getlines",		js_getlines,		0, JSTYPE_ALIAS },
 	{"getdimensions",	js_getlines,		0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("query the number of rows and columns on the remote terminal")
+	,JSDOCSTR("query the number of rows and columns on the remote terminal (ANSI)")
 	,311
 	},
 	{"ansi_getxy",		js_getxy,			0, JSTYPE_ALIAS },
 	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	JSDOCSTR("")
-	,JSDOCSTR("query the current cursor position on the remote terminal "
+	,JSDOCSTR("query the current cursor position on the remote terminal (ANSI) "
 		"and returns the coordinates as an object (with x and y properties)")
 	,311
 	},
@@ -2039,23 +1957,9 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("send a destructive backspace sequence")
 	,315
 	},
-	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("")
-	,JSDOCSTR("send a carriage return sequence")
-	,31700
-	},
 	{"clearkeybuffer",	js_clearkeybuf,		0, JSTYPE_VOID,		JSDOCSTR("")
 	,JSDOCSTR("clear keyboard input buffer")
 	,315
-	},
-	{"getbyte",			js_getbyte,			1, JSTYPE_NUMBER,	JSDOCSTR("[timeout=<tt>0</tt>]")
-	,JSDOCSTR("returns an unprocessed input byte from the remote terminal "
-		"with optional <i>timeout</i> in milliseconds (defaults to 0, for no wait), "
-		"returns <i>null</i> on failure (timeout)")
-	,31700
-	},
-	{"putbyte",			js_putbyte,			1, JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("sends an unprocessed byte value to the remot terminal")
-	,31700
 	},
 	{0}
 };
