@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.10 2018/11/06 06:06:58 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.9 2016/11/23 04:27:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,22 +70,13 @@ static ulong msgid_serialno(smbmsg_t* msg)
 
 /****************************************************************************/
 /* Returns a FidoNet (FTS-9) message-ID										*/
-/* Returns NULL if the message is from FidoNet and doesn't have a MSGID		*/
-/* Pass NULL for msgid if (single-threaded) caller wishes to use static buf	*/
 /****************************************************************************/
 char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg, char* msgid, size_t maxlen)
 {
-	static char msgidbuf[256];
-	
-	if(msgid == NULL) {
-		msgid = msgidbuf;
-		maxlen = sizeof(msgidbuf);
+	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0) {
+		strncpy(msgid,msg->ftn_msgid,maxlen);
+		return(msg->ftn_msgid);
 	}
-	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0)
-		return msg->ftn_msgid;
-
-	if(msg->from_net.type == NET_FIDO)	// Don't generate a message-ID for imported FTN messages
-		return NULL;
 
 	safe_snprintf(msgid,maxlen
 		,"%lu.%s@%s %08lx"
@@ -95,7 +86,7 @@ char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg, char* msgid, size_t maxlen)
 		,msgid_serialno(msg)
 		);
 
-	return msgid;
+	return(msgid);
 }
 
 /****************************************************************************/
