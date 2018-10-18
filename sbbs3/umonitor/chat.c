@@ -2,13 +2,13 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.18 2018/02/11 23:07:20 rswindell Exp $ */
+/* $Id: chat.c,v 1.19 2018/07/24 01:12:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*

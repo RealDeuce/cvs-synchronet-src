@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: EventsFormUnit.h,v 1.3 2009/01/24 12:23:15 rswindell Exp $ */
+/* $Id: EventsFormUnit.h,v 1.4 2018/07/24 01:11:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
