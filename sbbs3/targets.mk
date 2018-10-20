@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.48 2018/10/20 20:04:02 rswindell Exp $
+# $Id: targets.mk,v 1.49 2018/10/20 20:31:21 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -88,11 +88,17 @@ ifdef SBBSEXEC
 install: all
 	install $(EXEODIR)/* $(SBBSEXEC)
 	install $(LIBODIR)/* $(SBBSEXEC)
+	install scfg/$(EXEODIR)/* $(SBBSEXEC)
+	install uedit/$(EXEODIR)/* $(SBBSEXEC)
+	install umonitor/$(EXEODIR)/* $(SBBSEXEC)
 
 .PHONY: symlinks
 symlinks: all
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr $(LIBODIR)/* $(SBBSEXEC)
+	ln -sfr scfg/$(EXEODIR)/* $(SBBSEXEC)
+	ln -sfr uedit/$(EXEODIR)/* $(SBBSEXEC)
+	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
 endif
 
 .PHONY: sexyz
