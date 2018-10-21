@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.60 2019/01/12 12:09:16 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.59 2018/06/21 20:24:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,8 +307,8 @@ void xprogs_cfg()
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					save_xtrn_cfg(&cfg,backup_level);
-					save_main_cfg(&cfg,backup_level);
+					write_xtrn_cfg(&cfg,backup_level);
+					write_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;

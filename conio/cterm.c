@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.245 2018/10/21 07:33:56 rswindell Exp $ */
+/* $Id: cterm.c,v 1.243 2018/10/21 04:55:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2866,7 +2866,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.245 $";
+	char	*revision="$Revision: 1.243 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3701,7 +3701,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 											cterm->attr |= 3;
 											break;
 									}
-								}
 								else {
 									// C128
 									switch(buf[j]) {
@@ -3761,7 +3760,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 
 							/* Movement */
 							case 13:	/* "\r\n" and disabled reverse. */
-								cterm->c64reversemode = 0;
 							case 141:
 								GOTOXY(1, WHEREY());
 								/* Fall-through */

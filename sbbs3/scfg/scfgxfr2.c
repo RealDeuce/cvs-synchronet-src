@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.56 2019/01/12 12:09:16 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.55 2018/08/16 06:40:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,7 +171,7 @@ BOOL create_raw_dir_list(const char* list_file)
 	backslash(path);
 	uifc.pop("Scanning Directories...");
 	append_dir_list(path, path, fp, /* depth: */0, /* max_depth: */k, include_empty_dirs);
-	uifc.pop(NULL);
+	uifc.pop(0);
 	fclose(fp);
 	return(TRUE);
 }
@@ -261,7 +261,7 @@ void xfer_cfg()
 			if(j==-1)
 				continue;
 			if(!j) {
-				save_file_cfg(&cfg,backup_level);
+				write_file_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -630,7 +630,7 @@ void xfer_cfg()
 						fprintf(stream,"***END-OF-DIR***\n\n");
 					}
 					fclose(stream);
-					uifc.pop(NULL);
+					uifc.pop(0);
 					sprintf(str,"%lu File Areas Exported Successfully",ported);
 					uifc.msg(str);
 					uifc.changes=q;
@@ -907,7 +907,7 @@ void xfer_cfg()
 					fclose(stream);
 					if(ported && cfg.lib[i]->sort)
 						sort_dirs(i);
-					uifc.pop(NULL);
+					uifc.pop(0);
 					sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
 					uifc.msg(str);
 					break;
