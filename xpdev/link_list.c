@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.60 2018/03/09 02:40:03 rswindell Exp $ */
+/* $Id: link_list.c,v 1.61 2018/03/09 07:46:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -803,6 +803,8 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 
 	if(node==FIRST_NODE)
 		node=list->first;
+	if(node==LAST_NODE)
+		node=list->last;
 
 	for(count=0; node!=NULL && count<max; node=next_node, count++) {
 		next_node = node->next;
