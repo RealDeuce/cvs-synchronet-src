@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.71 2019/04/10 00:18:09 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.68 2018/10/03 04:28:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -138,10 +138,6 @@ static void qwk_parse_header_list(ulong confnum, smbmsg_t* msg, str_list_t* head
 	/* Synchronet */
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_EDITOR),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
-	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_COLUMNS),value))!=NULL) {
-		uint8_t columns = atoi(p);
-		smb_hfield_bin(msg,hfield_type,columns);
-	}
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_TAGS),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 
@@ -215,7 +211,7 @@ void sbbs_t::qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset
 /* Does *not* free the msgmem												*/
 /****************************************************************************/
 bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
-							,char fromhub, smb_t* smb
+							,char fromhub, uint subnum
 							,uint touser, smbmsg_t* msg)
 {
 	char*		body;
@@ -230,7 +226,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	ushort		xlat=XLAT_NONE;
 	long		dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	str_list_t	kludges;
-	uint		subnum = smb->subnum;
 
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
@@ -460,29 +455,28 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	if(online==ON_REMOTE)
 		bputs(text[WritingIndx]);
 
-	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
+	if(smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 
-	add_msg_ids(&cfg, smb, msg, /* remsg: */NULL);
-	if((i=smb_addmsg(smb,msg,smb_storage_mode(&cfg, smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
+	if((i=smb_addmsg(&smb,msg,smb_storage_mode(&cfg, &smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
 		success=true;
 	else if(i==SMB_DUPE_MSG) {
-		bprintf("\r\n!%s\r\n",smb->last_error);
+		bprintf("\r\n!%s\r\n",smb.last_error);
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
-				SAFEPRINTF(str,"duplicate e-mail attempt (%s)", smb->last_error);
+				SAFEPRINTF(str,"duplicate e-mail attempt (%s)", smb.last_error);
 				logline(LOG_NOTICE,"E!",str); 
 			} else {
 				SAFEPRINTF3(str,"duplicate message attempt in %s %s (%s)"
 					,cfg.grp[cfg.sub[subnum]->grp]->sname
 					,cfg.sub[subnum]->lname
-					,smb->last_error);
+					,smb.last_error);
 				logline(LOG_NOTICE,"P!",str); 
 			}
 		}
 	}
 	else 
-		errormsg(WHERE,ERR_WRITE,smb->file,i,smb->last_error);
+		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 
 	free(body);
 	free(tail);
