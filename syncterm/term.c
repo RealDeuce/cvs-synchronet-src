@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.339 2018/09/05 23:37:45 rswindell Exp $ */
+/* $Id: term.c,v 1.340 2018/10/21 08:25:46 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2801,10 +2801,7 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<65) {
+							if(key<65) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
