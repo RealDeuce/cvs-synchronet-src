@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.67 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.68 2018/10/03 04:28:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,6 +137,8 @@ static void qwk_parse_header_list(ulong confnum, smbmsg_t* msg, str_list_t* head
 
 	/* Synchronet */
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_EDITOR),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
+	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=SMB_TAGS),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 
 	/* USENET */

@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.487 2018/08/03 06:24:43 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.490 2018/10/09 01:56:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -463,10 +463,7 @@ public:
 	long	lastlinelen;	/* The previously displayed line length */
 	long 	autoterm;		/* Auto-detected terminal type */
 	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
-	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
-	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
-	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
-	int 	slcnt;			/* Number of lines currently saved */
+	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
 	char 	latr;			/* Starting attribute of line buffer */
@@ -531,7 +528,7 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
-	file_t*		current_file;	
+	file_t*		current_file;
 
 			/* Global command shell variables */
 	uint	global_str_vars;
@@ -711,6 +708,8 @@ public:
 	long	term_supports(long cmp_flags=0);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
+	bool	saveline(void);
+	bool	restoreline(void);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -753,13 +752,13 @@ public:
 	const char*	atcode(char* sp, char* str, size_t maxlen);
 
 	/* getnode.cpp */
-	int		getsmsg(int usernumber);
-	int		getnmsg(void);
+	int		getsmsg(int usernumber, bool clearline = false);
+	int		getnmsg(bool clearline = false);
 	int		whos_online(bool listself);/* Lists active nodes, returns active nodes */
 	void	nodelist(void);
 	int		getnodeext(uint number, char * str);
 	int		getnodedat(uint number, node_t * node, bool lock);
-	void	nodesync(void);
+	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
 
@@ -1056,7 +1055,7 @@ extern "C" {
 
 	/* postmsg.cpp */
 	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
-	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt);
+	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt, const char* votefmt);
 	DLLEXPORT int		DLLCALL postpoll(scfg_t*, smb_t*, smbmsg_t*);
 	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);

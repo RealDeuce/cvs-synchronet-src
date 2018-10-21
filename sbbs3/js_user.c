@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.106 2018/08/07 00:49:20 rswindell Exp $ */
+/* $Id: js_user.c,v 1.107 2018/08/07 02:16:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,7 +128,7 @@ enum {
 
 static void js_getuserdat(scfg_t* scfg, private_t* p)
 {
-	if(!p->cached) {
+	if(p->user->number != 0 && !p->cached) {
 		if(p->file < 1)
 			p->file = openuserdat(scfg, /* for_modify: */FALSE);
 		if(fgetuserdat(scfg, p->user, p->file)==0)
