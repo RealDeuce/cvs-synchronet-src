@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.340 2018/10/21 08:25:46 rswindell Exp $ */
+/* $Id: term.c,v 1.341 2018/10/21 20:52:43 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2743,6 +2743,10 @@ BOOL doterm(struct bbslist *bbs)
 						break;
 					case CIO_KEY_HOME:
 						ch[0]=19;
+						conn_send(ch,1,0);
+						break;
+					case CIO_KEY_END:
+						ch[0]=147;			/* Clear / Shift-Home */
 						conn_send(ch,1,0);
 						break;
 					case '\b':
