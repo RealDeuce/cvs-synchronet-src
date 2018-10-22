@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.99 2019/01/01 04:38:48 rswindell Exp $ */
+/* $Id: scfg.c,v 1.97 2018/08/03 05:47:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
         			uifc.mode|=UIFC_COLOR;
                     break;
                 case 'D':
-					printf("NOTICE: The -d option is deprecated, use -id instead\r\n");
+					printf("NOTICE: The -d option is depreciated, use -id instead\r\n");
 					SLEEP(2000);
                     door_mode=TRUE;
                     break;
@@ -1072,7 +1072,6 @@ void shell_cfg()
 		j=0;
 		done=0;
 		while(!done) {
-			static int bar;
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.shell[i]->name);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
@@ -1092,7 +1091,7 @@ void shell_cfg()
 				"Synchronet to interpret. See the example `.src` files in the `exec`\n"
 				"directory and the documentation for the Baja compiler for more details.\n"
 			;
-			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,&bar,cfg.shell[i]->name
+			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,0,cfg.shell[i]->name
 				,opt)) {
 				case -1:
 					done=1;

@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.229 2018/12/30 04:33:48 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.226 2018/10/22 04:18:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -753,8 +753,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
 #define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
 #define	P_TRUNCATE	(1<<9)		/* Truncate (don't display) long lines		*/
-#define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
-#define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -793,7 +791,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
 #define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
 #define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
-#define LM_REVERSE	(1<<4)		/* Reverse the index order (newest-first)	*/
 
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
