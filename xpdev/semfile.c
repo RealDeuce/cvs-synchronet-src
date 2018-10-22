@@ -1,6 +1,6 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.7 2019/03/19 23:04:53 rswindell Exp $ */
+/* $Id: semfile.c,v 1.6 2018/03/05 19:59:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -133,7 +133,7 @@ BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
 		text=hostname;
 #endif
-	if((file=open(fname,O_CREAT|O_WRONLY, DEFFILEMODE))<0)	/* use sopen instead? */
+	if((file=open(fname,O_CREAT|O_WRONLY,S_IREAD|S_IWRITE))<0)	/* use sopen instead? */
 		return(FALSE);
 	if(text!=NULL)
 		write(file,text,strlen(text));
