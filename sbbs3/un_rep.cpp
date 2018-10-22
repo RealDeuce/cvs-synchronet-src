@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.71 2019/02/08 02:41:54 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.67 2018/08/03 06:18:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
+	FILE*	fp;
 	DIR*	dir;
 	DIRENT*	dirent;
 	smbmsg_t	msg;
@@ -167,7 +168,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	twit_list = findstr_list(fname);
+	if((fp=fopen(fname,"r"))!=NULL) {
+		twit_list=strListReadFile(fp,NULL,128);
+		fclose(fp);
+	}
 
 	now=time(NULL);
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
@@ -195,9 +199,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 					errors++;
 				continue;
 			}
-			lprintf(LOG_WARNING
-				, "%s msg blocks less than 2 (read '%c' at offset %ld, '%s' at offset %ld)"
-				, getfname(msg_fname), block[0], l, tmp, l + 116);
+			snprintf(str, sizeof(str)-1
+				, "%s blocks (read '%c' at offset %ld, '%s' at offset %ld)"
+				, msg_fname, block[0], l, tmp, l + 116);
+			errormsg(WHERE, ERR_CHK, tmp, blocks, str);
 			errors++;
 			blocks=1;
 			continue;
@@ -622,21 +627,15 @@ bool sbbs_t::unpack_rep(char* repfile)
 			if(isdir(str))
 				continue;
 
-			if(::trashcan(&cfg, dirent->d_name, "file")) {
-				lprintf(LOG_NOTICE, "Ignored blocked filename: %s", dirent->d_name);
-				continue;
-			}
-
 			// Create directory if necessary
 			SAFEPRINTF2(inbox,"%sqnet/%s.in",cfg.data_dir,useron.alias);
-			MKDIR(inbox);
+			MKDIR(inbox); 
 
 			SAFEPRINTF2(fname,"%s/%s",inbox,dirent->d_name);
 			mv(str,fname,1);
 			SAFEPRINTF2(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
 			putsmsg(&cfg,1,str);
-			lprintf(LOG_NOTICE, "Received file: %s", dirent->d_name);
-		}
+		} 
 		if(dir!=NULL)
 			closedir(dir);
 		SAFEPRINTF(fname,"%sqnet-rep.now",cfg.data_dir);
