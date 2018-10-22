@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.339 2018/09/05 23:37:45 rswindell Exp $ */
+/* $Id: term.c,v 1.341 2018/10/21 20:52:43 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -2745,6 +2745,10 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=19;
 						conn_send(ch,1,0);
 						break;
+					case CIO_KEY_END:
+						ch[0]=147;			/* Clear / Shift-Home */
+						conn_send(ch,1,0);
+						break;
 					case '\b':
 					case CIO_KEY_DC:		/* "Delete" key */
 						ch[0]=20;
@@ -2801,10 +2805,7 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<65) {
+							if(key<65) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
