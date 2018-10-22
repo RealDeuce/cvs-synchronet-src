@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.53 2018/10/25 21:15:03 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.52 2018/10/22 04:18:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,18 +810,19 @@ void sbbs_t::maindflts(user_t* user)
 		if(user->rows)
 			rows=user->rows;
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
-		long term = (user == &useron) ? term_supports() : user->misc;
-		if(term&PETSCII)
-			safe_snprintf(str,sizeof(str),"%sPETSCII %u columns"
+		if(user->misc&PETSCII)
+			safe_snprintf(str,sizeof(str),"%sPETSCII %s%u cols"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
+							,user->misc&COLOR ? "(Color) ":"(Mono) "
 							,cols);
 		else
 			safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
-							,term&ANSI ? "ANSI ":"TTY "
-							,term&COLOR ? "(Color) ":"(Mono) "
-							,term&RIP ? "RIP " : nulstr
-							,term&NO_EXASCII ? "ASCII":"CP437");
+							,user->misc&ANSI ? "ANSI ":"TTY "
+							,user->misc&COLOR ? "(Color) ":"(Mono) "
+							,user->misc&WIP	? "WIP" : user->misc&RIP ? "RIP "
+								: user->misc&HTML ? "HTML " : nulstr
+							,user->misc&NO_EXASCII ? "ASCII Only":nulstr);
 		bprintf(text[UserDefaultsTerminal],str);
 		if(cfg.total_xedits)
 			bprintf(text[UserDefaultsXeditor]
@@ -863,7 +864,7 @@ void sbbs_t::maindflts(user_t* user)
 		if(startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
 			bprintf(text[UserDefaultsAutoLogon]
 			,user->misc&AUTOLOGON ? text[On] : text[Off]);
-		if(user->exempt&FLAG('Q') || user->misc&QUIET)
+		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
 			bprintf(text[UserDefaultsQuiet]
 				,user->misc&QUIET ? text[On] : text[Off]);
 		SAFECOPY(str,"None");
@@ -883,7 +884,7 @@ void sbbs_t::maindflts(user_t* user)
 		SAFECOPY(str,"HTBALPRSYFNCQXZ\r");
 		if(cfg.sys_misc&SM_PWEDIT && !(user->rest&FLAG('G')))
 			strcat(str,"W");
-		if(user->exempt&FLAG('Q') || user->misc&QUIET)
+		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
 			strcat(str,"D");
 		if(cfg.total_xedits)
 			strcat(str,"E");
