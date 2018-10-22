@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.33 2018/10/26 06:19:48 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.31 2018/10/21 00:37:17 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -159,16 +159,13 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE && telnet_cmd[3]==TELNET_TERM_SEND) {
 						char buf[32];
-						const char *termtype;
+						const char *termtype = "ANSI";
 						switch(cterm->emulation) {
 							case CTERM_EMULATION_PETASCII:
 								termtype = "PETSCII";
 								break;
 							case CTERM_EMULATION_ATASCII:
 								termtype = "ATASCII";
-								break;
-							default:
-								termtype = "ANSI";
 								break;
 						}
 						int len=sprintf(buf,"%c%c%c%c%s%c%c"
@@ -281,7 +278,7 @@ BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 		outbuf[outlen++]=inbuf[i];
 		if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO) {
 			if(inbuf[i]=='\r')
-				outbuf[outlen++]=0;	// Some Telnet servers when receiving CRLF as an "Enter" character
+				outbuf[outlen++]='\n';
 		}
 	}
     *newlen=outlen;
