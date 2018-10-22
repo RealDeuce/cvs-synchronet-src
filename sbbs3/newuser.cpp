@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.74 2018/10/03 23:49:04 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.75 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,7 +169,7 @@ BOOL sbbs_t::newuser()
 		}
 		else
 			useron.rows=24;
-		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(!(useron.misc&PETSCII) && text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		else
 			useron.misc&=~NO_EXASCII;
