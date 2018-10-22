@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.272 2018/12/12 20:27:31 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.271 2018/07/24 08:41:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1895,7 +1895,7 @@ int main(int argc, char** argv)
     SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
 
 	if(chdir(scfg.ctrl_dir)!=0)
-		lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), scfg.ctrl_dir);
+		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, scfg.ctrl_dir);
 
     scfg.size=sizeof(scfg);
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
@@ -1946,7 +1946,7 @@ int main(int argc, char** argv)
 
 		lprintf(LOG_INFO,"Running as daemon");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			lprintf(LOG_ERR,"!ERROR %d (%s) running as daemon", errno, strerror(errno));
+			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
 	}
