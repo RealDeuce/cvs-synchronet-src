@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.175 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: js_bbs.cpp,v 1.172 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ enum {
 };
 
 #ifdef BUILD_JSDOCS
-	static const char* bbs_prop_desc[] = {
+	static char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"answer time, in <i>time_t</i> format"
@@ -181,14 +181,7 @@ enum {
 
 	,"current node number"
 	,"current node settings bitfield (see <tt>NM_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"current node status value (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node error counter"
 	,"current node action (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node user number (<i>useron</i> value)"
-	,"current node connection type (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node misc value (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node aux value"
-	,"current node extended aux (<i>extaux</i>) value"
 	,"validation feedback user for this node (or 0 for no validation feedback required)"
 
 	,"bytes uploaded during this session"
@@ -1179,11 +1172,11 @@ js_menu(JSContext *cx, uintN argc, jsval *arglist)
 	if(!menu)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->menu(menu);
+	sbbs->menu(menu);
 	free(menu);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_SET_RVAL(cx, arglist, result ? JSVAL_TRUE : JSVAL_FALSE);
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     return(JS_TRUE);
 }
@@ -4142,7 +4135,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,314
 	},
 	/* menuing */
-	{"menu",			js_menu,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("base_filename")
+	{"menu",			js_menu,			1,	JSTYPE_VOID,	JSDOCSTR("base_filename")
 	,JSDOCSTR("display a menu file from the text/menu directory")
 	,310
 	},
