@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.741 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: main.cpp,v 1.736 2018/10/22 07:38:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -463,7 +463,7 @@ int DLLCALL sbbs_random(int n)
 static js_server_props_t js_server_props;
 
 JSBool
-DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
+DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, char* str[],uintN flags)
 {
 	JSObject*	array;
 	JSString*	js_str;
@@ -601,7 +601,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		// If the first item is already in the list, don't do anything.
 		if(!JS_GetArrayLength(cx, method_array, &len))
 			return(JS_FALSE);
-		for(i=0; i<(int)len; i++) {
+		for(i=0; i<len; i++) {
 			if(JS_GetElement(cx, method_array, i, &val)!=JS_TRUE || val == JSVAL_VOID)
 				continue;
 			JS_GetProperty(cx, JSVAL_TO_OBJECT(val), "name", &val);
@@ -2649,8 +2649,8 @@ void event_thread(void* arg)
 		sbbs->online=FALSE;	/* reset this from ON_LOCAL */
 
 		/* QWK events */
+		sbbs->event_code = "unQWK";
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
-			sbbs->event_code = "unpackREP";
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
 			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
@@ -2810,12 +2810,10 @@ void event_thread(void* arg)
 
 			/* Run daily maintenance? */
 			sbbs->cfg.node_num=0;
-			if(!(startup->options&BBS_OPT_NO_NEWDAY_EVENTS)) {
-				sbbs->event_code = "";
-				sbbs->logonstats();
-				if(sbbs->sys_status&SS_DAILY)
-					sbbs->daily_maint();
-			}
+			sbbs->logonstats();
+			if(sbbs->sys_status&SS_DAILY)
+				sbbs->daily_maint();
+
 			/* Node Daily Events */
 			sbbs->event_code = "DAILY";
 			for(i=first_node;i<=last_node;i++) {
@@ -3576,7 +3574,7 @@ bool sbbs_t::init()
 				,mon[tm.tm_mon],tm.tm_mday,tm.tm_year+1900);
 			logline(LOG_NOTICE,"L!",str);
 			log(crlf);
-			catsyslog(TRUE);
+			catsyslog(1);
 		}
 
 		getnodedat(cfg.node_num,&thisnode,1);
@@ -4437,10 +4435,8 @@ void node_thread(void* arg)
 		mswait(login_attempts*startup->login_attempt.throttle);
 	}
 
-	bool login_success = false;
 	if(sbbs->answer()) {
 
-		login_success = true;
 		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
 		if(sbbs->qwklogon) {
 			sbbs->getsmsg(sbbs->useron.number);
@@ -4560,12 +4556,7 @@ void node_thread(void* arg)
 		}
 	}
 
-	if(login_success)
-		sbbs->catsyslog(/* Crash: */FALSE);
-	else {
-		rewind(sbbs->logfile_fp);
-		chsize(fileno(sbbs->logfile_fp), 0);
-	}
+	sbbs->catsyslog(0);
 
 	status(STATUS_WFC);
 
@@ -5473,6 +5464,8 @@ NO_SSH:
 				lprintf(LOG_NOTICE, "%04d %s !Maximum concurrent connections without login (%u) reached from host: %s"
  					,client_socket, client.protocol, startup->max_concurrent_connections, host_ip);
 				close_socket(client_socket);
+				SAFEPRINTF(logstr, "Too many concurrent connections without login from host: %s",host_ip);
+				sbbs->syslog("@!",logstr);
 				continue;
 			}
 		}
@@ -5492,6 +5485,8 @@ NO_SSH:
 			} else
 				lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in ip.can: %s", client_socket, client.protocol, host_ip);
 			close_socket(client_socket);
+			SAFEPRINTF(logstr, "Blocked IP: %s",host_ip);
+			sbbs->syslog("@!",logstr);
 			continue;
 		}
 
@@ -5641,6 +5636,8 @@ NO_SSH:
 			close_socket(client_socket);
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT BLOCKED in host.can: %s"
 				,client_socket, client.protocol, host_name);
+			SAFEPRINTF(logstr, "Blocked Hostname: %s",host_name);
+			sbbs->syslog("@!",logstr);
 			continue;
 		}
 

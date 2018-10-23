@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.44 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.40 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,28 +64,20 @@ char sbbs_t::putmsg(const char *buf, long mode)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
-	long term = term_supports();
-	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
-		mode &= ~P_WORDWRAP;
-		l += 9;
+	if(mode&P_HTML)
+		putcom("\x02\x02");
+	if(!(mode&P_NOATCODES) && memcmp(str, "@WORDWRAP@", 10) == 0) {
+		mode |= P_WORDWRAP;
+		l += 10;
 	}
 	if(mode&P_WORDWRAP) {
-		char* wrapoff = NULL;
-		if(!(mode&P_NOATCODES)) {
-			wrapoff = strstr((char*)str+l, "@WRAPOFF@");
-			if(wrapoff != NULL)
-				*wrapoff = 0;
-		}
 		char *wrapped;
 		if((wrapped=::wordwrap((char*)str+l, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
-			putmsg(wrapped, mode&(~P_WORDWRAP));
-			free(wrapped);
-			l=strlen(str);
-			if(wrapoff != NULL)
-				l += 9;	// Skip "<NUL>WRAPOFF@"
+			str=wrapped;
+			l=0;
 		}
 	}
 
@@ -116,8 +108,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					sys_status&=~SS_NEST_PF; 
 				}
 			}
-			else if(str[l+1] == 'Z')	/* Ctrl-AZ==EOF (uppercase 'Z' only) */
-				break;
 			else {
 				ctrl_a(str[l+1]);
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
@@ -144,7 +134,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			l+=4; 
 		}
 		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
-			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&RIP)) {
+			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&(RIP|WIP))) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
 			if(i>=16) { 				/* setting background */
@@ -159,7 +149,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			l+=3;	/* Skip |xx */
 		}	
 		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha((unsigned char)str[l+1])
-			&& !(useron.misc&RIP)) {
+			&& !(useron.misc&(RIP|WIP))) {
 			switch(str[l+1]) {
 				case 'k':
 					attr((curatr&0xf0)|BLACK);
@@ -271,8 +261,10 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					continue; 
 				} 
 			}
-			if(str[l]=='!' && str[l+1]=='|' && useron.misc&RIP) /* RIP */
+			if(str[l]=='!' && str[l+1]=='|' && useron.misc&(RIP|WIP)) /* RIP */
 				lncntr=0;				/* so defeat pause */
+			if(str[l]==ESC && str[l+1]=='$')    /* WIP command */
+				lncntr=0;
 			if(str[l]=='@' && !(mode&P_NOATCODES)) {
 				if(memcmp(str+l, "@EOF@", 5) == 0)
 					break;
@@ -286,7 +278,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				if(memcmp(str+l, "@CENTER@", 8) == 0) {
 					l += 8;
 					i=0;
-					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r' && str[l] != '\n')
+					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r')
 						tmp2[i++] = str[l++];
 					tmp2[i] = 0;
 					truncsp(tmp2);
@@ -303,12 +295,19 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					l += 9;
 					continue;
 				}
-				if(memcmp(str+l, "@WORDWRAP@", 10) == 0) {
-					l += 10;
-					putmsg(str+l, mode|P_WORDWRAP);
-					break;
+				/* In HTML mode, defer PAUSE and MORE to end and suppress message */
+				if(mode&P_HTML) {
+					if(!memcmp(str+l,"@MORE@",6)) {
+						defered_pause=TRUE;
+						l+=6;
+						continue;
+					}
+					if(!memcmp(str+l,"@PAUSE@",7)) {
+						defered_pause=TRUE;
+						l+=7;
+						continue;
+					}
 				}
-
 				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
@@ -318,16 +317,18 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			}
 			if(mode&P_CPM_EOF && str[l]==CTRL_Z)
 				break;
-			if(mode&P_PETSCII) {
-				if(term&PETSCII)
-					outcom(str[l]);
+			outchar(str[l]);
+#if 0
+				if(!(mode&P_HTML) && !exatr && !outchar_esc && lncntr && lbuflen && cols && ++col==cols)
+					lncntr++;
 				else
-					petscii_to_ansibbs(str[l]);
-			} else
-				outchar(str[l]);
+					col=0;
+#endif
 			l++; 
 		} 
 	}
+	if(mode&P_HTML)
+		putcom("\x02");
 	if(!(mode&P_SAVEATR)) {
 		console=orgcon;
 		attr(tmpatr); 
@@ -337,10 +338,15 @@ char sbbs_t::putmsg(const char *buf, long mode)
 
 	/* Handle defered pauses */
 	if(defered_pause) {
-		pause();
+		if(mode&P_HTML)
+			getkey(0);
+		else
+			pause();
 	}
 
 	ret=str[l];
+	if(str!=buf)	/* malloc'd copy of buffer */
+		free(str);
 
 	/* Restore original settings of Forced Pause On/Off */
 	sys_status&=~(SS_PAUSEOFF|SS_PAUSEON);
