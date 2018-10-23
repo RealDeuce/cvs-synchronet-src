@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.31 2018/10/21 00:37:17 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.32 2018/10/23 02:18:57 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -159,13 +159,16 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE && telnet_cmd[3]==TELNET_TERM_SEND) {
 						char buf[32];
-						const char *termtype = "ANSI";
+						const char *termtype;
 						switch(cterm->emulation) {
 							case CTERM_EMULATION_PETASCII:
 								termtype = "PETSCII";
 								break;
 							case CTERM_EMULATION_ATASCII:
 								termtype = "ATASCII";
+								break;
+							default:
+								termtype = "ANSI";
 								break;
 						}
 						int len=sprintf(buf,"%c%c%c%c%s%c%c"
