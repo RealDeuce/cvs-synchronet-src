@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.79 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.83 2018/10/22 04:18:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -101,7 +101,7 @@ int sbbs_t::show_atcode(const char *instr)
 	} else if(zero_padded) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len)
-			bprintf("%-.*s%s", disp_len - strlen(cp), "0000000000", cp);
+			bprintf("%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
 		else
 			bprintf("%.*s", disp_len, cp);
 	} else
@@ -158,7 +158,9 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(COPYRIGHT_NOTICE);
 
 	if(!strcmp(sp,"COMPILER")) {
-		DESCRIBE_COMPILER(str);
+		char compiler[32];
+		DESCRIBE_COMPILER(compiler);
+		strncpy(str, compiler, maxlen);
 		return(str);
 	}
 
@@ -202,6 +204,17 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%lu",cur_rate);
 		return(str);
 	}
+
+	if(!strcmp(sp,"COLS")) {
+		safe_snprintf(str,maxlen,"%lu",cols);
+		return(str);
+	}
+	if(!strcmp(sp,"ROWS")) {
+		safe_snprintf(str,maxlen,"%lu",rows);
+		return(str);
+	}
+	if(!strcmp(sp,"TERM"))
+		return(terminal);
 
 	if(!strcmp(sp,"CONN"))
 		return(connection);
@@ -297,7 +310,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		|| !strcmp(sp,"LASTCALLERSYSTEM"))
 		return(lastuseron);
 
-	if(!strcmp(sp,"CLS")) {
+	if(!strcmp(sp,"CLS") || !strcmp(sp,"CLEAR")) {
 		CLS;
 		return(nulstr);
 	}
@@ -1027,6 +1040,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
 		return(current_msg->subj==NULL ? nulstr : current_msg->subj);
+	if(!strcmp(sp,"MSG_SUMMARY") && current_msg!=NULL)
+		return(current_msg->summary==NULL ? nulstr : current_msg->summary);
+	if(!strcmp(sp,"MSG_TAGS") && current_msg!=NULL)
+		return(current_msg->tags==NULL ? nulstr : current_msg->tags);
 	if(!strcmp(sp,"MSG_DATE") && current_msg!=NULL)
 		return(timestr(current_msg->hdr.when_written.time));
 	if(!strcmp(sp,"MSG_AGE") && current_msg!=NULL)
