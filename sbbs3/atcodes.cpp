@@ -1,6 +1,6 @@
 /* Synchronet "@code" functions */
 
-/* $Id: atcodes.cpp,v 1.83 2018/10/22 04:18:04 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.84 2018/10/25 21:25:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -644,6 +644,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strncmp(sp,"MENU:",5)) {
 		menu(sp+5);
+		return(nulstr);
+	}
+
+	if(!strncmp(sp,"CONDMENU:",9)) {
+		menu(sp+9, P_NOERROR);
 		return(nulstr);
 	}
 
