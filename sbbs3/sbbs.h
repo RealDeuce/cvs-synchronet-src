@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.491 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.492 2018/10/25 09:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -746,8 +746,8 @@ public:
 	/* prntfile.cpp */
 	void	printfile(char *str, long mode);
 	void	printtail(char *str, int lines, long mode);
-	void	menu(const char *code);
-	bool	menu_exists(const char *code);
+	void	menu(const char *code, long mode = 0);
+	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
