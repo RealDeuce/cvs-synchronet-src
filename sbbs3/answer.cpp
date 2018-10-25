@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.101 2018/10/25 09:32:10 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.100 2018/10/22 04:22:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,12 +271,9 @@ bool sbbs_t::answer()
 	/* Detect terminal type */
 	mswait(200);	// Allow some time for Telnet negotiation
 	rioctl(IOFI);		/* flush input buffer */
-	safe_snprintf(str, sizeof(str), "%s  %s", VERSION_NOTICE, COPYRIGHT_NOTICE);
-	if(autoterm&PETSCII) {
+	if(autoterm&PETSCII)
 		SAFECOPY(terminal, "PETSCII");
-		outchar(FF);
-		center(str);
-	} else {	/* ANSI+ terminal detection */
+	else {	/* ANSI+ terminal detection */
 		putcom( "\r\n"		/* locate cursor at column 1 */
 				"\x1b[s"	/* save cursor position (necessary for HyperTerm auto-ANSI) */
 				"\x1b[0c"	/* Request CTerm version */
@@ -298,6 +295,8 @@ bool sbbs_t::answer()
 		i=l=0;
 		tos=1;
 		lncntr=0;
+		safe_snprintf(str, sizeof(str), "%s  %s", VERSION_NOTICE, COPYRIGHT_NOTICE);
+		strip_ctrl(str, str);
 		center(str);
 
 		while(i++<50 && l<(int)sizeof(str)-1) { 	/* wait up to 5 seconds for response */
@@ -363,12 +362,9 @@ bool sbbs_t::answer()
 
 		rioctl(IOFI); /* flush left-over or late response chars */
 
-		if(!autoterm) {
-			autoterm |= NO_EXASCII;
-			if(str[0]) {
-				c_escape_str(str,tmp,sizeof(tmp)-1,TRUE);
-				lprintf(LOG_NOTICE,"terminal auto-detection failed, response: '%s'", tmp);
-			}
+		if(!autoterm && str[0]) {
+			c_escape_str(str,tmp,sizeof(tmp)-1,TRUE);
+			lprintf(LOG_NOTICE,"terminal auto-detection failed, response: '%s'", tmp);
 		}
 		if(terminal[0])
 			lprintf(LOG_DEBUG, "auto-detected terminal type: %lux%lu %s", cols, rows, terminal);
@@ -459,7 +455,25 @@ bool sbbs_t::answer()
 		/* Display ANSWER screen */
 		rioctl(IOSM|PAUSE);
 		sys_status|=SS_PAUSEON;
-		menu("../answer");	// Should use P_NOABORT ?
+		SAFEPRINTF(str,"%sanswer",cfg.text_dir);
+		SAFEPRINTF(path,"%s.rip",str);
+		if((autoterm&RIP) && fexistcase(path))
+			printfile(path,P_NOABORT);
+		else {
+			SAFEPRINTF(path,"%s.html",str);
+			if((autoterm&HTML) && fexistcase(path))
+				printfile(path,P_NOABORT);
+			else {
+				SAFEPRINTF(path,"%s.ans",str);
+				if((autoterm&ANSI) && fexistcase(path))
+					printfile(path,P_NOABORT);
+				else {
+					SAFEPRINTF(path,"%s.asc",str);
+					if(fexistcase(path))
+						printfile(path, P_NOABORT);
+				}
+			}
+		}
 		sys_status&=~SS_PAUSEON;
 		exec_bin(cfg.login_mod,&main_csi);
 	} else	/* auto logon here */
