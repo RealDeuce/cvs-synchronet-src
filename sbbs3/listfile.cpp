@@ -2,7 +2,7 @@
 
 /* Synchronet file database listing functions */
 
-/* $Id: listfile.cpp,v 1.60 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: listfile.cpp,v 1.64 2018/08/03 06:18:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,7 +294,7 @@ int sbbs_t::listfiles(uint dirnum, const char *filespec, int tofile, long mode)
 				if(tofile) {
 					write(tofile,crlf,2);
 					sprintf(hdr,"%*s",c,nulstr);
-					memset(hdr,'Ä',c);
+					memset(hdr,0xC4,c);
 					strcat(hdr,crlf);
 					write(tofile,hdr,strlen(hdr)); 
 				}
@@ -302,7 +302,7 @@ int sbbs_t::listfiles(uint dirnum, const char *filespec, int tofile, long mode)
 					CRLF;
 					attr(cfg.color[clr_filelstline]);
 					while(c--)
-						outchar('Ä');
+						outchar('\xC4');
 					CRLF; 
 				} 
 			} 
@@ -530,7 +530,7 @@ bool sbbs_t::listfile(const char *fname, const char *buf, uint dirnum
 			attr(cfg.color[clr_filedesc]^HIGH);
 			bprintf("%.*s",i,str+j);
 			attr(cfg.color[clr_filedesc]);
-			bprintf("%.*s",strlen(str)-(j+i),str+j+i); 
+			bprintf("%.*s",(int)(strlen(str)-(j+i)),str+j+i); 
 		}
 		else
 			bputs(str);
@@ -614,8 +614,7 @@ bool sbbs_t::removefile(file_t* f)
 	char str[256];
 
 	if(removefiledat(&cfg,f)) {
-		SAFEPRINTF4(str,"%s removed %s from %s %s"
-			,useron.alias
+		SAFEPRINTF3(str,"removed %s from %s %s"
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 		logline("U-",str);
@@ -647,8 +646,7 @@ bool sbbs_t::movefile(file_t* f, int newdir)
 	addfiledat(&cfg,f);
 	bprintf(text[MovedFile],f->name
 		,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
-	sprintf(str,"%s moved %s to %s %s",f->name
-		,useron.alias
+	sprintf(str,"moved %s to %s %s",f->name
 		,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 	logline(nulstr,str);
 	if(!f->altpath) {	/* move actual file */
@@ -716,10 +714,9 @@ int sbbs_t::batchflagprompt(uint dirnum, file_t* bf, uint total
 				f.datoffset=bf[0].datoffset;
 				f.size=0;
 				getfiledat(&cfg,&f);
+				addtobatdl(&f);
 				if(ch=='D')
-					downloadfile(&f);
-				else
-					addtobatdl(&f);
+					start_batch_download();
 				CRLF;
 				return(2); 
 			}
@@ -1009,11 +1006,13 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 		return(0);
 	l=(long)filelength(file);
 	if(!l) {
+		FREE_AND_NULL(usrxfrbuf);
 		close(file);
 		return(0); 
 	}
 	if((ixbbuf=(uchar *)malloc(l))==NULL) {
 		close(file);
+		FREE_AND_NULL(usrxfrbuf);
 		errormsg(WHERE,ERR_ALLOC,str,l);
 		return(0); 
 	}
@@ -1213,8 +1212,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 							if(remove(str))
 								bprintf(text[CouldntRemoveFile],str);
 							else {
-								sprintf(tmp,"%s deleted %s"
-									,useron.alias
+								sprintf(tmp,"deleted %s"
 									,str);
 								logline(nulstr,tmp); 
 							} 
@@ -1232,8 +1230,7 @@ int sbbs_t::listfileinfo(uint dirnum, char *filespec, long mode)
 								if(remove(str))
 									bprintf(text[CouldntRemoveFile],str);
 								else {
-									sprintf(tmp,"%s deleted %s"
-										,useron.alias
+									sprintf(tmp,"deleted %s"
 										,str);
 									logline(nulstr,tmp); 
 								} 
