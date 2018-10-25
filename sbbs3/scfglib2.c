@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.45 2018/02/20 11:57:13 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.46 2018/03/17 02:23:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -267,6 +267,7 @@ BOOL read_file_cfg(scfg_t* cfg, char* error)
 	for(i=0;i<cfg->altpaths;i++) {
 		if(feof(instream)) break;
 		fread(str,LEN_DIR+1,1,instream);
+		str[LEN_DIR] = 0;
 		offset+=LEN_DIR+1;
 		backslash(str);
 		j=LEN_DIR+1;
