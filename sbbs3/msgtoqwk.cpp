@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.55 2019/02/14 09:54:27 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.52 2018/10/15 04:08:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -204,8 +204,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 		/* Synchronet */
 		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_EDITOR,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
-		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_COLUMNS,NULL))!=NULL)	
-			fprintf(hdrs,"%s: %u\n", smb_hfieldtype(hfield_type), *(uint8_t*)p);
 		if((p=(char*)smb_get_hfield(msg,hfield_type=SMB_TAGS,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 
@@ -322,10 +320,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 			} 
 		}
 
-		ulong getmsgtxt_mode = GETMSGTXT_ALL;
-		if(!(mode&QM_TO_QNET))	// Get just the plain-text portion of MIME-encoded messages
-			getmsgtxt_mode |= GETMSGTXT_PLAIN;
-		buf=smb_getmsgtxt(&smb, msg, getmsgtxt_mode);
+		buf=smb_getmsgtxt(&smb,msg,GETMSGTXT_ALL);
 		if(!buf)
 			return(0);
 
@@ -384,7 +379,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 
 			if(ch==CTRL_A) {
 				ch=buf[++l];
-				if(ch==0 || ch=='Z')	/* EOF */
+				if(ch==0)
 					break;
 				if((asc=ctrl_a_to_ascii_char(ch)) != 0) {
 					fputc(asc,qwk_fp);
