@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.50 2018/03/10 06:20:23 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.52 2018/10/22 04:18:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,7 +810,13 @@ void sbbs_t::maindflts(user_t* user)
 		if(user->rows)
 			rows=user->rows;
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
-		safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
+		if(user->misc&PETSCII)
+			safe_snprintf(str,sizeof(str),"%sPETSCII %s%u cols"
+							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
+							,user->misc&COLOR ? "(Color) ":"(Mono) "
+							,cols);
+		else
+			safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,user->misc&ANSI ? "ANSI ":"TTY "
 							,user->misc&COLOR ? "(Color) ":"(Mono) "
@@ -905,13 +911,13 @@ void sbbs_t::maindflts(user_t* user)
 					else
 						user->misc&=~(ANSI|COLOR); 
 				}
-				if(user->misc&ANSI) {
+				if(user->misc&(ANSI|PETSCII)) {
 					if(yesno(text[ColorTerminalQ]))
 						user->misc|=COLOR;
 					else
 						user->misc&=~COLOR; 
 				}
-				if(!yesno(text[ExAsciiTerminalQ]))
+				if(!(user->misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
 					user->misc|=NO_EXASCII;
 				else
 					user->misc&=~NO_EXASCII;
@@ -1063,8 +1069,7 @@ void sbbs_t::maindflts(user_t* user)
 					now=time(NULL);
 					putuserrec(&cfg,user->number,U_PWMOD,8,ultoa((ulong)now,tmp,16));
 					bputs(text[PasswordChanged]);
-					SAFEPRINTF(str,"%s changed password",useron.alias);
-					logline(LOG_NOTICE,nulstr,str);
+					logline(LOG_NOTICE,nulstr,"changed password");
 				}
 				SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,user->number);
 				if(fexist(str) && yesno(text[ViewSignatureQ]))
