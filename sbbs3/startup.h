@@ -1,6 +1,6 @@
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.81 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: startup.h,v 1.82 2018/10/22 04:18:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -91,6 +91,8 @@ typedef struct {
     WORD	last_node;
 	WORD	telnet_port;
 	WORD	rlogin_port;
+	WORD	pet40_port;			// 40-column PETSCII terminal server
+	WORD	pet80_port;			// 80-column PETSCII terminal server
 	WORD	ssh_port;
 	WORD	ssh_connect_timeout;
 	WORD	outbuf_highwater_mark;	/* output block size control */
