@@ -815,6 +815,12 @@ enum {
 	,VoteNoticeFmt
 	,TagMessageQ
 	,TagMessagePrompt
+	,MsgTags
+	,NoAccessTerminal
+	,LongLineContinuationPrefix
+	,Scanning
+	,Done
+	,Scanned
 
 	,TOTAL_TEXT
 };
