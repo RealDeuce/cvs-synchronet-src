@@ -2,7 +2,7 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.20 2019/03/19 23:06:48 rswindell Exp $ */
+/* $Id: chat.c,v 1.19 2018/07/24 01:12:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,12 +152,12 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 
 	sprintf(outpath,"%slchat.dab",cfg->node_path[nodenum-1]);
 	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-		,DEFFILEMODE))==-1)
+		,S_IREAD|S_IWRITE))==-1)
 		return(-1);
 
 	sprintf(inpath,"%schat.dab",cfg->node_path[nodenum-1]);
 	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-		,DEFFILEMODE))==-1) {
+		,S_IREAD|S_IWRITE))==-1) {
 		close(out);
 		return(-1);
     }
