@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.493 2018/10/25 21:22:59 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.494 2018/10/26 03:22:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -928,7 +928,6 @@ public:
 	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
-	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
 	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
 				,long access, const char *extinfo=NULL);
