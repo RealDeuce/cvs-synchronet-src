@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.474 2018/10/05 06:26:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.477 2018/10/17 19:10:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1710,9 +1710,9 @@ static void receive_thread(void* arg)
 			last_report=now;
 		}
 		if(startup->max_fsize && (xfer.filepos+total) > startup->max_fsize) {
-			lprintf(LOG_WARNING,"%04d <%s> !DATA received %lu bytes of %s exceeds maximum allowed (%lu bytes)"
+			lprintf(LOG_WARNING,"%04d <%s> !DATA received %lu bytes of %s exceeds maximum allowed (%"PRIu64" bytes)"
 				,xfer.ctrl_sock, xfer.user->alias, xfer.filepos+total, xfer.filename, startup->max_fsize);
-			sockprintf(xfer.ctrl_sock,sess,"552 File size exceeds maximum allowed (%lu bytes)", startup->max_fsize);
+			sockprintf(xfer.ctrl_sock,sess,"552 File size exceeds maximum allowed (%"PRIu64" bytes)", startup->max_fsize);
 			error=TRUE;
 			break;
 		}
@@ -1813,9 +1813,9 @@ static void receive_thread(void* arg)
 		lprintf(LOG_DEBUG,"%04d <%s> DATA socket %d closed",xfer.ctrl_sock, xfer.user->alias,*xfer.data_sock);
 	
 	if(xfer.filepos+total < startup->min_fsize) {
-		lprintf(LOG_WARNING,"%04d <%s> DATA received %lu bytes for %s, less than minimum required (%lu bytes)"
+		lprintf(LOG_WARNING,"%04d <%s> DATA received %lu bytes for %s, less than minimum required (%"PRIu64" bytes)"
 			,xfer.ctrl_sock, xfer.user->alias, xfer.filepos+total, xfer.filename, startup->min_fsize);
-		sockprintf(xfer.ctrl_sock,sess,"550 File size less than minimum required (%lu bytes)"
+		sockprintf(xfer.ctrl_sock,sess,"550 File size less than minimum required (%"PRIu64" bytes)"
 			,startup->min_fsize);
 		error=TRUE;
 	}
@@ -5022,7 +5022,7 @@ static void ctrl_thread(void* arg)
 						lprintf(LOG_ERR,"%04d <%s> !ERROR creating semaphore file: %s"
 							,sock, user.alias, str);
 					t=time(NULL);
-					while(fexist(str)) {
+					while(fexist(str) && !terminate_server) {
 						if(!socket_check(sock,NULL,NULL,0))
 							break;
 						if(time(NULL)-t>startup->qwk_timeout)
@@ -5396,7 +5396,7 @@ static void ctrl_thread(void* arg)
 					,tm.tm_hour,tm.tm_min,tm.tm_sec);
 			} else if(delecmd && success) {
 				if(removecase(fname)!=0) {
-					lprintf(LOG_ERR,"%04d <%d> !ERROR %d (%s) deleting %s",sock,user.alias, errno, strerror(errno), fname);
+					lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) deleting %s", sock, user.alias, errno, strerror(errno), fname);
 					sockprintf(sock,sess,"450 %s could not be deleted (error: %d)"
 						,fname,errno);
 				} else {
@@ -5898,7 +5898,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.474 $", "%*s %s", revision);
+	sscanf("$Revision: 1.477 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6179,8 +6179,8 @@ void DLLCALL ftp_server(void* arg)
 			}
 
 			if((ftp=malloc(sizeof(ftp_t)))==NULL) {
-				lprintf(LOG_CRIT,"%04d !ERROR allocating %lu bytes of memory for ftp_t"
-					,client_socket,sizeof(ftp_t));
+				lprintf(LOG_CRIT,"%04d !ERROR allocating %d bytes of memory for ftp_t"
+					,client_socket,(int)sizeof(ftp_t));
 				sockprintf(client_socket,-1,"421 System error, please try again later.");
 				mswait(3000);
 				ftp_close_socket(&client_socket,&none,__LINE__);
@@ -6204,7 +6204,7 @@ void DLLCALL ftp_server(void* arg)
 				, protected_uint32_value(active_clients));
 			start=time(NULL);
 			while(protected_uint32_value(active_clients)) {
-				if(time(NULL)-start>startup->max_inactivity) {
+				if(time(NULL)-start > startup->max_inactivity * 2) {
 					lprintf(LOG_WARNING,"0000 !TIMEOUT waiting for %d active clients"
 						, protected_uint32_value(active_clients));
 					break;
