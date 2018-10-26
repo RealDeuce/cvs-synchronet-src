@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.40 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.39 2018/08/03 06:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,6 @@ bool sbbs_t::bulkmail(uchar *ar)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
