@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.60 2019/05/06 10:46:43 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.57 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,8 +70,8 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 		ch&=0x7f; 
 
 	this->timeout=time(NULL);
-	long term = term_supports();
-	if(term&PETSCII) {
+
+	if(term_supports(PETSCII)) {
 		switch(ch) {
 			case PETSCII_HOME:
 				return TERM_KEY_HOME;
@@ -80,7 +80,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 			case PETSCII_INSERT:
 				return TERM_KEY_INSERT;
 			case PETSCII_DELETE:
-				return '\b';
+				return TERM_KEY_DELETE;
 			case PETSCII_LEFT:
 				return TERM_KEY_LEFT;
 			case PETSCII_RIGHT:
@@ -94,17 +94,6 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 			ch = 0x60 | (ch&0x1f);
 		if(isalpha((unsigned char)ch))
 			ch ^= 0x20;	/* Swap upper/lower case */
-	}
-
-	if(term&SWAP_DELETE) {
-		switch(ch) {
-			case TERM_KEY_DELETE:
-				ch = '\b';
-				break;
-			case '\b':
-				ch = TERM_KEY_DELETE;
-				break;
-		}
 	}
 
 	/* Is this a control key */
@@ -202,7 +191,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 		case CTRL_P:	/* Ctrl-P Private node-node comm */
 			if(!(sys_status&SS_USERON))
-				break;;
+				return(0);			 /* keep from being recursive */
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -225,8 +214,9 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 
 		case CTRL_U:	/* Ctrl-U Users online */
+			/* needs recursion checking */
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -250,7 +240,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -276,7 +266,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
