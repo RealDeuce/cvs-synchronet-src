@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.72 2018/07/27 01:23:40 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.76 2018/10/25 09:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,9 +81,9 @@ BOOL sbbs_t::newuser()
 			logline(LOG_NOTICE,"N!",tmp); 
 		}
 		if(c==4) {
-			SAFEPRINTF(str,"%snupguess.msg",cfg.text_dir);
-			if(fexist(str))
-				printfile(str,P_NOABORT);
+			const char* nupguess = "../nupguess";
+			if(menu_exists(nupguess))
+				menu(nupguess, P_NOABORT);
 			hangup();
 			return(FALSE); 
 		} 
@@ -141,7 +141,7 @@ BOOL sbbs_t::newuser()
 
 	useron.alias[0]=0;
 
-	kmode=(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL;
+	kmode=(cfg.uq&UQ_NOEXASC)|K_EDIT|K_AUTODEL|K_TRIM;
 	if(!(cfg.uq&UQ_NOUPRLWR))
 		kmode|=K_UPRLWR;
 
@@ -169,7 +169,7 @@ BOOL sbbs_t::newuser()
 		}
 		else
 			useron.rows=24;
-		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(!(useron.misc&PETSCII) && text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		else
 			useron.misc&=~NO_EXASCII;
@@ -306,15 +306,15 @@ BOOL sbbs_t::newuser()
 	SAFEPRINTF(str,"New user: %s",useron.alias);
 	logline("N",str);
 	if(!online) return(FALSE);
-	SAFEPRINTF(str,"%ssbbs.msg",cfg.text_dir);
-	if(fexist(str))
-		printfile(str,P_NOABORT);
-	SAFEPRINTF(str,"%ssystem.msg",cfg.text_dir);
-	if(fexist(str))
-		printfile(str,P_NOABORT);
-	SAFEPRINTF(str,"%snewuser.msg",cfg.text_dir);
-	if(fexist(str))
-		printfile(str,P_NOABORT);
+	const char* fname = "../sbbs";
+	if(menu_exists(fname))
+		menu(fname, P_NOABORT);
+	fname = "../system";
+	if(menu_exists(fname))
+		menu(fname, P_NOABORT);
+	fname = "../newuser";
+	if(menu_exists(fname))
+		menu(fname, P_NOABORT);
 	answertime=time(NULL);		/* could take 10 minutes to get this far */
 
 	/* Default editor (moved here, after terminal type setup Jan-2003) */
@@ -380,13 +380,11 @@ BOOL sbbs_t::newuser()
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
 			if(!strcmp(str,useron.pass)) break;
 			if(cfg.sys_misc&SM_ECHO_PW) 
-				SAFEPRINTF3(tmp,"%s FAILED Password verification: '%s' instead of '%s'"
-					,useron.alias
+				SAFEPRINTF2(tmp,"FAILED Password verification: '%s' instead of '%s'"
 					,str
 					,useron.pass);
 			else
-				SAFEPRINTF(tmp,"%s FAILED Password verification"
-					,useron.alias);
+				SAFECOPY(tmp,"FAILED Password verification");
 			logline(LOG_NOTICE,nulstr,tmp);
 			if(++c==4) {
 				logline(LOG_NOTICE,"N!","Couldn't figure out password.");
@@ -404,7 +402,7 @@ BOOL sbbs_t::newuser()
 		getstr(str,50,K_UPPER);
 		if(strcmp(str,cfg.new_magic)) {
 			bputs(text[FailedMagicWord]);
-			SAFEPRINTF2(tmp,"%s failed magic word: '%s'",useron.alias,str);
+			SAFEPRINTF(tmp,"failed magic word: '%s'",str);
 			logline("N!",tmp);
 			hangup(); 
 		}
@@ -431,9 +429,9 @@ BOOL sbbs_t::newuser()
 	delallmail(useron.number, MAIL_ANY);
 
 	if(useron.number!=1 && cfg.node_valuser) {
-		SAFEPRINTF(str,"%sfeedback.msg",cfg.text_dir);
-		if(fexist(str))
-			printfile(str,P_NOABORT);
+		const char* fname = "../feedback";
+		if(menu_exists(fname))
+			menu(fname, P_NOABORT);
 		safe_snprintf(str,sizeof(str),text[NewUserFeedbackHdr]
 			,nulstr,getage(&cfg,useron.birth),useron.sex,useron.birth
 			,useron.name,useron.phone,useron.comp,useron.modem);
