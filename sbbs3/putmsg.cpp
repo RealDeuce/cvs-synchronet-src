@@ -1,6 +1,7 @@
 /* Synchronet message/menu display routine */
+// vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.35 2018/08/15 19:38:06 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.41 2018/10/26 02:04:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,14 +38,14 @@
 #include "wordwrap.h"
 
 /****************************************************************************/
-/* Outputs a NULL terminated string locally and remotely (if applicable)	*/
+/* Outputs a NULL terminated string with @-code parsing,                    */
 /* checking for message aborts, pauses, ANSI escape and ^A sequences.		*/
-/* Changes local text attributes if necessary. Max length of str is 4 gig	*/
+/* Changes local text attributes if necessary.                              */
 /* Returns the last char of the buffer access.. 0 if not aborted.           */
 /* If P_SAVEATR bit is set in mode, the attributes set by the message       */
 /* will be the current attributes after the message is displayed, otherwise */
-/* the attributes prior to diplaying the message are always restored.       */
-/* Ignores Ctrl-Z's  (only in P_CPM_EOF mode)                               */
+/* the attributes prior to displaying the message are always restored.      */
+/* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
 /****************************************************************************/
 char sbbs_t::putmsg(const char *buf, long mode)
 {
@@ -65,31 +66,57 @@ char sbbs_t::putmsg(const char *buf, long mode)
 		sys_status|=SS_PAUSEOFF;
 	if(mode&P_HTML)
 		putcom("\x02\x02");
+	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
+		mode &= ~P_WORDWRAP;
+		l += 9;
+	}
 	if(mode&P_WORDWRAP) {
+		char* term = NULL;
+		if(!(mode&P_NOATCODES)) {
+			term = strstr((char*)str+l, "@WRAPOFF@");
+			if(term != NULL)
+				*term = 0;
+		}
 		char *wrapped;
-		if((wrapped=::wordwrap((char*)buf, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
-			str=wrapped;
+			putmsg(wrapped, mode&(~P_WORDWRAP));
+			free(wrapped);
+			l=strlen(str);
+			if(term != NULL)
+				l += 9;	// Skip "<NUL>WRAPOFF@"
 		}
 	}
 
 	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
+		if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+			switch(str[l]) {
+				case '\r':
+				case '\n':
+				case FF:
+				case CTRL_A:
+					break;
+				default:
+					l++;
+					continue;
+			}
+		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
 				while(i<(int)sizeof(tmp2)-1 && isprint((unsigned char)str[l]) && str[l]!='\\' && str[l]!='/')
 					tmp2[i++]=str[l++];
-				tmp2[i]=0;
-				sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
-				SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
-				printfile(tmp3,0);
-				sys_status&=~SS_NEST_PF; 
+				if(i > 0) {
+					tmp2[i]=0;
+					sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
+					SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
+					printfile(tmp3,0);
+					sys_status&=~SS_NEST_PF; 
+				}
 			}
-			else if(toupper(str[l+1])=='Z')             /* Ctrl-AZ==EOF */
-				break;
 			else {
 				ctrl_a(str[l+1]);
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
@@ -248,7 +275,42 @@ char sbbs_t::putmsg(const char *buf, long mode)
 			if(str[l]==ESC && str[l+1]=='$')    /* WIP command */
 				lncntr=0;
 			if(str[l]=='@' && !(mode&P_NOATCODES)) {
-				/* In HTML mode, defer PAUSE and MORE to end and supress message */
+				if(memcmp(str+l, "@EOF@", 5) == 0)
+					break;
+				if(memcmp(str+l, "@CLEAR@", 7) == 0) {
+					CLS;
+					l += 7;
+					while(str[l] != 0 && (str[l] == '\r' || str[l] == '\n'))
+						l++;
+					continue;
+				}
+				if(memcmp(str+l, "@CENTER@", 8) == 0) {
+					l += 8;
+					i=0;
+					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r')
+						tmp2[i++] = str[l++];
+					tmp2[i] = 0;
+					truncsp(tmp2);
+					center(tmp2);
+					if(str[l] == '\r')
+						l++;
+					if(str[l] == '\n')
+						l++;
+					continue;
+				}
+				if(memcmp(str+l, "@SYSONLY@", 9) == 0) {
+					if(!SYSOP)
+						console^=CON_ECHO_OFF;
+					l += 9;
+					continue;
+				}
+				if(memcmp(str+l, "@WORDWRAP@", 10) == 0) {
+					l += 10;
+					putmsg(str+l, mode|P_WORDWRAP);
+					break;
+				}
+
+				/* In HTML mode, defer PAUSE and MORE to end and suppress message */
 				if(mode&P_HTML) {
 					if(!memcmp(str+l,"@MORE@",6)) {
 						defered_pause=TRUE;
@@ -298,8 +360,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 	}
 
 	ret=str[l];
-	if(str!=buf)	/* malloc'd copy of buffer */
-		free(str);
 
 	/* Restore original settings of Forced Pause On/Off */
 	sys_status&=~(SS_PAUSEOFF|SS_PAUSEON);

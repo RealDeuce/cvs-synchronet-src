@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.181 2018/10/03 07:35:14 rswindell Exp $ */
+/* $Id: smblib.c,v 1.182 2018/10/23 04:38:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1287,7 +1287,7 @@ int	SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, const char* add
 			p++;
 			SKIP_WHITESPACE(p);
 			if(*p == 0)
-				return SMB_ERR_NOT_FOUND;;
+				return SMB_ERR_NOT_FOUND;
 			addr = p;
 		}
 	}
