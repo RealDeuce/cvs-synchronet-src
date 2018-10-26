@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.101 2019/07/06 07:52:21 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.92 2018/10/25 18:29:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +41,6 @@
 /**********************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
-#include "cp437_unicode_tbl.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
@@ -59,8 +57,6 @@ int sbbs_t::bputs(const char *str)
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
-			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
-				break;
 			ctrl_a(str[l++]);
 			continue;
 		}
@@ -88,20 +84,13 @@ int sbbs_t::bputs(const char *str)
 	return(l);
 }
 
-/* Perform PETSCII terminal output translation (from ASCII/CP437) */
-unsigned char cp437_to_petscii(unsigned char ch)
+/* Perform PETSCII terminal output translation */
+static unsigned char petscii(unsigned char ch)
 {
 	if(isalpha(ch))
 		return ch ^ 0x20;	/* swap upper/lower case */
 	switch(ch) {
 		case '\1':		return '@';
-		case '\x10':	return '>';
-		case '\x11':	return '<';
-		case '\x18':	
-		case '\x1e':	return PETSCII_UPARROW;
-		case '\x19':
-		case '\x1f':	return 'V';
-		case '\x1a':	return '>';
 		case '|':		return PETSCII_VERTLINE;
 		case '\\':		return PETSCII_BACKSLASH;
 		case '`':		return PETSCII_BACKTICK;
@@ -162,334 +151,11 @@ unsigned char cp437_to_petscii(unsigned char ch)
 		case 207:
 		case 208:
 		case 193:		return '\xB1';
+
 	}
 	if(ch&0x80)
 		return exascii_to_ascii_char(ch);
 	return ch;
-}
-
-/* Perform PETSCII conversion to ANSI-BBS/CP437 */
-int sbbs_t::petscii_to_ansibbs(unsigned char ch)
-{
-	if((ch&0xe0) == 0xc0)	/* "Codes $60-$7F are, actually, copies of codes $C0-$DF" */
-		ch = 0x60 | (ch&0x1f);
-	if(isalpha(ch))
-		return outchar(ch ^ 0x20);	/* swap upper/lower case */
-	switch(ch) {
-		case '\r':					newline();		break;
-		case PETSCII_HOME:			cursor_home();	break;
-		case PETSCII_CLEAR:			return CLS;
-		case PETSCII_DELETE:		backspace();	break;
-		case PETSCII_LEFT:			cursor_left();	break;
-		case PETSCII_RIGHT:			cursor_right();	break;
-		case PETSCII_UP:			cursor_up();	break;
-		case PETSCII_DOWN:			cursor_down();	break;
-
-		case PETSCII_BRITPOUND:		return outchar((char)156);
-		case PETSCII_CHECKMARK:		return outchar((char)251);
-		case PETSCII_CHECKERBRD:
-		case PETSCII_LIGHTHASH:		return outchar((char)176);
-		case 0x7e:
-		case PETSCII_MEDIUMHASH:	return outchar((char)177);
-		case PETSCII_HEAVYHASH:		return outchar((char)178);
-		case PETSCII_SOLID:			return outchar((char)219);
-		case PETSCII_BOTTOMHALF:	return outchar((char)220);
-		case PETSCII_LEFTHALF:		return outchar((char)221);
-		case PETSCII_RIGHTHALF:		return outchar((char)222);
-		case PETSCII_TOPHALF:		return outchar((char)223);
-		case PETSCII_LWRLFTBOX:
-		case PETSCII_LWRRHTBOX:
-		case PETSCII_UPRRHTBOX:
-		case PETSCII_UPRLFTBOX:		return outchar((char)254);
-
-		/* Line drawing chars */
-		case 0x7D:
-		case PETSCII_VERTLINE:		return outchar((char)179);
-		case PETSCII_HORZLINE:		return outchar((char)196);
-		case 0x7B:
-		case PETSCII_CROSS:			return outchar((char)197);
-		case (uchar)'\xBD':			return outchar((char)217);
-		case (uchar)'\xB0':			return outchar((char)218);
-		case (uchar)'\xAE':			return outchar((char)191);
-		case (uchar)'\xAD':			return outchar((char)192);
-		case (uchar)'\xAB':			return outchar((char)195);
-		case (uchar)'\xB3':			return outchar((char)180);
-		case (uchar)'\xB2':			return outchar((char)194);
-		case (uchar)'\xB1':			return outchar((char)193);
-		case PETSCII_BLACK:			return attr(BLACK);
-		case PETSCII_WHITE:			return attr(WHITE);
-		case PETSCII_RED:			return attr(RED);
-		case PETSCII_GREEN:			return attr(GREEN);
-		case PETSCII_BLUE:			return attr(BLUE);
-		case PETSCII_ORANGE:		return attr(MAGENTA);
-		case PETSCII_BROWN:			return attr(BROWN);
-		case PETSCII_YELLOW:		return attr(YELLOW);
-		case PETSCII_CYAN:			return attr(LIGHTCYAN);
-		case PETSCII_LIGHTRED:		return attr(LIGHTRED);
-		case PETSCII_DARKGRAY:		return attr(DARKGRAY);
-		case PETSCII_MEDIUMGRAY:	return attr(CYAN);
-		case PETSCII_LIGHTGREEN:	return attr(LIGHTGREEN);
-		case PETSCII_LIGHTBLUE:		return attr(LIGHTBLUE);
-		case PETSCII_LIGHTGRAY:		return attr(LIGHTGRAY);
-		case PETSCII_PURPLE:		return attr(LIGHTMAGENTA);
-		case PETSCII_REVERSE_ON:	return attr((curatr&0x07) << 4);
-		case PETSCII_REVERSE_OFF:	return attr(curatr >> 4);
-		case PETSCII_FLASH_ON:		return attr(curatr | BLINK);
-		case PETSCII_FLASH_OFF:		return attr(curatr & ~BLINK);
-		default:					
-			if(ch&0x80)				return bprintf("#%3d", ch);
-			return outchar(ch);
-		case PETSCII_UPPERLOWER:
-		case PETSCII_UPPERGRFX:
-			/* Do nothing */
-			return 0;
-	}
-	return 0;
-}
-
-// Return length of sequence
-size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
-{
-	if(((*str)&0x80) == 0) {
-		outchar(*str);
-		return sizeof(char);
-	}
-	uint32_t codepoint = 0;
-	len = utf8_getc(str, len, &codepoint);
-	if(len < 2) {
-		bprintf("Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
-		return 1;
-	}
-	for(int i = 1; i < 0x100; i++) {
-		if(cp437_unicode_tbl[i]
-			&& cp437_unicode_tbl[i] == codepoint) {
-			outchar(i);
-			return len;
-		}
-	}
-	char ch = 0;
-	switch(codepoint) {
-		case 0x00A9: // COPYRIGHT SIGN
-			outchar('(');
-			outchar('C');
-			ch = ')';
-			break;
-		case 0x00AE: // REGISTERED SIGN
-			outchar('(');
-			outchar('R');
-			ch = ')';
-			break;
-		case 0x00B4: // ACUTE ACCENT
-			ch = '\'';
-			break;
-		case 0x00CD: // LATIN CAPITAL LETTER I WITH ACUTE
-			ch = '\xA1'; // Lower-case Letter i with Acute
-			break;
-		case 0x2014: // EM DASH
-			ch = '\xC4';
-			break;
-		case 0x2022: // BULLET
-			ch = '\xF9';
-			break;
-		case 0x203E: // OVERLINE
-		case 0x2500: // Box Drawings Light Horizontal
-		case 0x2501: // Box Drawings Heavy Horizontal
-		case 0x2504: // Box Drawings Light Triple Dash Horizontal
-		case 0x2505: // Box Drawings Heavy Triple Dash Horizontal
-		case 0x2508: // Box Drawings Light Quadruple Dash Horizontal
-		case 0x2509: // Box Drawings Heavy Quadruple Dash Horizontal
-		case 0x254C: // Box Drawings Light Double Dash Horizontal
-		case 0x254D: // Box Drawings Heavy Double Dash Horizontal
-		case 0x2574: // Box Drawings Light Left
-		case 0x2576: // Box Drawings Light Right
-		case 0x2578: // Box Drawings Heavy Left
-		case 0x257A: // Box Drawings Heavy Right
-		case 0x257C: // Box Drawings Light Left and Heavy Right
-		case 0x257E: // Box Drawings Heavy Left and Light Right
-			ch = '\xC4';
-			break;
-		case 0x2502: // Box Drawings Light Vertical
-		case 0x2503: // Box Drawings Heavy Vertical
-		case 0x2506: // Box Drawings Light Triple Dash Vertical
-		case 0x2507: // Box Drawings Heavy Triple Dash Vertical
-		case 0x250A: // Box Drawings Light Quadruple Dash Vertical
-		case 0x250B: // Box Drawings Heavy Quadruple Dash Vertical
-			ch = '\xB3';
-			break;
-		case 0x250C: // BOX DRAWINGS LIGHT DOWN AND RIGHT
-		case 0x250D:
-		case 0x250E:
-		case 0x250F: // BOX DRAWINGS HEAVY DOWN AND RIGHT
-			ch = '\xDA';
-			break;
-		case 0x2510: // BOX DRAWINGS LIGHT DOWN AND LEFT
-		case 0x2511:
-		case 0x2512:
-		case 0x2513: // BOX DRAWINGS HEAVY DOWN AND LEFT
-			ch = '\xBF';
-			break;
-		case 0x2514: // BOX DRAWINGS LIGHT UP AND RIGHT
-		case 0x2515:
-		case 0x2516:
-		case 0x2517: // BOX DRAWINGS HEAVY UP AND RIGHT
-			ch = '\xC0';
-			break;
-		case 0x2518: // BOX DRAWINGS LIGHT UP AND LEFT
-		case 0x2519:
-		case 0x251A:
-		case 0x251B: // BOX DRAWINGS HEAVY UP AND LEFT
-			ch = '\xD9';
-			break;
-		case 0x251C: // BOX DRAWINGS LIGHT VERTICAL AND RIGHT
-		case 0x251D:
-		case 0x251E:
-		case 0x251F:
-		case 0x2520:
-		case 0x2521:
-		case 0x2522:
-		case 0x2523: // BOX DRAWINGS HEAVY VERTICAL AND RIGHT
-			ch = '\xC3';
-			break;
-		case 0x2524: // BOX DRAWINGS LIGHT VERTICAL AND LEFT
-		case 0x2525:
-		case 0x2526:
-		case 0x2527:
-		case 0x2528:
-		case 0x2529:
-		case 0x252A:
-		case 0x252B:
-			ch = '\xB4';
-			break;
-		case 0x252C: // BOX DRAWINGS LIGHT DOWN AND HORIZONTAL
-		case 0x252D:
-		case 0x252E:
-		case 0x252F:
-		case 0x2530:
-		case 0x2531:
-		case 0x2532: // BOX DRAWINGS LEFT LIGHT AND RIGHT DOWN HEAVY
-		case 0x2533: // BOX DRAWINGS HEAVY DOWN AND HORIZONTAL
-			ch = '\xC2';
-			break;
-		case 0x2534: // BOX DRAWINGS LIGHT UP AND HORIZONTAL
-		case 0x2535: // BOX DRAWINGS LEFT HEAVY AND RIGHT UP LIGHT
-		case 0x2536: // BOX DRAWINGS RIGHT HEAVY AND LEFT UP LIGHT
-		case 0x2537: // BOX DRAWINGS UP LIGHT AND HORIZONTAL HEAVY
-		case 0x2538: // BOX DRAWINGS UP HEAVY AND HORIZONTAL LIGHT
-		case 0x2539: // BOX DRAWINGS RIGHT LIGHT AND LEFT UP HEAVY
-		case 0x253A: // BOX DRAWINGS LEFT LIGHT AND RIGHT UP HEAVY
-		case 0x253B: // BOX DRAWINGS HEAVY UP AND HORIZONTAL
-			ch = '\xC1';
-			break;
-		case 0x253C: // BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
-		case 0x253D: // BOX DRAWINGS LEFT HEAVY AND RIGHT VERTICAL LIGHT
-		case 0x253E: // BOX DRAWINGS RIGHT HEAVY AND LEFT VERTICAL LIGHT
-		case 0x253F: // BOX DRAWINGS VERTICAL LIGHT AND HORIZONTAL HEAVY
-		case 0x2540: // BOX DRAWINGS UP HEAVY AND DOWN HORIZONTAL LIGHT
-		case 0x2541: // BOX DRAWINGS DOWN HEAVY AND UP HORIZONTAL LIGHT
-		case 0x2542: // BOX DRAWINGS VERTICAL HEAVY AND HORIZONTAL LIGHT
-		case 0x2543: // BOX DRAWINGS LEFT UP HEAVY AND RIGHT DOWN LIGHT
-		case 0x2544: // BOX DRAWINGS RIGHT UP HEAVY AND LEFT DOWN LIGHT
-		case 0x2545: // BOX DRAWINGS LEFT DOWN HEAVY AND RIGHT UP LIGHT
-		case 0x2546: // BOX DRAWINGS RIGHT DOWN HEAVY AND LEFT UP LIGHT
-		case 0x2547: // BOX DRAWINGS DOWN LIGHT AND UP HORIZONTAL HEAVY
-		case 0x2548: // BOX DRAWINGS UP LIGHT AND DOWN HORIZONTAL HEAVY
-		case 0x2549: // BOX DRAWINGS RIGHT LIGHT AND LEFT VERTICAL HEAVY
-		case 0x254A: // BOX DRAWINGS LEFT LIGHT AND RIGHT VERTICAL HEAVY
-		case 0x254B: // BOX DRAWINGS HEAVY VERTICAL AND HORIZONTAL
-			ch = '\xC5';
-			break;
-		case 0x254E: // BOX DRAWINGS LIGHT DOUBLE DASH VERTICAL
-		case 0x254F: // BOX DRAWINGS HEAVY DOUBLE DASH VERTICAL
-			ch = '|';
-			break;
-		case 0x256D: // BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
-			ch = '\xDA';
-			break;
-		case 0x256E: // BOX DRAWINGS LIGHT ARC DOWN AND LEFT
-			ch = '\xBF';
-			break;
-		case 0x256F: // BOX DRAWINGS LIGHT ARC UP AND LEFT
-			ch = '\xD9';
-			break;
-		case 0x2570: // BOX DRAWINGS LIGHT ARC UP AND RIGHT
-			ch = '\xC0';
-			break;
-		case 0x2571: // BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO LOWER LEFT
-			ch = '/';
-			break;
-		case 0x2572: // BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER RIGHT
-			ch = '\\';
-			break;
-		case 0x2573: // BOX DRAWINGS LIGHT DIAGONAL CROSS
-			ch = 'X';
-			break;
-		case 0x2575: // Box Drawings Light Up
-		case 0x2577: // Box Drawings Light Down
-		case 0x2579: // Box Drawings Heavy Up
-		case 0x257B: // Box Drawings Heavy Down
-		case 0x257D: // Box Drawings Light Up and Heavy Down
-		case 0x257F: // Box Drawings Heavy Up and Light Down
-			ch = '\xB3';
-			break;
-		case 0x2581: // Lower One Eighth Block
-			ch = '_';
-			break;
-		case 0x2582: // Lower One Quarter Block
-		case 0x2583: // Lower Three Eighths Block
-			ch = '\x16';
-			break;
-		case 0x2585: // Lower Five Eighths Block
-		case 0x2586: // Lower Three Quarters Block
-		case 0x2587: // Lower Seven Eighths Block
-			ch = '\xDC';
-			break;
-		case 0x2588: // Full Block
-		case 0x2589: // Left Seven Eighths Block
-			ch = '\xDB';
-			break;
-		case 0x258A: // Left Three Quarters Block
-		case 0x258B: // Left Five Eighths Block
-		case 0x258C: // Left Half Block
-		case 0x258D: // Left Three Eighths Block
-		case 0x258E: // Left One Quarter Block
-		case 0x258F: // Left One Eighth Block
-			ch = '\xDD';
-			break;
-		case 0x2590: // Right Half Block
-		case 0x2595: // Right One Eighth Block
-			ch = '\xDE';
-			break;
-		case 0x2594: // Upper One Eighth Block
-			ch = '\xDF';
-			break;
-		case 0xFE00: // VARIATION SELECTOR-1
-		case 0xFE01: // VARIATION SELECTOR-2
-		case 0xFE02: // VARIATION SELECTOR-3
-		case 0xFE03: // VARIATION SELECTOR-4
-		case 0xFE04: // VARIATION SELECTOR-5
-		case 0xFE05: // VARIATION SELECTOR-6
-		case 0xFE06: // VARIATION SELECTOR-7
-		case 0xFE07: // VARIATION SELECTOR-8
-		case 0xFE08: // VARIATION SELECTOR-9
-		case 0xFE09: // VARIATION SELECTOR-10
-		case 0xFE0A: // VARIATION SELECTOR-11
-		case 0xFE0B: // VARIATION SELECTOR-12
-		case 0xFE0C: // VARIATION SELECTOR-13
-		case 0xFE0D: // VARIATION SELECTOR-14
-		case 0xFE0E: // VARIATION SELECTOR-15
-		case 0xFE0F: // VARIATION SELECTOR-16
-			return len;
-	}
-	if(ch)
-		outchar(ch);
-	else {
-		outchar('\xA8');	// Inverted question mark
-		char seq[32] = "";
-		for(size_t i = 0; i < len; i++)
-			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
-		lprintf(LOG_DEBUG, "Unsupported UTF-8 sequence: %s (U+%X)", seq, codepoint);
-	}
-	return len;
 }
 
 /****************************************************************************/
@@ -510,9 +176,9 @@ int sbbs_t::rputs(const char *str, size_t len)
 	for(l=0;l<len && online;l++) {
 		if(str[l]==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-		uchar ch = str[l];
+		char ch = str[l];
 		if(term&PETSCII)
-			ch = cp437_to_petscii(ch);
+			ch = petscii(ch);
 		if(outcom(ch)!=0)
 			break;
 		if(lbuflen<LINE_BUFSIZE)
@@ -580,9 +246,6 @@ long sbbs_t::term_supports(long cmp_flags)
 {
 	long flags = ((sys_status&SS_USERON) && !(useron.misc&AUTOTERM)) ? useron.misc : autoterm;
 
-	if((sys_status&SS_USERON) && (useron.misc&AUTOTERM))
-		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
-
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
 }
 
@@ -594,7 +257,7 @@ long sbbs_t::term_supports(long cmp_flags)
 /* Performs column counting, line counting, and auto-pausing				*/
 /* Performs saveline buffering (for restoreline)							*/
 /****************************************************************************/
-int sbbs_t::outchar(char ch)
+void sbbs_t::outchar(char ch)
 {
 	/*
 	 * outchar_esc values:
@@ -608,7 +271,7 @@ int sbbs_t::outchar(char ch)
      */
 
 	if(console&CON_ECHO_OFF)
-		return 0;
+		return;
 	if(ch==ESC && outchar_esc < 4)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
@@ -648,16 +311,8 @@ int sbbs_t::outchar(char ch)
 	else
 		outchar_esc=0;
 	long term = term_supports();
-	char utf8[UTF8_MAX_LEN + 1] = "";
-	if(!(term&PETSCII)) {
-		if((term&NO_EXASCII) && (ch&0x80))
-			ch = exascii_to_ascii_char(ch);  /* seven bit table */
-		else if(term&UTF8) {
-			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
-			if(codepoint != 0)
-				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
-		}
-	}
+	if((term&(PETSCII|NO_EXASCII)) == NO_EXASCII && ch&0x80)
+		ch=exascii_to_ascii_char(ch);  /* seven bit table */
 
 	if(ch==FF && lncntr > 0 && !tos) {
 		lncntr=0;
@@ -669,94 +324,77 @@ int sbbs_t::outchar(char ch)
 		}
 	}
 
-	if(!(console&CON_R_ECHO))
-		return 0;
-
-	if((console&CON_R_ECHOX) && (uchar)ch>=' ' && !outchar_esc) {
-		ch=text[YNQP][3];
-		if(text[YNQP][2]==0 || ch==0) ch='X';
-	}
-	if(ch==FF) {
-		if(term&ANSI)
-			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
-		else if(term&PETSCII)
-			outcom(PETSCII_CLEAR);
-		else
-			outcom(FF);
-	}
-	else if(ch == '\t') {
-		outcom(' ');
-		column++;
-		while(column%tabstop) {
+	if(online==ON_REMOTE && console&CON_R_ECHO) {
+		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
+			ch=text[YNQP][3];
+			if(text[YNQP][2]==0 || ch==0) ch='X';
+		}
+		if(ch==FF) {
+			if(term&ANSI)
+				putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
+			else if(term&PETSCII)
+				outcom(PETSCII_CLEAR);
+			else
+				outcom(FF);
+		}
+		else if(ch == '\t') {
 			outcom(' ');
 			column++;
+			while(column%tabstop) {
+				outcom(' ');
+				column++;
+			}
 		}
-	}
-	else {
-		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
-			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-		if(ch == '\r' && (console&CON_CR_CLREOL))
-			cleartoeol();
-		if(term&PETSCII) {
-			uchar pet = cp437_to_petscii(ch);
-			if(pet == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_ON);
-			outcom(pet);
-			if(pet == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_OFF);
-			if(ch == '\r' && (curatr&0xf0) != 0) // reverse video is disabled upon CR
-				curatr >>= 4;
-		} else {
-			if(utf8[0] != 0)
-				putcom(utf8);
-			else
+		else {
+			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+			if(term&PETSCII) {
+				char pet = petscii(ch);
+				if(pet == PETSCII_SOLID)
+					outcom(PETSCII_REVERSE_ON);
+				outcom(pet);
+				if(pet == PETSCII_SOLID)
+					outcom(PETSCII_REVERSE_OFF);
+			} else
 				outcom(ch);
 		}
 	}
 	if(!outchar_esc) {
-		/* Track cursor position locally */
-		switch(ch) {
-			case '\a':	// 7
-			case '\t':	// 9
-				/* Non-printing or handled elsewhere */
-				break;
-			case '\b':	// 8
-				if(column > 0)
-					column--;
-				if(lbuflen > 0)
-					lbuflen--;
-				break;
-			case '\n':	// 10
-				if(lncntr || lastlinelen)
-					lncntr++;
-				lbuflen=0;
-				tos=0;
-				column=0;
-				break;
-			case FF:	// 12
-				lncntr=0;
-				lbuflen=0;
-				tos=1;
-				column=0;
-			case '\r':	// 13
+		if((uchar)ch>=' ') {
+			column++;
+			if(column >= cols) {	// assume terminal has/will auto-line-wrap
+				lncntr++;
+				lbuflen = 0;
+				tos = 0;
 				lastlinelen = column;
-				column=0;
-				break;
-			default:
-				column++;
-				if(column >= cols) {	// assume terminal has/will auto-line-wrap
-					lncntr++;
-					lbuflen = 0;
-					tos = 0;
-					lastlinelen = column;
-					column = 0;
-				}
-				if(!lbuflen)
-					latr=curatr;
-				if(lbuflen<LINE_BUFSIZE)
-					lbuf[lbuflen++]=ch;
-				break;
+				column = 0;
+			}
 		}
+		else if(ch=='\r') {
+			lastlinelen = column;
+			column=0;
+		}
+		else if(ch=='\b') {
+			if(column)
+				column--;
+		}
+	}
+	if(ch==LF) {
+		if(lncntr || lastlinelen)
+			lncntr++;
+		lbuflen=0;
+		tos=0;
+		column=0;
+	} else if(ch==FF) {
+		lncntr=0;
+		lbuflen=0;
+		tos=1;
+		column=0;
+	} else {
+		if(!lbuflen)
+			latr=curatr;
+		if(lbuflen<LINE_BUFSIZE)
+			lbuf[lbuflen++]=ch;
 	}
 	if(outchar_esc==3)
 		outchar_esc=0;
@@ -766,7 +404,6 @@ int sbbs_t::outchar(char ch)
 		lncntr=0;
 		pause();
 	}
-	return 0;
 }
 
 void sbbs_t::center(char *instr)
@@ -937,8 +574,7 @@ void sbbs_t::cleartoeos(void)
 /****************************************************************************/
 void sbbs_t::ctrl_a(char x)
 {
-	char	tmp1[128];
-	uint	atr = curatr;
+	char	tmp1[128],atr=curatr;
 	struct	tm tm;
 
 	if(x && (uchar)x<=CTRL_Z) {    /* Ctrl-A through Ctrl-Z for users with MF only */
@@ -949,9 +585,6 @@ void sbbs_t::ctrl_a(char x)
 	if((uchar)x>0x7f) {
 		cursor_right((uchar)x-0x7f);
 		return;
-	}
-	if(isdigit(x)) {	/* background color */
-		atr &= (BG_BRIGHT|BLINK|0x0f);
 	}
 	switch(toupper(x)) {
 		case '!':   /* level 10 or higher */
@@ -1087,13 +720,9 @@ void sbbs_t::ctrl_a(char x)
 			atr|=HIGH;
 			attr(atr);
 			break;
-		case 'I':
- 			if((term_supports()&(ICE_COLOR|PETSCII)) != ICE_COLOR)
-				attr(atr|BLINK);
-			break;
-		case 'E': /* Bright Background */
- 			if(term_supports()&(ICE_COLOR|PETSCII))
-				attr(atr|BG_BRIGHT);
+		case 'I':	/* Blink */
+			atr|=BLINK;
+			attr(atr);
 			break;
 		case 'F':	/* Blink, only if alt Blink Font is loaded */
 			if(((atr&HIGH) && (console&CON_HBLINK_FONT)) || (!(atr&HIGH) && (console&CON_BLINK_FONT)))
@@ -1137,28 +766,36 @@ void sbbs_t::ctrl_a(char x)
 			attr(atr);
 			break;
 		case '0':	/* Black Background */
+			atr=(atr&0x8f);
 			attr(atr);
 			break;
 		case '1':	/* Red Background */
-			attr(atr | BG_RED);
+			atr=(atr&0x8f)|(uchar)BG_RED;
+			attr(atr);
 			break;
 		case '2':	/* Green Background */
-			attr(atr | BG_GREEN);
+			atr=(atr&0x8f)|(uchar)BG_GREEN;
+			attr(atr);
 			break;
 		case '3':	/* Yellow Background */
-			attr(atr | BG_BROWN);
+			atr=(atr&0x8f)|(uchar)BG_BROWN;
+			attr(atr);
 			break;
 		case '4':	/* Blue Background */
-			attr(atr | BG_BLUE);
+			atr=(atr&0x8f)|(uchar)BG_BLUE;
+			attr(atr);
 			break;
 		case '5':	/* Magenta Background */
-			attr(atr |BG_MAGENTA);
+			atr=(atr&0x8f)|(uchar)BG_MAGENTA;
+			attr(atr);
 			break;
 		case '6':	/* Cyan Background */
-			attr(atr | BG_CYAN);
+			atr=(atr&0x8f)|(uchar)BG_CYAN;
+			attr(atr);
 			break;
 		case '7':	/* White Background */
-			attr(atr | BG_LIGHTGRAY);
+			atr=(atr&0x8f)|(uchar)BG_LIGHTGRAY;
+			attr(atr);
 			break;
 	}
 }
@@ -1166,19 +803,15 @@ void sbbs_t::ctrl_a(char x)
 /****************************************************************************/
 /* Sends terminal control codes to change remote terminal colors/attributes */
 /****************************************************************************/
-int sbbs_t::attr(int atr)
+void sbbs_t::attr(int atr)
 {
 	char	str[16];
 	int		newatr = atr;
 
 	long term = term_supports();
 	if(term&PETSCII) {
-		if(atr&(0x70|BG_BRIGHT)) {	// background color (reverse video for PETSCII)
-			if(atr&BG_BRIGHT)
-				atr |= HIGH;
-			else
-				atr &= ~HIGH;
-			atr = (atr&(BLINK|HIGH)) | ((atr&0x70)>>4);
+		if(atr&0x70) {
+			atr >>= 4;
 			outcom(PETSCII_REVERSE_ON);
 		} else
 			outcom(PETSCII_REVERSE_OFF);
@@ -1240,7 +873,6 @@ int sbbs_t::attr(int atr)
 	else if(term&ANSI)
 		rputs(ansi(newatr,curatr,str));
 	curatr=newatr;
-	return 0;
 }
 
 /****************************************************************************/
@@ -1267,8 +899,8 @@ bool sbbs_t::msgabort()
 
 int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr)
 {
-	uint atr;
-	uint save_atr = curatr;
+	int	atr;
+	int save_atr = curatr;
 	int len;
 	char* str = strip_ctrl(instr, NULL);
 
@@ -1306,8 +938,8 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 
 struct savedline {
 	char 	buf[LINE_BUFSIZE+1];	/* Line buffer (i.e. ANSI-encoded) */
-	uint	beg_attr;				/* Starting attribute of each line */
-	uint	end_attr;				/* Ending attribute of each line */
+	char 	beg_attr;				/* Starting attribute of each line */
+	char 	end_attr;				/* Ending attribute of each line */
 	long	column;					/* Current column number */
 };
 
