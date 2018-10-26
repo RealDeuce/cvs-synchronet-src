@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.67 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.68 2018/10/26 03:40:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,14 +79,14 @@ bool sbbs_t::logon()
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
 		useron.rows=0;
-		useron.misc&=~(ANSI|RIP|WIP|NO_EXASCII|COLOR|HTML|PETSCII);
+		useron.misc&=~(ANSI|RIP|NO_EXASCII|COLOR|PETSCII);
 		useron.misc|=autoterm;
 		if(!(useron.misc&(ANSI|PETSCII)) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
 			useron.misc|=ANSI;
-		if(useron.misc&(RIP|WIP|HTML)
-			|| (useron.misc&(ANSI|PETSCII) && text[ColorTerminalQ][0] && yesno(text[ColorTerminalQ])))
+		if((useron.misc&RIP) || !(cfg.uq&UQ_COLORTERM)
+			|| (useron.misc&(ANSI|PETSCII) && yesno(text[ColorTerminalQ])))
 			useron.misc|=COLOR;
-		if(!(useron.misc&(NO_EXASCII|PETSCII)) && text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(!(useron.misc&(NO_EXASCII|PETSCII)) && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
@@ -175,7 +175,7 @@ bool sbbs_t::logon()
 
 
 	if(useron.misc&AUTOTERM) {
-		useron.misc&=~(ANSI|RIP|WIP|HTML|PETSCII);
+		useron.misc&=~(ANSI|RIP|PETSCII);
 		useron.misc|=autoterm;
 	}
 
