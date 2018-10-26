@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.742 2019/02/15 05:09:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.737 2018/10/26 03:22:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -121,7 +121,6 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
-static	str_list_t clear_attempts_semfiles;
 static	link_list_t current_logins;
 static	link_list_t current_connections;
 #ifdef _THREAD_SUID_BROKEN
@@ -464,7 +463,7 @@ int DLLCALL sbbs_random(int n)
 static js_server_props_t js_server_props;
 
 JSBool
-DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
+DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, char* str[],uintN flags)
 {
 	JSObject*	array;
 	JSString*	js_str;
@@ -602,7 +601,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		// If the first item is already in the list, don't do anything.
 		if(!JS_GetArrayLength(cx, method_array, &len))
 			return(JS_FALSE);
-		for(i=0; i<(int)len; i++) {
+		for(i=0; i<len; i++) {
 			if(JS_GetElement(cx, method_array, i, &val)!=JS_TRUE || val == JSVAL_VOID)
 				continue;
 			JS_GetProperty(cx, JSVAL_TO_OBJECT(val), "name", &val);
@@ -2650,8 +2649,8 @@ void event_thread(void* arg)
 		sbbs->online=FALSE;	/* reset this from ON_LOCAL */
 
 		/* QWK events */
+		sbbs->event_code = "unQWK";
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
-			sbbs->event_code = "unpackREP";
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
 			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
@@ -2811,12 +2810,10 @@ void event_thread(void* arg)
 
 			/* Run daily maintenance? */
 			sbbs->cfg.node_num=0;
-			if(!(startup->options&BBS_OPT_NO_NEWDAY_EVENTS)) {
-				sbbs->event_code = "";
-				sbbs->logonstats();
-				if(sbbs->sys_status&SS_DAILY)
-					sbbs->daily_maint();
-			}
+			sbbs->logonstats();
+			if(sbbs->sys_status&SS_DAILY)
+				sbbs->daily_maint();
+
 			/* Node Daily Events */
 			sbbs->event_code = "DAILY";
 			for(i=first_node;i<=last_node;i++) {
@@ -4866,7 +4863,6 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
-	semfile_list_free(&clear_attempts_semfiles);
 
 	listFree(&current_logins);
 	listFree(&current_connections);
@@ -5273,10 +5269,11 @@ NO_SSH:
 #endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
-	shutdown_semfiles = semfile_list_init(scfg.ctrl_dir,"shutdown", "term");
-	recycle_semfiles = semfile_list_init(scfg.ctrl_dir,"recycle", "term");
-	clear_attempts_semfiles = semfile_list_init(scfg.ctrl_dir,"clear", "term");
+	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
+	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
 	semfile_list_add(&recycle_semfiles,startup->ini_fname);
+	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
+	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
@@ -5284,7 +5281,6 @@ NO_SSH:
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
-	semfile_list_check(&initialized,clear_attempts_semfiles);
 
 	listInit(&current_logins, LINK_LIST_MUTEX);
 	listInit(&current_connections, LINK_LIST_MUTEX);
@@ -5370,11 +5366,6 @@ NO_SSH:
 
 		if(terminate_server)	/* terminated */
 			break;
-
-		if((p=semfile_list_check(&initialized,clear_attempts_semfiles))!=NULL) {
-			lprintf(LOG_INFO,"Clear Failed Login Attempts semaphore file (%s) detected", p);
-			loginAttemptListClear(startup->login_attempt_list);
-		}
 
 		if(client_socket == INVALID_SOCKET)
 			continue;
