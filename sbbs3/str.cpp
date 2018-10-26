@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.83 2018/10/26 03:33:14 rswindell Exp $ */
+/* $Id: str.cpp,v 1.82 2018/10/25 09:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -941,13 +941,15 @@ void sbbs_t::user_info()
 void sbbs_t::xfer_policy()
 {
 	if(!usrlibs) return;
-	if(!menu("tpolicy", P_NOERROR)) {
+	if(menu_exists("tpolicy"))
+		menu("tpolicy");
+	else {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
 		bprintf(text[TpUpload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->up_pct);
 		bprintf(text[TpDownload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->dn_pct);
-	}
+		}
 }
 
 const char* prot_menu_file[] = {
@@ -960,7 +962,8 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	if(menu(prot_menu_file[type], P_NOERROR)) {
+	if(menu_exists(prot_menu_file[type])) {
+		menu(prot_menu_file[type]);
 		return;
 	}
 
