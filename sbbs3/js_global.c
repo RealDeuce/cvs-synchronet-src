@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.372 2018/03/10 03:19:01 rswindell Exp $ */
+/* $Id: js_global.c,v 1.375 2018/10/15 04:08:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -672,7 +672,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
  * It does assume the args are always last though (which seems reasonable
  * since it's variable length)
  */
-#define JS_ARGS_OFFSET	((unsigned)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
+#define JS_ARGS_OFFSET	((unsigned long)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
 
 static JSBool
 js_require(JSContext *cx, uintN argc, jsval *arglist)
@@ -2188,7 +2188,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 						hpos=0;
 						break;
 					case 'Z':
-						outbuf[j++]=0;
+						outbuf[j++]=CTRL_Z;
 						break;
 					case 'A':
 					default:
@@ -2421,7 +2421,7 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = 249;
+			outbuf[j++] = (char)249;
 			continue;
 		}
 

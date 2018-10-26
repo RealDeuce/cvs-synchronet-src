@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.79 2018/02/20 11:43:08 rswindell Exp $ */
+/* $Id: str.cpp,v 1.82 2018/10/25 09:32:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,10 @@ void sbbs_t::userlist(long mode)
 		if(sort && (online==ON_LOCAL || !rioctl(TXBC)))
 			bprintf("%-4d\b\b\b\b",i);
 		user.number=i;
-		fgetuserdat(&cfg, &user, userfile);
+		if(fgetuserdat(&cfg, &user, userfile) != 0)
+			continue;
+		if(user.alias[0] <= ' ')
+			continue;
 		if(user.misc&(DELETED|INACTIVE))
 			continue;
 		users++;
@@ -852,7 +855,6 @@ char* sbbs_t::datestr(time_t t)
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
-	char	path[MAX_PATH+1];
 	uint	i;
 	stats_t stats;
 
@@ -878,15 +880,15 @@ void sbbs_t::sys_info()
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	SAFEPRINTF(path, "%ssystem.msg", cfg.text_dir);
-	if(fexistcase(path) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	const char* fname = "../system";
+	if(menu_exists(fname) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
-		printfile(path,0); 
+		menu(fname);
 	}
-	SAFEPRINTF(path, "%smenu/logon.asc", cfg.text_dir);
-	if(fexistcase(path) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	fname = "logon";
+	if(menu_exists(fname) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
-		menu("logon"); 
+		menu(fname);
 	}
 }
 
@@ -1043,7 +1045,7 @@ void sbbs_t::logonlist(void)
 		bputs(text[NoOneHasLoggedOnToday]); 
 	} else {
 		bputs(text[CallersToday]);
-		printfile(str,P_NOATCODES|P_OPENCLOSE);
+		printfile(str,P_NOATCODES|P_OPENCLOSE|P_TRUNCATE);
 		CRLF; 
 	}
 }
@@ -1067,7 +1069,7 @@ bool sbbs_t::spy(uint i /* node_num */)
 		return(false);
 	}
 	if(spy_socket[i-1]!=INVALID_SOCKET) {
-		bprintf("Node %d already being spied (%lx)\r\n",i,spy_socket[i-1]);
+		bprintf("Node %d already being spied (%x)\r\n",i,spy_socket[i-1]);
 		return(false);
 	}
 	bprintf("*** Synchronet Remote Spy on Node %d: Ctrl-C to Abort ***"
