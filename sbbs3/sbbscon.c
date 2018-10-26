@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.273 2019/01/08 00:13:06 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.271 2018/07/24 08:41:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1355,7 +1355,7 @@ static void show_usage(char *cmd)
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
-#if defined(BUILD_JSDOCS) && defined(WITH_SDL)
+#ifdef BUILD_JSDOCS
 int CIOLIB_main(int argc, char** argv)
 #else
 int main(int argc, char** argv)
@@ -1895,7 +1895,7 @@ int main(int argc, char** argv)
     SAFECOPY(scfg.ctrl_dir,bbs_startup.ctrl_dir);
 
 	if(chdir(scfg.ctrl_dir)!=0)
-		lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), scfg.ctrl_dir);
+		lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, scfg.ctrl_dir);
 
     scfg.size=sizeof(scfg);
 	SAFECOPY(error,UNKNOWN_LOAD_ERROR);
@@ -1946,7 +1946,7 @@ int main(int argc, char** argv)
 
 		lprintf(LOG_INFO,"Running as daemon");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			lprintf(LOG_ERR,"!ERROR %d (%s) running as daemon", errno, strerror(errno));
+			lprintf(LOG_ERR,"!ERROR %d running as daemon",errno);
 			is_daemon=FALSE;
 		}
 	}
