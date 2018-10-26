@@ -1,8 +1,9 @@
 /* prntfile.cpp */
+// vi: tabstop=4
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.22 2018/01/07 23:00:26 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.30 2018/10/25 21:22:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +43,7 @@
 /* for pauses, aborts and ANSI. 'str' is the path of the file to print      */
 /* Called from functions menu and text_sec                                  */
 /****************************************************************************/
-void sbbs_t::printfile(char *str, long mode)
+bool sbbs_t::printfile(char *str, long mode)
 {
 	char* buf;
 	char* p;
@@ -79,25 +80,28 @@ void sbbs_t::printfile(char *str, long mode)
 		CRLF;
 	}
 
+	fexistcase(str);
 	if((stream=fnopen(&file,str,O_RDONLY|O_DENYNONE))==NULL) {
-		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
-			,cfg.node_num,errno,strerror(errno),str);
-		bputs(text[FileNotFound]);
-		if(SYSOP) bputs(str);
-		CRLF;
-		return; 
+		if(!(mode&P_NOERROR)) {
+			lprintf(LOG_NOTICE,"!Error %d (%s) opening: %s"
+				,errno,strerror(errno),str);
+			bputs(text[FileNotFound]);
+			if(SYSOP) bputs(str);
+			CRLF;
+		}
+		return false; 
 	}
 
 	length=(long)filelength(file);
 	if(length<0) {
-		close(file);
+		fclose(stream);
 		errormsg(WHERE,ERR_CHK,str,length);
-		return;
+		return false;
 	}
 	if((buf=(char*)malloc(length+1L))==NULL) {
-		close(file);
+		fclose(stream);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
-		return; 
+		return false; 
 	}
 	l=lread(file,buf,length);
 	fclose(stream);
@@ -116,9 +120,10 @@ void sbbs_t::printfile(char *str, long mode)
 	if(rip)
 		ansi_getlines();
 	console=savcon;
+	return true;
 }
 
-void sbbs_t::printtail(char *str, int lines, long mode)
+bool sbbs_t::printtail(char *str, int lines, long mode)
 {
 	char*	buf;
 	char*	p;
@@ -135,24 +140,27 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 	if(!tos) {
 		CRLF; 
 	}
+	fexistcase(str);
 	if((file=nopen(str,O_RDONLY|O_DENYNONE))==-1) {
-		lprintf(LOG_NOTICE,"Node %d !Error %d (%s) opening: %s"
-			,cfg.node_num,errno,strerror(errno),str);
-		bputs(text[FileNotFound]);
-		if(SYSOP) bputs(str);
-		CRLF;
-		return; 
+		if(!(mode&P_NOERROR)) {
+			lprintf(LOG_NOTICE,"!Error %d (%s) opening: %s"
+				,errno,strerror(errno),str);
+			bputs(text[FileNotFound]);
+			if(SYSOP) bputs(str);
+			CRLF;
+		}
+		return false; 
 	}
 	length=(long)filelength(file);
 	if(length<0) {
 		close(file);
 		errormsg(WHERE,ERR_CHK,str,length);
-		return;
+		return false;
 	}
 	if((buf=(char*)malloc(length+1L))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,length+1L);
-		return; 
+		return false; 
 	}
 	l=lread(file,buf,length);
 	close(file);
@@ -178,53 +186,70 @@ void sbbs_t::printtail(char *str, int lines, long mode)
 		rioctl(IOSM|ABORT); 
 	}
 	free(buf);
+	return true;
 }
 
 /****************************************************************************/
-/* Prints the menu number 'menunum' from the text directory. Checks for ^A  */
-/* ,ANSI sequences, pauses and aborts. Usually accessed by user inputing '?'*/
-/* Called from every function that has an available menu.                   */
-/* The code definitions are as follows:                                     */
+/* Displays a menu file (e.g. from the text/menu directory)                 */
 /****************************************************************************/
-void sbbs_t::menu(const char *code)
+bool sbbs_t::menu(const char *code, long mode)
 {
-    char str[MAX_PATH-5],path[MAX_PATH+1];
+    char path[MAX_PATH+1];
+	const char *next= "msg";
+	const char *last = "asc";
 
 	sys_status&=~SS_ABORT;
 	if(menu_file[0])
 		SAFECOPY(path,menu_file);
 	else {
-		if(isfullpath(code))
-			SAFECOPY(str, code);
-		else {
-			backslash(menu_dir);
-			SAFEPRINTF3(str, "%smenu/%s%s", cfg.text_dir, menu_dir, code);
-		}
-		sprintf(path,"%s.%s",str,term_supports(WIP) ? "wip": term_supports(RIP) ? "rip" : "html");
-		if(!(term_supports()&(RIP|WIP|HTML)) || !fexistcase(path)) {
-			SAFEPRINTF(path, "%s.mon", str);
-			if((term_supports()&(COLOR|ANSI))!=ANSI || !fexistcase(path)) {
-				SAFEPRINTF(path, "%s.ans", str);
-				if(!term_supports(ANSI) || !fexistcase(path))
-					SAFEPRINTF(path, "%s.asc", str); 
-			} 
-		} 
+		long term = term_supports();
+		do {
+			if((term&RIP) && menu_exists(code, "rip", path))
+				break;
+			if((term&(ANSI|COLOR)) == ANSI && menu_exists(code, "mon", path))
+				break;
+			if((term&ANSI) && menu_exists(code, "ans", path))
+				break;
+			if((term&PETSCII) && menu_exists(code, "seq", path))
+				break;
+			if(term&NO_EXASCII) {
+				next = "asc";
+				last = "msg";
+			}
+			if(menu_exists(code, next, path))
+				break;
+			menu_exists(code, last, path);
+		} while(0);
 	}
 
-	long mode = P_OPENCLOSE;
+	mode |= P_OPENCLOSE | P_CPM_EOF;
 	if(column == 0)
 		mode |= P_NOCRLF;
-	printfile(path, mode);
+	return printfile(path, mode);
 }
 
-bool sbbs_t::menu_exists(const char *code)
+bool sbbs_t::menu_exists(const char *code, const char* ext, char* path)
 {
-	char path[MAX_PATH+1];
+	char pathbuf[MAX_PATH+1];
+	if(path == NULL)
+		path = pathbuf;
 
-	if(menu_file[0])
-		return fexistcase(menu_file) ? true : false;
+	if(menu_file[0]) {
+		strncpy(path, menu_file, MAX_PATH);
+		return fexistcase(path) ? true : false;
+	}
+
+	/* Either <menu>.asc or <menu>.msg is required */
+	if(ext == NULL)
+		return menu_exists(code, "asc", path)
+			|| menu_exists(code, "msg", path);
 
 	backslash(menu_dir);
-	SAFEPRINTF3(path, "%smenu/%s%s.asc", cfg.text_dir, menu_dir, code);
+	safe_snprintf(path, MAX_PATH, "%smenu/%s%s.%ucol.%s"
+		,cfg.text_dir, menu_dir, code, cols, ext);
+	if(fexistcase(path))
+		return true;
+	safe_snprintf(path, MAX_PATH, "%smenu/%s%s.%s"
+		,cfg.text_dir, menu_dir, code, ext);
 	return fexistcase(path) ? true : false;
 }
