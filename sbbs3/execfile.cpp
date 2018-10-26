@@ -2,7 +2,7 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.16 2018/11/08 20:13:59 rswindell Exp $ */
+/* $Id: execfile.cpp,v 1.15 2018/10/26 03:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,7 +195,7 @@ int sbbs_t::exec_file(csi_t *csi)
 
 		case CS_FILE_SHOW_LIBRARIES:
 			if(!usrlibs) return(0);
-			if(menu("libs", P_NOERROR)) {
+			if(menu("libs"), P_NOERROR) {
 				return(0); 
 			}
 			bputs(text[LibLstHdr]);
