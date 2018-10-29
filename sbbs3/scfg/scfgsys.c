@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.52 2019/07/16 07:38:16 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.48 2018/02/18 03:14:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,7 @@ void sys_cfg(void)
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					save_main_cfg(&cfg,backup_level);
+					write_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
@@ -234,10 +234,9 @@ void sys_cfg(void)
 				strcpy(opt[i++],"Bangkok");
 				strcpy(opt[i++],"Hong Kong");
 				strcpy(opt[i++],"Tokyo");
-				strcpy(opt[i++],"Australian Central");
-				strcpy(opt[i++],"Australian Eastern");
+				strcpy(opt[i++],"Sydney");
 				strcpy(opt[i++],"Noumea");
-				strcpy(opt[i++],"New Zealand");
+				strcpy(opt[i++],"Wellington");
 				strcpy(opt[i++],"Other...");
 				opt[i][0]=0;
 				i=0;
@@ -284,12 +283,15 @@ void sys_cfg(void)
 						break;
 					case 9:
 						cfg.sys_timezone=WET;
+						configure_dst();
 						break;
 					case 10:
 						cfg.sys_timezone=CET;
+						configure_dst();
 						break;
 					case 11:
 						cfg.sys_timezone=EET;
+						configure_dst();
 						break;
 					case 12:
 						cfg.sys_timezone=MOS;
@@ -322,16 +324,13 @@ void sys_cfg(void)
 						cfg.sys_timezone=TOK;
 						break;
 					case 22:
-						cfg.sys_timezone=ACST;
+						cfg.sys_timezone=SYD;
 						break;
 					case 23:
-						cfg.sys_timezone=AEST;
-						break;
-					case 24:
 						cfg.sys_timezone=NOU;
 						break;
-					case 25:
-						cfg.sys_timezone=NZST;
+					case 24:
+						cfg.sys_timezone=WEL;
 						break;
 					default:
 						if(cfg.sys_timezone>720 || cfg.sys_timezone<-720)
@@ -362,8 +361,6 @@ void sys_cfg(void)
 						}
 						break;
 				}
-				if(SMB_TZ_HAS_DST(cfg.sys_timezone))
-					configure_dst();
 				break;
 			case 3:
 				uifc.helpbuf=
