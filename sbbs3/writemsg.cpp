@@ -1,6 +1,6 @@
 /* Synchronet message creation routines */
 
-/* $Id: writemsg.cpp,v 1.127 2018/10/26 03:33:14 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.128 2018/10/29 06:36:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,7 +790,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
 
-	if(!menu("msgtabs")) {
+	if(!menu("msgtabs", P_NOERROR)) {
 		for(i=0; i < (cols-1); i++) {
 			if(i%EDIT_TABSIZE || !i)
 				outchar('-');
