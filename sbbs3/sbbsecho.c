@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.96 2018/10/17 19:43:56 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.97 2018/10/29 06:29:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1376,7 +1376,7 @@ void gen_notify_list(nodecfg_t* nodecfg)
 		if(nodecfg != NULL && &cfg.nodecfg[k] != nodecfg)
 			continue;
 
-		if(!cfg.nodecfg[k].send_notify)
+		if(!cfg.nodecfg[k].send_notify || cfg.nodecfg[k].passive)
 			continue;
 
 		if((tmpf=tmpfile())==NULL) {
@@ -5987,7 +5987,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.96 $", "%*s %s", revision);
+	sscanf("$Revision: 3.97 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
