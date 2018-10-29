@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.234 2019/04/09 20:48:31 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.227 2018/10/25 21:22:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -50,15 +50,15 @@
 /*************/
 
 #define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'c'     /* Revision: lowercase letter */
+#define REVISION	'a'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
-#define COPYRIGHT_CRC		0x0E0503DF
+#define COPYRIGHT_NOTICE	"Copyright 2018 Rob Swindell"
+#define COPYRIGHT_CRC		0x930AE2A9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -385,8 +385,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
 
-#define NODE_ANY		0			/* special qhub/event_t.node value		*/
-
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
 #define XTRN_ANSI		(1<<1)		/* LEGACY (not used)                    */
@@ -409,8 +407,14 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
-#define QUOTEWRAP		(1<<21)		/* Word-wrap quoted message text		*/
+#define WORDWRAP80		(1<<21)		/* Word-wrap editor to 80 columns		*/
+#define WORDWRAPTERM	(1<<22)		/* Word-wrap editor to terminal width	*/
+#define WORDWRAPLONG	(WORDWRAP80|WORDWRAPTERM)	/* word-wrap to maxlen	*/
+#define WORDWRAPNONE	0			/* No word-wrapping on editor in/ouput	*/
+#define WORDWRAPMASK	WORDWRAPLONG
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
+#define QUOTEWRAP		WORDWRAP80	/* for temporary backwards compat.		*/
+
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/
@@ -750,7 +754,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
 #define	P_TRUNCATE	(1<<9)		/* Truncate (don't display) long lines		*/
 #define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
-#define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -761,7 +764,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define FL_VIEW     (1<<5)		/* View ZIP/ARC/GIF etc. info               */
 
 								/* Bits in the mode of writemsg and email() */
-#define WM_NONE		0			/* No bit flags set							*/
 #define WM_EXTDESC	(1<<0)		/* Writing extended file description		*/
 #define WM_EMAIL	(1<<1)		/* Writing e-mail							*/
 #define WM_NETMAIL	(1<<2)		/* Writing NetMail							*/
@@ -790,7 +792,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
 #define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
 #define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
-#define LM_REVERSE	(1<<4)		/* Reverse the index order (newest-first)	*/
 
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
