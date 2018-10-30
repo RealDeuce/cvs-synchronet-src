@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.30 2018/10/03 04:25:10 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.31 2018/10/30 03:12:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,6 +80,7 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMB_COST:			return("Cost");
 		case SMB_EDITOR:		return("Editor");
 		case SMB_TAGS:			return("Tags");
+		case SMB_COLUMNS:		return("Columns");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */

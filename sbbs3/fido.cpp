@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.63 2018/10/15 04:08:57 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.64 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,6 +331,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	if(cfg.netmail_misc&NMAIL_DIRECT)
 		msg.hdr.netattr |= MSG_DIRECT;
