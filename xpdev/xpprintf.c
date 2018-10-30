@@ -3,7 +3,7 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.c,v 1.60 2018/03/10 04:04:05 rswindell Exp $ */
+/* $Id: xpprintf.c,v 1.62 2018/04/07 07:21:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,10 @@ int DLLCALL vasprintf(char **strptr, const char *format, va_list va)
 	va_copy(va2, va);
 	ret = _vscprintf(format, va);
 	*strptr = (char *)malloc(ret+1);
-	if (*strptr == NULL)
+	if (*strptr == NULL) {
+		va_end(va2);
 		return -1;
+	}
 	ret = vsprintf(*strptr, format, va2);
 	va_end(va2);
 	return ret;
@@ -723,7 +725,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 							i=(int)ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
-							i=(int)pntr;
+							i=(long)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
 							i=s;
@@ -762,7 +764,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 							i=(int)ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
-							i=(int)pntr;
+							i=(long)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
 							i=s;
@@ -801,7 +803,7 @@ char* DLLCALL xp_asprintf_next(char *format, int type, ...)
 							ui=(unsigned)ld;
 							break;
 						case XP_PRINTF_TYPE_VOIDP:
-							ui=(unsigned int)pntr;
+							ui=(unsigned long)pntr;
 							break;
 						case XP_PRINTF_TYPE_SIZET:
 							ui=s;
