@@ -2,13 +2,13 @@
 
 /* Synchronet legacy (v2) remote I/O constants */
 
-/* $Id: riodefs.h,v 1.1 2000/10/10 11:26:24 rswindell Exp $ */
+/* $Id: riodefs.h,v 1.2 2018/07/24 01:11:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
