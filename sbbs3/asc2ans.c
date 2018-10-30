@@ -2,13 +2,13 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: asc2ans.c,v 1.6 2014/01/05 06:37:39 rswindell Exp $ */
+/* $Id: asc2ans.c,v 1.8 2018/10/15 04:08:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -46,7 +46,7 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision: 1.8 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet Ctrl-A-Code to ANSI-Terminal-Sequence Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.asc [outfile.ans] [[option] [...]]\n",prog);
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 	while((ch=fgetc(in))!=EOF) {
 		if(ch==CTRL_A) { /* ctrl-a */
 			ch=fgetc(in);
-			if(ch==EOF || toupper(ch)=='Z')	/* EOF */
+			if(ch==EOF)	/* EOF */
 				break;
 			if(ch>0x7f) {					/* move cursor right x columns */
 				int cnt=ch-0x7f;
