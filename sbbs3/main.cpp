@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.737 2018/10/26 03:22:24 rswindell Exp $ */
+/* $Id: main.cpp,v 1.738 2018/10/31 08:13:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2810,10 +2810,11 @@ void event_thread(void* arg)
 
 			/* Run daily maintenance? */
 			sbbs->cfg.node_num=0;
-			sbbs->logonstats();
-			if(sbbs->sys_status&SS_DAILY)
-				sbbs->daily_maint();
-
+			if(!(startup->options&BBS_OPT_NO_NEWDAY_EVENTS)) {
+				sbbs->logonstats();
+				if(sbbs->sys_status&SS_DAILY)
+					sbbs->daily_maint();
+			}
 			/* Node Daily Events */
 			sbbs->event_code = "DAILY";
 			for(i=first_node;i<=last_node;i++) {
