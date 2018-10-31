@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.176 2019/02/19 07:15:29 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.173 2018/10/26 03:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ enum {
 };
 
 #ifdef BUILD_JSDOCS
-	static const char* bbs_prop_desc[] = {
+	static char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"answer time, in <i>time_t</i> format"
@@ -181,14 +181,7 @@ enum {
 
 	,"current node number"
 	,"current node settings bitfield (see <tt>NM_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"current node status value (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node error counter"
 	,"current node action (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node user number (<i>useron</i> value)"
-	,"current node connection type (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node misc value (see <tt>nodedefs.js</tt> for valid values)"
-	,"current node aux value"
-	,"current node extended aux (<i>extaux</i>) value"
 	,"validation feedback user for this node (or 0 for no validation feedback required)"
 
 	,"bytes uploaded during this session"
@@ -3479,7 +3472,7 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_post_msg(JSContext *cx, uintN argc, jsval *arglist)
+js_postmsg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
@@ -4102,7 +4095,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("list extended file information for files in the specified file directory")
 	,310
 	},
-	{"post_msg",		js_post_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>WM_NONE</tt>] [,object reply_header]")
+	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>WM_MODE</tt>] [,object reply_header]")
 	,JSDOCSTR("post a message in the specified message sub-board (number or internal code) "
 		"with optinal <i>mode</i> (bitfield)<br>"
 		"If <i>reply_header</i> is specified (a header object returned from <i>MsgBase.get_msg_header()</i>), that header "
