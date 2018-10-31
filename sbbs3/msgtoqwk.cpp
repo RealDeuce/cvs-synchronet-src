@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.54 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.53 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -381,7 +381,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum
 
 			if(ch==CTRL_A) {
 				ch=buf[++l];
-				if(ch==0 || ch=='Z')	/* EOF */
+				if(ch==0)
 					break;
 				if((asc=ctrl_a_to_ascii_char(ch)) != 0) {
 					fputc(asc,qwk_fp);
