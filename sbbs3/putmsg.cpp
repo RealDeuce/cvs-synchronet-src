@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.45 2019/03/24 09:28:07 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.42 2018/10/30 01:22:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /* the attributes prior to displaying the message are always restored.      */
 /* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
 /****************************************************************************/
-char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
+char sbbs_t::putmsg(const char *buf, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
@@ -77,9 +77,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				*wrapoff = 0;
 		}
 		char *wrapped;
-		if(org_cols < TERM_COLS_MIN)
-			org_cols = TERM_COLS_DEFAULT;
-		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -118,8 +116,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					sys_status&=~SS_NEST_PF; 
 				}
 			}
-			else if(str[l+1] == 'Z')	/* Ctrl-AZ==EOF (uppercase 'Z' only) */
-				break;
 			else {
 				ctrl_a(str[l+1]);
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
@@ -288,7 +284,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if(memcmp(str+l, "@CENTER@", 8) == 0) {
 					l += 8;
 					i=0;
-					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r' && str[l] != '\n')
+					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r')
 						tmp2[i++] = str[l++];
 					tmp2[i] = 0;
 					truncsp(tmp2);
@@ -307,7 +303,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				}
 				if(memcmp(str+l, "@WORDWRAP@", 10) == 0) {
 					l += 10;
-					putmsg(str+l, mode|P_WORDWRAP, org_cols);
+					putmsg(str+l, mode|P_WORDWRAP);
 					break;
 				}
 
