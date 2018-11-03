@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.32 2018/11/04 23:26:45 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.31 2018/10/30 03:12:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,13 +228,9 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case BAN:   return("BAN");
 		case HON:   return("HON");
 		case TOK:   return("TOK");
-		case ACST:	return("ACST");
-		case ACDT:	return("ACDT");
-		case AEST:	return("AEST");
-		case AEDT:	return("AEDT");
+		case SYD:   return("SYD");
 		case NOU:   return("NOU");
-		case NZST:  return("NZST");
-		case NZDT:  return("NZDT");
+		case WEL:   return("WEL");
 	}
 
 	if(!OTHER_ZONE(zone)) {
