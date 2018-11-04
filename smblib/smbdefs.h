@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.104 2018/10/30 03:12:23 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.105 2018/11/04 20:15:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -155,7 +155,7 @@
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
 
-#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET))
+#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET || zone==WEL))
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
