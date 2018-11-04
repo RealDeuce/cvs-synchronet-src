@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.489 2018/10/09 01:34:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.496 2018/11/03 05:45:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,6 +301,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
+#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -370,9 +371,14 @@ public:
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
+	/* 	input_thread() writes to these variables: */
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
-	char	terminal[TELNET_TERM_MAXLEN+1];
+	char	telnet_terminal[TELNET_TERM_MAXLEN+1];
+	long 	telnet_rows;	
+	long	telnet_cols;
+	long	telnet_speed;
+
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
@@ -460,8 +466,10 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
+	long	tabstop;		/* Current symmetric-tabstop (size) */
 	long	lastlinelen;	/* The previously displayed line length */
 	long 	autoterm;		/* Auto-detected terminal type */
+	char	terminal[TELNET_TERM_MAXLEN+1];	// <- answer() writes to this
 	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
@@ -561,8 +569,8 @@ public:
 	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, int32_t name);
-	int32_t*	getintvar(csi_t *bin, int32_t name);
+	char**	getstrvar(csi_t *bin, uint32_t name);
+	int32_t*	getintvar(csi_t *bin, uint32_t name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, const char* cmdsrc, char* rsp);
@@ -695,7 +703,7 @@ public:
 #endif
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
-	void	outchar(char ch);				/* Output a char - check echo and emu.  */
+	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -705,11 +713,17 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
+	void	carriage_return(void);
+	void	line_feed(void);
+	void	newline(void);
 	long	term_supports(long cmp_flags=0);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
 	bool	saveline(void);
 	bool	restoreline(void);
+	int		petscii_to_ansibbs(unsigned char);
+	int		attr(int);				/* Change text color/attributes */
+	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -733,10 +747,10 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	void	printfile(char *str, long mode);
-	void	printtail(char *str, int lines, long mode);
-	void	menu(const char *code);
-	bool	menu_exists(const char *code);
+	bool	printfile(const char* fname, long mode);
+	bool	printtail(const char* fname, int lines, long mode);
+	bool	menu(const char *code, long mode = 0);
+	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -744,21 +758,19 @@ public:
 	long	mselect(const char *title, str_list_t list, unsigned max_selections, const char* item_fmt, const char* selected_str, const char* unselected_str, const char* prompt_fmt);
 
 	void	redrwstr(char *strin, int i, int l, long mode);
-	void	attr(int atr);				/* Change local and remote text attributes */
-	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
 	const char*	atcode(char* sp, char* str, size_t maxlen);
 
 	/* getnode.cpp */
-	int		getsmsg(int usernumber);
-	int		getnmsg(void);
+	int		getsmsg(int usernumber, bool clearline = false);
+	int		getnmsg(bool clearline = false);
 	int		whos_online(bool listself);/* Lists active nodes, returns active nodes */
 	void	nodelist(void);
 	int		getnodeext(uint number, char * str);
 	int		getnodedat(uint number, node_t * node, bool lock);
-	void	nodesync(void);
+	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
 
@@ -917,7 +929,6 @@ public:
 	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
-	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
 	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
 				,long access, const char *extinfo=NULL);
@@ -1164,6 +1175,9 @@ extern "C" {
 
 	/* qwk.cpp */
 	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
+
+	/* con_out.cpp */
+	unsigned char		cp437_to_petscii(unsigned char);
 
 #ifdef JAVASCRIPT
 
