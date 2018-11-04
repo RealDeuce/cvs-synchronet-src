@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.496 2018/11/03 05:45:27 deuce Exp $ */
+/* $Id: sbbs.h,v 1.497 2018/11/04 23:55:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -541,10 +541,10 @@ public:
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	uint32_t *	global_str_var_name;
 	uint	global_int_vars;
 	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	uint32_t *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
 	int32_t	sysvar_l[MAX_SYSVARS];
