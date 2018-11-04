@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.43 2019/07/08 00:49:25 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.40 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@ bool sbbs_t::bulkmail(uchar *ar)
 	char		msgpath[MAX_PATH+1];
 	char*		msgbuf;
 	char*		editor=NULL;
-	char*		charset=NULL;
 	char 		tmp[512];
 	int 		i,j,x;
 	long		msgs=0;
@@ -70,8 +69,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	if(!writemsg(msgpath,nulstr,title,wm_mode,INVALID_SUB,"Bulk Mailing"
 		,/* From: */useron.alias
-		,&editor
-		,&charset)) {
+		,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -113,11 +111,13 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg.hdr.when_written.time=time32(NULL);
 	msg.hdr.when_written.zone=sys_timezone(&cfg);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);
