@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.48 2018/02/18 03:14:32 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.49 2018/11/04 20:16:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,6 +331,7 @@ void sys_cfg(void)
 						break;
 					case 24:
 						cfg.sys_timezone=WEL;
+						configure_dst();
 						break;
 					default:
 						if(cfg.sys_timezone>720 || cfg.sys_timezone<-720)
