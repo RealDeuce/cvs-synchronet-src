@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.29 2018/03/14 05:55:32 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.31 2018/10/30 03:12:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,8 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
 		case SMB_EDITOR:		return("Editor");
+		case SMB_TAGS:			return("Tags");
+		case SMB_COLUMNS:		return("Columns");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
@@ -390,7 +392,7 @@ char* SMBCALL smb_nettype(enum smb_net_type type)
 		case NET_NONE:		return "NONE";
 		case NET_UNKNOWN:	return "UNKNOWN";
 		case NET_QWK:		return "QWKnet";
-		case NET_FIDO:		return "Fidonet";
+		case NET_FIDO:		return "FidoNet";
 		case NET_INTERNET:	return "Internet";
 		default:			return "Unsupported net type";
 	}
