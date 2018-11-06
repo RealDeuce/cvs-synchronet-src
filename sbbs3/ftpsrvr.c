@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.479 2018/11/05 07:39:26 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.480 2018/11/06 07:50:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2296,11 +2296,6 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 			*(p-1) = 0;
 	}
 
-	if(filename==NULL /* directory */ && *fname /* filename specified */) {
-		fclose(fp);
-		return(FALSE);
-	}
-
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line),fp))
 			break;
@@ -2323,6 +2318,9 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		tp=p;		/* terminator */
 		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
+
+		if(filename == NULL /* CWD? */ && *lastchar(p) != '/')
+			return FALSE;
 
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 			if((dir=getdir(p+strlen(BBS_VIRTUAL_PATH),user,client))<0)	{
@@ -5899,7 +5897,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.479 $", "%*s %s", revision);
+	sscanf("$Revision: 1.480 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
