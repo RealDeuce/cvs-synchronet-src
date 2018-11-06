@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.103 2019/01/17 21:58:12 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.98 2018/11/06 06:06:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3617,15 +3617,13 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 
 /***********************************************************************/
 /* Get zone and point from kludge lines from the stream  if they exist */
-/* Returns true if an INTL klude line was found/parsed (with zone)     */
 /***********************************************************************/
-bool getzpt(FILE* stream, fmsghdr_t* hdr)
+void getzpt(FILE* stream, fmsghdr_t* hdr)
 {
 	char buf[0x1000];
 	int i,len,cr=0;
 	long pos;
 	fidoaddr_t faddr;
-	bool intl_found = false;
 
 	pos=ftell(stream);
 	len=fread(buf,1,0x1000,stream);
@@ -3648,7 +3646,6 @@ bool getzpt(FILE* stream, fmsghdr_t* hdr)
 				hdr->origzone=faddr.zone;
 				hdr->orignet=faddr.net;
 				hdr->orignode=faddr.node;
-				intl_found = true;
 			}
 			while(i<len && buf[i]!='\r') i++;
 			cr=1;
@@ -3660,7 +3657,6 @@ bool getzpt(FILE* stream, fmsghdr_t* hdr)
 			cr=0;
 	}
 	(void)fseek(stream,pos,SEEK_SET);
-	return intl_found;
 }
 
 bool foreign_zone(uint16_t zone1, uint16_t zone2)
@@ -4284,14 +4280,14 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 
 	hdr.destzone=sys_faddr.zone;
 	hdr.destpoint=hdr.origpoint=0;
-	bool got_zones = getzpt(fp, &hdr);				/* use kludge if found */
+	getzpt(fp,&hdr);				/* use kludge if found */
 	for(match=0;match<scfg.total_faddrs;match++)
-		if((hdr.destzone==scfg.faddr[match].zone || (cfg.fuzzy_zone && !got_zones))
+		if((hdr.destzone==scfg.faddr[match].zone || (cfg.fuzzy_zone))
 			&& hdr.destnet==scfg.faddr[match].net
 			&& hdr.destnode==scfg.faddr[match].node
 			&& hdr.destpoint==scfg.faddr[match].point)
 			break;
-	if(match<scfg.total_faddrs && (cfg.fuzzy_zone && !got_zones))
+	if(match<scfg.total_faddrs && (cfg.fuzzy_zone))
 		hdr.origzone=hdr.destzone=scfg.faddr[match].zone;
 	if(hdr.origpoint)
 		sprintf(tmp,".%hu",hdr.origpoint);
@@ -4368,9 +4364,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 		}
 	}
 
-	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 
-		|| stricmp(hdr.to, "SBBSecho") == 0
-		|| stricmp(hdr.to, FIDO_PING_NAME) == 0) {
+	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 || stricmp(hdr.to, FIDO_PING_NAME) == 0) {
 		fmsgbuf=getfmsg(fp,NULL);
 		if(path[0]) {
 			if(cfg.delete_netmail && opt_delete_netmail) {
@@ -4389,7 +4383,9 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 		addr.node=hdr.orignode;
 		addr.point=hdr.origpoint;
 		lprintf(LOG_INFO, "%s", info);
-		if(stricmp(hdr.from, hdr.to) == 0)
+		if(stricmp(hdr.from, FIDO_PING_NAME) == 0
+			|| stricmp(hdr.from, FIDO_AREAMGR_NAME) == 0
+			)
 			lprintf(LOG_NOTICE, "Refusing to auto-reply to NetMail from %s", hdr.from);
 		else {
 			if(stricmp(hdr.to, FIDO_PING_NAME) == 0) {
@@ -4837,7 +4833,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
 					char ch;
 					l++;
-					if(buf[l]==0 || buf[l]=='Z')	/* EOF */
+					if(buf[l]==0)
 						break;
 					if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
 						fmsgbuf[f++]=ch;
@@ -5736,7 +5732,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			}
 
 			if(!secure && (nodecfg == NULL || nodecfg->pktpwd[0] == 0)) {
-				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s (in the non-secure inbound directory) ignored"
+				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s ignored"
 					,areatag, smb_faddrtoa(&pkt_orig, NULL));
 				printf("\n");
 				bad_packet = true;
@@ -5753,10 +5749,8 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			} else {
 				stat->known = false;
 				printf("(Unknown) ");
-				if(bad_areas != NULL && strListFind(bad_areas, areatag, /* case_sensitive: */false) < 0) {
-					lprintf(LOG_NOTICE, "Adding unknown area (%s) to bad area list: %s", areatag, cfg.badareafile);
+				if(bad_areas != NULL && strListFind(bad_areas, areatag, /* case_sensitive: */false) < 0)
 					strListPush(&bad_areas, areatag);
-				}
 				if(cfg.badecho>=0) {
 					i=cfg.badecho;
 					if(cfg.area[i].sub!=INVALID_SUB)
@@ -5993,7 +5987,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.103 $", "%*s %s", revision);
+	sscanf("$Revision: 3.98 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
