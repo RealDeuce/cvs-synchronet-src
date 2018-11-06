@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.182 2019/07/18 03:14:48 rswindell Exp $ */
+/* $Id: js_file.c,v 1.174 2018/08/28 22:47:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,6 +67,8 @@ typedef struct
 
 } private_t;
 
+static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+
 static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 {
 	va_list argptr;
@@ -126,7 +128,6 @@ static int fopenflags(char *mode)
 
 /* File Object Methods */
 
-extern JSClass js_file_class;
 static JSBool
 js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -140,11 +141,12 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
-
-	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
 	if(p->fp!=NULL)
 		return(JS_TRUE);
@@ -221,8 +223,8 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
-		
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -267,11 +269,11 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(p->fp==NULL)
 		return(JS_TRUE);
@@ -305,7 +307,8 @@ js_raw_pollin(JSContext *cx, uintN argc, jsval *arglist)
 	struct	timeval tv = {0, 0};
 #endif
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -371,8 +374,8 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
-		
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -430,7 +433,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -521,7 +525,8 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -579,7 +584,8 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -668,7 +674,8 @@ js_readall(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -766,7 +773,8 @@ js_iniGetValue(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -890,7 +898,8 @@ js_iniSetValue_internal(JSContext *cx, JSObject *obj, uintN argc, jsval* argv, s
 	char*		cstr;
 	time_t		tt;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -963,7 +972,8 @@ js_iniSetValue(JSContext *cx, uintN argc, jsval *arglist)
 	str_list_t	list;
 	jsrefcount	rc;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -995,7 +1005,8 @@ js_iniRemoveKey(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1051,7 +1062,8 @@ js_iniRemoveSection(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1096,7 +1108,8 @@ js_iniGetSections(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1143,7 +1156,8 @@ js_iniGetKeys(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1188,7 +1202,8 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1244,7 +1259,8 @@ js_iniSetObject(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1328,7 +1344,8 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1488,7 +1505,8 @@ js_iniSetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 	}
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1575,7 +1593,8 @@ js_raw_write(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1622,7 +1641,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1713,7 +1733,8 @@ js_writeln_internal(JSContext *cx, JSObject *obj, jsval *arg, jsval *rval)
 
 	*rval = JSVAL_FALSE;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1783,7 +1804,8 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1879,7 +1901,8 @@ js_writeall(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1926,7 +1949,8 @@ js_lock(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -1971,7 +1995,8 @@ js_unlock(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2012,7 +2037,8 @@ js_delete(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2037,7 +2063,8 @@ js_flush(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2060,7 +2087,8 @@ js_rewind(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2087,7 +2115,8 @@ js_truncate(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2116,7 +2145,8 @@ js_clear_error(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2143,7 +2173,8 @@ js_fprintf(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2208,7 +2239,8 @@ static JSBool js_file_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	jsrefcount	rc;
 	char*		str = NULL;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_file_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -2417,7 +2449,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
-			in=getfmode(p->name);
+			in=getfattr(p->name);
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=INT_TO_JSVAL(in);
 			break;
@@ -2603,7 +2635,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static const char* file_prop_desc[] = {
+static char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
 	,"<i>true</i> if the file is open or exists (case-insensitive) - <small>READ ONLY</small>"
@@ -2616,7 +2648,7 @@ static const char* file_prop_desc[] = {
 	,"the current file position (offset in bytes), change value to seek within file"
 	,"last modified date/time (in time_t format)"
 	,"the current length of the file (in bytes)"
-	,"file type/mode flags (i.e. <tt>struct stat.st_mode</tt> value, compatible with <tt>file_chmod()</tt>)"
+	,"file mode/attributes"
 	,"set to <i>true</i> if binary data is to be written and read in Network Byte Order (big end first)"
 	,"set to <i>true</i> to enable automatic ROT13 translation of text"
 	,"set to <i>true</i> to enable automatic Unix-to-Unix encode and decode on <tt>read</tt> and <tt>write</tt> calls"
@@ -2651,7 +2683,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"<tt>b&nbsp</tt> open in binary (untranslated) mode; translations involving carriage-return and linefeed characters are suppressed (e.g. <tt>r+b</tt>)<br>"
 		"<tt>x&nbsp</tt> open a <i>non-shareable</i> file (that must not already exist) for <i>exclusive</i> access <i>(introduced in v3.17)</i><br>"
 		"<br><b>Note:</b> When using the <tt>iniSet</tt> methods to modify a <tt>.ini</tt> file, "
-		"the file must be opened for both reading <b>and</b> writing.<br>"
+		"the file must be opened for both reading and writing.<br>"
 		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
 		"(e.g. updating an <tt>.ini</tt> file) "
 		"use the <i>exists</i> property like so:<br>"
@@ -2790,10 +2822,8 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
 		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
-		"Returns a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
-		"determined by the type of <i>default</i> value specified. "
-		"<br><b>Note:</b> To insure that any/all values are returned as a string (e.g. numeric passwords are <b>not</b> returned as a <i>number</i>), "
-		"pass an empty string ('') for the <i>default</i> value." )
+		"will return a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
+		"determined by the type of <i>default</i> value specified")
 	,311
 	},
 	{"iniSetValue",		js_iniSetValue,		3,	JSTYPE_BOOLEAN,	JSDOCSTR("section, key, [value=<i>none</i>]")
@@ -2805,16 +2835,13 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
 	,JSDOCSTR("parse an entire section from a .ini file "
 		"and return all of its keys and values as properties of an object. "
-		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section. "
-		"Returns <i>null</i> if the specified <i>section</i> does not exist in the file or the file has not been opened.")
+		"if <i>section</i> is undefined, returns key and values from the <i>root</i> section")
 	,311
 	},
 	{"iniSetObject",	js_iniSetObject,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, object")
 	,JSDOCSTR("write all the properties of the specified <i>object</i> as separate <tt>key=value</tt> pairs "
 		"in the specified <i>section</i> of a <tt>.ini</tt> file. "
-		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
-		"<br><b>Note:</b> this method does not remove unreferenced keys from an existing section. "
-		"If your intention is to <i>replace</i> an existing section, use the <tt>iniRemoveSection</tt> function first." )
+		"to write an object in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,312
 	},
 	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>]")
@@ -2826,7 +2853,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
 	},
-	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_BOOLEAN,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
+	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,312
@@ -2890,7 +2917,7 @@ static JSBool js_file_enumerate(JSContext *cx, JSObject *obj)
 	return(js_file_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_file_class = {
+static JSClass js_file_class = {
      "File"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
@@ -2984,14 +3011,10 @@ JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 	return(obj);
 }
 
-JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode)
+JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp)
 {
 	JSObject* obj;
 	private_t*	p;
-	FILE* fp = fdopen(fd, mode);
-
-	if(fp == NULL)
-		return NULL;
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -3010,6 +3033,7 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
+
 	dbprintf(FALSE, p, "object created");
 
 	return(obj);
