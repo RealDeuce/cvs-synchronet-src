@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.85 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.86 2018/09/06 02:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1187,7 +1187,7 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 			msg.hdr.votes = iniGetShortInt(ini, section, "votes", 0);
 			notice = text[PollVoteNotice];
 		}
-		result = votemsg(&cfg, &smb, &msg, notice);
+		result = votemsg(&cfg, &smb, &msg, notice, text[VoteNoticeFmt]);
 		if(result != SMB_SUCCESS && result != SMB_DUPE_MSG)
 			errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 	}
