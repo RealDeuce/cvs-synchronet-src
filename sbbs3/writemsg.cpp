@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.131 2018/11/09 03:19:14 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.132 2018/11/09 05:52:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -253,8 +253,13 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	SAFEPRINTF3(draft, "%suser/%04u.%s", cfg.data_dir, useron.number, draft_desc);
 
 	bool draft_restored = false;
-	if(fexist(draft) && (time(NULL) - fdate(draft)) < 48L*60L*60L && yesno("Unsaved draft message found. Use it"))
-		draft_restored = mv(draft, msgtmp, /* copy: */true) == 0;
+	if(flength(draft) > 0 && (time(NULL) - fdate(draft)) < 48L*60L*60L && yesno("Unsaved draft message found. Use it")) {
+		if(mv(draft, msgtmp, /* copy: */true) == 0) {
+			lprintf(LOG_NOTICE, "draft message restored: %s (%lu bytes)", draft, (ulong)flength(msgtmp));
+			draft_restored = true;
+		} else
+			lprintf(LOG_ERR, "ERROR %d restoring draft message: %s", errno, draft);
+	}
 	else if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
 		&& ((mode&(WM_EMAIL|WM_NETMAIL) && cfg.sys_misc&SM_QUOTE_EM)
 		|| (!(mode&(WM_EMAIL|WM_NETMAIL)) && (uint)subnum!=INVALID_SUB
@@ -516,12 +521,13 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		rioctl(IOSM|PAUSE|ABORT); 
 
 		checkline();
-		if(!online)	 { // save draft due to disconnection
+		if(!online && flength(msgtmp) > 0)	 { // save draft message due to disconnection
 			if(mv(msgtmp, draft, /* copy: */true) == 0) {
 				user_set_property(&cfg, useron.number, draft_desc, "subject", subj);
 				user_set_time_property(&cfg, useron.number, draft_desc, "created", time(NULL));
-				lprintf(LOG_NOTICE, "Draft message saved: %s", draft);
-			}
+				lprintf(LOG_NOTICE, "draft message saved: %s (%lu bytes)", draft, (ulong)flength(draft));
+			} else
+				lprintf(LOG_ERR, "ERROR %d saving draft message: %s", errno, draft);
 		}
 
 		if(result != EXIT_SUCCESS || !fexistcase(msgtmp) || !online
