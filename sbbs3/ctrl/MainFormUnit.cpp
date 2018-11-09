@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.200 2018/03/23 01:30:16 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.201 2018/10/05 01:33:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2865,7 +2865,7 @@ void __fastcall TMainForm::ForceTimedEventMenuItemClick(TObject *Sender)
             	if((file=_sopen(str,O_CREAT|O_TRUNC|O_WRONLY
 	                ,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 	                close(file);
-				selection = i;
+				selection = CodeInputForm->ComboBox->ItemIndex;
                 break;
 	   		}
         }
