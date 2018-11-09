@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.209 2018/11/09 03:11:45 rswindell Exp $ */
+/* $Id: userdat.c,v 1.210 2018/11/09 03:18:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3318,7 +3318,8 @@ BOOL DLLCALL user_set_time_property(scfg_t* scfg, unsigned user_number, const ch
 	if(fp == NULL)
 		return FALSE;
 	ini = iniReadFile(fp);
-	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, /* style */NULL);
+	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = " };
+	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, &ini_style);
 	iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	iniCloseFile(fp);
