@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.165 2018/08/28 21:01:26 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.166 2018/08/28 22:12:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -544,11 +544,11 @@ static char* ini_set_string(str_list_t* list, const char* section, const char* k
 
 	if(key==NULL)
 		return(NULL);
-	if(style->key_prefix==NULL)
+	if(style->key_prefix != NULL)
 		key_prefix = style->key_prefix;
-	if(style->value_separator==NULL)
+	if(style->value_separator != NULL)
 		value_separator = style->value_separator;
-	if(style->literal_separator==NULL)
+	if(style->literal_separator != NULL)
 		literal_separator = style->literal_separator;
 	if(value==NULL)
 		value="";

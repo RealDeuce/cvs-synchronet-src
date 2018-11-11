@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.25 2018/08/07 18:59:23 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.26 2018/09/08 21:35:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,6 +125,7 @@ typedef struct {
 	arcdef_t*	archive;
 	str_list_t	grphub;			/* This link is hub of these groups (short names */
 	/* BinkP settings */
+	bool		binkp_plainAuthOnly;
 	bool		binkp_allowPlainAuth;
 	bool		binkp_allowPlainText;
 	bool		binkp_poll;
