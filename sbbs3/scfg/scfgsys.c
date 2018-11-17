@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.51 2019/01/12 12:09:15 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.50 2018/11/04 23:28:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,7 +125,7 @@ void sys_cfg(void)
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					save_main_cfg(&cfg,backup_level);
+					write_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
