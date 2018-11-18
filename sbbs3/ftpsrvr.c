@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.481 2018/11/17 14:55:43 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.482 2018/11/18 14:53:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2284,17 +2284,21 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 	FILE*	fp;
 	BOOL	result=FALSE;
 
-	sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
-	if((fp=fopen(aliasfile,"r"))==NULL) 
-		return(FALSE);
-
 	SAFECOPY(alias,fullalias);
 	p = getfname(alias);
 	if(p) {
-		fname = p;
 		if(p != alias)
 			*(p-1) = 0;
+		if(*p) {
+			if(filename == NULL && p != alias)	// CWD command and a filename specified
+				return FALSE;
+			fname = p;
+		}
 	}
+
+	SAFEPRINTF(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
+	if((fp=fopen(aliasfile,"r"))==NULL) 
+		return FALSE;
 
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line),fp))
@@ -2319,7 +2323,7 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
 
-		if(filename == NULL /* CWD? */ && (*lastchar(p) != '/' || *fname != 0)) {
+		if(filename == NULL /* CWD? */ && (*lastchar(p) != '/' || (*fname != 0 && strcmp(fname, alias)))) {
 			fclose(fp);
 			return FALSE;
 		}
@@ -5899,7 +5903,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.481 $", "%*s %s", revision);
+	sscanf("$Revision: 1.482 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
