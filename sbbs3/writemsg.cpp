@@ -1,6 +1,7 @@
 /* Synchronet message creation routines */
+// vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.125 2018/10/03 23:49:04 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.132 2018/11/09 05:52:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +38,7 @@
 #include "wordwrap.h"
 
 #define MAX_LINES		10000
-#define MAX_LINE_LEN	82	/* not strictly enforced, mostly used as a multiplier */
+#define MAX_LINE_LEN	(cols - 1)
 
 const char *quote_fmt=" > %.*s\r\n";
 void quotestr(char *str);
@@ -80,6 +81,10 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 	char*	wrapped=NULL;
 	FILE*	fp;
 	ushort useron_xedit = useron.xedit;
+	uint8_t	org_cols = TERM_COLS_DEFAULT;
+
+	if(msg->columns != 0)
+		org_cols = msg->columns;
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
@@ -94,8 +99,8 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 
 	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
 		strip_invalid_attr(buf);
-		if(useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))
-			wrapped=::wordwrap(buf, cols-4, cols-1, /* handle_quotes: */TRUE);
+		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
+			wrapped=::wordwrap(buf, cols-4, org_cols - 1, /* handle_quotes: */TRUE);
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
 			free(wrapped);
@@ -205,6 +210,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 				,useron_level;
 	char	msgtmp[MAX_PATH+1];
 	char	tagfile[MAX_PATH+1];
+	char	draft_desc[128];
+	char	draft[MAX_PATH + 1];
 	char 	tmp[512];
 	int		i,j,file,linesquoted=0;
 	long	length,qlen=0,qtime=0,ex_mode=0;
@@ -213,6 +220,11 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	FILE*	fp;
 	unsigned lines;
 	ushort useron_xedit = useron.xedit;
+
+	if(cols < 2) {
+		errormsg(WHERE, ERR_CHK, "columns", cols);
+		return false;
+	}
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
@@ -234,10 +246,21 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		mode|=WM_NOTOP;
 
 	msg_tmp_fname(useron_xedit, msgtmp, sizeof(msgtmp));
+	removecase(msgtmp);
 	SAFEPRINTF(tagfile,"%seditor.tag",cfg.temp_dir);
 	removecase(tagfile);
+	SAFEPRINTF(draft_desc, "draft.%s.msg", subnum >= cfg.total_subs ? "mail" : cfg.sub[subnum]->code);
+	SAFEPRINTF3(draft, "%suser/%04u.%s", cfg.data_dir, useron.number, draft_desc);
 
-	if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
+	bool draft_restored = false;
+	if(flength(draft) > 0 && (time(NULL) - fdate(draft)) < 48L*60L*60L && yesno("Unsaved draft message found. Use it")) {
+		if(mv(draft, msgtmp, /* copy: */true) == 0) {
+			lprintf(LOG_NOTICE, "draft message restored: %s (%lu bytes)", draft, (ulong)flength(msgtmp));
+			draft_restored = true;
+		} else
+			lprintf(LOG_ERR, "ERROR %d restoring draft message: %s", errno, draft);
+	}
+	else if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
 		&& ((mode&(WM_EMAIL|WM_NETMAIL) && cfg.sys_misc&SM_QUOTE_EM)
 		|| (!(mode&(WM_EMAIL|WM_NETMAIL)) && (uint)subnum!=INVALID_SUB
 			&& cfg.sub[subnum]->misc&SUB_QUOTE))) {
@@ -251,7 +274,6 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 				free(buf);
 				return(false); 
 			}
-			removecase(msgtmp);
 			if((file=nopen(msgtmp,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 				errormsg(WHERE,ERR_OPEN,msgtmp,O_WRONLY|O_CREAT|O_TRUNC);
 				free(buf);
@@ -401,6 +423,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		max_title_len=cols-column-1;
 		if(max_title_len > LEN_TITLE)
 			max_title_len = LEN_TITLE;
+		if(draft_restored)
+			user_get_property(&cfg, useron.number, draft_desc, "subject", subj, max_title_len);
 		if(!getstr(subj,max_title_len,mode&WM_FILE ? K_LINE|K_TRIM : K_LINE|K_EDIT|K_AUTODEL|K_TRIM)
 			&& useron_level && useron.logons) {
 			free(buf);
@@ -480,20 +504,33 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		if(cfg.xedit[useron_xedit-1]->misc&XTRN_SH)
 			ex_mode|=EX_SH;
 
-		if(!linesquoted)
-			removecase(msgtmp);
-		else {
-			qlen=(long)flength(msgtmp);
-			qtime=(long)fdate(msgtmp); 
+		if(!draft_restored) {
+			if(!linesquoted)
+				removecase(msgtmp);
+			else {
+				qlen=(long)flength(msgtmp);
+				qtime=(long)fdate(msgtmp); 
+			}
 		}
 
 		CLS;
 		rioctl(IOCM|PAUSE|ABORT);
-		external(cmdstr(cfg.xedit[useron_xedit-1]->rcmd,msgtmp,nulstr,NULL),ex_mode,cfg.node_dir);
+		const char* cmd = cmdstr(cfg.xedit[useron_xedit-1]->rcmd, msgtmp, nulstr, NULL);
+		int result = external(cmd, ex_mode, cfg.node_dir);
+		lprintf(LOG_DEBUG, "'%s' returned %d", cmd, result);
 		rioctl(IOSM|PAUSE|ABORT); 
 
 		checkline();
-		if(!fexistcase(msgtmp) || !online
+		if(!online && flength(msgtmp) > 0)	 { // save draft message due to disconnection
+			if(mv(msgtmp, draft, /* copy: */true) == 0) {
+				user_set_property(&cfg, useron.number, draft_desc, "subject", subj);
+				user_set_time_property(&cfg, useron.number, draft_desc, "created", time(NULL));
+				lprintf(LOG_NOTICE, "draft message saved: %s (%lu bytes)", draft, (ulong)flength(draft));
+			} else
+				lprintf(LOG_ERR, "ERROR %d saving draft message: %s", errno, draft);
+		}
+
+		if(result != EXIT_SUCCESS || !fexistcase(msgtmp) || !online
 			|| (linesquoted && qlen==flength(msgtmp) && qtime==fdate(msgtmp))) {
 			free(buf);
 			return(false); 
@@ -533,7 +570,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	}
 	else {
 		buf[0]=0;
-		if(linesquoted) {
+		if(linesquoted || draft_restored) {
 			if((file=nopen(msgtmp,O_RDONLY))!=-1) {
 				length=(long)filelength(file);
 				l=length>(cfg.level_linespermsg[useron_level]*MAX_LINE_LEN)-1
@@ -545,6 +582,16 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			} 
 		}
 		if(!(msgeditor((char *)buf,mode&WM_NOTOP ? nulstr : top, subj))) {
+			if(!online) {
+				FILE* fp = fopen(draft, "wb");
+				if(fp == NULL)
+					errormsg(WHERE, ERR_CREATE, draft, O_WRONLY);
+				else {
+					fputs(buf, fp);
+					fclose(fp);
+					user_set_property(&cfg, useron.number, draft_desc, "subject", subj);
+				}
+			}
 			free(buf);	/* Assertion here Dec-17-2003, think I fixed in block above (rev 1.52) */
 			return(false); 
 		} 
@@ -593,12 +640,14 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		}
 	}
 
+	remove(draft);
 	fclose(stream);
 	free((char *)buf);
 	bprintf(text[SavedNBytes],l,lines);
 	return(true);
 }
 
+/****************************************************************************/
 /****************************************************************************/
 /* Modify 'str' to for quoted format. Remove ^A codes, etc.                 */
 /****************************************************************************/
@@ -730,6 +779,11 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	char 	tmp[512];
     ulong	l,m;
 
+	if(cols < 2) {
+		errormsg(WHERE, ERR_CHK, "columns", cols);
+		return 0;
+	}
+
 	rioctl(IOCM|ABORT);
 	rioctl(IOCS|ABORT); 
 
@@ -743,15 +797,15 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	l=0;
 	while(l<m && lines<maxlines) {
 		msgabort(); /* to allow pausing */
-		if((str[lines]=(char *)malloc(MAX_LINE_LEN))==NULL) {
-			errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN);
+		if((str[lines]=(char *)malloc(MAX_LINE_LEN + 1))==NULL) {
+			errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN + 1);
 			for(i=0;i<lines;i++)
 				free(str[i]);
 			free(str);
 			rioctl(IOSM|ABORT);
 			return(0); 
 		}
-		for(i=0;i<79 && l<m;i++,l++) {
+		for(i=0;i<MAX_LINE_LEN && l<m;i++,l++) {
 			if(buf[l]==CR) {
 				l+=2;
 				break; 
@@ -759,7 +813,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			if(buf[l]==TAB) {
 				if(!(i%8))                  /* hard-coded tabstop of 8 */
 					str[lines][i++]=' ';     /* for expansion */
-				while(i%8 && i<79)
+				while(i%8 && i<MAX_LINE_LEN)
 					str[lines][i++]=' ';
 				i--;
 				/***
@@ -767,7 +821,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				***/ }
 			else str[lines][i]=buf[l]; 
 		}
-		if(i==79) {
+		if(i==MAX_LINE_LEN) {
 			if(buf[l]==CR)
 				l+=2;
 			else
@@ -780,10 +834,8 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
 
-	if(menu_exists("msgtabs"))
-		menu("msgtabs");
-	else {
-		for(i=0;i<79;i++) {
+	if(!menu("msgtabs", P_NOERROR)) {
+		for(i=0; i < (cols-1); i++) {
 			if(i%EDIT_TABSIZE || !i)
 				outchar('-');
 			else 
@@ -802,8 +854,8 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	while(online && !done) {
 		checkline();
 		if(line==lines) {
-			if((str[line]=(char *)malloc(MAX_LINE_LEN))==NULL) {
-				errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN);
+			if((str[line]=(char *)malloc(MAX_LINE_LEN + 1))==NULL) {
+				errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN + 1);
 				for(i=0;i<lines;i++)
 					free(str[i]);
 				free(str);
@@ -820,8 +872,8 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		strcpy(strin,str[line]);
 		do {
 			if(!line)
-				outchar(CR);
-			getstr(strin,79,K_WRAP|K_MSG|K_EDIT);
+				carriage_return();
+			getstr(strin, cols-1, K_WRAP|K_MSG|K_EDIT);
 			} while(console&CON_UPARROW && !line);
 
 		if(sys_status&SS_ABORT) {
@@ -879,8 +931,8 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				else {
 					for(line=lines;line>i;line--)   /* move the pointers */
 						str[line]=str[line-1];
-					if((str[i]=(char *)malloc(MAX_LINE_LEN))==NULL) {
-						errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN);
+					if((str[i]=(char *)malloc(MAX_LINE_LEN + 1))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN + 1);
 						for(i=0;i<lines;i++)
 							free(str[i]);
 						free(str);
@@ -905,7 +957,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				if(i>=lines || i<0)
 					bputs(text[InvalidLineNumber]);
 				else
-					getstr(str[i],79,j);
+					getstr(str[i], cols-1 ,j);
 				continue; 
 			}
 			else if(!stricmp(strin,"/CLR")) {
@@ -987,25 +1039,24 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		if(line>lines)
 			lines++;
 		if(console&CON_UPARROW) {
-			outchar(CR);
+			carriage_return();
 			cursor_up();
 			cleartoeol();
 			line-=2; 
 		}
-		}
-	if(!online) {
-		for(i=0;i<lines;i++)
-			free(str[i]);
-		free(str);
-		return(0); 
 	}
-	strcpy(buf,top);
+	if(online)
+		strcpy(buf,top);
+	else
+		buf[0]=0;
 	for(i=0;i<lines;i++) {
 		strcat(buf,str[i]);
 		strcat(buf,crlf);
 		free(str[i]); 
 	}
 	free(str);
+	if(!online)
+		return 0;
 	return(lines);
 }
 
@@ -1023,6 +1074,11 @@ bool sbbs_t::editfile(char *fname, bool msg)
 	FILE*	stream;
 	unsigned lines;
 	ushort useron_xedit = useron.xedit;
+
+	if(cols < 2) {
+		errormsg(WHERE, ERR_CHK, "columns", cols);
+		return false;
+	}
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
