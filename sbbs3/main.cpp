@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.738 2018/10/31 08:13:07 rswindell Exp $ */
+/* $Id: main.cpp,v 1.739 2018/11/23 17:18:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2649,8 +2649,8 @@ void event_thread(void* arg)
 		sbbs->online=FALSE;	/* reset this from ON_LOCAL */
 
 		/* QWK events */
-		sbbs->event_code = "unQWK";
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
+			sbbs->event_code = "unQWK";
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
 			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
@@ -2811,6 +2811,7 @@ void event_thread(void* arg)
 			/* Run daily maintenance? */
 			sbbs->cfg.node_num=0;
 			if(!(startup->options&BBS_OPT_NO_NEWDAY_EVENTS)) {
+				sbbs->event_code = "";
 				sbbs->logonstats();
 				if(sbbs->sys_status&SS_DAILY)
 					sbbs->daily_maint();
