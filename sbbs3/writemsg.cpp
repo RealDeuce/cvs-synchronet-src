@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.143 2019/03/08 07:48:21 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.132 2018/11/09 05:52:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ char* sbbs_t::quotes_fname(int xedit, char *path, size_t len)
 
 /****************************************************************************/
 /****************************************************************************/
-bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
+void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 {
 	char	fname[MAX_PATH+1];
 	char*	buf;
@@ -94,15 +94,11 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 
 	if((fp=fopen(fname,"w"))==NULL) {
 		errormsg(WHERE,ERR_OPEN,fname,0);
-		return false; 
+		return; 
 	}
 
-	bool result = false;
-	ulong mode = GETMSGTXT_PLAIN;
-	if(tails) mode |= GETMSGTXT_TAILS;
-	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
+	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
 		strip_invalid_attr(buf);
-		truncsp(buf);
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
 			wrapped=::wordwrap(buf, cols-4, org_cols - 1, /* handle_quotes: */TRUE);
 		if(wrapped!=NULL) {
@@ -111,12 +107,9 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 		} else
 			fputs(buf,fp);
 		smb_freemsgtxt(buf); 
-		result = true;
 	} else if(smb_getmsgdatlen(msg)>2)
-		errormsg(WHERE,ERR_READ,smb->file,smb_getmsgdatlen(msg));
-
+		errormsg(WHERE,ERR_READ,smb.file,smb_getmsgdatlen(msg));
 	fclose(fp);
-	return result;
 }
 
 /****************************************************************************/
@@ -233,9 +226,6 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		return false;
 	}
 
-	if(top == NULL)
-		top = "";
-
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
 
@@ -267,9 +257,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		if(mv(draft, msgtmp, /* copy: */true) == 0) {
 			lprintf(LOG_NOTICE, "draft message restored: %s (%lu bytes)", draft, (ulong)flength(msgtmp));
 			draft_restored = true;
-			removecase(quotes_fname(useron_xedit, str, sizeof(str)));
 		} else
-			lprintf(LOG_ERR, "ERROR %d (%s) restoring draft message: %s", errno, strerror(errno), draft);
+			lprintf(LOG_ERR, "ERROR %d restoring draft message: %s", errno, draft);
 	}
 	else if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
 		&& ((mode&(WM_EMAIL|WM_NETMAIL) && cfg.sys_misc&SM_QUOTE_EM)
@@ -412,7 +401,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		} 
 	}
 	else {
-		removecase(quotes_fname(useron_xedit, str, sizeof(str)));
+		quotes_fname(useron_xedit, str, sizeof(str));
+		removecase(str); 
 	}
 
 	if(!online || sys_status&SS_ABORT) {
@@ -537,7 +527,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 				user_set_time_property(&cfg, useron.number, draft_desc, "created", time(NULL));
 				lprintf(LOG_NOTICE, "draft message saved: %s (%lu bytes)", draft, (ulong)flength(draft));
 			} else
-				lprintf(LOG_ERR, "ERROR %d (%s) saving draft message: %s", errno, strerror(errno), draft);
+				lprintf(LOG_ERR, "ERROR %d saving draft message: %s", errno, draft);
 		}
 
 		if(result != EXIT_SUCCESS || !fexistcase(msgtmp) || !online
@@ -785,9 +775,9 @@ void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 {
 	int		i,j,line,lines=0,maxlines;
-	char	strin[TERM_COLS_MAX + 1];
+	char	strin[256],**str,done=0;
 	char 	tmp[512];
-	str_list_t str;
+    ulong	l,m;
 
 	if(cols < 2) {
 		errormsg(WHERE, ERR_CHK, "columns", cols);
@@ -799,14 +789,47 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 
 	maxlines=cfg.level_linespermsg[useron.level];
 
-	if((str = strListSplit(NULL, buf, "\r\n")) == NULL) {
+	if((str=(char **)malloc(sizeof(char *)*(maxlines+1)))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,"msgeditor",sizeof(char *)*(maxlines+1));
 		return(0); 
 	}
-	lines = strListCount(str);
-	while(lines > maxlines)
-		free(str[--lines]);
-	str[lines] = NULL;
+	m=strlen(buf);
+	l=0;
+	while(l<m && lines<maxlines) {
+		msgabort(); /* to allow pausing */
+		if((str[lines]=(char *)malloc(MAX_LINE_LEN + 1))==NULL) {
+			errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN + 1);
+			for(i=0;i<lines;i++)
+				free(str[i]);
+			free(str);
+			rioctl(IOSM|ABORT);
+			return(0); 
+		}
+		for(i=0;i<MAX_LINE_LEN && l<m;i++,l++) {
+			if(buf[l]==CR) {
+				l+=2;
+				break; 
+			}
+			if(buf[l]==TAB) {
+				if(!(i%8))                  /* hard-coded tabstop of 8 */
+					str[lines][i++]=' ';     /* for expansion */
+				while(i%8 && i<MAX_LINE_LEN)
+					str[lines][i++]=' ';
+				i--;
+				/***
+				bprintf("\r\nMessage editor: Expanded tab on line #%d",lines+1);
+				***/ }
+			else str[lines][i]=buf[l]; 
+		}
+		if(i==MAX_LINE_LEN) {
+			if(buf[l]==CR)
+				l+=2;
+			else
+				bprintf("\r\nMessage editor: Split line #%d",lines+1); 
+		}
+		str[lines][i]=0;
+		lines++; 
+	}
 	if(lines)
 		bprintf("\r\nMessage editor: Read in %d lines\r\n",lines);
 	bprintf(text[EnterMsgNow],maxlines);
@@ -828,77 +851,56 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	}
 	SYNC;
 	rioctl(IOSM|ABORT);
-	while(online) {
-		if(line < 0)
-			line = 0;
+	while(online && !done) {
+		checkline();
+		if(line==lines) {
+			if((str[line]=(char *)malloc(MAX_LINE_LEN + 1))==NULL) {
+				errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN + 1);
+				for(i=0;i<lines;i++)
+					free(str[i]);
+				free(str);
+				return(0); 
+			}
+			str[line][0]=0; 
+		}
 		if(line>(maxlines-10)) {
-			if(line >= maxlines)
+			if(line==maxlines)
 				bprintf(text[NoMoreLines],line);
 			else
 				bprintf(text[OnlyNLinesLeft],maxlines-line); 
 		}
+		strcpy(strin,str[line]);
 		do {
-			if(str[line] != NULL)
-				SAFECOPY(strin, str[line]);
-			else
-				strin[0]=0;
-			if(line < 1)
+			if(!line)
 				carriage_return();
-			getstr(strin, cols-1, K_WRAP|K_MSG|K_EDIT|K_LEFTEXIT|K_NOCRLF);
-		} while(console&CON_UPARROW && !line && online);
+			getstr(strin, cols-1, K_WRAP|K_MSG|K_EDIT);
+			} while(console&CON_UPARROW && !line);
 
-		if(sys_status&SS_ABORT)
+		if(sys_status&SS_ABORT) {
+			if(line==lines)
+				free(str[line]);
 			continue;
-
-		if(console&(CON_UPARROW|CON_BACKSPACE)) {
-			if(console&CON_BACKSPACE && strin[0] == 0) {
-				strListRemove(&str, line);
-				for(i = line; str[i]; i++) {
-					putmsg(str[i], P_SAVEATR|P_NOATCODES);
-					cleartoeol();
-					newline();
-				}
-				clearline();
-				cursor_up(i - line);
-				continue;
-			} else if(str[line] == NULL) {
-				if(strin[0] != 0)
-					strListAppend(&str, strin, line);
-			} else
-				strListReplace(str, line, strin);
-			if(line < 1)
-				continue;
-			carriage_return();
-			cursor_up();
-			cleartoeol();
-			line--; 
-			continue;
-		}
-		if(console&CON_DELETELINE) {
-			strListDelete(&str, line);
-			continue;
-		}
-		newline();
-		if(console&CON_DOWNARROW) {
-			if(str[line] != NULL) {
-				strListReplace(str, line, strin);
-				line++;
-				continue;
-			}
 		}
 		if(strin[0]=='/' && strlen(strin)<8) {
 			if(!stricmp(strin,"/DEBUG") && SYSOP) {
-				bprintf("\r\nline=%d lines=%d (%d), rows=%ld\r\n",line,lines,(int)strListCount(str), rows);
+				if(line==lines)
+					free(str[line]);
+				bprintf("\r\nline=%d lines=%d rows=%ld\r\n",line,lines,rows);
 				continue;
 			}
 			else if(!stricmp(strin,"/ABT")) {
-				strListFree(&str);
+				if(line==lines) 		/* delete a line */
+					free(str[line]);
+				for(i=0;i<lines;i++)
+					free(str[i]);
+				free(str);
 				return(0);
 			}
-			else if(toupper(strin[1])=='D') {	/* delete a line */
-				if(str[0] == NULL)
+			else if(toupper(strin[1])=='D') {
+				if(line==lines)         /* delete a line */
+					free(str[line]);
+				if(!lines)
 					continue;
-				lines = strListCount(str);
 				i=atoi(strin+2)-1;
 				if(i==-1)   /* /D means delete last line */
 					i=lines-1;
@@ -911,31 +913,41 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 						str[i]=str[i+1];
 						i++; 
 					}
-					str[i] = NULL;
 					if(line>lines)
 						line=lines; 
 				}
 				continue; 
 			}
-			else if(toupper(strin[1])=='I') {	/* insert a line before number x */
-				lines = strListCount(str);
-				if(line >= maxlines || !lines)
+			else if(toupper(strin[1])=='I') {
+				if(line==lines)         /* insert a line before number x */
+					free(str[line]);
+				if(line==maxlines || !lines)
 					continue;
 				i=atoi(strin+2)-1;
-				if(i < 0)
-					i = lines - 1;
-				if(i >= lines || i < 0)
+				if(i==-1)
+					i=lines-1;
+				if(i>=lines || i<0)
 					bputs(text[InvalidLineNumber]);
 				else {
-					strListInsert(&str, "", i);
+					for(line=lines;line>i;line--)   /* move the pointers */
+						str[line]=str[line-1];
+					if((str[i]=(char *)malloc(MAX_LINE_LEN + 1))==NULL) {
+						errormsg(WHERE,ERR_ALLOC,nulstr,MAX_LINE_LEN + 1);
+						for(i=0;i<lines;i++)
+							free(str[i]);
+						free(str);
+						return(0); 
+					}
+					str[i][0]=0;
 					line=++lines; 
 				}
-				continue;
+				continue; 
 			}
-			else if(toupper(strin[1])=='E') {	/* edit a line */
-				if(str[0] == NULL)
+			else if(toupper(strin[1])=='E') {
+				if(line==lines)         /* edit a line */
+					free(str[line]);
+				if(!lines)
 					continue;
-				lines = strListCount(str);
 				i=atoi(strin+2)-1;
 				j=K_MSG|K_EDIT; /* use j for the getstr mode */
 				if(i==-1) { /* /E means edit last line */
@@ -950,27 +962,33 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			}
 			else if(!stricmp(strin,"/CLR")) {
 				bputs(text[MsgCleared]);
-				strListFreeStrings(str);
+				if(line!=lines)
+					lines--;
+				for(i=0;i<=lines;i++)
+					free(str[i]);
 				line=0;
 				lines=0;
 				putmsg(top,P_SAVEATR|P_NOATCODES);
 				continue; 
 			}
 			else if(toupper(strin[1])=='L') {   /* list message */
-				bool linenums = false;
-				if(str[0] != NULL)
-					linenums = !noyes(text[WithLineNumbersQ]);
+				if(line==lines)
+					free(str[line]);
+				if(lines && text[WithLineNumbersQ][0])
+					i=!noyes(text[WithLineNumbersQ]);
+				else
+					i=0;
 				CRLF;
 				attr(LIGHTGRAY);
 				putmsg(top,P_SAVEATR|P_NOATCODES);
-				if(str[0] == NULL) {
+				if(!lines) {
 					continue; 
 				}
 				j=atoi(strin+2);
 				if(j) j--;  /* start from line j */
-				while(str[j] != NULL && !msgabort()) {
-					if(linenums) { /* line numbers */
-						SAFEPRINTF3(tmp,"%3d: %-.*s",j+1,cols-6,str[j]);
+				while(j<lines && !msgabort()) {
+					if(i) { /* line numbers */
+						SAFEPRINTF2(tmp,"%3d: %-.74s",j+1,str[j]);
 						putmsg(tmp,P_SAVEATR|P_NOATCODES); 
 					}
 					else
@@ -979,14 +997,17 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 					CRLF;
 					j++; 
 				}
-				line = j;
 				SYNC;
 				continue; 
 			}
 			else if(!stricmp(strin,"/S")) { /* Save */
-				break;
-			}
+				if(line==lines)
+					free(str[line]);
+				done=1;
+				continue;}
 			else if(!stricmp(strin,"/T")) { /* Edit title/subject */
+				if(line==lines)
+					free(str[line]);
 				if(title[0]) {
 					bputs(text[SubjectPrompt]);
 					getstr(title,LEN_TITLE,K_LINE|K_EDIT|K_AUTODEL|K_TRIM);
@@ -996,40 +1017,38 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				continue; 
 			}
 			else if(!stricmp(strin,"/?")) {
+				if(line==lines)
+					free(str[line]);
 				menu("editor"); /* User Editor Commands */
 				SYNC;
 				continue; 
 			}
 			else if(!stricmp(strin,"/ATTR"))    {
+				if(line==lines)
+					free(str[line]);
 				menu("attr");   /* User ANSI Commands */
 				SYNC;
 				continue; 
 			} 
 		}
-		if(str[line] != NULL) {
-			strListReplace(str, line, strin);
+		strcpy(str[line],strin);
+		if(line<maxlines)
 			line++;
-			strListInsert(&str, "", line);
-			for(i = line; str[i]; i++) {
-				putmsg(str[i], P_SAVEATR|P_NOATCODES);
-				cleartoeol();
-				newline();
-			}
-			clearline();
-			cursor_up(i - line);
-			continue;
-		}
-
-		if(line + 1 < maxlines) {
-			strListAppend(&str, strin, line);
-			line++;
+		else
+			free(str[line]);
+		if(line>lines)
+			lines++;
+		if(console&CON_UPARROW) {
+			carriage_return();
+			cursor_up();
+			cleartoeol();
+			line-=2; 
 		}
 	}
 	if(online)
 		strcpy(buf,top);
 	else
 		buf[0]=0;
-	lines = strListCount(str);
 	for(i=0;i<lines;i++) {
 		strcat(buf,str[i]);
 		strcat(buf,crlf);

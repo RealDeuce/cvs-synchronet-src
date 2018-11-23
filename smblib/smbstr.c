@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.33 2019/03/13 07:20:32 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.32 2018/11/04 23:26:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,14 +338,8 @@ enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 {
 	const char*	p;
 
-	if((p=strchr(str,'@')) == NULL) {
+	if((p=strchr(str,'@'))==NULL)
 		p = str;
-		SKIP_WHITESPACE(p);
-		if(*p == 0)
-			return NET_NONE;
-		if(strspn(p, "1234567890:/.") != strlen(p))
-			return NET_NONE;
-	}
 	else
 		p++;
 	SKIP_WHITESPACE(p);
