@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.98 2018/11/06 06:06:59 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.99 2018/11/23 17:58:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3617,13 +3617,15 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 
 /***********************************************************************/
 /* Get zone and point from kludge lines from the stream  if they exist */
+/* Returns true if an INTL klude line was found/parsed (with zone)     */
 /***********************************************************************/
-void getzpt(FILE* stream, fmsghdr_t* hdr)
+bool getzpt(FILE* stream, fmsghdr_t* hdr)
 {
 	char buf[0x1000];
 	int i,len,cr=0;
 	long pos;
 	fidoaddr_t faddr;
+	bool intl_found = false;
 
 	pos=ftell(stream);
 	len=fread(buf,1,0x1000,stream);
@@ -3646,6 +3648,7 @@ void getzpt(FILE* stream, fmsghdr_t* hdr)
 				hdr->origzone=faddr.zone;
 				hdr->orignet=faddr.net;
 				hdr->orignode=faddr.node;
+				intl_found = true;
 			}
 			while(i<len && buf[i]!='\r') i++;
 			cr=1;
@@ -3657,6 +3660,7 @@ void getzpt(FILE* stream, fmsghdr_t* hdr)
 			cr=0;
 	}
 	(void)fseek(stream,pos,SEEK_SET);
+	return intl_found;
 }
 
 bool foreign_zone(uint16_t zone1, uint16_t zone2)
@@ -4280,14 +4284,14 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 
 	hdr.destzone=sys_faddr.zone;
 	hdr.destpoint=hdr.origpoint=0;
-	getzpt(fp,&hdr);				/* use kludge if found */
+	bool got_zones = getzpt(fp, &hdr);				/* use kludge if found */
 	for(match=0;match<scfg.total_faddrs;match++)
-		if((hdr.destzone==scfg.faddr[match].zone || (cfg.fuzzy_zone))
+		if((hdr.destzone==scfg.faddr[match].zone || (cfg.fuzzy_zone && !got_zones))
 			&& hdr.destnet==scfg.faddr[match].net
 			&& hdr.destnode==scfg.faddr[match].node
 			&& hdr.destpoint==scfg.faddr[match].point)
 			break;
-	if(match<scfg.total_faddrs && (cfg.fuzzy_zone))
+	if(match<scfg.total_faddrs && (cfg.fuzzy_zone && !got_zones))
 		hdr.origzone=hdr.destzone=scfg.faddr[match].zone;
 	if(hdr.origpoint)
 		sprintf(tmp,".%hu",hdr.origpoint);
@@ -5987,7 +5991,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.98 $", "%*s %s", revision);
+	sscanf("$Revision: 3.99 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
