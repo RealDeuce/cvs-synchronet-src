@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.95 2018/10/16 19:27:58 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.98 2018/11/06 06:06:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -422,7 +422,7 @@ size_t read_echostats(const char* fname, echostat_t **echostat)
 	iniFreeStringList(echoes);
 	iniFreeStringList(ini);
 
-	lprintf(LOG_DEBUG, "Read %lu echo statistics from %s", echo_count, fname);
+	lprintf(LOG_DEBUG, "Read %lu echo statistics from %s", (ulong)echo_count, fname);
 	return echo_count;
 }
 
@@ -455,7 +455,7 @@ void fwrite_echostat_msg(FILE* fp, echostat_msg_t msg, const char* prefix)
 	if(msg.reply_id[0])	fprintf(fp, "%s.reply_id = %s\n"	, prefix, msg.reply_id);
 	if(msg.pid[0])		fprintf(fp, "%s.pid = %s\n"			, prefix, msg.pid);
 	if(msg.tid[0])		fprintf(fp, "%s.tid = %s\n"			, prefix, msg.tid);
-	fprintf(fp, "%s.length = %lu\n"							, prefix, msg.length);
+	fprintf(fp, "%s.length = %lu\n"							, prefix, (ulong)msg.length);
 	fprintf(fp, "%s.msg_time = %s\n"						, prefix, iniTimeStr(msg.msg_time));
 	if(msg.msg_tz[0])	fprintf(fp, "%s.msg_tz = %s\n"		, prefix, msg.msg_tz);
 	fprintf(fp, "%s.localtime = %s\n"						, prefix, iniTimeStr(msg.localtime));
@@ -1376,7 +1376,7 @@ void gen_notify_list(nodecfg_t* nodecfg)
 		if(nodecfg != NULL && &cfg.nodecfg[k] != nodecfg)
 			continue;
 
-		if(!cfg.nodecfg[k].send_notify)
+		if(!cfg.nodecfg[k].send_notify || cfg.nodecfg[k].passive)
 			continue;
 
 		if((tmpf=tmpfile())==NULL) {
@@ -1510,7 +1510,7 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		}
 	}
 	lprintf(LOG_INFO,"AreaFix (for %s) Created response netmail with %s (%lu areas)"
-		, smb_faddrtoa(&addr, NULL), title, strListCount(area_list));
+		, smb_faddrtoa(&addr, NULL), title, (ulong)strListCount(area_list));
 	strListFree(&area_list);
 }
 
@@ -1834,10 +1834,10 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 	fclose(afileout);
 	if(added)
 		lprintf(LOG_DEBUG, "AreaFix (for %s) Added links to %lu areas in %s"
-			,smb_faddrtoa(&addr,NULL), added, cfg.areafile);
+			,smb_faddrtoa(&addr,NULL), (ulong)added, cfg.areafile);
 	if(deleted)
 		lprintf(LOG_DEBUG, "AreaFix (for %s) Removed links to %lu areas in %s"
-			,smb_faddrtoa(&addr,NULL), deleted, cfg.areafile);
+			,smb_faddrtoa(&addr,NULL), (ulong)deleted, cfg.areafile);
 	if(added || deleted) {
 		if(cfg.areafile_backups == 0 || !backup(cfg.areafile, cfg.areafile_backups, /* ren: */TRUE))
 			delfile(cfg.areafile, __LINE__);					/* Delete AREAS.BBS */
@@ -2950,7 +2950,7 @@ void cleanup(void)
 	char		path[MAX_PATH+1];
 
 	if(bad_areas != NULL) {
-		lprintf(LOG_DEBUG, "Writing %lu areas to %s", strListCount(bad_areas), cfg.badareafile);
+		lprintf(LOG_DEBUG, "Writing %lu areas to %s", (ulong)strListCount(bad_areas), cfg.badareafile);
 		FILE* fp = fopen(cfg.badareafile, "wt");
 		if(fp == NULL) {
 			lprintf(LOG_ERR, "ERROR %d (%s) opening %s", errno, strerror(errno), cfg.badareafile);
@@ -4593,7 +4593,6 @@ static void write_export_ptr(int subnum, uint32_t ptr, const char* tag)
 void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan)
 {
 	char	str[256],tear,cr;
-	char	msgid[256];
 	char*	buf=NULL;
 	char*	minus;
 	char*	fmsgbuf=NULL;
@@ -4796,8 +4795,9 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			if(msg.ftn_flags!=NULL)
 				f+=sprintf(fmsgbuf+f,"\1FLAGS %.256s\r", msg.ftn_flags);
 
-			f+=sprintf(fmsgbuf+f,"\1MSGID: %.256s\r"
-				,ftn_msgid(scfg.sub[subnum],&msg,msgid,sizeof(msgid)));
+			char* p = ftn_msgid(scfg.sub[subnum], &msg, NULL, 0);
+			if(p != NULL)
+				f += sprintf(fmsgbuf+f,"\1MSGID: %.256s\r", p);
 
 			if(msg.ftn_reply!=NULL)			/* use original REPLYID */
 				f+=sprintf(fmsgbuf+f,"\1REPLY: %.256s\r", msg.ftn_reply);
@@ -5492,7 +5492,7 @@ void find_stray_packets(void)
 		}
 		if(fread(&pkthdr,sizeof(pkthdr),1,fp)!=1) {
 			lprintf(LOG_ERR,"ERROR reading header (%lu bytes) from stray packet: %s"
-				,sizeof(pkthdr), packet);
+				,(ulong)sizeof(pkthdr), packet);
 			fclose(fp);
 			delfile(packet, __LINE__);
 			continue;
@@ -5535,7 +5535,7 @@ void find_stray_packets(void)
 	}
 	if(g.gl_pathc)
 		lprintf(LOG_DEBUG, "%lu stray outbound packets (%lu total pkts) found in %s"
-			,listCountNodes(&outpkt_list), g.gl_pathc, cfg.temp_dir);
+			,listCountNodes(&outpkt_list), (ulong)g.gl_pathc, cfg.temp_dir);
 	globfree(&g);
 }
 
@@ -5619,7 +5619,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 		if(fread(&pkthdr,sizeof(pkthdr),1,fidomsg)!=1) {
 			fclose(fidomsg);
 			lprintf(LOG_ERR,"ERROR line %d reading %lu bytes from %s",__LINE__
-				,sizeof(pkthdr),packet);
+				,(ulong)sizeof(pkthdr),packet);
 			rename_bad_packet(packet);
 			continue;
 		}
@@ -5987,7 +5987,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.95 $", "%*s %s", revision);
+	sscanf("$Revision: 3.98 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
