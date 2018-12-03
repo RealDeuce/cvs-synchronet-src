@@ -1,6 +1,7 @@
 /* Synchronet user create/post public message routine */
+// vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.110 2018/08/29 04:19:02 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.116 2018/11/06 06:06:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -106,6 +107,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	char	touser[64];
 	char	from[64];
 	char	pid[128];
+	char	tags[64] = "";
 	char*	editor=NULL;
 	char*	msgbuf=NULL;
 	uint16_t xlat;
@@ -132,7 +134,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn],title,from,remsg->to
 			,timestr(remsg->hdr.when_written.time)
-			,smb_zonestr(remsg->hdr.when_written.zone,NULL)); 
+			,smb_zonestr(remsg->hdr.when_written.zone,NULL));
+		if(remsg->tags != NULL)
+			SAFECOPY(tags, remsg->tags);
 	} else {
 		title[0]=0;
 		touser[0]=0;
@@ -172,7 +176,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 			i=FIDO_NAME_LEN-1;
 		if(cfg.sub[subnum]->misc&(SUB_PNET|SUB_INET))
 			i=60;
-		getstr(touser,i,K_LINE|K_EDIT|K_AUTODEL);
+		getstr(touser,i,K_LINE|K_EDIT|K_AUTODEL|K_TRIM);
 		if(stricmp(touser,"ALL")
 		&& !(cfg.sub[subnum]->misc&(SUB_PNET|SUB_FIDO|SUB_QNET|SUB_INET|SUB_ANON))) {
 			if(cfg.sub[subnum]->misc&SUB_NAME) {
@@ -335,8 +339,9 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	/* Generate FTN (FTS-9) MSGID */
 	if(cfg.sub[subnum]->misc&SUB_FIDO) {
-		ftn_msgid(cfg.sub[subnum],&msg,msg_id,sizeof(msg_id));
-		smb_hfield_str(&msg,FIDOMSGID,msg_id);
+		char* p;
+		if((p = ftn_msgid(cfg.sub[subnum],&msg,msg_id,sizeof(msg_id))) != NULL)
+			smb_hfield_str(&msg, FIDOMSGID, p);
 	}
 
 	/* Generate FidoNet Program Identifier */
@@ -344,6 +349,15 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	
+	if((cfg.sub[subnum]->misc&SUB_MSGTAGS)
+		&& (tags[0] || text[TagMessageQ][0] == 0 || !noyes(text[TagMessageQ]))) {
+		bputs(text[TagMessagePrompt]);
+		getstr(tags, sizeof(tags)-1, K_EDIT|K_LINE|K_TRIM);
+	}
+	if(tags[0])
+		smb_hfield_str(&msg, SMB_TAGS, tags);
 
 	i=smb_addmsg(&smb,&msg,storage,dupechk_hashes,xlat,(uchar*)msgbuf,NULL);
 	free(msgbuf);
@@ -499,8 +513,9 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
  	/* Generate FidoNet MSGID (for FidoNet sub-boards) */
  	if(smb->subnum!=INVALID_SUB && cfg->sub[smb->subnum]->misc&SUB_FIDO 
 		&& msg->ftn_msgid==NULL) {
- 		ftn_msgid(cfg->sub[smb->subnum],msg,msg_id,sizeof(msg_id));
- 		smb_hfield_str(msg,FIDOMSGID,msg_id);
+		char* p;
+ 		if((p = ftn_msgid(cfg->sub[smb->subnum],msg,msg_id,sizeof(msg_id))) != NULL)
+ 			smb_hfield_str(msg, FIDOMSGID, p);
  	}
 
 	/* Generate FidoNet Program Identifier */
@@ -518,7 +533,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	return(i);
 }
 
-extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const char* smsgfmt)
+extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const char* smsgfmt, const char* votefmt)
 {
 	int result;
 	smbmsg_t remsg;
@@ -571,13 +586,13 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 				safe_snprintf(from, sizeof(from), "%s (%s)", msg->from, smb_netaddr(&msg->from_net));
 			else
 				SAFECOPY(from, msg->from);
-			if(remsg.hdr.type == SMB_MSG_TYPE_POLL) {
+			if(remsg.hdr.type == SMB_MSG_TYPE_POLL && votefmt != NULL) {
 				int answers = 0;
 				for(int i=0; i<remsg.total_hfields; i++) {
 					if(remsg.hfield[i].type == SMB_POLL_ANSWER) {
 						if(msg->hdr.votes&(1<<answers)) {
 							char vote[128];
-							SAFEPRINTF(vote, " %.78s\r\n", (char*)remsg.hfield_dat[i]);
+							SAFEPRINTF(vote, votefmt, (char*)remsg.hfield_dat[i]);
 							SAFECAT(votes, vote);
 						}
 						answers++;
@@ -589,8 +604,8 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 				,cfg->grp[cfg->sub[smb->subnum]->grp]->sname
 				,cfg->sub[smb->subnum]->sname
 				,from
-				,remsg.subj
-				,votes);
+				,remsg.subj);
+			SAFECAT(smsg, votes);
 			putsmsg(cfg, user.number, smsg);
 		}
 	}
