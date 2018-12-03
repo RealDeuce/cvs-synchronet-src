@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.105 2019/07/25 18:20:45 deuce Exp $ */
+/* $Id: ciolib.h,v 1.100 2018/04/18 06:44:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
 
-#include <limits.h>	/* INT_MAX */
 #include <string.h>	/* size_t */
 #include "gen_defs.h"
 
@@ -44,7 +43,7 @@
 
 #ifdef _WIN32
         #ifdef __BORLANDC__
-                #define CIOLIBCALL
+                #define CIOLIBCALL __stdcall
         #else
                 #define CIOLIBCALL
         #endif
@@ -203,9 +202,6 @@ enum text_modes
 	VESA_132X43	= 213,
 	VESA_132X50	= 206,
 	VESA_132X60	= 196,
-
-	/* Custom Mode */
-	CIOLIB_MODE_CUSTOM = INT_MAX,
 };
 
 #define COLOR_MODE	C80
@@ -262,23 +258,24 @@ struct ciolib_pixels {
 	uint32_t	height;
 };
 
-struct vmem_cell {
-	uint8_t legacy_attr;
-	uint8_t ch;
-	uint8_t font;
-	uint32_t fg;	// RGB 00RRGGBB High bit indicates palette colour
-	uint32_t bg;	// RGB 00RRGGBB High bit indicates palette colour
-};
-
 struct ciolib_screen {
 	uint32_t		fg_colour;
 	uint32_t		bg_colour;
 	int			flags;
 	int			fonts[5];
 	struct ciolib_pixels	*pixels;
-	struct vmem_cell	*vmem;
+	void			*vmem;
+	uint32_t		*foreground;
+	uint32_t		*background;
 	struct text_info	text_info;
-	uint32_t		palette[16];
+};
+
+struct vmem_cell {
+	uint8_t legacy_attr;
+	uint8_t ch;
+	uint8_t font;
+	uint32_t fg;	// RGB 00RRGGBB High bit indicates palette colour
+	uint32_t bg;	// RGB 00RRGGBB High bit indicates palette colour
 };
 
 #define CONIO_FIRST_FREE_FONT	43
@@ -457,8 +454,6 @@ CIOLIBEXPORT uint32_t CIOLIBCALL ciolib_map_rgb(uint16_t r, uint16_t g, uint16_t
 CIOLIBEXPORT void CIOLIBCALL ciolib_replace_font(uint8_t id, char *name, void *data, size_t size);
 CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr);
 CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int font_num);
-CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
-CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -538,8 +533,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define replace_font(a,b,c,d)	ciolib_replace_font(a,b,c,d)
 	#define attrfont(a)				ciolib_attrfont(a)
 	#define checkfont(a)			ciolib_checkfont(a)
-	#define set_vmem(a, b, c, d)		ciolib_set_vmem(a, b, c, d)
-	#define set_vmem_attr(a, b)		ciolib_set_vmem_attr(a, b)
 #endif
 
 #ifdef WITH_SDL
