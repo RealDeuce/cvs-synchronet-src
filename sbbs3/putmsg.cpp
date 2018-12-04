@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.44 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.42 2018/10/30 01:22:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -116,8 +116,6 @@ char sbbs_t::putmsg(const char *buf, long mode)
 					sys_status&=~SS_NEST_PF; 
 				}
 			}
-			else if(str[l+1] == 'Z')	/* Ctrl-AZ==EOF (uppercase 'Z' only) */
-				break;
 			else {
 				ctrl_a(str[l+1]);
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
@@ -286,7 +284,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				if(memcmp(str+l, "@CENTER@", 8) == 0) {
 					l += 8;
 					i=0;
-					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r' && str[l] != '\n')
+					while(i<(int)sizeof(tmp2)-1 && str[l] != 0 && str[l] != '\r')
 						tmp2[i++] = str[l++];
 					tmp2[i] = 0;
 					truncsp(tmp2);
