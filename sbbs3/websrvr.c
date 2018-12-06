@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.670 2018/10/17 19:43:56 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.671 2018/12/06 02:17:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1280,6 +1280,12 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 
 		/* Status-Line */
+		/* TODO: This Status-Line appears to violate RFC 2145:
+			"An HTTP server SHOULD send a response version equal to the highest
+   			 version for which the server is at least conditionally compliant, and
+			 whose major version is less than or equal to the one received in the
+   			 request."
+		*/
 		safe_snprintf(header,sizeof(header),"%s %s",http_vers[session->http_ver],status_line);
 
 		lprintf(LOG_DEBUG,"%04d Result: %s",session->socket,header);
@@ -6521,7 +6527,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.670 $", "%*s %s", revision);
+	sscanf("$Revision: 1.671 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
