@@ -1,4 +1,4 @@
-/* $Id: js_cryptcon.c,v 1.19 2018/02/27 09:38:19 deuce Exp $ */
+/* $Id: js_cryptcon.c,v 1.20 2018/04/06 02:42:37 rswindell Exp $ */
 
 // Cyrptlib encryption context...
 
@@ -614,7 +614,7 @@ js_create_signature(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	signature = malloc(len);
 	if (signature == NULL) {
-		lprintf(LOG_ERR, "Unable to allocate %lu bytes\n", len);
+		lprintf(LOG_ERR, "Unable to allocate %u bytes\n", len);
 		JS_RESUMEREQUEST(cx, rc);
 		return JS_FALSE;
 	}
