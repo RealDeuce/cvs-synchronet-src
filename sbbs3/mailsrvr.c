@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.678 2018/10/17 19:20:17 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.679 2018/10/22 07:29:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2977,7 +2977,7 @@ static void smtp_thread(void* arg)
 
 	SAFEPRINTF(smb.file,"%smail",scfg.data_dir);
 	if(smb_islocked(&smb)) {
-		lprintf(LOG_CRIT,"%04d %s !MAIL BASE LOCKED: %s"
+		lprintf(LOG_WARNING,"%04d %s !MAIL BASE LOCKED: %s"
 			,socket, client.protocol, smb.last_error);
 		sockprintf(socket,client.protocol,session,sys_unavail);
 		mail_close_socket(&socket, &session);
@@ -5698,7 +5698,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.678 $", "%*s %s", revision);
+	sscanf("$Revision: 1.679 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.477 2018/10/17 19:10:05 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.482 2018/11/18 14:53:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2284,21 +2284,21 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 	FILE*	fp;
 	BOOL	result=FALSE;
 
-	sprintf(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
-	if((fp=fopen(aliasfile,"r"))==NULL) 
-		return(FALSE);
-
 	SAFECOPY(alias,fullalias);
-	p=strrchr(alias+1,'/');
+	p = getfname(alias);
 	if(p) {
-		*p=0;
-		fname=p+1;
+		if(p != alias)
+			*(p-1) = 0;
+		if(*p) {
+			if(filename == NULL && p != alias)	// CWD command and a filename specified
+				return FALSE;
+			fname = p;
+		}
 	}
 
-	if(filename==NULL /* directory */ && *fname /* filename specified */) {
-		fclose(fp);
-		return(FALSE);
-	}
+	SAFEPRINTF(aliasfile,"%sftpalias.cfg",scfg.ctrl_dir);
+	if((fp=fopen(aliasfile,"r"))==NULL) 
+		return FALSE;
 
 	while(!feof(fp)) {
 		if(!fgets(line,sizeof(line),fp))
@@ -2322,6 +2322,11 @@ static BOOL ftpalias(char* fullalias, char* filename, user_t* user, client_t* cl
 		tp=p;		/* terminator */
 		FIND_WHITESPACE(tp);
 		if(*tp) *tp=0;
+
+		if(filename == NULL /* CWD? */ && (*lastchar(p) != '/' || (*fname != 0 && strcmp(fname, alias)))) {
+			fclose(fp);
+			return FALSE;
+		}
 
 		if(!strnicmp(p,BBS_VIRTUAL_PATH,strlen(BBS_VIRTUAL_PATH))) {
 			if((dir=getdir(p+strlen(BBS_VIRTUAL_PATH),user,client))<0)	{
@@ -3297,8 +3302,8 @@ static void ctrl_thread(void* arg)
 				continue;
 			}
 			if((i=getuserdat(&scfg, &user))!=0) {
-				lprintf(LOG_ERR,"%04d !ERROR %d getting data for user #%d (%s)"
-					,sock,i,user.number,user.alias);
+				lprintf(LOG_ERR,"%04d <%s> !ERROR %d getting data for user #%d"
+					,sock, user.alias, i, user.number);
 				sockprintf(sock,sess,"530 Database error %d",i);
 				user.number=0;
 				continue;
@@ -3338,7 +3343,7 @@ static void ctrl_thread(void* arg)
 			SAFEPRINTF2(sys_pass,"%s:%s",user.pass,scfg.sys_pass);
 			if(!user.pass[0]) {	/* Guest/Anonymous */
 				if(trashcan(&scfg,password,"email")) {
-					lprintf(LOG_NOTICE,"%04d !BLOCKED e-mail address: %s",sock,password);
+					lprintf(LOG_NOTICE,"%04d <%s> !BLOCKED e-mail address: %s", sock, user.alias, password);
 					user.number=0;
 					if(badlogin(sock, sess, &login_attempts, NULL, NULL, NULL, NULL))
 						break;
@@ -5289,7 +5294,7 @@ static void ctrl_thread(void* arg)
 					JS_BEGINREQUEST(js_cx);
 					js_val=INT_TO_JSVAL(timeleft);
 					if(!JS_SetProperty(js_cx, js_ftp, "time_left", &js_val))
-						lprintf(LOG_ERR,"%04d !JavaScript ERROR setting user.time_left",sock);
+						lprintf(LOG_ERR,"%04d <%s> !JavaScript ERROR setting user.time_left",sock, user.alias);
 					js_generate_index(js_cx, js_ftp, sock, fp, lib, dir, &user, &client);
 					JS_ENDREQUEST(js_cx);
 #endif
@@ -5367,8 +5372,8 @@ static void ctrl_thread(void* arg)
 
 				if(strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)) {
 					success=FALSE;
-					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
-						,sock,user.alias,p);
+					lprintf(LOG_WARNING,"%04d <%s> !ILLEGAL FILENAME ATTEMPT by %s [%s]: %s"
+						,sock, user.alias, host_name, host_ip, p);
 					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 				} else {
 					if(fexistcase(fname)) {
@@ -5450,7 +5455,7 @@ static void ctrl_thread(void* arg)
 			}
 
 			if(transfer_inprogress==TRUE) {
-				lprintf(LOG_WARNING,"%04d !TRANSFER already in progress (%s)",sock,cmd);
+				lprintf(LOG_WARNING,"%04d <%s> !TRANSFER already in progress (%s)",sock, user.alias, cmd);
 				sockprintf(sock,sess,"425 Transfer already in progress.");
 				continue;
 			}
@@ -5540,8 +5545,8 @@ static void ctrl_thread(void* arg)
 				if(*p=='-'
 					|| strcspn(p,ILLEGAL_FILENAME_CHARS)!=strlen(p)
 					|| trashcan(&scfg,p,"file")) {
-					lprintf(LOG_WARNING,"%04d !ILLEGAL FILENAME ATTEMPT by %s: %s"
-						,sock,user.alias,p);
+					lprintf(LOG_WARNING,"%04d <%s> !ILLEGAL FILENAME ATTEMPT by %s [%s]: %s"
+						,sock, user.alias, host_name, host_ip, p);
 					sockprintf(sock,sess,"553 Illegal filename attempt");
 					ftp_hacklog("FTP FILENAME", user.alias, cmd, host_name, &ftp.client_addr);
 					continue;
@@ -5715,7 +5720,7 @@ static void ctrl_thread(void* arg)
 			if(success)
 				sockprintf(sock,sess,"250 CWD command successful.");
 			else {
-				sockprintf(sock,sess,"550 %s: No such file or directory.",p);
+				sockprintf(sock,sess,"550 %s: No such directory.",p);
 				curlib=orglib;
 				curdir=orgdir;
 			}
@@ -5898,7 +5903,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.477 $", "%*s %s", revision);
+	sscanf("$Revision: 1.482 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
