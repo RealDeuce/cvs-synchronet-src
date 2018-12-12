@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.200 2018/10/22 07:41:16 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.201 2018/12/12 20:27:31 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.200 $", "%*s %s", revision);
+	sscanf("$Revision: 1.201 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1338,7 +1338,7 @@ int main(int argc, char **argv, char** env)
 	if(daemonize) {
 		fprintf(statfp,"\nRunning as daemon\n");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			fprintf(statfp,"!ERROR %d running as daemon\n",errno);
+			fprintf(statfp,"!ERROR %d (%s) running as daemon\n", errno, strerror(errno));
 			daemonize=FALSE;
 		}
 	}

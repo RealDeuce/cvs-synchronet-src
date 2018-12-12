@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.134 2018/12/07 22:53:23 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.135 2018/12/12 20:27:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,7 +259,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			draft_restored = true;
 			removecase(quotes_fname(useron_xedit, str, sizeof(str)));
 		} else
-			lprintf(LOG_ERR, "ERROR %d restoring draft message: %s", errno, draft);
+			lprintf(LOG_ERR, "ERROR %d (%s) restoring draft message: %s", errno, strerror(errno), draft);
 	}
 	else if(mode&WM_QUOTE && !(useron.rest&FLAG('J'))
 		&& ((mode&(WM_EMAIL|WM_NETMAIL) && cfg.sys_misc&SM_QUOTE_EM)
@@ -527,7 +527,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 				user_set_time_property(&cfg, useron.number, draft_desc, "created", time(NULL));
 				lprintf(LOG_NOTICE, "draft message saved: %s (%lu bytes)", draft, (ulong)flength(draft));
 			} else
-				lprintf(LOG_ERR, "ERROR %d saving draft message: %s", errno, draft);
+				lprintf(LOG_ERR, "ERROR %d (%s) saving draft message: %s", errno, strerror(errno), draft);
 		}
 
 		if(result != EXIT_SUCCESS || !fexistcase(msgtmp) || !online
