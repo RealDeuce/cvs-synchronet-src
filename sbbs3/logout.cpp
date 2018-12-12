@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.30 2018/02/20 11:39:49 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.32 2018/10/06 22:31:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ void sbbs_t::logout()
 		}
 		return; 
 	}
-	lprintf(LOG_INFO, "Node %d %s logout initiated", cfg.node_num, useron.alias);
+	lprintf(LOG_INFO, "logout initiated");
 	SAFECOPY(lastuseron,useron.alias);
 	if(!online && getnodedat(cfg.node_num, &node, /* lock: */true) == 0) {
 		node.status = NODE_LOGOUT;
@@ -93,13 +93,13 @@ void sbbs_t::logout()
 
 	if(!online) {		/* NOT re-login */
 		if(cfg.sys_logout[0]) {		/* execute system logout event */
-			lprintf(LOG_DEBUG, "Node %d executing logout event", cfg.node_num);
+			lprintf(LOG_DEBUG, "executing logout event");
 			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL|EX_OFFLINE);
 		}
 	}
 
 	if(cfg.logout_mod[0]) {
-		lprintf(LOG_DEBUG, "Node %d executing logout module", cfg.node_num);
+		lprintf(LOG_DEBUG, "executing logout module");
 		exec_bin(cfg.logout_mod,&main_csi);
 	}
 	backout();
@@ -108,7 +108,9 @@ void sbbs_t::logout()
 		remove(path);
 
 	delfiles(cfg.temp_dir,ALLFILES);
-	putmsgptrs();
+	if(sys_status&SS_USERON) {	// Insures the useron actually when through logon()/getmsgptrs() first
+		putmsgptrs();
+	}
 	if(!REALSYSOP)
 		logofflist();
 	useron.laston=(time32_t)now;
@@ -163,9 +165,9 @@ void sbbs_t::logout()
 	SAFECAT(str,"\r\n");
 	logline("@-",str);
 	sys_status&=~SS_USERON;
-	answertime=now; // Incase we're relogging on
+	answertime=now; // In case we're re-logging on
 
-	lprintf(LOG_DEBUG, "Node %d %s logout completed", cfg.node_num, useron.alias);
+	lprintf(LOG_DEBUG, "logout completed");
 }
 
 /****************************************************************************/
