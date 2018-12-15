@@ -2,13 +2,13 @@
 
 /* Defines DLLEXPORT and DLLCALL for cross-platform development wrappers */
 
-/* $Id: wrapdll.h,v 1.6 2004/09/23 19:01:44 rswindell Exp $ */
+/* $Id: wrapdll.h,v 1.7 2018/07/24 01:13:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
