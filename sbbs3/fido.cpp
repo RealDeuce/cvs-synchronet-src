@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.62 2018/08/03 06:18:56 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.64 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,6 +331,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	if(cfg.netmail_misc&NMAIL_DIRECT)
 		msg.hdr.netattr |= MSG_DIRECT;
@@ -861,7 +862,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	while(l<length) {
 		if(qwkbuf[l]==CTRL_A) {   /* Ctrl-A, so skip it and the next char */
 			l++;
-			if(l>=length || toupper(qwkbuf[l])=='Z')	/* EOF */
+			if(l>=length)
 				break;
 			if((ch=ctrl_a_to_ascii_char(qwkbuf[l])) != 0)
 				write(fido,&ch,1);
