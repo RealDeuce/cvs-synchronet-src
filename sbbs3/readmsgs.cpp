@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.106 2018/09/06 02:21:11 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.108 2018/10/30 03:16:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,9 +120,12 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* variable fields */
 	for(i=0;i<msg->total_hfields;i++) {
-		char *p;
+		char* p = str;
 		bprintf("%-16.16s ",smb_hfieldtype(msg->hfield[i].type));
 		switch(msg->hfield[i].type) {
+			case SMB_COLUMNS:
+				sprintf(str, "%u", *(uint8_t*)msg->hfield_dat[i]);
+				break;
 			case SENDERNETTYPE:
 			case RECIPIENTNETTYPE:
 			case REPLYTONETTYPE:
@@ -494,7 +497,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 {
 	char	str[256],str2[256],do_find=true,mismatches=0
 			,done=0,domsg=1,*buf,*p;
-	char	subj[128];
 	char	find_buf[128];
 	char	tmp[128];
 	int		i;
@@ -752,11 +754,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							domsg=0;
 					continue; 
 				}
-				strupr(buf);
-				strip_ctrl(buf, buf);
-				SAFECOPY(subj,msg.subj);
-				strupr(subj);
-				if(!strstr(buf,find) && !strstr(subj,find)) {
+				if(strcasestr(buf,find) == NULL && strcasestr(msg.subj, find) == NULL
+					&& (msg.tags == NULL || strcasestr(msg.tags, find) == NULL)) {
 					free(buf);
 					if(smb.curmsg<smb.msgs-1) 
 						smb.curmsg++;
@@ -1702,7 +1701,6 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 	, const char *search)
 {
 	char*	buf;
-	char	subj[128];
 	long	l,found=0;
 	smbmsg_t msg;
 
@@ -1717,11 +1715,8 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			smb_freemsgmem(&msg);
 			continue; 
 		}
-		strupr(buf);
-		strip_ctrl(buf, buf);
-		SAFECOPY(subj,msg.subj);
-		strupr(subj);
-		if(strstr(buf,search) || strstr(subj,search)) {
+		if(strcasestr(buf, search) != NULL || strcasestr(msg.subj, search) != NULL
+			|| (msg.tags != NULL && strcasestr(msg.tags, search) != NULL)) {
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
 			bprintf(text[SubMsgLstFmt],l+1
