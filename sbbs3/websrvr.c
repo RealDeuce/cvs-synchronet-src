@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.673 2018/12/18 18:25:53 deuce Exp $ */
+/* $Id: websrvr.c,v 1.674 2018/12/18 20:53:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4361,6 +4361,7 @@ static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_
 						directive=strtok_r(header,":",&last);
 						if(directive != NULL)  {
 							value=strtok_r(NULL,"",&last);
+							SKIP_WHITESPACE(value);
 							i=get_header_type(directive);
 							switch (i)  {
 								case HEAD_LOCATION:
@@ -6537,7 +6538,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.673 $", "%*s %s", revision);
+	sscanf("$Revision: 1.674 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
