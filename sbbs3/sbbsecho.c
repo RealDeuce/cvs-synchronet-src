@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.100 2018/12/18 23:10:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.101 2018/12/18 23:21:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4368,7 +4368,9 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 		}
 	}
 
-	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 || stricmp(hdr.to, FIDO_PING_NAME) == 0) {
+	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 
+		|| stricmp(hdr.to, "SBBSecho") == 0
+		|| stricmp(hdr.to, FIDO_PING_NAME) == 0) {
 		fmsgbuf=getfmsg(fp,NULL);
 		if(path[0]) {
 			if(cfg.delete_netmail && opt_delete_netmail) {
@@ -4387,9 +4389,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 		addr.node=hdr.orignode;
 		addr.point=hdr.origpoint;
 		lprintf(LOG_INFO, "%s", info);
-		if(stricmp(hdr.from, FIDO_PING_NAME) == 0
-			|| stricmp(hdr.from, FIDO_AREAMGR_NAME) == 0
-			)
+		if(stricmp(hdr.from, hdr.to) == 0)
 			lprintf(LOG_NOTICE, "Refusing to auto-reply to NetMail from %s", hdr.from);
 		else {
 			if(stricmp(hdr.to, FIDO_PING_NAME) == 0) {
@@ -5993,7 +5993,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.100 $", "%*s %s", revision);
+	sscanf("$Revision: 3.101 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
