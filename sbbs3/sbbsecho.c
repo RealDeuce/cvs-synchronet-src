@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.99 2018/11/23 17:58:38 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.100 2018/12/18 23:10:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5753,8 +5753,10 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			} else {
 				stat->known = false;
 				printf("(Unknown) ");
-				if(bad_areas != NULL && strListFind(bad_areas, areatag, /* case_sensitive: */false) < 0)
+				if(bad_areas != NULL && strListFind(bad_areas, areatag, /* case_sensitive: */false) < 0) {
+					lprintf(LOG_NOTICE, "Adding unknown area (%s) to bad area list: %s", areatag, cfg.badareafile);
 					strListPush(&bad_areas, areatag);
+				}
 				if(cfg.badecho>=0) {
 					i=cfg.badecho;
 					if(cfg.area[i].sub!=INVALID_SUB)
@@ -5991,7 +5993,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.99 $", "%*s %s", revision);
+	sscanf("$Revision: 3.100 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
