@@ -1,6 +1,6 @@
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.18 2018/08/03 06:25:21 rswindell Exp $ */
+/* $Id: getmail.c,v 1.19 2018/12/15 12:46:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,7 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
 
 	ZERO_VAR(smb);
 	SAFEPRINTF(smb.file,"%smail",cfg->data_dir);
-	smb.retry_time=cfg->smb_retry_time;
+	smb.retry_time=1;	//cfg->smb_retry_time;
 	SAFEPRINTF(path,"%s.sid",smb.file);
 	l=(long)flength(path);
 	if(l<(long)sizeof(idxrec_t))
