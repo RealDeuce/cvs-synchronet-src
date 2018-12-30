@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.87 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.88 2018/12/28 03:38:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -218,7 +218,7 @@ static char* prop_desc[] = {
 #endif
 	,"global (top level) object - <small>READ ONLY</small>"
 	/* New properties go here... */
-	,"load() search path array.<br>For relative load paths (e.g. not beginning with '/' or '\'), "
+	,"load() search path array.<br>For relative load paths (e.g. not beginning with '/' or '\\'), "
 		"the path is assumed to be a sub-directory of the (configurable) mods or exec directories "
 		"and is searched accordingly. "
 		"So, by default, load(\"somefile.js\") will search in this order:<br>"
