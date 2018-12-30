@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.75 2016/11/25 07:33:25 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.81 2018/10/31 07:44:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,21 +332,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	else
 		personal=NULL;
 
-	if(useron.qwk&(QWK_EMAIL|QWK_ALLMAIL) /* && !prepack */) {
-		SAFEPRINTF(smb.file,"%smail",cfg.data_dir);
-		smb.retry_time=cfg.smb_retry_time;
-		smb.subnum=INVALID_SUB;
-		if((i=smb_open(&smb))!=0) {
-			fclose(qwk);
-			if(hdrs!=NULL)
-				fclose(hdrs);
-			if(voting!=NULL)
-				fclose(voting);
-			if(personal)
-				fclose(personal);
-			errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-			return(false); 
-		}
+	if(useron.qwk&(QWK_EMAIL|QWK_ALLMAIL)
+		&& smb_open_sub(&cfg, &smb, INVALID_SUB) == SMB_SUCCESS) {
 
 		/***********************/
 		/* Pack E-mail, if any */
@@ -381,8 +368,9 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				mode&=~QM_TO_QNET;
 
 			for(u=0;u<mailmsgs;u++) {
-				bprintf("\b\b\b\b\b\b\b\b\b\b\b\b%4lu of %-4lu"
-					,u+1,mailmsgs);
+				if(online == ON_REMOTE)
+					bprintf("\b\b\b\b\b\b\b\b\b\b\b\b%4u of %-4u"
+						,u+1,mailmsgs);
 
 				memset(&msg,0,sizeof(msg));
 				msg.idx=mail[u];
@@ -416,14 +404,15 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				} 
 				YIELD();	/* yield */
 			}
-			bprintf(text[QWKPackedEmail],mailmsgs);
+			if(online == ON_REMOTE)
+				bprintf(text[QWKPackedEmail],mailmsgs);
 			if(ndx)
 				fclose(ndx); 
 		}
 		smb_close(&smb);					/* Close the e-mail */
 		if(mailmsgs)
 			free(mail);
-		}
+	}
 
 	/*********************/
 	/* Pack new messages */
@@ -446,9 +435,10 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						subscan[usrsub[i][j]].ptr=lastmsg;	/* so fix automatically */
 					if(subscan[usrsub[i][j]].last>lastmsg)
 						subscan[usrsub[i][j]].last=lastmsg; 
-					bprintf(text[NScanStatusFmt]
-						,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
-						,cfg.sub[usrsub[i][j]]->lname,0L,msgs);
+					if(online == ON_REMOTE)
+						bprintf(text[NScanStatusFmt]
+							,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
+							,cfg.sub[usrsub[i][j]]->lname,0L,msgs);
 					continue; 
 				}
 
@@ -469,15 +459,17 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				if(useron.qwk&QWK_VOTING)
 					k|=LP_POLLS|LP_VOTES;
 				post=loadposts(&posts,usrsub[i][j],subscan[usrsub[i][j]].ptr,k,NULL);
-
-				bprintf(text[NScanStatusFmt]
-					,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
-					,cfg.sub[usrsub[i][j]]->lname,posts,msgs);
+				
+				if(online == ON_REMOTE)
+					bprintf(text[NScanStatusFmt]
+						,cfg.grp[cfg.sub[usrsub[i][j]]->grp]->sname
+						,cfg.sub[usrsub[i][j]]->lname,posts,msgs);
 				if(!posts)	{ /* no new messages */
 					smb_close(&smb);
 					continue; 
 				}
-				bputs(text[QWKPackingSubboard]);	
+				if(online == ON_REMOTE)
+					bputs(text[QWKPackingSubboard]);	
 				submsgs=0;
 				conf=cfg.sub[usrsub[i][j]]->qwkconf;
 				if(!conf)
@@ -503,7 +495,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					ndx=NULL;
 
 				for(u=0;u<posts && !msgabort();u++) {
-					bprintf("\b\b\b\b\b%-5lu",u+1);
+					if(online == ON_REMOTE)
+						bprintf("\b\b\b\b\b%-5u",u+1);
 
 					subscan[usrsub[i][j]].ptr=post[u].idx.number;	/* set ptr */
 					subscan[usrsub[i][j]].last=post[u].idx.number; /* set last read */
@@ -565,7 +558,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					if(!(u%50))
 						YIELD();	/* yield */
 				}
-				if(!(sys_status&SS_ABORT))
+				if(online == ON_REMOTE && !(sys_status&SS_ABORT))
 					bprintf(text[QWKPackedSubboard],submsgs,(*msgcnt));
 				if(ndx) {
 					fclose(ndx);
@@ -584,29 +577,24 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			break; 
 	}
 
-	if(online==ON_LOCAL) /* event */
-		eprintf(LOG_INFO,"%s scanned %lu sub-boards for new messages"
-			,useron.alias,subs_scanned);
-	else
-		lprintf(LOG_INFO,"Node %d %s scanned %lu sub-boards for new messages"
-			,cfg.node_num,useron.alias,subs_scanned);
+	lprintf(LOG_INFO,"scanned %lu sub-boards for new messages", subs_scanned);
 
-	if((*msgcnt)+mailmsgs && time(NULL)-start) {
-		bprintf("\r\n\r\n\1n\1hPacked %lu messages (%lu bytes) in %lu seconds "
-			"(%lu messages/second)."
+	if((*msgcnt)+mailmsgs) {
+		time_t elapsed = time(NULL)-start;
+		if(elapsed < 1)
+			elapsed = 1;
+		if(online == ON_REMOTE)
+			bprintf("\r\n\r\n\1n\1hPacked %lu messages (%lu bytes) in %lu seconds "
+				"(%lu messages/second)."
+				,(*msgcnt)+mailmsgs
+				,ftell(qwk)
+				,elapsed
+				,((*msgcnt)+mailmsgs) / elapsed);
+		lprintf(LOG_INFO, "packed %lu messages (%lu bytes) in %lu seconds (%lu msgs/sec)"
 			,(*msgcnt)+mailmsgs
 			,ftell(qwk)
-			,time(NULL)-start
-			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
-		SAFEPRINTF4(str,"Packed %lu messages (%lu bytes) in %lu seconds (%lu msgs/sec)"
-			,(*msgcnt)+mailmsgs
-			,ftell(qwk)
-			,(ulong)(time(NULL)-start)
-			,((*msgcnt)+mailmsgs)/(time(NULL)-start));
-		if(online==ON_LOCAL) /* event */
-			eprintf(LOG_INFO,"%s",str);
-		else
-			lprintf(LOG_INFO,"%s",str);
+			,(ulong)elapsed
+			,((*msgcnt)+mailmsgs)/elapsed);
 	}
 
 	BOOL voting_data = FALSE;
@@ -642,10 +630,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 				continue;
 			SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
 			lncntr=0;	/* Defeat pause */
-			if(online==ON_LOCAL)
-				eprintf(LOG_INFO,"Including %s in packet",str);
-			else
-				lprintf(LOG_INFO,"Including %s in packet",str);
+			lprintf(LOG_INFO,"Including %s in packet",str);
 			bprintf(text[RetrievingFile],str);
 			if(!mv(str,tmp2,/* copy: */TRUE))
 				netfiles++;
@@ -697,7 +682,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 	if(!(*msgcnt) && !mailmsgs && !files && !netfiles && !batdn_total && !voting_data
 		&& (prepack || !preqwk)) {
-		bputs(text[QWKNoNewMessages]);
+		if(online == ON_REMOTE)
+			bputs(text[QWKNoNewMessages]);
 		return(false); 
 	}
 
