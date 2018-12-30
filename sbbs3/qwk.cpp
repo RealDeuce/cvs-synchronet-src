@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.88 2019/08/02 22:17:15 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.86 2018/09/06 02:21:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1046,8 +1046,7 @@ uint sbbs_t::resolve_qwkconf(uint n, int hubnum)
 	return usrsub[j][k];
 }
 
-bool sbbs_t::qwk_voting(str_list_t* ini, long offset, smb_net_type_t net_type, const char* qnet_id
-	, uint confnum, int hubnum)
+bool sbbs_t::qwk_voting(str_list_t* ini, long offset, smb_net_type_t net_type, const char* qnet_id, int hubnum)
 {
 	char* section;
 	char location[128];
@@ -1065,7 +1064,7 @@ bool sbbs_t::qwk_voting(str_list_t* ini, long offset, smb_net_type_t net_type, c
 		strListFree(&section_list);
 		return false;
 	}
-	result = qwk_vote(*ini, section, net_type, qnet_id, confnum, hubnum);
+	result = qwk_vote(*ini, section, net_type, qnet_id, hubnum);
 	iniRemoveSection(ini, section);
 	iniRemoveSection(ini, location);
 	strListFree(&section_list);
@@ -1077,36 +1076,22 @@ void sbbs_t::qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t net_type
 	str_list_t section_list = iniGetSectionList(*ini, /* prefix: */NULL);
 
 	for(int i=0; section_list != NULL && section_list[i] != NULL; i++)
-		qwk_vote(*ini, section_list[i], net_type, qnet_id, /* confnum: */0, hubnum);
+		qwk_vote(*ini, section_list[i], net_type, qnet_id, hubnum);
 	strListFree(&section_list);
 }
 
-bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_type, const char* qnet_id, uint confnum, int hubnum)
+bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_type, const char* qnet_id, int hubnum)
 {
 	char* p;
 	int result;
 	smb_t smb;
 	ZERO_VAR(smb);
-	ulong n = iniGetLongInt(ini, section, "Conference", 0);
 
-	if(confnum == 0)
-		confnum = n;
-	else if(n != confnum) {
-		char info[128];
-		SAFEPRINTF(info, "expected: %u", confnum);
-		errormsg(WHERE, ERR_CHK, "conference number", n, info);
+	smb.subnum = resolve_qwkconf(iniGetInteger(ini, section, "Conference", 0), hubnum);
+	if(smb.subnum == INVALID_SUB)
 		return false;
-	}
-
-	smb.subnum = resolve_qwkconf(confnum, hubnum);
-	if(smb.subnum == INVALID_SUB) {
-		errormsg(WHERE, ERR_CHK, "conference number", confnum, "invalid");
+	if(cfg.sub[smb.subnum]->misc&SUB_NOVOTING)
 		return false;
-	}
-	if(cfg.sub[smb.subnum]->misc&SUB_NOVOTING) {
-		errormsg(WHERE, ERR_CHK, "conference number", confnum, "voting not allowed");
-		return false;
-	}
 	if((result = smb_open_sub(&cfg, &smb, smb.subnum)) != SMB_SUCCESS) {
 		errormsg(WHERE, ERR_OPEN, smb.file, 0, smb.last_error);
 		return false;
@@ -1203,21 +1188,13 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 			notice = text[PollVoteNotice];
 		}
 		result = votemsg(&cfg, &smb, &msg, notice, text[VoteNoticeFmt]);
-		if(result != SMB_SUCCESS && result != SMB_DUPE_MSG) {
-			if(hubnum >= 0)
-				lprintf(LOG_DEBUG, "Error %s (%d) writing vote-msg to %s", smb.last_error, result, smb.file);
-			else
-				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
-		}
+		if(result != SMB_SUCCESS && result != SMB_DUPE_MSG)
+			errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 	}
 	else if(strnicmp(section, "close:", 6) == 0) {
 		smb_hfield_str(&msg, RFC822MSGID, section + 6);
-		if((result = smb_addpollclosure(&smb, &msg, smb_storage_mode(&cfg, &smb))) != SMB_SUCCESS) {
-			if(hubnum >= 0)
-				lprintf(LOG_DEBUG, "Error %s (%d) writing poll-close-msg to %s", smb.last_error, result, smb.file);
-			else
-				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
-		}
+		if((result = smb_addpollclosure(&smb, &msg, smb_storage_mode(&cfg, &smb))) != SMB_SUCCESS)
+			errormsg(WHERE,ERR_WRITE,smb.file,result,smb.last_error);
 	}
 	else result = SMB_SUCCESS;
 
