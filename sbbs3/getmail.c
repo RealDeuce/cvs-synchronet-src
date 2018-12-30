@@ -1,6 +1,6 @@
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.20 2018/12/30 04:33:48 rswindell Exp $ */
+/* $Id: getmail.c,v 1.19 2018/12/15 12:46:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,17 +168,6 @@ mail_t* DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 	}
 	smb_unlocksmbhdr(smb);
 	*msgs=l;
-	if(l && (mode&LM_REVERSE)) {
-		mail_t*	reversed = malloc(sizeof(mail_t) * l);
-		if(reversed == NULL) {
-			free(mail);
-			return NULL;
-		}
-		for(ulong n = 0; n < l; n++)
-			reversed[n] = mail[l - (n + 1)];
-		free(mail);
-		mail = reversed;
-	}
 	return(mail);
 }
 
