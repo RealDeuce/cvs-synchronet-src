@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.49 2018/03/09 06:11:37 deuce Exp $ */
+/* $Id: str_list.c,v 1.50 2018/12/30 02:09:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -481,7 +481,7 @@ void DLLCALL strListFreeStrings(str_list_t list)
 
 void DLLCALL strListFree(str_list_t* list)
 {
-	if(*list!=NULL) {
+	if(list != NULL && *list != NULL) {
 		strListFreeStrings(*list);
 		FREE_AND_NULL(*list);
 	}
