@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.497 2018/11/04 23:55:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.498 2018/12/30 08:40:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -683,7 +683,7 @@ public:
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int which, long lm_mode = 0);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
+	long	searchmail(mail_t*, long start, long msgss, int which, const char *search, const char* order);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
