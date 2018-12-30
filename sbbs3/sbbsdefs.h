@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.228 2018/10/30 01:22:44 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.229 2018/12/30 04:33:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -793,6 +793,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
 #define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
 #define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
+#define LM_REVERSE	(1<<4)		/* Reverse the index order (newest-first)	*/
 
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
