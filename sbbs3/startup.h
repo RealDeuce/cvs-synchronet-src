@@ -1,6 +1,6 @@
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.84 2019/03/22 21:28:27 rswindell Exp $ */
+/* $Id: startup.h,v 1.83 2018/10/31 08:13:07 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -243,7 +243,7 @@ extern "C" {
 		#define DLLEXPORT __declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL
+		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
 	#endif

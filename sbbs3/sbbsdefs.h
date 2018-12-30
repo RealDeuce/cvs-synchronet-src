@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.233 2019/02/21 22:36:12 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.229 2018/12/30 04:33:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -50,15 +50,15 @@
 /*************/
 
 #define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'c'     /* Revision: lowercase letter */
+#define REVISION	'a'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
-#define COPYRIGHT_CRC		0x0E0503DF
+#define COPYRIGHT_NOTICE	"Copyright 2018 Rob Swindell"
+#define COPYRIGHT_CRC		0x930AE2A9
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -384,8 +384,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_FORCE		(1<<1) 		/* Force users off-line for event		*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
-
-#define NODE_ANY		0			/* special qhub/event_t.node value		*/
 
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
@@ -767,7 +765,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define FL_VIEW     (1<<5)		/* View ZIP/ARC/GIF etc. info               */
 
 								/* Bits in the mode of writemsg and email() */
-#define WM_NONE		0			/* No bit flags set							*/
 #define WM_EXTDESC	(1<<0)		/* Writing extended file description		*/
 #define WM_EMAIL	(1<<1)		/* Writing e-mail							*/
 #define WM_NETMAIL	(1<<2)		/* Writing NetMail							*/

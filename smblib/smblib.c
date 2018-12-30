@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.187 2019/03/19 23:02:02 rswindell Exp $ */
+/* $Id: smblib.c,v 1.183 2018/10/30 03:12:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -106,7 +106,7 @@ int SMBCALL smb_open(smb_t* smb)
 	if(filelength(fileno(smb->shd_fp))>=(long)sizeof(smbhdr_t)) {
 		if(smb_locksmbhdr(smb)!=SMB_SUCCESS) {
 			smb_close(smb);
-			/* smb_locksmbhdr set last_error */
+			/* smb_lockmsghdr set last_error */
 			return(SMB_ERR_LOCK); 
 		}
 		memset(&hdr,0,sizeof(smbhdr_t));
@@ -144,6 +144,7 @@ int SMBCALL smb_open(smb_t* smb)
 			smb_close(smb);
 			return(i);
 		}
+		rewind(smb->shd_fp); 
 	}
 
 	if((i=smb_open_fp(smb,&smb->sdt_fp,SH_DENYNO))!=SMB_SUCCESS)
@@ -496,6 +497,7 @@ int SMBCALL smb_lockmsghdr(smb_t* smb, smbmsg_t* msg)
 /* if msg.hdr.number does not equal 0, then msg->offset is filled too.		*/
 /* Either msg->hdr.number or msg->offset must be initialized before 		*/
 /* calling this function													*/
+/* Returns 1 if message number wasn't found, 0 if it was                    */
 /****************************************************************************/
 int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 {
@@ -534,14 +536,12 @@ int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 				,msg->offset, byte_offset, length);
 			return(SMB_ERR_HDR_OFFSET);
 		}
-		if(ftell(smb->sid_fp) != byte_offset) {
-			if(fseek(smb->sid_fp,byte_offset,SEEK_SET)) {
-				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s %d '%s' seeking to offset %ld (byte %lu) in index file", __FUNCTION__
-					,get_errno(),STRERROR(get_errno())
-					,msg->offset,byte_offset);
-				return(SMB_ERR_SEEK);
-			}
+		if(fseek(smb->sid_fp,byte_offset,SEEK_SET)) {
+			safe_snprintf(smb->last_error,sizeof(smb->last_error)
+				,"%s %d '%s' seeking to offset %ld (byte %lu) in index file", __FUNCTION__
+				,get_errno(),STRERROR(get_errno())
+				,msg->offset,byte_offset);
+			return(SMB_ERR_SEEK);
 		}
 		if(smb_fread(smb,&msg->idx,sizeof(idxrec_t),smb->sid_fp)!=sizeof(idxrec_t)) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
@@ -857,9 +857,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_TAGS:
 			msg->tags=(char*)hfield_dat;
 			break;
-		case SMB_EDITOR:
-			msg->editor=(char*)hfield_dat;
-			break;
 		case SMB_COLUMNS:
 			msg->columns=*(uint8_t*)hfield_dat;
 			break;
@@ -929,7 +926,6 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->subj=NULL;
 	msg->summary=NULL;
 	msg->tags=NULL;
-	msg->editor=NULL;
 	msg->id=NULL;
 	msg->reply_id=NULL;
 	msg->reverse_path=NULL;
@@ -954,7 +950,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 {
 	void	*vp,**vpp;
 	uint16_t	i;
-	long	l,offset;
+	ulong	l,offset;
 	idxrec_t idx;
 
 	if(smb->shd_fp==NULL) {
@@ -965,15 +961,13 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	if(!smb_valid_hdr_offset(smb,msg->idx.offset))
 		return(SMB_ERR_HDR_OFFSET);
 
-	offset = ftell(smb->shd_fp);
-	if(offset != msg->idx.offset) {
-		if(fseek(smb->shd_fp,msg->idx.offset,SEEK_SET) != 0) {
-			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%s %d '%s' seeking to %lu in header file", __FUNCTION__
-				,get_errno(),STRERROR(get_errno())
-				,msg->idx.offset);
-			return(SMB_ERR_SEEK);
-		}
+	rewind(smb->shd_fp);
+	if(fseek(smb->shd_fp,msg->idx.offset,SEEK_SET)) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error)
+			,"%s %d '%s' seeking to %lu in header file", __FUNCTION__
+			,get_errno(),STRERROR(get_errno())
+			,msg->idx.offset);
+		return(SMB_ERR_SEEK);
 	}
 
 	idx=msg->idx;
@@ -1002,25 +996,35 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			,msg->hdr.version);
 		return(SMB_ERR_HDR_VER);
 	}
-	l=sizeof(msg->hdr);
-	if(msg->hdr.total_dfields 
-		&& (msg->dfield = malloc(sizeof(*msg->dfield)*msg->hdr.total_dfields)) == NULL) {
+	l=sizeof(msghdr_t);
+	if(msg->hdr.total_dfields && (msg->dfield
+		=(dfield_t *)malloc(sizeof(dfield_t)*msg->hdr.total_dfields))==NULL) {
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s malloc failure of %u bytes for %u data fields", __FUNCTION__
-			,sizeof(*msg->dfield ) * msg->hdr.total_dfields, msg->hdr.total_dfields);
+			,"%s malloc failure of %d bytes for %d data fields", __FUNCTION__
+			,(int)sizeof(dfield_t)*msg->hdr.total_dfields, msg->hdr.total_dfields);
 		return(SMB_ERR_MEM); 
 	}
-	i = fread(msg->dfield, sizeof(*msg->dfield), msg->hdr.total_dfields, smb->shd_fp);
-	if(i != msg->hdr.total_dfields) {
+	i=0;
+	while(i<msg->hdr.total_dfields && l<(ulong)msg->hdr.length) {
+		if(smb_fread(smb,&msg->dfield[i],sizeof(dfield_t),smb->shd_fp)!=sizeof(dfield_t)) {
+			smb_freemsgmem(msg);
+			safe_snprintf(smb->last_error,sizeof(smb->last_error)
+				,"%s reading data field %d", __FUNCTION__
+				,i);
+			return(SMB_ERR_READ); 
+		}
+		i++;
+		l+=sizeof(dfield_t); 
+	}
+	if(i<msg->hdr.total_dfields) {
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%s insufficient data fields read (%d instead of %d)", __FUNCTION__
 			,i,msg->hdr.total_dfields);
 		return(SMB_ERR_READ); 
 	}
-	l += msg->hdr.total_dfields * sizeof(*msg->dfield);
-	while(l < (long)msg->hdr.length) {
+	while(l<(ulong)msg->hdr.length) {
 		i=msg->total_hfields;
 		if((vpp=(void* *)realloc(msg->hfield_dat,sizeof(void* )*(i+1)))==NULL) {
 			smb_freemsgmem(msg);
@@ -1076,10 +1080,6 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 	/* If no reverse path specified, use sender's address */
 	if(msg->reverse_path == NULL && msg->from_net.type==NET_INTERNET)
 		msg->reverse_path = msg->from_net.addr;
-
-	/* Read (and discard) the remaining bytes in the current allocation block (if any) */
-	while((offset = ftell(smb->shd_fp)) >=0 && ((offset - smb->status.header_offset) % SHD_BLOCK_LEN) != 0)
-		(void)fgetc(smb->shd_fp);
 
 	return(SMB_SUCCESS);
 }
@@ -1431,7 +1431,7 @@ int SMBCALL smb_dfield(smbmsg_t* msg, uint16_t type, ulong length)
 }
 
 /****************************************************************************/
-/* Checks CRC history file for duplicate crc. If found, returns SMB_DUPE_MSG*/
+/* Checks CRC history file for duplicate crc. If found, returns 1.			*/
 /* If no dupe, adds to CRC history and returns 0, or negative if error. 	*/
 /****************************************************************************/
 int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
@@ -1450,7 +1450,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 
 	SAFEPRINTF(str,"%s.sch",smb->file);
 	while(1) {
-		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW, DEFFILEMODE))!=-1)
+		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 			break;
 		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
