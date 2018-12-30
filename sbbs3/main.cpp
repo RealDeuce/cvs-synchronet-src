@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.739 2018/11/23 17:18:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.740 2018/12/30 05:33:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2650,7 +2650,7 @@ void event_thread(void* arg)
 
 		/* QWK events */
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
-			sbbs->event_code = "unQWK";
+			sbbs->event_code = "unpackREP";
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
 			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
