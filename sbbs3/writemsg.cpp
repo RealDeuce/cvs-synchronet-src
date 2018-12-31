@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.137 2018/12/30 06:50:03 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.138 2018/12/31 06:39:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -875,7 +875,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		}
 		if(strin[0]=='/' && strlen(strin)<8) {
 			if(!stricmp(strin,"/DEBUG") && SYSOP) {
-				bprintf("\r\nline=%d lines=%d (%d), rows=%ld\r\n",line,lines,strListCount(str), rows);
+				bprintf("\r\nline=%d lines=%d (%d), rows=%ld\r\n",line,lines,(int)strListCount(str), rows);
 				continue;
 			}
 			else if(!stricmp(strin,"/ABT")) {
