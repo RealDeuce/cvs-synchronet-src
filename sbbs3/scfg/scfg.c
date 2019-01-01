@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.100 2019/01/01 04:40:00 rswindell Exp $ */
+/* $Id: scfg.c,v 1.99 2019/01/01 04:38:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
+							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
