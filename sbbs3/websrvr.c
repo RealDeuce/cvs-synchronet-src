@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.674 2018/12/18 20:53:35 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.675 2019/01/01 04:38:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3522,7 +3522,7 @@ static BOOL check_request(http_session_t * session)
 		sprintf(str,"%saccess.ars",curdir);
 		if(!stat(str,&sb)) {
 			/* NEVER serve up an access.ars file */
-			lprintf(LOG_WARNING,"%04d !WARNING! access.ars support is depreciated and will be REMOVED very soon.",session->socket);
+			lprintf(LOG_WARNING,"%04d !WARNING! access.ars support is deprecated and will be REMOVED very soon.",session->socket);
 			lprintf(LOG_WARNING,"%04d !WARNING! access.ars found at %s.",session->socket,str);
 			if(!strcmp(path,str)) {
 				send_error(session,__LINE__,"403 Forbidden");
@@ -6538,7 +6538,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.674 $", "%*s %s", revision);
+	sscanf("$Revision: 1.675 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
