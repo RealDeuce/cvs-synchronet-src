@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.39 2016/12/01 06:19:53 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.40 2018/07/17 06:31:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,9 +177,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				if(xlat!=XLAT_NONE) {	/* e.g. XLAT_LZH */
 					if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 						safe_snprintf(smb->last_error,sizeof(smb->last_error)
-							,"%s %d '%s' writing body xlat string"
-							,__FUNCTION__
-							,get_errno(),STRERROR(get_errno()));
+							,"%s writing body xlat string"
+							,__FUNCTION__);
 						retval=SMB_ERR_WRITE;
 						break;
 					}
@@ -188,9 +187,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				xlat=XLAT_NONE;	/* xlat string terminator */
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%s %d '%s' writing body xlat terminator"
-						,__FUNCTION__
-						,get_errno(),STRERROR(get_errno()));
+						,"%s writing body xlat terminator"
+						,__FUNCTION__);
 					retval=SMB_ERR_WRITE;
 					break;
 				}
@@ -198,9 +196,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 				if(smb_fwrite(smb,body,bodylen,smb->sdt_fp)!=bodylen) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%s %d '%s' writing body (%ld bytes)"
+						,"%s writing body (%ld bytes)"
 						,__FUNCTION__
-						,get_errno(),STRERROR(get_errno())
 						,bodylen);
 					retval=SMB_ERR_WRITE;
 					break;
@@ -214,18 +211,16 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				xlat=XLAT_NONE;	/* xlat string terminator */
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%s %d '%s' writing tail xlat terminator"
-						,__FUNCTION__
-						,get_errno(),STRERROR(get_errno()));
+						,"%s writing tail xlat terminator"
+						,__FUNCTION__);
 					retval=SMB_ERR_WRITE;
 					break;
 				}
 
 				if(smb_fwrite(smb,tail,taillen-sizeof(xlat),smb->sdt_fp)!=taillen-sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%s %d '%s' writing tail (%ld bytes)"
+						,"%s writing tail (%ld bytes)"
 						,__FUNCTION__
-						,get_errno(),STRERROR(get_errno())
 						,taillen-sizeof(xlat));
 					retval=SMB_ERR_WRITE;
 					break;
@@ -238,9 +233,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 			if(l%SDT_BLOCK_LEN) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s %d '%s' writing data padding"
-					,__FUNCTION__
-					,get_errno(),STRERROR(get_errno()));
+					,"%s writing data padding"
+					,__FUNCTION__);
 				retval=SMB_ERR_WRITE;
 				break;
 			}
