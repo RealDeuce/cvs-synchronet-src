@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) index re-generator */
 
-/* $Id: fixsmb.c,v 1.43 2018/02/21 03:22:18 rswindell Exp $ */
+/* $Id: fixsmb.c,v 1.46 2018/04/30 06:05:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>	/* atoi, qsort */
+#include <stdbool.h>
 #include <string.h>	/* strnicmp */
 #include <ctype.h>	/* toupper */
 
@@ -46,9 +47,10 @@
 
 smb_t	smb;
 BOOL	renumber=FALSE;
+BOOL	rehash=FALSE;
 BOOL	fixnums=FALSE;
 BOOL	smb_undelete=FALSE;
-char*	usage="usage: fixsmb [-renumber] [-undelete] [-fixnums] <smb_file> [[smb_file] [...]]";
+char*	usage="usage: fixsmb [-renumber] [-undelete] [-fixnums] [-rehash] <smb_file> [[smb_file] [...]]";
 
 int compare_index(const idxrec_t* idx1, const idxrec_t* idx2)
 {
@@ -91,11 +93,15 @@ void sort_index(smb_t* smb)
 	printf("\n");
 }
 
+bool we_locked_the_base = false;
+
 void unlock_msgbase(void)
 {
 	int i;
-	if(smb_islocked(&smb) && (i=smb_unlock(&smb))!=0)
+	if(we_locked_the_base && smb_islocked(&smb) && (i=smb_unlock(&smb))!=0)
 		printf("smb_unlock returned %d: %s\n",i,smb.last_error);
+	else
+		we_locked_the_base = false;
 }
 
 int fixsmb(char* sub)
@@ -107,7 +113,7 @@ int fixsmb(char* sub)
 	ulong		l,length,size,n;
 	smbmsg_t	msg;
 	uint32_t*	numbers = NULL;
-	uint32_t	total = 0;
+	long		total = 0;
 	BOOL		dupe_msgnum;
 	uint32_t	highest = 0;
 
@@ -117,6 +123,13 @@ int fixsmb(char* sub)
 
 	if((p=getfext(smb.file))!=NULL && stricmp(p,".shd")==0)
 		*p=0;	/* Chop off .shd extension, if supplied on command-line */
+
+	char path[MAX_PATH+1];
+	SAFEPRINTF(path, "%s.shd", smb.file);
+	if(!fexistcase(path)) {
+		printf("%s does not exist\n", path);
+		exit(1);
+	}
 
 	printf("Opening %s\n",smb.file);
 
@@ -129,6 +142,7 @@ int fixsmb(char* sub)
 		printf("smb_lock returned %d: %s\n",i,smb.last_error);
 		exit(1);
 	}
+	we_locked_the_base = true;
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
@@ -168,8 +182,8 @@ int fixsmb(char* sub)
 	rewind(smb.sid_fp);
 	chsize(fileno(smb.sid_fp),0L);			/* Truncate the index */
 
-	if(renumber) {
-		printf("Truncating hash file (due to renumbering)\n");
+	if(renumber || rehash) {
+		printf("Truncating hash file (due to renumbering/rehashing)\n");
 		if((i=smb_open_hash(&smb))!=SMB_SUCCESS) {
 			printf("smb_open_hash returned %d: %s\n", i, smb.last_error);
 			exit(1);
@@ -318,7 +332,7 @@ int main(int argc, char **argv)
 	str_list_t	list;
 	int			retval = EXIT_SUCCESS;
 
-	sscanf("$Revision: 1.43 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	printf("\nFIXSMB v2.10-%s (rev %s) SMBLIB %s - Rebuild Synchronet Message Base\n\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -329,6 +343,8 @@ int main(int argc, char **argv)
 		if(argv[i][0]=='-') {
 			if(!stricmp(argv[i],"-renumber"))
 				renumber=TRUE;
+			else if(!stricmp(argv[i],"-rehash"))
+				rehash=TRUE;
 			else if(!stricmp(argv[i],"-undelete"))
 				smb_undelete=TRUE;
 			else if(!stricmp(argv[i],"-fixnums"))

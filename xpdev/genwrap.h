@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.111 2018/02/16 05:25:18 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.114 2018/07/23 22:52:54 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -244,6 +244,10 @@ extern "C" {
 	#endif
 #endif
 
+#if defined(_MSC_VER)
+	DLLEXPORT char* DLLCALL strcasestr(const char* haystack, const char* needle);
+#endif
+
 /* Skip white-space chars at beginning of string */
 DLLEXPORT char*		DLLCALL skipsp(char* str);
 /* Truncate white-space chars off end of string */
@@ -370,6 +374,7 @@ DLLEXPORT double	DLLCALL parse_duration(const char*);
 DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL duration_to_vstr(double value, char* str, size_t size);
 DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
+DLLEXPORT char*		DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit, int precision);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;
