@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.125 2019/04/11 10:01:49 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.121 2018/10/26 03:23:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +234,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case CON_PROP_TOS:
-			sbbs->tos = val ? true : false;
+			sbbs->tos=val;
 			break;
 		case CON_PROP_ROWS:
 			if(val >= TERM_ROWS_MIN && val <= TERM_ROWS_MAX)
@@ -353,7 +353,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static const char* con_prop_desc[] = {
+static char* con_prop_desc[] = {
 	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
@@ -1156,7 +1156,6 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
-	int32		columns=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1175,16 +1174,12 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
-	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
-		if(!JS_ValueToInt32(cx,argv[2],&columns))
-			return JS_FALSE;
-	}
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->putmsg(cstr, mode, columns);
+	sbbs->putmsg(cstr,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1926,10 +1921,9 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display one or more values as raw strings followed by a single carriage-return/line-feed pair (new-line)")
 	,315
 	},
-	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>] [,orig_columns=0]")
+	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
-		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits.<br>"
-		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
+		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},
 	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
@@ -2060,7 +2054,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,31700
 	},
 	{"putbyte",			js_putbyte,			1, JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("sends an unprocessed byte value to the remote terminal")
+	,JSDOCSTR("sends an unprocessed byte value to the remot terminal")
 	,31700
 	},
 	{0}
