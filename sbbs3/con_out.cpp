@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.96 2019/04/28 10:03:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.93 2018/10/30 01:22:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,8 +57,6 @@ int sbbs_t::bputs(const char *str)
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
-			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
-				break;
 			ctrl_a(str[l++]);
 			continue;
 		}
@@ -327,9 +325,6 @@ long sbbs_t::term_supports(long cmp_flags)
 {
 	long flags = ((sys_status&SS_USERON) && !(useron.misc&AUTOTERM)) ? useron.misc : autoterm;
 
-	if((sys_status&SS_USERON) && (useron.misc&AUTOTERM))
-		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE);
-
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
 }
 
@@ -408,86 +403,77 @@ int sbbs_t::outchar(char ch)
 		}
 	}
 
-	if(!(console&CON_R_ECHO))
-		return 0;
-
-	if((console&CON_R_ECHOX) && (uchar)ch>=' ' && !outchar_esc) {
-		ch=text[YNQP][3];
-		if(text[YNQP][2]==0 || ch==0) ch='X';
-	}
-	if(ch==FF) {
-		if(term&ANSI)
-			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
-		else if(term&PETSCII)
-			outcom(PETSCII_CLEAR);
-		else
-			outcom(FF);
-	}
-	else if(ch == '\t') {
-		outcom(' ');
-		column++;
-		while(column%tabstop) {
+	if(online==ON_REMOTE && console&CON_R_ECHO) {
+		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
+			ch=text[YNQP][3];
+			if(text[YNQP][2]==0 || ch==0) ch='X';
+		}
+		if(ch==FF) {
+			if(term&ANSI)
+				putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
+			else if(term&PETSCII)
+				outcom(PETSCII_CLEAR);
+			else
+				outcom(FF);
+		}
+		else if(ch == '\t') {
 			outcom(' ');
 			column++;
+			while(column%tabstop) {
+				outcom(' ');
+				column++;
+			}
 		}
-	}
-	else {
-		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
-			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-		if(term&PETSCII) {
-			uchar pet = cp437_to_petscii(ch);
-			if(pet == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_ON);
-			outcom(pet);
-			if(pet == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_OFF);
-		} else
-			outcom(ch);
+		else {
+			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+			if(term&PETSCII) {
+				uchar pet = cp437_to_petscii(ch);
+				if(pet == PETSCII_SOLID)
+					outcom(PETSCII_REVERSE_ON);
+				outcom(pet);
+				if(pet == PETSCII_SOLID)
+					outcom(PETSCII_REVERSE_OFF);
+			} else
+				outcom(ch);
+		}
 	}
 	if(!outchar_esc) {
-		/* Track cursor position locally */
-		switch(ch) {
-			case '\a':	// 7
-			case '\t':	// 9
-				/* Non-printing or handled elsewhere */
-				break;
-			case '\b':	// 8
-				if(column > 0)
-					column--;
-				if(lbuflen > 0)
-					lbuflen--;
-				break;
-			case '\n':	// 10
-				if(lncntr || lastlinelen)
-					lncntr++;
-				lbuflen=0;
-				tos=0;
-				column=0;
-				break;
-			case FF:	// 12
-				lncntr=0;
-				lbuflen=0;
-				tos=1;
-				column=0;
-			case '\r':	// 13
+		if((uchar)ch>=' ') {
+			column++;
+			if(column >= cols) {	// assume terminal has/will auto-line-wrap
+				lncntr++;
+				lbuflen = 0;
+				tos = 0;
 				lastlinelen = column;
-				column=0;
-				break;
-			default:
-				column++;
-				if(column >= cols) {	// assume terminal has/will auto-line-wrap
-					lncntr++;
-					lbuflen = 0;
-					tos = 0;
-					lastlinelen = column;
-					column = 0;
-				}
-				if(!lbuflen)
-					latr=curatr;
-				if(lbuflen<LINE_BUFSIZE)
-					lbuf[lbuflen++]=ch;
-				break;
+				column = 0;
+			}
 		}
+		else if(ch=='\r') {
+			lastlinelen = column;
+			column=0;
+		}
+		else if(ch=='\b') {
+			if(column)
+				column--;
+		}
+	}
+	if(ch==LF) {
+		if(lncntr || lastlinelen)
+			lncntr++;
+		lbuflen=0;
+		tos=0;
+		column=0;
+	} else if(ch==FF) {
+		lncntr=0;
+		lbuflen=0;
+		tos=1;
+		column=0;
+	} else {
+		if(!lbuflen)
+			latr=curatr;
+		if(lbuflen<LINE_BUFSIZE)
+			lbuf[lbuflen++]=ch;
 	}
 	if(outchar_esc==3)
 		outchar_esc=0;

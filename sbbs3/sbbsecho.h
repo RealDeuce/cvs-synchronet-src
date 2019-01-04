@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.27 2019/03/19 19:34:26 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.26 2018/09/08 21:35:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		7
+#define SBBSECHO_VERSION_MINOR		6
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
