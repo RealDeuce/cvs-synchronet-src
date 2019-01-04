@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.172 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.173 2018/10/26 03:25:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1172,11 +1172,11 @@ js_menu(JSContext *cx, uintN argc, jsval *arglist)
 	if(!menu)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->menu(menu);
+	bool result = sbbs->menu(menu);
 	free(menu);
 	JS_RESUMEREQUEST(cx, rc);
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	JS_SET_RVAL(cx, arglist, result ? JSVAL_TRUE : JSVAL_FALSE);
 
     return(JS_TRUE);
 }
@@ -4135,7 +4135,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,314
 	},
 	/* menuing */
-	{"menu",			js_menu,			1,	JSTYPE_VOID,	JSDOCSTR("base_filename")
+	{"menu",			js_menu,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("base_filename")
 	,JSDOCSTR("display a menu file from the text/menu directory")
 	,310
 	},
