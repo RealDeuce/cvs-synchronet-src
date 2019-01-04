@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.94 2019/01/11 11:29:37 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.93 2018/10/30 01:22:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,8 +57,6 @@ int sbbs_t::bputs(const char *str)
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
-			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
-				break;
 			ctrl_a(str[l++]);
 			continue;
 		}

@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.71 2019/02/08 02:41:54 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.68 2018/12/17 06:02:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,6 +58,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
+	FILE*	fp;
 	DIR*	dir;
 	DIRENT*	dirent;
 	smbmsg_t	msg;
@@ -167,7 +168,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	twit_list = findstr_list(fname);
+	if((fp=fopen(fname,"r"))!=NULL) {
+		twit_list=strListReadFile(fp,NULL,128);
+		fclose(fp);
+	}
 
 	now=time(NULL);
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
@@ -195,9 +199,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 					errors++;
 				continue;
 			}
-			lprintf(LOG_WARNING
-				, "%s msg blocks less than 2 (read '%c' at offset %ld, '%s' at offset %ld)"
-				, getfname(msg_fname), block[0], l, tmp, l + 116);
+			snprintf(str, sizeof(str)-1
+				, "%s blocks (read '%c' at offset %ld, '%s' at offset %ld)"
+				, msg_fname, block[0], l, tmp, l + 116);
+			errormsg(WHERE, ERR_CHK, tmp, blocks, str);
 			errors++;
 			blocks=1;
 			continue;

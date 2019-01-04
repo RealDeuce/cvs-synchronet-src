@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.502 2019/02/08 02:39:03 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.498 2018/12/30 08:40:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -803,7 +803,7 @@ public:
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
 	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
-	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts, bool reading = true);
+	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
@@ -1100,7 +1100,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
 	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
 	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
-	DLLEXPORT str_list_t DLLCALL findstr_list(const char* fname);
 	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
@@ -1235,7 +1234,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
-														,const char* name, const char* str[], unsigned flags);
+														,const char* name, char* str[], unsigned flags);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1337,7 +1336,7 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode);
+	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
