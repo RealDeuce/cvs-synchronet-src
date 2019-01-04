@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.57 2019/03/26 07:45:42 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.52 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,14 +40,12 @@
 
 /****************************************************************************/
 /****************************************************************************/
-bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resmb, smbmsg_t* remsg)
+bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 {
-	char	str[256],str2[256],msgpath[256],ch
-			,buf[SDT_BLOCK_LEN],*p;
+	char	str[256],str2[256],msgpath[256],title[256],name[256],ch
+			,buf[SDT_BLOCK_LEN],*p,addr[256];
 	char 	tmp[512];
-	char	title[256] = "";
-	char	name[256] = "";
-	char	addr[256] = "";
+	char	pid[128];
 	char*	editor=NULL;
 	char	your_addr[128];
 	ushort	xlat=XLAT_NONE,net=NET_INTERNET;
@@ -62,20 +60,9 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 		return(false); 
 	}
 
-	if(into != NULL) {
-		SAFECOPY(name,into);
-		SAFECOPY(addr,into);
-	}
-	if(subj != NULL)
-		SAFECOPY(title,subj);
-	if(remsg != NULL) {
-		if(title[0] == 0 && remsg->subj != NULL)
-			SAFECOPY(title, remsg->subj);
-		if(name[0] == 0 && remsg->from != NULL)
-			SAFECOPY(name, remsg->from);
-		if(addr[0] == 0 && remsg->from_net.addr != NULL)
-			smb_netaddrstr(&remsg->from_net, addr);
-	}
+	SAFECOPY(name,into);
+	SAFECOPY(addr,into);
+	SAFECOPY(title,subj);
 
 	if((!SYSOP && !(cfg.inetmail_misc&NMAIL_ALLOW)) || useron.rest&FLAG('M')) {
 		bputs(text[NoNetMailAllowed]);
@@ -109,13 +96,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	action=NODE_SMAL;
 	nodesync();
 
-	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
-		if(quotemsg(resmb, remsg, /* include tails: */true))
-			mode |= WM_QUOTE;
-	}
-
 	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,WM_NETMAIL|mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
+	if(!writemsg(msgpath,nulstr,title,mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -277,7 +259,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	add_msg_ids(&cfg, &smb, &msg, remsg);
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
@@ -316,13 +299,12 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	return(true);
 }
 
-bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resmb, smbmsg_t* remsg)
+bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 {
-	char	str[256],msgpath[128],fulladdr[128]
+	char	str[256],msgpath[128],title[128],to[128],fulladdr[128]
 			,buf[SDT_BLOCK_LEN],*addr;
 	char 	tmp[512];
-	char	title[128] = "";
-	char	to[128] = "";
+	char	pid[128];
 	char*	editor=NULL;
 	ushort	xlat=XLAT_NONE,net=NET_QWK,touser;
 	int 	i,j,x,file;
@@ -335,10 +317,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 		return(false); 
 	}
 
-	if(into != NULL)
-		SAFECOPY(to,into);
-	if(subj != NULL)
-		SAFECOPY(title,subj);
+	SAFECOPY(to,into);
+	SAFECOPY(title,subj);
 
 	if(useron.rest&FLAG('M')) {
 		bputs(text[NoNetMailAllowed]);
@@ -370,13 +350,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 	action=NODE_SMAL;
 	nodesync();
 
-	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
-		if(quotemsg(resmb, remsg, /* include tails: */true))
-			mode |= WM_QUOTE;
-	}
-
 	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title, (mode|WM_QWKNET|WM_NETMAIL) ,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
+	if(!writemsg(msgpath,nulstr,title,mode|WM_QWKNET,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -491,7 +466,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);

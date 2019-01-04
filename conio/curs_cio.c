@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.42 2019/01/19 09:26:04 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.41 2018/07/24 01:10:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,7 +55,6 @@ static unsigned char curs_nextgetch=0;
 static int lastattr=0;
 static long mode;
 static int vflags=0;
-static int suspended = 0;
 
 static short curses_color(short color)
 {
@@ -667,11 +666,8 @@ void curs_gotoxy(int x, int y)
 
 void curs_suspend(void)
 {
-	if (!suspended) {
-		noraw();
-		endwin();
-	}
-	suspended = 1;
+	noraw();
+	endwin();
 }
 
 void curs_resume(void)
@@ -680,7 +676,6 @@ void curs_resume(void)
 	timeout(10);
 	refresh();
 	getch();
-	suspended = 0;
 }
 
 int curs_initciolib(long inmode)
@@ -716,7 +711,6 @@ int curs_initciolib(long inmode)
 	raw();
 	timeout(10);
 	atexit(curs_suspend);
-	suspended = 0;
 
 	/* Set up color pairs */
 	if (COLORS >= 16) {
