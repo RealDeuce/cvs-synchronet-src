@@ -2,7 +2,7 @@
 
 /* 32-bit CRC table and calculation macro */
 
-/* $Id: crc32.h,v 1.18 2019/03/22 21:29:12 rswindell Exp $ */
+/* $Id: crc32.h,v 1.17 2018/07/24 01:12:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@
 		#define CRCEXPORT	__declspec(dllexport)
 	#endif
 	#if defined(__BORLANDC__)
-		#define CRCCALL
+		#define CRCCALL __stdcall
 	#else
 		#define CRCCALL
 	#endif
