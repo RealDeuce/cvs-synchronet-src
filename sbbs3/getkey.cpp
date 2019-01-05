@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.50 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.51 2018/10/31 08:09:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,7 +398,7 @@ bool sbbs_t::noyes(const char *str)
     char ch;
 
 	if(*str == 0)
-		return false;
+		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[NoYesQuestion],str);
