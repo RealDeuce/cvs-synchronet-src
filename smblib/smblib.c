@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.182 2018/10/23 04:38:53 rswindell Exp $ */
+/* $Id: smblib.c,v 1.183 2018/10/30 03:12:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -856,6 +856,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 			break;
 		case SMB_TAGS:
 			msg->tags=(char*)hfield_dat;
+			break;
+		case SMB_COLUMNS:
+			msg->columns=*(uint8_t*)hfield_dat;
 			break;
 		case SMB_EXPIRATION:
 			msg->expiration=*(uint32_t*)hfield_dat;
