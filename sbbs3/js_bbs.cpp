@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.174 2019/01/07 20:59:55 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.175 2019/01/07 23:38:31 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ enum {
 };
 
 #ifdef BUILD_JSDOCS
-	static char* bbs_prop_desc[] = {
+	static const char* bbs_prop_desc[] = {
 	 "system status bitfield (see <tt>SS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"startup options bitfield (see <tt>BBS_OPT_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"answer time, in <i>time_t</i> format"
