@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.162 2018/03/04 21:20:53 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.165 2018/10/22 04:18:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -333,6 +333,11 @@ void sbbs_read_ini(
 		bbs->rlogin_interfaces
 			=iniGetStringList(list,section,"RLoginInterface",",",global_interfaces);
 
+		bbs->pet40_port
+			=iniGetShortInt(list,section,"Pet40Port",64);
+		bbs->pet80_port
+			=iniGetShortInt(list,section,"Pet80Port",128);
+
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
 		bbs->ssh_connect_timeout
@@ -399,7 +404,7 @@ void sbbs_read_ini(
 			=iniGetLogLevel(list,section,strLogLevel,global->log_level);
 		bbs->options
 			=iniGetBitField(list,section,strOptions,bbs_options
-				,BBS_OPT_XTRN_MINIMIZED|BBS_OPT_SYSOP_AVAILABLE);
+				,BBS_OPT_XTRN_MINIMIZED);
 
 		bbs->bind_retry_count=iniGetInteger(list,section,strBindRetryCount,global->bind_retry_count);
 		bbs->bind_retry_delay=iniGetInteger(list,section,strBindRetryDelay,global->bind_retry_delay);
@@ -800,6 +805,11 @@ BOOL sbbs_write_ini(
 		if(!iniSetShortInt(lp,section,"RLoginPort",bbs->rlogin_port,&style))
 			break;
 
+		if(!iniSetShortInt(lp,section,"Pet40Port",bbs->pet40_port,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"Pet80Port",bbs->pet80_port,&style))
+			break;
+
 		if(strListCmp(bbs->ssh_interfaces, global->interfaces)==0)
 			iniRemoveValue(lp,section,"SSHInterface");
 		else if(!iniSetStringList(lp,section,"SSHInterface", ",", bbs->ssh_interfaces,&style))
@@ -931,7 +941,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(ftp->host_name,global->host_name)==0
-            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
+            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,ftp->host_name,&style))
 			break;
@@ -1033,7 +1043,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(mail->host_name,global->host_name)==0
-            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
+            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,mail->host_name,&style))
 			break;
@@ -1131,7 +1141,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(services->host_name,global->host_name)==0
-            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
+            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,services->host_name,&style))
 			break;
@@ -1201,7 +1211,7 @@ BOOL sbbs_write_ini(
 			break;
 
 		if(strcmp(web->host_name,global->host_name)==0
-            || strcmp(bbs->host_name,cfg->sys_inetaddr)==0)
+            || (bbs != NULL && strcmp(bbs->host_name,cfg->sys_inetaddr)==0))
 			iniRemoveKey(lp,section,strHostName);
 		else if(!iniSetString(lp,section,strHostName,web->host_name,&style))
 			break;
