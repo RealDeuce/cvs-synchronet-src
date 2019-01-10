@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.30 2019/07/07 01:56:45 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.29 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -147,7 +147,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ANSI:
-				if(!term_supports(ANSI))
+				if(!(user->misc&ANSI))
 					result=_not;
 				else result=!_not;
 				if(!result) {
@@ -156,7 +156,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_PETSCII:
-				if(!term_supports(PETSCII))
+				if(!(user->misc&PETSCII))
 					result=_not;
 				else result=!_not;
 				if(!result) {
@@ -165,7 +165,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_RIP:
-				if(!term_supports(RIP))
+				if(!(user->misc&RIP))
 					result=_not;
 				else result=!_not;
 				if(!result) {
@@ -174,7 +174,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_WIP:
-				if(!term_supports(WIP))
+				if(!(user->misc&WIP))
 					result=_not;
 				else result=!_not;
 				if(!result) {
