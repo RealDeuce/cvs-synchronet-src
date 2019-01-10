@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.83 2019/04/10 00:18:10 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.81 2018/10/31 07:44:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,7 +165,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		}
 		p="CONTROLTYPE = ";
 		fprintf(stream,"DOOR = %.10s\r\nVERSION = %s%c\r\n"
-			"SYSTEM = %s%c\r\n"
+			"SYSTEM = %s\r\n"
 			"CONTROLNAME = SBBS\r\n"
 			"%sADD\r\n"
 			"%sDROP\r\n"
@@ -186,7 +186,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			"MIXEDCASE = YES\r\n"
 			,VERSION_NOTICE
 			,VERSION,REVISION
-			,VERSION_NOTICE,REVISION
+			,VERSION_NOTICE
 			,p,p,p,p
 			,p,p,p,p
 			,p,p,p,p
@@ -387,7 +387,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						mv(str,tmp,/* copy: */TRUE); 
 				}
 
-				size=msgtoqwk(&msg, qwk, mode|QM_REPLYTO, &smb, /* confnum: */0, hdrs);
+				size=msgtoqwk(&msg,qwk,mode|QM_REPLYTO,INVALID_SUB,0,hdrs);
 				smb_unlockmsghdr(&smb,&msg);
 				smb_freemsgmem(&msg);
 				if(ndx && size) {
@@ -527,7 +527,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					else
 						mode&=~(QM_TAGLINE|QM_TO_QNET);
 
-					size=msgtoqwk(&msg, qwk, mode, &smb, conf, hdrs, voting);
+					size=msgtoqwk(&msg,qwk,mode,usrsub[i][j],conf,hdrs,voting);
 					smb_unlockmsghdr(&smb,&msg);
 
 					if(ndx && size) {
