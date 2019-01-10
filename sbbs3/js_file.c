@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.175 2019/01/09 10:54:45 rswindell Exp $ */
+/* $Id: js_file.c,v 1.176 2019/01/10 11:50:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2635,7 +2635,7 @@ static jsSyncPropertySpec js_file_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static char* file_prop_desc[] = {
+static const char* file_prop_desc[] = {
 	 "filename specified in constructor - <small>READ ONLY</small>"
 	,"mode string specified in <i>open</i> call - <small>READ ONLY</small>"
 	,"<i>true</i> if the file is open or exists (case-insensitive) - <small>READ ONLY</small>"
@@ -2686,7 +2686,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"the file must be opened for both reading <b>and</b> writing.<br>"
 		"<br><b>Note:</b> To open an existing or create a new file for both reading and writing "
 		"(e.g. updating an <tt>.ini</tt> file) "
-		"use the <i>exists</i> property like so:<br>"e
+		"use the <i>exists</i> property like so:<br>"
 		"<tt>file.open(file.exists ? 'r+':'w+');</tt>"
 		"<br><b>Note:</b> When <i>shareable</i> is false, uses nopen() which will lock the file "
 		"and perform automatic retries.  The lock mode is as follows:<br>"
