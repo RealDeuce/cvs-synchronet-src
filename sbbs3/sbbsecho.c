@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.112 2019/04/29 06:14:18 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.101 2018/12/18 23:21:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -90,7 +90,7 @@ ulong bundles_unpacked=0;
 
 int cur_smb=0;
 FILE *fidologfile=NULL;
-str_list_t twit_list;
+bool twit_list;
 str_list_t bad_areas;
 
 fidoaddr_t		sys_faddr = {1,1,1,0};		/* Default system address: 1:1/1.0 */
@@ -177,7 +177,7 @@ char* parse_control_line(const char* fmsgbuf, const char* kludge)
 
 	if(fmsgbuf == NULL)
 		return NULL;
-	SAFEPRINTF(str, "\1%s", kludge);
+	sprintf(str, "\1%s", kludge);
 	p = strstr(fmsgbuf, str);
 	if(p == NULL)
 		return NULL;
@@ -840,9 +840,6 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	if(flo_filename == NULL)
 		return -2;
 
-	if(*infile == '^')  /* work-around for BRE/FE inter-BBS attachment bug */
-		infile++;
-
 #ifdef __unix__
 	if(isalpha(infile[0]) && infile[1] == ':')	// Ignore "C:" prefix
 		infile += 2;
@@ -1214,8 +1211,6 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
 	if(msg != NULL) {
-		if(msg->columns)
-			fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
@@ -3298,13 +3293,17 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	fidoaddr_t faddr,origaddr,destaddr;
 	smb_t*	smbfile;
+	char	fname[MAX_PATH+1];
 	smbmsg_t	msg;
 	time32_t now=time32(NULL);
 	ulong	max_msg_age = (subnum == INVALID_SUB) ? cfg.max_netmail_age : cfg.max_echomail_age;
 
-	if(findstr_in_list(hdr->from, twit_list) || findstr_in_list(hdr->to, twit_list)) {
-		lprintf(LOG_INFO,"Filtering message from %s to %s",hdr->from,hdr->to);
-		return IMPORT_FILTERED_TWIT;
+	if(twit_list) {
+		sprintf(fname,"%stwitlist.cfg",scfg.ctrl_dir);
+		if(findstr(hdr->from,fname) || findstr(hdr->to,fname)) {
+			lprintf(LOG_INFO,"Filtering message from %s to %s",hdr->from,hdr->to);
+			return IMPORT_FILTERED_TWIT;
+		}
 	}
 
 	memset(&msg,0,sizeof(smbmsg_t));
@@ -3474,14 +3473,6 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				msg.hdr.when_written.zone = fmsgzone(fbuf+l);
 			}
 
-			else if(!strncmp((char *)fbuf + l + 1, "COLS:", 5)) {	/* SBBSecho */
-				l += 6;
-				while(l<length && fbuf[l] <= ' ' && fbuf[l] >= 0) l++;
-				uint8_t columns = atoi(fbuf + l);
-				if(columns > 0)
-					smb_hfield_bin(&msg, SMB_COLUMNS, columns);
-			}
-
 			else {		/* Unknown kludge line */
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				m=l;
@@ -3495,7 +3486,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 			continue;
 		}
 
-		if(ch!='\n' && ch != FIDO_SOFT_CR) {	/* ignore LF and soft CRs */
+		if(ch!='\n' && ch!=0x8d) {	/* ignore LF and soft CRs */
 			if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
 				|| !strncmp((char *)fbuf+l,"---\r",4)))
 				done=1; 			/* tear line and down go into tail */
@@ -4377,7 +4368,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 		}
 	}
 
-	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0
+	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 
 		|| stricmp(hdr.to, "SBBSecho") == 0
 		|| stricmp(hdr.to, FIDO_PING_NAME) == 0) {
 		fmsgbuf=getfmsg(fp,NULL);
@@ -4729,6 +4720,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			if(msg.from_net.type!=NET_NONE
 				&& msg.from_net.type!=NET_FIDO
+				&& msg.from_net.type!=NET_FIDO_ASCII
 				&& !(scfg.sub[subnum]->misc&SUB_GATE)) {
 				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
@@ -4833,9 +4825,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			else					/* generate TID */
 				f+=sprintf(fmsgbuf+f,"\1TID: %s\r", sbbsecho_pid());
 
-			if(msg.columns)
-				f += sprintf(fmsgbuf+f, "\1COLS: %u\r", (unsigned int)msg.columns);
-
 			if(rescan)
 				f+=sprintf(fmsgbuf+f,"\1RESCANNED %s\r", smb_faddrtoa(&scfg.sub[subnum]->faddr,NULL));
 
@@ -4848,7 +4837,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
 					char ch;
 					l++;
-					if(buf[l]==0 || buf[l]=='Z')	/* EOF */
+					if(buf[l]==0)
 						break;
 					if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
 						fmsgbuf[f++]=ch;
@@ -5169,7 +5158,7 @@ int export_netmail(void)
 			char filename[MAX_PATH+1] = {0};
 			uint32_t filelen = 0;
 			uint8_t* filedata;
-			if((filedata = smb_getattachment(&msg, txt, filename, sizeof(filename), &filelen, /* attachment_index */0)) != NULL
+			if((filedata = smb_getattachment(&msg, txt, filename, &filelen, /* attachment_index */0)) != NULL
 				&& filename[0] != 0 && filelen > 0) {
 				lprintf(LOG_DEBUG, "MIME attachment decoded: %s (%lu bytes)", filename, (ulong)filelen);
 				char outdir[MAX_PATH+1];
@@ -5747,7 +5736,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			}
 
 			if(!secure && (nodecfg == NULL || nodecfg->pktpwd[0] == 0)) {
-				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s (in the non-secure inbound directory) ignored"
+				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s ignored"
 					,areatag, smb_faddrtoa(&pkt_orig, NULL));
 				printf("\n");
 				bad_packet = true;
@@ -6004,7 +5993,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.112 $", "%*s %s", revision);
+	sscanf("$Revision: 3.101 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6143,7 +6132,7 @@ int main(int argc, char **argv)
 	}
 
 	SAFEPRINTF(str,"%stwitlist.cfg",scfg.ctrl_dir);
-	twit_list=findstr_list(str);
+	twit_list=fexist(str);
 
 	if(scfg.total_faddrs)
 		sys_faddr=scfg.faddr[0];

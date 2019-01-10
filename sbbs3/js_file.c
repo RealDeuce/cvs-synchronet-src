@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.178 2019/03/24 08:55:39 rswindell Exp $ */
+/* $Id: js_file.c,v 1.176 2019/01/10 11:50:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2822,7 +2822,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
 		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
-		"Returns a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
+		"will return a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
 		"determined by the type of <i>default</i> value specified. "
 		"<br><b>Note:</b> To insure that any/all values are returned as a string (e.g. numeric passwords are <b>not</b> returned as a <i>number</i>), "
 		"pass an empty string ('') for the <i>default</i> value." )
@@ -2837,8 +2837,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
 	,JSDOCSTR("parse an entire section from a .ini file "
 		"and return all of its keys and values as properties of an object. "
-		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section. "
-		"Returns <i>null</i> if the specified <i>section</i> does not exist in the file or the file has not been opened.")
+		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section")
 	,311
 	},
 	{"iniSetObject",	js_iniSetObject,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, object")
@@ -3016,14 +3015,10 @@ JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 	return(obj);
 }
 
-JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode)
+JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp)
 {
 	JSObject* obj;
 	private_t*	p;
-	FILE* fp = fdopen(fd, mode);
-
-	if(fp == NULL)
-		return NULL;
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -3042,6 +3037,7 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
+
 	dbprintf(FALSE, p, "object created");
 
 	return(obj);

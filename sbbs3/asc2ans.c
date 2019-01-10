@@ -2,7 +2,7 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: asc2ans.c,v 1.11 2019/01/11 11:47:56 rswindell Exp $ */
+/* $Id: asc2ans.c,v 1.9 2019/01/10 02:47:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,7 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision: 1.9 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet Ctrl-A-Code to ANSI-Terminal-Sequence Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.asc [outfile.ans] [[option] [...]]\n",prog);
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	while((ch=fgetc(in))!=EOF) {
 		if(ch==CTRL_A) { /* ctrl-a */
 			ch=fgetc(in);
-			if(ch==EOF || ch=='Z')	/* EOF */
+			if(ch==EOF)	/* EOF */
 				break;
 			if(ch>0x7f) {					/* move cursor right x columns */
 				int cnt=ch-0x7f;
@@ -134,15 +134,9 @@ int main(int argc, char **argv)
 				case ']':
 					fputc('\n',out);
 					break;
-				case 'J':				
-					ANSI;	
-					fprintf(out,"J");	/* clear to EOS */
-					break;
 				case 'L':
 					ANSI;	
 					fprintf(out,"2J");	/* clear screen */
-					/* fall-through */
-				case '`':
 					ANSI;	
 					fprintf(out,"H");	/* home cursor */
 					break;
@@ -223,9 +217,6 @@ int main(int argc, char **argv)
 				case '7':
 					ANSI;
 					fprintf(out,"47m");
-					break;
-				case 'Z':	/* Actually a lower-case 'z' */
-					fputc('\x1a',out);	/* Ctrl-Z (substitute) char */
 					break;
 				default:
 					if(!strip)
