@@ -1,6 +1,6 @@
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.49 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.50 2018/12/12 20:27:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1288,7 +1288,7 @@ int main(int argc, char** argv)
 		fclose(fp);
 
 	if(chdir(ctrl_dir)!=0) {
-		sprintf(str,"!ERROR %d changing directory to: %s", errno, ctrl_dir);
+		sprintf(str,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), ctrl_dir);
 		svc_lputs(NULL,LOG_ERR,str);
 	}
 
