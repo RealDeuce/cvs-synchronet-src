@@ -1,6 +1,6 @@
 /* Synchronet public message reading function */
 
-/* $Id: readmsgs.cpp,v 1.107 2018/10/04 04:03:01 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.108 2018/10/30 03:16:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -120,9 +120,12 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 
 	/* variable fields */
 	for(i=0;i<msg->total_hfields;i++) {
-		char *p;
+		char* p = str;
 		bprintf("%-16.16s ",smb_hfieldtype(msg->hfield[i].type));
 		switch(msg->hfield[i].type) {
+			case SMB_COLUMNS:
+				sprintf(str, "%u", *(uint8_t*)msg->hfield_dat[i]);
+				break;
 			case SENDERNETTYPE:
 			case RECIPIENTNETTYPE:
 			case REPLYTONETTYPE:
