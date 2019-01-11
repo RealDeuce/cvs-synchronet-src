@@ -1,8 +1,7 @@
-/* js_user.c */
-
 /* Synchronet JavaScript "User" Object */
+// vi: tabstop=4
 
-/* $Id: js_user.c,v 1.103 2018/02/20 11:32:32 rswindell Exp $ */
+/* $Id: js_user.c,v 1.108 2019/01/10 19:53:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,10 +45,11 @@ typedef struct
 	user_t		storage;
 	BOOL		cached;
 	client_t*	client;
+	int			file;		// for fast read operations, only
 
 } private_t;
 
-/* User Object Properites */
+/* User Object Properties */
 enum {
 	 USER_PROP_NUMBER
 	,USER_PROP_ALIAS 	
@@ -128,12 +128,13 @@ enum {
 
 static void js_getuserdat(scfg_t* scfg, private_t* p)
 {
-	if(!p->cached) {
-		if(getuserdat(scfg,p->user)==0)
+	if(p->user->number != 0 && !p->cached) {
+		if(p->file < 1)
+			p->file = openuserdat(scfg, /* for_modify: */FALSE);
+		if(fgetuserdat(scfg, p->user, p->file)==0)
 			p->cached=TRUE;
 	}
 }
-
 
 static JSBool js_user_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
@@ -791,15 +792,15 @@ static char* user_prop_desc[] = {
 	,"external e-mail address"
 	,"local Internet e-mail address	- <small>READ ONLY</small>"
 	,"street address"
-	,"location (city, state)"
+	,"location (e.g. city, state)"
 	,"zip/postal code"
 	,"phone number"
-	,"birth date"
+	,"birth date in either MM/DD/YY or DD/MM/YY format depending on system configuration"
 	,"calculated age in years - <small>READ ONLY</small>"
-	,"connection type"
+	,"connection type (protocol)"
 	,"AKA connection"
 	,"terminal rows (lines)"
-	,"gender type"
+	,"gender type (e.g. M or F)"
 	,"current/last message sub-board (internal code)"
 	,"current/last file directory (internal code)"
 	,"current/last external program (internal code) run"
@@ -952,15 +953,15 @@ static char* user_stats_prop_desc[] = {
 
 static void js_user_finalize(JSContext *cx, JSObject *obj)
 {
-	private_t* p;
+	private_t* p = (private_t*)JS_GetPrivate(cx,obj);
 
-	p=(private_t*)JS_GetPrivate(cx,obj);
-
-	if(p!=NULL)
+	if(p!=NULL) {
+		if(p->file > 0)
+			closeuserdat(p->file);
 		free(p);
+	}
 
-	p=NULL;
-	JS_SetPrivate(cx,obj,p);
+	JS_SetPrivate(cx, obj, NULL);
 }
 
 static JSBool
@@ -1566,6 +1567,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		p->storage = *user;
 		if(global_user)
 			p->user = user;
+		p->cached = TRUE;
 	}
 
 	JS_SetPrivate(cx, userobj, p);	
@@ -1575,7 +1577,7 @@ JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* c
 		,"Instance of <i>User</i> class, representing current user online"
 		,310);
 	js_DescribeSyncConstructor(cx,userobj
-		,"To create a new user object: <tt>var u = new User(<i>number</i>)</tt>");
+		,"To create a new user object: <tt>var u = new User;</tt> or: <tt>var u = new User(<i>number</i>);</tt>");
 	js_CreateArrayOfStrings(cx, userobj
 		,"_property_desc_list", user_prop_desc, JSPROP_READONLY);
 #endif
