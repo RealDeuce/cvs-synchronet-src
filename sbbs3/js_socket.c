@@ -1,7 +1,6 @@
 /* Synchronet JavaScript "Socket" Object */
-// vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.226 2019/03/07 01:11:01 deuce Exp $ */
+/* $Id: js_socket.c,v 1.224 2019/01/07 07:11:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,12 +789,8 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 				&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
 			FD_ZERO(&socket_set);
 			FD_SET(p->sock,&socket_set);
-			if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1) {
-				int so_error = -1;
-				socklen_t optlen = sizeof(so_error);
-				if(getsockopt(p->sock, SOL_SOCKET, SO_ERROR, (void*)&so_error, &optlen) == 0 && so_error == 0)
-					result=0;	/* success */
-			}
+			if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1)
+				result=0;	/* success */
 		}
 		if(result==0)
 			break;
@@ -1866,20 +1861,15 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 										if (scfg->tls_certificate == -1)
 											ret = CRYPT_ERROR_NOTAVAIL;
 										else {
-											lock_ssl_cert();
 											ret = cryptSetAttribute(p->session, CRYPT_SESSINFO_PRIVATEKEY, scfg->tls_certificate);
-											if (ret != CRYPT_OK) {
-												unlock_ssl_cert();
+											if (ret != CRYPT_OK)
 												GCES(ret, p, estr, "setting private key");
-											}
 										}
 									}
 								}
 								if(ret==CRYPT_OK) {
 									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK)
 										GCES(ret, p, estr, "setting session active");
-									if (tiny == SOCK_PROP_SSL_SERVER)
-										unlock_ssl_cert();
 								}
 							}
 						}
