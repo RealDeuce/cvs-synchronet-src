@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.108 2019/03/19 20:46:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.102 2019/01/11 11:29:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -90,7 +90,7 @@ ulong bundles_unpacked=0;
 
 int cur_smb=0;
 FILE *fidologfile=NULL;
-str_list_t twit_list;
+bool twit_list;
 str_list_t bad_areas;
 
 fidoaddr_t		sys_faddr = {1,1,1,0};		/* Default system address: 1:1/1.0 */
@@ -177,7 +177,7 @@ char* parse_control_line(const char* fmsgbuf, const char* kludge)
 
 	if(fmsgbuf == NULL)
 		return NULL;
-	SAFEPRINTF(str, "\1%s", kludge);
+	sprintf(str, "\1%s", kludge);
 	p = strstr(fmsgbuf, str);
 	if(p == NULL)
 		return NULL;
@@ -840,9 +840,6 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	if(flo_filename == NULL)
 		return -2;
 
-	if(*infile == '^')  /* work-around for BRE/FE inter-BBS attachment bug */
-		infile++;
-
 #ifdef __unix__
 	if(isalpha(infile[0]) && infile[1] == ':')	// Ignore "C:" prefix
 		infile += 2;
@@ -1213,8 +1210,6 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
-	if(msg->columns)
-		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
@@ -3298,13 +3293,17 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	fidoaddr_t faddr,origaddr,destaddr;
 	smb_t*	smbfile;
+	char	fname[MAX_PATH+1];
 	smbmsg_t	msg;
 	time32_t now=time32(NULL);
 	ulong	max_msg_age = (subnum == INVALID_SUB) ? cfg.max_netmail_age : cfg.max_echomail_age;
 
-	if(findstr_in_list(hdr->from, twit_list) || findstr_in_list(hdr->to, twit_list)) {
-		lprintf(LOG_INFO,"Filtering message from %s to %s",hdr->from,hdr->to);
-		return IMPORT_FILTERED_TWIT;
+	if(twit_list) {
+		sprintf(fname,"%stwitlist.cfg",scfg.ctrl_dir);
+		if(findstr(hdr->from,fname) || findstr(hdr->to,fname)) {
+			lprintf(LOG_INFO,"Filtering message from %s to %s",hdr->from,hdr->to);
+			return IMPORT_FILTERED_TWIT;
+		}
 	}
 
 	memset(&msg,0,sizeof(smbmsg_t));
@@ -3472,14 +3471,6 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				l+=11;
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				msg.hdr.when_written.zone = fmsgzone(fbuf+l);
-			}
-
-			else if(!strncmp((char *)fbuf + l + 1, "COLS:", 5)) {	/* SBBSecho */
-				l += 6;
-				while(l<length && fbuf[l] <= ' ' && fbuf[l] >= 0) l++;
-				uint8_t columns = atoi(fbuf + l);
-				if(columns > 0)
-					smb_hfield_bin(&msg, SMB_COLUMNS, columns);
 			}
 
 			else {		/* Unknown kludge line */
@@ -4834,9 +4825,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			else					/* generate TID */
 				f+=sprintf(fmsgbuf+f,"\1TID: %s\r", sbbsecho_pid());
 
-			if(msg.columns)
-				f += sprintf(fmsgbuf+f, "\1COLS: %u\r", (unsigned int)msg.columns);
-
 			if(rescan)
 				f+=sprintf(fmsgbuf+f,"\1RESCANNED %s\r", smb_faddrtoa(&scfg.sub[subnum]->faddr,NULL));
 
@@ -5748,7 +5736,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			}
 
 			if(!secure && (nodecfg == NULL || nodecfg->pktpwd[0] == 0)) {
-				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s (in the non-secure inbound directory) ignored"
+				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s ignored"
 					,areatag, smb_faddrtoa(&pkt_orig, NULL));
 				printf("\n");
 				bad_packet = true;
@@ -6005,7 +5993,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.108 $", "%*s %s", revision);
+	sscanf("$Revision: 3.102 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6144,7 +6132,7 @@ int main(int argc, char **argv)
 	}
 
 	SAFEPRINTF(str,"%stwitlist.cfg",scfg.ctrl_dir);
-	twit_list=findstr_list(str);
+	twit_list=fexist(str);
 
 	if(scfg.total_faddrs)
 		sys_faddr=scfg.faddr[0];
