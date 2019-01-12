@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.225 2018/10/09 01:34:09 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.231 2019/01/04 22:05:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -50,15 +50,15 @@
 /*************/
 
 #define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
+#define REVISION	'c'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2018 Rob Swindell"
-#define COPYRIGHT_CRC		0x930AE2A9
+#define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
+#define COPYRIGHT_CRC		0x0E0503DF
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -654,8 +654,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define HTML		(1L<<23)		/* Using Zuul/HTML terminal				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 #define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
+#define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -669,6 +670,13 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define TERM_KEY_ABORT	CTRL_C
 #define TERM_KEY_PAGEUP	CTRL_P
 #define TERM_KEY_PAGEDN	CTRL_N
+
+#define TERM_COLS_MIN		40
+#define TERM_COLS_MAX		255
+#define TERM_COLS_DEFAULT	80
+#define TERM_ROWS_MIN		10
+#define TERM_ROWS_MAX		255
+#define TERM_ROWS_DEFAULT	24
 
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
@@ -735,7 +743,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
-#define P_SAVEATR   (1<<1)		/* Save the new current attributres after	*/
+#define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */
 #define P_NOATCODES (1<<2)		/* Don't allow @ codes                      */
 #define P_OPENCLOSE (1<<3)		/* Open and close the file					*/
@@ -744,6 +752,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
 #define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
 #define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
+#define	P_TRUNCATE	(1<<9)		/* Truncate (don't display) long lines		*/
+#define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
+#define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -782,6 +793,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
 #define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
 #define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
+#define LM_REVERSE	(1<<4)		/* Reverse the index order (newest-first)	*/
 
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
