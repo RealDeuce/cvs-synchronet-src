@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.72 2019/02/17 03:13:04 rswindell Exp $ */
+/* $Id: email.cpp,v 1.70 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	char		str[256],str2[256],msgpath[256],title[LEN_TITLE+1],ch
 				,buf[SDT_BLOCK_LEN];
 	char 		tmp[512];
+	char		pid[128];
+	char		msg_id[128];
 	char*		editor=NULL;
 	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
@@ -313,7 +315,10 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
+	/* Generate FidoNet Program Identifier */
+	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
+
+ 	smb_hfield_str(&msg, RFC822MSGID, get_msgid(&cfg, INVALID_SUB, &msg, msg_id, sizeof(msg_id)));
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
