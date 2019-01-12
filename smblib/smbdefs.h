@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.114 2019/04/30 08:21:53 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.106 2018/11/04 23:26:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -181,7 +181,15 @@
 #define SENDERTIME			0x0d		/* authentication/connection time */
 #define SENDERSERVER		0x0e		/* server hostname that authenticated user */
 
-#define REPLYTO 			0x20		/* Name only */
+#define AUTHOR				0x10
+#define AUTHORAGENT 		0x11
+#define AUTHORNETTYPE		0x12
+#define AUTHORNETADDR		0x13
+#define AUTHOREXT			0x14
+#define AUTHORPOS			0x15
+#define AUTHORORG			0x16
+
+#define REPLYTO 			0x20
 #define REPLYTOAGENT		0x21
 #define REPLYTONETTYPE		0x22
 #define REPLYTONETADDR		0x23
@@ -197,12 +205,34 @@
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
 
+#define FORWARDTO			0x40
+#define FORWARDTOAGENT		0x41
+#define FORWARDTONETTYPE	0x42
+#define FORWARDTONETADDR	0x43
+#define FORWARDTOEXT		0x44
+#define FORWARDTOPOS		0x45
+#define FORWARDTOORG		0x46
+
 #define FORWARDED			0x48
+
+#if 0	/* Deprecating the following fields: (Jan-2009) never used */
+
+#define RECEIVEDBY			0x50
+#define RECEIVEDBYAGENT 	0x51
+#define RECEIVEDBYNETTYPE	0x52
+#define RECEIVEDBYNETADDR	0x53
+#define RECEIVEDBYEXT		0x54
+#define RECEIVEDBYPOS		0x55
+#define RECEIVEDBYORG		0x56
+
+#define RECEIVED			0x58
+
+#endif
 
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
 #define SMB_COMMENT 		0x62
-#define SMB_CARBONCOPY		0x63	/* Comma-separated list of secondary recipients, RFC822-style */
+#define SMB_CARBONCOPY		0x63
 #define SMB_GROUP			0x64
 #define SMB_EXPIRATION		0x65
 #define SMB_PRIORITY		0x66
@@ -211,6 +241,31 @@
 #define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
 #define SMB_TAG_DELIMITER	" "
 #define SMB_COLUMNS			0x6a	/* original text editor width in fixed-width columns */
+
+#define FILEATTACH			0x70
+#define DESTFILE			0x71
+#define FILEATTACHLIST		0x72
+#define DESTFILELIST		0x73
+#define FILEREQUEST 		0x74
+#define FILEPASSWORD		0x75
+#define FILEREQUESTLIST 	0x76
+#define FILEPASSWORDLIST	0x77
+
+#define IMAGEATTACH 		0x80
+#define ANIMATTACH			0x81
+#define FONTATTACH			0x82
+#define SOUNDATTACH 		0x83
+#define PRESENTATTACH		0x84
+#define VIDEOATTACH 		0x85
+#define APPDATAATTACH		0x86
+
+#define IMAGETRIGGER		0x90
+#define ANIMTRIGGER 		0x91
+#define FONTTRIGGER 		0x92
+#define SOUNDTRIGGER		0x93
+#define PRESENTTRIGGER		0x94
+#define VIDEOTRIGGER		0x95
+#define APPDATATRIGGER		0x96
 
 #define FIDOCTRL			0xa0
 #define FIDOAREA			0xa1
@@ -225,9 +280,9 @@
 #define RFC822HEADER		0xb0
 #define RFC822MSGID 		0xb1
 #define RFC822REPLYID		0xb2
-#define RFC822TO			0xb3		// Comma-separated list of recipients, RFC822-style
-#define RFC822FROM			0xb4		// Original, unparsed/modified RFC822 header "From" value
-#define RFC822REPLYTO		0xb5		// Comma-separated list of recipients, RFC822-style
+#define RFC822TO			0xb3
+#define RFC822FROM			0xb4
+#define RFC822REPLYTO		0xb5
 
 #define USENETPATH			0xc0
 #define USENETNEWSGROUPS	0xc1
@@ -247,8 +302,16 @@
 
 										/* Valid dfield_t.types */
 #define TEXT_BODY			0x00
+#define TEXT_SOUL			0x01
 #define TEXT_TAIL			0x02
-
+#define TEXT_WING			0x03
+#define IMAGEEMBED			0x20
+#define ANIMEMBED			0x21
+#define FONTEMBED			0x22
+#define SOUNDEMBED			0x23
+#define PRESENTEMBED		0x24
+#define VIDEOEMBED			0x25
+#define APPDATAEMBED		0x26
 #define UNUSED				0xff
 
 
@@ -277,8 +340,8 @@
 
 										/* Auxiliary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
-#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg (file paths/names in subject) */
-#define MSG_MIMEATTACH		(1<<2)		/* Message has one or more MIME-embedded attachments */
+#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg */
+#define MSG_TRUNCFILE		(1<<2)		/* Truncate file(s) when sent */
 #define MSG_KILLFILE		(1<<3)		/* Delete file(s) when sent */
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
@@ -296,10 +359,18 @@
 #define MSG_INTRANSIT		(1<<1)		/* Msg is in-transit */
 #define MSG_SENT			(1<<2)		/* Sent to remote */
 #define MSG_KILLSENT		(1<<3)		/* Kill when sent */
+#define MSG_ARCHIVESENT 	(1<<4)		/* Archive when sent */
 #define MSG_HOLD			(1<<5)		/* Hold for pick-up */
 #define MSG_CRASH			(1<<6)		/* Crash */
 #define MSG_IMMEDIATE		(1<<7)		/* Send Msg now, ignore restrictions */
 #define MSG_DIRECT			(1<<8)		/* Send directly to destination */
+#define MSG_GATE			(1<<9)		/* Send via gateway */
+#define MSG_ORPHAN			(1<<10) 	/* Unknown destination */
+#define MSG_FPU 			(1<<11) 	/* Force pickup */
+#define MSG_TYPELOCAL		(1<<12) 	/* Msg is for local use only */
+#define MSG_TYPEECHO		(1<<13) 	/* Msg is for conference distribution */
+#define MSG_TYPENET 		(1<<14) 	/* Msg is direct network mail */
+
 
 enum smb_net_type {
      NET_NONE				/* Local message */
@@ -308,6 +379,13 @@ enum smb_net_type {
     ,NET_POSTLINK			/* Imported with UTI driver */
     ,NET_QWK				/* QWK networked messsage */
 	,NET_INTERNET			/* Internet e-mail, netnews, etc. */
+	,NET_WWIV				/* unused */
+	,NET_MHS				/* unused */
+	,NET_FIDO_ASCII			/* FidoNet address, ASCIIZ format (e.g. 5D) - unused and deprecated */
+
+/* Add new ones here */
+
+    ,NET_TYPES
 };
 
 enum smb_agent_type {
@@ -315,11 +393,27 @@ enum smb_agent_type {
     ,AGENT_PROCESS			/* unknown process type */
 	,AGENT_SMBUTIL			/* imported via Synchronet SMBUTIL */
 	,AGENT_SMTPSYSMSG		/* Synchronet SMTP server system message */
+
+/* Add new ones here */
+
+    ,AGENT_TYPES
 };
 
 enum smb_xlat_type {
      XLAT_NONE              /* No translation/End of translation list */
-	,XLAT_LZH = 9			/* LHarc (LHA) Dynamic Huffman coding */
+    ,XLAT_ENCRYPT           /* Encrypted data */
+    ,XLAT_ESCAPED           /* 7-bit ASCII escaping for ctrl and 8-bit data */
+    ,XLAT_HUFFMAN           /* Static and adaptive Huffman coding compression */
+    ,XLAT_LZW               /* Limpel/Ziv/Welch compression */
+    ,XLAT_MLZ78             /* Modified LZ78 compression */
+    ,XLAT_RLE               /* Run length encoding compression */
+    ,XLAT_IMPLODE           /* Implode compression (PkZIP) */
+    ,XLAT_SHRINK            /* Shrink compression (PkZIP) */
+	,XLAT_LZH				/* LHarc (LHA) Dynamic Huffman coding */
+
+/* Add new ones here */
+
+    ,XLAT_TYPES
 };
 
 
@@ -515,7 +609,6 @@ typedef struct {				/* Message */
 	msghdr_t	hdr;			/* Header record (fixed portion) */
 	char		*to,			/* To name */
 				*to_ext,		/* To extension */
-				*to_list,		/* Comma-separated list of recipients, RFC822-style */
 				*from,			/* From name */
 				*from_ext,		/* From extension */
 				*from_org,		/* From organization */
@@ -524,8 +617,6 @@ typedef struct {				/* Message */
 				*from_prot,		/* From protocol (e.g. "Telnet", "NNTP", "HTTP", etc.) */
 				*replyto,		/* Reply-to name */
 				*replyto_ext,	/* Reply-to extension */
-				*replyto_list,	/* Comma-separated list of mailboxes, RFC822-style */
-				*cc_list,		/* Comma-separated list of additional recipients, RFC822-style */
 				*id,			/* RFC822 Message-ID */
 				*reply_id,		/* RFC822 Reply-ID */
 				*forward_path,	/* SMTP forward-path (RCPT TO: argument) */
@@ -541,10 +632,6 @@ typedef struct {				/* Message */
 	char*		summary;		/* Summary  */
 	char*		subj;			/* Subject  */
 	char*		tags;			/* Message tags (space-delimited) */
-	char*		editor;			/* Message editor (if known) */
-	char*		mime_version;	/* MIME Version (if applicable) */
-	char*		content_type;	/* MIME Content-Type (if applicable) */
-	char*		charset;		/* MIME plain-text/charset value (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
