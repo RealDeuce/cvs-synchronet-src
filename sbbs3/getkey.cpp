@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.48 2018/10/11 06:13:31 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.52 2019/01/11 11:29:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -297,7 +297,7 @@ char sbbs_t::getkey(long mode)
 
 
 /****************************************************************************/
-/* Outputs a string highlighting characters preceeded by a tilde            */
+/* Outputs a string highlighting characters preceded by a tilde             */
 /****************************************************************************/
 void sbbs_t::mnemonics(const char *str)
 {
@@ -319,16 +319,17 @@ void sbbs_t::mnemonics(const char *str)
 		attr(cfg.color[clr_mnelow]); 
 	}
 	l=0L;
+	long term = term_supports();
 	while(str[l]) {
 		if(str[l]=='~' && str[l+1]!=0) {
-			if(!term_supports(ANSI))
+			if(!(term&(ANSI|PETSCII)))
 				outchar('(');
 			l++;
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnehigh]);
 			outchar(str[l]);
 			l++;
-			if(!term_supports(ANSI))
+			if(!(term&(ANSI|PETSCII)))
 				outchar(')');
 			if(!ctrl_a_codes)
 				attr(cfg.color[clr_mnelow]); 
@@ -336,7 +337,7 @@ void sbbs_t::mnemonics(const char *str)
 		else {
 			if(str[l]==CTRL_A && str[l+1]!=0) {
 				l++;
-				if(toupper(str[l])=='Z')	/* EOF */
+				if(str[l] == 'Z')	/* EOF (uppercase 'Z') */
 					break;
 				ctrl_a(str[l++]);
 			} else {
@@ -357,13 +358,15 @@ void sbbs_t::mnemonics(const char *str)
 
 /****************************************************************************/
 /* Prompts user for Y or N (yes or no) and CR is interpreted as a Y         */
-/* Returns 1 for Y or 0 for N                                               */
+/* Returns true for Yes or false for No                                     */
 /* Called from quite a few places                                           */
 /****************************************************************************/
 bool sbbs_t::yesno(const char *str)
 {
     char ch;
 
+	if(*str == 0)
+		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[YesNoQuestion],str);
@@ -390,13 +393,14 @@ bool sbbs_t::yesno(const char *str)
 
 /****************************************************************************/
 /* Prompts user for N or Y (no or yes) and CR is interpreted as a N         */
-/* Returns 1 for N or 0 for Y                                               */
-/* Called from quite a few places                                           */
+/* Returns true for No or false for Yes                                     */
 /****************************************************************************/
 bool sbbs_t::noyes(const char *str)
 {
     char ch;
 
+	if(*str == 0)
+		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[NoYesQuestion],str);
