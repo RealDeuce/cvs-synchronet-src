@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications I/O Library Functions for *nix */
 
-/* $Id: comio_nix.c,v 1.14 2019/02/18 07:40:19 rswindell Exp $ */
+/* $Id: comio_nix.c,v 1.13 2018/07/24 01:10:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,6 @@
 
 #include <sys/ioctl.h>
 #include <sys/file.h>
-#include <fcntl.h>		// O_NONBLOCK
 #include "comio.h"
 #include "genwrap.h"
 
@@ -199,7 +198,7 @@ char* COMIOCALL comVersion(char* str, size_t len)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.14 $", "%*s %s", revision);
+	sscanf("$Revision: 1.13 $", "%*s %s", revision);
 
 	safe_snprintf(str,len,"Synchronet Communications I/O Library for "PLATFORM_DESC" v%s", revision);
 	return str;
