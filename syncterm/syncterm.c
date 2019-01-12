@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.223 2019/07/25 18:28:59 deuce Exp $ */
+/* $Id: syncterm.c,v 1.218 2018/03/09 06:59:56 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -38,13 +38,6 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <filewrap.h>	// STDOUT_FILENO
 
 #include <cterm.h>
-#include <vidmodes.h>
-#if !(defined __BORLANDC__ || defined _MSC_VER)
- #include <stdbool.h>
-#else
- #define bool int
- enum { false, true };
-#endif
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -61,7 +54,7 @@ char* syncterm_version = "SyncTERM 1.1b"
 #endif
 	;
 
-char	*usage =
+char	*usage = 
 		"\nusage: syncterm [options] [URL]"
         "\n\noptions:\n\n"
         "-e# =  set escape delay to #msec\n"
@@ -142,7 +135,7 @@ static BOOL winsock_startup(void)
 static const struct {
   unsigned int 	 width;
   unsigned int 	 height;
-  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */
+  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */ 
   unsigned char	 pixel_data[64 * 64 * 4 + 1];
 } syncterm_icon = {
   64, 64, 4,
@@ -795,8 +788,7 @@ BOOL check_exit(BOOL force)
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
-#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist *))
-	struct	bbslist	**list;
+	struct	bbslist	*list[MAX_OPTS+1]={NULL};
 	int		listcount=0, i;
 
 	bbs->id=-1;
@@ -878,7 +870,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
-	list = calloc(1, BBSLIST_SIZE);
 	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
 	for(i=0;i<listcount;i++) {
 		if((stricmp(bbs->addr,list[i]->addr)==0)
@@ -899,7 +890,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		}
 	}
 	free_list(&list[0],listcount);
-	free(list);
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -1209,7 +1199,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 						rmdir(oldlst);
 					}
 				}
-
+				
 			}
 		}
 	}
@@ -1236,9 +1226,6 @@ void load_settings(struct syncterm_settings *set)
 	set->backlines=iniReadInteger(inifile,"SyncTERM","ScrollBackLines",2000);
 	set->xfer_success_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferSuccessKeypressTimeout", /* seconds: */0);
 	set->xfer_failure_keypress_timeout=iniReadInteger(inifile,"SyncTERM", "TransferFailureKeypressTimeout", /* seconds: */60);
-	set->custom_cols = iniReadInteger(inifile, "SyncTERM", "CustomCols", 80);
-	set->custom_rows = iniReadInteger(inifile, "SyncTERM", "CustomRows", 25);
-	set->custom_fontheight = iniReadInteger(inifile, "SyncTERM", "CustomFontHeight", 16);
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
@@ -1286,7 +1273,6 @@ int main(int argc, char **argv)
 	int		addr_family=PF_UNSPEC;
 	char	*last_bbs=NULL;
 	char	*p, *lp;
-	int	cvmode;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
 				"syncterm|SyncTERM,\n"
 				"	am,bce,ccc,da,mir,msgr,ndscr,\n"	// sam?
@@ -1386,10 +1372,6 @@ int main(int argc, char **argv)
 	url[0]=0;
 
 	load_settings(&settings);
-	cvmode = find_vmode(CIOLIB_MODE_CUSTOM);
-	vparams[cvmode].cols = settings.custom_cols;
-	vparams[cvmode].rows = settings.custom_rows;
-	vparams[cvmode].charheight = settings.custom_fontheight;
 	ciolib_mode=settings.output_mode;
 	if(settings.startup_mode != SCREEN_MODE_CURRENT)
 		text_mode=screen_to_ciolib(settings.startup_mode);
@@ -1521,8 +1503,8 @@ int main(int argc, char **argv)
 		return(1);
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	setscaling(settings.scaling_factor);
 	textmode(text_mode);
+	setscaling(settings.scaling_factor);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1578,11 +1560,7 @@ int main(int argc, char **argv)
 	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
-		if(conn_connect(bbs)) {
-			load_font_files();
-			textmode(txtinfo.currmode);
-			settitle("SyncTERM");
-		} else {
+		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			bbs->connected=time(NULL);
@@ -1703,7 +1681,7 @@ int main(int argc, char **argv)
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
-	if(WSAInitialized && WSACleanup()!=0)
+	if(WSAInitialized && WSACleanup()!=0) 
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 	return(0);
@@ -1797,8 +1775,6 @@ int screen_to_ciolib(int screen)
 			return(ATARI_40X24);
 		case SCREEN_MODE_ATARI_XEP80:
 			return(ATARI_80X25);
-		case SCREEN_MODE_CUSTOM:
-			return(CIOLIB_MODE_CUSTOM);
 	}
 	gettextinfo(&ti);
 	return(ti.currmode);
@@ -1841,8 +1817,6 @@ int ciolib_to_screen(int ciolib)
 			return(SCREEN_MODE_ATARI);
 		case ATARI_80X25:
 			return(SCREEN_MODE_ATARI_XEP80);
-		case CIOLIB_MODE_CUSTOM:
-			return(SCREEN_MODE_CUSTOM);
 	}
 	return(SCREEN_MODE_CURRENT);
 }
