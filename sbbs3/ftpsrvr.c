@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.493 2019/06/20 20:48:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.485 2019/01/12 08:52:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1051,16 +1051,12 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 					if(!getfiledat(&scfg,&f))
 						continue;
 				} else {
-					f.size = f.cdt;
-					f.date = f.dateuled;
-					if(!filedat || (scfg.dir[dir]->misc&DIR_FCHK)) {
-						struct stat st;
-						if(stat(g.gl_pathv[i], &st) != 0)
-							continue;
-						f.cdt = st.st_size;
-						f.size = st.st_size;
-						f.date = (time32_t)st.st_mtime;
-					}
+					struct stat st;
+					if(stat(g.gl_pathv[i], &st) != 0)
+						continue;
+					f.cdt = st.st_size;
+					f.size = st.st_size;
+					f.date = (time32_t)st.st_mtime;
 				}
 				if(f.misc&FM_EXTDESC) {
 					extdesc[0]=0;
@@ -2000,9 +1996,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	lock_ssl_cert();
 	if ((status=cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting private key");
 		cryptDestroySession(*sess);
 		*sess = -1;
@@ -2015,7 +2009,6 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	nb=0;
 	ioctlsocket(*sock,FIONBIO,&nb);
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock)) != CRYPT_OK) {
-		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting network socket");
 		cryptDestroySession(*sess);
 		*sess = -1;
@@ -2026,11 +2019,9 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	if (resp)
 		sockprintf(*sock, -1, "234 Ready to start TLS");
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting session active");
 		return TRUE;
 	}
-	unlock_ssl_cert();
 	if (startup->max_inactivity) {
 		if ((status = cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 			GCES(status, *sock, *sess, estr, "setting read timeout");
@@ -3093,11 +3084,15 @@ static void ctrl_thread(void* arg)
 	lprintf(LOG_INFO,"%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, inet_addrport(&ftp.client_addr));
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
-	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s [%s]", sock, host_name, host_ip);
+	if(startup->options&FTP_OPT_NO_HOST_LOOKUP)
+		strcpy(host_name,"<no name>");
+	else {
+		if(getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0)
+			strcpy(host_name,"<no name>");
 	}
+
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
+		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
@@ -4052,7 +4047,7 @@ static void ctrl_thread(void* arg)
 						strcat(path, "*");
 					}
 
-					lprintf(LOG_INFO,"%04d <%s> MLSx listing: local %s in %s mode", sock, user.alias, path, mode);
+					lprintf(LOG_INFO,"%04d <%s> MLSx listing: %s in %s mode", sock, user.alias, path, mode);
 
 					now=time(NULL);
 					if(localtime_r(&now,&cur_tm)==NULL)
@@ -4065,15 +4060,10 @@ static void ctrl_thread(void* arg)
 					else {
 						time_t start = time(NULL);
 						glob(path, GLOB_MARK, NULL, &g);
-						for(i=0;i<(int)g.gl_pathc;i++) {
-							char fpath[MAX_PATH + 1];
-							SAFECOPY(fpath, g.gl_pathv[i]);
-							if(*lastchar(fpath) == '/')
-								*lastchar(fpath) = 0;
-							write_local_mlsx(fp, INVALID_SOCKET, -1, mlsx_feats, fpath, FALSE);
-						}
-						lprintf(LOG_INFO, "%04d <%s> %s-listing (%lu bytes) of local %s (%lu files) created in %ld seconds"
-							,sock, user.alias, cmd, ftell(fp), path
+						for(i=0;i<(int)g.gl_pathc;i++)
+							write_local_mlsx(fp, INVALID_SOCKET, -1, mlsx_feats, g.gl_pathv[i], FALSE);
+						lprintf(LOG_INFO, "%04d <%s> local-listing (%lu bytes) of %s (%lu files) created in %ld seconds"
+							,sock, user.alias, ftell(fp), path
 							,(ulong)g.gl_pathc, (long)time(NULL) - start);
 						globfree(&g);
 						fclose(fp);
@@ -4113,8 +4103,7 @@ static void ctrl_thread(void* arg)
 					filespec="*";
 
 				SAFEPRINTF2(path,"%s%s",local_dir, filespec);
-				lprintf(LOG_INFO,"%04d <%s> %slisting: local %s in %s mode"
-					,sock, user.alias, detail ? "detailed ":"", path, mode);
+				lprintf(LOG_INFO,"%04d <%s> listing: %s in %s mode", sock, user.alias, path, mode);
 				sockprintf(sock,sess, "150 Directory of %s%s", local_dir, filespec);
 
 				now=time(NULL);
@@ -4124,13 +4113,9 @@ static void ctrl_thread(void* arg)
 				time_t start = time(NULL);
 				glob(path, GLOB_MARK, NULL, &g);
 				for(i=0;i<(int)g.gl_pathc;i++) {
-					char fpath[MAX_PATH + 1];
-					SAFECOPY(fpath, g.gl_pathv[i]);
-					if(*lastchar(fpath) == '/')
-						*lastchar(fpath) = 0;
 					if(detail) {
 						struct stat st;
-						if(stat(fpath, &st) != 0)
+						if(stat(g.gl_pathv[i], &st) != 0)
 							continue;
 						f.size = st.st_size;
 						t = st.st_mtime;
@@ -4144,15 +4129,15 @@ static void ctrl_thread(void* arg)
 						if(tm.tm_year==cur_tm.tm_year)
 							fprintf(fp,"%02d:%02d %s\r\n"
 								,tm.tm_hour,tm.tm_min
-								,getfname(fpath));
+								,getfname(g.gl_pathv[i]));
 						else
 							fprintf(fp,"%5d %s\r\n"
 								,1900+tm.tm_year
-								,getfname(fpath));
+								,getfname(g.gl_pathv[i]));
 					} else
-						fprintf(fp,"%s\r\n", getfname(fpath));
+						fprintf(fp,"%s\r\n",getfname(g.gl_pathv[i]));
 				}
-				lprintf(LOG_INFO, "%04d <%s> %slisting (%lu bytes) of local %s (%lu files) created in %ld seconds"
+				lprintf(LOG_INFO, "%04d <%s> %slocal-listing (%lu bytes) of %s (%lu files) created in %ld seconds"
 					,sock, user.alias, detail ? "detailed ":"", ftell(fp), path
 					,(ulong)g.gl_pathc, (long)time(NULL) - start);
 				globfree(&g);
@@ -4471,7 +4456,7 @@ static void ctrl_thread(void* arg)
 					else {
 						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, "/");
 					}
-					lprintf(LOG_INFO,"%04d <%s> %s listing: root in %s mode", sock, user.alias, cmd, mode);
+					lprintf(LOG_INFO,"%04d <%s> listing: root in %s mode",sock,user.alias, mode);
 
 					/* QWK Packet */
 					if(startup->options&FTP_OPT_ALLOW_QWK) {
@@ -4596,8 +4581,8 @@ static void ctrl_thread(void* arg)
 						SAFEPRINTF(aliaspath, "/%s", scfg.lib[lib]->sname);
 						send_mlsx_entry(fp, sock, sess, mlsx_feats, "cdir", (startup->options&FTP_OPT_ALLOW_QWK) ? "elc" : "el", UINT64_MAX, 0, str, NULL, 0, aliaspath);
 					}
-					lprintf(LOG_INFO,"%04d <%s> %s listing: %s library in %s mode"
-						,sock, user.alias, cmd, scfg.lib[lib]->sname, mode);
+					lprintf(LOG_INFO,"%04d <%s> listing: %s library in %s mode"
+						,sock,user.alias,scfg.lib[lib]->sname,mode);
 					for(i=0;i<scfg.total_dirs;i++) {
 						if(scfg.dir[i]->lib!=lib)
 							continue;
@@ -4616,8 +4601,8 @@ static void ctrl_thread(void* arg)
 						l++;
 					}
 				} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
-					lprintf(LOG_INFO,"%04d <%s> %s listing: /%s/%s directory in %s mode"
-						,sock, user.alias, cmd, scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix,mode);
+					lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode"
+						,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 					if (cmd[3] == 'T' && !*mls_fname) {
 						sockprintf(sock,sess, "250- Listing %s/%s",scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix);
@@ -4663,27 +4648,19 @@ static void ctrl_thread(void* arg)
 						get_owner_name(&f, str);
 						SAFEPRINTF3(aliaspath, "/%s/%s/%s", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix, getfname(g.gl_pathv[i]));
 						get_unique(aliaspath, uniq);
-						f.size = f.cdt;
-						f.date = f.dateuled;
-						if(!filedat || (scfg.dir[dir]->misc&DIR_FCHK)) {
-							struct stat st;
-							if(stat(g.gl_pathv[i], &st) != 0)
-								continue;
-							f.size = st.st_size;
-							f.date = (time32_t)st.st_mtime;
-						}
-						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, f.size, f.date, str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
+						struct stat st;
+						if(stat(g.gl_pathv[i], &st) != 0)
+							continue;
+						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, (uint64_t)st.st_size, st.st_mtime, str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
 						l++;
 					}
-					if (cmd[3] == 'D') {
-						lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
-						    ,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
-						    ,(ulong)g.gl_pathc, (long)time(NULL) - start);
-					}
+					lprintf(LOG_INFO, "%04d <%s> %s-listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
+						,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
+						,(ulong)g.gl_pathc, (long)time(NULL) - start);
 					globfree(&g);
 				} else 
-					lprintf(LOG_INFO,"%04d <%s> %s listing: /%s/%s directory in %s mode (empty - no access)"
-						,sock, user.alias, cmd, scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix, mode);
+					lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode (empty - no access)"
+						,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 				if (cmd[3] == 'D') {
 					fclose(fp);
@@ -4781,7 +4758,7 @@ static void ctrl_thread(void* arg)
 			} 
 
 			if(lib<0) { /* Root dir */
-				lprintf(LOG_INFO,"%04d <%s> %slisting: root in %s mode", sock, user.alias, detail ? "detailed ":"", mode);
+				lprintf(LOG_INFO,"%04d <%s> listing: root in %s mode",sock,user.alias, mode);
 
 				/* QWK Packet */
 				if(startup->options&FTP_OPT_ALLOW_QWK) {
@@ -4918,8 +4895,8 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",scfg.lib[i]->sname);
 				}
 			} else if(dir<0) {
-				lprintf(LOG_INFO,"%04d <%s> %slisting: %s library in %s mode"
-					,sock, user.alias, detail ? "detailed ":"", scfg.lib[lib]->sname, mode);
+				lprintf(LOG_INFO,"%04d <%s> listing: %s library in %s mode"
+					,sock,user.alias,scfg.lib[lib]->sname,mode);
 				for(i=0;i<scfg.total_dirs;i++) {
 					if(scfg.dir[i]->lib!=lib)
 						continue;
@@ -4940,9 +4917,8 @@ static void ctrl_thread(void* arg)
 						fprintf(fp,"%s\r\n",scfg.dir[i]->code_suffix);
 				}
 			} else if(chk_ar(&scfg,scfg.dir[dir]->ar,&user,&client)) {
-				lprintf(LOG_INFO,"%04d <%s> %slisting: /%s/%s directory in %s mode"
-					,sock, user.alias, detail ? "detailed ":""
-					,scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix, mode);
+				lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode"
+					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 				time_t start = time(NULL);
 				SAFEPRINTF2(path,"%s%s",scfg.dir[dir]->path,filespec);
@@ -4962,17 +4938,13 @@ static void ctrl_thread(void* arg)
 						&& !(scfg.dir[dir]->misc&DIR_FILES))
 						continue;
 					if(detail) {
+						struct stat st;
+						if(stat(g.gl_pathv[i], &st) != 0)
+							continue;
+						f.size = st.st_size;
 						if(filedat && !getfiledat(&scfg,&f))
 							continue;
-						f.size = f.cdt;
-						t = f.dateuled;
-						if(!filedat || (scfg.dir[dir]->misc&DIR_FCHK)) {
-							struct stat st;
-							if(stat(g.gl_pathv[i], &st) != 0)
-								continue;
-							f.size = st.st_size;
-							t = st.st_mtime;
-						}
+						t = st.st_mtime;
 						if(localtime_r(&t,&tm)==NULL)
 							memset(&tm,0,sizeof(tm));
 						if(filedat) {
@@ -5004,8 +4976,8 @@ static void ctrl_thread(void* arg)
 					,(ulong)g.gl_pathc, (long)time(NULL) - start);
 				globfree(&g);
 			} else
-				lprintf(LOG_INFO,"%04d <%s> %slisting: /%s/%s directory in %s mode (empty - no access)"
-					,sock, user.alias, detail ? "detailed ":"", scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix, mode);
+				lprintf(LOG_INFO,"%04d <%s> listing: %s/%s directory in %s mode (empty - no access)"
+					,sock,user.alias,scfg.lib[lib]->sname,scfg.dir[dir]->code_suffix,mode);
 
 			fclose(fp);
 			filexfer(&data_addr,sock,sess,pasv_sock,pasv_sess,&data_sock,&data_sess,fname,0L
@@ -5148,7 +5120,7 @@ static void ctrl_thread(void* arg)
 					sockprintf(sock,sess, "550 Size not available for dynamically generated files");
 					continue;
 				}
-				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"wb"))==NULL) {
+				if((fp=fopen(ftp_tmpfname(fname,"ndx",sock),"w+b"))==NULL) {
 					lprintf(LOG_ERR,"%04d <%s> !ERROR %d (%s) line %d opening %s"
 						,sock, user.alias, errno, strerror(errno), __LINE__, fname);
 					sockprintf(sock,sess, "451 Insufficient system storage");
@@ -5159,8 +5131,8 @@ static void ctrl_thread(void* arg)
 				if(getdate)
 					file_date=time(NULL);
 				else {
-					lprintf(LOG_INFO,"%04d <%s> downloading %s for %s in %s mode"
-						,sock, user.alias, startup->index_file_name, genvpath(lib,dir,str)
+					lprintf(LOG_INFO,"%04d <%s> downloading index for %s in %s mode"
+						,sock,user.alias,genvpath(lib,dir,str)
 						,mode);
 					credits=FALSE;
 					tmpfile=TRUE;
@@ -5372,8 +5344,8 @@ static void ctrl_thread(void* arg)
 						filepos=0;
 						continue;
 					}
-					lprintf(LOG_INFO,"%04d <%s> downloading %s for %s in %s mode"
-						,sock, user.alias, startup->html_index_file, genvpath(lib,dir,str)
+					lprintf(LOG_INFO,"%04d <%s> downloading HTML index for %s in %s mode"
+						,sock,user.alias,genvpath(lib,dir,str)
 						,mode);
 					credits=FALSE;
 					tmpfile=TRUE;
@@ -5991,7 +5963,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.493 $", "%*s %s", revision);
+	sscanf("$Revision: 1.485 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
