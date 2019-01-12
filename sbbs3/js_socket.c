@@ -1,6 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
+// vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.224 2019/01/07 07:11:51 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.225 2019/01/12 21:36:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -789,8 +790,12 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 				&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
 			FD_ZERO(&socket_set);
 			FD_SET(p->sock,&socket_set);
-			if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1)
-				result=0;	/* success */
+			if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1) {
+				int so_error = -1;
+				socklen_t optlen = sizeof(so_error);
+				if(getsockopt(p->sock, SOL_SOCKET, SO_ERROR, (void*)&so_error, &optlen) == 0 && so_error == 0)
+					result=0;	/* success */
+			}
 		}
 		if(result==0)
 			break;
