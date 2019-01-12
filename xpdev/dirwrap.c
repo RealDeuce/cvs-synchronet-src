@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.104 2019/01/15 03:05:14 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.102 2019/01/12 08:01:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,26 +108,7 @@ char* DLLCALL getfname(const char* path)
 }
 
 /****************************************************************************/
-/* Return the filename or last directory portion of a full pathname			*/
-/* A directory pathname is expected to end in a '/'							*/
-/****************************************************************************/
-char* DLLCALL getdirname(const char* path)
-{
-	char* last = lastchar(path);
-	if(*last == '/') {
-		if(last == path)
-			return last;
-		for(last--; last >= path; last--) {
-			if(IS_PATH_DELIM(*last))
-				return last + 1;
-		}
-		return (char*)path;
-	}
-	return getfname(path);
-}
-
-/****************************************************************************/
-/* Return a pointer to a file's extension/suffix (beginning with '.')		*/
+/* Return a pointer to a file's extesion (beginning with '.')				*/
 /****************************************************************************/
 char* DLLCALL getfext(const char* path)
 {

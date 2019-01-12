@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.678 2019/03/07 01:11:01 deuce Exp $ */
+/* $Id: websrvr.c,v 1.676 2019/01/04 23:18:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -325,6 +325,7 @@ static char* methods[] = {
 enum {
 	 IS_STATIC
 	,IS_CGI
+	,IS_JS
 	,IS_SSJS
 	,IS_FASTCGI
 };
@@ -1097,7 +1098,7 @@ static void close_request(http_session_t * session)
 	if(session->socket==INVALID_SOCKET)
 		session->finished=TRUE;
 
-	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS)) {
+	if(session->js_cx!=NULL && (session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS)) {
 		JS_BEGINREQUEST(session->js_cx);
 		JS_GC(session->js_cx);
 		JS_ENDREQUEST(session->js_cx);
@@ -1591,7 +1592,7 @@ void http_logoff(http_session_t* session, SOCKET socket, int line)
 
 BOOL http_checkuser(http_session_t * session)
 {
-	if(session->req.dynamic==IS_SSJS) {
+	if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 		if(session->last_js_user_num==session->user.number)
 			return(TRUE);
 		lprintf(LOG_DEBUG,"%04d JavaScript: Initializing User Objects",session->socket);
@@ -2740,7 +2741,7 @@ static BOOL parse_js_headers(http_session_t * session)
 			js_add_header(session,head_line,value);
 			switch(i) {
 				case HEAD_TYPE:
-					if(session->req.dynamic==IS_SSJS) {
+					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 						/*
 						 * We need to parse out the files based on RFC1867
 						 *
@@ -2773,7 +2774,7 @@ static BOOL parse_js_headers(http_session_t * session)
 					}
 					break;
 				case HEAD_COOKIE:
-					if(session->req.dynamic==IS_SSJS) {
+					if(session->req.dynamic==IS_SSJS || session->req.dynamic==IS_JS) {
 						char	*key;
 						char	*val;
 
@@ -2836,6 +2837,8 @@ static int is_dynamic_req(http_session_t* session)
 		i=IS_SSJS;
 	else if(get_xjs_handler(ext,session))
 		i=IS_SSJS;
+	else if(stricmp(ext,startup->js_ext)==0)
+		i=IS_JS;
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT) && i)  {
 		lprintf(LOG_DEBUG,"%04d Setting up JavaScript support", session->socket);
 		if(!js_setup(session)) {
@@ -6248,7 +6251,6 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		lock_ssl_cert();
 		if (scfg.tls_certificate != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session, "disabling certificate verification");
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session, "setting private key");
@@ -6258,12 +6260,10 @@ void http_session_thread(void* arg)
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
-			unlock_ssl_cert();
 			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
-		unlock_ssl_cert();
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
 	}
 
@@ -6538,7 +6538,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.678 $", "%*s %s", revision);
+	sscanf("$Revision: 1.676 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6732,6 +6732,7 @@ void DLLCALL web_server(void* arg)
 		if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 		if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 		if(startup->ssjs_ext[0]==0)				SAFECOPY(startup->ssjs_ext,".ssjs");
+		if(startup->js_ext[0]==0)				SAFECOPY(startup->js_ext,".bbs");
 
 		protected_uint32_adjust(&thread_count,1);
 		thread_up(FALSE /* setuid */);
