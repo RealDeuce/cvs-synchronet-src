@@ -1,6 +1,6 @@
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.62 2018/07/25 03:39:28 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.65 2019/01/04 22:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -170,36 +170,6 @@ void sbbs_t::log(char *str)
 		logcol+=strlen(str);
 }
 
-bool sbbs_t::syslog(const char* code, const char *entry)
-{		
-	char	fname[MAX_PATH+1];
-	char	tmp[64];
-	FILE*	fp;
-	struct tm tm;
-
-	now=time(NULL);
-	if(localtime_r(&now,&tm)==NULL)
-		return false;
-	safe_snprintf(fname, sizeof(fname), "%slogs/%2.2d%2.2d%2.2d.log"
-		,cfg.logs_dir
-		,tm.tm_mon+1
-		,tm.tm_mday
-		,TM_YEAR(tm.tm_year));
-	if((fp = fnopen(NULL, fname,O_WRONLY|O_APPEND|O_CREAT)) == NULL) {
-		lprintf(LOG_ERR,"!ERRROR %d opening/creating %s",errno,fname); 
-		return false;
-	}
-	fprintf(fp, "%-2.2s %s  %s%s%s"
-		,code
-		,hhmmtostr(&cfg,&tm,tmp)
-		,entry
-		,log_line_ending
-		,log_line_ending);
-	fclose(fp);
-
-	return true;
-}
-
 /****************************************************************************/
 /* Writes 'str' on it's own line in node.log (using LOG_INFO level)			*/
 /****************************************************************************/
@@ -283,12 +253,11 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 		,extinfo==NULL ? "":extinfo);
 	if(online==ON_LOCAL) {
 		if(useron.number)
-			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
-		eprintf(LOG_ERR,"%s",str);
+			eprintf(LOG_ERR, "<%s> %s", useron.alias, str);
+		else
+			eprintf(LOG_ERR, "%s", str);
 	} else {
 		int savatr=curatr;
-		if(useron.number)
-			safe_snprintf(str+strlen(str),sizeof(str)-strlen(str)," (useron=%s)", useron.alias);
 		lprintf(LOG_ERR, "!%s", str);
 		attr(cfg.color[clr_err]);
 		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
