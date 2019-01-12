@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.96 2018/07/29 02:05:01 rswindell Exp $ */
+/* $Id: scfg.c,v 1.100 2019/01/01 04:40:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
         			uifc.mode|=UIFC_COLOR;
                     break;
                 case 'D':
-					printf("NOTICE: The -d option is depreciated, use -id instead\r\n");
+					printf("NOTICE: The -d option is deprecated, use -id instead\r\n");
 					SLEEP(2000);
                     door_mode=TRUE;
                     break;
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
+							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
 			printf("!ERROR %ld importing areas from %s\n", ported, fname);
 		else {
 			printf("Imported %ld areas (%ld added) from %s\n", ported, added, fname);
-			printf("Saving configuration (%lu message areas) ... ", cfg.total_subs);
+			printf("Saving configuration (%u message areas) ... ", cfg.total_subs);
 			write_msgs_cfg(&cfg,backup_level);
 			printf("done.\n");
 			refresh_cfg(&cfg);
@@ -1072,6 +1072,7 @@ void shell_cfg()
 		j=0;
 		done=0;
 		while(!done) {
+			static int bar;
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.shell[i]->name);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
@@ -1091,7 +1092,7 @@ void shell_cfg()
 				"Synchronet to interpret. See the example `.src` files in the `exec`\n"
 				"directory and the documentation for the Baja compiler for more details.\n"
 			;
-			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,0,cfg.shell[i]->name
+			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,&bar,cfg.shell[i]->name
 				,opt)) {
 				case -1:
 					done=1;
