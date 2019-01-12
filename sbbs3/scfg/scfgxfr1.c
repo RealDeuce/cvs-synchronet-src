@@ -1,4 +1,4 @@
-/* $Id: scfgxfr1.c,v 1.27 2017/11/11 22:27:18 rswindell Exp $ */
+/* $Id: scfgxfr1.c,v 1.28 2019/01/12 12:09:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ void xfer_opts()
 				if(i==-1)
 					break;
 				if(!i) {
-					write_file_cfg(&cfg,backup_level);
+					save_file_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
