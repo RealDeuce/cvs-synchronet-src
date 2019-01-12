@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.86 2019/02/02 23:22:39 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.85 2018/12/31 06:37:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,7 +507,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bprintf(text[CantDeleteMsg], smb.curmsg + 1);
+					bputs(text[CantDeleteMsg]);
 					domsg=0;
 					break; 
 				}

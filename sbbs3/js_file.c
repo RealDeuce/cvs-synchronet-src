@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.177 2019/01/20 05:25:19 rswindell Exp $ */
+/* $Id: js_file.c,v 1.176 2019/01/10 11:50:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3015,14 +3015,10 @@ JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent)
 	return(obj);
 }
 
-JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode)
+JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp)
 {
 	JSObject* obj;
 	private_t*	p;
-	FILE* fp = fdopen(fd, mode);
-
-	if(fp == NULL)
-		return NULL;
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -3041,6 +3037,7 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
+
 	dbprintf(FALSE, p, "object created");
 
 	return(obj);
