@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.52 2017/11/16 06:03:43 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.56 2019/01/12 12:09:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 
 	dir_t** new_dir_list;
 	if ((new_dir_list = (dir_t **)realloc(cfg.dir, sizeof(dir_t *)*(cfg.total_dirs + 1))) == NULL) {
+		free(new_directory);
 		errormsg(WHERE, ERR_ALLOC, "directory list", cfg.total_dirs + 1);
 		return false;
 	}
@@ -89,6 +90,7 @@ static bool new_lib(unsigned new_libnum)
 
 	lib_t** new_lib_list;
 	if ((new_lib_list = (lib_t **)realloc(cfg.lib, sizeof(lib_t *)*(cfg.total_libs + 1))) == NULL) {
+		free(new_library);
 		errormsg(WHERE, ERR_ALLOC, "library list", cfg.total_libs + 1);
 		return false;
 	}
@@ -169,7 +171,7 @@ BOOL create_raw_dir_list(const char* list_file)
 	backslash(path);
 	uifc.pop("Scanning Directories...");
 	append_dir_list(path, path, fp, /* depth: */0, /* max_depth: */k, include_empty_dirs);
-	uifc.pop(0);
+	uifc.pop(NULL);
 	fclose(fp);
 	return(TRUE);
 }
@@ -259,7 +261,7 @@ void xfer_cfg()
 			if(j==-1)
 				continue;
 			if(!j) {
-				write_file_cfg(&cfg,backup_level);
+				save_file_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -628,7 +630,7 @@ void xfer_cfg()
 						fprintf(stream,"***END-OF-DIR***\n\n");
 					}
 					fclose(stream);
-					uifc.pop(0);
+					uifc.pop(NULL);
 					sprintf(str,"%lu File Areas Exported Successfully",ported);
 					uifc.msg(str);
 					uifc.changes=q;
@@ -839,6 +841,8 @@ void xfer_cfg()
 								if(tmpdir.path[0]
 									&& strcmp(cfg.dir[j]->path, tmpdir.path) == 0)	/* same path? overwrite the dir entry */
 									break;
+								if(stricmp(cfg.dir[j]->sname, tmpdir.sname) == 0)
+									break;
 							} else {
 								if((cfg.lib[i]->code_prefix[0] || cfg.lib[cfg.dir[j]->lib]->code_prefix[0]))
 									continue;
@@ -903,7 +907,7 @@ void xfer_cfg()
 					fclose(stream);
 					if(ported && cfg.lib[i]->sort)
 						sort_dirs(i);
-					uifc.pop(0);
+					uifc.pop(NULL);
 					sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
 					uifc.msg(str);
 					break;
@@ -1126,8 +1130,13 @@ void dir_cfg(uint libnum)
 				else 
 					prep_dir(cfg.ctrl_dir, str, sizeof(str));
 			} else {
-				SAFEPRINTF3(str, "[%sdirs/%s%s/]"
-					,cfg.data_dir 
+				if (!cfg.dir[dirnum[i]]->data_dir[0])
+					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
+				else
+					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
+				backslash(data_dir);
+				SAFEPRINTF3(str, "[%s%s%s/]"
+					,data_dir 
 					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
 			}
 			strlwr(str);
