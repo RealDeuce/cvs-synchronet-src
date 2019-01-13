@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.h,v 1.56 2019/03/22 21:28:27 rswindell Exp $ */
+/* $Id: websrvr.h,v 1.54 2019/01/13 00:04:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,6 +145,7 @@ static ini_bitdesc_t web_options[] = {
 	/* shared bits */
 	{ BBS_OPT_NO_HOST_LOOKUP		,"NO_HOST_LOOKUP"		},
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
+	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
 	{ BBS_OPT_MUTE					,"MUTE"					},
 
@@ -173,7 +174,7 @@ static ini_bitdesc_t web_options[] = {
 		#define DLLEXPORT __declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL
+		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
 	#endif
