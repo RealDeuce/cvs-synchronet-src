@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.164 2018/07/24 08:41:22 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.167 2019/01/13 00:37:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -332,6 +332,11 @@ void sbbs_read_ini(
 		iniFreeStringList(bbs->rlogin_interfaces);
 		bbs->rlogin_interfaces
 			=iniGetStringList(list,section,"RLoginInterface",",",global_interfaces);
+
+		bbs->pet40_port
+			=iniGetShortInt(list,section,"Pet40Port",64);
+		bbs->pet80_port
+			=iniGetShortInt(list,section,"Pet80Port",128);
 
 		bbs->ssh_port
 			=iniGetShortInt(list,section,"SSHPort",22);
@@ -687,8 +692,6 @@ void sbbs_read_ini(
 			=iniGetStringList(list,section,"CGIExtensions", "," ,".cgi");
 		SAFECOPY(web->ssjs_ext
 			,iniGetString(list,section,"JavaScriptExtension",".ssjs",value));
-		SAFECOPY(web->js_ext
-			,iniGetString(list,section,"EmbJavaScriptExtension",".bbs",value));
 
 		web->max_cgi_inactivity
 			=iniGetShortInt(list,section,"MaxCgiInactivity",WEB_DEFAULT_MAX_CGI_INACTIVITY);	/* seconds */
@@ -737,12 +740,8 @@ BOOL sbbs_write_ini(
 	BOOL		result=FALSE;
 	str_list_t	list;
 	str_list_t*	lp;
-	ini_style_t style;
+	ini_style_t style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = ", .bit_separator = " | " };
 	global_startup_t	global_buf;
-
-	memset(&style, 0, sizeof(style));
-	style.key_prefix = "\t";
-    style.bit_separator = " | ";
 
 	if((list=iniReadFile(fp))==NULL)
 		return(FALSE);
@@ -798,6 +797,11 @@ BOOL sbbs_write_ini(
 		else if(!iniSetStringList(lp,section,"RLoginInterface", ",", bbs->rlogin_interfaces,&style))
 			break;
 		if(!iniSetShortInt(lp,section,"RLoginPort",bbs->rlogin_port,&style))
+			break;
+
+		if(!iniSetShortInt(lp,section,"Pet40Port",bbs->pet40_port,&style))
+			break;
+		if(!iniSetShortInt(lp,section,"Pet80Port",bbs->pet80_port,&style))
 			break;
 
 		if(strListCmp(bbs->ssh_interfaces, global->interfaces)==0)

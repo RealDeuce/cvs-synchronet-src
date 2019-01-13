@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.490 2018/10/09 01:56:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.499 2019/01/07 23:38:31 sbbs Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,6 +301,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
+#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -370,9 +371,14 @@ public:
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
+	/* 	input_thread() writes to these variables: */
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
-	char	terminal[TELNET_TERM_MAXLEN+1];
+	char	telnet_terminal[TELNET_TERM_MAXLEN+1];
+	long 	telnet_rows;	
+	long	telnet_cols;
+	long	telnet_speed;
+
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
@@ -460,8 +466,10 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
+	long	tabstop;		/* Current symmetric-tabstop (size) */
 	long	lastlinelen;	/* The previously displayed line length */
 	long 	autoterm;		/* Auto-detected terminal type */
+	char	terminal[TELNET_TERM_MAXLEN+1];	// <- answer() writes to this
 	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
@@ -533,10 +541,10 @@ public:
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	uint32_t *	global_str_var_name;
 	uint	global_int_vars;
 	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	uint32_t *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
 	int32_t	sysvar_l[MAX_SYSVARS];
@@ -561,8 +569,8 @@ public:
 	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, int32_t name);
-	int32_t*	getintvar(csi_t *bin, int32_t name);
+	char**	getstrvar(csi_t *bin, uint32_t name);
+	int32_t*	getintvar(csi_t *bin, uint32_t name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, const char* cmdsrc, char* rsp);
@@ -675,7 +683,7 @@ public:
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int which, long lm_mode = 0);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
+	long	searchmail(mail_t*, long start, long msgss, int which, const char *search, const char* order);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -695,7 +703,7 @@ public:
 #endif
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
-	void	outchar(char ch);				/* Output a char - check echo and emu.  */
+	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -705,11 +713,17 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
+	void	carriage_return(void);
+	void	line_feed(void);
+	void	newline(void);
 	long	term_supports(long cmp_flags=0);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
 	bool	saveline(void);
 	bool	restoreline(void);
+	int		petscii_to_ansibbs(unsigned char);
+	int		attr(int);				/* Change text color/attributes */
+	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -733,10 +747,10 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	void	printfile(char *str, long mode);
-	void	printtail(char *str, int lines, long mode);
-	void	menu(const char *code);
-	bool	menu_exists(const char *code);
+	bool	printfile(const char* fname, long mode);
+	bool	printtail(const char* fname, int lines, long mode);
+	bool	menu(const char *code, long mode = 0);
+	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -744,8 +758,6 @@ public:
 	long	mselect(const char *title, str_list_t list, unsigned max_selections, const char* item_fmt, const char* selected_str, const char* unselected_str, const char* prompt_fmt);
 
 	void	redrwstr(char *strin, int i, int l, long mode);
-	void	attr(int atr);				/* Change local and remote text attributes */
-	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
@@ -917,7 +929,6 @@ public:
 	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
-	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
 	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
 				,long access, const char *extinfo=NULL);
@@ -1165,6 +1176,9 @@ extern "C" {
 	/* qwk.cpp */
 	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
 
+	/* con_out.cpp */
+	unsigned char		cp437_to_petscii(unsigned char);
+
 #ifdef JAVASCRIPT
 
 	typedef struct {
@@ -1220,7 +1234,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
-														,const char* name, char* str[], unsigned flags);
+														,const char* name, const char* str[], unsigned flags);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */

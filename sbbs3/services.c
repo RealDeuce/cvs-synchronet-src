@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.324 2018/10/06 22:34:37 rswindell Exp $ */
+/* $Id: services.c,v 1.326 2018/12/12 20:27:31 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1513,7 +1513,7 @@ static service_t* read_services_ini(const char* services_ini, service_t* service
 	char		*default_interfaces;
 
 	if((fp=fopen(services_ini,"r"))==NULL) {
-		lprintf(LOG_CRIT,"!ERROR %d opening %s", errno, services_ini);
+		lprintf(LOG_CRIT,"!ERROR %d (%s) opening %s", errno, strerror(errno), services_ini);
 		return(NULL);
 	}
 
@@ -1649,7 +1649,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.324 $", "%*s %s", revision);
+	sscanf("$Revision: 1.326 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1788,7 +1788,7 @@ void DLLCALL services_thread(void* arg)
 			,ctime_r(&t,str),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
-			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
+			lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir, startup->ctrl_dir);
@@ -2143,7 +2143,7 @@ void DLLCALL services_thread(void* arg)
 					if((client=malloc(sizeof(service_client_t)))==NULL) {
 						FREE_AND_NULL(udp_buf);
 						lprintf(LOG_CRIT,"%04d %s !ERROR allocating %lu bytes of memory for service_client"
-							,client_socket, service[i].protocol, sizeof(service_client_t));
+							,client_socket, service[i].protocol, (ulong)sizeof(service_client_t));
 						close_socket(client_socket);
 						continue;
 					}
