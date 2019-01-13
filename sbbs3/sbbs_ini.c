@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.165 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.166 2019/01/13 00:04:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -692,8 +692,6 @@ void sbbs_read_ini(
 			=iniGetStringList(list,section,"CGIExtensions", "," ,".cgi");
 		SAFECOPY(web->ssjs_ext
 			,iniGetString(list,section,"JavaScriptExtension",".ssjs",value));
-		SAFECOPY(web->js_ext
-			,iniGetString(list,section,"EmbJavaScriptExtension",".bbs",value));
 
 		web->max_cgi_inactivity
 			=iniGetShortInt(list,section,"MaxCgiInactivity",WEB_DEFAULT_MAX_CGI_INACTIVITY);	/* seconds */
