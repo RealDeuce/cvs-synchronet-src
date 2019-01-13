@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.166 2019/01/13 00:04:42 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.167 2019/01/13 00:37:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -740,12 +740,8 @@ BOOL sbbs_write_ini(
 	BOOL		result=FALSE;
 	str_list_t	list;
 	str_list_t*	lp;
-	ini_style_t style;
+	ini_style_t style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = ", .bit_separator = " | " };
 	global_startup_t	global_buf;
-
-	memset(&style, 0, sizeof(style));
-	style.key_prefix = "\t";
-    style.bit_separator = " | ";
 
 	if((list=iniReadFile(fp))==NULL)
 		return(FALSE);
