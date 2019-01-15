@@ -1,6 +1,6 @@
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.22 2019/07/08 00:08:46 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.20 2018/03/31 09:40:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,6 @@
 #define FIDO_PING_NAME		"PING"		/* 'To' username for PING netmail (FTS-5001) */
 #define FIDO_AREAMGR_NAME	"AreaFix"	/* De-facto pseudo-standard */
 #define FIDO_CONFMGR_NAME	"ConfMgr"	/* FSC-0057 */
-#define FIDO_CHARSET_UTF8	"CHRS: UTF-8 4"	/* FTS-5003 */
 
 #define FIDO_NAME_LEN			36	/* Includes '\0' terminator				*/
 #define FIDO_SUBJ_LEN			72	/* Includes '\0' terminator				*/
@@ -213,8 +212,6 @@ struct _PACK fidoaddr {		/* FidoNet 5D address (zone:net/node.point@domain) */
 
 #define FIDO_STORED_MSG_HDR_LEN		190
 #define FIDO_STORED_MSG_TERMINATOR	'\0'	/* 8-bits */
-
-#define FIDO_SOFT_CR				0x8d
 
 #if defined(PRAGMA_PACK)
 #pragma pack(pop)		/* original packing */
