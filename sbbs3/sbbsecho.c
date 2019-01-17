@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.102 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.103 2019/01/17 21:58:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5736,7 +5736,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 			}
 
 			if(!secure && (nodecfg == NULL || nodecfg->pktpwd[0] == 0)) {
-				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s ignored"
+				lprintf(LOG_WARNING, "Unauthenticated %s EchoMail from %s (in the non-secure inbound directory) ignored"
 					,areatag, smb_faddrtoa(&pkt_orig, NULL));
 				printf("\n");
 				bad_packet = true;
@@ -5993,7 +5993,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.102 $", "%*s %s", revision);
+	sscanf("$Revision: 3.103 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
