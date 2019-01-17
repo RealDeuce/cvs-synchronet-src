@@ -1,7 +1,7 @@
 /* Synchronet hi-level console routines */
 // vi: tabstop=4
 
-/* $Id: con_hi.cpp,v 1.28 2019/07/24 05:00:09 rswindell Exp $ */
+/* $Id: con_hi.cpp,v 1.27 2018/08/03 06:18:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,8 +43,8 @@
 void sbbs_t::redrwstr(char *strin, int i, int l, long mode)
 {
 	cursor_left(i);
-	if(mode)
-		bprintf(mode, "%-*.*s",l,l,strin);
+	if(mode&K_MSG)
+		bprintf("%-*.*s",l,l,strin);
 	else
 		column+=rprintf("%-*.*s",l,l,strin);
 	cleartoeol();
