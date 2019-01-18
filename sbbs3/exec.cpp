@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.106 2018/10/05 04:23:24 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.107 2018/11/03 05:45:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,7 @@
 #include "cmdshell.h"
 #include "js_request.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
+char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
 {
 	uint i;
 
@@ -124,7 +124,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
+int32_t * sbbs_t::getintvar(csi_t *bin, uint32_t name)
 {
 	uint i;
 
