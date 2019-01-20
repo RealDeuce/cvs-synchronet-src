@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.199 2018/04/06 02:42:38 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.202 2019/01/20 01:55:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1015,7 +1015,7 @@ long js_exec(const char *fname, char** args)
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
 			lprintf(LOG_ERR,"!Error allocating %lu bytes of memory"
-				,js_buflen+len);
+				,(ulong)(js_buflen+len));
 			if(fp!=stdin)
 				fclose(fp);
 			return(-1);
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.199 $", "%*s %s", revision);
+	sscanf("$Revision: 1.202 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1184,12 +1184,79 @@ int main(int argc, char **argv, char** env)
 		if(argv[argn][0]=='-') {
 			p=argv[argn]+2;
 			switch(argv[argn][1]) {
+				/* These options require a parameter value */
+				case 'c':
+				case 'e':
+				case 'E':
+				case 'g':
+				case 'i':
+				case 'L':
+				case 'm':
+				case 'o':
+				case 's':
+				case 't':
+				case 'u':
+				case 'y':
+				{
+					char opt = argv[argn][1];
+					if(*p==0) {
+						if(argn + 1 >= argc) {
+							fprintf(errfp,"\n!Option requires a parameter value: %s\n", argv[argn]);
+							usage(errfp);
+							return(do_bail(1));
+						}
+						p=argv[++argn];
+					}
+					switch(opt) {
+						case 'c':
+							SAFECOPY(scfg.ctrl_dir,p);
+							break;
+						case 'E':
+							err_level=parseLogLevel(p);
+							break;
+						case 'e':
+							if (errfp != stderr)
+								fclose(errfp);
+							if((errfp=fopen(p,omode))==NULL) {
+								perror(p);
+								return(do_bail(1));
+							}
+							break;
+						case 'g':
+							cb.gc_interval=strtoul(p,NULL,0);
+							break;
+						case 'i':
+							load_path_list=p;
+							break;
+						case 'L':
+							log_level=parseLogLevel(p);
+							break;
+						case 'm':
+							js_max_bytes=(ulong)parse_byte_count(p, /* units: */1);
+							break;
+						case 'o':
+							if((confp=fopen(p,omode))==NULL) {
+								perror(p);
+								return(do_bail(1));
+							}
+							break;
+						case 's':
+							js_cx_stack=(ulong)parse_byte_count(p, /* units: */1);
+							break;
+						case 't':
+							cb.limit=strtoul(p,NULL,0);
+							break;
+						case 'u':
+							umask(strtol(p,NULL,8));
+							break;
+						case 'y':
+							cb.yield_interval=strtoul(p,NULL,0);
+							break;
+					}
+					break;
+				}
 				case 'a':
 					omode="a";
-					break;
-				case 'c':
-					if(*p==0) p=argv[++argn];
-					SAFECOPY(scfg.ctrl_dir,p);
 					break;
 				case 'C':
 					change_cwd = FALSE;
@@ -1202,25 +1269,8 @@ int main(int argc, char **argv, char** env)
 				case 'D':
 					debugger=TRUE;
 					break;
-				case 'E':
-					if(*p==0) p=argv[++argn];
-					err_level=parseLogLevel(p);
-					break;
-				case 'e':
-					if(*p==0) p=argv[++argn];
-					if (errfp != stderr)
-						fclose(errfp);
-					if((errfp=fopen(p,omode))==NULL) {
-						perror(p);
-						return(do_bail(1));
-					}
-					break;
 				case 'f':
 					nonbuffered_con=TRUE;
-					break;
-				case 'g':
-					if(*p==0) p=argv[++argn];
-					cb.gc_interval=strtoul(p,NULL,0);
 					break;
 				case 'h':
 					if(*p==0)
@@ -1228,30 +1278,11 @@ int main(int argc, char **argv, char** env)
 					else
 						host_name=p;
 					break;
-				case 'i':
-					if(*p==0) p=argv[++argn];
-					load_path_list=p;
-					break;
-				case 'L':
-					if(*p==0) p=argv[++argn];
-					log_level=parseLogLevel(p);
-					break;
 				case 'l':
 					loop=TRUE;
 					break;
-				case 'm':
-					if(*p==0) p=argv[++argn];
-					js_max_bytes=(ulong)parse_byte_count(p, /* units: */1);
-					break;
 				case 'n':
 					statfp=nulfp;
-					break;
-				case 'o':
-					if(*p==0) p=argv[++argn];
-					if((confp=fopen(p,omode))==NULL) {
-						perror(p);
-						return(do_bail(1));
-					}
 					break;
 				case 'p':
 					pause_on_exit=TRUE;
@@ -1259,28 +1290,12 @@ int main(int argc, char **argv, char** env)
 				case 'q':
 					confp=nulfp;
 					break;
-				case 's':
-					if(*p==0) p=argv[++argn];
-					js_cx_stack=(ulong)parse_byte_count(p, /* units: */1);
-					break;
-				case 't':
-					if(*p==0) p=argv[++argn];
-					cb.limit=strtoul(p,NULL,0);
-					break;
-				case 'u':
-					if(*p==0) p=argv[++argn];
-					umask(strtol(p,NULL,8));
-					break;
 				case 'v':
 					banner(statfp);
 					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 					return(do_bail(0));
 				case 'x':
 					cb.auto_terminate=FALSE;
-					break;
-				case 'y':
-					if(*p==0) p=argv[++argn];
-					cb.yield_interval=strtoul(p,NULL,0);
 					break;
 				case '!':
 					pause_on_error=TRUE;
@@ -1338,7 +1353,7 @@ int main(int argc, char **argv, char** env)
 	if(daemonize) {
 		fprintf(statfp,"\nRunning as daemon\n");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			fprintf(statfp,"!ERROR %d running as daemon\n",errno);
+			fprintf(statfp,"!ERROR %d (%s) running as daemon\n", errno, strerror(errno));
 			daemonize=FALSE;
 		}
 	}

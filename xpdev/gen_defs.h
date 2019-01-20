@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.76 2018/03/09 02:23:38 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.77 2018/08/28 21:20:18 rswindell Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -469,7 +469,7 @@ typedef struct {
 /********************************/
 /* Handy Pointer-freeing Macros */
 /********************************/
-#define FREE_AND_NULL(x)                if(x!=NULL) { FREE(x); x=NULL; }
+#define FREE_AND_NULL(x)                if((x)!=NULL) { FREE(x); (x)=NULL; }
 #define FREE_LIST_ITEMS(list,i)         if(list!=NULL) {                                \
 											for(i=0;list[i]!=NULL;i++)      \
 												FREE_AND_NULL(list[i]); \
