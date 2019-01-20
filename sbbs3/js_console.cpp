@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.126 2019/05/03 06:50:24 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.123 2019/01/15 06:54:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +234,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case CON_PROP_TOS:
-			sbbs->tos = val ? true : false;
+			sbbs->tos=val;
 			break;
 		case CON_PROP_ROWS:
 			if(val >= TERM_ROWS_MIN && val <= TERM_ROWS_MAX)
@@ -676,7 +676,7 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	uint32		maxnum=~0;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
-	char*		cstr=NULL;
+	char*		cstr;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
@@ -692,15 +692,17 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 		}
 		if(JSVAL_IS_STRING(argv[i])) {
 			js_str = JS_ValueToString(cx, argv[i]);
-			JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
-			if(cstr==NULL)
-				return JS_FALSE;
 		}
 	}
+	if(js_str==NULL)
+		return(JS_FALSE);
 
+	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
+	if(cstr==NULL)
+		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
 	val=sbbs->getkeys(cstr,maxnum);
-	FREE_AND_NULL(cstr);
+	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(val==-1) {			// abort
@@ -1154,7 +1156,6 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
-	int32		columns=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1173,16 +1174,12 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
-	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
-		if(!JS_ValueToInt32(cx,argv[2],&columns))
-			return JS_FALSE;
-	}
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->putmsg(cstr, mode, columns);
+	sbbs->putmsg(cstr,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1856,8 +1853,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user with a default value of <i>default</i>")
 	,310
 	},
-	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("[keys] [,maxnum]")
-	,JSDOCSTR("get one key from of a list of valid command <i>keys</i> (any key, if not specified), "
+	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("string keys [,maxnum]")
+	,JSDOCSTR("get one key from of a list of valid command <i>keys</i>, "
 		"or a number between 1 and <i>maxnum</i>")
 	,310
 	},
@@ -1924,10 +1921,9 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display one or more values as raw strings followed by a single carriage-return/line-feed pair (new-line)")
 	,315
 	},
-	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>] [,orig_columns=0]")
+	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
-		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits.<br>"
-		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
+		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
 	,310
 	},
 	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")

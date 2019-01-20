@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.203 2019/01/20 05:25:19 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.202 2019/01/20 01:55:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -856,17 +856,17 @@ static BOOL js_init(char** env)
 	}
 
 	/* STDIO objects */
-	if(!js_CreateFileObject(js_cx, js_glob, "stdout", STDOUT_FILENO, "w")) {
+	if(!js_CreateFileObject(js_cx, js_glob, "stdout", stdout)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
 
-	if(!js_CreateFileObject(js_cx, js_glob, "stdin", STDIN_FILENO, "r")) {
+	if(!js_CreateFileObject(js_cx, js_glob, "stdin", stdin)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
 
-	if(!js_CreateFileObject(js_cx, js_glob, "stderr", STDERR_FILENO, "w")) {
+	if(!js_CreateFileObject(js_cx, js_glob, "stderr", stderr)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -1150,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.203 $", "%*s %s", revision);
+	sscanf("$Revision: 1.202 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));

@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.53 2019/05/03 06:50:24 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.52 2019/01/11 11:29:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -426,10 +426,7 @@ bool sbbs_t::noyes(const char *str)
 }
 
 /****************************************************************************/
-/* Waits for remote or local user to hit a key among 'keys'.				*/
-/* If 'keys' is NULL, *any* non-numeric key is valid input.					*/
-/* 'max' is non-zero, allow that a decimal number input up to that size		*/
-/* and return the value OR'd with 0x80000000.								*/
+/* Waits for remote or local user to hit a key that is contained inside str.*/
 /* 'str' should contain uppercase characters only. When a valid key is hit, */
 /* it is echoed (upper case) and is the return value.                       */
 /* Called from quite a few functions                                        */
@@ -440,10 +437,8 @@ long sbbs_t::getkeys(const char *keys, ulong max)
 	uchar	ch,n=0,c=0;
 	ulong	i=0;
 
-	if(keys != NULL) {
-		SAFECOPY(str,keys);
-		strupr(str);
-	}
+	SAFECOPY(str,keys);
+	strupr(str);
 	while(online) {
 		ch=getkey(K_UPPER);
 		if(max && ch>0x7f)  /* extended ascii chars are digits to isdigit() */
@@ -454,28 +449,27 @@ long sbbs_t::getkeys(const char *keys, ulong max)
 			lncntr=0;
 			return(-1); 
 		}
-		if(ch && !n && ((keys == NULL && !isdigit(ch)) || (strchr(str,ch)))) {  /* return character if in string */
-			if(ch > ' ') {
+		if(ch && !n && (strchr(str,ch))) {  /* return character if in string */
+			if(ch > ' ')
 				outchar(ch);
-				if(useron.misc&COLDKEYS) {
-					while(online && !(sys_status&SS_ABORT)) {
-						c=getkey(0);
-						if(c==CR || c==BS || c==DEL)
-							break; 
-					}
-					if(sys_status&SS_ABORT) {
-						CRLF;
-						return(-1); 
-					}
-					if(c==BS || c==DEL) {
-						backspace();
-						continue; 
-					} 
+			if(useron.misc&COLDKEYS && ch>' ') {
+				while(online && !(sys_status&SS_ABORT)) {
+					c=getkey(0);
+					if(c==CR || c==BS || c==DEL)
+						break; 
 				}
-				attr(LIGHTGRAY);
-				CRLF;
-				lncntr=0;
+				if(sys_status&SS_ABORT) {
+					CRLF;
+					return(-1); 
+				}
+				if(c==BS || c==DEL) {
+					backspace();
+					continue; 
+				} 
 			}
+			attr(LIGHTGRAY);
+			CRLF;
+			lncntr=0;
 			return(ch); 
 		}
 		if(ch==CR && max) {             /* return 0 if no number */
