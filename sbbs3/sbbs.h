@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.499 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: sbbs.h,v 1.500 2019/01/20 05:25:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1336,7 +1336,7 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
+	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
