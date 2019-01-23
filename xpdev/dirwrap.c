@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.105 2019/04/11 00:47:24 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.104 2019/01/15 03:05:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1158,7 +1158,7 @@ int DLLCALL mkpath(const char* path)
 			break;
 		tp=p;
 		FIND_CHARSET(tp,sep);
-		safe_snprintf(dir,sizeof(dir),"%.*s", (int)(tp-path), path);
+		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
 		if(!isdir(dir)) {
 			if((result=MKDIR(dir))!=0)
 				break;
