@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.241 2019/01/28 21:08:09 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.242 2019/01/28 23:52:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1592,8 +1592,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		SAFECOPY(tok,cmdline);
 		truncstr(tok," ");
 
-		p = strstr(tok, ".bat");  /*  check if it's a bat file  */
-		if (p)
+		p = getfext(tok);  /*  check if it's a bat file  */
+		if (p != NULL && stricmp(p, ".bat") == 0)
 			fprintf(dosemubat,"call ");  /* if so, "call" it */
 
 		fprintf(dosemubat,"%s\r\n",cmdline);
