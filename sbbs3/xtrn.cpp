@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.239 2018/10/30 01:22:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.241 2019/01/28 21:08:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -433,9 +433,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
     if(startup_dir && cmdline[1]!=':' && cmdline[0]!='/'
     	&& cmdline[0]!='\\' && cmdline[0]!='.')
-       	sprintf(fullcmdline, "%s%s%s", comspec_str, startup_dir, cmdline);
+       	SAFEPRINTF3(fullcmdline, "%s%s%s", comspec_str, startup_dir, cmdline);
     else
-    	sprintf(fullcmdline, "%s%s", comspec_str, cmdline);
+    	SAFEPRINTF2(fullcmdline, "%s%s", comspec_str, cmdline);
 
 	SAFECOPY(realcmdline, fullcmdline);	// for errormsg if failed to execute
 
@@ -542,7 +542,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "YEAR=%u\n",1900+tm.tm_year);
         fclose(fp);
 
-        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
+        SAFEPRINTF2(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
@@ -655,7 +655,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(mode&EX_OFFLINE)
 		startup_info.lpTitle=NULL;
 	else {
-		sprintf(title,"%s running %s on node %d"
+		SAFEPRINTF3(title,"%s running %s on node %d"
 			,useron.number ? useron.alias : "Event"
 			,realcmdline
 			,cfg.node_num);
@@ -737,6 +737,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 		SetLastError(last_error);	/* Restore LastError */
         errormsg(WHERE, ERR_EXEC, realcmdline, mode);
+		SetLastError(last_error);	/* Restore LastError */
         return(GetLastError());
     }
 
@@ -848,7 +849,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 							,FILE_ATTRIBUTE_NORMAL
 							,(HANDLE) NULL);
 						if(wrslot==INVALID_HANDLE_VALUE)
-							lprintf(LOG_DEBUG,"!ERROR %u opening %s", GetLastError(), str);
+							lprintf(LOG_DEBUG,"!ERROR %u (%s) opening %s", GetLastError(), strerror(errno), str);
 						else
 							lprintf(LOG_DEBUG,"CreateFile(%s)=0x%x", str, wrslot);
 					}
@@ -1820,12 +1821,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	
 		execvp(argv[0],argv);
-		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
+		lprintf(LOG_ERR,"!ERROR %d (%s) executing: %s", errno, strerror(errno), argv[0]);
 		_exit(-1);	/* should never get here */
 	}
 
 	if(online==ON_REMOTE)
-		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
+		lprintf(LOG_INFO,"executing external: %s", fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
@@ -2080,7 +2081,8 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
+	int maxlen = (int)sizeof(cmdstr_output) - 1;
+    for(i=j=0; i<len && j < maxlen; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2143,7 +2145,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                     strcat(cmd,ultoa(rows,str,10));
                     break;
                 case 'S':   /* File Spec (or Baja command str) */
-                    strcat(cmd,fspec);
+                    strncat(cmd, fspec, maxlen - j);
                     break;
                 case 'T':   /* Time left in seconds */
                     gettimeleft();
@@ -2244,7 +2246,8 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-    for(i=j=0; i<len && j < (int)sizeof(buf)-1; i++) {
+	int maxlen = (int)sizeof(buf) - 1;
+    for(i=j=0; i<len && j < maxlen; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2308,7 +2311,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 						strcat(cmd,ultoa(user->rows,str,10));
                     break;
                 case 'S':   /* File Spec */
-                    strcat(cmd,fspec);
+                    strncat(cmd, fspec, maxlen - j);
                     break;
                 case 'T':   /* Time left in seconds */
                     break;
