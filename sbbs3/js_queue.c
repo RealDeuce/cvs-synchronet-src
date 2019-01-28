@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.55 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.54 2018/02/20 11:32:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,8 @@ typedef struct
 
 link_list_t named_queues;
 
+static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+
 /* Queue Destructor */
 
 static void js_finalize_queue(JSContext *cx, JSObject *obj)
@@ -77,8 +79,6 @@ static void js_decode_value(JSContext *cx, JSObject *parent
 
 /* Queue Object Methods */
 
-extern JSClass js_queue_class;
-
 static JSBool
 js_poll(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -91,7 +91,8 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((q=(msg_queue_t*)js_GetClassPrivate(cx, obj, &js_queue_class))==NULL) {
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -126,7 +127,8 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((q=(msg_queue_t*)js_GetClassPrivate(cx, obj, &js_queue_class))==NULL) {
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -170,7 +172,8 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((q=(msg_queue_t*)js_GetClassPrivate(cx, obj, &js_queue_class))==NULL) {
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -246,7 +249,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((q=(msg_queue_t*)js_GetClassPrivate(cx, obj, &js_queue_class))==NULL) {
+	if((q=(msg_queue_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
