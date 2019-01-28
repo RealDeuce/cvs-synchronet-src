@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.41 2019/04/11 01:00:29 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.40 2018/07/17 06:31:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -92,7 +92,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 					,__FUNCTION__
 					,smb_hashsourcetype(found.source)
 					,smb_hashsource(msg,found.source)
-					,(ulong)found.number);
+					,found.number);
 				retval=SMB_DUPE_MSG;
 				break;
 			}
