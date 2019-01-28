@@ -1,6 +1,7 @@
 /* Synchronet "@code" functions */
+// vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.84 2018/10/25 21:25:53 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.86 2018/12/04 06:23:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,6 +235,15 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%u",cfg.sys_nodes);
 		return(str);
 	}
+
+	if(strcmp(sp, "PAGER") == 0)
+		return (thisnode.misc&NODE_POFF) ? text[Off] : text[On];
+
+	if(strcmp(sp, "ALERTS") == 0)
+		return (thisnode.misc&NODE_AOFF) ? text[Off] : text[On];
+
+	if(strcmp(sp, "SPLITP") == 0)
+		return (useron.chat&CHAT_SPLITP) ? text[On] : text[Off];
 
 	if(!strcmp(sp,"INETADDR"))
 		return(cfg.sys_inetaddr);
