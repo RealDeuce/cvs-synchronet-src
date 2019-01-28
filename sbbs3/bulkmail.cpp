@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.41 2019/02/20 05:43:18 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.40 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);

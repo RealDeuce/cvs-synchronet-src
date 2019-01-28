@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.688 2019/04/11 11:04:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.681 2019/01/04 22:08:09 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -839,6 +839,11 @@ static ulong sockmsgtxt(SOCKET socket, const char* prot, CRYPT_SESSION sess, smb
 		boundary = mimegetboundary();
 		file_list = strListInit();
 
+		/* Parse header fields */
+		for(i=0;i<msg->total_hfields;i++)
+	        if(msg->hfield[i].type==FILEATTACH) 
+				strListPush(&file_list,(char*)msg->hfield_dat[i]);
+
 		/* Parse subject (if necessary) */
 		if(!strListCount(file_list)) {	/* filename(s) stored in subject */
 			split=strListSplitCopy(NULL,msg->subj," ");
@@ -1022,9 +1027,7 @@ static void pop3_thread(void* arg)
 			thread_down();
 			return;
 		}
-		lock_ssl_cert();
 		if ((stat=cryptSetAttribute(session, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-			unlock_ssl_cert();
 			GCESH(stat, client.protocol, socket, host_ip, session, "setting private key");
 			mail_close_socket(&socket, &session);
 			thread_down();
@@ -1035,20 +1038,17 @@ static void pop3_thread(void* arg)
 		nb=0;
 		ioctlsocket(socket,FIONBIO,&nb);
 		if ((stat = cryptSetAttribute(session, CRYPT_SESSINFO_NETWORKSOCKET, socket)) != CRYPT_OK) {
-			unlock_ssl_cert();
 			GCESH(stat, client.protocol, socket, host_ip, session, "setting session socket");
 			mail_close_socket(&socket, &session);
 			thread_down();
 			return;
 		}
 		if ((stat = cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-			unlock_ssl_cert();
 			GCESH(stat, client.protocol, socket, host_ip, session, "setting session active");
 			mail_close_socket(&socket, &session);
 			thread_down();
 			return;
 		}
-		unlock_ssl_cert();
 		if (startup->max_inactivity) {
 			if (cryptSetAttribute(session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity) != CRYPT_OK) {
 				GCESH(stat, client.protocol, socket, host_ip, session, "setting read timeout");
@@ -1157,9 +1157,7 @@ static void pop3_thread(void* arg)
 					buf[0] = 0;
 					break;
 				}
-				lock_ssl_cert();
 				if ((stat=cryptSetAttribute(session, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-					unlock_ssl_cert();
 					GCESH(stat, client.protocol, socket, host_ip, session, "setting private key");
 					buf[0] = 0;
 					break;
@@ -1169,18 +1167,15 @@ static void pop3_thread(void* arg)
 				nb=0;
 				ioctlsocket(socket,FIONBIO,&nb);
 				if ((stat = cryptSetAttribute(session, CRYPT_SESSINFO_NETWORKSOCKET, socket)) != CRYPT_OK) {
-					unlock_ssl_cert();
 					GCESH(stat, client.protocol, socket, host_ip, session, "setting network socket");
 					buf[0] = 0;
 					break;
 				}
 				if ((stat=cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-					unlock_ssl_cert();
 					GCESH(stat, client.protocol, socket, host_ip, session, "setting session active");
 					buf[0] = 0;
 					break;
 				}
-				unlock_ssl_cert();
 				if (startup->max_inactivity) {
 					if ((stat=cryptSetAttribute(session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 						GCESH(stat, client.protocol, socket, host_ip, session, "setting read timeout");
@@ -1696,11 +1691,11 @@ static ulong rblchk(SOCKET sock, const char* prot, union xp_sockaddr *addr, cons
 	switch(addr->addr.sa_family) {
 		case AF_INET:
 			mail_addr=ntohl(addr->in.sin_addr.s_addr);
-			safe_snprintf(name,sizeof(name),"%lu.%lu.%lu.%lu.%.128s"
-				,(ulong)(mail_addr&0xff)
-				,(ulong)(mail_addr>>8)&0xff
-				,(ulong)(mail_addr>>16)&0xff
-				,(ulong)(mail_addr>>24)&0xff
+			safe_snprintf(name,sizeof(name),"%ld.%ld.%ld.%ld.%.128s"
+				,mail_addr&0xff
+				,(mail_addr>>8)&0xff
+				,(mail_addr>>16)&0xff
+				,(mail_addr>>24)&0xff
 				,rbl_addr
 				);
 			break;
@@ -1815,7 +1810,7 @@ static BOOL chk_email_addr(SOCKET socket, const char* prot, char* p, char* host_
 	char	tmp[128];
 
 	SKIP_WHITESPACE(p);
-	char* lt = strchr(p, '<');
+	char* lt = strrchr(p, '<');
 	if(lt!= NULL)
 		p = lt+1;
 	SAFECOPY(addr,p);
@@ -2526,7 +2521,7 @@ static void parse_mail_address(char* p
 	SKIP_WHITESPACE(p);
 
 	/* Get the address */
-	if((tp=strchr(p,'<'))!=NULL)
+	if((tp=strrchr(p,'<'))!=NULL)
 		tp++;
 	else
 		tp=p;
@@ -2539,13 +2534,13 @@ static void parse_mail_address(char* p
 	/* Get the "name" (if possible) */
 	if((tp=strchr(p,'"'))!=NULL) {	/* name in quotes? */
 		p=tp+1;
-		tp=strchr(p,'"');
+		tp=strrchr(p,'"');
 	} else if((tp=strchr(p,'('))!=NULL) {	/* name in parenthesis? */
 		p=tp+1;
-		tp=strchr(p,')');
+		tp=strrchr(p,')');
 	} else if(*p=='<') {					/* address in brackets? */
 		p++;
-		tp=strchr(p,'>');
+		tp=strrchr(p,'>');
 	} else									/* name, then address in brackets */
 		tp=strchr(p,'<');
 	if(tp) *tp=0;
@@ -2835,9 +2830,7 @@ static void smtp_thread(void* arg)
 			thread_down();
 			return;
 		}
-		lock_ssl_cert();
 		if ((cstat = cryptSetAttribute(session, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-			unlock_ssl_cert();
 			GCES(cstat, client.protocol, socket, CRYPT_UNUSED, "setting private key");
 			mail_close_socket(&socket, &session);
 			thread_down();
@@ -2848,20 +2841,17 @@ static void smtp_thread(void* arg)
 		nb=0;
 		ioctlsocket(socket,FIONBIO,&nb);
 		if ((cstat = cryptSetAttribute(session, CRYPT_SESSINFO_NETWORKSOCKET, socket)) != CRYPT_OK) {
-			unlock_ssl_cert();
 			GCES(cstat, client.protocol, socket, CRYPT_UNUSED, "setting network socket");
 			mail_close_socket(&socket, &session);
 			thread_down();
 			return;
 		}
 		if ((cstat = cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-			unlock_ssl_cert();
 			GCES(cstat, client.protocol, socket, CRYPT_UNUSED, "setting session active");
 			mail_close_socket(&socket, &session);
 			thread_down();
 			return;
 		}
-		unlock_ssl_cert();
 		if (startup->max_inactivity) {
 			if ((cstat = cryptSetAttribute(session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 				GCES(cstat, client.protocol, socket, CRYPT_UNUSED, "setting read timeout");
@@ -3529,7 +3519,7 @@ static void smtp_thread(void* arg)
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
 
 					smb.subnum=subnum;
-					if((i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL))!=SMB_SUCCESS) {
+					if((i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf))!=SMB_SUCCESS) {
 						lprintf(LOG_WARNING,"%04d %s !ERROR %d (%s) posting message to %s (%s)"
 							,socket, client.protocol, i, smb.last_error, scfg.sub[subnum]->sname, smb.file);
 						sockprintf(socket,client.protocol,session, "452 ERROR %d (%s) posting message"
@@ -3635,9 +3625,7 @@ static void smtp_thread(void* arg)
 				/* E-mail */
 				smb.subnum=INVALID_SUB;
 				/* creates message data, but no header or index records (since msg.to==NULL) */
-				i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
-				if(smb_countattachments(&smb, &msg, msgbuf) > 0)
-					msg.hdr.auxattr |= MSG_MIMEATTACH;
+				i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf);
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
 					smb_close(&smb);
@@ -4736,9 +4724,7 @@ static void smtp_thread(void* arg)
 				sockprintf(socket, client.protocol, session, "454 TLS not available");
 				continue;
 			}
-			lock_ssl_cert();
 			if ((cstat=cryptSetAttribute(session, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-				unlock_ssl_cert();
 				GCES(cstat, "SMTPS", socket, session, "setting private key");
 				lprintf(LOG_ERR, "%04d !SMTP Unable to set private key", socket);
 				cryptDestroySession(session);
@@ -4751,7 +4737,6 @@ static void smtp_thread(void* arg)
 			nb=0;
 			ioctlsocket(socket,FIONBIO,&nb);
 			if ((cstat = cryptSetAttribute(session, CRYPT_SESSINFO_NETWORKSOCKET, socket)) != CRYPT_OK) {
-				unlock_ssl_cert();
 				GCES(cstat, "SMTPS", socket, session, "setting network socket");
 				cryptDestroySession(session);
 				session = -1;
@@ -4760,11 +4745,9 @@ static void smtp_thread(void* arg)
 			}
 			sockprintf(socket, client.protocol, -1, "220 Ready to start TLS");
 			if ((cstat=cryptSetAttribute(session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-				unlock_ssl_cert();
 				GCES(cstat, "SMTPS", socket, session, "setting session active");
 				break;
 			}
-			unlock_ssl_cert();
 			if (startup->max_inactivity) {
 				if ((cstat=cryptSetAttribute(session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 					GCES(cstat, "SMTPS", socket, session, "setting read timeout");
@@ -5143,9 +5126,7 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 							GCESH(status, prot, sock, server, *session, "setting certificate compliance level");
 							continue;
 						}
-						lock_ssl_cert();
 						if ((status=cryptSetAttribute(*session, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-							unlock_ssl_cert();
 							GCESH(status, prot, sock, server, *session, "setting private key");
 							continue;
 						}
@@ -5154,16 +5135,13 @@ static SOCKET sendmail_negotiate(CRYPT_SESSION *session, smb_t *smb, smbmsg_t *m
 						nb=0;
 						ioctlsocket(sock,FIONBIO,&nb);
 						if ((status=cryptSetAttribute(*session, CRYPT_SESSINFO_NETWORKSOCKET, sock)) != CRYPT_OK) {
-							unlock_ssl_cert();
 							GCESH(status, prot, sock, server, *session, "setting network socket");
 							continue;
 						}
 						if ((status=cryptSetAttribute(*session, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-							unlock_ssl_cert();
 							GCESH(status, prot, sock, server, *session, "setting session active");
 							continue;
 						}
-						unlock_ssl_cert();
 						if (startup->max_inactivity) {
 							if ((status=cryptSetAttribute(*session, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 								GCESH(status, prot, sock, server, *session, "setting read timeout");
@@ -5720,7 +5698,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.688 $", "%*s %s", revision);
+	sscanf("$Revision: 1.681 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
