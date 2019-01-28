@@ -1,8 +1,9 @@
 /* xtrn.cpp */
+// vi: tabstop=4
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.229 2018/02/20 11:44:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.241 2019/01/28 21:08:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +35,7 @@
  *																			*
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
-
+#define XTERN_LOG_STDERR
 #include "sbbs.h"
 #include "cmdshell.h"
 #include "telnet.h"
@@ -254,6 +255,13 @@ BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
     return(outbuf);
 }
 
+static void petscii_convert(BYTE* buf, ulong len)
+{
+    for(ulong i=0; i<len; i++) {
+		buf[i] = cp437_to_petscii(buf[i]);
+	}
+}
+
 static bool native_executable(scfg_t* cfg, const char* cmdline, long mode)
 {
 	char*	p;
@@ -399,10 +407,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	if(online!=ON_REMOTE || cfg.node_num==0)
-		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
-	else
-		lprintf(LOG_DEBUG,"Node %d Executing external: %s",cfg.node_num,cmdline);
+	lprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -428,9 +433,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
     if(startup_dir && cmdline[1]!=':' && cmdline[0]!='/'
     	&& cmdline[0]!='\\' && cmdline[0]!='.')
-       	sprintf(fullcmdline, "%s%s%s", comspec_str, startup_dir, cmdline);
+       	SAFEPRINTF3(fullcmdline, "%s%s%s", comspec_str, startup_dir, cmdline);
     else
-    	sprintf(fullcmdline, "%s%s", comspec_str, cmdline);
+    	SAFEPRINTF2(fullcmdline, "%s%s", comspec_str, cmdline);
 
 	SAFECOPY(realcmdline, fullcmdline);	// for errormsg if failed to execute
 
@@ -537,7 +542,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "YEAR=%u\n",1900+tm.tm_year);
         fclose(fp);
 
-        sprintf(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
+        SAFEPRINTF2(fullcmdline, "%sDOSXTRN.EXE %s", cfg.exec_dir, path);
 
 		if(!(mode&EX_OFFLINE) && nt) {	// Windows NT/2000
 			i=SBBSEXEC_MODE_FOSSIL;
@@ -650,7 +655,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(mode&EX_OFFLINE)
 		startup_info.lpTitle=NULL;
 	else {
-		sprintf(title,"%s running %s on node %d"
+		SAFEPRINTF3(title,"%s running %s on node %d"
 			,useron.number ? useron.alias : "Event"
 			,realcmdline
 			,cfg.node_num);
@@ -732,6 +737,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		}
 		SetLastError(last_error);	/* Restore LastError */
         errormsg(WHERE, ERR_EXEC, realcmdline, mode);
+		SetLastError(last_error);	/* Restore LastError */
         return(GetLastError());
     }
 
@@ -794,8 +800,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gettimeleft();
         if(!online && !(mode&EX_OFFLINE)) { // Tell VXD/VDD and external that user hung-up
         	if(was_online) {
-				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline(LOG_NOTICE,"X!",str);
+				logline(LOG_NOTICE,"X!","hung-up in external program");
             	hungup=time(NULL);
 				if(!native) {
 					if(nt)
@@ -817,7 +822,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	            was_online=false;
             }
             if(hungup && time(NULL)-hungup>5 && !processTerminated) {
-				lprintf(LOG_INFO,"Node %d Terminating process from line %d",cfg.node_num,__LINE__);
+				lprintf(LOG_INFO,"Terminating process from line %d", __LINE__);
 				processTerminated=TerminateProcess(process_info.hProcess, 2112);
 			}
         }
@@ -844,9 +849,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 							,FILE_ATTRIBUTE_NORMAL
 							,(HANDLE) NULL);
 						if(wrslot==INVALID_HANDLE_VALUE)
-							lprintf(LOG_DEBUG,"Node %d !ERROR %u opening %s", cfg.node_num, GetLastError(), str);
+							lprintf(LOG_DEBUG,"!ERROR %u (%s) opening %s", GetLastError(), strerror(errno), str);
 						else
-							lprintf(LOG_DEBUG,"Node %d CreateFile(%s)=0x%x", cfg.node_num, str, wrslot);
+							lprintf(LOG_DEBUG,"CreateFile(%s)=0x%x", str, wrslot);
 					}
 					
 					/* CR expansion */
@@ -857,16 +862,16 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 					len=0;
 					if(wrslot==INVALID_HANDLE_VALUE)
-						lprintf(LOG_WARNING,"Node %d VDD Open failed (not loaded yet?)",cfg.node_num);
+						lprintf(LOG_WARNING,"VDD Open failed (not loaded yet?)");
 					else if(!WriteFile(wrslot,bp,wr,&len,NULL)) {
-						lprintf(LOG_ERR,"Node %d !VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", cfg.node_num, wrslot, wr, GetLastError());
+						lprintf(LOG_ERR,"!VDD WriteFile(0x%x, %u) FAILURE (Error=%u)", wrslot, wr, GetLastError());
 						if(GetMailslotInfo(wrslot,&wr,NULL,NULL,NULL))
-							lprintf(LOG_DEBUG,"Node %d !VDD MailSlot max_msg_size=%u", cfg.node_num, wr);
+							lprintf(LOG_DEBUG,"!VDD MailSlot max_msg_size=%u", wr);
 						else
-							lprintf(LOG_DEBUG,"Node %d !GetMailslotInfo(0x%x)=%u", cfg.node_num, wrslot, GetLastError());
+							lprintf(LOG_DEBUG,"!GetMailslotInfo(0x%x)=%u", wrslot, GetLastError());
 					} else {
 						if(len!=wr)
-							lprintf(LOG_WARNING,"Node %d VDD short write (%u instead of %u)",cfg.node_num,len,wr);
+							lprintf(LOG_WARNING,"VDD short write (%u instead of %u)", len,wr);
 						RingBufRead(&inbuf, NULL, len);
 						if(use_pipes && !(mode&EX_NOECHO)) {
 							/* echo */
@@ -932,6 +937,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
+					if(!(mode&EX_BIN) && term_supports(PETSCII))
+						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
@@ -999,6 +1006,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
+					if(!(mode&EX_BIN) && term_supports(PETSCII))
+						petscii_convert(bp, rd);
 					RingBufWrite(&outbuf, bp, rd);
 				}
 			}
@@ -1305,7 +1314,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	char	fullpath[MAX_PATH+1];
 	char	fullcmdline[MAX_PATH+1];
 	char*	argv[MAX_ARGS];
-	char*	p;
 	BYTE*	bp;
 	BYTE	buf[XTRN_IO_BUF_LEN];
     BYTE 	output_buf[XTRN_IO_BUF_LEN*2];
@@ -1327,9 +1335,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	fd_set ibits;
 	int	high_fd;
 	struct timeval timeout;
+    BYTE 	wwiv_buf[XTRN_IO_BUF_LEN*2];
+    bool	wwiv_flag=false;
+#if defined(__FreeBSD__) || (defined(__linux__) && defined(USE_DOSEMU))
+ 	char* p;
+#endif
 
-	if(online!=ON_REMOTE || cfg.node_num==0)
-		eprintf(LOG_DEBUG,"Executing external: %s",cmdline);
+	lprintf(LOG_DEBUG, "Executing external: %s", cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
 		errormsg(WHERE, ERR_CHK, startup_dir, 0);
@@ -1423,7 +1435,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		FILE *dosemubat;
 		int setup_override;
 		char tok[MAX_PATH+1];
- 
+
 		char dosemuconf[MAX_PATH+1];
 		char dosemubinloc[MAX_PATH+1];
 		char virtualconf[75];
@@ -1513,7 +1525,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		/* same deal for emusetup.bat. */
 
 		sprintf(str,"%semusetup.bat",startup_dir);
-		fprintf(stderr, str);
 		if (!fexist(str)) {
 
 		/* If we can't find it in the door dir, look for a global one
@@ -1565,7 +1576,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			gamedir = getfname(str);
 		}
 		if(*gamedir == 0) {
-			lprintf(LOG_ERR, "No startup directory configured for: %s", cmdline);
+			lprintf(LOG_ERR, "No startup directory configured for DOS command-line: %s", cmdline);
 			return -1;
 		}
 		fprintf(dosemubat,"cd %s\r\n", gamedir);
@@ -1810,12 +1821,12 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	
 		execvp(argv[0],argv);
-		lprintf(LOG_ERR,"Node %d !ERROR %d executing %s",cfg.node_num,errno,argv[0]);
+		lprintf(LOG_ERR,"!ERROR %d (%s) executing: %s", errno, strerror(errno), argv[0]);
 		_exit(-1);	/* should never get here */
 	}
 
 	if(online==ON_REMOTE)
-		lprintf(LOG_INFO,"Node %d executing external: %s",cfg.node_num,fullcmdline);
+		lprintf(LOG_INFO,"executing external: %s", fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
@@ -1836,8 +1847,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				gettimeleft();
 			
 			if(!online && !(mode&EX_OFFLINE)) {
-				sprintf(str,"%s hung-up in external program",useron.alias);
-				logline(LOG_NOTICE,"X!",str);
+				logline(LOG_NOTICE,"X!","hung-up in external program");
 				break;
 			}
 
@@ -1930,15 +1940,21 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				}
 				else
    	       			bp=telnet_expand(buf, rd, output_buf, output_len);
-			} else if ((mode & EX_STDIO) != EX_STDIO) {
-				/* LF to CRLF expansion */
-				bp=lf_expand(buf, rd, output_buf, output_len);
+			} else {
+				if ((mode & EX_STDIO) != EX_STDIO) {
+					/* LF to CRLF expansion */
+					bp=lf_expand(buf, rd, output_buf, output_len);
+				} else if(mode&EX_WWIV) {
+					bp=wwiv_expand(buf, rd, wwiv_buf, output_len, useron.misc, wwiv_flag);
+					if(output_len > sizeof(wwiv_buf))
+						lprintf(LOG_ERR, "WWIV_BUF OVERRUN");
+				} else {
+					bp=buf;
+					output_len=rd;
+				}
+				if (term_supports(PETSCII))
+					petscii_convert(bp, output_len);
 			}
-			else {
-				bp=buf;
-				output_len=rd;
-			}
-
 			/* Did expansion overrun the output buffer? */
 			if(output_len>sizeof(output_buf)) {
 				lprintf(LOG_ERR,"OUTPUT_BUF OVERRUN");
@@ -2065,7 +2081,8 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
     else
         cmd=outstr;
     len=strlen(instr);
-    for(i=j=0; i<len && j < (int)sizeof(cmdstr_output)-1; i++) {
+	int maxlen = (int)sizeof(cmdstr_output) - 1;
+    for(i=j=0; i<len && j < maxlen; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2128,7 +2145,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                     strcat(cmd,ultoa(rows,str,10));
                     break;
                 case 'S':   /* File Spec (or Baja command str) */
-                    strcat(cmd,fspec);
+                    strncat(cmd, fspec, maxlen - j);
                     break;
                 case 'T':   /* Time left in seconds */
                     gettimeleft();
@@ -2229,7 +2246,8 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 
 	if(cmd==NULL)	cmd=buf;
     len=strlen(instr);
-    for(i=j=0; i<len && j < sizeof(buf)-1; i++) {
+	int maxlen = (int)sizeof(buf) - 1;
+    for(i=j=0; i<len && j < maxlen; i++) {
         if(instr[i]=='%') {
             i++;
             cmd[j]=0;
@@ -2293,7 +2311,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 						strcat(cmd,ultoa(user->rows,str,10));
                     break;
                 case 'S':   /* File Spec */
-                    strcat(cmd,fspec);
+                    strncat(cmd, fspec, maxlen - j);
                     break;
                 case 'T':   /* Time left in seconds */
                     break;
