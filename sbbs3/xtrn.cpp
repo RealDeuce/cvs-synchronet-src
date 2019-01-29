@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.243 2019/01/28 23:58:38 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.244 2019/01/29 00:00:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2344,7 +2344,7 @@ char* DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr, const char* f
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
 					strncat(cmd,sfpath, avail);
 #else
-                    strncat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)));
+                    strncat(cmd,QUOTED_STRING(instr[i],fpath,str,sizeof(str)), avail);
 #endif			
 					break;
                 case '!':   /* EXEC Directory */
