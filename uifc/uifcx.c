@@ -1,6 +1,6 @@
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.37 2019/02/01 21:59:07 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.36 2019/02/01 21:52:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -178,6 +178,22 @@ static int which(char* prompt, int max)
             return(i-1);
     }
 }
+
+/****************************************************************************/
+/* Convert ASCIIZ string to upper case										*/
+/****************************************************************************/
+#if defined(__unix__) && !defined(__HAIKU__)
+static char* strupr(char* str)
+{
+	char*	p=str;
+
+	while(*p) {
+		*p=toupper(*p);
+		p++;
+	}
+	return(str);
+}
+#endif
 
 /****************************************************************************/
 /* General menu function, see uifc.h for details.							*/
