@@ -2,13 +2,13 @@
 
 /* Original implementation of UIFC (user interface) library based on conio */
 
-/* $Id: uifc.c,v 1.30 2005/09/20 05:39:41 deuce Exp $ */
+/* $Id: uifc.c,v 1.31 2018/07/24 01:13:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
