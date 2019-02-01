@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.32 2019/02/02 00:44:08 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.31 2018/10/30 01:22:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,16 +242,12 @@ bool sbbs_t::menu_exists(const char *code, const char* ext, char* path)
 		return menu_exists(code, "asc", path)
 			|| menu_exists(code, "msg", path);
 
-	char prefix[MAX_PATH];
-	if(isfullpath(code))
-		SAFECOPY(prefix, code);
-	else {
-		backslash(menu_dir);
-		SAFEPRINTF3(prefix, "%smenu/%s%s", cfg.text_dir, menu_dir, code);
-	}
-	safe_snprintf(path, MAX_PATH, "%s.%ucol.%s", prefix, cols, ext);
+	backslash(menu_dir);
+	safe_snprintf(path, MAX_PATH, "%smenu/%s%s.%ucol.%s"
+		,cfg.text_dir, menu_dir, code, cols, ext);
 	if(fexistcase(path))
 		return true;
-	safe_snprintf(path, MAX_PATH, "%s.%s", prefix, ext);
+	safe_snprintf(path, MAX_PATH, "%smenu/%s%s.%s"
+		,cfg.text_dir, menu_dir, code, ext);
 	return fexistcase(path) ? true : false;
 }

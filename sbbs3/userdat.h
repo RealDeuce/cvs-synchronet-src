@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.70 2019/02/15 03:53:02 rswindell Exp $ */
+/* $Id: userdat.h,v 1.69 2018/11/07 03:55:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,7 +165,6 @@ typedef struct {
 
 DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
 DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
-DLLEXPORT long				DLLCALL	loginAttemptListCount(link_list_t*);
 DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
 DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
