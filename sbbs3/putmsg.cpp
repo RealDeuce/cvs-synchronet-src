@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.45 2019/03/24 09:28:07 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.44 2019/01/11 11:29:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /* the attributes prior to displaying the message are always restored.      */
 /* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
 /****************************************************************************/
-char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
+char sbbs_t::putmsg(const char *buf, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
@@ -77,9 +77,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				*wrapoff = 0;
 		}
 		char *wrapped;
-		if(org_cols < TERM_COLS_MIN)
-			org_cols = TERM_COLS_DEFAULT;
-		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -307,7 +305,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				}
 				if(memcmp(str+l, "@WORDWRAP@", 10) == 0) {
 					l += 10;
-					putmsg(str+l, mode|P_WORDWRAP, org_cols);
+					putmsg(str+l, mode|P_WORDWRAP);
 					break;
 				}
 
