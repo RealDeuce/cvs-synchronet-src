@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.55 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: str_util.c,v 1.56 2019/02/01 23:46:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -159,7 +159,7 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 	SAFECOPY(str,string);
 
 	p=str;	
-	SKIP_WHITESPACE(p);
+//	SKIP_WHITESPACE(p);
 
 	if(*p==';')		/* comment */
 		return(FALSE);
