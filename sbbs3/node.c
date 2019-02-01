@@ -1,7 +1,7 @@
 /* Synchronet BBS Node control program */
 // vi: tabstop=4
 
-/* $Id: node.c,v 1.30 2017/11/15 07:12:52 rswindell Exp $ */
+/* $Id: node.c,v 1.31 2018/10/09 01:47:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -262,7 +262,7 @@ void printnodedat(int number, node_t node)
 			printf("At login prompt");
 			break;
 		case NODE_LOGOUT:
-			printf("Logging out");
+			printf("User #%d logging out", node.useron);
 			break;
 		case NODE_EVENT_WAITING:
 			printf("Waiting for all nodes to become inactive");
@@ -443,7 +443,7 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.30 $", "%*s %s", revision);
+	sscanf("$Revision: 1.31 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
