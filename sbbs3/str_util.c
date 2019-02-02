@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.58 2019/02/08 02:39:04 rswindell Exp $ */
+/* $Id: str_util.c,v 1.56 2019/02/01 23:46:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -258,7 +258,7 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 	ip_addr = parse_ipv4_address(insearchof);
 	for(index=0; list[index]!=NULL; index++) {
 		p=list[index];
-//		SKIP_WHITESPACE(p);
+		SKIP_WHITESPACE(p);
 		if(ip_addr != 0 && (cidr = parse_cidr(p, &subnet)) != 0)
 			found = is_cidr_match(p, ip_addr, cidr, subnet);
 		else
@@ -290,13 +290,10 @@ BOOL DLLCALL findstr(const char* insearchof, const char* fname)
 	while(!feof(fp) && !ferror(fp) && !found) {
 		if(!fgets(str,sizeof(str),fp))
 			break;
-		char* p = str;
-		SKIP_WHITESPACE(p);
-		c_unescape_str(p);
-		if(ip_addr !=0 && (cidr = parse_cidr(p, &subnet)) != 0)
-			found = is_cidr_match(p, ip_addr, cidr, subnet);
+		if(ip_addr !=0 && (cidr = parse_cidr(str, &subnet)) != 0)
+			found = is_cidr_match(str, ip_addr, cidr, subnet);
 		else
-			found = findstr_in_string(insearchof, p);
+			found = findstr_in_string(insearchof, str);
 	}
 
 	fclose(fp);
@@ -321,35 +318,21 @@ char* DLLCALL trashcan_fname(scfg_t* cfg, const char* name, char* fname, size_t 
 	return fname;
 }
 
-static char* process_findstr_item(size_t index, char *str, void* cbdata)
-{
-	SKIP_WHITESPACE(str);
-	return c_unescape_str(str);
-}
-
-/****************************************************************************/
-str_list_t DLLCALL findstr_list(const char* fname)
-{
-	FILE*	fp;
-	str_list_t	list;
-
-	if((fp=fopen(fname,"r"))==NULL)
-		return NULL;
-
-	list=strListReadFile(fp, NULL, /* Max line length: */255);
-	strListModifyEach(list, process_findstr_item, /* cbdata: */NULL);
-
-	fclose(fp);
-
-	return list;
-}
-
 /****************************************************************************/
 str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 {
 	char	fname[MAX_PATH+1];
+	FILE*	fp;
+	str_list_t	list;
 
-	return findstr_list(trashcan_fname(cfg, name, fname, sizeof(fname)));
+	if((fp=fopen(trashcan_fname(cfg, name, fname, sizeof(fname)),"r"))==NULL)
+		return NULL;
+
+	list=strListReadFile(fp,NULL,255);
+
+	fclose(fp);
+
+	return list;
 }
 
 /****************************************************************************/
