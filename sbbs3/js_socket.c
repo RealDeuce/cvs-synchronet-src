@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.226 2019/03/07 01:11:01 deuce Exp $ */
+/* $Id: js_socket.c,v 1.225 2019/01/12 21:36:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1866,20 +1866,15 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 										if (scfg->tls_certificate == -1)
 											ret = CRYPT_ERROR_NOTAVAIL;
 										else {
-											lock_ssl_cert();
 											ret = cryptSetAttribute(p->session, CRYPT_SESSINFO_PRIVATEKEY, scfg->tls_certificate);
-											if (ret != CRYPT_OK) {
-												unlock_ssl_cert();
+											if (ret != CRYPT_OK)
 												GCES(ret, p, estr, "setting private key");
-											}
 										}
 									}
 								}
 								if(ret==CRYPT_OK) {
 									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK)
 										GCES(ret, p, estr, "setting session active");
-									if (tiny == SOCK_PROP_SSL_SERVER)
-										unlock_ssl_cert();
 								}
 							}
 						}

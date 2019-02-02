@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.488 2019/03/07 01:11:00 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.487 2019/01/18 09:14:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2000,9 +2000,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
-	lock_ssl_cert();
 	if ((status=cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
-		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting private key");
 		cryptDestroySession(*sess);
 		*sess = -1;
@@ -2015,7 +2013,6 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	nb=0;
 	ioctlsocket(*sock,FIONBIO,&nb);
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock)) != CRYPT_OK) {
-		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting network socket");
 		cryptDestroySession(*sess);
 		*sess = -1;
@@ -2026,11 +2023,9 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	if (resp)
 		sockprintf(*sock, -1, "234 Ready to start TLS");
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
-		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting session active");
 		return TRUE;
 	}
-	unlock_ssl_cert();
 	if (startup->max_inactivity) {
 		if ((status = cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 			GCES(status, *sock, *sess, estr, "setting read timeout");
@@ -5993,7 +5988,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.488 $", "%*s %s", revision);
+	sscanf("$Revision: 1.487 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
