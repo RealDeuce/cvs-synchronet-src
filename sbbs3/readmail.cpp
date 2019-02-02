@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.88 2019/02/20 05:43:19 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.85 2018/12/31 06:37:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,6 +437,8 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					break; 
 				}
 
+				quotemsg(&msg,/* include tails: */TRUE);
+
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
@@ -466,16 +468,16 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
-					replied=netmail(str,msg.subj,WM_NONE, &smb, &msg);
+					replied=netmail(str,msg.subj,WM_QUOTE);
 					sprintf(str2,text[DeleteMailQ],msg.from); 
 				}
 				else {
 					if(!msg.from_net.type && !stricmp(str,msg.from))
-						replied=email(msg.idx.from,str2,msg.subj,WM_NONE, &smb, &msg);
+						replied=email(msg.idx.from,str2,msg.subj,WM_EMAIL|WM_QUOTE);
 					else if(!stricmp(str,"SYSOP"))
-						replied=email(1,str2,msg.subj,WM_NONE, &smb, &msg);
+						replied=email(1,str2,msg.subj,WM_EMAIL|WM_QUOTE);
 					else if((i=finduser(str))!=0)
-						replied=email(i,str2,msg.subj,WM_NONE, &smb, &msg);
+						replied=email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE);
 					else
 						replied=false;
 					sprintf(str2,text[DeleteMailQ],msg.from); 
@@ -505,7 +507,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bprintf(text[CantDeleteMsg], smb.curmsg + 1);
+					bputs(text[CantDeleteMsg]);
 					domsg=0;
 					break; 
 				}
