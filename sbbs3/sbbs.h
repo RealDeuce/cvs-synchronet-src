@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.500 2019/01/20 05:25:20 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.501 2019/02/03 00:20:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -803,7 +803,7 @@ public:
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
 	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
-	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
+	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts, bool reading = true);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
