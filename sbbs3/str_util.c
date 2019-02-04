@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.56 2019/02/01 23:46:28 rswindell Exp $ */
+/* $Id: str_util.c,v 1.57 2019/02/04 05:53:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -258,7 +258,7 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 	ip_addr = parse_ipv4_address(insearchof);
 	for(index=0; list[index]!=NULL; index++) {
 		p=list[index];
-		SKIP_WHITESPACE(p);
+//		SKIP_WHITESPACE(p);
 		if(ip_addr != 0 && (cidr = parse_cidr(p, &subnet)) != 0)
 			found = is_cidr_match(p, ip_addr, cidr, subnet);
 		else
