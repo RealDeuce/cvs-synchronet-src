@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.70 2019/02/08 02:39:04 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.71 2019/02/08 02:41:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
-	FILE*	fp;
 	DIR*	dir;
 	DIRENT*	dirent;
 	smbmsg_t	msg;
