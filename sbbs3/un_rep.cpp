@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.78 2019/08/20 08:45:42 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.70 2019/02/08 02:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,11 +55,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 	long	l,size,misc;
 	ulong	n;
 	ulong	ex;
-	ulong	tmsgs = 0;
-	ulong	dupes = 0;
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
+	FILE*	fp;
 	DIR*	dir;
 	DIRENT*	dirent;
 	smbmsg_t	msg;
@@ -69,7 +68,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
 	str_list_t	twit_list=NULL;
-	link_list_t user_list={0};
 	const char* hostname;
 	const char* AttemptedToUploadREPpacket="Attempted to upload REP packet";
 
@@ -159,13 +157,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 		logline(LOG_NOTICE,nulstr,"Incorrect QWK BBS ID");
 		return(false); 
 	}
+	logline("U+","Uploaded REP packet");
 	/********************/
 	/* Process messages */
 	/********************/
-	if(online == ON_REMOTE) {
-		logline("U+","Uploaded REP packet");
-		bputs(text[QWKUnpacking]);
-	}
+	bputs(text[QWKUnpacking]);
 
 	ip_can=trashcan_list(&cfg,"ip");
 	host_can=trashcan_list(&cfg,"host");
@@ -194,26 +190,23 @@ bool sbbs_t::unpack_rep(char* repfile)
 		}
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
-		long confnum = atol((char *)block+1);
 		if(blocks<2) {
 			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
-				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias, confnum))
+				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias))
 					errors++;
 				continue;
 			}
 			lprintf(LOG_WARNING
 				, "%s msg blocks less than 2 (read '%c' at offset %ld, '%s' at offset %ld)"
 				, getfname(msg_fname), block[0], l, tmp, l + 116);
-			if(l > QWK_BLOCK_LEN)
-				errors++;
+			errors++;
 			blocks=1;
 			continue;
 		}
 
-		if(!qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false)) {
-			errors++;
-			continue;
-		}
+		long confnum = atol((char *)block+1);
+
+		qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
@@ -249,14 +242,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(confnum == 0) {						/* E-mail */
-			if(msg.from == NULL)
-				bprintf("E-mail to %s: %s\r\n", msg.to, msg.subj);
-			else
-				bprintf("E-mail from %s to %s\r\n", msg.from, msg.to);
-			if(useron.rest&FLAG('E')) {
-				bputs(text[R_Email]);
-				continue;
+		if(confnum==0) {						/**********/
+			if(useron.rest&FLAG('E')) {         /* E-mail */
+				bputs(text[R_Email]);			/**********/
+				continue; 
 			}
 
 			if(msg.to!=NULL) {
@@ -348,9 +337,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			smb_unlocksmbhdr(&smb);
 
-			bool dupe = false;
 			if(qwk_import_msg(rep, block, blocks
-				,/* fromhub: */0, &smb, /* touser: */usernum, &msg, &dupe)) {
+				,/* fromhub: */0,/* subnum: */INVALID_SUB,/* touser: */usernum,&msg)) {
+
 				if(usernum==1) {
 					useron.fbacks++;
 					logon_fbacks++;
@@ -366,8 +355,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				useron.etoday++;
 				putuserrec(&cfg,useron.number,U_ETODAY,5
 					,ultoa(useron.etoday,tmp,10));
-				if(online == ON_REMOTE)
-					bprintf(text[Emailed],username(&cfg,usernum,tmp),usernum);
+				bprintf(text[Emailed],username(&cfg,usernum,tmp),usernum);
 				SAFEPRINTF2(str,"sent QWK e-mail to %s #%d"
 					,username(&cfg,usernum,tmp),usernum);
 				logline("E+",str);
@@ -388,12 +376,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 					SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 					putsmsg(&cfg,usernum,str); 
 				} 
-				tmsgs++;
-			} else {
-				if(dupe)
-					dupes++;
-				else
-					errors++;
 			}
 			smb_close(&smb);
 		}    /* end of email */
@@ -543,34 +525,18 @@ bool sbbs_t::unpack_rep(char* repfile)
 				lastsub=n; 
 			}
 
-			bool dupe = false;
 			if(qwk_import_msg(rep, block, blocks
-				,/* fromhub: */0, &smb, /* touser: */0, &msg, &dupe)) {
+				,/* fromhub: */0,/* subnum: */n,/* touser: */0,&msg)) {
 				logon_posts++;
 				user_posted_msg(&cfg, &useron, 1);
-				if(online == ON_REMOTE)
-					bprintf(text[Posted],cfg.grp[cfg.sub[n]->grp]->sname
-						,cfg.sub[n]->lname);
+				bprintf(text[Posted],cfg.grp[cfg.sub[n]->grp]->sname
+					,cfg.sub[n]->lname);
 				SAFEPRINTF2(str,"posted QWK message on %s %s"
 					,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
 				signal_sub_sem(&cfg,n);
-				logline("P+",str);
-				int destuser = lookup_user(&cfg, &user_list, msg.to);
-				if(destuser > 0) {
-					SAFEPRINTF4(str, text[MsgPostedToYouVia]
-						,msg.from
-						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK"
-						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname);
-					putsmsg(&cfg, destuser, str);
-				}
+				logline("P+",str); 
 				if(!(useron.rest&FLAG('Q')))
 					user_event(EVENT_POST);
-				tmsgs++;
-			} else {
-				if(dupe)
-					dupes++;
-				else
-					errors++;
 			}
 		}   /* end of public message */
 	}
@@ -588,7 +554,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	strListFree(&host_can);
 	strListFree(&subject_can);
 	strListFree(&twit_list);
-	listFree(&user_list);
 
 	if(lastsub!=INVALID_SUB)
 		smb_close(&smb);
@@ -679,15 +644,12 @@ bool sbbs_t::unpack_rep(char* repfile)
 		ftouch(fname);
 	}
 
-	if(online == ON_REMOTE) {
-		bputs(text[QWKUnpacked]);
-		CRLF;
-		/**********************************************/
-		/* Hang-up now if that's what the user wanted */
-		/**********************************************/
-		autohangup();
-	} else
-		lprintf(LOG_INFO, "Unpacking completed: %s (%lu msgs, %lu errors, %lu dupes)", rep_fname, tmsgs, errors, dupes);
+	bputs(text[QWKUnpacked]);
+	CRLF;
+	/**********************************************/
+	/* Hang-up now if that's what the user wanted */
+	/**********************************************/
+	autohangup();
 
 	return errors == 0;
 }
