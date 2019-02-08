@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.170 2019/07/24 04:41:49 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.168 2019/01/13 22:05:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -36,11 +36,10 @@
 
 #define STARTUP_INI_BITDESC_TABLES
 
-#include "sockwrap.h"
 #include <string.h>	/* strchr, memset */
 
-#include "sbbs_ini.h"
 #include "dirwrap.h"	/* backslash */
+#include "sbbs_ini.h"
 #include "sbbsdefs.h"	/* JAVASCRIPT_* macros */
 
 static const char*	nulstr="";
@@ -48,8 +47,8 @@ static const char*  strAutoStart="AutoStart";
 static const char*  strCtrlDirectory="CtrlDirectory";
 static const char*  strTempDirectory="TempDirectory";
 static const char*	strOptions="Options";
-static const char*	strOutgoing4="OutboundInterface";
-static const char*	strOutgoing6="OutboundV6Interface";
+static const char*	strOutgoing4="OutgoingV4";
+static const char*	strOutgoing6="OutgoingV6";
 static const char*	strInterfaces="Interface";
 static const char*	strPort="Port";
 static const char*	strMaxClients="MaxClients";
