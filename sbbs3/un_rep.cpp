@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.69 2019/01/18 01:56:54 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.70 2019/02/08 02:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,10 +168,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	if((fp=fopen(fname,"r"))!=NULL) {
-		twit_list=strListReadFile(fp,NULL,128);
-		fclose(fp);
-	}
+	twit_list = findstr_list(fname);
 
 	now=time(NULL);
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {

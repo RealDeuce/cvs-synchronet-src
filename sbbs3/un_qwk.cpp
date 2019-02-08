@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.54 2018/12/17 06:02:40 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.55 2019/02/08 02:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,10 +125,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	if((fp=fopen(fname,"r"))!=NULL) {
-		twit_list=strListReadFile(fp,NULL,128);
-		fclose(fp);
-	}
+	twit_list = findstr_list(fname);
 
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
 		if(terminated) {
