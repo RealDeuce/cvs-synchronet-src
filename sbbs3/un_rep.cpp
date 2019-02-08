@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.68 2018/12/17 06:02:40 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.69 2019/01/18 01:56:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,10 +199,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 					errors++;
 				continue;
 			}
-			snprintf(str, sizeof(str)-1
-				, "%s blocks (read '%c' at offset %ld, '%s' at offset %ld)"
-				, msg_fname, block[0], l, tmp, l + 116);
-			errormsg(WHERE, ERR_CHK, tmp, blocks, str);
+			lprintf(LOG_WARNING
+				, "%s msg blocks less than 2 (read '%c' at offset %ld, '%s' at offset %ld)"
+				, getfname(msg_fname), block[0], l, tmp, l + 116);
 			errors++;
 			blocks=1;
 			continue;
