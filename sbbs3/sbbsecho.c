@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.104 2019/02/08 02:39:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.105 2019/02/12 03:14:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -839,6 +839,9 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	flo_filename = bso_flo_filename(dest, attr);
 	if(flo_filename == NULL)
 		return -2;
+
+	if(*infile == '^')  /* work-around for BRE/FE inter-BBS attachment bug */
+		infile++;
 
 #ifdef __unix__
 	if(isalpha(infile[0]) && infile[1] == ':')	// Ignore "C:" prefix
@@ -5989,7 +5992,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.104 $", "%*s %s", revision);
+	sscanf("$Revision: 3.105 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
