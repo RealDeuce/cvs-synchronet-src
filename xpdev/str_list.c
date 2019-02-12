@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.53 2019/02/14 09:48:25 rswindell Exp $ */
+/* $Id: str_list.c,v 1.52 2019/02/08 23:35:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,14 +202,15 @@ size_t DLLCALL strListModifyEach(const str_list_t list, char*(modify(size_t, cha
 {
 	size_t	i;
 	for(i = 0; list[i] != NULL; i++) {
+		char* p;
 		char* str = modify(i, list[i], cbdata);
-		if(str == NULL || str == list[i])	// Same old pointer (or NULL), no modification
+		if(str == NULL || str == list[i])	// Same old pointer (or NULL), no realloc() needed
 			continue;
-		str = strdup(str);
-		if(str == NULL)
+		p = realloc(list[i], strlen(str) + 1);
+		if(p == NULL)
 			break;
-		free(list[i]);
-		list[i] = str;
+		list[i] = p;
+		strcpy(p, str);
 	}
 	return i;
 }
