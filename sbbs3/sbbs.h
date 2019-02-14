@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.506 2019/03/22 21:28:27 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.502 2019/02/08 02:39:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -647,14 +647,13 @@ public:
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
-	bool	email(int usernumber, const char *top = NULL, const char *title = NULL
-				, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	email(int usernumber, const char *top, const char *title, long mode);
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
 	ushort	chmsgattr(smbmsg_t);
-	bool	quotemsg(smb_t*, smbmsg_t*, bool tails = false);
+	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
 				,uint subnum, const char* tagfile);
@@ -664,7 +663,7 @@ public:
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
 
 	/* postmsg.cpp */
-	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
 
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
@@ -976,12 +975,12 @@ public:
 				,uint touser, smbmsg_t* msg);
 
 	/* fido.cpp */
-	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
-	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub = 0);
+	bool	netmail(const char *into, const char *subj, long mode);
+	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
-	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE);
+	bool	inetmail(const char *into, const char *subj, long mode);
+	bool	qnetmail(const char *into, const char *subj, long mode);
 
 	/* useredit.cpp */
 	void	useredit(int usernumber);
@@ -1033,7 +1032,7 @@ public:
 			#define DLLEXPORT	__declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL
+			#define DLLCALL __stdcall
 		#else
 			#define DLLCALL
 		#endif
@@ -1066,12 +1065,13 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf, smbmsg_t* remsg);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
 	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt, const char* votefmt);
 	DLLEXPORT int		DLLCALL postpoll(scfg_t*, smb_t*, smbmsg_t*);
 	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
+	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
@@ -1117,13 +1117,10 @@ extern "C" {
 	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
 
 	/* msg_id.c */
-	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_msgid(scfg_t*, uint subnum, smbmsg_t*, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_replyid(scfg_t*, smb_t*, smbmsg_t*, char* msgid, size_t maxlen);
-	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t*);
-	DLLEXPORT BOOL		DLLCALL add_msg_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
-	DLLEXPORT BOOL		DLLCALL add_reply_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
-	DLLEXPORT char*		DLLCALL msg_program_id(char* pid, size_t);
+	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen);
+	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t* smb);
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
@@ -1317,7 +1314,6 @@ extern "C" {
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT BOOL		DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* hdrobj, smbmsg_t*);
-	DLLEXPORT BOOL		DLLCALL js_GetMsgHeaderObjectPrivates(JSContext* cx, JSObject* hdrobj, smb_t**, smbmsg_t**);
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
