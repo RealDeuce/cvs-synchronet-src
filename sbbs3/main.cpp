@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.739 2018/11/23 17:18:32 rswindell Exp $ */
+/* $Id: main.cpp,v 1.741 2019/01/07 23:38:31 sbbs Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -463,7 +463,7 @@ int DLLCALL sbbs_random(int n)
 static js_server_props_t js_server_props;
 
 JSBool
-DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, char* str[],uintN flags)
+DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
 {
 	JSObject*	array;
 	JSString*	js_str;
@@ -601,7 +601,7 @@ DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec *fun
 		// If the first item is already in the list, don't do anything.
 		if(!JS_GetArrayLength(cx, method_array, &len))
 			return(JS_FALSE);
-		for(i=0; i<len; i++) {
+		for(i=0; i<(int)len; i++) {
 			if(JS_GetElement(cx, method_array, i, &val)!=JS_TRUE || val == JSVAL_VOID)
 				continue;
 			JS_GetProperty(cx, JSVAL_TO_OBJECT(val), "name", &val);
@@ -2650,7 +2650,7 @@ void event_thread(void* arg)
 
 		/* QWK events */
 		if(check_semaphores && !(startup->options&BBS_OPT_NO_QWK_EVENTS)) {
-			sbbs->event_code = "unQWK";
+			sbbs->event_code = "unpackREP";
 			/* Import any REP files that have magically appeared (via FTP perhaps) */
 			SAFEPRINTF(str,"%sfile/",sbbs->cfg.data_dir);
 			offset=strlen(str);
