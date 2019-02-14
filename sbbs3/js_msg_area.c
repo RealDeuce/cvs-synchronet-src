@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.73 2019/08/02 09:28:52 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.71 2018/07/29 00:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -77,21 +77,19 @@ static char* msg_sub_prop_desc[] = {
 	,"sub-board data storage location"
 	,"FidoNet origin line"
 	,"QWK Network tagline"
-	,"toggle options (bitfield) - see <tt>SUB_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	,"toggle options (bitfield)"
 	,"index into message scan configuration/pointer file"
 	,"QWK conference number"
 	,"configured maximum number of message CRCs to store (for dupe checking)"
 	,"configured maximum number of messages before purging"
 	,"configured maximum age (in days) of messages before expiration"
-	,"additional print mode flags to use when printing messages - see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for details"
-	,"print mode flags to <i>negate</i> when printing messages - see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	/* Insert here */
 	,"user has sufficient access to read messages"
 	,"user has sufficient access to post messages"
 	,"user has operator access to this message area"
 	,"user's posts are moderated"
 	,"user's current new message scan pointer (highest-read message number)"
-	,"user's message scan configuration (bitfield) - see <tt>SCAN_CFG_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	,"user's message scan configuration (bitfield) see <tt>SCAN_CFG_*</tt> in <tt>sbbsdefs.js</tt> for valid bits"
 	,"user's last-read message number"
 	,NULL
 };
@@ -261,15 +259,6 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 	if(!JS_DefineProperty(cx, subobj, "max_age", INT_TO_JSVAL(sub->maxage)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
-
-	if(!JS_DefineProperty(cx, subobj, "print_mode", INT_TO_JSVAL(sub->pmode)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
-		return(FALSE);
-
-	if(!JS_DefineProperty(cx, subobj, "print_mode_neg", INT_TO_JSVAL(sub->n_pmode)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
-		return(FALSE);
-
 
 #ifdef BUILD_JSDOCS
 	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_sub_prop_desc, JSPROP_READONLY);
