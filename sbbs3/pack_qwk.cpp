@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.81 2018/10/31 07:44:44 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.82 2019/02/14 09:55:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -165,7 +165,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		}
 		p="CONTROLTYPE = ";
 		fprintf(stream,"DOOR = %.10s\r\nVERSION = %s%c\r\n"
-			"SYSTEM = %s\r\n"
+			"SYSTEM = %s%c\r\n"
 			"CONTROLNAME = SBBS\r\n"
 			"%sADD\r\n"
 			"%sDROP\r\n"
@@ -186,7 +186,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 			"MIXEDCASE = YES\r\n"
 			,VERSION_NOTICE
 			,VERSION,REVISION
-			,VERSION_NOTICE
+			,VERSION_NOTICE,REVISION
 			,p,p,p,p
 			,p,p,p,p
 			,p,p,p,p
