@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.67 2019/02/20 05:43:18 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.64 2018/10/30 03:16:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -100,12 +100,12 @@ bool sbbs_t::lookup_netuser(char *into)
 /****************************************************************************/
 /* Send FidoNet/QWK/Internet NetMail from BBS								*/
 /****************************************************************************/
-bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resmb, smbmsg_t* remsg)
+bool sbbs_t::netmail(const char *into, const char *title, long mode)
 {
 	char	str[256],fname[128],*buf,*p,ch;
-	char	to[FIDO_NAME_LEN] = "";
-	char	from[FIDO_NAME_LEN]= "";
-	char	subj[FIDO_SUBJ_LEN]= "";
+	char	to[FIDO_NAME_LEN];
+	char	from[FIDO_NAME_LEN];
+	char	subj[FIDO_SUBJ_LEN];
 	char	msgpath[MAX_PATH+1];
 	char 	tmp[512];
 	char*	editor=NULL;
@@ -127,19 +127,9 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 		bputs(text[NoNetMailAllowed]);
 		return false;
 	}
-	
-	if(title != NULL)
-		SAFECOPY(subj, title);
-	if(into != NULL)
-		SAFECOPY(to, into);
-	if(remsg != NULL) {
-		if(subj[0] == 0 && remsg->subj != NULL)
-			SAFECOPY(subj, remsg->subj);
-		if(to[0] == 0 && remsg->from != NULL)
-			SAFECOPY(to, remsg->from);
-//		if(addr[0] == 0 && remsg->from_net.addr != NULL)
-//			smb_netaddrstr(&remsg->from_net, addr);
-	}
+
+	SAFECOPY(subj, title);
+	SAFECOPY(to, into);
 
 	lookup_netuser(to);
 
@@ -150,7 +140,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		qnetmail(to, title, mode);
+		qnetmail(to,title,mode|WM_NETMAIL);
 		return false; 
 	}
 	if(net_type == NET_INTERNET) {
@@ -162,7 +152,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return inetmail(into, title, mode, resmb, remsg);
+		return inetmail(into,title,mode|WM_NETMAIL);
 	}
 	p=strrchr(to,'@');      /* Find '@' in name@addr */
 	if(p==NULL || net_type != NET_FIDO) {
@@ -227,11 +217,6 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	if(cfg.netmail_misc&NMAIL_HOLD)  msg.hdr.netattr |= MSG_HOLD;
 	if(cfg.netmail_misc&NMAIL_KILL)  msg.hdr.netattr |= MSG_KILLSENT;
 	if(mode&WM_FILE) msg.hdr.auxattr |= MSG_FILEATTACH; 
-
-	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
-		if(quotemsg(resmb, remsg, /* include tails: */true))
-			mode |= WM_QUOTE;
-	}
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB, into, from, &editor)) {
@@ -354,7 +339,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	smb_t smb;
 	memset(&smb, 0, sizeof(smb));
 	smb.subnum = INVALID_SUB;
-	int result = savemsg(&cfg, &smb, &msg, &client, startup->host_name, buf, remsg);
+	int result = savemsg(&cfg, &smb, &msg, &client, startup->host_name, buf);
 	free(buf);
 	smb_close(&smb);
 	smb_freemsgmem(&msg);
@@ -387,7 +372,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	char	*qwkbuf,to[129],name[129],sender[129],senderaddr[129]
 			   ,str[256],*p,*cp,*addr,fulladdr[129],ch;
 	char*	sender_id = fromhub ? cfg.qhub[fromhub-1]->id : useron.alias;
-	char*	subject = NULL;
 	char 	tmp[512];
 	int 	i,fido,inet=0,qnet=0;
 	uint16_t net;
@@ -410,59 +394,26 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 	fulladdr[0]=0;
 
 	sprintf(str,"%.6s",block+116);
-	n=atol(str);	  /* number of 128 byte records */
+	n=atol(str);	  /* i = number of 128 byte records */
 
 	if(n<2L || n>999999L) {
 		errormsg(WHERE,ERR_CHK,"QWK blocks",n);
 		return; 
 	}
-	// Allocate/zero an extra block of NULs for strchr() usage and other ASCIIZ goodness
-	if((qwkbuf=(char *)calloc(n + 1, QWK_BLOCK_LEN))==NULL) {
+	if((qwkbuf=(char *)malloc(n*QWK_BLOCK_LEN))==NULL) {
 		errormsg(WHERE,ERR_ALLOC,nulstr,n*QWK_BLOCK_LEN);
 		return; 
 	}
 	memcpy((char *)qwkbuf,block,QWK_BLOCK_LEN);
 	fread(qwkbuf+QWK_BLOCK_LEN,n-1,QWK_BLOCK_LEN,rep);
 
-	size_t kludge_hdrlen = 0;
-	char* beg = qwkbuf + QWK_BLOCK_LEN;
-	char* end = qwkbuf + (n * QWK_BLOCK_LEN);
-	p = beg;
-	if(into==NULL) {
-		SAFECOPY(to, p);  /* To user on first line */
-		char* tp = strchr(to, QWK_NEWLINE);		/* chop off at first CR */
-		if(tp != NULL)
-			*tp = 0;
-		p += strlen(to) + 1;
-	}
+	if(into==NULL)
+		sprintf(to,"%-128.128s",(char *)qwkbuf+QWK_BLOCK_LEN);  /* To user on first line */
 	else
-		SAFECOPY(to, into);
+		SAFECOPY(to,into);
 
-	// Parse QWKE Kludge Lines here:
-	while(p < end && *p != QWK_NEWLINE) {
-		if(strncmp(p, "To:", 3) == 0) {
-			p += 3;
-			SKIP_WHITESPACE(p);
-			char* tp = strchr(p, QWK_NEWLINE);		/* chop off at first CR */
-			if(tp != NULL)
-				*tp = 0;
-			SAFECOPY(to, p);
-			p += strlen(p) + 1;
-			continue;
-		}
-		if(strncmp(p, "Subject:", 8) == 0) {
-			p += 8;
-			SKIP_WHITESPACE(p);
-			char* tp = strchr(p, QWK_NEWLINE);		/* chop off at first CR */
-			if(tp != NULL)
-				*tp = 0;
-			subject = p;
-			p += strlen(p) + 1;
-			continue;
-		}
-		break;
-	}
-	kludge_hdrlen += (p - beg) + 1;
+	p=strchr(to,QWK_NEWLINE);		/* chop off at first CR */
+	if(p) *p=0;
 
 	SAFECOPY(name,to);
 	p=strchr(name,'@');
@@ -504,9 +455,14 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		return; 
 	}
 
-	l = QWK_BLOCK_LEN + kludge_hdrlen;		/* Start of message text */
+	l=QWK_BLOCK_LEN;		/* Start of message text */
 
 	if(qnet || inet) {
+
+		if(into==NULL) {	  /* If name@addr on first line, skip first line */
+			while(l<(n*QWK_BLOCK_LEN) && qwkbuf[l]!=QWK_NEWLINE) l++;
+			l++; 
+		}
 
 		memset(&msg,0,sizeof(smbmsg_t));
 		msg.hdr.version=smb_ver();
@@ -572,11 +528,8 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		tm.tm_isdst=-1;	/* Do not adjust for DST */
 		msg.hdr.when_written.time=mktime32(&tm);
 
-		if(subject == NULL) {
-			sprintf(str, "%.25s", block+71);
-			subject = str;
-		}
-		smb_hfield_str(&msg, SUBJECT, subject);
+		sprintf(str,"%.25s",block+71);              /* Title */
+		smb_hfield(&msg,SUBJECT,strlen(str),str);
 	}
 
 	if(qnet) {
@@ -664,7 +617,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			smb_freemsgmem(&msg);
 			return; 
 		}
-		add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
 		if(smb_fgetlength(smb.shd_fp)<1L) {   /* Create it if it doesn't exist */
 			smb.status.max_crcs=cfg.mail_maxcrcs;
@@ -716,8 +668,6 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			if(qwkbuf[l]==0 || qwkbuf[l]==LF)
 				continue;
 			if(qwkbuf[l]==QWK_NEWLINE) {
-				if(m <= 2)	/* Ignore blank lines at top of message */
-					continue;
 				smb_fwrite(&smb,crlf,2,smb.sdt_fp);
 				m+=2;
 				continue; 
@@ -875,10 +825,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		hdr.attr|=FIDO_FILE; 
 	}
 
-	if(subject != NULL)
-		SAFECOPY(hdr.subj, subject);
-	else
-		SAFECOPY(hdr.subj, p);
+	SAFECOPY(hdr.subj,p);
 
 	md(cfg.netmail_dir);
 	for(i=1;i;i++) {
@@ -904,7 +851,12 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 		write(fido,str,strlen(str)); 
 	}
 
-	l = QWK_BLOCK_LEN + kludge_hdrlen;
+	l=QWK_BLOCK_LEN;
+
+	if(into==NULL) {	  /* If name@addr on first line, skip first line */
+		while(l<n*QWK_BLOCK_LEN && qwkbuf[l]!=QWK_NEWLINE) l++;
+		l++; 
+	}
 
 	length=n*QWK_BLOCK_LEN;
 	while(l<length) {
