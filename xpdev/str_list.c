@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.47 2017/06/09 02:02:57 rswindell Exp $ */
+/* $Id: str_list.c,v 1.53 2019/02/14 09:48:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,9 +37,6 @@
 
 #include <stdlib.h>		/* malloc and qsort */
 #include <string.h>		/* strtok */
-#if defined(_WIN32)
- #include <malloc.h>    /* alloca() on Win32 */
-#endif
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
 
@@ -201,6 +198,22 @@ char* DLLCALL strListReplace(const str_list_t list, size_t index, const char* st
 	return(buf);
 }
 
+size_t DLLCALL strListModifyEach(const str_list_t list, char*(modify(size_t, char*, void*)), void* cbdata)
+{
+	size_t	i;
+	for(i = 0; list[i] != NULL; i++) {
+		char* str = modify(i, list[i], cbdata);
+		if(str == NULL || str == list[i])	// Same old pointer (or NULL), no modification
+			continue;
+		str = strdup(str);
+		if(str == NULL)
+			break;
+		free(list[i]);
+		list[i] = str;
+	}
+	return i;
+}
+
 BOOL DLLCALL strListSwap(const str_list_t list, size_t index1, size_t index2)
 {
 	char*	tmp;
@@ -227,6 +240,7 @@ BOOL DLLCALL strListSwap(const str_list_t list, size_t index1, size_t index2)
 char* DLLCALL strListAppend(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
+	char *ret;
 
 	if(str==NULL)
 		return(NULL);
@@ -237,7 +251,10 @@ char* DLLCALL strListAppend(str_list_t* list, const char* str, size_t index)
 	if(index==STR_LIST_LAST_INDEX)
 		index=strListCount(*list);
 
-	return(str_list_append(list,buf,index));
+	ret = str_list_append(list,buf,index);
+	if (ret == NULL)
+		free(buf);
+	return ret;
 }
 
 size_t DLLCALL	strListAppendList(str_list_t* list, const str_list_t add_list)
@@ -255,6 +272,7 @@ size_t DLLCALL	strListAppendList(str_list_t* list, const str_list_t add_list)
 char* DLLCALL strListInsert(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
+	char* ret;
 
 	if(str==NULL)
 		return(NULL);
@@ -262,7 +280,10 @@ char* DLLCALL strListInsert(str_list_t* list, const char* str, size_t index)
 	if((buf=strdup(str))==NULL)
 		return(NULL);
 
-	return(str_list_insert(list,buf,index));
+	ret = str_list_insert(list,buf,index);
+	if (ret == NULL)
+		free(buf);
+	return ret;
 }
 
 size_t DLLCALL strListInsertList(str_list_t* list, const str_list_t add_list, size_t index)
@@ -473,7 +494,7 @@ void DLLCALL strListFreeStrings(str_list_t list)
 
 void DLLCALL strListFree(str_list_t* list)
 {
-	if(*list!=NULL) {
+	if(list != NULL && *list != NULL) {
 		strListFreeStrings(*list);
 		FREE_AND_NULL(*list);
 	}
