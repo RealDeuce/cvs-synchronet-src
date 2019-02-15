@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.207 2018/10/22 04:18:06 rswindell Exp $ */
+/* $Id: userdat.c,v 1.211 2019/02/15 03:53:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2878,6 +2878,17 @@ BOOL DLLCALL loginAttemptListFree(link_list_t* list)
 }
 
 /****************************************************************************/
+long DLLCALL loginAttemptListCount(link_list_t* list)
+{	
+	long count;
+	
+	listLock(list);
+	count=listCountNodes(list);
+	listUnlock(list);
+	return count;
+}
+
+/****************************************************************************/
 long DLLCALL loginAttemptListClear(link_list_t* list)
 {	
 	long count;
@@ -2888,6 +2899,7 @@ long DLLCALL loginAttemptListClear(link_list_t* list)
 	listUnlock(list);
 	return count;
 }
+
 
 /****************************************************************************/
 static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* addr)
@@ -3277,14 +3289,17 @@ static FILE* user_ini_open(scfg_t* scfg, unsigned user_number, BOOL create)
 	return iniOpenFile(path, create);
 }
 
-BOOL DLLCALL user_get_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, char* value)
+BOOL DLLCALL user_get_property(scfg_t* scfg, unsigned user_number, const char* section, const char* key, char* value, size_t maxlen)
 {
 	FILE* fp;
+	char buf[INI_MAX_VALUE_LEN];
 
 	fp = user_ini_open(scfg, user_number, /* create: */FALSE);
 	if(fp == NULL)
 		return FALSE;
-	char* result = iniReadValue(fp, section, key, NULL, value);
+	char* result = iniReadValue(fp, section, key, NULL, buf);
+	if(result != NULL)
+		safe_snprintf(value, maxlen, "%s", result);
 	iniCloseFile(fp);
 	return result != NULL;
 }
@@ -3298,7 +3313,8 @@ BOOL DLLCALL user_set_property(scfg_t* scfg, unsigned user_number, const char* s
 	if(fp == NULL)
 		return FALSE;
 	ini = iniReadFile(fp);
-	char* result = iniSetValue(&ini, section, key, value, /* style */NULL);
+	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = " };
+	char* result = iniSetValue(&ini, section, key, value, &ini_style);
 	iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	iniCloseFile(fp);
@@ -3314,7 +3330,8 @@ BOOL DLLCALL user_set_time_property(scfg_t* scfg, unsigned user_number, const ch
 	if(fp == NULL)
 		return FALSE;
 	ini = iniReadFile(fp);
-	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, /* style */NULL);
+	ini_style_t ini_style = { .key_prefix = "\t", .section_separator = "", .value_separator = " = " };
+	char* result = iniSetDateTime(&ini, section, key, /* include_time */TRUE, value, &ini_style);
 	iniWriteFile(fp, ini);
 	iniFreeStringList(ini);
 	iniCloseFile(fp);
