@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.272 2018/12/12 20:27:31 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.273 2019/01/08 00:13:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1355,7 +1355,7 @@ static void show_usage(char *cmd)
 /****************************************************************************/
 /* Main Entry Point															*/
 /****************************************************************************/
-#ifdef BUILD_JSDOCS
+#if defined(BUILD_JSDOCS) && defined(WITH_SDL)
 int CIOLIB_main(int argc, char** argv)
 #else
 int main(int argc, char** argv)
