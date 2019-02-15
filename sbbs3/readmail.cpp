@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.84 2018/12/30 08:40:28 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.86 2019/02/02 23:22:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,7 +131,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	else
 		act=NODE_RMAL;
 	action=act;
-	char* order = (lm_mode&LM_REVERSE) ? "newest" : "oldest";
+	const char* order = (lm_mode&LM_REVERSE) ? "newest" : "oldest";
 	if(smb.msgs>1 && which!=MAIL_ALL) {
 		if(which==MAIL_SENT)
 			bprintf(text[MailSentLstHdr], order);
@@ -507,7 +507,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs(text[CantDeleteMsg]);
+					bprintf(text[CantDeleteMsg], smb.curmsg + 1);
 					domsg=0;
 					break; 
 				}
