@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.680 2019/04/23 23:07:27 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.677 2019/01/13 00:04:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1350,7 +1350,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 				}
 				else  {
 					if((session->req.range_start || session->req.range_end) && atoi(status_line)==206) {
-						safe_snprintf(header,sizeof(header),"%s: %ld",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
+						safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 					}
 					else {
@@ -1374,7 +1374,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			if(session->req.range_start || session->req.range_end) {
 				switch(atoi(status_line)) {
 					case 206:	/* Partial reply */
-						safe_snprintf(header,sizeof(header),"%s: bytes %ld-%ld/%ld",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
+						safe_snprintf(header,sizeof(header),"%s: bytes %d-%d/%d",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 						break;
 					default:
@@ -6248,7 +6248,6 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		lock_ssl_cert();
 		if (scfg.tls_certificate != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session, "disabling certificate verification");
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session, "setting private key");
@@ -6258,12 +6257,10 @@ void http_session_thread(void* arg)
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
-			unlock_ssl_cert();
 			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
-		unlock_ssl_cert();
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
 	}
 
@@ -6283,18 +6280,19 @@ void http_session_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	char host_name[128] = "";
+	if(getnameinfo(&session.addr.addr, session.addr_len, session.host_name, sizeof(session.host_name), NULL, 0, (startup->options&BBS_OPT_NO_HOST_LOOKUP)?NI_NUMERICHOST:0)!=0)
+		SAFECOPY(session.host_name, session.host_ip);
+
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
-		getnameinfo(&session.addr.addr, session.addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name[0] ? host_name : STR_NO_HOSTNAME);
+		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 #endif
-		if(host_name[0] && trashcan(&scfg, host_name,"host")) {
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
+		if(trashcan(&scfg,session.host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
 			close_session_socket(&session);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
@@ -6303,15 +6301,9 @@ void http_session_thread(void* arg)
 			return;
 		}
 	}
-	if(host_name[0])
-		SAFECOPY(session.host_name, host_name);
-	else {
-		SAFECOPY(session.host_name, session.host_ip);
-		SAFECOPY(host_name, STR_NO_HOSTNAME);
-	}
 
 	login_attempt_t attempted;
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, host_name, startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
 
 	/* host_ip wasn't defined in http_session_thread */
 	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
@@ -6334,7 +6326,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.username,unknown);
 
 	SAFECOPY(session.client.addr,session.host_ip);
-	SAFECOPY(session.client.host, host_name);
+	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=inet_addrport(&session.addr);
 	session.client.time=time32(NULL);
 	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
@@ -6543,7 +6535,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.680 $", "%*s %s", revision);
+	sscanf("$Revision: 1.677 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

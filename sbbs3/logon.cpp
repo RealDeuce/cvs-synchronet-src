@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.69 2019/05/05 10:54:22 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.68 2018/10/26 03:40:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,10 +437,8 @@ bool sbbs_t::logon()
 		close(file); 
 	}
 
-	if(cfg.sys_logon[0]) {				/* execute system logon event */
-		lprintf(LOG_DEBUG, "executing logon event: %s", cfg.sys_logon);
+	if(cfg.sys_logon[0])				/* execute system logon event */
 		external(cmdstr(cfg.sys_logon,nulstr,nulstr,NULL),EX_STDOUT); /* EX_SH */
-	}
 
 	if(qwklogon)
 		return(true);
