@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.203 2019/02/15 03:54:55 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.204 2019/02/15 06:26:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,6 +153,8 @@ link_list_t ftp_log_list;
 link_list_t web_log_list;
 link_list_t services_log_list;
 link_list_t	login_attempt_list;
+
+bool clearLoginAttemptList = false;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
@@ -2954,6 +2956,11 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         sysop_available = ChatToggle->Checked;
         set_sysop_availability(&cfg, sysop_available);
     }
+	
+	if(clearLoginAttemptList) {
+		loginAttemptListClear(&login_attempt_list);
+		clearLoginAttemptList = false;
+	}
 
     if(!start)
         start=time(NULL);
@@ -3915,7 +3922,7 @@ void __fastcall TMainForm::LogPopupCopyClick(TObject *Sender)
 void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
       TObject *Sender)
 {
-    loginAttemptListClear(&login_attempt_list);
+    clearLoginAttemptList = true;
 }
 //---------------------------------------------------------------------------
 
