@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.28 2019/04/30 03:33:47 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.26 2018/09/08 21:35:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		7
+#define SBBSECHO_VERSION_MINOR		6
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -194,7 +194,6 @@ typedef struct {
 	bool		secure_echomail;
 	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
 	bool		strip_lf;
-	bool		strip_soft_cr;
 	bool		convert_tear;
 	bool		fuzzy_zone;
 	bool		flo_mailer;				/* Binkley-Style-Outbound / FLO mailer */
