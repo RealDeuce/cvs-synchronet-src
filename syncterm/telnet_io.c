@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.32 2018/10/23 02:18:57 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.33 2018/10/26 06:19:48 rswindell Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -281,7 +281,7 @@ BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 		outbuf[outlen++]=inbuf[i];
 		if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO) {
 			if(inbuf[i]=='\r')
-				outbuf[outlen++]='\n';
+				outbuf[outlen++]=0;	// Some Telnet servers when receiving CRLF as an "Enter" character
 		}
 	}
     *newlen=outlen;
