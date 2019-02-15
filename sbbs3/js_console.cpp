@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.120 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.123 2019/01/15 06:54:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -353,7 +353,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static char* con_prop_desc[] = {
+static const char* con_prop_desc[] = {
 	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
@@ -1195,8 +1195,6 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
@@ -1213,9 +1211,12 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->printfile(cstr,mode);
+	bool result = sbbs->printfile(cstr,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, result ? JS_TRUE : JS_FALSE);
+
     return(JS_TRUE);
 }
 
@@ -1230,8 +1231,6 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	js_str=NULL;
 	char*		cstr;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
@@ -1260,9 +1259,12 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->printtail(cstr,lines,mode);
+	bool result = sbbs->printtail(cstr,lines,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, result ? JS_TRUE : JS_FALSE);
+
     return(JS_TRUE);
 }
 
@@ -1932,11 +1934,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
-	{"printfile",		js_printfile,		1, JSTYPE_VOID,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
+	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print a message text file with optional mode")
 	,310
 	},
-	{"printtail",		js_printtail,		2, JSTYPE_VOID,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
+	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
 	},
@@ -2052,7 +2054,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,31700
 	},
 	{"putbyte",			js_putbyte,			1, JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("sends an unprocessed byte value to the remot terminal")
+	,JSDOCSTR("sends an unprocessed byte value to the remote terminal")
 	,31700
 	},
 	{0}
