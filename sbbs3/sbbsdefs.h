@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.230 2019/01/01 14:36:06 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.231 2019/01/04 22:05:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -50,7 +50,7 @@
 /*************/
 
 #define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
+#define REVISION	'c'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 

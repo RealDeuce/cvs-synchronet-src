@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.210 2018/11/09 03:18:04 rswindell Exp $ */
+/* $Id: userdat.c,v 1.211 2019/02/15 03:53:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2878,6 +2878,17 @@ BOOL DLLCALL loginAttemptListFree(link_list_t* list)
 }
 
 /****************************************************************************/
+long DLLCALL loginAttemptListCount(link_list_t* list)
+{	
+	long count;
+	
+	listLock(list);
+	count=listCountNodes(list);
+	listUnlock(list);
+	return count;
+}
+
+/****************************************************************************/
 long DLLCALL loginAttemptListClear(link_list_t* list)
 {	
 	long count;
@@ -2888,6 +2899,7 @@ long DLLCALL loginAttemptListClear(link_list_t* list)
 	listUnlock(list);
 	return count;
 }
+
 
 /****************************************************************************/
 static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* addr)

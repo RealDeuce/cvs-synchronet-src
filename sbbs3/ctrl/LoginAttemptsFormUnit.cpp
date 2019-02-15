@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: LoginAttemptsFormUnit.cpp,v 1.7 2018/07/24 01:11:28 rswindell Exp $ */
+/* $Id: LoginAttemptsFormUnit.cpp,v 1.8 2019/02/15 03:54:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,6 +272,12 @@ void __fastcall TLoginAttemptsForm::ResolveHostnameMenuItemClick(
         	break;
         ListItem=ListView->GetNextItem(ListItem,sdAll,State);
     }
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TLoginAttemptsForm::ClearListMenuItemClick(TObject *Sender)
+{
+    loginAttemptListClear(&login_attempt_list);    
 }
 //---------------------------------------------------------------------------
 

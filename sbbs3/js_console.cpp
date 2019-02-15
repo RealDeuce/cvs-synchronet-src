@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.121 2018/10/26 03:23:56 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.123 2019/01/15 06:54:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -353,7 +353,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static char* con_prop_desc[] = {
+static const char* con_prop_desc[] = {
 	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
@@ -2054,7 +2054,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,31700
 	},
 	{"putbyte",			js_putbyte,			1, JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("sends an unprocessed byte value to the remot terminal")
+	,JSDOCSTR("sends an unprocessed byte value to the remote terminal")
 	,31700
 	},
 	{0}
