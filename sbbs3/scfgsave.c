@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.85 2019/07/15 02:13:35 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.77 2019/02/15 00:06:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,12 +810,12 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->lname, stream);
 				put_str(cfg->dir[i]->sname, stream);
 				put_str(cfg->dir[i]->code_suffix, stream);
-
+#if 1
 				if (cfg->dir[i]->data_dir[0]) {
 					backslash(cfg->dir[i]->data_dir);
 					md(cfg->dir[i]->data_dir);
 				}
-
+#endif
 				put_str(cfg->dir[i]->data_dir, stream);
 				put_str(cfg->dir[i]->arstr, stream);
 				put_str(cfg->dir[i]->ul_arstr, stream);
@@ -823,28 +823,30 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->op_arstr, stream);
 				backslash(cfg->dir[i]->path);
 				put_str(cfg->dir[i]->path, stream);
-
+#if 1
 				if (cfg->dir[i]->misc&DIR_FCHK) {
 					SAFECOPY(path, cfg->dir[i]->path);
 					if (!path[0]) {		/* no file storage path specified */
-						if(cfg->dir[i]->data_dir[0])
-							SAFECOPY(path, cfg->dir[i]->data_dir);
-						else
-							SAFEPRINTF(path, "%sdirs", cfg->data_dir);
 						SAFEPRINTF2(str, "%s%s"
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
-						SAFECAT(path,str);
+						safe_snprintf(path, sizeof(path), "%s%s/"
+							, cfg->dir[i]->data_dir
+							, str);
 					}
 					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
 						SAFECOPY(path, cfg->lib[cfg->dir[i]->lib]->parent_path);
+						prep_dir(cfg->ctrl_dir, path, sizeof(path));
+						md(path);
 						backslash(path);
-						SAFECAT(path, cfg->dir[i]->path);
+						strcat(path, cfg->dir[i]->path);
 					}
-					prep_dir(cfg->ctrl_dir, path, sizeof(path));
-					mkpath(path);
+					else
+						prep_dir(cfg->ctrl_dir, path, sizeof(path));
+					md(path);
 				}
+#endif
 
 				put_str(cfg->dir[i]->upload_sem, stream);
 				put_int(cfg->dir[i]->maxfiles, stream);
@@ -1003,11 +1005,10 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_int(cfg->xedit[i]->misc,stream);
 		put_str(cfg->xedit[i]->arstr,stream);
 		put_int(cfg->xedit[i]->type,stream);
-		c = cfg->xedit[i]->soft_cr;
+		c=0;
 		put_int(c,stream);
 		n=0;
-		put_int(cfg->xedit[i]->quotewrap_cols, stream);
-		for(j=0;j<6;j++)
+		for(j=0;j<7;j++)
 			put_int(n,stream);
 		}
 
@@ -1024,16 +1025,11 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of xtrn programs that will be written */
 	n = 0;
 	for (i = 0; i < cfg->total_xtrns; i++)
-		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs	/* Total VALID xtrn progs */
-			&& cfg->xtrn[i]->name[0]
-			&& cfg->xtrn[i]->code[0])
+		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs)	/* Total VALID xtrn progs */
 			n++;
 	put_int(n,stream);
 	for(sec=0;sec<cfg->total_xtrnsecs;sec++)
 		for(i=0;i<cfg->total_xtrns;i++) {
-			if(cfg->xtrn[i]->name[0] == 0
-				|| cfg->xtrn[i]->code[0] == 0)
-				continue;
 			if(cfg->xtrn[i]->sec!=sec)
 				continue;
 			put_int(cfg->xtrn[i]->sec,stream);
