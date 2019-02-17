@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.187 2019/03/19 23:02:02 rswindell Exp $ */
+/* $Id: smblib.c,v 1.184 2019/02/16 12:09:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -496,6 +496,7 @@ int SMBCALL smb_lockmsghdr(smb_t* smb, smbmsg_t* msg)
 /* if msg.hdr.number does not equal 0, then msg->offset is filled too.		*/
 /* Either msg->hdr.number or msg->offset must be initialized before 		*/
 /* calling this function													*/
+/* Returns 1 if message number wasn't found, 0 if it was                    */
 /****************************************************************************/
 int SMBCALL smb_getmsgidx(smb_t* smb, smbmsg_t* msg)
 {
@@ -857,9 +858,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_TAGS:
 			msg->tags=(char*)hfield_dat;
 			break;
-		case SMB_EDITOR:
-			msg->editor=(char*)hfield_dat;
-			break;
 		case SMB_COLUMNS:
 			msg->columns=*(uint8_t*)hfield_dat;
 			break;
@@ -929,7 +927,6 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->subj=NULL;
 	msg->summary=NULL;
 	msg->tags=NULL;
-	msg->editor=NULL;
 	msg->id=NULL;
 	msg->reply_id=NULL;
 	msg->reverse_path=NULL;
@@ -1431,7 +1428,7 @@ int SMBCALL smb_dfield(smbmsg_t* msg, uint16_t type, ulong length)
 }
 
 /****************************************************************************/
-/* Checks CRC history file for duplicate crc. If found, returns SMB_DUPE_MSG*/
+/* Checks CRC history file for duplicate crc. If found, returns 1.			*/
 /* If no dupe, adds to CRC history and returns 0, or negative if error. 	*/
 /****************************************************************************/
 int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
@@ -1450,7 +1447,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 
 	SAFEPRINTF(str,"%s.sch",smb->file);
 	while(1) {
-		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW, DEFFILEMODE))!=-1)
+		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
 			break;
 		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)

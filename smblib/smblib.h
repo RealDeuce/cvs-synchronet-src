@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.88 2019/03/22 21:29:12 rswindell Exp $ */
+/* $Id: smblib.h,v 1.87 2018/07/24 05:15:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -45,7 +45,7 @@
 
 #ifdef _WIN32
 	#ifdef __BORLANDC__
-		#define SMBCALL
+		#define SMBCALL __stdcall
 	#else
 		#define SMBCALL
 	#endif
