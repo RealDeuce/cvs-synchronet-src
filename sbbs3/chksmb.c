@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.67 2019/02/17 05:24:51 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.66 2019/02/16 10:26:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.67 $", "%*s %s", revision);
+	sscanf("$Revision: 1.66 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
 		for(n = 0; n < smb.status.total_msgs; n++) {
 			if(idxrec[n].number == msg.hdr.number)
 				continue;
-			if(idxrec[n].offset > l && idxrec[n].offset < l + (smb_hdrblocks(msg.hdr.length) * SHD_BLOCK_LEN)) {
+			if(idxrec[n].offset >= l && idxrec[n].offset < l + (smb_hdrblocks(msg.hdr.length) * SHD_BLOCK_LEN)) {
 				fprintf(stderr,"%sMessage header overlap\n", beep);
 				msgerr=TRUE;
 				if(extinfo)

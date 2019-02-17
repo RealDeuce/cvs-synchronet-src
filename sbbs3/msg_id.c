@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.14 2019/04/11 01:18:59 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.12 2019/02/17 03:30:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
 
 #include "sbbs.h"
 
-static ulong msg_number(smbmsg_t* msg)
+static uint32_t msg_number(smbmsg_t* msg)
 {
 	if(msg->idx.number)
 		return(msg->idx.number);
@@ -56,7 +56,7 @@ uint32_t get_new_msg_number(smb_t* smb)
 	return smb->status.last_msg + 1;
 }
 
-static ulong msg_time(smbmsg_t* msg)
+static uint32_t msg_time(smbmsg_t* msg)
 {
 	if(msg->idx.time)
 		return(msg->idx.time);
@@ -243,8 +243,13 @@ char* DLLCALL msg_program_id(char* pid, size_t maxlen)
 	char compiler[64];
 
 	DESCRIBE_COMPILER(compiler);
-	snprintf(pid, maxlen, "%.10s %s%c-%s  %s %s"
+	snprintf(pid, maxlen, "%.10s %s%c-%s%s %s %s"
 		,VERSION_NOTICE,VERSION,REVISION,PLATFORM_DESC
+#ifdef _DEBUG
+		," Debug"
+#else
+		,""
+#endif
 		,__DATE__,compiler);
 	return pid;
 }
