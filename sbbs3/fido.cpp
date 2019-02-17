@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.65 2019/02/15 01:43:31 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.66 2019/02/17 03:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -649,6 +649,7 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			smb_freemsgmem(&msg);
 			return; 
 		}
+		add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
 		if(smb_fgetlength(smb.shd_fp)<1L) {   /* Create it if it doesn't exist */
 			smb.status.max_crcs=cfg.mail_maxcrcs;

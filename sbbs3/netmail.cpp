@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.52 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.53 2019/02/17 03:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,8 +259,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	/* Generate FidoNet Program Identifier */
-	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
+	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
@@ -466,8 +465,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	/* Generate FidoNet Program Identifier */
-	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
+	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
