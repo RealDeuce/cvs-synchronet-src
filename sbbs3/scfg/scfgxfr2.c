@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.52 2017/11/16 06:03:43 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.57 2019/02/15 01:36:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ static bool new_dir(unsigned new_dirnum, unsigned libnum)
 
 	dir_t** new_dir_list;
 	if ((new_dir_list = (dir_t **)realloc(cfg.dir, sizeof(dir_t *)*(cfg.total_dirs + 1))) == NULL) {
+		free(new_directory);
 		errormsg(WHERE, ERR_ALLOC, "directory list", cfg.total_dirs + 1);
 		return false;
 	}
@@ -89,6 +90,7 @@ static bool new_lib(unsigned new_libnum)
 
 	lib_t** new_lib_list;
 	if ((new_lib_list = (lib_t **)realloc(cfg.lib, sizeof(lib_t *)*(cfg.total_libs + 1))) == NULL) {
+		free(new_library);
 		errormsg(WHERE, ERR_ALLOC, "library list", cfg.total_libs + 1);
 		return false;
 	}
@@ -169,7 +171,7 @@ BOOL create_raw_dir_list(const char* list_file)
 	backslash(path);
 	uifc.pop("Scanning Directories...");
 	append_dir_list(path, path, fp, /* depth: */0, /* max_depth: */k, include_empty_dirs);
-	uifc.pop(0);
+	uifc.pop(NULL);
 	fclose(fp);
 	return(TRUE);
 }
@@ -259,7 +261,7 @@ void xfer_cfg()
 			if(j==-1)
 				continue;
 			if(!j) {
-				write_file_cfg(&cfg,backup_level);
+				save_file_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -412,21 +414,34 @@ void xfer_cfg()
 					break;
 				case __COUNTER__:
 					uifc.helpbuf=lib_long_name_help;
-					strcpy(str,cfg.lib[i]->lname);	/* save */
-					if(!uifc.input(WIN_MID|WIN_SAV,0,0,"Name to use for Listings"
-						,cfg.lib[i]->lname,LEN_GLNAME,K_EDIT))
-						strcpy(cfg.lib[i]->lname,str);	/* restore */
+					SAFECOPY(str, cfg.lib[i]->lname);
+					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Name to use for Listings"
+						,str,LEN_GLNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.lib[i]->lname,str);
 					break;
 				case __COUNTER__:
 					uifc.helpbuf=lib_short_name_help;
-					uifc.input(WIN_MID|WIN_SAV,0,0,"Name to use for Prompts"
-						,cfg.lib[i]->sname,LEN_GSNAME,K_EDIT);
+					SAFECOPY(str, cfg.lib[i]->sname);
+					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Name to use for Prompts"
+						,str,LEN_GSNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.lib[i]->sname,str);
 					break;
 				case __COUNTER__:
+				{
+					char code_prefix[LEN_CODE+1];
+					SAFECOPY(code_prefix, cfg.lib[i]->code_prefix);
 					uifc.helpbuf=lib_code_prefix_help;
-					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code Prefix"
-						,cfg.lib[i]->code_prefix,LEN_CODE,K_EDIT|K_UPPER);
+					if(uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code Prefix"
+						,code_prefix,LEN_CODE,K_EDIT|K_UPPER) < 0)
+						continue;
+					if(code_prefix[0] == 0 || code_ok(code_prefix)) {
+						SAFECOPY(cfg.lib[i]->code_prefix, code_prefix);
+					} else {
+						uifc.helpbuf = invalid_code;
+						uifc.msg("Invalid Code Prefix");
+					}
 					break;
+				}
 				case __COUNTER__:
 					uifc.helpbuf=
 						"`Parent Directory:`\n"
@@ -628,7 +643,7 @@ void xfer_cfg()
 						fprintf(stream,"***END-OF-DIR***\n\n");
 					}
 					fclose(stream);
-					uifc.pop(0);
+					uifc.pop(NULL);
 					sprintf(str,"%lu File Areas Exported Successfully",ported);
 					uifc.msg(str);
 					uifc.changes=q;
@@ -839,6 +854,8 @@ void xfer_cfg()
 								if(tmpdir.path[0]
 									&& strcmp(cfg.dir[j]->path, tmpdir.path) == 0)	/* same path? overwrite the dir entry */
 									break;
+								if(stricmp(cfg.dir[j]->sname, tmpdir.sname) == 0)
+									break;
 							} else {
 								if((cfg.lib[i]->code_prefix[0] || cfg.lib[cfg.dir[j]->lib]->code_prefix[0]))
 									continue;
@@ -903,7 +920,7 @@ void xfer_cfg()
 					fclose(stream);
 					if(ported && cfg.lib[i]->sort)
 						sort_dirs(i);
-					uifc.pop(0);
+					uifc.pop(NULL);
 					sprintf(str,"%lu File Areas Imported Successfully (%lu added)",ported, added);
 					uifc.msg(str);
 					break;
@@ -1044,10 +1061,10 @@ void dir_cfg(uint libnum)
 
 			if(stricmp(str2,"OFFLINE") == 0)
 				cfg.dir[dirnum[i]]->misc = 0;
-			strcpy(cfg.dir[dirnum[i]]->code_suffix,code);
-			strcpy(cfg.dir[dirnum[i]]->lname,str);
-			strcpy(cfg.dir[dirnum[i]]->sname,str2);
-			strcpy(cfg.dir[dirnum[i]]->path,path);
+			SAFECOPY(cfg.dir[dirnum[i]]->code_suffix,code);
+			SAFECOPY(cfg.dir[dirnum[i]]->lname,str);
+			SAFECOPY(cfg.dir[dirnum[i]]->sname,str2);
+			SAFECOPY(cfg.dir[dirnum[i]]->path,path);
 			uifc.changes=1;
 			continue;
 		}
@@ -1126,8 +1143,13 @@ void dir_cfg(uint libnum)
 				else 
 					prep_dir(cfg.ctrl_dir, str, sizeof(str));
 			} else {
-				SAFEPRINTF3(str, "[%sdirs/%s%s/]"
-					,cfg.data_dir 
+				if (!cfg.dir[dirnum[i]]->data_dir[0])
+					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
+				else
+					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
+				backslash(data_dir);
+				SAFEPRINTF3(str, "[%s%s%s/]"
+					,data_dir 
 					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
 			}
 			strlwr(str);
@@ -1161,23 +1183,25 @@ void dir_cfg(uint libnum)
 					break;
 				case 0:
 					uifc.helpbuf=dir_long_name_help;
-					strcpy(str,cfg.dir[i]->lname);	/* save */
-					if(!uifc.input(WIN_L2R|WIN_SAV,0,17,"Name to use for Listings"
-						,cfg.dir[i]->lname,LEN_SLNAME,K_EDIT))
-						strcpy(cfg.dir[i]->lname,str);
+					SAFECOPY(str, cfg.dir[i]->lname);
+					if(uifc.input(WIN_L2R|WIN_SAV,0,17,"Name to use for Listings"
+						,str,LEN_SLNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.dir[i]->lname, str);
 					break;
 				case 1:
 					uifc.helpbuf=dir_short_name_help;
-					uifc.input(WIN_L2R|WIN_SAV,0,17,"Name to use for Prompts"
-						,cfg.dir[i]->sname,LEN_SSNAME,K_EDIT);
+					SAFECOPY(str, cfg.dir[i]->sname);
+					if(uifc.input(WIN_L2R|WIN_SAV,0,17,"Name to use for Prompts"
+						,str,LEN_SSNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.dir[i]->sname, str);
 					break;
 				case 2:
 					uifc.helpbuf=dir_code_help;
-					strcpy(str,cfg.dir[i]->code_suffix);
+					SAFECOPY(str,cfg.dir[i]->code_suffix);
 					uifc.input(WIN_L2R|WIN_SAV,0,17,"Internal Code Suffix (unique)"
 						,str,LEN_CODE,K_EDIT|K_UPPER);
 					if(code_ok(str))
-						strcpy(cfg.dir[i]->code_suffix,str);
+						SAFECOPY(cfg.dir[i]->code_suffix,str);
 					else {
 						uifc.helpbuf=invalid_code;
 						uifc.msg("Invalid Code");
