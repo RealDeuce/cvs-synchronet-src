@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.112 2019/08/18 04:27:47 deuce Exp $ */
+/* $Id: js_user.c,v 1.108 2019/01/10 19:53:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -611,7 +611,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS1:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1 << 1, str) >> 1;
+				val=str_to_bits(p->user->flags1, str);
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -625,7 +625,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS2:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags2 << 1, str) >> 1;
+				val=str_to_bits(p->user->flags1, str);
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -639,7 +639,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS3:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags3 << 1, str) >> 1;
+				val=str_to_bits(p->user->flags1, str);
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -653,7 +653,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS4:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags4 << 1, str) >> 1;
+				val=str_to_bits(p->user->flags1, str);
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -667,7 +667,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_EXEMPT:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->exempt << 1, str) >> 1;
+				val=str_to_bits(p->user->flags1, str);
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -681,7 +681,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_REST:	
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->rest << 1, str) >> 1;
+				val=str_to_bits(p->user->flags1, str);
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -964,8 +964,6 @@ static void js_user_finalize(JSContext *cx, JSObject *obj)
 	JS_SetPrivate(cx, obj, NULL);
 }
 
-extern JSClass js_user_class;
-
 static JSBool
 js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -981,7 +979,7 @@ js_chk_ar(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	JSVALUE_TO_MSTRING(cx,argv[0], ars, NULL);
@@ -1018,7 +1016,7 @@ js_posted_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1050,7 +1048,7 @@ js_sent_email(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1084,7 +1082,7 @@ js_downloaded_file(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1120,7 +1118,7 @@ js_uploaded_file(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1155,7 +1153,7 @@ js_adjust_credits(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1186,7 +1184,7 @@ js_adjust_minutes(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1212,13 +1210,12 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	int32	start_time=0;
 	jsrefcount	rc;
 	scfg_t*		scfg;
-	ulong		tl;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
 
 	if(argc) {
@@ -1229,8 +1226,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(scfg,p);
 
-	tl = gettimeleft(scfg, p->user, start_time);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(tl > INT32_MAX ? INT32_MAX : (int32) tl));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL((int32_t)gettimeleft(scfg, p->user, start_time)));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
@@ -1472,7 +1468,7 @@ static JSBool js_user_enumerate(JSContext *cx, JSObject *obj)
 	return(js_user_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_user_class = {
+static JSClass js_user_class = {
      "User"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/

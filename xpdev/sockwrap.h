@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.56 2019/08/06 19:44:39 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.55 2018/06/04 22:02:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,6 @@ union xp_sockaddr {
 
 #define s_addr			S_un.S_addr
 #define sa_family_t		ushort
-typedef uint32_t                in_addr_t;
 
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
