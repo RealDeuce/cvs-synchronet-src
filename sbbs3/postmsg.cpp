@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.117 2019/02/17 03:08:34 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.118 2019/02/17 03:13:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,6 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	char	str[256],title[LEN_TITLE+1],top[256];
 	char	touser[64];
 	char	from[64];
-	char	pid[128];
 	char	tags[64] = "";
 	char*	editor=NULL;
 	char*	msgbuf=NULL;
@@ -382,7 +381,6 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 /* Does *not* support reply-ID look-up / thread-linkage */
 extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf)
 {
-	char	pid[128];
 	ushort	xlat=XLAT_NONE;
 	int 	i;
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
