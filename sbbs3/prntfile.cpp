@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.35 2019/07/06 07:52:21 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.32 2019/02/02 00:44:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,14 +37,13 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
 
 /****************************************************************************/
 /* Prints a file remotely and locally, interpreting ^A sequences, checks    */
 /* for pauses, aborts and ANSI. 'str' is the path of the file to print      */
 /* Called from functions menu and text_sec                                  */
 /****************************************************************************/
-bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
+bool sbbs_t::printfile(const char* fname, long mode)
 {
 	char* buf;
 	char fpath[MAX_PATH+1];
@@ -63,8 +62,6 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 			mode|=P_NOPAUSE;
 		} else if(stricmp(p, ".seq") == 0) {
 			mode |= P_PETSCII;
-		} else if(stricmp(p, ".utf8") == 0) {
-			mode |= P_UTF8;
 		}
 	}
 
@@ -108,9 +105,7 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 		errormsg(WHERE,ERR_READ,fpath,length);
 	else {
 		buf[l]=0;
-		if((mode&P_UTF8) && !term_supports(UTF8))
-			utf8_normalize_str(buf);
-		putmsg(buf,mode,org_cols);
+		putmsg(buf,mode);
 	}
 	free(buf); 
 
@@ -124,7 +119,7 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 	return true;
 }
 
-bool sbbs_t::printtail(const char* fname, int lines, long mode, long org_cols)
+bool sbbs_t::printtail(const char* fname, int lines, long mode)
 {
 	char*	buf;
 	char	fpath[MAX_PATH+1];
@@ -182,7 +177,7 @@ bool sbbs_t::printtail(const char* fname, int lines, long mode, long org_cols)
 			}
 			p--; 
 		}
-		putmsg(p,mode,org_cols);
+		putmsg(p,mode);
 	}
 	if(mode&P_NOABORT && online==ON_REMOTE) {
 		SYNC;
@@ -254,7 +249,7 @@ bool sbbs_t::menu_exists(const char *code, const char* ext, char* path)
 		backslash(menu_dir);
 		SAFEPRINTF3(prefix, "%smenu/%s%s", cfg.text_dir, menu_dir, code);
 	}
-	safe_snprintf(path, MAX_PATH, "%s.%lucol.%s", prefix, cols, ext);
+	safe_snprintf(path, MAX_PATH, "%s.%ucol.%s", prefix, cols, ext);
 	if(fexistcase(path))
 		return true;
 	safe_snprintf(path, MAX_PATH, "%s.%s", prefix, ext);
