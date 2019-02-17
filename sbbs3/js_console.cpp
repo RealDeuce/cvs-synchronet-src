@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.122 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: js_console.cpp,v 1.123 2019/01/15 06:54:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2054,7 +2054,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,31700
 	},
 	{"putbyte",			js_putbyte,			1, JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("sends an unprocessed byte value to the remot terminal")
+	,JSDOCSTR("sends an unprocessed byte value to the remote terminal")
 	,31700
 	},
 	{0}

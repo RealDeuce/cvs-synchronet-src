@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.138 2018/12/31 06:39:07 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.140 2019/01/21 09:20:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -865,6 +865,10 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			line--; 
 			continue;
 		}
+		if(console&CON_DELETELINE) {
+			strListDelete(&str, line);
+			continue;
+		}
 		newline();
 		if(console&CON_DOWNARROW) {
 			if(str[line] != NULL) {
@@ -1016,6 +1020,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		strcpy(buf,top);
 	else
 		buf[0]=0;
+	lines = strListCount(str);
 	for(i=0;i<lines;i++) {
 		strcat(buf,str[i]);
 		strcat(buf,crlf);
