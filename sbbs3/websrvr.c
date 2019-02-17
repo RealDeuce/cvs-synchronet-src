@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.682 2019/05/23 00:40:03 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.677 2019/01/13 00:04:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -99,7 +99,7 @@ static int len_503 = 0;
 #define MAX_HEADERS_SIZE		16384	/* Maximum total size of all headers
 										   (Including terminator )*/
 #define MAX_REDIR_LOOPS			20		/* Max. times to follow internal redirects for a single request */
-#define MAX_POST_LEN			(4*1048576)	/* Max size of body for POSTS */
+#define MAX_POST_LEN			1048576	/* Max size of body for POSTS */
 #define	OUTBUF_LEN				20480	/* Size of output thread ring buffer */
 
 enum {
@@ -1350,7 +1350,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 				}
 				else  {
 					if((session->req.range_start || session->req.range_end) && atoi(status_line)==206) {
-						safe_snprintf(header,sizeof(header),"%s: %ld",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
+						safe_snprintf(header,sizeof(header),"%s: %d",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 					}
 					else {
@@ -1374,7 +1374,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			if(session->req.range_start || session->req.range_end) {
 				switch(atoi(status_line)) {
 					case 206:	/* Partial reply */
-						safe_snprintf(header,sizeof(header),"%s: bytes %ld-%ld/%ld",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
+						safe_snprintf(header,sizeof(header),"%s: bytes %d-%d/%d",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 						break;
 					default:
@@ -2307,7 +2307,7 @@ static void js_add_cookieval(http_session_t * session, char *key, char *value)
 	JS_SetElement(session->js_cx, keyarray, alen, &val);
 }
 
-static void js_add_request_property(http_session_t * session, char *key, char *value, size_t len, bool writeable)
+static void js_add_request_prop_writeable(http_session_t * session, char *key, char *value)
 {
 	JSString*	js_str;
 
@@ -2315,29 +2315,24 @@ static void js_add_request_property(http_session_t * session, char *key, char *v
 		return;
 	if(key==NULL || value==NULL)
 		return;
-	if(len)
-		js_str=JS_NewStringCopyN(session->js_cx, value, len);
-	else
-		js_str=JS_NewStringCopyZ(session->js_cx, value);
-	
-	if(js_str == NULL)
+	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
 		return;
-
-	uintN attrs = JSPROP_ENUMERATE;
-	if(!writeable)
-		attrs |= JSPROP_READONLY;
 	JS_DefineProperty(session->js_cx, session->js_request, key, STRING_TO_JSVAL(js_str)
-		,NULL,NULL,attrs);
-}
-
-static void js_add_request_prop_writeable(http_session_t * session, char *key, char *value)
-{
-	js_add_request_property(session, key, value, 0, /* writeable: */true);
+		,NULL,NULL,JSPROP_ENUMERATE);
 }
 
 static void js_add_request_prop(http_session_t * session, char *key, char *value)
 {
-	js_add_request_property(session, key, value, 0, /* writeable: */false);
+	JSString*	js_str;
+
+	if(session->js_cx==NULL || session->js_request==NULL)
+		return;
+	if(key==NULL || value==NULL)
+		return;
+	if((js_str=JS_NewStringCopyZ(session->js_cx, value))==NULL)
+		return;
+	JS_DefineProperty(session->js_cx, session->js_request, key, STRING_TO_JSVAL(js_str)
+		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 }
 
 static void js_add_header(http_session_t * session, char *key, char *value)
@@ -3315,7 +3310,7 @@ static BOOL exec_js_webctrl(http_session_t* session, char *name, char* script, c
 	}
 	if(session->req.post_data && session->req.post_data[0]) {
 		if(session->req.post_len <= MAX_POST_LEN) {
-			js_add_request_property(session, "post_data", session->req.post_data, session->req.post_len, /*writeable: */false);
+			js_add_request_prop(session,"post_data",session->req.post_data);
 			js_parse_query(session,session->req.post_data);
 		}
 	}
@@ -3591,7 +3586,7 @@ static BOOL check_request(http_session_t * session)
 					recheck_dynamic=TRUE;
 			}
 			else  {
-				/* If cannot open webctrl.ini, only allow sysop access */
+				/* If cannot open webctrl.ars, only allow sysop access */
 				SAFECOPY(session->req.ars,"LEVEL 90");
 				break;
 			}
@@ -5777,7 +5772,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	}
 	if(session->req.post_data && session->req.post_data[0]) {
 		if(session->req.post_len <= MAX_POST_LEN) {
-			js_add_request_property(session, "post_data", session->req.post_data, session->req.post_len, /* writeable: */false);
+			js_add_request_prop(session,"post_data",session->req.post_data);
 			js_parse_query(session,session->req.post_data);
 		}
 	}
@@ -5917,7 +5912,7 @@ FILE *open_post_file(http_session_t *session)
 	FILE	*fp;
 
 	// Create temporary file for post data.
-	SAFEPRINTF3(path,"%sSBBS_POST.%u.%u.data",temp_dir,getpid(),session->socket);
+	sprintf(path,"%sSBBS_POST.%u.%u.html",temp_dir,getpid(),session->socket);
 	if((fp=fopen(path,"wb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 		return fp;
@@ -5928,14 +5923,12 @@ FILE *open_post_file(http_session_t *session)
 	}
 	/* remove()d in close_request() */
 	session->req.cleanup_file[CLEANUP_POST_DATA]=strdup(path);
-	if(session->req.post_data != NULL) {
-		if(fwrite(session->req.post_data, session->req.post_len, 1, fp)!=1) {
-			lprintf(LOG_ERR,"%04d !ERROR writeing to %s", session->socket, path);
-			fclose(fp);
-			return(FALSE);
-		}
-		FREE_AND_NULL(session->req.post_data);
+	if(fwrite(session->req.post_data, session->req.post_len, 1, fp)!=1) {
+		lprintf(LOG_ERR,"%04d !ERROR writeing to %s", session->socket, path);
+		fclose(fp);
+		return(FALSE);
 	}
+	FREE_AND_NULL(session->req.post_data);
 	return fp;
 }
 
@@ -5977,10 +5970,8 @@ int read_post_data(http_session_t * session)
 						if(fp==NULL)
 							return(FALSE);
 					}
-					if(!post_to_file(session, fp, ch_len)) {
-						fclose(fp);
+					if(!post_to_file(session, fp, ch_len))
 						return(FALSE);
-					}
 				}
 				else {
 					/* realloc() to new size */
@@ -6009,7 +6000,7 @@ int read_post_data(http_session_t * session)
 			if(fp) {
 				fclose(fp);
 				FREE_AND_NULL(session->req.post_data);
-				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_WRITE);
+				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
 				if(!session->req.post_map)
 					return(FALSE);
 				session->req.post_data=session->req.post_map->addr;
@@ -6031,11 +6022,10 @@ int read_post_data(http_session_t * session)
 				fp=open_post_file(session);
 				if(fp==NULL)
 					return(FALSE);
-				BOOL success = post_to_file(session, fp, s);
-				fclose(fp);
-				if(!success)
+				if(!post_to_file(session, fp, s))
 					return(FALSE);
-				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_WRITE);
+				fclose(fp);
+				session->req.post_map=xpmap(session->req.cleanup_file[CLEANUP_POST_DATA], XPMAP_READ);
 				if(!session->req.post_map)
 					return(FALSE);
 				session->req.post_data=session->req.post_map->addr;
@@ -6258,7 +6248,6 @@ void http_session_thread(void* arg)
 			}
 		}
 #endif
-		lock_ssl_cert();
 		if (scfg.tls_certificate != -1) {
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_DISABLE_CERTVERIFY), &session, "disabling certificate verification");
 			HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate), &session, "setting private key");
@@ -6268,12 +6257,10 @@ void http_session_thread(void* arg)
 
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
-			unlock_ssl_cert();
 			close_session_no_rb(&session);
 			thread_down();
 			return;
 		}
-		unlock_ssl_cert();
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_OPTION_NET_READTIMEOUT, 0), &session, "setting read timeout");
 	}
 
@@ -6293,18 +6280,19 @@ void http_session_thread(void* arg)
 
 	sbbs_srand();	/* Seed random number generator */
 
-	char host_name[128] = "";
+	if(getnameinfo(&session.addr.addr, session.addr_len, session.host_name, sizeof(session.host_name), NULL, 0, (startup->options&BBS_OPT_NO_HOST_LOOKUP)?NI_NUMERICHOST:0)!=0)
+		SAFECOPY(session.host_name, session.host_ip);
+
 	if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP))  {
-		getnameinfo(&session.addr.addr, session.addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, host_name[0] ? host_name : STR_NO_HOSTNAME);
+		lprintf(LOG_INFO,"%04d Hostname: %s", session.socket, session.host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL
 			&& host->h_aliases[i]!=NULL;i++)
 			lprintf(LOG_INFO,"%04d HostAlias: %s", session.socket, host->h_aliases[i]);
 #endif
-		if(host_name[0] && trashcan(&scfg, host_name,"host")) {
-			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, host_name);
+		if(trashcan(&scfg,session.host_name,"host")) {
+			lprintf(LOG_NOTICE,"%04d !CLIENT BLOCKED in host.can: %s", session.socket, session.host_name);
 			close_session_socket(&session);
 			sem_wait(&session.output_thread_terminated);
 			sem_destroy(&session.output_thread_terminated);
@@ -6313,15 +6301,9 @@ void http_session_thread(void* arg)
 			return;
 		}
 	}
-	if(host_name[0])
-		SAFECOPY(session.host_name, host_name);
-	else {
-		SAFECOPY(session.host_name, session.host_ip);
-		SAFECOPY(host_name, STR_NO_HOSTNAME);
-	}
 
 	login_attempt_t attempted;
-	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, host_name, startup->login_attempt, &attempted);
+	ulong banned = loginBanned(&scfg, startup->login_attempt_list, session.socket, session.host_name, startup->login_attempt, &attempted);
 
 	/* host_ip wasn't defined in http_session_thread */
 	if(banned || trashcan(&scfg,session.host_ip,"ip")) {
@@ -6344,7 +6326,7 @@ void http_session_thread(void* arg)
 	SAFECOPY(session.username,unknown);
 
 	SAFECOPY(session.client.addr,session.host_ip);
-	SAFECOPY(session.client.host, host_name);
+	SAFECOPY(session.client.host,session.host_name);
 	session.client.port=inet_addrport(&session.addr);
 	session.client.time=time32(NULL);
 	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
@@ -6553,7 +6535,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.682 $", "%*s %s", revision);
+	sscanf("$Revision: 1.677 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
