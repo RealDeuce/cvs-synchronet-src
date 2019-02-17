@@ -1,6 +1,7 @@
 /* Synchronet public message reading function */
+// vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.113 2019/02/03 00:20:23 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.114 2019/02/17 03:14:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -999,6 +1000,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							sprintf(str,"removed post from %s %s"
 								,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 							logline("P-",str);
+							center(text[Deleted]);
 							if(!stricmp(cfg.sub[subnum]->misc&SUB_NAME
 								? useron.name : useron.alias, msg.from))
 								useron.posts=(ushort)adjustuserrec(&cfg,useron.number
