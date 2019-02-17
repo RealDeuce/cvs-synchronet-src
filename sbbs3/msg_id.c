@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.13 2019/02/17 11:56:09 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.12 2019/02/17 03:30:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -243,8 +243,13 @@ char* DLLCALL msg_program_id(char* pid, size_t maxlen)
 	char compiler[64];
 
 	DESCRIBE_COMPILER(compiler);
-	snprintf(pid, maxlen, "%.10s %s%c-%s  %s %s"
+	snprintf(pid, maxlen, "%.10s %s%c-%s%s %s %s"
 		,VERSION_NOTICE,VERSION,REVISION,PLATFORM_DESC
+#ifdef _DEBUG
+		," Debug"
+#else
+		,""
+#endif
 		,__DATE__,compiler);
 	return pid;
 }
