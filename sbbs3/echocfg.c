@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.40 2019/04/30 04:40:10 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.38 2018/11/23 17:59:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1631,17 +1631,12 @@ int main(int argc, char **argv)
 	"    access to read.\n"
 	"\n"
 	"`Convert Existing Tear Lines` tells SBBSecho to convert any tear lines\n"
-	"    (`---`) existing in outgoing EchoMail message text to `===`.\n"
+	"    (`---`) existing in the message text to `===`.\n"
 	"    This setting defaults to `No`.\n"
 	"\n"
-	"`Strip Soft CRs from Incoming Messages` when set to `Yes` instructs\n"
-	"    SBBSecho to remove any so-called \"Soft\" Carriage Return (ASCII 141)\n"
-	"    characters from the text of imported EchoMail and NetMail messages.\n"
-	"    This setting defaults to `No`.\n"
-	"\n"
-	"`Strip Line Feeds from Outgoing Messages` when set to `Yes` instructs\n"
+	"`Strip Line Feeds From Outgoing Messages` when set to `Yes` instructs\n"
 	"    SBBSecho to remove any line-feed (ASCII 10) characters from the body\n"
-	"    text of exported EchoMail and NetMail messages.\n"
+	"    text of messages being exported to FidoNet EchoMail.\n"
 	"    This setting defaults to `No`.\n"
 	"\n"
 	"`Automatically Add New Subs to Area File`, when set to `Yes`, enables\n"
@@ -1695,8 +1690,6 @@ int main(int argc, char **argv)
 						,cfg.echomail_notify ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Convert Existing Tear Lines"
 						,cfg.convert_tear ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Strip Soft CRs "
-						"from Incoming Messages",cfg.strip_soft_cr ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Strip Line Feeds "
 						"from Outgoing Messages",cfg.strip_lf ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Automatically Add New Subs "
@@ -1781,14 +1774,6 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 6:
-							k = !cfg.strip_soft_cr;
-							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Strip Soft Carriage Returns",uifcYesNoOpts)) {
-								case 0:	cfg.strip_soft_cr = true;	break;
-								case 1:	cfg.strip_soft_cr = false;	break;
-							}
-							break;
-						case 7:
 							k = !cfg.strip_lf;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Strip Line Feeds",uifcYesNoOpts)) {
@@ -1796,7 +1781,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.strip_lf = false;	break;
 							}
 							break;
-						case 8:
+						case 7:
 							k = !cfg.auto_add_subs;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Automatically Add New Sub-boards to Area File",uifcYesNoOpts)) {
@@ -1804,7 +1789,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.auto_add_subs = false;	break;
 							}
 							break;
-						case 9:
+						case 8:
 							k = cfg.add_from_echolists_only;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Allow AreaFix-Add from Area File",uifcYesNoOpts)) {
@@ -1812,13 +1797,13 @@ int main(int argc, char **argv)
 								case 1:	cfg.add_from_echolists_only = true;		break;
 							}
 							break;
-						case 10:
+						case 9:
 							sprintf(str, "%u", cfg.areafile_backups);
 							if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Total Area File Backups to Maintain"
 								,str, 5, K_EDIT|K_NUMBER) >= 0)
 								cfg.areafile_backups = atoi(str);
 							break;
-						case 11:
+						case 10:
 							k = !cfg.check_path;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Circular Path Detection",uifcYesNoOpts)) {
@@ -1826,7 +1811,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.check_path = false;	break;
 							}
 							break;
-						case 12:
+						case 11:
 							k = !cfg.check_path;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Relay Filtered EchoMail Messages",uifcYesNoOpts)) {
@@ -1834,7 +1819,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.relay_filtered_msgs = false;	break;
 							}
 							break;
-						case 13:
+						case 12:
 						{
 							k = cfg.trunc_bundles;
 							char* opt[] = {"Delete after Sent", "Truncate after Sent", NULL };
@@ -1845,7 +1830,7 @@ int main(int argc, char **argv)
 							}
 							break;
 						}
-						case 14:
+						case 13:
 							k = !cfg.zone_blind;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Zone Blind",uifcYesNoOpts)) {
 								case 0:
@@ -1863,7 +1848,7 @@ int main(int argc, char **argv)
 									break;
 							}
 							break;
-						case 15:
+						case 14:
 							uifc.helpbuf=
 							"~ Maximum Age of Imported EchoMail ~\n\n"
 							"Maximum age of EchoMail that may be imported. The age is based\n"

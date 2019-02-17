@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.513 2019/04/12 00:10:39 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.503 2019/02/17 03:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,7 +375,7 @@ public:
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
 	char	telnet_terminal[TELNET_TERM_MAXLEN+1];
-	long 	telnet_rows;
+	long 	telnet_rows;	
 	long	telnet_cols;
 	long	telnet_speed;
 
@@ -408,12 +408,7 @@ public:
 
 	user_t	useron; 		/* User currently online */
 	node_t	thisnode;		/* Node information */
-	smb_t	smb;			/* Currently active message base */
-	link_list_t smb_list;
-#define SMB_STACK_PUSH	true
-#define SMB_STACK_POP	false
-	int 	smb_stack(smb_t* smb, bool push);
-
+	smb_t	smb;			/* Currently open message base */
 	char	rlogin_name[LEN_ALIAS+1];
 	char	rlogin_pass[LEN_PASS+1];
 	char	rlogin_term[TELNET_TERM_MAXLEN+1];	/* RLogin passed terminal type/speed (e.g. "xterm/57600") */
@@ -467,8 +462,7 @@ public:
 	uchar	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
-	bool 	tos;			/* Cursor is currently at the Top of Screen */
-	bool	msghdr_tos;		/* Message header was displayed at Top of Screen */
+	long 	tos;			/* Top of Screen */
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
@@ -651,16 +645,15 @@ public:
 				,const char *to, const char* from, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
-	char	putmsg(const char *str, long mode, long org_cols = 0);
+	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
-	bool	email(int usernumber, const char *top = NULL, const char *title = NULL
-				, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	email(int usernumber, const char *top, const char *title, long mode);
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
 	ushort	chmsgattr(smbmsg_t);
-	bool	quotemsg(smb_t*, smbmsg_t*, bool tails = false);
+	void	quotemsg(smbmsg_t* msg, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
 				,uint subnum, const char* tagfile);
@@ -668,10 +661,9 @@ public:
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
-	void	editor_info_to_msg(smbmsg_t*, const char* editor);
 
 	/* postmsg.cpp */
-	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
 
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
@@ -681,13 +673,12 @@ public:
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	void	show_msgattr(smbmsg_t*);
-	void	show_msghdr(smb_t*, smbmsg_t*);
-	bool	show_msg(smb_t*, smbmsg_t*, long p_mode = 0, post_t* post = NULL);
-	bool	msgtotxt(smb_t*, smbmsg_t*, const char *fname, bool header = true, ulong gettxt_mode = GETMSGTXT_ALL);
+	void	show_msghdr(smbmsg_t* msg);
+	void	show_msg(smbmsg_t* msg, long mode, post_t* post = NULL);
+	void	msgtotxt(smbmsg_t* msg, char *str, bool header, ulong mode);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
-	void	download_msg_attachments(smb_t*, smbmsg_t*, bool del);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int which, long lm_mode = 0);
@@ -976,20 +967,20 @@ public:
 	bool	unpack_rep(char* repfile=NULL);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t*, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
 	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
-	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
+	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, uint subnum
 				,uint touser, smbmsg_t* msg);
 
 	/* fido.cpp */
-	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
-	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub = 0);
+	bool	netmail(const char *into, const char *subj, long mode);
+	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
-	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	inetmail(const char *into, const char *subj, long mode);
+	bool	qnetmail(const char *into, const char *subj, long mode);
 
 	/* useredit.cpp */
 	void	useredit(int usernumber);
@@ -1041,7 +1032,7 @@ public:
 			#define DLLEXPORT	__declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL
+			#define DLLCALL __stdcall
 		#else
 			#define DLLCALL
 		#endif
@@ -1074,7 +1065,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf, smbmsg_t* remsg);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
 	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt, const char* votefmt);
 	DLLEXPORT int		DLLCALL postpoll(scfg_t*, smb_t*, smbmsg_t*);
 	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
@@ -1325,7 +1316,6 @@ extern "C" {
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT BOOL		DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* hdrobj, smbmsg_t*);
-	DLLEXPORT BOOL		DLLCALL js_GetMsgHeaderObjectPrivates(JSContext* cx, JSObject* hdrobj, smb_t**, smbmsg_t**, post_t**);
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
