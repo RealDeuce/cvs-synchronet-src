@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.12 2016/11/29 10:09:06 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.13 2018/12/30 02:14:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -121,7 +121,7 @@ size_t SMBCALL smb_fwrite(smb_t* smb, const void* buf, size_t bytes, FILE* fp)
 
 /****************************************************************************/
 /* Opens a non-shareable file (FILE*) associated with a message base		*/
-/* Retrys for retry_time number of seconds									*/
+/* Retries for retry_time number of seconds									*/
 /* Return 0 on success, non-zero otherwise									*/
 /****************************************************************************/
 int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
