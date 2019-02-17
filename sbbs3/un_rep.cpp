@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.71 2019/02/08 02:41:54 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.72 2019/02/17 03:10:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -241,10 +241,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(confnum==0) {						/**********/
-			if(useron.rest&FLAG('E')) {         /* E-mail */
-				bputs(text[R_Email]);			/**********/
-				continue; 
+		if(confnum == 0) {						/* E-mail */
+			bprintf("E-mail from %s to %s\r\n", msg.from, msg.to);
+			if(useron.rest&FLAG('E')) {
+				bputs(text[R_Email]);
+				continue;
 			}
 
 			if(msg.to!=NULL) {
