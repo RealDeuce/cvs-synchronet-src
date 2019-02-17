@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.66 2018/02/20 11:18:36 rswindell Exp $ */
+/* $Id: email.cpp,v 1.71 2019/02/17 03:08:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +49,6 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 				,buf[SDT_BLOCK_LEN];
 	char 		tmp[512];
 	char		pid[128];
-	char		msg_id[128];
 	char*		editor=NULL;
 	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
@@ -121,14 +120,15 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top, /* subj: */title,mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
+	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
 
-	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM))
+	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM)) {
+		bputs(text[EmailFilesNotAllowed]);
 		mode&=~WM_FILE;
-
+	}
 
 	if(mode&WM_FILE) {
 		if(!checkfname(title)) {
@@ -314,13 +314,11 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	/* Generate FidoNet Program Identifier */
-	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
-
- 	smb_hfield_str(&msg, RFC822MSGID, get_msgid(&cfg, INVALID_SUB, &msg, msg_id, sizeof(msg_id)));
+	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -341,8 +339,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		logon_emails++;
 	user_sent_email(&cfg, &useron, 1, usernumber==1);
 	bprintf(text[Emailed],username(&cfg,usernumber,tmp),usernumber);
-	safe_snprintf(str,sizeof(str),"%s sent e-mail to %s #%d"
-		,useron.alias,username(&cfg,usernumber,tmp),usernumber);
+	safe_snprintf(str,sizeof(str),"sent e-mail to %s #%d"
+		,username(&cfg,usernumber,tmp),usernumber);
 	logline("E+",str);
 	if(mode&WM_FILE && online==ON_REMOTE)
 		autohangup();
