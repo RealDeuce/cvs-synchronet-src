@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.68 2018/12/17 06:02:40 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.72 2019/02/17 03:10:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
-	FILE*	fp;
 	DIR*	dir;
 	DIRENT*	dirent;
 	smbmsg_t	msg;
@@ -168,10 +167,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	if((fp=fopen(fname,"r"))!=NULL) {
-		twit_list=strListReadFile(fp,NULL,128);
-		fclose(fp);
-	}
+	twit_list = findstr_list(fname);
 
 	now=time(NULL);
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
@@ -199,10 +195,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 					errors++;
 				continue;
 			}
-			snprintf(str, sizeof(str)-1
-				, "%s blocks (read '%c' at offset %ld, '%s' at offset %ld)"
-				, msg_fname, block[0], l, tmp, l + 116);
-			errormsg(WHERE, ERR_CHK, tmp, blocks, str);
+			lprintf(LOG_WARNING
+				, "%s msg blocks less than 2 (read '%c' at offset %ld, '%s' at offset %ld)"
+				, getfname(msg_fname), block[0], l, tmp, l + 116);
 			errors++;
 			blocks=1;
 			continue;
@@ -246,10 +241,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(confnum==0) {						/**********/
-			if(useron.rest&FLAG('E')) {         /* E-mail */
-				bputs(text[R_Email]);			/**********/
-				continue; 
+		if(confnum == 0) {						/* E-mail */
+			bprintf("E-mail from %s to %s\r\n", msg.from, msg.to);
+			if(useron.rest&FLAG('E')) {
+				bputs(text[R_Email]);
+				continue;
 			}
 
 			if(msg.to!=NULL) {
