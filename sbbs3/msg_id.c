@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.11 2019/02/17 03:08:34 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.12 2019/02/17 03:30:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,11 +166,14 @@ char* DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, s
 
 /****************************************************************************/
 /* Add auto-generated message-IDs to a message, if doesn't already have		*/
-/* When remsg != NULL, the message base (smb) must be already opened		*/
+/* The message base (smb) must be already opened							*/
 /****************************************************************************/
 BOOL DLLCALL add_msg_ids(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, smbmsg_t* remsg)
 {
 	char msg_id[256];
+
+	if(msg->hdr.number == 0)
+		msg->hdr.number = get_new_msg_number(smb);
 
  	/* Generate FidoNet (FTS-9) MSGID (for messages posted to FTN sub-boards only) */
  	if(msg->ftn_msgid == NULL && smb->subnum != INVALID_SUB && (cfg->sub[smb->subnum]->misc&SUB_FIDO)) {

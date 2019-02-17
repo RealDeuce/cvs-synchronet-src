@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.118 2019/02/17 03:13:04 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.119 2019/02/17 03:30:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -479,9 +479,6 @@ extern "C" int DLLCALL votemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, const cha
 	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
 		msg->hdr.when_written = msg->hdr.when_imported;
 
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
-
 	add_msg_ids(cfg, smb, msg, /* remsg: */NULL);
 
 	/* Look-up thread_back if RFC822 Reply-ID was specified */
@@ -554,8 +551,6 @@ extern "C" int DLLCALL closepoll(scfg_t* cfg, smb_t* smb, uint32_t msgnum, const
 	msg.hdr.thread_back = msgnum;
 	smb_hfield_str(&msg, SENDER, username);
 
-	msg.hdr.number = get_new_msg_number(smb);
-
 	add_msg_ids(cfg, smb, &msg, /* remsg: */NULL);
 
 	result = smb_addpollclosure(smb, &msg, smb_storage_mode(cfg, smb));
@@ -572,9 +567,6 @@ extern "C" int DLLCALL postpoll(scfg_t* cfg, smb_t* smb, smbmsg_t* msg)
 	}
 	if(msg->hdr.when_written.time == 0)
 		msg->hdr.when_written = msg->hdr.when_imported;
-
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
 
 	add_msg_ids(cfg, smb, msg, /* remsg: */NULL);
 
