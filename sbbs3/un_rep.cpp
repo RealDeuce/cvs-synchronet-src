@@ -1,6 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
+// vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.62 2016/11/20 20:23:59 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.72 2019/02/17 03:10:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +38,7 @@
 #include "qwk.h"
 
 /****************************************************************************/
-/* Unpacks .REP packet, 'repname' is the path and filename of the packet    */
+/* Unpacks .REP packet, 'repfile' is the path and filename of the packet    */
 /****************************************************************************/
 bool sbbs_t::unpack_rep(char* repfile)
 {
@@ -54,9 +55,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 	long	l,size,misc;
 	ulong	n;
 	ulong	ex;
+	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
-	FILE*	fp;
 	DIR*	dir;
 	DIRENT*	dirent;
 	smbmsg_t	msg;
@@ -136,6 +137,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 			else {
 				voting=iniReadFile(fp);
 				fclose(fp);
+#ifdef _DEBUG
+				for(uint u=0; voting[u]; u++)
+					lprintf(LOG_DEBUG, "VOTING.DAT: %s", voting[u]);
+#endif
 			}
 		}
 		remove(fname);
@@ -162,10 +167,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	if((fp=fopen(fname,"r"))!=NULL) {
-		twit_list=strListReadFile(fp,NULL,128);
-		fclose(fp);
-	}
+	twit_list = findstr_list(fname);
 
 	now=time(NULL);
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
@@ -177,23 +179,28 @@ bool sbbs_t::unpack_rep(char* repfile)
 		lncntr=0;					/* defeat pause */
 		if(fseek(rep,l,SEEK_SET)!=0) {
 			errormsg(WHERE,ERR_SEEK,msg_fname,l);
+			errors++;
 			break;
 		}
 		if(fread(block,1,QWK_BLOCK_LEN,rep)!=QWK_BLOCK_LEN) {
 			errormsg(WHERE,ERR_READ,msg_fname,(long)ftell(rep));
+			errors++;
 			break;
 		}
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
 		if(blocks<2) {
 			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
-				qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias);
+				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias))
+					errors++;
 				continue;
 			}
-			SAFEPRINTF3(str,"%s blocks (read '%s' at offset %ld)", msg_fname, tmp, l);
-			errormsg(WHERE,ERR_CHK,str,blocks);
+			lprintf(LOG_WARNING
+				, "%s msg blocks less than 2 (read '%c' at offset %ld, '%s' at offset %ld)"
+				, getfname(msg_fname), block[0], l, tmp, l + 116);
+			errors++;
 			blocks=1;
-			continue; 
+			continue;
 		}
 
 		long confnum = atol((char *)block+1);
@@ -202,9 +209,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
-			SAFEPRINTF2(str,"!Filtering QWK message from %s due to age: %u days"
+			SAFEPRINTF2(str,"!Filtering QWK message from %s due to age: %" PRIu64 " days"
 				,msg.from
-				,(now-msg.hdr.when_written.time)/(24*60*60)); 
+				,(uint64_t)((now-msg.hdr.when_written.time)/(24*60*60))); 
 			logline(LOG_NOTICE,"P!",str);
 			continue;
 		}
@@ -234,10 +241,11 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		if(confnum==0) {						/**********/
-			if(useron.rest&FLAG('E')) {         /* E-mail */
-				bputs(text[R_Email]);			/**********/
-				continue; 
+		if(confnum == 0) {						/* E-mail */
+			bprintf("E-mail from %s to %s\r\n", msg.from, msg.to);
+			if(useron.rest&FLAG('E')) {
+				bputs(text[R_Email]);
+				continue;
 			}
 
 			if(msg.to!=NULL) {
@@ -296,6 +304,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 			smb.subnum=INVALID_SUB;
 			if((k=smb_open(&smb))!=0) {
 				errormsg(WHERE,ERR_OPEN,smb.file,k,smb.last_error);
+				errors++;
 				continue; 
 			}
 
@@ -307,6 +316,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
 					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
+					errors++;
 					continue; 
 				} 
 			}
@@ -314,12 +324,14 @@ bool sbbs_t::unpack_rep(char* repfile)
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
 				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
+				errors++;
 				continue; 
 			}
 
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
 				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
+				errors++;
 				continue; 
 			}
 
@@ -344,8 +356,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				putuserrec(&cfg,useron.number,U_ETODAY,5
 					,ultoa(useron.etoday,tmp,10));
 				bprintf(text[Emailed],username(&cfg,usernum,tmp),usernum);
-				SAFEPRINTF3(str,"%s sent QWK e-mail to %s #%d"
-					,useron.alias,username(&cfg,usernum,tmp),usernum);
+				SAFEPRINTF2(str,"sent QWK e-mail to %s #%d"
+					,username(&cfg,usernum,tmp),usernum);
 				logline("E+",str);
 				if(cfg.node_num) {
 					for(k=1;k<=cfg.sys_nodes;k++) { /* Tell user, if online */
@@ -373,8 +385,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 				/**************************/
 			if((n=resolve_qwkconf(confnum))==INVALID_SUB) {
 				bprintf(text[QWKInvalidConferenceN],confnum);
-				SAFEPRINTF2(str,"%s: Invalid QWK conference number %ld",useron.alias,confnum);
+				SAFEPRINTF(str,"Invalid QWK conference number %ld", confnum);
 				logline(LOG_NOTICE,"P!",str);
+				errors++;
 				continue; 
 			}
 
@@ -476,6 +489,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 				smb.subnum=n;
 				if((j=smb_open(&smb))!=0) {
 					errormsg(WHERE,ERR_OPEN,smb.file,j,smb.last_error);
+					errors++;
 					continue; 
 				}
 
@@ -488,6 +502,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 						smb_close(&smb);
 						lastsub=INVALID_SUB;
 						errormsg(WHERE,ERR_CREATE,smb.file,j,smb.last_error);
+						errors++;
 						continue; 
 					} 
 				}
@@ -496,12 +511,14 @@ bool sbbs_t::unpack_rep(char* repfile)
 					smb_close(&smb);
 					lastsub=INVALID_SUB;
 					errormsg(WHERE,ERR_LOCK,smb.file,j,smb.last_error);
+					errors++;
 					continue; 
 				}
 				if((j=smb_getstatus(&smb))!=0) {
 					smb_close(&smb);
 					lastsub=INVALID_SUB;
 					errormsg(WHERE,ERR_READ,smb.file,j,smb.last_error);
+					errors++;
 					continue; 
 				}
 				smb_unlocksmbhdr(&smb);
@@ -514,8 +531,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				user_posted_msg(&cfg, &useron, 1);
 				bprintf(text[Posted],cfg.grp[cfg.sub[n]->grp]->sname
 					,cfg.sub[n]->lname);
-				SAFEPRINTF3(str,"%s posted QWK message on %s %s"
-					,useron.alias,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
+				SAFEPRINTF2(str,"posted QWK message on %s %s"
+					,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
 				signal_sub_sem(&cfg,n);
 				logline("P+",str); 
 				if(!(useron.rest&FLAG('Q')))
@@ -595,8 +612,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	if(useron.rest&FLAG('Q')) {             /* QWK Net Node */
 		if(fexistcase(msg_fname))
 			remove(msg_fname);
-		if(fexistcase(rep_fname))
-			remove(rep_fname);
 		SAFEPRINTF(fname,"%sATTXREF.DAT",cfg.temp_dir);
 		if(fexistcase(fname))
 			remove(fname);
@@ -608,15 +623,21 @@ bool sbbs_t::unpack_rep(char* repfile)
 			if(isdir(str))
 				continue;
 
+			if(::trashcan(&cfg, dirent->d_name, "file")) {
+				lprintf(LOG_NOTICE, "Ignored blocked filename: %s", dirent->d_name);
+				continue;
+			}
+
 			// Create directory if necessary
 			SAFEPRINTF2(inbox,"%sqnet/%s.in",cfg.data_dir,useron.alias);
-			MKDIR(inbox); 
+			MKDIR(inbox);
 
 			SAFEPRINTF2(fname,"%s/%s",inbox,dirent->d_name);
 			mv(str,fname,1);
 			SAFEPRINTF2(str,text[ReceivedFileViaQWK],dirent->d_name,useron.alias);
 			putsmsg(&cfg,1,str);
-		} 
+			lprintf(LOG_NOTICE, "Received file: %s", dirent->d_name);
+		}
 		if(dir!=NULL)
 			closedir(dir);
 		SAFEPRINTF(fname,"%sqnet-rep.now",cfg.data_dir);
@@ -630,5 +651,5 @@ bool sbbs_t::unpack_rep(char* repfile)
 	/**********************************************/
 	autohangup();
 
-	return(true);
+	return errors == 0;
 }
