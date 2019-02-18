@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.184 2019/02/16 12:09:15 rswindell Exp $ */
+/* $Id: smblib.c,v 1.185 2019/02/18 03:09:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -858,6 +858,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_TAGS:
 			msg->tags=(char*)hfield_dat;
 			break;
+		case SMB_EDITOR:
+			msg->editor=(char*)hfield_dat;
+			break;
 		case SMB_COLUMNS:
 			msg->columns=*(uint8_t*)hfield_dat;
 			break;
@@ -927,6 +930,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->subj=NULL;
 	msg->summary=NULL;
 	msg->tags=NULL;
+	msg->editor=NULL;
 	msg->id=NULL;
 	msg->reply_id=NULL;
 	msg->reverse_path=NULL;
