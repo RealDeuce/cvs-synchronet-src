@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.223 2018/10/03 08:13:19 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.227 2019/02/18 03:14:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -775,6 +775,35 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		}
 	}
 
+	prop_name = "editor";
+	hfield_type = SMB_EDITOR;
+	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
+		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
+		HANDLE_PENDING(cx, cp);
+		if(cp==NULL) {
+			JS_ReportError(cx, "Invalid \"%s\" string in header object", prop_name);
+			goto err;
+		}
+		if((p->smb_result=smb_hfield_str(msg, hfield_type, cp))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding %s field to message header", p->smb_result, smb_hfieldtype(hfield_type));
+			goto err;
+		}
+	}
+
+	prop_name = "columns";
+	hfield_type = SMB_COLUMNS;
+	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
+		if(!JS_ValueToUint32(cx, val, &u32)) {
+			JS_ReportError(cx, "Invalid \"%s\" number in header object", prop_name);
+			goto err;
+		}
+		uint8_t u8 = u32;
+		if((p->smb_result=smb_hfield_bin(msg, hfield_type, u8))!=SMB_SUCCESS) {
+			JS_ReportError(cx, "Error %d adding %s field to message header", p->smb_result, smb_hfieldtype(hfield_type));
+			goto err;
+		}
+	}
+
 	/* Numeric Header Fields */
 	if(JS_GetProperty(cx, hdr, "attr", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		if(!JS_ValueToInt32(cx,val,&i32))
@@ -1191,6 +1220,8 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER_EXPAND("expiration", p->msg.expiration, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("priority", p->msg.priority, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("cost", p->msg.cost, JSPROP_ENUMERATE);
+	LAZY_STRING_TRUNCSP_NULL("editor", p->msg.editor, JSPROP_ENUMERATE);
+	LAZY_UINTEGER_EXPAND("columns", p->msg.columns, JSPROP_ENUMERATE);
 
 	/* Fixed length portion of msg header */
 	LAZY_UINTEGER("type", p->msg.hdr.type, JSPROP_ENUMERATE);
@@ -1618,6 +1649,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 	char		numstr[16];
 	JSBool		include_votes=JS_FALSE;
 	post_t*		post;
+	idxrec_t*	idx;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -1629,11 +1661,15 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 	if(!SMB_IS_OPEN(&(priv->smb)))
 		return JS_TRUE;
 
-	if((post = malloc(priv->smb.status.total_msgs * sizeof(post_t))) == NULL) {
+	if((post = calloc(priv->smb.status.total_msgs, sizeof(*post))) == NULL) {
 		JS_ReportError(cx, "malloc error", WHERE);
 		return JS_FALSE;
 	}
-	memset(post, 0, priv->smb.status.total_msgs * sizeof(post_t));
+	if((idx = calloc(priv->smb.status.total_msgs, sizeof(*idx))) == NULL) {
+		JS_ReportError(cx, "malloc error", WHERE);
+		free(post);
+		return JS_FALSE;
+	}
 
 	if(argc && JSVAL_IS_BOOLEAN(argv[0]))
 		include_votes = JSVAL_TO_BOOLEAN(argv[0]);
@@ -1645,6 +1681,7 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 	if((priv->smb_result=smb_locksmbhdr(&(priv->smb)))!=SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		free(post);
+		free(idx);
 		return JS_TRUE;
 	}
 	JS_RESUMEREQUEST(cx, rc);
@@ -1659,29 +1696,23 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 	else
 		proto=NULL;
 
+	if(fread(idx, sizeof(*idx), priv->smb.status.total_msgs, priv->smb.sid_fp) != priv->smb.status.total_msgs) {
+		smb_unlocksmbhdr(&(priv->smb)); 
+		JS_ReportError(cx,"index read (%lu) failed", priv->smb.status.total_msgs);
+		free(post);
+		free(idx);
+		return JS_FALSE;
+	}
 	for(off=0; off < priv->smb.status.total_msgs; off++) {
-		smbmsg_t msg;
-
-		ZERO_VAR(msg);
-		msg.offset = off;
-
-		rc=JS_SUSPENDREQUEST(cx);
-		priv->smb_result = smb_getmsgidx(&(priv->smb), &msg);
-		JS_RESUMEREQUEST(cx, rc);
-		if(priv->smb_result != SMB_SUCCESS) {
-			smb_unlocksmbhdr(&(priv->smb)); 
-			free(post);
-			return JS_TRUE;
-		}
-		post[off].idx = msg.idx;
-		if(msg.idx.attr&MSG_VOTE && !(msg.idx.attr&MSG_POLL)) {
+		post[off].idx = idx[off];
+		if(idx[off].attr&MSG_VOTE && !(idx[off].attr&MSG_POLL)) {
 			ulong u;
 			for(u = 0; u < off; u++)
-				if(post[u].idx.number == msg.idx.remsg)
+				if(post[u].idx.number == idx[off].remsg)
 					break;
 			if(u < off) {
 				post[u].total_votes++;
-				switch(msg.idx.attr&MSG_VOTE) {
+				switch(idx[off].attr&MSG_VOTE) {
 				case MSG_UPVOTE:
 					post[u].upvotes++;
 					break;
@@ -1690,13 +1721,14 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 					break;
 				default:
 					for(int b=0; b < MSG_POLL_MAX_ANSWERS; b++) {
-						if(msg.idx.votes&(1<<b))
+						if(idx[off].votes&(1<<b))
 							post[u].votes[b]++;
 					}
 				}
 			}
 		}
 	}
+	free(idx);
 
 	for(off=0; off < priv->smb.status.total_msgs; off++) {
 		if((!include_votes) && (post[off].idx.attr&MSG_VOTE))
@@ -2801,7 +2833,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("close message base (if open)")
 	,310
 	},
-	{"get_msg_header",	js_get_msg_header,	4, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [,expand_fields=<tt>true</tt>] [,include_votes=<tt>false</tt>]")
+	{"get_msg_header",	js_get_msg_header,	4, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id [,expand_fields=<tt>true</tt>] [,include_votes=<tt>false</tt>]")
 	,JSDOCSTR("returns a specific message header, <i>null</i> on failure. "
 	"<br><i>New in v3.12:</i> Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
 	"if you will be re-writing the header later with <i>put_msg_header()</i>")
@@ -2813,23 +2845,26 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"Vote messages are excluded by default.")
 	,316
 	},
-	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number, object header")
+	{"put_msg_header",	js_put_msg_header,	2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset, object header")
 	,JSDOCSTR("modify an existing message header")
 	,310
 	},
-	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [, message_header] [,strip_ctrl_a=<tt>false</tt>] "
+	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id_or_header [,strip_ctrl_a=<tt>false</tt>] "
 		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>] [,plain_text=<tt>false</tt>]")
 	,JSDOCSTR("returns the entire body text of a specific message as a single String, <i>null</i> on failure. "
 		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
-		"returned body text. When <i>plain_text</i> is true, only the first plain-text portion of a multi-part MIME encoded message body is returned."
+		"returned body text. When <i>plain_text</i> is true, only the first plain-text portion of a multi-part MIME encoded message body is returned. "
+		"The first argument (following the optional <i>by_offset</i> boolean) must be either a number (message number or index-offset), string (message-ID), or object (message header). "
+		"The <i>by_offfset</i> (<tt>true</tt>) argument should only be passed when the argument following it is the numeric index-offset of the message to be "
+		"retrieved. By default (<i>by_offset</i>=<tt>false</tt>), a numeric argument would be interpreted as the message <i>number</i> to be retrieved. "
 	)
 	,310
 	},
-	{"get_msg_tail",	js_get_msg_tail,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id [, message_header] [,strip_ctrl_a]=<tt>false</tt>")
+	{"get_msg_tail",	js_get_msg_tail,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id_or_header [,strip_ctrl_a]=<tt>false</tt>")
 	,JSDOCSTR("returns the tail text of a specific message, <i>null</i> on failure")
 	,310
 	},
-	{"get_msg_index",	js_get_msg_index,	3, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number, [include_votes=<tt>false</tt>]")
+	{"get_msg_index",	js_get_msg_index,	3, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset, [include_votes=<tt>false</tt>]")
 	,JSDOCSTR("returns a specific message index, <i>null</i> on failure. "
 	"The index object will contain the following properties:<br>"
 	"<table>"
@@ -2852,7 +2887,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	)
 	,311
 	},
-	{"remove_msg",		js_remove_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_id")
+	{"remove_msg",		js_remove_msg,		2, JSTYPE_BOOLEAN,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id")
 	,JSDOCSTR("mark message for deletion")
 	,311
 	},
@@ -3058,7 +3093,14 @@ js_msgbase_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	js_DescribeSyncObject(cx,obj,"Class used for accessing message bases",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new MsgBase object: "
 		"<tt>var msgbase = new MsgBase('<i>code</i>')</tt><br>"
-		"where <i>code</i> is a sub-board internal code, or <tt>mail</tt> for the e-mail message base");
+		"where <i>code</i> is a sub-board internal code, or <tt>mail</tt> for the e-mail message base."
+		"<p>"
+		"The MsgBase retrieval methods that accept a <tt>by_offset</tt> argument as their optional first boolean argument "
+		"will interpret the following <i>number</i> argument as either a 1-based unique message number (by_offset=<tt>false</tt>) "
+		"or a 0-based message index-offset (by_offset=<tt>true</tt>). Retrieving messages by offset is faster than by number or "
+		"message-id (string). Passing an existing message header to the retrieval methods that support it (e.g. <tt>get_msg_body()</tt>) "
+		"is even faster. "
+		);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", msgbase_prop_desc, JSPROP_READONLY);
 #endif
 

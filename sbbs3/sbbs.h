@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.499 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: sbbs.h,v 1.503 2019/02/17 03:08:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -803,7 +803,7 @@ public:
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
 	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
-	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
+	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts, bool reading = true);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
@@ -1071,7 +1071,6 @@ extern "C" {
 	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
-	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
@@ -1100,6 +1099,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
 	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
 	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
+	DLLEXPORT str_list_t DLLCALL findstr_list(const char* fname);
 	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
@@ -1116,10 +1116,13 @@ extern "C" {
 	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
 
 	/* msg_id.c */
-	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen);
-	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t* smb);
+	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_msgid(scfg_t*, uint subnum, smbmsg_t*, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_replyid(scfg_t*, smb_t*, smbmsg_t*, char* msgid, size_t maxlen);
+	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t*);
+	DLLEXPORT BOOL		DLLCALL add_msg_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
+	DLLEXPORT BOOL		DLLCALL add_reply_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
+	DLLEXPORT char*		DLLCALL msg_program_id(char* pid, size_t);
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
@@ -1336,7 +1339,7 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
+	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
