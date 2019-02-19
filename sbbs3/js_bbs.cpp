@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.175 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: js_bbs.cpp,v 1.176 2019/02/19 07:15:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3479,7 +3479,7 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_postmsg(JSContext *cx, uintN argc, jsval *arglist)
+js_post_msg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
@@ -4102,7 +4102,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("list extended file information for files in the specified file directory")
 	,310
 	},
-	{"post_msg",		js_postmsg,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>WM_MODE</tt>] [,object reply_header]")
+	{"post_msg",		js_post_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>WM_NONE</tt>] [,object reply_header]")
 	,JSDOCSTR("post a message in the specified message sub-board (number or internal code) "
 		"with optinal <i>mode</i> (bitfield)<br>"
 		"If <i>reply_header</i> is specified (a header object returned from <i>MsgBase.get_msg_header()</i>), that header "

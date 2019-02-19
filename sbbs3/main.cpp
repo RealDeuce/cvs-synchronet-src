@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.741 2019/01/07 23:38:31 sbbs Exp $ */
+/* $Id: main.cpp,v 1.743 2019/02/17 06:25:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -121,6 +121,7 @@ static	WORD	last_node;
 static	bool	terminate_server=false;
 static	str_list_t recycle_semfiles;
 static	str_list_t shutdown_semfiles;
+static	str_list_t clear_attempts_semfiles;
 static	link_list_t current_logins;
 static	link_list_t current_connections;
 #ifdef _THREAD_SUID_BROKEN
@@ -2657,9 +2658,13 @@ void event_thread(void* arg)
 			strcat(str,"*.rep");
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
-				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
+				if(flength(g.gl_pathv[i]) < 1)
+					continue;
+				sbbs->useron.number = 0;
+				sbbs->lprintf(LOG_DEBUG, "Inbound QWK Reply Packet detected: %s", g.gl_pathv[i]);
+				sbbs->useron.number = atoi(g.gl_pathv[i]+offset);
 				getuserdat(&sbbs->cfg,&sbbs->useron);
-				if(sbbs->useron.number && flength(g.gl_pathv[i])>0) {
+				if(sbbs->useron.number != 0 && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					SAFEPRINTF(semfile,"%s.lock",g.gl_pathv[i]);
 					if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
 						sbbs->lprintf(LOG_INFO," %s exists (unpack in progress?)", semfile);
@@ -2667,7 +2672,6 @@ void event_thread(void* arg)
 					}
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
-					sbbs->lprintf(LOG_INFO, "Un-packing QWK Reply packet");
 					sbbs->getusrsubs();
 					bool success = sbbs->unpack_rep(g.gl_pathv[i]);
 					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
@@ -2694,6 +2698,11 @@ void event_thread(void* arg)
 					if(remove(semfile))
 						sbbs->errormsg(WHERE, ERR_REMOVE, semfile, 0);
 				}
+				else {
+					sbbs->lprintf(LOG_INFO, "Removing: %s", g.gl_pathv[i]);
+					if(remove(g.gl_pathv[i]))
+						sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
+				}
 			}
 			globfree(&g);
 			sbbs->useron.number = 0;
@@ -2704,15 +2713,16 @@ void event_thread(void* arg)
 			offset=strlen(sbbs->cfg.data_dir)+4;
 			glob(str,0,NULL,&g);
 			for(i=0;i<(int)g.gl_pathc && !sbbs->terminated;i++) {
+				sbbs->useron.number = 0;
 				sbbs->lprintf(LOG_INFO, "QWK pack semaphore signaled: %s", g.gl_pathv[i]);
-				sbbs->useron.number=atoi(g.gl_pathv[i]+offset);
+				sbbs->useron.number = atoi(g.gl_pathv[i]+offset);
 				SAFEPRINTF2(semfile,"%spack%04u.lock",sbbs->cfg.data_dir,sbbs->useron.number);
 				if(!fmutex(semfile,startup->host_name,TIMEOUT_MUTEX_FILE)) {
 					sbbs->lprintf(LOG_INFO,"%s exists (pack in progress?)", semfile);
 					continue;
 				}
 				getuserdat(&sbbs->cfg,&sbbs->useron);
-				if(sbbs->useron.number && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
+				if(sbbs->useron.number != 0 && !(sbbs->useron.misc&(DELETED|INACTIVE))) {
 					sbbs->lprintf(LOG_INFO, "Packing QWK Message Packet");
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
@@ -4865,6 +4875,7 @@ static void cleanup(int code)
 
 	semfile_list_free(&recycle_semfiles);
 	semfile_list_free(&shutdown_semfiles);
+	semfile_list_free(&clear_attempts_semfiles);
 
 	listFree(&current_logins);
 	listFree(&current_connections);
@@ -5271,11 +5282,10 @@ NO_SSH:
 #endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
-	shutdown_semfiles=semfile_list_init(scfg.ctrl_dir,"shutdown","telnet");
-	recycle_semfiles=semfile_list_init(scfg.ctrl_dir,"recycle","telnet");
+	shutdown_semfiles = semfile_list_init(scfg.ctrl_dir,"shutdown", "term");
+	recycle_semfiles = semfile_list_init(scfg.ctrl_dir,"recycle", "term");
+	clear_attempts_semfiles = semfile_list_init(scfg.ctrl_dir,"clear", "term");
 	semfile_list_add(&recycle_semfiles,startup->ini_fname);
-	SAFEPRINTF(str,"%stelnet.rec",scfg.ctrl_dir);	/* legacy */
-	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%stext.dat",scfg.ctrl_dir);
 	semfile_list_add(&recycle_semfiles,str);
 	SAFEPRINTF(str,"%sattr.cfg",scfg.ctrl_dir);
@@ -5283,6 +5293,7 @@ NO_SSH:
 	if(!initialized)
 		semfile_list_check(&initialized,shutdown_semfiles);
 	semfile_list_check(&initialized,recycle_semfiles);
+	semfile_list_check(&initialized,clear_attempts_semfiles);
 
 	listInit(&current_logins, LINK_LIST_MUTEX);
 	listInit(&current_connections, LINK_LIST_MUTEX);
@@ -5368,6 +5379,11 @@ NO_SSH:
 
 		if(terminate_server)	/* terminated */
 			break;
+
+		if((p=semfile_list_check(&initialized,clear_attempts_semfiles))!=NULL) {
+			lprintf(LOG_INFO,"Clear Failed Login Attempts semaphore file (%s) detected", p);
+			loginAttemptListClear(startup->login_attempt_list);
+		}
 
 		if(client_socket == INVALID_SOCKET)
 			continue;
