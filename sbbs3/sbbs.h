@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.503 2019/02/17 03:08:34 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.504 2019/02/19 07:26:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -653,7 +653,7 @@ public:
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
 	ushort	chmsgattr(smbmsg_t);
-	void	quotemsg(smbmsg_t* msg, int tails);
+	bool	quotemsg(smb_t*, smbmsg_t*, int tails);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
 				,uint subnum, const char* tagfile);

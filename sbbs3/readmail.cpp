@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.86 2019/02/02 23:22:39 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.87 2019/02/19 07:26:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -437,7 +437,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					break; 
 				}
 
-				quotemsg(&msg,/* include tails: */TRUE);
+				quotemsg(&smb, &msg,/* include tails: */TRUE);
 
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);

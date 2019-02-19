@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.114 2019/02/17 03:14:00 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.115 2019/02/19 07:26:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -919,7 +919,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					bputs(text[CantReplyToMsg]);
 					break; 
 				}
-				quotemsg(&msg,/* include tails: */FALSE);
 				FREE_AND_NULL(post);
 				postmsg(subnum,&msg,WM_QUOTE);
 				if(mode&SCAN_TOYOU)
@@ -1121,7 +1120,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					break;
 
 				FREE_AND_NULL(post);
-				quotemsg(&msg,/* include tails: */TRUE);
+				quotemsg(&smb, &msg, /* include tails: */TRUE);
 				if(strchr(str, '@') != NULL) {
 					if(smb_netaddr_type(str)==NET_INTERNET)
 						inetmail(str,msg.subj,WM_QUOTE|WM_NETMAIL);
