@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.749 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: main.cpp,v 1.743 2019/02/17 06:25:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -462,16 +462,6 @@ int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
-
-void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
-{
-	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
-
-	if(ret == NULL)
-		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
-			, cls == NULL ? "???" : cls->name);
-	return ret;
-}
 
 JSBool
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
@@ -2849,7 +2839,7 @@ void event_thread(void* arg)
 					sbbs->putnodedat(i,&node);
 					if(sbbs->cfg.node_daily[0]) {
 						sbbs->cfg.node_num=i;
-						SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[i-1]);
+						strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[i-1]);
 
 						sbbs->lprintf(LOG_INFO,"Running node %d daily event",i);
 						sbbs->online=ON_LOCAL;
@@ -2871,14 +2861,14 @@ void event_thread(void* arg)
 
 			/* QWK Networking Call-out semaphores */
 			for(i=0;i<sbbs->cfg.total_qhubs;i++) {
-				if(sbbs->cfg.qhub[i]->node != NODE_ANY
-					&& (sbbs->cfg.qhub[i]->node<first_node || sbbs->cfg.qhub[i]->node>last_node))
+				if(sbbs->cfg.qhub[i]->node<first_node
+					|| sbbs->cfg.qhub[i]->node>last_node)
 					continue;
 				if(sbbs->cfg.qhub[i]->last==-1) // already signaled
 					continue;
 				SAFEPRINTF2(str,"%sqnet/%s.now",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str)) {
-					SAFECOPY(str,sbbs->cfg.qhub[i]->id);
+					strcpy(str,sbbs->cfg.qhub[i]->id);
 					eprintf(LOG_INFO,"Semaphore signaled for QWK Network Hub: %s",strupr(str));
 					sbbs->cfg.qhub[i]->last=-1;
 				}
@@ -2886,8 +2876,8 @@ void event_thread(void* arg)
 
 			/* Timed Event semaphores */
 			for(i=0;i<sbbs->cfg.total_events;i++) {
-				if(sbbs->cfg.event[i]->node != NODE_ANY
-					&& (sbbs->cfg.event[i]->node<first_node || sbbs->cfg.event[i]->node>last_node)
+				if((sbbs->cfg.event[i]->node<first_node
+					|| sbbs->cfg.event[i]->node>last_node)
 					&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 					continue;	// ignore non-exclusive events for other instances
 				if(sbbs->cfg.event[i]->misc&EVENT_DISABLED)
@@ -2896,7 +2886,7 @@ void event_thread(void* arg)
 					continue;
 				SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 				if(fexistcase(str)) {
-					SAFECOPY(str,sbbs->cfg.event[i]->code);
+					strcpy(str,sbbs->cfg.event[i]->code);
 					eprintf(LOG_INFO,"Semaphore signaled for Timed Event: %s",strupr(str));
 					sbbs->cfg.event[i]->last=-1;
 				}
@@ -2906,8 +2896,8 @@ void event_thread(void* arg)
 		/* QWK Networking Call-out Events */
 		sbbs->event_code = "QNET";
 		for(i=0;i<sbbs->cfg.total_qhubs && !sbbs->terminated;i++) {
-			if(sbbs->cfg.qhub[i]->node != NODE_ANY
-				&& (sbbs->cfg.qhub[i]->node<first_node || sbbs->cfg.qhub[i]->node>last_node))
+			if(sbbs->cfg.qhub[i]->node<first_node ||
+				sbbs->cfg.qhub[i]->node>last_node)
 				continue;
 
 			if(check_semaphores) {
@@ -3002,13 +2992,10 @@ void event_thread(void* arg)
 				close(file);
 
 				if(sbbs->cfg.qhub[i]->call[0]) {
-					if(sbbs->cfg.qhub[i]->node == NODE_ANY)
-						sbbs->cfg.node_num = startup->first_node;
-					else
-						sbbs->cfg.node_num=sbbs->cfg.qhub[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.qhub[i]->node;
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
-					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
+					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
@@ -3026,8 +3013,8 @@ void event_thread(void* arg)
 		/* PostLink Networking Call-out Events */
 		sbbs->event_code = "PostLink";
 		for(i=0;i<sbbs->cfg.total_phubs && !sbbs->terminated;i++) {
-			if(sbbs->cfg.phub[i]->node != NODE_ANY
-				&& (sbbs->cfg.phub[i]->node<first_node || sbbs->cfg.phub[i]->node>last_node))
+			if(sbbs->cfg.phub[i]->node<first_node
+				|| sbbs->cfg.phub[i]->node>last_node)
 				continue;
 			/* PostLink call out based on time */
 			tmptime=sbbs->cfg.phub[i]->last;
@@ -3052,13 +3039,10 @@ void event_thread(void* arg)
 				close(file);
 
 				if(sbbs->cfg.phub[i]->call[0]) {
-					if(sbbs->cfg.phub[i]->node == NODE_ANY)
-						sbbs->cfg.node_num = startup->first_node;
-					else
-						sbbs->cfg.node_num=sbbs->cfg.phub[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.phub[i]->node;
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
-					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
+					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 					eprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
@@ -3073,15 +3057,15 @@ void event_thread(void* arg)
 
 		/* Timed Events */
 		for(i=0;i<sbbs->cfg.total_events && !sbbs->terminated;i++) {
-			if(sbbs->cfg.event[i]->node != NODE_ANY
-				&& (!sbbs->cfg.event[i]->node || sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes))
+			if(!sbbs->cfg.event[i]->node
+				|| sbbs->cfg.event[i]->node>sbbs->cfg.sys_nodes)
 				continue;	// ignore events for invalid nodes
 
 			if(sbbs->cfg.event[i]->misc&EVENT_DISABLED)
 				continue;
 
-			if(sbbs->cfg.event[i]->node != NODE_ANY
-				&& (sbbs->cfg.event[i]->node<first_node || sbbs->cfg.event[i]->node>last_node)
+			if((sbbs->cfg.event[i]->node<first_node
+				|| sbbs->cfg.event[i]->node>last_node)
 				&& !(sbbs->cfg.event[i]->misc&EVENT_EXCL))
 				continue;	// ignore non-exclusive events for other instances
 
@@ -3104,7 +3088,7 @@ void event_thread(void* arg)
 				&& (sbbs->cfg.event[i]->months==0
 					|| sbbs->cfg.event[i]->months&(1<<now_tm.tm_mon))))
 			{
-				if(sbbs->cfg.event[i]->node != NODE_ANY && (sbbs->cfg.event[i]->misc&EVENT_EXCL)) { /* exclusive event */
+				if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 
 					if(sbbs->cfg.event[i]->node<first_node
 						|| sbbs->cfg.event[i]->node>last_node) {
@@ -3207,8 +3191,8 @@ void event_thread(void* arg)
 						continue;
 				}
 #endif
-				if(sbbs->cfg.event[i]->node != NODE_ANY
-					&& (sbbs->cfg.event[i]->node<first_node || sbbs->cfg.event[i]->node>last_node)) {
+				if(sbbs->cfg.event[i]->node<first_node
+					|| sbbs->cfg.event[i]->node>last_node) {
 					sbbs->lprintf(LOG_NOTICE,"Changing node status for nodes %d through %d to WFC"
 						,first_node,last_node);
 					sbbs->cfg.event[i]->last=(time32_t)now;
@@ -3221,20 +3205,17 @@ void event_thread(void* arg)
 					}
 				}
 				else {
-					if(sbbs->cfg.event[i]->node == NODE_ANY)
-						sbbs->cfg.node_num = startup->first_node;
-					else
-						sbbs->cfg.node_num=sbbs->cfg.event[i]->node;
+					sbbs->cfg.node_num=sbbs->cfg.event[i]->node;
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
-					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
+					strcpy(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
 
 					SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 					if(fexistcase(str)) {
 						if(remove(str))
 							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
 					}
-					if(sbbs->cfg.event[i]->node != NODE_ANY && (sbbs->cfg.event[i]->misc&EVENT_EXCL)) {
+					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) {
 						sbbs->getnodedat(sbbs->cfg.event[i]->node,&node,1);
 						node.status=NODE_EVENT_RUNNING;
 						sbbs->putnodedat(sbbs->cfg.event[i]->node,&node);
@@ -3323,7 +3304,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	cfg.node_num = node_num;	// Restore the node_num passed to the constructor
 
 	if(node_num>0) {
-		SAFECOPY(cfg.node_dir, cfg.node_path[node_num-1]);
+		strcpy(cfg.node_dir, cfg.node_path[node_num-1]);
 		prep_dir(cfg.node_dir, cfg.temp_dir, sizeof(cfg.temp_dir));
 		SAFEPRINTF2(syspage_semfile, "%ssyspage.%u", cfg.ctrl_dir, node_num);
 		remove(syspage_semfile);
@@ -3413,10 +3394,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	listInit(&savedlines, /* flags: */0);
-	sys_status=lncntr=criterrs=0L;
-	tos = false;
-	msghdr_tos = false;
-	listInit(&smb_list, /* flags: */0);
+	sys_status=lncntr=tos=criterrs=0L;
 	column=0;
 	tabstop=8;
 	lastlinelen=0;
@@ -3431,9 +3409,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
-	current_msg_subj=NULL;
-	current_msg_from=NULL;
-	current_msg_to=NULL;
 	current_file=NULL;
 	mnestr=NULL;
 
@@ -3923,7 +3898,6 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_alt);
 
 	listFree(&savedlines);
-	listFree(&smb_list);
 
 #ifdef USE_CRYPTLIB
 	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
@@ -3940,25 +3914,6 @@ sbbs_t::~sbbs_t()
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG, "destructor end");
 #endif
-}
-
-int sbbs_t::smb_stack(smb_t* smb, bool push)
-{
-	if(push) {
-		if(smb == NULL || !SMB_IS_OPEN(smb))
-			return SMB_SUCCESS;	  /* Msg base not open, do nothing */
-		if(listPushNodeData(&smb_list, smb, sizeof(*smb)) == NULL)
-			return SMB_FAILURE;
-		return SMB_SUCCESS;
-	}
-	/* pop */
-	smb_t* data = (smb_t*)listPopNode(&smb_list);
-	if(data == NULL)	/* Nothing on the stack, so do nothing */
-		return SMB_SUCCESS;
-
-	*smb = *data;
-	free(data);
-	return SMB_SUCCESS;
 }
 
 /****************************************************************************/
@@ -5678,8 +5633,8 @@ NO_SSH:
 		SOCKADDR_IN local_addr;
 		memset(&local_addr, 0, sizeof(local_addr));
 		socklen_t addr_len=sizeof(local_addr);
-		if(getsockname(client_socket, (struct sockaddr *)&local_addr, &addr_len) == 0
-			&& (ntohs(local_addr.sin_port) == startup->pet40_port
+		if(getsockname(client_socket, (struct sockaddr *)&local_addr, &addr_len) == 0 
+			&& (ntohs(local_addr.sin_port) == startup->pet40_port 
 				|| ntohs(local_addr.sin_port) == startup->pet80_port)) {
 			sbbs->autoterm = PETSCII;
 			sbbs->cols = ntohs(local_addr.sin_port) == startup->pet40_port ? 40 : 80;
@@ -5689,7 +5644,7 @@ NO_SSH:
 		sbbs->bprintf("\r\n%s\r\n", VERSION_NOTICE);
 		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
-		SAFECOPY(host_name, STR_NO_HOSTNAME);
+		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
