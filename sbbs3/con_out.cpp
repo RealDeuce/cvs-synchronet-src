@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.99 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.95 2019/02/19 07:33:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,13 +93,6 @@ unsigned char cp437_to_petscii(unsigned char ch)
 		return ch ^ 0x20;	/* swap upper/lower case */
 	switch(ch) {
 		case '\1':		return '@';
-		case '\x10':	return '>';
-		case '\x11':	return '<';
-		case '\x18':	
-		case '\x1e':	return PETSCII_UPARROW;
-		case '\x19':
-		case '\x1f':	return 'V';
-		case '\x1a':	return '>';
 		case '|':		return PETSCII_VERTLINE;
 		case '\\':		return PETSCII_BACKSLASH;
 		case '`':		return PETSCII_BACKTICK;
@@ -334,9 +327,6 @@ long sbbs_t::term_supports(long cmp_flags)
 {
 	long flags = ((sys_status&SS_USERON) && !(useron.misc&AUTOTERM)) ? useron.misc : autoterm;
 
-	if((sys_status&SS_USERON) && (useron.misc&AUTOTERM))
-		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
-
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
 }
 
@@ -441,8 +431,6 @@ int sbbs_t::outchar(char ch)
 	else {
 		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-		if(ch == '\r' && (console&CON_CR_CLREOL))
-			cleartoeol();
 		if(term&PETSCII) {
 			uchar pet = cp437_to_petscii(ch);
 			if(pet == PETSCII_SOLID)
@@ -450,8 +438,6 @@ int sbbs_t::outchar(char ch)
 			outcom(pet);
 			if(pet == PETSCII_SOLID)
 				outcom(PETSCII_REVERSE_OFF);
-			if(ch == '\r' && (curatr&0xf0) != 0) // reverse video is disabled upon CR
-				curatr >>= 4;
 		} else
 			outcom(ch);
 	}
@@ -679,8 +665,7 @@ void sbbs_t::cleartoeos(void)
 /****************************************************************************/
 void sbbs_t::ctrl_a(char x)
 {
-	char	tmp1[128];
-	uint	atr = curatr;
+	char	tmp1[128],atr=curatr;
 	struct	tm tm;
 
 	if(x && (uchar)x<=CTRL_Z) {    /* Ctrl-A through Ctrl-Z for users with MF only */
@@ -691,9 +676,6 @@ void sbbs_t::ctrl_a(char x)
 	if((uchar)x>0x7f) {
 		cursor_right((uchar)x-0x7f);
 		return;
-	}
-	if(isdigit(x)) {	/* background color */
-		atr &= (BG_BRIGHT|BLINK|0x0f);
 	}
 	switch(toupper(x)) {
 		case '!':   /* level 10 or higher */
@@ -829,13 +811,9 @@ void sbbs_t::ctrl_a(char x)
 			atr|=HIGH;
 			attr(atr);
 			break;
-		case 'I':
- 			if((term_supports()&(ICE_COLOR|PETSCII)) != ICE_COLOR)
-				attr(atr|BLINK);
-			break;
-		case 'E': /* Bright Background */
- 			if(term_supports()&(ICE_COLOR|PETSCII))
-				attr(atr|BG_BRIGHT);
+		case 'I':	/* Blink */
+			atr|=BLINK;
+			attr(atr);
 			break;
 		case 'F':	/* Blink, only if alt Blink Font is loaded */
 			if(((atr&HIGH) && (console&CON_HBLINK_FONT)) || (!(atr&HIGH) && (console&CON_BLINK_FONT)))
@@ -879,28 +857,36 @@ void sbbs_t::ctrl_a(char x)
 			attr(atr);
 			break;
 		case '0':	/* Black Background */
+			atr=(atr&0x8f);
 			attr(atr);
 			break;
 		case '1':	/* Red Background */
-			attr(atr | BG_RED);
+			atr=(atr&0x8f)|(uchar)BG_RED;
+			attr(atr);
 			break;
 		case '2':	/* Green Background */
-			attr(atr | BG_GREEN);
+			atr=(atr&0x8f)|(uchar)BG_GREEN;
+			attr(atr);
 			break;
 		case '3':	/* Yellow Background */
-			attr(atr | BG_BROWN);
+			atr=(atr&0x8f)|(uchar)BG_BROWN;
+			attr(atr);
 			break;
 		case '4':	/* Blue Background */
-			attr(atr | BG_BLUE);
+			atr=(atr&0x8f)|(uchar)BG_BLUE;
+			attr(atr);
 			break;
 		case '5':	/* Magenta Background */
-			attr(atr |BG_MAGENTA);
+			atr=(atr&0x8f)|(uchar)BG_MAGENTA;
+			attr(atr);
 			break;
 		case '6':	/* Cyan Background */
-			attr(atr | BG_CYAN);
+			atr=(atr&0x8f)|(uchar)BG_CYAN;
+			attr(atr);
 			break;
 		case '7':	/* White Background */
-			attr(atr | BG_LIGHTGRAY);
+			atr=(atr&0x8f)|(uchar)BG_LIGHTGRAY;
+			attr(atr);
 			break;
 	}
 }
@@ -915,12 +901,8 @@ int sbbs_t::attr(int atr)
 
 	long term = term_supports();
 	if(term&PETSCII) {
-		if(atr&(0x70|BG_BRIGHT)) {	// background color (reverse video for PETSCII)
-			if(atr&BG_BRIGHT)
-				atr |= HIGH;
-			else
-				atr &= ~HIGH;
-			atr = (atr&(BLINK|HIGH)) | ((atr&0x70)>>4);
+		if(atr&0x70) {
+			atr >>= 4;
 			outcom(PETSCII_REVERSE_ON);
 		} else
 			outcom(PETSCII_REVERSE_OFF);
@@ -1009,8 +991,8 @@ bool sbbs_t::msgabort()
 
 int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr)
 {
-	uint atr;
-	uint save_atr = curatr;
+	int	atr;
+	int save_atr = curatr;
 	int len;
 	char* str = strip_ctrl(instr, NULL);
 
@@ -1048,8 +1030,8 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 
 struct savedline {
 	char 	buf[LINE_BUFSIZE+1];	/* Line buffer (i.e. ANSI-encoded) */
-	uint	beg_attr;				/* Starting attribute of each line */
-	uint	end_attr;				/* Ending attribute of each line */
+	char 	beg_attr;				/* Starting attribute of each line */
+	char 	end_attr;				/* Ending attribute of each line */
 	long	column;					/* Current column number */
 };
 
