@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.231 2019/01/04 22:05:55 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.232 2019/02/20 05:43:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -765,6 +765,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define FL_VIEW     (1<<5)		/* View ZIP/ARC/GIF etc. info               */
 
 								/* Bits in the mode of writemsg and email() */
+#define WM_NONE		0			/* No bit flags set							*/
 #define WM_EXTDESC	(1<<0)		/* Writing extended file description		*/
 #define WM_EMAIL	(1<<1)		/* Writing e-mail							*/
 #define WM_NETMAIL	(1<<2)		/* Writing NetMail							*/
