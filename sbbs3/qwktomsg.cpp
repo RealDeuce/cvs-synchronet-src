@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.69 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.70 2019/02/17 06:22:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -462,6 +462,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	if(smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 
+	add_msg_ids(&cfg, &smb, msg, /* remsg: */NULL);
 	if((i=smb_addmsg(&smb,msg,smb_storage_mode(&cfg, &smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
 		success=true;
 	else if(i==SMB_DUPE_MSG) {
