@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.61 2019/02/21 22:36:19 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.62 2019/02/21 23:37:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -593,7 +593,7 @@ void tevents_cfg()
 					uifc.helpbuf=
 						"`Timed Event Node:`\n"
 						"\n"
-						"This is the node number to execute the timed event.\n"
+						"This is the node number to execute the timed event (or `Any`).\n"
 					;
 					if(cfg.event[i]->node == NODE_ANY)
 						SAFECOPY(str, "Any");
