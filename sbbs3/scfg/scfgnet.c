@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.42 2019/02/21 23:37:05 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.41 2019/02/21 22:36:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -928,7 +928,7 @@ void qhub_edit(int num)
 					"`Node to Perform Call-out:`\n"
 					"\n"
 					"This is the number of the node to perform the call-out for this QWK\n"
-					"network hub (or `Any`).\n"
+					"network hub.\n"
 				;
 				if(uifc.input(WIN_MID|WIN_SAV,0,0
 					,"Node to Perform Call-out",str,3,K_EDIT) > 0) {
