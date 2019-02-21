@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.678 2018/10/17 19:20:17 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.682 2019/02/20 05:43:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -817,7 +817,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 				endmime(socket,prot,sess,mime_boundary);
 				if(msg->hdr.auxattr&MSG_KILLFILE)
 					if(remove(file_list[i])!=0)
-						lprintf(LOG_WARNING,"%04u %s !ERROR %d removing %s", socket, prot, errno, file_list[i]);
+						lprintf(LOG_WARNING,"%04u %s !ERROR %d (%s) removing %s", socket, prot, errno, strerror(errno), file_list[i]);
 			}
 		}
 	}
@@ -2977,7 +2977,7 @@ static void smtp_thread(void* arg)
 
 	SAFEPRINTF(smb.file,"%smail",scfg.data_dir);
 	if(smb_islocked(&smb)) {
-		lprintf(LOG_CRIT,"%04d %s !MAIL BASE LOCKED: %s"
+		lprintf(LOG_WARNING,"%04d %s !MAIL BASE LOCKED: %s"
 			,socket, client.protocol, smb.last_error);
 		sockprintf(socket,client.protocol,session,sys_unavail);
 		mail_close_socket(&socket, &session);
@@ -3519,7 +3519,7 @@ static void smtp_thread(void* arg)
 					smb_hfield_str(&msg, RECIPIENT, rcpt_name);
 
 					smb.subnum=subnum;
-					if((i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf))!=SMB_SUCCESS) {
+					if((i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL))!=SMB_SUCCESS) {
 						lprintf(LOG_WARNING,"%04d %s !ERROR %d (%s) posting message to %s (%s)"
 							,socket, client.protocol, i, smb.last_error, scfg.sub[subnum]->sname, smb.file);
 						sockprintf(socket,client.protocol,session, "452 ERROR %d (%s) posting message"
@@ -3625,7 +3625,7 @@ static void smtp_thread(void* arg)
 				/* E-mail */
 				smb.subnum=INVALID_SUB;
 				/* creates message data, but no header or index records (since msg.to==NULL) */
-				i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf);
+				i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
 					smb_close(&smb);
@@ -4651,7 +4651,7 @@ static void smtp_thread(void* arg)
 					,socket, client.protocol, user.netmail);
 				fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_INTERNET);
 				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),user.netmail);
-				sockprintf(socket,client.protocol,session,"251 User not local; will forward to %s", user.netmail);
+				sockprintf(socket,client.protocol,session,ok_rsp);	// used to be a 251 response, changed per RFC2821
 			} else { /* Local (no-forward) */
 				if(routed) { /* QWKnet */
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
@@ -5698,7 +5698,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.678 $", "%*s %s", revision);
+	sscanf("$Revision: 1.682 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -5829,7 +5829,7 @@ void DLLCALL mail_server(void* arg)
 			,ctime_r(&t,str),startup->options);
 
 		if(chdir(startup->ctrl_dir)!=0)
-			lprintf(LOG_ERR,"!ERROR %d changing directory to: %s", errno, startup->ctrl_dir);
+			lprintf(LOG_ERR,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), startup->ctrl_dir);
 
 		/* Initial configuration and load from CNF files */
 		SAFECOPY(scfg.ctrl_dir,startup->ctrl_dir);
