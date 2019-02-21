@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.232 2019/02/20 05:43:19 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.233 2019/02/21 22:36:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -384,6 +384,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_FORCE		(1<<1) 		/* Force users off-line for event		*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
+
+#define NODE_ANY		0			/* special qhub/event_t.node value		*/
 
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
