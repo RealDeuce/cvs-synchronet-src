@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.142 2019/02/20 05:43:19 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.143 2019/03/08 07:48:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -232,6 +232,9 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		errormsg(WHERE, ERR_CHK, "columns", cols);
 		return false;
 	}
+
+	if(top == NULL)
+		top = "";
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
