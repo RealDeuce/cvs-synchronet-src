@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.57 2019/03/16 03:47:00 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.55 2019/03/13 02:31:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,9 +34,8 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include <stdbool.h>
 
-#define ADDFILES_VER "3.04"
+#define ADDFILES_VER "3.03"
 
 scfg_t scfg;
 
@@ -203,59 +202,48 @@ void updatestats(ulong size)
 	close(file);
 }
 
-bool get_file_diz(file_t* f, const char* filepath)
+void get_file_diz(file_t* f, const char* filepath)
 {
 	int i,file;
 	char tmp[MAX_PATH+1];
 	char ext[1024],tmpext[513];
 
 	for(i=0;i<scfg.total_fextrs;i++)
-		if(!stricmp(scfg.fextr[i]->ext,f->name+9)
-			&& chk_ar(&scfg,scfg.fextr[i]->ar,/* user: */NULL, /* client: */NULL))
+		if(!stricmp(scfg.fextr[i]->ext,f->name+9) && chk_ar(&scfg,scfg.fextr[i]->ar,/* user: */NULL, /* client: */NULL))
 			break;
-	// If we could not find an extractor which matches our requirements, use any
-	if(i >= scfg.total_fextrs) {
-		for(i=0;i<scfg.total_fextrs;i++)
-			if(!stricmp(scfg.fextr[i]->ext,f->name+9))
-				break;
-	}
-	if(i >= scfg.total_fextrs)
-		return false;
-
-	SAFEPRINTF(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
-	removecase(tmp);
-	system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
-	if(!fexistcase(tmp)) {
-		SAFEPRINTF(tmp,"%sDESC.SDI",scfg.temp_dir);
+	if(i<scfg.total_fextrs) {
+		sprintf(tmp,"%sFILE_ID.DIZ",scfg.temp_dir);
 		removecase(tmp);
-		system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL));
-		fexistcase(tmp);
+		system(mycmdstr(scfg.fextr[i]->cmd,filepath,"FILE_ID.DIZ",NULL));
+		if(!fexistcase(tmp)) {
+			sprintf(tmp,"%sDESC.SDI",scfg.temp_dir);
+			removecase(tmp);
+			system(mycmdstr(scfg.fextr[i]->cmd,filepath,"DESC.SDI",NULL));
+			fexistcase(tmp);
+		}
+		if((file=nopen(tmp,O_RDONLY|O_BINARY))!=-1) {
+			memset(ext,0,513);
+			read(file,ext,512);
+			for(i=512;i;i--)
+				if(ext[i-1]>' ' || ext[i-1]<0)
+					break;
+			ext[i]=0;
+			if(mode&ASCII_ONLY)
+				strip_exascii(ext, ext);
+			if(!(mode&KEEP_DESC)) {
+				sprintf(tmpext,"%.256s",ext);
+				prep_desc(tmpext);
+				for(i=0;tmpext[i];i++)
+					if(isalpha((uchar)tmpext[i]))
+						break;
+				sprintf(f->desc,"%.*s",LEN_FDESC,tmpext+i);
+				for(i=0;(f->desc[i]>=' ' || f->desc[i]<0) && i<LEN_FDESC;i++)
+					;
+				f->desc[i]=0; }
+			close(file);
+			f->misc|=FM_EXTDESC;
+		}
 	}
-
-	if((file=nopen(tmp,O_RDONLY|O_BINARY)) == -1)
-		return false;
-
-	memset(ext,0,513);
-	read(file,ext,512);
-	for(i=512;i;i--)
-		if(ext[i-1]>' ' || ext[i-1]<0)
-			break;
-	ext[i]=0;
-	if(mode&ASCII_ONLY)
-		strip_exascii(ext, ext);
-	if(!(mode&KEEP_DESC)) {
-		sprintf(tmpext,"%.256s",ext);
-		prep_desc(tmpext);
-		for(i=0;tmpext[i];i++)
-			if(isalpha((uchar)tmpext[i]))
-				break;
-		sprintf(f->desc,"%.*s",LEN_FDESC,tmpext+i);
-		for(i=0;(f->desc[i]>=' ' || f->desc[i]<0) && i<LEN_FDESC;i++)
-			;
-		f->desc[i]=0; }
-	close(file);
-	f->misc|=FM_EXTDESC;
-	return true;
 }
 
 void addlist(char *inpath, file_t f, uint dskip, uint sskip)
@@ -394,10 +382,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(p) *p=0;
 		else				   /* no space after filename? */
 			continue;
+#if 0
+		strupr(fname);
+#endif
+		SAFECOPY(fname,unpadfname(fname,tmp));
 
-		if(!isalnum(*fname)) {	// filename doesn't begin with an alpha-numeric char?
-			continue;
-		}
 		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 			: scfg.dir[f.dir]->path,fname);
 
@@ -498,16 +487,18 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		}
 
 
-		l=flength(filepath);
-		if(l<0L) {
-			printf("%s not found.\n",filepath);
-			continue;
-		}
-		if(l == 0L) {
-			printf("%s is a zero length file.\n",filepath);
-			continue;
-		}
 		if(sskip) l=atol(fname+sskip);
+		else {
+			l=flength(filepath);
+			if(l<0L) {
+				printf("%s not found.\n",filepath);
+				continue;
+			}
+			if(l == 0L) {
+				printf("%s is a zero-0length file.\n",filepath);
+				continue;
+			}
+		}
 
 		if(mode&FILE_ID)
 			get_file_diz(&f, filepath);
@@ -684,7 +675,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.57 $", "%*s %s", revision);
+	sscanf("$Revision: 1.55 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
