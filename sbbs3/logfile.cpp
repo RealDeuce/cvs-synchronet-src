@@ -1,6 +1,6 @@
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.66 2019/06/23 20:12:03 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.65 2019/01/04 22:15:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -122,13 +122,12 @@ extern "C" int DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text)
 	FILE*	fp;
 	char	buf[128];
 	char	path[MAX_PATH+1];
-	time_t	now = time(NULL);
 
 	SAFEPRINTF(path, "%serror.log", cfg->logs_dir);
 	if((fp = fnopen(NULL,path,O_WRONLY|O_CREAT|O_APPEND))==NULL)
 		return -1; 
-	fprintf(fp,"%.24s %s%s%s%s%s"
-		,ctime_r(&now, buf)
+	fprintf(fp,"%s %s%s%s%s%s"
+		,timestr(cfg,time32(NULL),buf)
 		,host==NULL ? "":host
 		,log_line_ending
 		,text
