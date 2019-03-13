@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.490 2018/10/09 01:56:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.505 2019/02/20 05:43:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,6 +301,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
+#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -370,9 +371,14 @@ public:
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
+	/* 	input_thread() writes to these variables: */
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
-	char	terminal[TELNET_TERM_MAXLEN+1];
+	char	telnet_terminal[TELNET_TERM_MAXLEN+1];
+	long 	telnet_rows;	
+	long	telnet_cols;
+	long	telnet_speed;
+
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
@@ -460,8 +466,10 @@ public:
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
+	long	tabstop;		/* Current symmetric-tabstop (size) */
 	long	lastlinelen;	/* The previously displayed line length */
 	long 	autoterm;		/* Auto-detected terminal type */
+	char	terminal[TELNET_TERM_MAXLEN+1];	// <- answer() writes to this
 	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
@@ -533,10 +541,10 @@ public:
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	uint32_t *	global_str_var_name;
 	uint	global_int_vars;
 	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	uint32_t *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
 	int32_t	sysvar_l[MAX_SYSVARS];
@@ -561,8 +569,8 @@ public:
 	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, int32_t name);
-	int32_t*	getintvar(csi_t *bin, int32_t name);
+	char**	getstrvar(csi_t *bin, uint32_t name);
+	int32_t*	getintvar(csi_t *bin, uint32_t name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, const char* cmdsrc, char* rsp);
@@ -639,13 +647,14 @@ public:
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode);
 	bool	msgabort(void);
-	bool	email(int usernumber, const char *top, const char *title, long mode);
+	bool	email(int usernumber, const char *top = NULL, const char *title = NULL
+				, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
 	ushort	chmsgattr(smbmsg_t);
-	void	quotemsg(smbmsg_t* msg, int tails);
+	bool	quotemsg(smb_t*, smbmsg_t*, bool tails = false);
 	void	editmsg(smbmsg_t* msg, uint subnum);
 	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
 				,uint subnum, const char* tagfile);
@@ -655,7 +664,7 @@ public:
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
 
 	/* postmsg.cpp */
-	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
+	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
@@ -675,7 +684,7 @@ public:
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int which, long lm_mode = 0);
 	bool	readmail_inside;
-	long	searchmail(mail_t*, long start, long msgss, int which, const char *search);
+	long	searchmail(mail_t*, long start, long msgss, int which, const char *search, const char* order);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
@@ -695,7 +704,7 @@ public:
 #endif
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
-	void	outchar(char ch);				/* Output a char - check echo and emu.  */
+	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	void	center(char *str);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -705,11 +714,17 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
+	void	carriage_return(void);
+	void	line_feed(void);
+	void	newline(void);
 	long	term_supports(long cmp_flags=0);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
 	bool	saveline(void);
 	bool	restoreline(void);
+	int		petscii_to_ansibbs(unsigned char);
+	int		attr(int);				/* Change text color/attributes */
+	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -733,10 +748,10 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	void	printfile(char *str, long mode);
-	void	printtail(char *str, int lines, long mode);
-	void	menu(const char *code);
-	bool	menu_exists(const char *code);
+	bool	printfile(const char* fname, long mode);
+	bool	printtail(const char* fname, int lines, long mode);
+	bool	menu(const char *code, long mode = 0);
+	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
@@ -744,8 +759,6 @@ public:
 	long	mselect(const char *title, str_list_t list, unsigned max_selections, const char* item_fmt, const char* selected_str, const char* unselected_str, const char* prompt_fmt);
 
 	void	redrwstr(char *strin, int i, int l, long mode);
-	void	attr(int atr);				/* Change local and remote text attributes */
-	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
@@ -791,7 +804,7 @@ public:
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
 	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
-	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
+	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts, bool reading = true);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
@@ -917,7 +930,6 @@ public:
 	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
-	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
 	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
 				,long access, const char *extinfo=NULL);
@@ -964,12 +976,12 @@ public:
 				,uint touser, smbmsg_t* msg);
 
 	/* fido.cpp */
-	bool	netmail(const char *into, const char *subj, long mode);
-	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub);
+	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub = 0);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(const char *into, const char *subj, long mode);
-	bool	qnetmail(const char *into, const char *subj, long mode);
+	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE);
 
 	/* useredit.cpp */
 	void	useredit(int usernumber);
@@ -1054,13 +1066,12 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf, smbmsg_t* remsg);
 	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt, const char* votefmt);
 	DLLEXPORT int		DLLCALL postpoll(scfg_t*, smb_t*, smbmsg_t*);
 	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
-	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
@@ -1089,6 +1100,7 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
 	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
 	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
+	DLLEXPORT str_list_t DLLCALL findstr_list(const char* fname);
 	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
 	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
 	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
@@ -1105,10 +1117,13 @@ extern "C" {
 	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
 
 	/* msg_id.c */
-	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen);
-	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t* smb);
+	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_msgid(scfg_t*, uint subnum, smbmsg_t*, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_replyid(scfg_t*, smb_t*, smbmsg_t*, char* msgid, size_t maxlen);
+	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t*);
+	DLLEXPORT BOOL		DLLCALL add_msg_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
+	DLLEXPORT BOOL		DLLCALL add_reply_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
+	DLLEXPORT char*		DLLCALL msg_program_id(char* pid, size_t);
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
@@ -1165,6 +1180,9 @@ extern "C" {
 	/* qwk.cpp */
 	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
 
+	/* con_out.cpp */
+	unsigned char		cp437_to_petscii(unsigned char);
+
 #ifdef JAVASCRIPT
 
 	typedef struct {
@@ -1220,7 +1238,7 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
-														,const char* name, char* str[], unsigned flags);
+														,const char* name, const char* str[], unsigned flags);
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
@@ -1299,6 +1317,7 @@ extern "C" {
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT BOOL		DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* hdrobj, smbmsg_t*);
+	DLLEXPORT BOOL		DLLCALL js_GetMsgHeaderObjectPrivates(JSContext* cx, JSObject* hdrobj, smb_t**, smbmsg_t**);
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
@@ -1322,7 +1341,7 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
-	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, FILE* fp);
+	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode);
 
 	/* js_sprintf.c */
 	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
