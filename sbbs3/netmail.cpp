@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.57 2019/03/26 07:45:42 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.55 2019/02/20 05:43:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -316,13 +316,11 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	return(true);
 }
 
-bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resmb, smbmsg_t* remsg)
+bool sbbs_t::qnetmail(const char *into, const char *subj, long mode)
 {
-	char	str[256],msgpath[128],fulladdr[128]
+	char	str[256],msgpath[128],title[128],to[128],fulladdr[128]
 			,buf[SDT_BLOCK_LEN],*addr;
 	char 	tmp[512];
-	char	title[128] = "";
-	char	to[128] = "";
 	char*	editor=NULL;
 	ushort	xlat=XLAT_NONE,net=NET_QWK,touser;
 	int 	i,j,x,file;
@@ -335,10 +333,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 		return(false); 
 	}
 
-	if(into != NULL)
-		SAFECOPY(to,into);
-	if(subj != NULL)
-		SAFECOPY(title,subj);
+	SAFECOPY(to,into);
+	SAFECOPY(title,subj);
 
 	if(useron.rest&FLAG('M')) {
 		bputs(text[NoNetMailAllowed]);
@@ -369,11 +365,6 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 		,useron.alias,cfg.sys_id);
 	action=NODE_SMAL;
 	nodesync();
-
-	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
-		if(quotemsg(resmb, remsg, /* include tails: */true))
-			mode |= WM_QUOTE;
-	}
 
 	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
 	if(!writemsg(msgpath,nulstr,title, (mode|WM_QWKNET|WM_NETMAIL) ,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
