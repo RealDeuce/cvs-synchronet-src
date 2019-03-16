@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.58 2019/07/18 23:08:46 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.56 2019/03/13 02:58:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -203,11 +203,11 @@ void updatestats(ulong size)
 	close(file);
 }
 
-bool get_file_diz(file_t* f, const char* filepath, char* ext)
+bool get_file_diz(file_t* f, const char* filepath)
 {
 	int i,file;
 	char tmp[MAX_PATH+1];
-	char tmpext[513];
+	char ext[1024],tmpext[513];
 
 	for(i=0;i<scfg.total_fextrs;i++)
 		if(!stricmp(scfg.fextr[i]->ext,f->name+9)
@@ -293,7 +293,6 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 #endif
 			f.misc=0;
 			f.desc[0]=0;
-			memset(ext, 0, sizeof(ext));
 			f.cdt=flength(filepath);
 			time_t file_timestamp = fdate(filepath);
 			padfname(getfname(filepath),f.name);
@@ -314,8 +313,6 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					update_uldate(&scfg, &f);
 					continue;
 				}
-				if(f.misc & FM_EXTDESC)
-					getextdesc(&scfg, f.dir, f.datoffset, ext);
 			}
 
 			if(mode&FILE_DATE) {		/* get the file date and put into desc */
@@ -329,7 +326,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			}
 
 			if(mode&FILE_ID)
-				get_file_diz(&f, filepath, ext);
+				get_file_diz(&f, filepath);
 
 			f.dateuled=time32(NULL);
 			f.altpath=cur_altpath;
@@ -379,7 +376,6 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 	do {
 		f.misc=0;
 		f.desc[0]=0;
-		memset(ext, 0, sizeof(ext));
 		SAFECOPY(curline,nextline);
 		nextline[0]=0;
 		fgets(nextline,255,stream);
@@ -398,10 +394,11 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(p) *p=0;
 		else				   /* no space after filename? */
 			continue;
+#if 0
+		strupr(fname);
+#endif
+		SAFECOPY(fname,unpadfname(fname,tmp));
 
-		if(!isalnum(*fname)) {	// filename doesn't begin with an alpha-numeric char?
-			continue;
-		}
 		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 			: scfg.dir[f.dir]->path,fname);
 
@@ -439,8 +436,6 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				update_uldate(&scfg, &f);
 				continue;
 			}
-			if (f.misc & FM_EXTDESC)
-				getextdesc(&scfg, f.dir, f.datoffset, ext);
 		}
 
 		if(mode&FILE_DATE) {		/* get the file date and put into desc */
@@ -466,7 +461,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 
 		if(nextline[0]==' ' || strlen(p)>LEN_FDESC) {	/* ext desc */
 			if(!(mode&NO_EXTEND)) {
-				memset(ext, 0, sizeof(ext));
+				memset(ext,0,513);
 				f.misc|=FM_EXTDESC;
 				sprintf(ext,"%s\r\n",p);
 			}
@@ -504,19 +499,21 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		}
 
 
-		l=flength(filepath);
-		if(l<0L) {
-			printf("%s not found.\n",filepath);
-			continue;
-		}
-		if(l == 0L) {
-			printf("%s is a zero length file.\n",filepath);
-			continue;
-		}
 		if(sskip) l=atol(fname+sskip);
+		else {
+			l=flength(filepath);
+			if(l<0L) {
+				printf("%s not found.\n",filepath);
+				continue;
+			}
+			if(l == 0L) {
+				printf("%s is a zero-0length file.\n",filepath);
+				continue;
+			}
+		}
 
 		if(mode&FILE_ID)
-			get_file_diz(&f, filepath, ext);
+			get_file_diz(&f, filepath);
 
 		f.cdt=l;
 		f.dateuled=time32(NULL);
@@ -690,7 +687,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.58 $", "%*s %s", revision);
+	sscanf("$Revision: 1.56 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -869,7 +866,6 @@ int main(int argc, char **argv)
 			namegiven=1;
 			padfname(argv[j],f.name);
 			f.desc[0]=0;
-			memset(ext, 0, sizeof(ext));
 #if 0
 			strupr(f.name);
 #endif
@@ -905,8 +901,6 @@ int main(int argc, char **argv)
 					update_uldate(&scfg, &f);
 					continue;
 				}
-				if (f.misc & FM_EXTDESC)
-					getextdesc(&scfg, f.dir, f.datoffset, ext);
 			}
 			f.cdt=l;
 			f.dateuled=time32(NULL);
@@ -916,7 +910,7 @@ int main(int argc, char **argv)
 				strip_exascii(f.desc, f.desc);
 			printf("%s %7"PRIu32" %s\n",f.name,f.cdt,f.desc);
 			if(mode&FILE_ID)
-				get_file_diz(&f, str, ext);
+				get_file_diz(&f, str);
 
 			if(exist) {
 				putfiledat(&scfg,&f);
