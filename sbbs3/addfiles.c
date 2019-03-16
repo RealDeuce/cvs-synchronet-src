@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.56 2019/03/13 02:58:42 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.57 2019/03/16 03:47:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,11 +394,10 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(p) *p=0;
 		else				   /* no space after filename? */
 			continue;
-#if 0
-		strupr(fname);
-#endif
-		SAFECOPY(fname,unpadfname(fname,tmp));
 
+		if(!isalnum(*fname)) {	// filename doesn't begin with an alpha-numeric char?
+			continue;
+		}
 		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 			: scfg.dir[f.dir]->path,fname);
 
@@ -499,18 +498,16 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		}
 
 
-		if(sskip) l=atol(fname+sskip);
-		else {
-			l=flength(filepath);
-			if(l<0L) {
-				printf("%s not found.\n",filepath);
-				continue;
-			}
-			if(l == 0L) {
-				printf("%s is a zero-0length file.\n",filepath);
-				continue;
-			}
+		l=flength(filepath);
+		if(l<0L) {
+			printf("%s not found.\n",filepath);
+			continue;
 		}
+		if(l == 0L) {
+			printf("%s is a zero length file.\n",filepath);
+			continue;
+		}
+		if(sskip) l=atol(fname+sskip);
 
 		if(mode&FILE_ID)
 			get_file_diz(&f, filepath);
@@ -687,7 +684,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.56 $", "%*s %s", revision);
+	sscanf("$Revision: 1.57 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
