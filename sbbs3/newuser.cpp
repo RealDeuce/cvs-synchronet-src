@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.79 2019/04/28 22:53:12 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.78 2019/02/20 05:43:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,36 +166,11 @@ BOOL sbbs_t::newuser()
 				useron.misc&=~COLOR;
 		}
 		else
-			useron.rows = TERM_ROWS_DEFAULT;
-
-		while(text[HitYourBackspaceKey][0] && !(useron.misc&(PETSCII|SWAP_DELETE)) && online) {
-			bputs(text[HitYourBackspaceKey]);
-			char key = getkey(K_NONE);
-			bprintf(text[CharacterReceivedFmt], key, key);
-			if(key == '\b')
-				break;
-			if(key == DEL) {
-				if(text[SwapDeleteKeyQ][0] == 0 || yesno(text[SwapDeleteKeyQ]))
-					useron.misc |= SWAP_DELETE;
-			}
-			else if(key == PETSCII_DELETE)
-				useron.misc |= PETSCII;
-			else {
-				bprintf(text[InvalidBackspaceKeyFmt], key, key);
-				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
-					return FALSE;
-				newline();
-			}
-		}
-
-		if(useron.misc&PETSCII)
-			bputs(text[PetTermDetected]);
-		else {
-			if(!yesno(text[ExAsciiTerminalQ]))
-				useron.misc|=NO_EXASCII;
-			else
-				useron.misc&=~NO_EXASCII;
-		}
+			useron.rows=24;
+		if(!(useron.misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
+			useron.misc|=NO_EXASCII;
+		else
+			useron.misc&=~NO_EXASCII;
 
 		if(rlogin_name[0])
 			SAFECOPY(useron.alias,rlogin_name);
