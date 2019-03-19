@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.38 2018/02/20 11:14:10 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.41 2019/02/20 05:43:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,10 +113,11 @@ bool sbbs_t::bulkmail(uchar *ar)
 
 	if(editor!=NULL)
 		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);
@@ -213,8 +214,8 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 
 	lncntr=0;
 	bprintf(text[Emailing],user.alias,usernum);
-	sprintf(str,"%s bulk-mailed %s #%d"
-		,useron.alias,user.alias,usernum);
+	sprintf(str,"bulk-mailed %s #%d"
+		,user.alias,usernum);
 	logline("E+",str);
 	useron.emails++;
 	logon_emails++;
