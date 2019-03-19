@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.103 2019/01/17 21:58:12 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.107 2019/03/19 19:48:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -90,7 +90,7 @@ ulong bundles_unpacked=0;
 
 int cur_smb=0;
 FILE *fidologfile=NULL;
-bool twit_list;
+str_list_t twit_list;
 str_list_t bad_areas;
 
 fidoaddr_t		sys_faddr = {1,1,1,0};		/* Default system address: 1:1/1.0 */
@@ -177,7 +177,7 @@ char* parse_control_line(const char* fmsgbuf, const char* kludge)
 
 	if(fmsgbuf == NULL)
 		return NULL;
-	sprintf(str, "\1%s", kludge);
+	SAFEPRINTF(str, "\1%s", kludge);
 	p = strstr(fmsgbuf, str);
 	if(p == NULL)
 		return NULL;
@@ -840,6 +840,9 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	if(flo_filename == NULL)
 		return -2;
 
+	if(*infile == '^')  /* work-around for BRE/FE inter-BBS attachment bug */
+		infile++;
+
 #ifdef __unix__
 	if(isalpha(infile[0]) && infile[1] == ':')	// Ignore "C:" prefix
 		infile += 2;
@@ -1210,6 +1213,8 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
+	if(msg->columns)
+		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
@@ -3293,17 +3298,13 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 	long	dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	fidoaddr_t faddr,origaddr,destaddr;
 	smb_t*	smbfile;
-	char	fname[MAX_PATH+1];
 	smbmsg_t	msg;
 	time32_t now=time32(NULL);
 	ulong	max_msg_age = (subnum == INVALID_SUB) ? cfg.max_netmail_age : cfg.max_echomail_age;
 
-	if(twit_list) {
-		sprintf(fname,"%stwitlist.cfg",scfg.ctrl_dir);
-		if(findstr(hdr->from,fname) || findstr(hdr->to,fname)) {
-			lprintf(LOG_INFO,"Filtering message from %s to %s",hdr->from,hdr->to);
-			return IMPORT_FILTERED_TWIT;
-		}
+	if(findstr_in_list(hdr->from, twit_list) || findstr_in_list(hdr->to, twit_list)) {
+		lprintf(LOG_INFO,"Filtering message from %s to %s",hdr->from,hdr->to);
+		return IMPORT_FILTERED_TWIT;
 	}
 
 	memset(&msg,0,sizeof(smbmsg_t));
@@ -3471,6 +3472,14 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				l+=11;
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				msg.hdr.when_written.zone = fmsgzone(fbuf+l);
+			}
+
+			else if(!strncmp((char *)fbuf + l + 1, "COLS:", 5)) {	/* SBBSecho */
+				l += 6;
+				while(l<length && fbuf[l] <= ' ' && fbuf[l] >= 0) l++;
+				uint8_t columns = atoi(fbuf + l);
+				if(columns > 0)
+					smb_hfield_bin(&msg, SMB_COLUMNS, columns);
 			}
 
 			else {		/* Unknown kludge line */
@@ -5993,7 +6002,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.103 $", "%*s %s", revision);
+	sscanf("$Revision: 3.107 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6132,7 +6141,7 @@ int main(int argc, char **argv)
 	}
 
 	SAFEPRINTF(str,"%stwitlist.cfg",scfg.ctrl_dir);
-	twit_list=fexist(str);
+	twit_list=findstr_list(str);
 
 	if(scfg.total_faddrs)
 		sys_faddr=scfg.faddr[0];
