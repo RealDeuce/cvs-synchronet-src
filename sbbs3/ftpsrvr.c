@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.489 2019/04/23 23:07:26 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.488 2019/03/07 01:11:00 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3093,11 +3093,15 @@ static void ctrl_thread(void* arg)
 	lprintf(LOG_INFO,"%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, inet_addrport(&ftp.client_addr));
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
-	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
+	if(startup->options&FTP_OPT_NO_HOST_LOOKUP)
+		strcpy(host_name,"<no name>");
+	else {
+		if(getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0)
+			strcpy(host_name,"<no name>");
 	}
+
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
+		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
@@ -5989,7 +5993,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.489 $", "%*s %s", revision);
+	sscanf("$Revision: 1.488 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

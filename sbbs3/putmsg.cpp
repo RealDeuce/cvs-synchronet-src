@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
-
-/* $Id: putmsg.cpp,v 1.47 2019/04/26 00:25:39 rswindell Exp $ */
+ 
+/* $Id: putmsg.cpp,v 1.44 2019/01/11 11:29:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /* the attributes prior to displaying the message are always restored.      */
 /* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
 /****************************************************************************/
-char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
+char sbbs_t::putmsg(const char *buf, long mode)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
@@ -77,9 +77,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				*wrapoff = 0;
 		}
 		char *wrapped;
-		if(org_cols < TERM_COLS_MIN)
-			org_cols = TERM_COLS_DEFAULT;
-		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -115,7 +113,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					sys_status|=SS_NEST_PF; 	/* keep it only one message deep! */
 					SAFEPRINTF2(tmp3,"%s%s",cfg.text_dir,tmp2);
 					printfile(tmp3,0);
-					sys_status&=~SS_NEST_PF;
+					sys_status&=~SS_NEST_PF; 
 				}
 			}
 			else if(str[l+1] == 'Z')	/* Ctrl-AZ==EOF (uppercase 'Z' only) */
@@ -125,38 +123,25 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
 					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				l+=2;
-			}
+			} 
 		}
-		else if((str[l]=='`' || str[l]=='ú') && str[l+1]=='[') {
+		else if((str[l]=='`' || str[l]=='ú') && str[l+1]=='[') {   
 			outchar(ESC); /* Convert `[ and ú[ to ESC[ */
-			l++;
+			l++; 
 		}
 		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
 			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
-			ulong val = ahtoul(tmp2);
-			// @X00 saves the current color and @XFF restores that saved color
-			static uchar save_attr;
-			switch(val) {
-				case 0x00:
-					save_attr = curatr;
-					break;
-				case 0xff:
-					attr(save_attr);
-					break;
-				default:
-					attr(val);
-					break;
-			}
+			attr(ahtoul(tmp2));
 			exatr=1;
-			l+=4;
+			l+=4; 
 		}
 		else if(cfg.sys_misc&SM_WILDCAT && str[l]=='@' && str[l+3]=='@'
 			&& isxdigit((unsigned char)str[l+1]) && isxdigit((unsigned char)str[l+2])) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			attr(ahtoul(tmp2));
 			// exatr=1;
-			l+=4;
+			l+=4; 
 		}
 		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
 			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&RIP)) {
@@ -166,13 +151,13 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				i-=16;
 				i<<=4;
 				i|=(curatr&0x0f);		/* leave foreground alone */
-			}
+			} 	
 			else
 				i|=(curatr&0xf0);		/* leave background alone */
 			attr(i);
 			exatr=1;
 			l+=3;	/* Skip |xx */
-		}
+		}	
 		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha((unsigned char)str[l+1])
 			&& !(useron.misc&RIP)) {
 			switch(str[l+1]) {
@@ -226,7 +211,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					break;
 				case 'S':   /* swap foreground and background - TODO: This sets foreground to BLACK! */
 					attr((curatr&0x07)<<4);
-					break;
+					break; 
 			}
 			exatr=1;
 			l+=2;	/* Skip |x */
@@ -263,9 +248,9 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					break;
 				case '9':
 					attr(CYAN);
-					break;
+					break; 
 			}
-			l+=2;
+			l+=2; 
 		}
 		else {
 			if(str[l]=='\n') {
@@ -283,8 +268,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					lncntr=0;			/* so defeat pause */
 				if(str[l]=='"') {
 					l++;				/* don't pass on keyboard reassignment */
-					continue;
-				}
+					continue; 
+				} 
 			}
 			if(str[l]=='!' && str[l+1]=='|' && useron.misc&RIP) /* RIP */
 				lncntr=0;				/* so defeat pause */
@@ -320,18 +305,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				}
 				if(memcmp(str+l, "@WORDWRAP@", 10) == 0) {
 					l += 10;
-					putmsg(str+l, mode|P_WORDWRAP, org_cols);
+					putmsg(str+l, mode|P_WORDWRAP);
 					break;
-				}
-				if(memcmp(str+l, "@QON@", 5) == 0) {	// Allow the file display to be aborted (PCBoard)
-					l += 5;
-					mode &= ~P_NOABORT;
-					continue;
-				}
-				if(memcmp(str+l, "@QOFF@", 6) == 0) {	// Do not allow the display of teh file to be aborted (PCBoard)
-					l += 6;
-					mode |= P_NOABORT;
-					continue;
 				}
 
 				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
@@ -339,7 +314,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
 					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				if(i)					/* if valid string, go to top */
-					continue;
+					continue; 
 			}
 			if(mode&P_CPM_EOF && str[l]==CTRL_Z)
 				break;
@@ -350,12 +325,12 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					petscii_to_ansibbs(str[l]);
 			} else
 				outchar(str[l]);
-			l++;
-		}
+			l++; 
+		} 
 	}
 	if(!(mode&P_SAVEATR)) {
 		console=orgcon;
-		attr(tmpatr);
+		attr(tmpatr); 
 	}
 
 	attr_sp=0;	/* clear any saved attributes */
