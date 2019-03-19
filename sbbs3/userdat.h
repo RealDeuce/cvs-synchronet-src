@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.72 2019/08/20 07:56:35 rswindell Exp $ */
+/* $Id: userdat.h,v 1.70 2019/02/15 03:53:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@
 			#define DLLEXPORT __declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL
+			#define DLLCALL __stdcall
 		#else
 			#define DLLCALL
 		#endif
@@ -151,8 +151,6 @@ DLLEXPORT time_t DLLCALL gettimeleft(scfg_t*, user_t*, time_t starttime);
 DLLEXPORT BOOL	DLLCALL check_name(scfg_t*, const char* name);
 DLLEXPORT BOOL	DLLCALL sysop_available(scfg_t*);
 DLLEXPORT BOOL	DLLCALL set_sysop_availability(scfg_t*, BOOL available);
-
-DLLEXPORT int	DLLCALL lookup_user(scfg_t*, link_list_t*, const char* name);
 
 /* Login attempt/hack tracking */
 typedef struct {
