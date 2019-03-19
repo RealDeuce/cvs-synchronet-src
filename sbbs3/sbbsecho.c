@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.107 2019/03/19 19:48:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.108 2019/03/19 20:46:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4834,6 +4834,9 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			else					/* generate TID */
 				f+=sprintf(fmsgbuf+f,"\1TID: %s\r", sbbsecho_pid());
 
+			if(msg.columns)
+				f += sprintf(fmsgbuf+f, "\1COLS: %u\r", (unsigned int)msg.columns);
+
 			if(rescan)
 				f+=sprintf(fmsgbuf+f,"\1RESCANNED %s\r", smb_faddrtoa(&scfg.sub[subnum]->faddr,NULL));
 
@@ -6002,7 +6005,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.107 $", "%*s %s", revision);
+	sscanf("$Revision: 3.108 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
