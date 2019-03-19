@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.105 2019/02/12 03:14:48 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.106 2019/03/19 19:34:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1213,6 +1213,8 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
+	if(msg->columns)
+		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
@@ -3470,6 +3472,13 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				l+=11;
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
 				msg.hdr.when_written.zone = fmsgzone(fbuf+l);
+			}
+
+			else if(!strncmp((char *)fbuf+l+1,"COLS:", 5)) {	/* SBBSecho */
+				l+=5;
+				while(l<length && fbuf[l] <= ' ' && fbuf[l] >= 0) l++;
+				uint8_t columns = atoi(fbuf + l);
+				smb_hfield_bin(&msg, SMB_COLUMNS, columns);
 			}
 
 			else {		/* Unknown kludge line */
@@ -5992,7 +6001,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.105 $", "%*s %s", revision);
+	sscanf("$Revision: 3.106 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
