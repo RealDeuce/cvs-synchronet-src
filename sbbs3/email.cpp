@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.76 2019/07/08 00:59:25 rswindell Exp $ */
+/* $Id: email.cpp,v 1.73 2019/02/20 05:43:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 				,buf[SDT_BLOCK_LEN];
 	char 		tmp[512];
 	char		title[LEN_TITLE+1] = "";
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*		editor=NULL;
 	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
 	int 		i,j,x,file;
@@ -128,7 +127,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor, &charset)) {
+	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -318,7 +317,9 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
