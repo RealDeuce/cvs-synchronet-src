@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.71 2019/03/22 21:28:27 rswindell Exp $ */
+/* $Id: userdat.h,v 1.70 2019/02/15 03:53:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@
 			#define DLLEXPORT __declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL
+			#define DLLCALL __stdcall
 		#else
 			#define DLLCALL
 		#endif

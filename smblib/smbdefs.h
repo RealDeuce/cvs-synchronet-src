@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.111 2019/04/11 10:59:33 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.107 2019/02/18 03:09:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -181,6 +181,14 @@
 #define SENDERTIME			0x0d		/* authentication/connection time */
 #define SENDERSERVER		0x0e		/* server hostname that authenticated user */
 
+#define AUTHOR				0x10
+#define AUTHORAGENT 		0x11
+#define AUTHORNETTYPE		0x12
+#define AUTHORNETADDR		0x13
+#define AUTHOREXT			0x14
+#define AUTHORPOS			0x15
+#define AUTHORORG			0x16
+
 #define REPLYTO 			0x20
 #define REPLYTOAGENT		0x21
 #define REPLYTONETTYPE		0x22
@@ -197,7 +205,29 @@
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
 
+#define FORWARDTO			0x40
+#define FORWARDTOAGENT		0x41
+#define FORWARDTONETTYPE	0x42
+#define FORWARDTONETADDR	0x43
+#define FORWARDTOEXT		0x44
+#define FORWARDTOPOS		0x45
+#define FORWARDTOORG		0x46
+
 #define FORWARDED			0x48
+
+#if 0	/* Deprecating the following fields: (Jan-2009) never used */
+
+#define RECEIVEDBY			0x50
+#define RECEIVEDBYAGENT 	0x51
+#define RECEIVEDBYNETTYPE	0x52
+#define RECEIVEDBYNETADDR	0x53
+#define RECEIVEDBYEXT		0x54
+#define RECEIVEDBYPOS		0x55
+#define RECEIVEDBYORG		0x56
+
+#define RECEIVED			0x58
+
+#endif
 
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
@@ -211,6 +241,31 @@
 #define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
 #define SMB_TAG_DELIMITER	" "
 #define SMB_COLUMNS			0x6a	/* original text editor width in fixed-width columns */
+
+#define FILEATTACH			0x70
+#define DESTFILE			0x71
+#define FILEATTACHLIST		0x72
+#define DESTFILELIST		0x73
+#define FILEREQUEST 		0x74
+#define FILEPASSWORD		0x75
+#define FILEREQUESTLIST 	0x76
+#define FILEPASSWORDLIST	0x77
+
+#define IMAGEATTACH 		0x80
+#define ANIMATTACH			0x81
+#define FONTATTACH			0x82
+#define SOUNDATTACH 		0x83
+#define PRESENTATTACH		0x84
+#define VIDEOATTACH 		0x85
+#define APPDATAATTACH		0x86
+
+#define IMAGETRIGGER		0x90
+#define ANIMTRIGGER 		0x91
+#define FONTTRIGGER 		0x92
+#define SOUNDTRIGGER		0x93
+#define PRESENTTRIGGER		0x94
+#define VIDEOTRIGGER		0x95
+#define APPDATATRIGGER		0x96
 
 #define FIDOCTRL			0xa0
 #define FIDOAREA			0xa1
@@ -247,8 +302,16 @@
 
 										/* Valid dfield_t.types */
 #define TEXT_BODY			0x00
+#define TEXT_SOUL			0x01
 #define TEXT_TAIL			0x02
-
+#define TEXT_WING			0x03
+#define IMAGEEMBED			0x20
+#define ANIMEMBED			0x21
+#define FONTEMBED			0x22
+#define SOUNDEMBED			0x23
+#define PRESENTEMBED		0x24
+#define VIDEOEMBED			0x25
+#define APPDATAEMBED		0x26
 #define UNUSED				0xff
 
 
@@ -277,8 +340,8 @@
 
 										/* Auxiliary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
-#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg (file paths/names in subject) */
-#define MSG_MIMEATTACH		(1<<2)		/* Message has one or more MIME-embedded attachments */
+#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg */
+#define MSG_TRUNCFILE		(1<<2)		/* Truncate file(s) when sent */
 #define MSG_KILLFILE		(1<<3)		/* Delete file(s) when sent */
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
@@ -296,10 +359,18 @@
 #define MSG_INTRANSIT		(1<<1)		/* Msg is in-transit */
 #define MSG_SENT			(1<<2)		/* Sent to remote */
 #define MSG_KILLSENT		(1<<3)		/* Kill when sent */
+#define MSG_ARCHIVESENT 	(1<<4)		/* Archive when sent */
 #define MSG_HOLD			(1<<5)		/* Hold for pick-up */
 #define MSG_CRASH			(1<<6)		/* Crash */
 #define MSG_IMMEDIATE		(1<<7)		/* Send Msg now, ignore restrictions */
 #define MSG_DIRECT			(1<<8)		/* Send directly to destination */
+#define MSG_GATE			(1<<9)		/* Send via gateway */
+#define MSG_ORPHAN			(1<<10) 	/* Unknown destination */
+#define MSG_FPU 			(1<<11) 	/* Force pickup */
+#define MSG_TYPELOCAL		(1<<12) 	/* Msg is for local use only */
+#define MSG_TYPEECHO		(1<<13) 	/* Msg is for conference distribution */
+#define MSG_TYPENET 		(1<<14) 	/* Msg is direct network mail */
+
 
 enum smb_net_type {
      NET_NONE				/* Local message */
@@ -562,8 +633,6 @@ typedef struct {				/* Message */
 	char*		subj;			/* Subject  */
 	char*		tags;			/* Message tags (space-delimited) */
 	char*		editor;			/* Message editor (if known) */
-	char*		mime_version;	/* MIME Version (if applicable) */
-	char*		content_type;	/* MIME Content-Type (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
