@@ -1,4 +1,5 @@
-/* $Id: scfgxtrn.c,v 1.57 2018/02/05 07:12:47 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.62 2019/02/21 23:37:06 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,11 +50,12 @@ static bool new_timed_event(unsigned new_event_num)
 		return false;
 	}
 	memset(new_event, 0, sizeof(*new_event));
-	new_event->node = 1;
+	new_event->node = NODE_ANY;
 	new_event->days = (uchar)0xff;
 
 	event_t** new_event_list = realloc(cfg.event, sizeof(event_t *)*(cfg.total_events + 1));
 	if (new_event_list == NULL) {
+		free(new_event);
 		errormsg(WHERE, ERR_ALLOC, "timed event list", cfg.total_events + 1);
 		return false;
 	}
@@ -78,6 +80,7 @@ static bool new_external_program_section(unsigned new_section_num)
 
 	xtrnsec_t** new_xtrnsec_list = realloc(cfg.xtrnsec, sizeof(xtrnsec_t *)*(cfg.total_xtrnsecs + 1));
 	if (new_xtrnsec_list == NULL) {
+		free(new_xtrnsec);
 		errormsg(WHERE, ERR_ALLOC, "external program section list", cfg.total_xtrnsecs + 1);
 		return false;
 	}
@@ -107,6 +110,7 @@ static bool new_external_program(unsigned new_xtrn_num, unsigned section)
 
 	xtrn_t ** new_xtrn_list = realloc(cfg.xtrn, sizeof(xtrn_t *)*(cfg.total_xtrns + 1));
 	if (new_xtrn_list == NULL) {
+		free(new_xtrn);
 		errormsg(WHERE, ERR_ALLOC, "external program list", cfg.total_xtrns + 1);
 		return false;
 	}
@@ -130,6 +134,7 @@ static bool new_external_editor(unsigned new_xedit_num)
 
 	xedit_t** new_xedit_list = realloc(cfg.xedit, sizeof(xedit_t *)*(cfg.total_xedits + 1));
 	if (new_xedit_list == NULL) {
+		free(new_xedit);
 		errormsg(WHERE, ERR_ALLOC, "external editor list", cfg.total_xedits + 1);
 		return false;
 	}
@@ -303,8 +308,8 @@ void xprogs_cfg()
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					write_xtrn_cfg(&cfg,backup_level);
-					write_main_cfg(&cfg,backup_level);
+					save_xtrn_cfg(&cfg,backup_level);
+					save_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
@@ -479,7 +484,11 @@ void tevents_cfg()
 			sprintf(opt[k++],"%-32.32s%.40s","Command Line",cfg.event[i]->cmd);
 			sprintf(opt[k++],"%-32.32s%s","Enabled"
 				,cfg.event[i]->misc&EVENT_DISABLED ? "No":"Yes");
-			sprintf(opt[k++],"%-32.32s%u","Execution Node",cfg.event[i]->node);
+			if(cfg.event[i]->node == NODE_ANY)
+				SAFECOPY(str, "Any");
+			else
+				SAFEPRINTF(str, "%u", cfg.event[i]->node);
+			sprintf(opt[k++],"%-32.32s%s","Execution Node", str);
 			sprintf(opt[k++],"%-32.32s%s","Execution Months"
 				,monthstr(cfg.event[i]->months));
 			sprintf(opt[k++],"%-32.32s%s","Execution Days of Month"
@@ -584,12 +593,19 @@ void tevents_cfg()
 					uifc.helpbuf=
 						"`Timed Event Node:`\n"
 						"\n"
-						"This is the node number to execute the timed event.\n"
+						"This is the node number to execute the timed event (or `Any`).\n"
 					;
-					sprintf(str,"%u",cfg.event[i]->node);
-					uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
-						,str,3,K_EDIT|K_NUMBER);
-					cfg.event[i]->node=atoi(str);
+					if(cfg.event[i]->node == NODE_ANY)
+						SAFECOPY(str, "Any");
+					else
+						SAFEPRINTF(str, "%u", cfg.event[i]->node);
+					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
+						,str,3,K_EDIT) > 0) {
+						if(isdigit(*str))
+							cfg.event[i]->node=atoi(str);
+						else
+							cfg.event[i]->node = NODE_ANY;
+					}
 					break;
 				case 5:
 					uifc.helpbuf=
@@ -1235,7 +1251,7 @@ void xtrn_cfg(uint section)
 					uifc.helpbuf=
 						"`Use Shell to Execute Command:`\n"
 						"\n"
-						"If this command-line requires the system command shell to execute, (Unix \n"
+						"If this command-line requires the system command shell to execute, (Unix\n"
 						"shell script or DOS batch file), set this option to ~Yes~.\n"
 					;
 					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
