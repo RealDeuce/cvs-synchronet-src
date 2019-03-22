@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.70 2018/06/10 08:54:54 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.71 2018/07/29 00:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 		}
 		c--;
 		if (str[c] == '.')
-			str[0] = '_';
+			str[c] = '_';
 	}
 	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
 		return(FALSE);
