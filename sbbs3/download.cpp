@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.53 2018/08/03 06:18:55 rswindell Exp $ */
+/* $Id: download.cpp,v 1.55 2019/01/28 21:01:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,18 +220,18 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	else
 		p=NULL;
 	cmdline=cmdstr(protcmdline(prot,type),fpath,fspec,NULL);
-	sprintf(msg,"Transferring %s",cmdline);
+	SAFEPRINTF(msg,"Transferring %s",cmdline);
 	spymsg(msg);
 	sys_status|=SS_FILEXFER;	/* disable spy during file xfer */
 	/* enable telnet binary transmission in both directions */
 	request_telnet_opt(TELNET_DO,TELNET_BINARY_TX);
 	request_telnet_opt(TELNET_WILL,TELNET_BINARY_TX);
-	ex_mode=0;
+	ex_mode = EX_BIN;
 	if(prot->misc&PROT_NATIVE)
 		ex_mode|=EX_NATIVE;
 #ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
-		ex_mode|=(EX_STDIO|EX_BIN);
+		ex_mode|=EX_STDIO;
 #endif
 
 	i=external(cmdline,ex_mode,p);
