@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.78 2019/08/02 09:27:47 rswindell Exp $ */
+/* $Id: email.cpp,v 1.73 2019/02/20 05:43:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 				,buf[SDT_BLOCK_LEN];
 	char 		tmp[512];
 	char		title[LEN_TITLE+1] = "";
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*		editor=NULL;
 	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
 	int 		i,j,x,file;
@@ -91,7 +90,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 		bputs(text[UnknownUser]);
 		return(false); 
 	}
-	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET) && !(mode & WM_NOFWD)) {
+	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET)) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
 		if((mode & WM_FORCEFWD) || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
@@ -128,7 +127,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor, &charset)) {
+	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -273,7 +272,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
 	if(mode&WM_FILE)
-		msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
+		msg.hdr.auxattr|=MSG_FILEATTACH;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
@@ -318,7 +317,9 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
