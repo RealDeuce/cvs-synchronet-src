@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.505 2019/02/20 05:43:19 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.506 2019/03/22 21:28:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1033,7 +1033,7 @@ public:
 			#define DLLEXPORT	__declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
+			#define DLLCALL
 		#else
 			#define DLLCALL
 		#endif
