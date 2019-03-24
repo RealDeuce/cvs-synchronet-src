@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.120 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.124 2019/03/24 09:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -353,7 +353,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 };
 
 #ifdef BUILD_JSDOCS
-static char* con_prop_desc[] = {
+static const char* con_prop_desc[] = {
 	 "status bit-field (see <tt>CON_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
 	,"current 0-based line counter (used for automatic screen pause)"
 	,"current 0-based column counter (used to auto-increment <i>line_counter</i> when screen wraps)"
@@ -1156,6 +1156,7 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
+	int32		columns=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1174,12 +1175,16 @@ js_putmsg(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
+	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
+		if(!JS_ValueToInt32(cx,argv[2],&columns))
+			return JS_FALSE;
+	}
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->putmsg(cstr,mode);
+	sbbs->putmsg(cstr, mode, columns);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1195,8 +1200,6 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr;
 	jsrefcount	rc;
 
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
@@ -1213,9 +1216,12 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->printfile(cstr,mode);
+	bool result = sbbs->printfile(cstr,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, result ? JS_TRUE : JS_FALSE);
+
     return(JS_TRUE);
 }
 
@@ -1230,8 +1236,6 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	js_str=NULL;
 	char*		cstr;
 	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((sbbs=(sbbs_t*)JS_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
@@ -1260,9 +1264,12 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->printtail(cstr,lines,mode);
+	bool result = sbbs->printtail(cstr,lines,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, result ? JS_TRUE : JS_FALSE);
+
     return(JS_TRUE);
 }
 
@@ -1919,9 +1926,10 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display one or more values as raw strings followed by a single carriage-return/line-feed pair (new-line)")
 	,315
 	},
-	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
+	{"putmsg",			js_putmsg,			1, JSTYPE_VOID,		JSDOCSTR("text [,mode=<tt>P_NONE</tt>] [,orig_columns=0]")
 	,JSDOCSTR("display message text (Ctrl-A codes, @-codes, pipe codes, etc), "
-		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits")
+		"see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for <i>mode</i> bits.<br>"
+		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
 	,310
 	},
 	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
@@ -1932,11 +1940,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
-	{"printfile",		js_printfile,		1, JSTYPE_VOID,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
+	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print a message text file with optional mode")
 	,310
 	},
-	{"printtail",		js_printtail,		2, JSTYPE_VOID,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
+	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
 	},
@@ -2052,7 +2060,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,31700
 	},
 	{"putbyte",			js_putbyte,			1, JSTYPE_BOOLEAN,	JSDOCSTR("value")
-	,JSDOCSTR("sends an unprocessed byte value to the remot terminal")
+	,JSDOCSTR("sends an unprocessed byte value to the remote terminal")
 	,31700
 	},
 	{0}
