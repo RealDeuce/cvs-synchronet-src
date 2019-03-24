@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.177 2019/01/20 05:25:19 rswindell Exp $ */
+/* $Id: js_file.c,v 1.178 2019/03/24 08:55:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2822,7 +2822,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,JSDOCSTR("parse a key from a <tt>.ini</tt> file and return its value (format = '<tt>key = value</tt>'). "
 		"returns the specified <i>default</i> value if the key or value is missing or invalid. "
 		"to parse a key from the <i>root</i> section, pass <i>null</i> for <i>section</i>. "
-		"will return a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
+		"Returns a <i>bool</i>, <i>number</i>, <i>string</i>, or an <i>array of strings</i> "
 		"determined by the type of <i>default</i> value specified. "
 		"<br><b>Note:</b> To insure that any/all values are returned as a string (e.g. numeric passwords are <b>not</b> returned as a <i>number</i>), "
 		"pass an empty string ('') for the <i>default</i> value." )
@@ -2837,7 +2837,8 @@ static jsSyncMethodSpec js_file_functions[] = {
 	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
 	,JSDOCSTR("parse an entire section from a .ini file "
 		"and return all of its keys and values as properties of an object. "
-		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section")
+		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section. "
+		"Returns <i>null</i> if the specified <i>section</i> does not exist in the file or the file has not been opened.")
 	,311
 	},
 	{"iniSetObject",	js_iniSetObject,	2,	JSTYPE_BOOLEAN,	JSDOCSTR("section, object")
