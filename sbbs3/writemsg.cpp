@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.143 2019/03/08 07:48:21 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.144 2019/03/24 09:28:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1370,7 +1370,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
-	msgtotxt(msg,msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
+	msgtotxt(&smb, msg, msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
 	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);

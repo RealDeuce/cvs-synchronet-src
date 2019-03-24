@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.116 2019/02/20 05:43:19 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.117 2019/03/24 09:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -771,7 +771,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			msg.upvotes = post[smb.curmsg].upvotes;
 			msg.downvotes = post[smb.curmsg].downvotes;
 			msg.total_votes = post[smb.curmsg].total_votes;
-			show_msg(&msg
+			show_msg(&smb, &msg
 				,msg.from_ext && !strcmp(msg.from_ext,"1") && !msg.from_net.type
 					? 0:P_NOATCODES
 				,&post[smb.curmsg]);
@@ -1365,7 +1365,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	*/
 							bputs(text[FileToWriteTo]);
 							if(getstr(str,50,K_LINE))
-								msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
+								msgtotxt(&smb, &msg, str, /* header: */true, /* mode: */GETMSGTXT_ALL);
 							break;
 						case 'U':   /* User edit */
 							useredit(cfg.sub[subnum]->misc&SUB_NAME
