@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.81 2018/10/23 02:49:50 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.88 2019/02/20 05:43:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,11 +131,12 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	else
 		act=NODE_RMAL;
 	action=act;
+	const char* order = (lm_mode&LM_REVERSE) ? "newest" : "oldest";
 	if(smb.msgs>1 && which!=MAIL_ALL) {
 		if(which==MAIL_SENT)
-			bputs(text[MailSentLstHdr]);
+			bprintf(text[MailSentLstHdr], order);
 		else
-			bputs(text[MailWaitingLstHdr]);
+			bprintf(text[MailWaitingLstHdr], order);
 
 		for(smb.curmsg=0;smb.curmsg<smb.msgs && !msgabort();smb.curmsg++) {
 			if(msg.total_hfields)
@@ -219,6 +220,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 		if(smb.status.last_msg!=last || lm_mode != last_mode) { 	/* New messages */
 			last=smb.status.last_msg;
 			free(mail);
+			order = (lm_mode&LM_REVERSE) ? "newest" : "oldest";
 			mail=loadmail(&smb,&smb.msgs,usernumber,which,lm_mode);   /* So re-load */
 			if(!smb.msgs)
 				break;
@@ -402,7 +404,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}()-+/");
+		sprintf(str,"ADFLNQRT?<>[]{}()-+/!");
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which == MAIL_YOUR)
@@ -419,6 +421,10 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			continue; 
 		}
 		switch(l) {
+			case '!':
+				lm_mode ^= LM_REVERSE;
+				domsg=0;
+				break;
 			case 'A':   /* Auto-reply to last piece */
 			case 'R':
 				if(l==(cfg.sys_misc&SM_RA_EMU ? 'A' : 'R'))  /* re-read last message */
@@ -430,8 +436,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					bputs(text[CantReplyToMsg]);
 					break; 
 				}
-
-				quotemsg(&msg,/* include tails: */TRUE);
 
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);
@@ -462,16 +466,16 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
-					replied=netmail(str,msg.subj,WM_QUOTE);
+					replied=netmail(str,msg.subj,WM_NONE, &smb, &msg);
 					sprintf(str2,text[DeleteMailQ],msg.from); 
 				}
 				else {
 					if(!msg.from_net.type && !stricmp(str,msg.from))
-						replied=email(msg.idx.from,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(msg.idx.from,str2,msg.subj,WM_NONE, &smb, &msg);
 					else if(!stricmp(str,"SYSOP"))
-						replied=email(1,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(1,str2,msg.subj,WM_NONE, &smb, &msg);
 					else if((i=finduser(str))!=0)
-						replied=email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(i,str2,msg.subj,WM_NONE, &smb, &msg);
 					else
 						replied=false;
 					sprintf(str2,text[DeleteMailQ],msg.from); 
@@ -501,7 +505,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs(text[CantDeleteMsg]);
+					bprintf(text[CantDeleteMsg], smb.curmsg + 1);
 					domsg=0;
 					break; 
 				}
@@ -578,11 +582,11 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				else
 					i=smb.curmsg;
 				if(which==MAIL_SENT)
-					bputs(text[MailSentLstHdr]);
+					bprintf(text[MailSentLstHdr], order);
 				else if(which==MAIL_ALL)
-					bputs(text[MailOnSystemLstHdr]);
+					bprintf(text[MailOnSystemLstHdr], order);
 				else
-					bputs(text[MailWaitingLstHdr]);
+					bprintf(text[MailWaitingLstHdr], order);
 				for(u=i;u<smb.msgs && !msgabort();u++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
@@ -749,11 +753,11 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					v=smb.msgs;
 
 				if(which==MAIL_SENT)
-					bputs(text[MailSentLstHdr]);
+					bprintf(text[MailSentLstHdr], order);
 				else if(which==MAIL_ALL)
-					bputs(text[MailOnSystemLstHdr]);
+					bprintf(text[MailOnSystemLstHdr], order);
 				else
-					bputs(text[MailWaitingLstHdr]);
+					bprintf(text[MailWaitingLstHdr], order);
 				for(;u<v;u++) {
 					if(msg.total_hfields)
 						smb_freemsgmem(&msg);
@@ -863,7 +867,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				bputs(text[SearchStringPrompt]);
 				if(!getstr(search_str,40,K_LINE|K_UPPER|K_EDIT|K_AUTODEL))
 					break;
-				searchmail(mail, (long)i64, smb.msgs, which, search_str);
+				searchmail(mail, (long)i64, smb.msgs, which, search_str, order);
 				break;
 			case '?':
 				menu(menu_file);
@@ -899,7 +903,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	current_msg=NULL;
 }
 
-long sbbs_t::searchmail(mail_t *mail, long start, long msgs, int which, const char *search)
+long sbbs_t::searchmail(mail_t *mail, long start, long msgs, int which, const char *search, const char* order)
 {
 	char*	buf;
 	char	subj[128];
@@ -924,11 +928,11 @@ long sbbs_t::searchmail(mail_t *mail, long start, long msgs, int which, const ch
 		if(strstr(buf,search) || strstr(subj,search)) {
 			if(!found) {
 				if(which==MAIL_SENT)
-					bputs(text[MailSentLstHdr]);
+					bprintf(text[MailSentLstHdr], order);
 				else if(which==MAIL_ALL)
-					bputs(text[MailOnSystemLstHdr]);
+					bprintf(text[MailOnSystemLstHdr], order);
 				else
-					bputs(text[MailWaitingLstHdr]);
+					bprintf(text[MailWaitingLstHdr], order);
 			}
 			if(which==MAIL_ALL)
 				bprintf(text[MailOnSystemLstFmt]
