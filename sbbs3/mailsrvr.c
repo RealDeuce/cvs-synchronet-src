@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.689 2019/04/23 23:07:26 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.683 2019/03/07 01:11:01 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -839,6 +839,11 @@ static ulong sockmsgtxt(SOCKET socket, const char* prot, CRYPT_SESSION sess, smb
 		boundary = mimegetboundary();
 		file_list = strListInit();
 
+		/* Parse header fields */
+		for(i=0;i<msg->total_hfields;i++)
+	        if(msg->hfield[i].type==FILEATTACH) 
+				strListPush(&file_list,(char*)msg->hfield_dat[i]);
+
 		/* Parse subject (if necessary) */
 		if(!strListCount(file_list)) {	/* filename(s) stored in subject */
 			split=strListSplitCopy(NULL,msg->subj," ");
@@ -994,12 +999,12 @@ static void pop3_thread(void* arg)
 		lprintf(LOG_INFO,"%04d %s connection accepted from: %s port %u"
 			,socket, client.protocol, host_ip, inet_addrport(&pop3.client_addr));
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
-	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&pop3.client_addr.addr, pop3.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		if(startup->options&MAIL_OPT_DEBUG_POP3)
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
-	}
+	if(getnameinfo(&pop3.client_addr.addr, pop3.client_addr_len, host_name, sizeof(host_name), NULL, 0, (startup->options&MAIL_OPT_NO_HOST_LOOKUP)?NI_NUMERICHOST:0)!=0)
+		SAFECOPY(host_name, "<no name>");
+
+	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP) && (startup->options&MAIL_OPT_DEBUG_POP3))
+		lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+
 	if (pop3.tls_port) {
 		if (get_ssl_cert(&scfg, &estr, &level) == -1) {
 			if (estr) {
@@ -1696,11 +1701,11 @@ static ulong rblchk(SOCKET sock, const char* prot, union xp_sockaddr *addr, cons
 	switch(addr->addr.sa_family) {
 		case AF_INET:
 			mail_addr=ntohl(addr->in.sin_addr.s_addr);
-			safe_snprintf(name,sizeof(name),"%lu.%lu.%lu.%lu.%.128s"
-				,(ulong)(mail_addr&0xff)
-				,(ulong)(mail_addr>>8)&0xff
-				,(ulong)(mail_addr>>16)&0xff
-				,(ulong)(mail_addr>>24)&0xff
+			safe_snprintf(name,sizeof(name),"%ld.%ld.%ld.%ld.%.128s"
+				,mail_addr&0xff
+				,(mail_addr>>8)&0xff
+				,(mail_addr>>16)&0xff
+				,(mail_addr>>24)&0xff
 				,rbl_addr
 				);
 			break;
@@ -1815,7 +1820,7 @@ static BOOL chk_email_addr(SOCKET socket, const char* prot, char* p, char* host_
 	char	tmp[128];
 
 	SKIP_WHITESPACE(p);
-	char* lt = strchr(p, '<');
+	char* lt = strrchr(p, '<');
 	if(lt!= NULL)
 		p = lt+1;
 	SAFECOPY(addr,p);
@@ -2526,7 +2531,7 @@ static void parse_mail_address(char* p
 	SKIP_WHITESPACE(p);
 
 	/* Get the address */
-	if((tp=strchr(p,'<'))!=NULL)
+	if((tp=strrchr(p,'<'))!=NULL)
 		tp++;
 	else
 		tp=p;
@@ -2539,13 +2544,13 @@ static void parse_mail_address(char* p
 	/* Get the "name" (if possible) */
 	if((tp=strchr(p,'"'))!=NULL) {	/* name in quotes? */
 		p=tp+1;
-		tp=strchr(p,'"');
+		tp=strrchr(p,'"');
 	} else if((tp=strchr(p,'('))!=NULL) {	/* name in parenthesis? */
 		p=tp+1;
-		tp=strchr(p,')');
+		tp=strrchr(p,')');
 	} else if(*p=='<') {					/* address in brackets? */
 		p++;
-		tp=strchr(p,'>');
+		tp=strrchr(p,'>');
 	} else									/* name, then address in brackets */
 		tp=strchr(p,'<');
 	if(tp) *tp=0;
@@ -2901,11 +2906,12 @@ static void smtp_thread(void* arg)
 	lprintf(LOG_INFO,"%04d %s Connection accepted on port %u from: %s port %u"
 		,socket, client.protocol, inet_addrport(&server_addr), host_ip, inet_addrport(&smtp.client_addr));
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
-	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&smtp.client_addr.addr, smtp.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
+	if(getnameinfo(&smtp.client_addr.addr, smtp.client_addr_len, host_name, sizeof(host_name), NULL, 0, (startup->options&MAIL_OPT_NO_HOST_LOOKUP)?NI_NUMERICHOST:0)!=0)
+		SAFECOPY(host_name, "<no name>");
+
+	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP))
 		lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
-	}
+
 	protected_uint32_adjust(&active_clients, 1);
 	update_clients();
 
@@ -3635,8 +3641,6 @@ static void smtp_thread(void* arg)
 				smb.subnum=INVALID_SUB;
 				/* creates message data, but no header or index records (since msg.to==NULL) */
 				i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
-				if(smb_countattachments(&smb, &msg, msgbuf) > 0)
-					msg.hdr.auxattr |= MSG_MIMEATTACH;
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
 					smb_close(&smb);
@@ -5719,7 +5723,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.689 $", "%*s %s", revision);
+	sscanf("$Revision: 1.683 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
