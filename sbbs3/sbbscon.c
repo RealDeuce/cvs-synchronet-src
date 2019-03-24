@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.276 2019/09/02 00:52:44 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.273 2019/01/08 00:13:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1363,7 +1363,7 @@ int main(int argc, char** argv)
 {
 	int		i;
 	int		n;
-	int		nodefile = -1;
+	int		file;
 	char	ch;
 	char*	p;
 	char*	arg;
@@ -2043,32 +2043,23 @@ int main(int argc, char** argv)
 #if !defined(DONT_BLAME_SYNCHRONET)
     		if(!thread_suid_broken) {
      			if(bbs_startup.telnet_port < IPPORT_RESERVED
-    				|| ((bbs_startup.options & BBS_OPT_ALLOW_RLOGIN)
+    				|| (bbs_startup.options & BBS_OPT_ALLOW_RLOGIN
     					&& bbs_startup.rlogin_port < IPPORT_RESERVED)
 #ifdef USE_CRYPTLIB
-    				|| ((bbs_startup.options & BBS_OPT_ALLOW_SSH)
+    				|| (bbs_startup.options & BBS_OPT_ALLOW_SSH
     					&& bbs_startup.ssh_port < IPPORT_RESERVED)
 #endif
-    				) {
-					lputs(LOG_WARNING, "Disabling Terminal Server recycle support");
+    				)
     				bbs_startup.options|=BBS_OPT_NO_RECYCLE;
-				}
-    			if(ftp_startup.port < IPPORT_RESERVED) {
-					lputs(LOG_WARNING, "Disabling FTP Server recycle support");
+    			if(ftp_startup.port < IPPORT_RESERVED)
     				ftp_startup.options|=FTP_OPT_NO_RECYCLE;
-				}
-    			if(web_startup.port < IPPORT_RESERVED) {
-					lputs(LOG_WARNING, "Disabling Web Server recycle support");
+    			if(web_startup.port < IPPORT_RESERVED)
     				web_startup.options|=BBS_OPT_NO_RECYCLE;
-				}
-    			if(((mail_startup.options & MAIL_OPT_ALLOW_POP3)
+    			if((mail_startup.options & MAIL_OPT_ALLOW_POP3
     				&& mail_startup.pop3_port < IPPORT_RESERVED)
-    				|| mail_startup.smtp_port < IPPORT_RESERVED) {
-					lputs(LOG_WARNING, "Disabling Mail Server recycle support");
+    				|| mail_startup.smtp_port < IPPORT_RESERVED)
     				mail_startup.options|=MAIL_OPT_NO_RECYCLE;
-				}
-				/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
-				lputs(LOG_WARNING, "Disabling Services recycle support");
+    			/* Perhaps a BBS_OPT_NO_RECYCLE_LOW option? */
     			services_startup.options|=BBS_OPT_NO_RECYCLE;
     		}
 #endif /* !defined(DONT_BLAME_SYNCHRONET) */
@@ -2190,7 +2181,7 @@ int main(int argc, char** argv)
 					printf("\n");
 					count=0;
 					for(i=1;i<=scfg.sys_nodes;i++) {
-						getnodedat(&scfg,i,&node, /* lockit: */FALSE, &nodefile);
+						getnodedat(&scfg,i,&node,NULL /* file */);
 						if(ch=='w' && node.status!=NODE_INUSE && node.status!=NODE_QUIET)
 							continue;
 						printnodedat(&scfg, i,&node);
@@ -2210,7 +2201,7 @@ int main(int argc, char** argv)
 						break;
 					fflush(stdin);
 					printf("\n");
-					if((i=getnodedat(&scfg,n,&node, /* lockit: */TRUE, &nodefile))!=0) {
+					if((i=getnodedat(&scfg,n,&node,&file))!=0) {
 						printf("!Error %d getting node %d data\n",i,n);
 						break;
 					}
@@ -2225,7 +2216,7 @@ int main(int argc, char** argv)
 							node.misc^=NODE_INTR;
 							break;
 					}
-					putnodedat(&scfg,n,&node,/* closeit: */FALSE, nodefile);
+					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 #ifdef __unix__
 	                _echo_off(); /* turn off echoing - failsafe */
