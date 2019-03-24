@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.73 2019/07/08 00:59:25 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.68 2019/03/24 08:54:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,8 +108,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	char	subj[FIDO_SUBJ_LEN]= "";
 	char	msgpath[MAX_PATH+1];
 	char 	tmp[512];
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*	editor=NULL;
 	int		file,x;
 	uint	i;
 	long	length,l;
@@ -158,7 +157,8 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return qnetmail(to, title, mode, resmb, remsg);
+		qnetmail(to, title, mode);
+		return false; 
 	}
 	if(net_type == NET_INTERNET) {
 		if(!(cfg.inetmail_misc&NMAIL_ALLOW)) {
@@ -241,7 +241,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	}
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB, to, from, &editor, &charset)) {
+	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB, to, from, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -351,7 +351,9 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 
 	smb_hfield_str(&msg,SUBJECT, subj);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 
 	if(cfg.netmail_misc&NMAIL_DIRECT)
 		msg.hdr.netattr |= MSG_DIRECT;
