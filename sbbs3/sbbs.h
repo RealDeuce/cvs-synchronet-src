@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.507 2019/03/24 09:28:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.508 2019/03/26 07:45:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -981,7 +981,7 @@ public:
 	bool	lookup_netuser(char *into);
 
 	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
-	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE);
+	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 
 	/* useredit.cpp */
 	void	useredit(int usernumber);
