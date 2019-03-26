@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.138 2018/12/31 06:39:07 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.144 2019/03/24 09:28:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ char* sbbs_t::quotes_fname(int xedit, char *path, size_t len)
 
 /****************************************************************************/
 /****************************************************************************/
-void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
+bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 {
 	char	fname[MAX_PATH+1];
 	char*	buf;
@@ -94,10 +94,13 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 
 	if((fp=fopen(fname,"w"))==NULL) {
 		errormsg(WHERE,ERR_OPEN,fname,0);
-		return; 
+		return false; 
 	}
 
-	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
+	bool result = false;
+	ulong mode = GETMSGTXT_PLAIN;
+	if(tails) mode |= GETMSGTXT_TAILS;
+	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
 		strip_invalid_attr(buf);
 		truncsp(buf);
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
@@ -108,9 +111,12 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 		} else
 			fputs(buf,fp);
 		smb_freemsgtxt(buf); 
+		result = true;
 	} else if(smb_getmsgdatlen(msg)>2)
-		errormsg(WHERE,ERR_READ,smb.file,smb_getmsgdatlen(msg));
+		errormsg(WHERE,ERR_READ,smb->file,smb_getmsgdatlen(msg));
+
 	fclose(fp);
+	return result;
 }
 
 /****************************************************************************/
@@ -226,6 +232,9 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		errormsg(WHERE, ERR_CHK, "columns", cols);
 		return false;
 	}
+
+	if(top == NULL)
+		top = "";
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
@@ -865,6 +874,10 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			line--; 
 			continue;
 		}
+		if(console&CON_DELETELINE) {
+			strListDelete(&str, line);
+			continue;
+		}
 		newline();
 		if(console&CON_DOWNARROW) {
 			if(str[line] != NULL) {
@@ -1016,6 +1029,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		strcpy(buf,top);
 	else
 		buf[0]=0;
+	lines = strListCount(str);
 	for(i=0;i<lines;i++) {
 		strcat(buf,str[i]);
 		strcat(buf,crlf);
@@ -1356,7 +1370,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
-	msgtotxt(msg,msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
+	msgtotxt(&smb, msg, msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
 	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);
