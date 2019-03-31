@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.207 2019/08/27 08:12:09 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.203 2019/01/20 05:25:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -334,7 +334,6 @@ static int do_bail(int code)
 		lprintf(LOG_ERR,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
-	cooked_tty();
 	if(pause_on_exit || (code && pause_on_error)) {
 		fprintf(statfp,"\nHit enter to continue...");
 		getchar();
@@ -342,6 +341,7 @@ static int do_bail(int code)
 
 	if(code)
 		fprintf(statfp,"\nReturning error code: %d\n",code);
+	cooked_tty();
 	return(code);
 }
 
@@ -935,7 +935,6 @@ long js_exec(const char *fname, char** args)
 	long double	start;
 	long double	diff;
 	JSBool		exec_result;
-	BOOL		abort = FALSE;
 
 	if(fname!=NULL) {
 		if(isfullpath(fname)) {
@@ -1042,25 +1041,21 @@ long js_exec(const char *fname, char** args)
 	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd, js_glob);
 	start=xp_timer();
 	if(debugger)
-		abort = debug_prompt(js_cx, js_script) == DEBUG_EXIT;
-	if (abort) {
+		debug_prompt(js_cx, js_script);
+	exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
+	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
+		char	*p;
+
+		JSVALUE_TO_MSTRING(js_cx, rval, p, NULL);
+		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
+		free(p);
+		JS_ValueToInt32(js_cx,rval,&result);
+	} else if(!exec_result)
 		result = EXIT_FAILURE;
-	} else {
-		exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
-		JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
-		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-			char	*p;
+	js_EvalOnExit(js_cx, js_glob, &cb);
 
-			JSVALUE_TO_MSTRING(js_cx, rval, p, NULL);
-			mfprintf(statfp,"Using JavaScript exit_code: %s",p);
-			free(p);
-			JS_ValueToInt32(js_cx,rval,&result);
-		} else if(!exec_result)
-			result = EXIT_FAILURE;
-		js_EvalOnExit(js_cx, js_glob, &cb);
-
-		JS_ReportPendingException(js_cx);
-	}
+	JS_ReportPendingException(js_cx);
 
 	if((diff=xp_timer()-start) > 0)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
@@ -1155,7 +1150,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.207 $", "%*s %s", revision);
+	sscanf("$Revision: 1.203 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
