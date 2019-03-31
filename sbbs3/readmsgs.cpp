@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.121 2019/04/23 05:34:26 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.117 2019/03/24 09:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -504,7 +504,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	int64_t	i64;
 	int		quit=0;
 	uint 	usub,ugrp,reads=0;
-	uint	lp = LP_BYSELF;
+	uint	lp=0;
 	long	org_mode=mode;
 	ulong	msgs,l,unvalidated;
 	uint32_t last;
@@ -518,7 +518,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		char cmdline[256];
 
 		scanposts_inside = true;
-		safe_snprintf(cmdline, sizeof(cmdline), "%s %s %ld %s", cfg.scanposts_mod, cfg.sub[subnum]->code, mode, find);
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %s %u %s", cfg.scanposts_mod, cfg.sub[subnum]->code, mode, find);
 		i=exec_bin(cmdline, &main_csi);
 		scanposts_inside = false;
 		return i;
@@ -555,7 +555,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i);
 		return(0); 
 	}
-	SAFEPRINTF2(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
+	sprintf(smb.file,"%s%s",cfg.sub[subnum]->data_dir,cfg.sub[subnum]->code);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
@@ -568,7 +568,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 	if(!(mode&SCAN_TOYOU)
 		&& (!mode || mode&SCAN_FIND || !(subscan[subnum].cfg&SUB_CFG_YSCAN)))
-		lp|=LP_OTHERS;
+		lp=LP_BYSELF|LP_OTHERS;
 	if(mode&SCAN_TOYOU && mode&SCAN_UNREAD)
 		lp|=LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
@@ -950,6 +950,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						break;
 					}
+					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
+					if(!yesno(str)) {
+						domsg=0;
+						break;
+					}
 				}
 				domsg=0;
 				if(!sub_op(subnum)) {
@@ -976,14 +981,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					domsg=0;
 					break; 
 				}
-				if(msg.hdr.type == SMB_MSG_TYPE_POLL)
-					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
-				else
-					SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msg.subj);
-				if(!(msg.hdr.attr&MSG_DELETE) && noyes(str)) {
-					domsg = false;
-					break;
-				}
 
 				FREE_AND_NULL(post);
 
@@ -999,7 +996,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 							errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
 						smb_unlockmsghdr(&smb,&msg);
 						if(i==0 && msg.idx.attr&MSG_DELETE) {
-							SAFEPRINTF2(str,"removed post from %s %s"
+							sprintf(str,"removed post from %s %s"
 								,cfg.grp[cfg.sub[subnum]->grp]->sname,cfg.sub[subnum]->lname);
 							logline("P-",str);
 							center(text[Deleted]);
@@ -1102,7 +1099,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					&& stricmp(msg.to,useron.name)
 					&& stricmp(msg.to,useron.alias))
 					break;
-				SAFEPRINTF2(str2,text[Regarding]
+				sprintf(str2,text[Regarding]
 					,msg.subj
 					,timestr(msg.hdr.when_written.time));
 				if(msg.from_net.addr==NULL)
@@ -1347,7 +1344,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 									errormsg(WHERE,ERR_READ,smb.file,msg.idx.number);
 									break; 
 								}
-								SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msg.subj);
+								sprintf(str,text[DeletePostQ],msg.hdr.number,msg.subj);
 								if(movemsg(&msg,subnum) && yesno(str)) {
 									msg.idx.attr|=MSG_DELETE;
 									msg.hdr.attr=msg.idx.attr;
@@ -1672,7 +1669,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		&& !(org_mode&(SCAN_CONST|SCAN_TOYOU|SCAN_FIND|SCAN_POLLS)) && !(cfg.sub[subnum]->misc&SUB_PONLY)
 		&& reads && chk_ar(cfg.sub[subnum]->post_ar,&useron,&client) && text[Post][0]
 		&& !(useron.rest&FLAG('P'))) {
-		SAFEPRINTF2(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname
+		sprintf(str,text[Post],cfg.grp[cfg.sub[subnum]->grp]->sname
 			,cfg.sub[subnum]->lname);
 		if(!noyes(str))
 			postmsg(subnum,0,0); 
@@ -1697,7 +1694,7 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 	uint32_t	posts;
 	uint32_t	total=0;
 	long	displayed = 0;
-	long	lp_mode = LP_BYSELF;
+	long	lp_mode = LP_BYSELF|LP_OTHERS;
 	post_t	*post;
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
@@ -1712,8 +1709,8 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
-	if(!(mode&SCAN_TOYOU))
-		lp_mode |= LP_OTHERS;
+	if(mode&SCAN_TOYOU)
+		lp_mode = 0;
 	if(mode&SCAN_UNREAD)
 		lp_mode |= LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))

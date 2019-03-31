@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.79 2019/04/16 08:48:18 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.78 2019/02/16 11:40:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1008,8 +1008,7 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		c=0;
 		put_int(c,stream);
 		n=0;
-		put_int(cfg->xedit[i]->quotewrap_cols, stream);
-		for(j=0;j<6;j++)
+		for(j=0;j<7;j++)
 			put_int(n,stream);
 		}
 

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.125 2019/04/11 10:01:49 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.124 2019/03/24 09:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -234,7 +234,7 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case CON_PROP_TOS:
-			sbbs->tos = val ? true : false;
+			sbbs->tos=val;
 			break;
 		case CON_PROP_ROWS:
 			if(val >= TERM_ROWS_MIN && val <= TERM_ROWS_MAX)
