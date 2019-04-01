@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.129 2018/10/05 08:23:33 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.130 2019/04/01 21:58:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -143,7 +143,7 @@ char *usage=
 "      -s<s> = set 'subject' for imported message\n"
 "      -z[n] = set time zone (n=min +/- from UT or 'EST','EDT','CST',etc)\n"
 #ifdef __unix__
-"      -U[n] = set umask to specified value\n"
+"      -U[n] = set umask to specified value (use leading 0 for octal, e.g. 022)\n"
 #endif
 "      -#    = set number of messages to view/list (e.g. -1)\n"
 ;
@@ -1572,7 +1572,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.129 $", "%*s %s", revision);
+	sscanf("$Revision: 1.130 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
