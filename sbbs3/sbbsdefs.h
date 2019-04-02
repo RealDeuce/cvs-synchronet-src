@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.230 2019/01/01 14:36:06 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.233 2019/02/21 22:36:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -50,7 +50,7 @@
 /*************/
 
 #define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'b'     /* Revision: lowercase letter */
+#define REVISION	'c'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
@@ -384,6 +384,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_FORCE		(1<<1) 		/* Force users off-line for event		*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
+
+#define NODE_ANY		0			/* special qhub/event_t.node value		*/
 
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
@@ -765,6 +767,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define FL_VIEW     (1<<5)		/* View ZIP/ARC/GIF etc. info               */
 
 								/* Bits in the mode of writemsg and email() */
+#define WM_NONE		0			/* No bit flags set							*/
 #define WM_EXTDESC	(1<<0)		/* Writing extended file description		*/
 #define WM_EMAIL	(1<<1)		/* Writing e-mail							*/
 #define WM_NETMAIL	(1<<2)		/* Writing NetMail							*/
