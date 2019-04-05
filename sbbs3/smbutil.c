@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.128 2018/07/08 22:38:21 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.130 2019/04/01 21:58:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -119,6 +119,11 @@ char *usage=
 "       p[k] = pack msg base (k specifies minimum packable Kbytes)\n"
 "       L    = lock a msg base for exclusive-access/backup\n"
 "       U    = unlock a msg base\n"
+"\n"
+"            [n] may represent 1-based message index offset, or\n"
+"            [#n] actual message number, or\n"
+"            [-n] message age (in days)\n"
+"\n"
 "opts:\n"
 "      -c[m] = create message base if it doesn't exist (m=max msgs)\n"
 "      -a    = always pack msg base (disable compression analysis)\n"
@@ -138,7 +143,7 @@ char *usage=
 "      -s<s> = set 'subject' for imported message\n"
 "      -z[n] = set time zone (n=min +/- from UT or 'EST','EDT','CST',etc)\n"
 #ifdef __unix__
-"      -U[n] = set umask to specified value\n"
+"      -U[n] = set umask to specified value (use leading 0 for octal, e.g. 022)\n"
 #endif
 "      -#    = set number of messages to view/list (e.g. -1)\n"
 ;
@@ -1391,7 +1396,7 @@ void readmsgs(ulong start)
 				break; 
 			}
 
-			printf("\n%"PRIu32" (%d)\n",msg.hdr.number,msg.offset+1);
+			printf("\n#%"PRIu32" (%d)\n",msg.hdr.number,msg.offset+1);
 			printf("Subj : %s\n",msg.subj);
 			printf("Attr : %04hX\n", msg.hdr.attr);
 			printf("To   : %s",msg.to);
@@ -1519,9 +1524,17 @@ long getmsgnum(const char* str)
 		printf("%.24s\n", ctime(&t));
 		idxrec_t	idx;
 		int result = smb_getmsgidx_by_time(&smb, &idx, t);
-		printf("match = %d, num %d\n", result, idx.number);
+//		printf("match = %d, num %d\n", result, idx.number);
 		if(result >= 0)
 			return result + 1;	/* 1-based offset */
+	}
+	if(*str == '#') {
+		smbmsg_t msg;
+		ZERO_VAR(msg);
+		msg.hdr.number = atol(str + 1);
+		int result = smb_getmsgidx(&smb, &msg);
+		if(result == SMB_SUCCESS)
+			return msg.offset + 1;
 	}
 	return atol(str);
 }
@@ -1559,7 +1572,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.128 $", "%*s %s", revision);
+	sscanf("$Revision: 1.130 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
