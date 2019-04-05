@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.210 2018/11/09 03:18:04 rswindell Exp $ */
+/* $Id: userdat.c,v 1.212 2019/02/15 06:42:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2878,11 +2878,29 @@ BOOL DLLCALL loginAttemptListFree(link_list_t* list)
 }
 
 /****************************************************************************/
+/* Returns negative value on failure										*/
+/****************************************************************************/
+long DLLCALL loginAttemptListCount(link_list_t* list)
+{	
+	long count;
+	
+	if(!listLock(list))
+		return -1;
+	count = listCountNodes(list);
+	listUnlock(list);
+	return count;
+}
+
+/****************************************************************************/
+/* Returns number of items (attempts) removed from the list					*/
+/* Returns negative value on failure										*/
+/****************************************************************************/
 long DLLCALL loginAttemptListClear(link_list_t* list)
 {	
 	long count;
 	
-	listLock(list);
+	if(!listLock(list))
+		return -1;
 	count=listCountNodes(list);
 	count-=listFreeNodes(list);
 	listUnlock(list);
@@ -2916,6 +2934,8 @@ static list_node_t* login_attempted(link_list_t* list, const union xp_sockaddr* 
 }
 
 /****************************************************************************/
+/* Returns negative value on failure										*/
+/****************************************************************************/
 long DLLCALL loginAttempts(link_list_t* list, const union xp_sockaddr* addr)
 {
 	long				count=0;
@@ -2923,7 +2943,8 @@ long DLLCALL loginAttempts(link_list_t* list, const union xp_sockaddr* addr)
 
 	if(addr->addr.sa_family != AF_INET && addr->addr.sa_family != AF_INET6)
 		return 0;
-	listLock(list);
+	if(!listLock(list))
+		return -1;
 	if((node=login_attempted(list, addr))!=NULL)
 		count = ((login_attempt_t*)node->data)->count - ((login_attempt_t*)node->data)->dupes;
 	listUnlock(list);
@@ -2959,7 +2980,8 @@ ulong DLLCALL loginFailure(link_list_t* list, const union xp_sockaddr* addr, con
 	if(list==NULL)
 		return 0;
 	memset(&first, 0, sizeof(first));
-	listLock(list);
+	if(!listLock(list))
+		return 0;
 	if((node=login_attempted(list, addr)) != NULL) {
 		attempt=node->data;
 		/* Don't count consecutive duplicate attempts (same name and password): */
@@ -3021,7 +3043,8 @@ ulong DLLCALL loginBanned(scfg_t* cfg, link_list_t* list, SOCKET sock, const cha
 		&& findstr(host_name, exempt))
 		return 0;
 
-	listLock(list);
+	if(!listLock(list))
+		return 0;
 	node = login_attempted(list, &client_addr);
 	listUnlock(list);
 	if(node == NULL)
