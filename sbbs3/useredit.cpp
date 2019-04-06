@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.57 2019/05/09 21:14:21 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.53 2018/10/25 21:15:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -812,29 +812,28 @@ void sbbs_t::maindflts(user_t* user)
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
 		long term = (user == &useron) ? term_supports() : user->misc;
 		if(term&PETSCII)
-			safe_snprintf(str,sizeof(str),"%sPETSCII %lu %s"
-							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
-							,cols, text[TerminalColumns]);
+			safe_snprintf(str,sizeof(str),"%sPETSCII %u columns"
+							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
+							,cols);
 		else
-			safe_snprintf(str,sizeof(str),"%s%s%s%s%s%s"
-							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
+			safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
+							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,term&ANSI ? "ANSI ":"TTY "
-							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
+							,term&COLOR ? "(Color) ":"(Mono) "
 							,term&RIP ? "RIP " : nulstr
-							,term&NO_EXASCII ? "ASCII ":"CP437 "
-							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
-		bprintf(text[UserDefaultsTerminal], truncsp(str));
-		if(user->rows)
-			ultoa(user->rows,tmp,10);
-		else
-			SAFEPRINTF2(tmp,"%s%ld", text[TerminalAutoDetect], rows);
-		bprintf(text[UserDefaultsRows], tmp, text[TerminalRows]);
-		if(cfg.total_shells>1)
-			bprintf(text[UserDefaultsCommandSet]
-				,cfg.shell[user->shell]->name);
+							,term&NO_EXASCII ? "ASCII":"CP437");
+		bprintf(text[UserDefaultsTerminal],str);
 		if(cfg.total_xedits)
 			bprintf(text[UserDefaultsXeditor]
 				,user->xedit ? cfg.xedit[user->xedit-1]->name : "None");
+		if(user->rows)
+			ultoa(user->rows,tmp,10);
+		else
+			SAFEPRINTF(tmp,"Auto Detect (%ld)",rows);
+		bprintf(text[UserDefaultsRows],tmp);
+		if(cfg.total_shells>1)
+			bprintf(text[UserDefaultsCommandSet]
+				,cfg.shell[user->shell]->name);
 		bprintf(text[UserDefaultsArcType]
 			,user->tmpext);
 		bprintf(text[UserDefaultsMenuMode]
@@ -899,59 +898,34 @@ void sbbs_t::maindflts(user_t* user)
 		switch(ch) {
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
-					user->misc |= AUTOTERM;
-					user->misc &= ~(ANSI|RIP|WIP|HTML|PETSCII);
+					user->misc|=AUTOTERM;
+					user->misc&=~(ANSI|RIP|WIP|HTML);
+					user->misc|=autoterm; 
 				}
 				else
-					user->misc &= ~AUTOTERM;
-				if(sys_status&SS_ABORT)
-					break;
+					user->misc&=~AUTOTERM;
 				if(!(user->misc&AUTOTERM)) {
-					if(yesno(text[AnsiTerminalQ])) {
-						user->misc |= ANSI;
-						user->misc &= ~PETSCII;
-					} else {
-						user->misc &= ~(ANSI|COLOR|ICE_COLOR);
-						if(!noyes(text[PetTerminalQ]))
-							user->misc |= PETSCII|COLOR;
-						else
-							user->misc &= ~PETSCII;
-					}
-				}
-				if(sys_status&SS_ABORT)
-					break;
-				term = (user == &useron) ? term_supports() : user->misc;
-				if(term&(AUTOTERM|ANSI) && !(term&PETSCII)) {
-					user->misc |= COLOR;
-					user->misc &= ~ICE_COLOR;
-					if(yesno(text[ColorTerminalQ])) {
-						if(!noyes(text[IceColorTerminalQ]))
-							user->misc |= ICE_COLOR;
-					} else
-						user->misc &= ~COLOR;
-				}
-				if(sys_status&SS_ABORT)
-					break;
-				if(!(term&PETSCII)) {
-					if(!yesno(text[ExAsciiTerminalQ]))
-						user->misc|=NO_EXASCII;
+					if(yesno(text[AnsiTerminalQ]))
+						user->misc|=ANSI;
 					else
-						user->misc&=~NO_EXASCII;
-					if(!noyes(text[SwapDeleteKeyQ]))
-						user->misc|=SWAP_DELETE;
-					else
-						user->misc&=~SWAP_DELETE;
+						user->misc&=~(ANSI|COLOR); 
 				}
-				if(sys_status&SS_ABORT)
-					break;
-				if(!(user->misc&AUTOTERM) && (term&(ANSI|NO_EXASCII)) == ANSI) {
+				if(user->misc&(ANSI|PETSCII)) {
+					if(yesno(text[ColorTerminalQ]))
+						user->misc|=COLOR;
+					else
+						user->misc&=~COLOR; 
+				}
+				if(!(user->misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
+					user->misc|=NO_EXASCII;
+				else
+					user->misc&=~NO_EXASCII;
+				if(!(user->misc&AUTOTERM) && (user->misc&(ANSI|NO_EXASCII)) == ANSI) {
 					if(!noyes(text[RipTerminalQ]))
 						user->misc|=RIP;
 					else
 						user->misc&=~RIP; 
 				}
-				if(sys_status&SS_ABORT)
-					break;
 				putuserrec(&cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
 				break;
 			case 'B':
