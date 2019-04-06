@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.85 2018/12/31 06:37:19 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.89 2019/03/24 09:28:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,7 +259,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
-			show_msg(&msg
+			show_msg(&smb, &msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
 					? 0:P_NOATCODES);
 
@@ -437,8 +437,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					break; 
 				}
 
-				quotemsg(&msg,/* include tails: */TRUE);
-
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
@@ -468,16 +466,16 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
-					replied=netmail(str,msg.subj,WM_QUOTE);
+					replied=netmail(str,msg.subj,WM_NONE, &smb, &msg);
 					sprintf(str2,text[DeleteMailQ],msg.from); 
 				}
 				else {
 					if(!msg.from_net.type && !stricmp(str,msg.from))
-						replied=email(msg.idx.from,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(msg.idx.from,str2,msg.subj,WM_NONE, &smb, &msg);
 					else if(!stricmp(str,"SYSOP"))
-						replied=email(1,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(1,str2,msg.subj,WM_NONE, &smb, &msg);
 					else if((i=finduser(str))!=0)
-						replied=email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(i,str2,msg.subj,WM_NONE, &smb, &msg);
 					else
 						replied=false;
 					sprintf(str2,text[DeleteMailQ],msg.from); 
@@ -507,7 +505,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				/* Case 'D': must follow! */
 			case 'D':   /* Delete last piece (toggle) */
 				if(msg.hdr.attr&MSG_PERMANENT) {
-					bputs(text[CantDeleteMsg]);
+					bprintf(text[CantDeleteMsg], smb.curmsg + 1);
 					domsg=0;
 					break; 
 				}
@@ -741,7 +739,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	*/
 				bputs(text[FileToWriteTo]);
 				if(getstr(str,50,K_LINE))
-					msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
+					msgtotxt(&smb, &msg, str, /* header: */true, /* mode: */GETMSGTXT_ALL);
 				break;
 			case 'E':
 				editmsg(&msg,INVALID_SUB);
