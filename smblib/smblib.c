@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.187 2019/03/19 23:02:02 rswindell Exp $ */
+/* $Id: smblib.c,v 1.188 2019/04/06 08:00:13 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1129,6 +1129,7 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 	int i;
 
 	memcpy(msg,srcmsg,sizeof(smbmsg_t));
+	clear_convenience_ptrs(msg);
 
 	/* data field types/lengths */
 	if(msg->hdr.total_dfields>0) {
@@ -1172,6 +1173,7 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 			}
 			memset(msg->hfield_dat[i],0,msg->hfield[i].length+1);
 			memcpy(msg->hfield_dat[i],srcmsg->hfield_dat[i],msg->hfield[i].length);
+			set_convenience_ptr(msg, msg->hfield[i].type, msg->hfield_dat[i]);
 		}
 	}
 
