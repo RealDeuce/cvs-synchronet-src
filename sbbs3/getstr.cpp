@@ -1,7 +1,7 @@
 /* Synchronet string input routines */
 // vi: tabstop=4
 
-/* $Id: getstr.cpp,v 1.36 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.35 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -50,7 +50,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
                     /* x&z=misc */
 	char	str1[256],str2[256],undo[256];
     uchar	ch;
-	uint	atr;
+	uchar	atr;
 	int		hidx = -1;
 
 	long term = term_supports();
@@ -691,7 +691,7 @@ void sbbs_t::insert_indicator(void)
 	if(term_supports(ANSI)) {
 		ansi_save();
 		ansi_gotoxy(cols,1);
-		uint z=curatr;                       /* and go to EOL */
+		uchar z=curatr;                       /* and go to EOL */
 		if(console&CON_INSERT) {
 			attr(BLINK|BLACK|(LIGHTGRAY<<4));
 			outchar('I');
