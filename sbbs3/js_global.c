@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.372 2018/03/10 03:19:01 rswindell Exp $ */
+/* $Id: js_global.c,v 1.377 2019/01/20 05:25:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -398,11 +398,11 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if (JS_HasProperty(cx, obj, "console", &success) && success)
 			js_CreateConsoleObject(bg->cx, bg->obj);
 		if (JS_HasProperty(cx, obj, "stdin", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdin", stdin);
+			js_CreateFileObject(bg->cx, bg->obj, "stdin", STDIN_FILENO, "r");
 		if (JS_HasProperty(cx, obj, "stdout", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdout", stdout);
+			js_CreateFileObject(bg->cx, bg->obj, "stdout", STDOUT_FILENO, "w");
 		if (JS_HasProperty(cx, obj, "stderr", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stderr", stderr);
+			js_CreateFileObject(bg->cx, bg->obj, "stderr", STDERR_FILENO, "w");
 		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
@@ -672,7 +672,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
  * It does assume the args are always last though (which seems reasonable
  * since it's variable length)
  */
-#define JS_ARGS_OFFSET	((unsigned)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
+#define JS_ARGS_OFFSET	((unsigned long)(JS_ARGV(0, (jsval *)NULL))/sizeof(jsval *))
 
 static JSBool
 js_require(JSContext *cx, uintN argc, jsval *arglist)
@@ -2187,8 +2187,8 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 						outbuf[j++]='\r';
 						hpos=0;
 						break;
-					case 'Z':
-						outbuf[j++]=0;
+					case 'Z':	/* EOF */
+						outbuf[j++] = 0;
 						break;
 					case 'A':
 					default:
@@ -2421,7 +2421,7 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 		}
 
 		if(strcmp(token,"bull")==0) {	/* bullet  */
-			outbuf[j++] = 249;
+			outbuf[j++] = (char)249;
 			continue;
 		}
 
@@ -4182,19 +4182,19 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"file_attrib",		js_fattr,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's permissions/attributes")
+	,JSDOCSTR("get a file's permissions/attributes. Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},		
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
+	,JSDOCSTR("get a file's last modified date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},
 	{"file_cdate",		js_fcdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's creation date/time (in time_t format)")
+	,JSDOCSTR("get a file's creation date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,317
 	},
 	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's length (in bytes)")
+	,JSDOCSTR("get a file's length (in bytes). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},
 	{"file_utime",		js_utime,			3,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename [,access_time=<i>current</i>] [,mod_time=<i>current</i>]")
