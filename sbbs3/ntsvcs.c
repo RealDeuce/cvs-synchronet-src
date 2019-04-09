@@ -1,8 +1,6 @@
-/* ntsvcs.c */
-
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.47 2018/02/20 11:56:27 rswindell Exp $ */
+/* $Id: ntsvcs.c,v 1.50 2018/12/12 20:27:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -220,17 +218,7 @@ static void svc_ctrl_handler(sbbs_ntsvc_t* svc, DWORD dwCtrlCode)
 /* Service-specific control handler stub functions */
 static void WINAPI bbs_ctrl_handler(DWORD dwCtrlCode)
 {
-	switch(dwCtrlCode) {
-		case SERVICE_CONTROL_SYSOP_AVAILABLE:
-			bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
-			break;
-		case SERVICE_CONTROL_SYSOP_UNAVAILABLE:
-			bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
-			break;
-		default:
-			svc_ctrl_handler(&bbs, dwCtrlCode);
-			break;
-	}
+	svc_ctrl_handler(&bbs, dwCtrlCode);
 }
 
 static void WINAPI ftp_ctrl_handler(DWORD dwCtrlCode)
@@ -295,6 +283,7 @@ static int svc_lputs(void* p, int level, const char* str)
 	len = strlen(str);
 	SAFECOPY(msg.buf, str);
 	msg.level = level;
+	msg.repeated = 0;
 	GetLocalTime(&msg.time);
 
 	/* Mailslot Logging (for sbbsctrl) */
@@ -1299,7 +1288,7 @@ int main(int argc, char** argv)
 		fclose(fp);
 
 	if(chdir(ctrl_dir)!=0) {
-		sprintf(str,"!ERROR %d changing directory to: %s", errno, ctrl_dir);
+		sprintf(str,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), ctrl_dir);
 		svc_lputs(NULL,LOG_ERR,str);
 	}
 
