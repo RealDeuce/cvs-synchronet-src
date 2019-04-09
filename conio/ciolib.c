@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.171 2018/03/09 06:28:28 deuce Exp $ */
+/* $Id: ciolib.c,v 1.173 2019/02/01 10:29:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1134,7 +1134,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_lowvideo(void)
 CIOLIBEXPORT void CIOLIBCALL ciolib_normvideo(void)
 {
 	CIOLIB_INIT();
-	
+
 	if(cio_api.normvideo) {
 		cio_api.normvideo();
 		return;
@@ -1209,7 +1209,7 @@ static char c64_color_xlat(char colour)
 			return 15;
 		case DARKGRAY:
 			return 11;
-		case LIGHTBLUE:	
+		case LIGHTBLUE:
 			return 14;
 		case LIGHTGREEN:
 			return 13;
@@ -1556,7 +1556,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_putch(int ch)
 	puttext_can_move=old_puttext_can_move;
 
 	return(a1);
-	
+
 }
 
 /* **MUST** be implemented */
@@ -1673,7 +1673,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_loadfont(char *filename)
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_window_info(int *width, int *height, int *xpos, int *ypos)
 {
 	CIOLIB_INIT();
-	
+
 	if(cio_api.get_window_info!=NULL)
 		return(cio_api.get_window_info(width,height,xpos,ypos));
 	else {
@@ -1827,6 +1827,7 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 {
 	struct ciolib_screen *ret;
 	int vmode;
+	int i;
 
 	CIOLIB_INIT();
 
@@ -1861,6 +1862,9 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 	ciolib_vmem_gettext(1, 1, ret->text_info.screenwidth, ret->text_info.screenheight, ret->vmem);
 	ret->fg_colour = ciolib_fg;
 	ret->bg_colour = ciolib_bg;
+	for (i=0; i<5; i++)
+		ret->fonts[i] = ciolib_getfont(i);
+	ret->flags = ciolib_getvideoflags();
 
 	return ret;
 }
@@ -1882,6 +1886,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 {
 	struct text_info ti;
 	int vmode;
+	int i;
 
 	CIOLIB_INIT();
 
@@ -1895,6 +1900,9 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 	vmode = find_vmode(scrn->text_info.currmode);
 	if (vmode != -1)
 		ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
+	for (i=0; i<5; i++)
+		ciolib_setfont(scrn->fonts[i], FALSE, i);
+	ciolib_setvideoflags(scrn->flags);
 	ciolib_setcolour(scrn->fg_colour, scrn->bg_colour);
 	ciolib_gotoxy(scrn->text_info.curx, scrn->text_info.cury);
 	return 1;
@@ -1957,7 +1965,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr)
 	flags = ciolib_getvideoflags();
 	if ((flags & CIOLIB_VIDEO_ALTCHARS) && (attr & 0x08))
 		font |= 1;
-	if ((flags * CIOLIB_VIDEO_BLINKALTCHARS) && (attr & 0x80))
+	if ((flags & CIOLIB_VIDEO_BLINKALTCHARS) && (attr & 0x80))
 		font |= 2;
 	return ciolib_getfont(font+1);
 }
