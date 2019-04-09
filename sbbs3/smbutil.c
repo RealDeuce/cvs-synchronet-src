@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.131 2019/04/11 01:18:59 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.130 2019/04/01 21:58:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -196,8 +196,8 @@ char* gen_msgid(smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen)
 	);
 	safe_snprintf(msgid, maxlen
 		,"<%08lX.%lu.%s@%s>"
-		,(ulong)msg->hdr.when_imported.time
-		,(ulong)smb->status.last_msg + 1
+		,msg->hdr.when_imported.time
+		,smb->status.last_msg + 1
 		,getfname(smb->file)
 		,host);
 	return msgid;
@@ -1572,7 +1572,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.131 $", "%*s %s", revision);
+	sscanf("$Revision: 1.130 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
