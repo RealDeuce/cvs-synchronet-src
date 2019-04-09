@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement Strings (ARS) constants */
 
-/* $Id: ars_defs.h,v 1.12 2011/11/04 03:27:01 rswindell Exp $ */
+/* $Id: ars_defs.h,v 1.14 2018/10/22 04:18:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -124,6 +124,10 @@ enum {                              /* Access requirement binaries */
 	,AR_DLM
 	,AR_HOST	/* Remote/client hostname (wildcards allowed) */
 	,AR_IP		/* Remote/client IP address (wildcards allowed) */
+	,AR_TERM
+	,AR_COLS
+	,AR_ROWS
+	,AR_PETSCII
     };
 
 #endif		/* Don't add anything after this line */
