@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.747 2019/04/23 23:07:26 rswindell Exp $ */
+/* $Id: main.cpp,v 1.745 2019/04/09 20:26:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3403,10 +3403,8 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	listInit(&savedlines, /* flags: */0);
-	sys_status=lncntr=criterrs=0L;
-	tos = false;
-	msghdr_tos = false;
 	listInit(&smb_list, /* flags: */0);
+	sys_status=lncntr=tos=criterrs=0L;
 	column=0;
 	tabstop=8;
 	lastlinelen=0;
@@ -5676,7 +5674,7 @@ NO_SSH:
 		sbbs->bprintf("\r\n%s\r\n", VERSION_NOTICE);
 		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
-		SAFECOPY(host_name, STR_NO_HOSTNAME);
+		SAFECOPY(host_name, "<no name>");
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
