@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.127 2019/08/17 02:21:01 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.121 2019/02/20 05:43:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,8 +78,7 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 	char	touser[64] = "";
 	char	from[64];
 	char	tags[64] = "";
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*	editor=NULL;
 	char*	msgbuf=NULL;
 	uint16_t xlat;
 	ushort	msgattr = 0;
@@ -91,23 +90,20 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 	uint	reason;
 
 	if(remsg) {
-		SAFECOPY(title, msghdr_field(remsg, remsg->subj, NULL, term_supports(UTF8)));
+		SAFECOPY(title, remsg->subj);
 		if(remsg->hdr.attr&MSG_ANONYMOUS)
 			SAFECOPY(from,text[Anonymous]);
 		else
-			SAFECOPY(from, msghdr_field(remsg, remsg->from, NULL, term_supports(UTF8)));
+			SAFECOPY(from,remsg->from);
 		// If user posted this message, reply to the original recipient again
 		if(remsg->to != NULL
 			&& ((remsg->from_ext != NULL && atoi(remsg->from_ext)==useron.number)
 				|| stricmp(useron.alias,remsg->from) == 0 || stricmp(useron.name,remsg->from) == 0))
-			SAFECOPY(touser, msghdr_field(remsg, remsg->to, NULL, term_supports(UTF8)));
+			SAFECOPY(touser,remsg->to);
 		else
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
-		sprintf(top,text[RegardingByToOn]
-			,title
-			,from
-			,msghdr_field(remsg, remsg->to, NULL, term_supports(UTF8))
+		sprintf(top,text[RegardingByToOn],title,from,remsg->to
 			,timestr(remsg->hdr.when_written.time)
 			,smb_zonestr(remsg->hdr.when_written.zone,NULL));
 		if(remsg->tags != NULL)
@@ -219,7 +215,7 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 
 	if(!writemsg(str,top,title,wm_mode,subnum,touser
 		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
-		,&editor, &charset)
+		,&editor)
 		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
 		smb_close(&smb);
@@ -294,7 +290,9 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 	
 	if((cfg.sub[subnum]->misc&SUB_MSGTAGS)
 		&& (tags[0] || text[TagMessageQ][0] == 0 || !noyes(text[TagMessageQ]))) {
