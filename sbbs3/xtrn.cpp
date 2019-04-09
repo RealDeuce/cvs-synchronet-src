@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.245 2019/02/11 23:07:29 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.246 2019/04/09 20:58:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1911,7 +1911,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 				timeout.tv_sec=0;
 				timeout.tv_usec=1000;
 			}
-			if(i)
+			if(i && !(mode&EX_NOLOG))
 				lprintf(LOG_NOTICE,"%.*s",i,buf);		/* lprintf mangles i? */
 
 			/* Eat stderr if mode is EX_BIN */
