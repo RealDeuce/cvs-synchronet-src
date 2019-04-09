@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.235 2019/04/06 08:02:38 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.236 2019/04/09 19:24:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1120,7 +1120,6 @@ static JSBool
 js_get_index(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
-	jsval*		argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 	private_t*	priv;
 	uint32_t	off;
