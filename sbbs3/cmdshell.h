@@ -1,14 +1,15 @@
 /* cmdshell.h */
+// vi: tabstop=4
 
 /* Synchronet command shell/module constants and structure definitions */
 
-/* $Id: cmdshell.h,v 1.13 2015/08/20 05:19:40 deuce Exp $ */
+/* $Id: cmdshell.h,v 1.15 2018/11/04 23:55:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -670,7 +671,8 @@ typedef struct {					/* Command shell image */
 			cmdrets;				/* Command returns on stack */
 
 	int32_t	ftp_mode,				/* FTP operation mode */
-			*int_var,				/* Integer variables */
+			*int_var;				/* Integer variables */
+	uint32_t
 			*str_var_name,			/* String variable names (CRC-32) */
 			*int_var_name;			/* Integer variable names (CRC-32) */
 	long	retval, 				/* Return value */
