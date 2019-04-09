@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.125 2019/07/08 00:59:26 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.121 2019/02/20 05:43:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,8 +78,7 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 	char	touser[64] = "";
 	char	from[64];
 	char	tags[64] = "";
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*	editor=NULL;
 	char*	msgbuf=NULL;
 	uint16_t xlat;
 	ushort	msgattr = 0;
@@ -216,7 +215,7 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 
 	if(!writemsg(str,top,title,wm_mode,subnum,touser
 		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
-		,&editor, &charset)
+		,&editor)
 		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
 		smb_close(&smb);
@@ -291,7 +290,9 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
 	
 	if((cfg.sub[subnum]->misc&SUB_MSGTAGS)
 		&& (tags[0] || text[TagMessageQ][0] == 0 || !noyes(text[TagMessageQ]))) {
