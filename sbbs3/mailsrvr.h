@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.83 2018/03/04 21:20:52 rswindell Exp $ */
+/* $Id: mailsrvr.h,v 1.88 2019/03/22 21:28:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -235,7 +235,7 @@ static ini_bitdesc_t mail_options[] = {
 		#define DLLEXPORT __declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL __stdcall
+		#define DLLCALL
 	#else
 		#define DLLCALL
 	#endif
@@ -254,11 +254,19 @@ DLLEXPORT const	char*	DLLCALL mail_ver(void);
 
 /* for mxlookup.c: */
 void mail_open_socket(SOCKET sock, void* cb_protocol);
-int mail_close_socket(SOCKET sock);
+int mail_close_socket(SOCKET *sock, int *sess);
 #ifdef __cplusplus
 }
 #endif
 
-int sockprintf(SOCKET sock, int sess, char *fmt, ...);
+#if defined(__GNUC__)   // passing an empty string to sockprintf() is expected/valid
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#endif
+
+int sockprintf(SOCKET sock, const char* prot, int sess, char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors 
+	__attribute__ ((format (printf, 4, 5)));
+#endif
+;
 
 #endif /* Don't add anything after this line */
