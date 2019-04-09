@@ -821,11 +821,6 @@ enum {
 	,Scanning
 	,Done
 	,Scanned
-	,HitYourBackspaceKey
-	,CharacterReceivedFmt
-	,InvalidBackspaceKeyFmt
-	,SwapDeleteKeyQ
-	,PetTermDetected
 
 	,TOTAL_TEXT
 };
