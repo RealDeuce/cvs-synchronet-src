@@ -1,4 +1,5 @@
-/* $Id: scfgxtrn.c,v 1.59 2018/06/21 20:24:22 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.63 2019/03/31 21:19:58 rswindell Exp $ */
+// vi: tabstop=4
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,7 +50,7 @@ static bool new_timed_event(unsigned new_event_num)
 		return false;
 	}
 	memset(new_event, 0, sizeof(*new_event));
-	new_event->node = 1;
+	new_event->node = NODE_ANY;
 	new_event->days = (uchar)0xff;
 
 	event_t** new_event_list = realloc(cfg.event, sizeof(event_t *)*(cfg.total_events + 1));
@@ -130,6 +131,7 @@ static bool new_external_editor(unsigned new_xedit_num)
 		return false;
 	}
 	memset(new_xedit, 0, sizeof(*new_xedit));
+	new_xedit->misc |= QUOTEWRAP;
 
 	xedit_t** new_xedit_list = realloc(cfg.xedit, sizeof(xedit_t *)*(cfg.total_xedits + 1));
 	if (new_xedit_list == NULL) {
@@ -307,8 +309,8 @@ void xprogs_cfg()
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					write_xtrn_cfg(&cfg,backup_level);
-					write_main_cfg(&cfg,backup_level);
+					save_xtrn_cfg(&cfg,backup_level);
+					save_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
 				return;
@@ -483,7 +485,11 @@ void tevents_cfg()
 			sprintf(opt[k++],"%-32.32s%.40s","Command Line",cfg.event[i]->cmd);
 			sprintf(opt[k++],"%-32.32s%s","Enabled"
 				,cfg.event[i]->misc&EVENT_DISABLED ? "No":"Yes");
-			sprintf(opt[k++],"%-32.32s%u","Execution Node",cfg.event[i]->node);
+			if(cfg.event[i]->node == NODE_ANY)
+				SAFECOPY(str, "Any");
+			else
+				SAFEPRINTF(str, "%u", cfg.event[i]->node);
+			sprintf(opt[k++],"%-32.32s%s","Execution Node", str);
 			sprintf(opt[k++],"%-32.32s%s","Execution Months"
 				,monthstr(cfg.event[i]->months));
 			sprintf(opt[k++],"%-32.32s%s","Execution Days of Month"
@@ -588,12 +594,19 @@ void tevents_cfg()
 					uifc.helpbuf=
 						"`Timed Event Node:`\n"
 						"\n"
-						"This is the node number to execute the timed event.\n"
+						"This is the node number to execute the timed event (or `Any`).\n"
 					;
-					sprintf(str,"%u",cfg.event[i]->node);
-					uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
-						,str,3,K_EDIT|K_NUMBER);
-					cfg.event[i]->node=atoi(str);
+					if(cfg.event[i]->node == NODE_ANY)
+						SAFECOPY(str, "Any");
+					else
+						SAFEPRINTF(str, "%u", cfg.event[i]->node);
+					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Node Number"
+						,str,3,K_EDIT) > 0) {
+						if(isdigit(*str))
+							cfg.event[i]->node=atoi(str);
+						else
+							cfg.event[i]->node = NODE_ANY;
+					}
 					break;
 				case 5:
 					uifc.helpbuf=
@@ -1639,7 +1652,7 @@ void xedit_cfg()
 				,cfg.xedit[i]->misc&XTRN_NATIVE ? "Yes" : "No");
 			sprintf(opt[k++],"%-32.32s%s","Use Shell to Execute"
 				,cfg.xedit[i]->misc&XTRN_SH ? "Yes" : "No");
-			sprintf(opt[k++],"%-32.32s%s","Word Wrap Quoted Text"
+			sprintf(opt[k++],"%-32.32s%s","Word-wrap Quoted Text"
 				,cfg.xedit[i]->misc&QUOTEWRAP ? "Yes":"No");
 			sprintf(opt[k++],"%-32.32s%s","Automatically Quoted Text"
 				,cfg.xedit[i]->misc&QUOTEALL ? "All":cfg.xedit[i]->misc&QUOTENONE
@@ -1658,8 +1671,8 @@ void xedit_cfg()
 				"\n"
 				"This menu allows you to change the settings for the selected external\n"
 				"message editor. External message editors are very common on BBSs. Some\n"
-				"popular editors include `SyncEdit`, `WWIVedit`, `FEdit`, `GEdit`, `IceEdit`,\n"
-				"and many others.\n"
+				"popular editors include `fseditor.js`, `SyncEdit`, `SlyEdit`, `WWIVedit`, `FEdit`,\n"
+				"`GEdit`, `IceEdit`, and many others.\n"
 			;
 
 			sprintf(str,"%s Editor",cfg.xedit[i]->name);
@@ -1813,12 +1826,17 @@ void xedit_cfg()
 				case 7:
 					k=(cfg.xedit[i]->misc&QUOTEWRAP) ? 0:1;
 					uifc.helpbuf=
-						"`Word Wrap Quoted Text:`\n"
+						"`Word-wrap Quoted Text:`\n"
 						"\n"
-						"FIXME\n"
+						"Set to `Yes` to have Synchronet word-wrap quoted message text when\n"
+						"creating the quote file (e.g. QUOTES.TXT) or initial message text file\n"
+						"(e.g. MSGTMP) used by some external message editors.\n"
+						"\n"
+						"When set to `No`, the original unmodified message text is written to the\n"
+						"quote / message text file."
 					;
 					switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-						,"Word Wrap Quoted Text",uifcYesNoOpts)) {
+						,"Word-wrap Quoted Text",uifcYesNoOpts)) {
 						case 0:
 							if(!(cfg.xedit[i]->misc&QUOTEWRAP)) {
 								cfg.xedit[i]->misc|=QUOTEWRAP;
