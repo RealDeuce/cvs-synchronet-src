@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.88 2019/05/04 23:02:38 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.78 2019/04/10 07:30:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,7 +57,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 
 		if((i=smb_lockmsghdr(&smb,msg)) != SMB_SUCCESS) {
 			errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
-			return i;
+			return i; 
 		}
 
 		i=smb_getmsghdr(&smb,msg);
@@ -68,7 +68,7 @@ int sbbs_t::loadmsg(smbmsg_t *msg, ulong number)
 			smb_freemsgmem(msg);
 		}
 
-		smb_unlockmsghdr(&smb,msg);
+		smb_unlockmsghdr(&smb,msg); 
 	}
 
 	msg->hdr.number=number;
@@ -94,7 +94,6 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 	uint16_t attr = msg->hdr.attr;
 	uint16_t poll = attr&MSG_POLL_VOTE_MASK;
 	uint32_t auxattr = msg->hdr.auxattr;
-	uint32_t netattr = msg->hdr.netattr;
 
 	bprintf(text[MsgAttr]
 		,attr&MSG_PRIVATE	? "Private  "   :nulstr
@@ -111,16 +110,16 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		,attr&MSG_NOREPLY	? "NoReply  "	:nulstr
 		,poll == MSG_POLL	? "Poll  "		:nulstr
 		,poll == MSG_POLL && auxattr&POLL_CLOSED ? "(Closed)  "	:nulstr
-		,auxattr&(MSG_FILEATTACH|MSG_MIMEATTACH) ? "Attach  "   :nulstr
-		,netattr&MSG_SENT						 ? "Sent  "		:nulstr
-		,netattr&MSG_INTRANSIT					 ? "InTransit  ":nulstr
+		,nulstr
+		,nulstr
+		,nulstr
 		);
 }
 
 /****************************************************************************/
 /* Displays a message header to the screen                                  */
 /****************************************************************************/
-void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const char* from, const char* to)
+void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg)
 {
 	char	str[MAX_PATH+1];
 	char	age[64];
@@ -128,20 +127,8 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 	int 	i;
 	smb_t	saved_smb = this->smb;
 
-	if(smb != NULL)
-		this->smb = *smb;	// Needed for @-codes and JS bbs.smb_* properties
-	if(msg != NULL) {
-		current_msg = msg;		// Needed for @-codes and JS bbs.msg_* properties
-		current_msg_subj = msg->subj;
-		current_msg_from = msg->from;
-		current_msg_to = msg->to;
-	}
-	if(subject != NULL)
-		current_msg_subj = subject;
-	if(from != NULL)
-		current_msg_from = from;
-	if(to != NULL)
-		current_msg_to = to;
+	this->smb = *smb;	// Needed for @-codes and JS bbs.smb_* properties
+	current_msg = msg;	// Needed for @-codes and JS bbs.msg_* properties
 
 	attr(LIGHTGRAY);
 	if(!tos) {
@@ -150,28 +137,25 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 		else
 			CRLF;
 	}
-	msghdr_tos = tos;
 	if(!menu("msghdr", P_NOERROR)) {
-		bprintf(text[MsgSubj], current_msg_subj);
+		bprintf(text[MsgSubj],msg->subj);
 		if(msg->tags && *msg->tags)
 			bprintf(text[MsgTags], msg->tags);
-		if(msg->hdr.attr || msg->hdr.netattr || msg->hdr.auxattr)
+		if(msg->hdr.attr)
 			show_msgattr(msg);
-		if(current_msg_to != NULL && *current_msg_to != 0) {
-			bprintf(text[MsgTo], current_msg_to);
+		if(msg->to && *msg->to) {
+			bprintf(text[MsgTo],msg->to);
 			if(msg->to_net.addr!=NULL)
 				bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 			if(msg->to_ext)
 				bprintf(text[MsgToExt],msg->to_ext);
 		}
-		if(msg->cc_list != NULL)
-			bprintf(text[MsgCarbonCopyList], msg->cc_list);
-		if(current_msg_from != NULL && (!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)) {
-			bprintf(text[MsgFrom], current_msg_from);
+		if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
+			bprintf(text[MsgFrom],msg->from);
 			if(msg->from_ext)
 				bprintf(text[MsgFromExt],msg->from_ext);
-			if(msg->from_net.addr!=NULL && (current_msg_from == NULL || strchr(current_msg_from,'@')==NULL))
-				bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str));
+			if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
+				bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str)); 
 		}
 		if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
 			bprintf(text[MsgVotes]
@@ -189,12 +173,9 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 			sender=(char *)msg->hfield_dat[i];
 		if(msg->hfield[i].type==FORWARDED && sender)
 			bprintf(text[ForwardedFrom],sender
-				,timestr(*(time32_t *)msg->hfield_dat[i]));
+				,timestr(*(time32_t *)msg->hfield_dat[i])); 
 	}
 	this->smb = saved_smb;
-	current_msg_subj = NULL;
-	current_msg_from = NULL;
-	current_msg_to = NULL;
 }
 
 /****************************************************************************/
@@ -247,7 +228,7 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 			bool results_visible = false;
 			if((msg->hdr.auxattr&POLL_RESULTS_MASK) == POLL_RESULTS_OPEN)
 				results_visible = true;
-			else if((msg->from_net.type == NET_NONE && sub_op(smb->subnum))
+			else if((msg->from_net.type == NET_NONE && sub_op(smb->subnum)) 
 				|| smb_msg_is_from(msg, cfg.sub[smb->subnum]->misc&SUB_NAME ? useron.name : useron.alias, NET_NONE, NULL))
 				results_visible = true;
 			else if((msg->hdr.auxattr&POLL_RESULTS_MASK) == POLL_RESULTS_CLOSED)
@@ -280,9 +261,7 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		if(p == NULL)
 			p = txt;
 		else
-			bprintf(text[MIMEDecodedPlainTextFmt]
-				, msg->text_charset == NULL ? "unspecified (US-ASCII)" : msg->text_charset
-				, msg->text_subtype);
+			bputs(text[MIMEDecodedPlainText]);
 	}
 	truncsp(p);
 	SKIP_CRLF(p);
@@ -309,7 +288,7 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 		char filename[MAX_PATH+1] = {0};
 		uint32_t filelen = 0;
 		uint8_t* filedata;
-		if((filedata = smb_getattachment(msg, txt, filename, sizeof(filename), &filelen, attachment_index++)) != NULL
+		if((filedata = smb_getattachment(msg, txt, filename, &filelen, attachment_index++)) != NULL 
 			&& filename[0] != 0 && filelen > 0) {
 			char tmp[32];
 			SAFEPRINTF2(str, text[DownloadAttachedFileQ], filename, ultoac(filelen,tmp));
@@ -344,7 +323,6 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 			if(!sp) sp=strrchr(tp,'\\');
 			if(sp) tp=sp+1;
 			file_t	fd;
-			fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 			padfname(tp,fd.name);
 			SAFEPRINTF3(fpath,"%sfile/%04u.in/%s"  /* path is path/fname */
 				,cfg.data_dir, msg->idx.to, tp);
@@ -371,7 +349,7 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 							if(cfg.prot[i]->dlcmd[0]
 								&& chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 								sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
-								strcat(str,tmp);
+								strcat(str,tmp); 
 							}
 						ch=(char)getkeys(str,0);
 						for(i=0;i<cfg.total_prots;i++)
@@ -394,21 +372,21 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 								SAFEPRINTF(str
 									,"downloaded attached file: %s"
 									,fd.name);
-								logline("D-",str);
+								logline("D-",str); 
 							}
-							autohangup();
-						}
-					}
-				}
+							autohangup(); 
+						} 
+					} 
+				} 
 			}
 			if(!p)
 				break;
 			tp=p+1;
-			while(*tp==' ') tp++;
+			while(*tp==' ') tp++; 
 		}
 		// Remove the *.in directory, only if its empty
 		SAFEPRINTF2(fpath, "%sfile/%04u.in", cfg.data_dir, msg->idx.to);
-		rmdir(fpath);
+		rmdir(fpath); 
 	}
 }
 
@@ -424,7 +402,7 @@ bool sbbs_t::msgtotxt(smb_t* smb, smbmsg_t* msg, const char *fname, bool header,
 
 	if((out=fnopen(&i,fname,O_WRONLY|O_CREAT|O_APPEND))==NULL) {
 		errormsg(WHERE,ERR_OPEN,fname,0);
-		return false;
+		return false; 
 	}
 	if(header) {
 		fprintf(out,"\r\n");
@@ -442,7 +420,7 @@ bool sbbs_t::msgtotxt(smb_t* smb, smbmsg_t* msg, const char *fname, bool header,
 		fprintf(out,"\r\nDate : %.24s %s"
 			,timestr(msg->hdr.when_written.time)
 			,smb_zonestr(msg->hdr.when_written.zone,NULL));
-		fprintf(out,"\r\n\r\n");
+		fprintf(out,"\r\n\r\n"); 
 	}
 
 	bool result = false;
@@ -450,7 +428,7 @@ bool sbbs_t::msgtotxt(smb_t* smb, smbmsg_t* msg, const char *fname, bool header,
 	if(buf!=NULL) {
 		strip_invalid_attr(buf);
 		fputs(buf,out);
-		smb_freemsgtxt(buf);
+		smb_freemsgtxt(buf); 
 		result = true;
 	} else if(smb_getmsgdatlen(msg)>2)
 		errormsg(WHERE,ERR_READ,smb->file,smb_getmsgdatlen(msg));
@@ -476,7 +454,7 @@ ulong sbbs_t::getmsgnum(uint subnum, time_t t)
 	smb.subnum=subnum;
 	if((i=smb_open_index(&smb)) != SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		return 0;
+		return 0; 
 	}
 	int result = smb_getmsgidx_by_time(&smb, &idx, t);
 	smb_close(&smb);
@@ -501,17 +479,17 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		return(0);
+		return(0); 
 	}
 	if(!filelength(fileno(smb.sid_fp))) {			/* Empty base */
 		smb_close(&smb);
-		return(0);
+		return(0); 
 	}
 	msg.offset=0;
 	msg.hdr.number=0;
 	if(smb_getmsgidx(&smb,&msg)) {				/* Get first message index */
 		smb_close(&smb);
-		return(0);
+		return(0); 
 	}
 	if(!ptr || msg.idx.number>=ptr) {			/* ptr is before first message */
 		smb_close(&smb);
@@ -520,7 +498,7 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 
 	if(smb_getlastidx(&smb,&lastidx)) { 			 /* Get last message index */
 		smb_close(&smb);
-		return(0);
+		return(0); 
 	}
 	if(lastidx.number<ptr) {					/* ptr is after last message */
 		smb_close(&smb);
@@ -531,7 +509,7 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 	msg.hdr.number=ptr;
 	if(!smb_getmsgidx(&smb,&msg)) {
 		smb_close(&smb);
-		return(msg.idx.time);
+		return(msg.idx.time); 
 	}
 
 	if(ptr-msg.idx.number < lastidx.number-ptr) {
@@ -541,10 +519,10 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 			msg.hdr.number=0;
 			if(smb_getmsgidx(&smb,&msg) || msg.idx.number>=ptr)
 				break;
-			msg.offset++;
+			msg.offset++; 
 		}
 		smb_close(&smb);
-		return(msg.idx.time);
+		return(msg.idx.time); 
 	}
 
 	ptr--;
@@ -552,7 +530,7 @@ time_t sbbs_t::getmsgtime(uint subnum, ulong ptr)
 		msg.hdr.number=ptr;
 		if(!smb_getmsgidx(&smb,&msg))
 			break;
-		ptr--;
+		ptr--; 
 	}
 	smb_close(&smb);
 	return(msg.idx.time);
@@ -583,22 +561,22 @@ ulong sbbs_t::getlastmsg(uint subnum, uint32_t *ptr, time_t *t)
 	smb.subnum=subnum;
 	if((i=smb_open(&smb))!=0) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
-		return(0);
+		return(0); 
 	}
 
 	if(!filelength(fileno(smb.sid_fp))) {			/* Empty base */
 		smb_close(&smb);
-		return(0);
+		return(0); 
 	}
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		errormsg(WHERE,ERR_LOCK,smb.file,i,smb.last_error);
-		return(0);
+		return(0); 
 	}
 	if((i=smb_getlastidx(&smb,&idx))!=0) {
 		smb_close(&smb);
 		errormsg(WHERE,ERR_READ,smb.file,i,smb.last_error);
-		return(0);
+		return(0); 
 	}
 	total=(long)filelength(fileno(smb.sid_fp))/sizeof(idxrec_t);
 	smb_unlocksmbhdr(&smb);

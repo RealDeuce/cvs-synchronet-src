@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.93 2019/05/02 00:58:18 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.91 2019/04/10 07:30:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,17 +67,10 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
     long    l,last_mode;
 	ulong	last;
 	bool	replied;
+	file_t	fd;
 	mail_t	*mail;
 	smbmsg_t msg;
 	char search_str[128] = "";
-
-	if(which==MAIL_SENT)
-		act=NODE_RSML;
-	else if(which==MAIL_ALL)
-		act=NODE_SYSP;
-	else
-		act=NODE_RMAL;
-	action=act;
 
 	if(cfg.readmail_mod[0] && !readmail_inside) {
 		char cmdline[256];
@@ -95,6 +88,8 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	}
 
 	msg.total_hfields=0;			/* init to NULL, cause not allocated yet */
+
+	fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
@@ -127,6 +122,13 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 	last=smb.status.last_msg;
 
+	if(which==MAIL_SENT)
+		act=NODE_RSML;
+	else if(which==MAIL_ALL)
+		act=NODE_SYSP;
+	else
+		act=NODE_RMAL;
+	action=act;
 	const char* order = (lm_mode&LM_REVERSE) ? "newest" : "oldest";
 	if(smb.msgs>1 && which!=MAIL_ALL) {
 		if(which==MAIL_SENT)
