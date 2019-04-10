@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.87 2018/07/24 05:15:55 rswindell Exp $ */
+/* $Id: smblib.h,v 1.90 2019/04/10 20:02:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -45,7 +45,7 @@
 
 #ifdef _WIN32
 	#ifdef __BORLANDC__
-		#define SMBCALL __stdcall
+		#define SMBCALL
 	#else
 		#define SMBCALL
 	#endif
@@ -97,11 +97,6 @@
 #define SMB_CLOSED			2			/* Poll/thread is closed to replies/votes */
 #define SMB_UNAUTHORIZED	3			/* Poll was posted by someone else */
 
-#define SMB_STACK_LEN		4			/* Max msg bases in smb_stack() 	*/
-#define SMB_STACK_POP       0           /* Pop a msg base off of smb_stack()*/
-#define SMB_STACK_PUSH      1           /* Push a msg base onto smb_stack() */
-#define SMB_STACK_XCHNG     2           /* Exchange msg base w/last pushed	*/
-
 #define SMB_ALL_REFS		0			/* Free all references to data		*/
 
 #define GETMSGTXT_TAILS 		(1<<0)	/* Get message tail(s)				*/
@@ -135,7 +130,6 @@ SMBEXPORT int		SMBCALL smb_open_index(smb_t* smb);
 SMBEXPORT void		SMBCALL smb_close(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_initsmbhdr(smb_t* smb);
 SMBEXPORT int 		SMBCALL smb_create(smb_t* smb);
-SMBEXPORT int 		SMBCALL smb_stack(smb_t* smb, int op);
 SMBEXPORT int 		SMBCALL smb_trunchdr(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_lock(smb_t* smb);
 SMBEXPORT int		SMBCALL smb_unlock(smb_t* smb);
@@ -274,7 +268,7 @@ SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
 /* smbtxt.c */
 SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode);
 SMBEXPORT char*		SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf);
-SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, uint32_t* filelen, int index);
+SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, size_t filename_len, uint32_t* filelen, int index);
 
 /* smbfile.c */
 SMBEXPORT int 		SMBCALL smb_feof(FILE* fp);
@@ -292,7 +286,7 @@ SMBEXPORT void		SMBCALL smb_rewind(FILE* fp);
 SMBEXPORT void		SMBCALL smb_clearerr(FILE* fp);
 SMBEXPORT int 		SMBCALL smb_open_fp(smb_t* smb, FILE**, int share);
 SMBEXPORT void		SMBCALL smb_close_fp(FILE**);
-					
+
 #ifdef __cplusplus
 }
 #endif
