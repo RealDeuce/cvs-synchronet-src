@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.510 2019/04/10 00:18:09 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.511 2019/04/10 07:30:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -685,6 +685,7 @@ public:
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
+	void	download_msg_attachments(smb_t*, smbmsg_t*, bool del);
 
 	/* readmail.cpp */
 	void	readmail(uint usernumber, int which, long lm_mode = 0);
