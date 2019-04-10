@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.509 2019/04/09 20:26:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.510 2019/04/10 00:18:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -973,11 +973,11 @@ public:
 	bool	unpack_rep(char* repfile=NULL);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t*, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
 	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
-	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, uint subnum
+	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
 				,uint touser, smbmsg_t* msg);
 
 	/* fido.cpp */
