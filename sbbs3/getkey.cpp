@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.50 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.52 2019/01/11 11:29:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -297,7 +297,7 @@ char sbbs_t::getkey(long mode)
 
 
 /****************************************************************************/
-/* Outputs a string highlighting characters preceeded by a tilde            */
+/* Outputs a string highlighting characters preceded by a tilde             */
 /****************************************************************************/
 void sbbs_t::mnemonics(const char *str)
 {
@@ -337,6 +337,8 @@ void sbbs_t::mnemonics(const char *str)
 		else {
 			if(str[l]==CTRL_A && str[l+1]!=0) {
 				l++;
+				if(str[l] == 'Z')	/* EOF (uppercase 'Z') */
+					break;
 				ctrl_a(str[l++]);
 			} else {
 				if(str[l] == '@') {
@@ -398,7 +400,7 @@ bool sbbs_t::noyes(const char *str)
     char ch;
 
 	if(*str == 0)
-		return false;
+		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[NoYesQuestion],str);
