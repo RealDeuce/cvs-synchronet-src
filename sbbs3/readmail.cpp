@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.86 2019/02/02 23:22:39 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.90 2019/04/10 06:54:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -97,7 +97,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
 		return; 
 	}
-	sprintf(smb.file,"%smail",cfg.data_dir);
+	SAFEPRINTF(smb.file,"%smail",cfg.data_dir);
 	smb.retry_time=cfg.smb_retry_time;
 	smb.subnum=INVALID_SUB;
 	if((i=smb_open(&smb))!=0) {
@@ -259,7 +259,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
-			show_msg(&msg
+			show_msg(&smb, &msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
 					? 0:P_NOATCODES);
 
@@ -273,7 +273,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				if((filedata = smb_getattachment(&msg, txt, filename, &filelen, attachment_index++)) != NULL 
 					&& filename[0] != 0 && filelen > 0) {
 					char tmp[32];
-					sprintf(str3, text[DownloadAttachedFileQ], filename, ultoac(filelen,tmp));
+					SAFEPRINTF2(str3, text[DownloadAttachedFileQ], filename, ultoac(filelen,tmp));
 					if(!noyes(str3)) {
 						char fpath[MAX_PATH+1];
 						SAFEPRINTF2(fpath, "%s%s", cfg.temp_dir, filename);
@@ -317,7 +317,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 						&& length/(long)cur_cps>(time_t)timeleft)
 						bputs(text[NotEnoughTimeToDl]);
 					else {
-						sprintf(str3,text[DownloadAttachedFileQ]
+						SAFEPRINTF2(str3,text[DownloadAttachedFileQ]
 							,tp,ultoac(length,tmp));
 						if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str3)) {
 							{	/* Remote User */
@@ -348,7 +348,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 											,U_DLB,10,length);
 										bprintf(text[FileNBytesSent]
 											,fd.name,ultoac(length,tmp));
-										sprintf(str3
+										SAFEPRINTF(str3
 											,"downloaded attached file: %s"
 											,fd.name);
 										logline("D-",str3); 
@@ -363,7 +363,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					tp=p+1;
 					while(*tp==' ') tp++; 
 				}
-				sprintf(str,"%sfile/%04u.in",cfg.data_dir,usernumber);
+				SAFEPRINTF2(str,"%sfile/%04u.in",cfg.data_dir,usernumber);
 				rmdir(str); 
 			}
 			if(which==MAIL_YOUR && !(msg.hdr.attr&MSG_READ)) {
@@ -437,8 +437,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					break; 
 				}
 
-				quotemsg(&msg,/* include tails: */TRUE);
-
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);
 				else if(msg.from_net.type==NET_FIDO) 	/* FidoNet type */
@@ -461,26 +459,26 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				smb_getmsgidx(&smb,&msg);
 
 				if(!stricmp(str2,str))		/* Reply to sender */
-					sprintf(str2,text[Regarding],msg.subj);
+					SAFEPRINTF(str2,text[Regarding],msg.subj);
 				else						/* Reply to other */
-					sprintf(str2,text[RegardingByOn],msg.subj,msg.from
+					SAFEPRINTF3(str2,text[RegardingByOn],msg.subj,msg.from
 						,timestr(msg.hdr.when_written.time));
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
-					replied=netmail(str,msg.subj,WM_QUOTE);
-					sprintf(str2,text[DeleteMailQ],msg.from); 
+					replied=netmail(str,msg.subj,WM_NONE, &smb, &msg);
+					SAFEPRINTF(str2,text[DeleteMailQ],msg.from); 
 				}
 				else {
 					if(!msg.from_net.type && !stricmp(str,msg.from))
-						replied=email(msg.idx.from,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(msg.idx.from,str2,msg.subj,WM_NONE, &smb, &msg);
 					else if(!stricmp(str,"SYSOP"))
-						replied=email(1,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(1,str2,msg.subj,WM_NONE, &smb, &msg);
 					else if((i=finduser(str))!=0)
-						replied=email(i,str2,msg.subj,WM_EMAIL|WM_QUOTE);
+						replied=email(i,str2,msg.subj,WM_NONE, &smb, &msg);
 					else
 						replied=false;
-					sprintf(str2,text[DeleteMailQ],msg.from); 
+					SAFEPRINTF(str2,text[DeleteMailQ],msg.from); 
 				}
 
 				if(replied==true && !(msg.hdr.attr&MSG_REPLIED)) {
@@ -550,7 +548,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				forwardmail(&msg,i);
 				if(msg.hdr.attr&MSG_PERMANENT)
 					break;
-				sprintf(str2,text[DeleteMailQ],msg.from);
+				SAFEPRINTF(str2,text[DeleteMailQ],msg.from);
 				if(!yesno(str2))
 					break;
 				if(msg.total_hfields)
@@ -741,7 +739,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	*/
 				bputs(text[FileToWriteTo]);
 				if(getstr(str,50,K_LINE))
-					msgtotxt(&msg,str, /* header: */true, /* mode: */GETMSGTXT_ALL);
+					msgtotxt(&smb, &msg, str, /* header: */true, /* mode: */GETMSGTXT_ALL);
 				break;
 			case 'E':
 				editmsg(&msg,INVALID_SUB);
