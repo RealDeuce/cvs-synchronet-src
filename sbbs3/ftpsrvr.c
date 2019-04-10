@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.492 2019/05/31 15:39:17 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.488 2019/03/07 01:11:00 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3093,11 +3093,15 @@ static void ctrl_thread(void* arg)
 	lprintf(LOG_INFO,"%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, inet_addrport(&ftp.client_addr));
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
-	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
+	if(startup->options&FTP_OPT_NO_HOST_LOOKUP)
+		strcpy(host_name,"<no name>");
+	else {
+		if(getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0)
+			strcpy(host_name,"<no name>");
 	}
+
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
+		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
@@ -4675,11 +4679,9 @@ static void ctrl_thread(void* arg)
 						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, f.size, f.date, str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
 						l++;
 					}
-					if (cmd[3] == 'D') {
-						lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
-						    ,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
-						    ,(ulong)g.gl_pathc, (long)time(NULL) - start);
-					}
+					lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
+						,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
+						,(ulong)g.gl_pathc, (long)time(NULL) - start);
 					globfree(&g);
 				} else 
 					lprintf(LOG_INFO,"%04d <%s> %s listing: /%s/%s directory in %s mode (empty - no access)"
@@ -5991,7 +5993,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.492 $", "%*s %s", revision);
+	sscanf("$Revision: 1.488 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
