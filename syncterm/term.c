@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.337 2018/03/09 07:02:38 deuce Exp $ */
+/* $Id: term.c,v 1.342 2018/10/25 09:08:29 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -720,8 +720,22 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 
 	init_uifc(FALSE, FALSE);
+	if(!isdir(bbs->uldir)) {
+		SAFEPRINTF(str, "Invalid upload directory: %s", bbs->uldir);
+		uifcmsg(str, "An invalid `UploadPath` was specified in the `syncterm.lst` file");
+		uifcbail();
+		setup_mouse_events();
+		restorescreen(savscrn);
+		freescreen(savscrn);
+		gotoxy(txtinfo.curx, txtinfo.cury);
+		return;
+	}
 	result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
 	
 	if(result==-1 || fpick.files<1) {
@@ -803,6 +817,10 @@ void begin_download(struct bbslist *bbs)
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
+		setfont(0, FALSE, 1);
+		setfont(0, FALSE, 2);
+		setfont(0, FALSE, 3);
+		setfont(0, FALSE, 4);
 
 	init_uifc(FALSE, FALSE);
 
@@ -991,6 +1009,10 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 	init_uifc(FALSE, FALSE);
 	hold_update=FALSE;
@@ -1371,6 +1393,10 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 
     gettextinfo(&txtinfo);
     savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 	window(1, 1, txtinfo.screenwidth, txtinfo.screenheight);
 
 	init_uifc(FALSE, FALSE);
@@ -1725,6 +1751,10 @@ void music_control(struct bbslist *bbs)
 
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 
 	i=cterm->music_enable;
@@ -1769,6 +1799,10 @@ void font_control(struct bbslist *bbs)
 		return;
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 
 	switch(cio_api.mode) {
@@ -1829,6 +1863,10 @@ void capture_control(struct bbslist *bbs)
 		return;
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 	cap=(char *)alloca(cterm->height*cterm->width*2);
 	gettext(cterm->x, cterm->y, cterm->x+cterm->width-1, cterm->y+cterm->height-1, cap);
 
@@ -2238,7 +2276,6 @@ BOOL doterm(struct bbslist *bbs)
 	}
 	cterm=cterm_init(term.height,term.width,term.x-1,term.y-1,settings.backlines,scrollback_buf, emulation);
 	if(!cterm) {
-		FREE_AND_NULL(cterm);
 		return FALSE;
 	}
 	cterm->apc_handler = apc_handler;
@@ -2277,6 +2314,7 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
+							cterm=NULL;
 							conn_close();
 							hidemouse();
 							return(FALSE);
@@ -2448,6 +2486,10 @@ BOOL doterm(struct bbslist *bbs)
 					{
 						struct ciolib_screen *savscrn;
 						savscrn = savescreen();
+						setfont(0, FALSE, 1);
+						setfont(0, FALSE, 2);
+						setfont(0, FALSE, 3);
+						setfont(0, FALSE, 4);
 						show_bbslist(bbs->name, TRUE);
 						uifcbail();
 						setup_mouse_events();
@@ -2513,12 +2555,17 @@ BOOL doterm(struct bbslist *bbs)
 					{
 						struct ciolib_screen *savscrn;
 						savscrn = savescreen();
+						setfont(0, FALSE, 1);
+						setfont(0, FALSE, 2);
+						setfont(0, FALSE, 3);
+						setfont(0, FALSE, 4);
 						if(quitting || confirm("Disconnect... Are you sure?", "Selecting Yes closes the connection\n")) {
 							freescreen(savscrn);
 							setup_mouse_events();
 							cterm_clearscreen(cterm,cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
+							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2546,6 +2593,7 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
+							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2586,6 +2634,7 @@ BOOL doterm(struct bbslist *bbs)
 							cterm_clearscreen(cterm, cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
+							cterm=NULL;
 							conn_close();
 							hidemouse();
 							hold_update=oldmc;
@@ -2599,6 +2648,10 @@ BOOL doterm(struct bbslist *bbs)
 								struct ciolib_screen *savscrn;
 
 								savscrn = savescreen();
+								setfont(0, FALSE, 1);
+								setfont(0, FALSE, 2);
+								setfont(0, FALSE, 3);
+								setfont(0, FALSE, 4);
 								show_bbslist(bbs->name, TRUE);
 								restorescreen(savscrn);
 								freescreen(savscrn);
@@ -2695,6 +2748,10 @@ BOOL doterm(struct bbslist *bbs)
 						ch[0]=19;
 						conn_send(ch,1,0);
 						break;
+					case CIO_KEY_END:
+						ch[0]=147;			/* Clear / Shift-Home */
+						conn_send(ch,1,0);
+						break;
 					case '\b':
 					case CIO_KEY_DC:		/* "Delete" key */
 						ch[0]=20;
@@ -2751,10 +2808,7 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<65) {
+							if(key<65) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
