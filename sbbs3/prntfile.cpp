@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.40 2019/09/20 08:36:48 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.32 2019/02/02 00:44:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,18 +37,13 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
-
-#ifndef PRINTFILE_MAX_LINE_LEN
-#define PRINTFILE_MAX_LINE_LEN (1024*1024)
-#endif
 
 /****************************************************************************/
 /* Prints a file remotely and locally, interpreting ^A sequences, checks    */
 /* for pauses, aborts and ANSI. 'str' is the path of the file to print      */
 /* Called from functions menu and text_sec                                  */
 /****************************************************************************/
-bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
+bool sbbs_t::printfile(const char* fname, long mode)
 {
 	char* buf;
 	char fpath[MAX_PATH+1];
@@ -67,8 +62,6 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 			mode|=P_NOPAUSE;
 		} else if(stricmp(p, ".seq") == 0) {
 			mode |= P_PETSCII;
-		} else if(stricmp(p, ".utf8") == 0) {
-			mode |= P_UTF8;
 		}
 	}
 
@@ -96,55 +89,25 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 	}
 
 	length=(long)filelength(file);
-	if(length < 1) {
+	if(length<0) {
 		fclose(stream);
-		if(length < 0) {
-			errormsg(WHERE,ERR_CHK,fpath,length);
-			return false;
-		}
-		return true;
+		errormsg(WHERE,ERR_CHK,fpath,length);
+		return false;
 	}
-
-	if(mode&P_OPENCLOSE) {
-		if((buf=(char*)malloc(length+1L))==NULL) {
-			fclose(stream);
-			errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
-			return false; 
-		}
-		l=lread(file,buf,length);
+	if((buf=(char*)malloc(length+1L))==NULL) {
 		fclose(stream);
-		if(l!=length)
-			errormsg(WHERE,ERR_READ,fpath,length);
-		else {
-			buf[l]=0;
-			if((mode&P_UTF8) && !term_supports(UTF8))
-				utf8_normalize_str(buf);
-			putmsg(buf,mode,org_cols);
-		}
-		free(buf);
-	} else {	// Line-at-a-time mode
-		uint tmpatr = curatr;
-		if(!(mode&P_SAVEATR))
-			attr(LIGHTGRAY);
-		if(length > PRINTFILE_MAX_LINE_LEN)
-			length = PRINTFILE_MAX_LINE_LEN;
-		if((buf=(char*)malloc(length+1L))==NULL) {
-			fclose(stream);
-			errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
-			return false; 
-		}
-		while(!feof(stream) && !msgabort()) {
-			if(fgets(buf, length + 1, stream) == NULL)
-				break;
-			if((mode&P_UTF8) && !term_supports(UTF8))
-				utf8_normalize_str(buf);
-			putmsg(buf, mode|P_SAVEATR, org_cols);
-		}
-		free(buf);
-		fclose(stream);
-		if(!(mode&P_SAVEATR))
-			attr(tmpatr);
+		errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
+		return false; 
 	}
+	l=lread(file,buf,length);
+	fclose(stream);
+	if(l!=length)
+		errormsg(WHERE,ERR_READ,fpath,length);
+	else {
+		buf[l]=0;
+		putmsg(buf,mode);
+	}
+	free(buf); 
 
 	if((mode&P_NOABORT || rip) && online==ON_REMOTE) {
 		SYNC;
@@ -156,7 +119,7 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 	return true;
 }
 
-bool sbbs_t::printtail(const char* fname, int lines, long mode, long org_cols)
+bool sbbs_t::printtail(const char* fname, int lines, long mode)
 {
 	char*	buf;
 	char	fpath[MAX_PATH+1];
@@ -214,7 +177,7 @@ bool sbbs_t::printtail(const char* fname, int lines, long mode, long org_cols)
 			}
 			p--; 
 		}
-		putmsg(p,mode,org_cols);
+		putmsg(p,mode);
 	}
 	if(mode&P_NOABORT && online==ON_REMOTE) {
 		SYNC;
@@ -286,7 +249,7 @@ bool sbbs_t::menu_exists(const char *code, const char* ext, char* path)
 		backslash(menu_dir);
 		SAFEPRINTF3(prefix, "%smenu/%s%s", cfg.text_dir, menu_dir, code);
 	}
-	safe_snprintf(path, MAX_PATH, "%s.%lucol.%s", prefix, cols, ext);
+	safe_snprintf(path, MAX_PATH, "%s.%ucol.%s", prefix, cols, ext);
 	if(fexistcase(path))
 		return true;
 	safe_snprintf(path, MAX_PATH, "%s.%s", prefix, ext);
