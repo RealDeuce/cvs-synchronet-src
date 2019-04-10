@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.141 2019/02/19 07:26:50 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.144 2019/03/24 09:28:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ char* sbbs_t::quotes_fname(int xedit, char *path, size_t len)
 
 /****************************************************************************/
 /****************************************************************************/
-bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* remsg, int tails)
+bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 {
 	char	fname[MAX_PATH+1];
 	char*	buf;
@@ -83,8 +83,8 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* remsg, int tails)
 	ushort useron_xedit = useron.xedit;
 	uint8_t	org_cols = TERM_COLS_DEFAULT;
 
-	if(remsg->columns != 0)
-		org_cols = remsg->columns;
+	if(msg->columns != 0)
+		org_cols = msg->columns;
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
@@ -98,29 +98,23 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* remsg, int tails)
 	}
 
 	bool result = false;
+	ulong mode = GETMSGTXT_PLAIN;
+	if(tails) mode |= GETMSGTXT_TAILS;
+	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
+		strip_invalid_attr(buf);
+		truncsp(buf);
+		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
+			wrapped=::wordwrap(buf, cols-4, org_cols - 1, /* handle_quotes: */TRUE);
+		if(wrapped!=NULL) {
+			fputs(wrapped,fp);
+			free(wrapped);
+		} else
+			fputs(buf,fp);
+		smb_freemsgtxt(buf); 
+		result = true;
+	} else if(smb_getmsgdatlen(msg)>2)
+		errormsg(WHERE,ERR_READ,smb->file,smb_getmsgdatlen(msg));
 
-	smbmsg_t msg;
-	ZERO_VAR(msg);
-	msg.hdr.number = remsg->hdr.number;
-	if(smb_getmsgidx(smb, &msg) == SMB_SUCCESS && smb_getmsghdr(smb, &msg) == SMB_SUCCESS) {
-
-		if((buf=smb_getmsgtxt(smb, &msg, tails)) != NULL) {
-			strip_invalid_attr(buf);
-			truncsp(buf);
-			if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
-				wrapped=::wordwrap(buf, cols-4, org_cols - 1, /* handle_quotes: */TRUE);
-			if(wrapped!=NULL) {
-				fputs(wrapped,fp);
-				free(wrapped);
-			} else
-				fputs(buf,fp);
-			smb_freemsgtxt(buf); 
-			result = true;
-		} else if(smb_getmsgdatlen(&msg)>2)
-			errormsg(WHERE,ERR_READ,smb->file,smb_getmsgdatlen(&msg));
-
-		smb_freemsgmem(&msg);
-	}
 	fclose(fp);
 	return result;
 }
@@ -238,6 +232,9 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		errormsg(WHERE, ERR_CHK, "columns", cols);
 		return false;
 	}
+
+	if(top == NULL)
+		top = "";
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
@@ -1373,7 +1370,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
-	msgtotxt(msg,msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
+	msgtotxt(&smb, msg, msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
 	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);
