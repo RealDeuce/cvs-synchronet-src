@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.186 2019/02/19 07:11:53 rswindell Exp $ */
+/* $Id: smblib.c,v 1.189 2019/04/09 20:25:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -237,57 +237,6 @@ BOOL SMBCALL smb_islocked(smb_t* smb)
 		return(FALSE);
 	safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s %s exists", __FUNCTION__,path);
 	return(TRUE);
-}
-
-/****************************************************************************/
-/* If the parameter 'push' is non-zero, this function stores the currently  */
-/* open message base to the "virtual" smb stack. Up to SMB_STACK_LEN        */
-/* message bases may be stored (defined in SMBDEFS.H).						*/
-/* The parameter 'op' is the operation to perform on the stack. Either      */
-/* SMB_STACK_PUSH, SMB_STACK_POP, or SMB_STACK_XCHNG						*/
-/* If the operation is SMB_STACK_POP, this function restores a message base */
-/* previously saved with a SMB_STACK_PUSH call to this same function.		*/
-/* If the operation is SMB_STACK_XCHNG, then the current message base is	*/
-/* exchanged with the message base on the top of the stack (most recently	*/
-/* pushed.																	*/
-/* If the current message base is not open, the SMB_STACK_PUSH and			*/
-/* SMB_STACK_XCHNG operations do nothing									*/
-/* Returns 0 on success, non-zero if stack full.                            */
-/* If operation is SMB_STACK_POP or SMB_STACK_XCHNG, it always returns 0.	*/
-/****************************************************************************/
-int SMBCALL smb_stack(smb_t* smb, int op)
-{
-	static smb_t stack[SMB_STACK_LEN];
-	static int	stack_idx;
-	smb_t		tmp_smb;
-
-	if(op==SMB_STACK_PUSH) {
-		if(stack_idx>=SMB_STACK_LEN) {
-			safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s SMB stack overflow", __FUNCTION__);
-			return(SMB_FAILURE);
-		}
-		if(smb->shd_fp==NULL || smb->sdt_fp==NULL || smb->sid_fp==NULL)
-			return(SMB_SUCCESS);	  /* Msg base not open, do nothing */
-		memcpy(&stack[stack_idx],smb,sizeof(smb_t));
-		stack_idx++;
-		return(SMB_SUCCESS); 
-	}
-	/* pop or xchng */
-	if(!stack_idx)	/* Nothing on the stack, so do nothing */
-		return(SMB_SUCCESS);
-	if(op==SMB_STACK_XCHNG) {
-		if(smb->shd_fp==NULL)
-			return(SMB_SUCCESS);
-		memcpy(&tmp_smb,smb,sizeof(smb_t));
-	}
-
-	stack_idx--;
-	memcpy(smb,&stack[stack_idx],sizeof(smb_t));
-	if(op==SMB_STACK_XCHNG) {
-		memcpy(&stack[stack_idx],&tmp_smb,sizeof(smb_t));
-		stack_idx++;
-	}
-	return(SMB_SUCCESS);
 }
 
 /****************************************************************************/
@@ -1129,6 +1078,7 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 	int i;
 
 	memcpy(msg,srcmsg,sizeof(smbmsg_t));
+	clear_convenience_ptrs(msg);
 
 	/* data field types/lengths */
 	if(msg->hdr.total_dfields>0) {
@@ -1172,6 +1122,7 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 			}
 			memset(msg->hfield_dat[i],0,msg->hfield[i].length+1);
 			memcpy(msg->hfield_dat[i],srcmsg->hfield_dat[i],msg->hfield[i].length);
+			set_convenience_ptr(msg, msg->hfield[i].type, msg->hfield_dat[i]);
 		}
 	}
 
@@ -1450,7 +1401,7 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 
 	SAFEPRINTF(str,"%s.sch",smb->file);
 	while(1) {
-		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW,S_IREAD|S_IWRITE))!=-1)
+		if((file=sopen(str,O_RDWR|O_CREAT|O_BINARY,SH_DENYRW, DEFFILEMODE))!=-1)
 			break;
 		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
