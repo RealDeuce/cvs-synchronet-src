@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.121 2019/04/23 05:34:26 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.119 2019/04/10 06:57:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -504,7 +504,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	int64_t	i64;
 	int		quit=0;
 	uint 	usub,ugrp,reads=0;
-	uint	lp = LP_BYSELF;
+	uint	lp=0;
 	long	org_mode=mode;
 	ulong	msgs,l,unvalidated;
 	uint32_t last;
@@ -518,7 +518,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 		char cmdline[256];
 
 		scanposts_inside = true;
-		safe_snprintf(cmdline, sizeof(cmdline), "%s %s %ld %s", cfg.scanposts_mod, cfg.sub[subnum]->code, mode, find);
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %s %u %s", cfg.scanposts_mod, cfg.sub[subnum]->code, mode, find);
 		i=exec_bin(cmdline, &main_csi);
 		scanposts_inside = false;
 		return i;
@@ -568,7 +568,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 	if(!(mode&SCAN_TOYOU)
 		&& (!mode || mode&SCAN_FIND || !(subscan[subnum].cfg&SUB_CFG_YSCAN)))
-		lp|=LP_OTHERS;
+		lp=LP_BYSELF|LP_OTHERS;
 	if(mode&SCAN_TOYOU && mode&SCAN_UNREAD)
 		lp|=LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
@@ -1697,7 +1697,7 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 	uint32_t	posts;
 	uint32_t	total=0;
 	long	displayed = 0;
-	long	lp_mode = LP_BYSELF;
+	long	lp_mode = LP_BYSELF|LP_OTHERS;
 	post_t	*post;
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
@@ -1712,8 +1712,8 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
-	if(!(mode&SCAN_TOYOU))
-		lp_mode |= LP_OTHERS;
+	if(mode&SCAN_TOYOU)
+		lp_mode = 0;
 	if(mode&SCAN_UNREAD)
 		lp_mode |= LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
