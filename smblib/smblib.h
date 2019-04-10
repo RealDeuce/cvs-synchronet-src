@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.94 2019/06/29 00:44:29 rswindell Exp $ */
+/* $Id: smblib.h,v 1.90 2019/04/10 20:02:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -36,6 +36,8 @@
 
 #ifndef _SMBLIB_H
 #define _SMBLIB_H
+
+#include "lzh.h"
 
 #ifdef SMBEXPORT
 	#undef SMBEXPORT
@@ -97,16 +99,13 @@
 
 #define SMB_ALL_REFS		0			/* Free all references to data		*/
 
-										/* smb_getmsgtxt() mode flags		*/
-#define GETMSGTXT_TAILS 		(1<<0)	/* Incude message tail(s)			*/
-#define GETMSGTXT_NO_BODY		(1<<1)	/* Exclude message body				*/
-#define GETMSGTXT_NO_HFIELDS	(1<<2)	/* Exclude text header fields		*/
-#define GETMSGTXT_PLAIN			(1<<3)	/* Get text-plain or text-html portion only of MIME-encoded body (all, otherwise) */
-										/* common smb_getmsgtxt() mode values */
+#define GETMSGTXT_TAILS 		(1<<0)	/* Get message tail(s)				*/
+#define GETMSGTXT_NO_BODY		(1<<1)	/* Don't retrieve message body		*/
+#define GETMSGTXT_NO_HFIELDS	(1<<2)	/* Don't include text header fields	*/
+#define GETMSGTXT_PLAIN			(1<<3)	/* Get plaintext portion only of MIME-encoded body (all, otherwise) */
 #define GETMSGTXT_BODY_ONLY		GETMSGTXT_NO_HFIELDS
 #define GETMSGTXT_TAIL_ONLY		(GETMSGTXT_TAILS|GETMSGTXT_NO_BODY|GETMSGTXT_NO_HFIELDS)
 #define GETMSGTXT_ALL			GETMSGTXT_TAILS
-#define GETMSGTXT_NO_TAILS		0		/* Exclude message tails(s)			*/
 
 #define SMB_IS_OPEN(smb)	((smb)->shd_fp!=NULL)
 
@@ -267,11 +266,9 @@ SMBEXPORT enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr);
 SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
 
 /* smbtxt.c */
-SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t*, smbmsg_t*, ulong mode);
-SMBEXPORT char*		SMBCALL smb_getplaintext(smbmsg_t*, char* body);
-SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t*, char* body, char* filename, size_t filename_len, uint32_t* filelen, int index);
-SMBEXPORT ulong		SMBCALL	smb_countattachments(smb_t*, smbmsg_t*, const char* body);
-SMBEXPORT void		SMBCALL smb_parse_content_type(const char* content_type, char** subtype, char** charset);
+SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode);
+SMBEXPORT char*		SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf);
+SMBEXPORT uint8_t*	SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, size_t filename_len, uint32_t* filelen, int index);
 
 /* smbfile.c */
 SMBEXPORT int 		SMBCALL smb_feof(FILE* fp);
