@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.91 2019/04/10 07:30:50 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.92 2019/04/10 07:33:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
     long    l,last_mode;
 	ulong	last;
 	bool	replied;
-	file_t	fd;
 	mail_t	*mail;
 	smbmsg_t msg;
 	char search_str[128] = "";
@@ -88,8 +87,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 	}
 
 	msg.total_hfields=0;			/* init to NULL, cause not allocated yet */
-
-	fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);

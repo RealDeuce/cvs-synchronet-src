@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.78 2019/04/10 07:30:49 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.79 2019/04/10 07:33:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -323,6 +323,7 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 			if(!sp) sp=strrchr(tp,'\\');
 			if(sp) tp=sp+1;
 			file_t	fd;
+			fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 			padfname(tp,fd.name);
 			SAFEPRINTF3(fpath,"%sfile/%04u.in/%s"  /* path is path/fname */
 				,cfg.data_dir, msg->idx.to, tp);
