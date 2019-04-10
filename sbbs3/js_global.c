@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.378 2019/04/23 05:32:43 rswindell Exp $ */
+/* $Id: js_global.c,v 1.377 2019/01/20 05:25:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4275,7 +4275,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
 	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
-		"<i>line_length</i> defaults to <i>79</i>, <i>orig_line_length</i> defaults to <i>79</i>, "
+		"<i>line_length</i> defaults to <i>79</i> <i>orig_line_length</i> defaults to <i>79</i> "
 		"and <i>handle_quotes</i> defaults to <i>true</i>")
 	,311
 	},

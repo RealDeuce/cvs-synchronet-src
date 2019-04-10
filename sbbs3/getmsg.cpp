@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.82 2019/04/30 08:28:38 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.80 2019/04/10 20:03:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -137,7 +137,6 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg)
 		else
 			CRLF;
 	}
-	msghdr_tos = tos;
 	if(!menu("msghdr", P_NOERROR)) {
 		bprintf(text[MsgSubj],msg->subj);
 		if(msg->tags && *msg->tags)
@@ -262,7 +261,7 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		if(p == NULL)
 			p = txt;
 		else
-			bprintf(text[MIMEDecodedPlainTextFmt], msg->charset == NULL ? "US-ASCII" : msg->charset);
+			bputs(text[MIMEDecodedPlainText]);
 	}
 	truncsp(p);
 	SKIP_CRLF(p);

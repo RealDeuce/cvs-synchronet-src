@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.114 2019/04/30 04:40:10 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.109 2019/04/10 20:03:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -867,7 +867,7 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	return 0;
 }
 
-/* Writes text buffer to file, expanding sole LFs to CRLFs or stripping LFs */
+/* Writes text buffer to file, expanding sole LFs to CRLFs */
 size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 {
 	char	ch,last_ch=0;
@@ -876,14 +876,10 @@ size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 
 	for(i=0;i<len;i++) {
 		ch=*buf++;
-		if(ch=='\n') {
-			if(last_ch!='\r') {
-				if(fputc('\r', fp) == EOF)
-					break;
-				wr++;
-			}
-			if(cfg.strip_lf)
-				continue;
+		if(ch=='\n' && last_ch!='\r') {
+			if(fputc('\r', fp) == EOF)
+				break;
+			wr++;
 		}
 		if(fputc(ch,fp)==EOF)
 			break;
@@ -1217,9 +1213,9 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
+	if(msg->columns)
+		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
-		if(msg->columns)
-			fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
@@ -3499,62 +3495,61 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 			continue;
 		}
 
-		if(ch == '\n' ||
-			(ch == FIDO_SOFT_CR && cfg.strip_soft_cr))
-			continue;
-		if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
-			|| !strncmp((char *)fbuf+l,"---\r",4)))
-			done=1; 			/* tear line and down go into tail */
-		if(done && cr && !strncmp((char *)fbuf+l,"SEEN-BY:",8)) {
-			l+=8;
-			while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
-			m=l;
-			while(m<length && fbuf[m]!='\r') m++;
-			while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
-			if(m>l)
-				smb_hfield(&msg,FIDOSEENBY,(ushort)(m-l),fbuf+l);
-			while(l<length && fbuf[l]!='\r') l++;
-			continue;
-		}
-		if(done) {
-			if(taillen<MAX_TAILLEN)
-				stail[taillen++]=ch;
-		}
-		else
-			sbody[bodylen++]=ch;
-		col++;
-		if(ch=='\r') {
-			cr=1;
-			col=0;
+		if(ch!='\n' && ch!=0x8d) {	/* ignore LF and soft CRs */
+			if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
+				|| !strncmp((char *)fbuf+l,"---\r",4)))
+				done=1; 			/* tear line and down go into tail */
+			if(done && cr && !strncmp((char *)fbuf+l,"SEEN-BY:",8)) {
+				l+=8;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
+				m=l;
+				while(m<length && fbuf[m]!='\r') m++;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l)
+					smb_hfield(&msg,FIDOSEENBY,(ushort)(m-l),fbuf+l);
+				while(l<length && fbuf[l]!='\r') l++;
+				continue;
+			}
 			if(done) {
 				if(taillen<MAX_TAILLEN)
-					stail[taillen++]='\n';
+					stail[taillen++]=ch;
 			}
 			else
-				sbody[bodylen++]='\n';
-		}
-		else {
-			cr=0;
-			if(col==1 && !strncmp((char *)fbuf+l," * Origin: ",11)) {
-				p=(char*)fbuf+l+11;
-				while(*p && *p!='\r') p++;	 /* Find CR */
-				while(p && *p!='(') p--;     /* rewind to '(' */
-				if(p)
-					origaddr=atofaddr(p+1); 	/* get orig address */
-				done=1;
-			}
-			if(done)
-				continue;
-
-			if(ch==ESC) esc=1;		/* ANSI codes */
-			if(ch==' ' && col>40 && !esc) {	/* word wrap */
-				for(m=l+1;m<length;m++) 	/* find next space */
-					if(fbuf[m]<=' ' && fbuf[m]>=0)
-						break;
-				if(m<length && m-l>80-col) {  /* if it's beyond the eol */
-					sbody[bodylen++]='\r';
+				sbody[bodylen++]=ch;
+			col++;
+			if(ch=='\r') {
+				cr=1;
+				col=0;
+				if(done) {
+					if(taillen<MAX_TAILLEN)
+						stail[taillen++]='\n';
+				}
+				else
 					sbody[bodylen++]='\n';
-					col=0;
+			}
+			else {
+				cr=0;
+				if(col==1 && !strncmp((char *)fbuf+l," * Origin: ",11)) {
+					p=(char*)fbuf+l+11;
+					while(*p && *p!='\r') p++;	 /* Find CR */
+					while(p && *p!='(') p--;     /* rewind to '(' */
+					if(p)
+						origaddr=atofaddr(p+1); 	/* get orig address */
+					done=1;
+				}
+				if(done)
+					continue;
+
+				if(ch==ESC) esc=1;		/* ANSI codes */
+				if(ch==' ' && col>40 && !esc) {	/* word wrap */
+					for(m=l+1;m<length;m++) 	/* find next space */
+						if(fbuf[m]<=' ' && fbuf[m]>=0)
+							break;
+					if(m<length && m-l>80-col) {  /* if it's beyond the eol */
+						sbody[bodylen++]='\r';
+						sbody[bodylen++]='\n';
+						col=0;
+					}
 				}
 			}
 		}
@@ -4734,6 +4729,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			if(msg.from_net.type!=NET_NONE
 				&& msg.from_net.type!=NET_FIDO
+				&& msg.from_net.type!=NET_FIDO_ASCII
 				&& !(scfg.sub[subnum]->misc&SUB_GATE)) {
 				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
@@ -6009,7 +6005,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.114 $", "%*s %s", revision);
+	sscanf("$Revision: 3.109 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

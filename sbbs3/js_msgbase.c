@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.242 2019/04/30 08:26:26 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.236 2019/04/09 19:24:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -181,34 +181,6 @@ static BOOL parse_recipient_object(JSContext* cx, private_t* p, JSObject* hdr, s
 		SAFECOPY(to,cp);
 		strlwr(to);
 		msg->idx.to=crc16(to,0);
-	}
-
-	if(JS_GetProperty(cx, hdr, "to_list", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"to_list\" string in recipient object");
-			return(FALSE);
-		}
-		if((smb_result = smb_hfield_str(msg, RFC822TO, cp))!=SMB_SUCCESS) {
-			free(cp);
-			JS_ReportError(cx, "Error %d adding RFC822TO field to message header", smb_result);
-			goto err;
-		}
-	}
-
-	if(JS_GetProperty(cx, hdr, "cc_list", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"cc_list\" string in recipient object");
-			return(FALSE);
-		}
-		if((smb_result = smb_hfield_str(msg, SMB_CARBONCOPY, cp))!=SMB_SUCCESS) {
-			free(cp);
-			JS_ReportError(cx, "Error %d adding SMB_CARBONCOPY field to message header", smb_result);
-			goto err;
-		}
 	}
 
 	if(JS_GetProperty(cx, hdr, "to_ext", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -614,19 +586,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	}
 
 	/* RFC822 headers */
-	if(JS_GetProperty(cx, hdr, "replyto_list", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"replyto_list\" string in header object");
-			goto err;
-		}
-		if((smb_result = smb_hfield_str(msg, RFC822REPLYTO, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding RFC822REPLYTO field to message header", smb_result);
-			goto err;
-		}
-	}
-
 	if(JS_GetProperty(cx, hdr, "id", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
 		HANDLE_PENDING(cx, cp);
@@ -1350,8 +1309,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING_TRUNCSP("to",p->msg.to, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP("from",p->msg.from, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP("subject",p->msg.subj, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("to_list",p->msg.to_list, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("cc_list",p->msg.cc_list, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("summary", p->msg.summary, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("tags", p->msg.tags, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("to_ext", p->msg.to_ext, JSPROP_ENUMERATE);
@@ -1359,19 +1316,18 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING_TRUNCSP_NULL("from_org", p->msg.from_org, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("replyto", p->msg.replyto, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("replyto_ext", p->msg.replyto_ext, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("replyto_list", p->msg.replyto_list, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("reverse_path", p->msg.reverse_path, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("forward_path", p->msg.forward_path, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("to_agent", p->msg.to_agent, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("from_agent", p->msg.from_agent, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("replyto_agent", p->msg.replyto_agent, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("to_net_type", p->msg.to_net.type, JSPROP_ENUMERATE);
-	LAZY_STRING_COND("to_net_addr", p->msg.to_net.addr, smb_netaddrstr(&(p->msg).to_net,tmp), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("to_net_addr", p->msg.to_net.type && p->msg.to_net.addr, smb_netaddrstr(&(p->msg).to_net,tmp), JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("from_net_type", p->msg.from_net.type, JSPROP_ENUMERATE);
 	/* exception here because p->msg.from_net is NULL */
-	LAZY_STRING_COND("from_net_addr", p->msg.from_net.addr, smb_netaddrstr(&(p->msg).from_net,tmp), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("from_net_addr", p->msg.from_net.type && p->msg.from_net.addr, smb_netaddrstr(&(p->msg).from_net,tmp), JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("replyto_net_type", p->msg.replyto_net.type, JSPROP_ENUMERATE);
-	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.addr, smb_netaddrstr(&(p->msg).replyto_net,tmp), JSPROP_ENUMERATE);
+	LAZY_STRING_COND("replyto_net_addr", p->msg.replyto_net.type && p->msg.replyto_net.addr, smb_netaddrstr(&(p->msg).replyto_net,tmp), JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_ip_addr", (val=smb_get_hfield(&(p->msg),SENDERIPADDR,NULL))!=NULL, val, JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_host_name", (val=smb_get_hfield(&(p->msg),SENDERHOSTNAME,NULL))!=NULL, val, JSPROP_ENUMERATE);
 	LAZY_STRING_COND("from_protocol", (val=smb_get_hfield(&(p->msg),SENDERPROTOCOL,NULL))!=NULL, val, JSPROP_ENUMERATE);
@@ -1385,9 +1341,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER_EXPAND("cost", p->msg.cost, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("editor", p->msg.editor, JSPROP_ENUMERATE);
 	LAZY_UINTEGER_EXPAND("columns", p->msg.columns, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("mime_version", p->msg.mime_version, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_STRING_TRUNCSP_NULL("content_type", p->msg.content_type, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_STRING_TRUNCSP_NULL("charset", p->msg.charset, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	/* Fixed length portion of msg header */
 	LAZY_UINTEGER("type", p->msg.hdr.type, JSPROP_ENUMERATE);
@@ -1409,8 +1362,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER("delivery_attempts", p->msg.hdr.delivery_attempts, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("last_downloaded", p->msg.hdr.last_downloaded, JSPROP_ENUMERATE);
 	LAZY_UINTEGER("times_downloaded", p->msg.hdr.times_downloaded, JSPROP_ENUMERATE);
-	LAZY_UINTEGER("data_length", smb_getmsgdatlen(&(p->msg)), JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_UINTEGER("text_length", smb_getmsgtxtlen(&(p->msg)), JSPROP_ENUMERATE|JSPROP_READONLY);
+	LAZY_UINTEGER("data_length", smb_getmsgdatlen(&(p->msg)), JSPROP_ENUMERATE);
 	LAZY_STRING("date", msgdate((p->msg).hdr.when_written,date), JSPROP_ENUMERATE);
 	LAZY_UINTEGER("votes", p->msg.hdr.votes, JSPROP_ENUMERATE);
 
@@ -1487,13 +1439,20 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 				switch((p->msg).hfield[i].type) {
 					case SMB_COMMENT:
 					case SMB_POLL_ANSWER:
+					case SMB_CARBONCOPY:
 					case SMB_GROUP:
+					case FILEATTACH:
+					case DESTFILE:
+					case FILEATTACHLIST:
+					case DESTFILELIST:
+					case FILEREQUEST:
+					case FILEPASSWORD:
+					case FILEREQUESTLIST:
+					case FILEPASSWORDLIST:
 					case FIDOCTRL:
 					case FIDOSEENBY:
 					case FIDOPATH:
 					case RFC822HEADER:
-					case RFC822FROM:
-					case SMTPRECEIVED:
 					case UNKNOWNASCII:
 						/* only support these header field types */
 						break;
@@ -2178,7 +2137,7 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 	return JS_TRUE;
 }
 
-static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL dot_stuffing, ulong mode, JSBool existing)
+static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL rfc822, ulong mode, JSBool existing)
 {
 	char*		buf;
 
@@ -2213,7 +2172,7 @@ static char* get_msg_text(private_t* p, smbmsg_t* msg, BOOL strip_ctrl_a, BOOL d
 	if(strip_ctrl_a)
 		remove_ctrl_a(buf, buf);
 
-	if(dot_stuffing) {	/* must escape lines starting with dot ('.'), e.g. RFC821 */
+	if(rfc822) {	/* must escape lines starting with dot ('.') */
 		char* newbuf;
 		if((newbuf=malloc((strlen(buf)*2)+1))!=NULL) {
 			int i,j;
@@ -2245,7 +2204,7 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 	JSBool		strip_ctrl_a=JS_FALSE;
 	JSBool		tails=JS_TRUE;
 	JSBool		plain=JS_FALSE;
-	JSBool		dot_stuffing=JS_FALSE;
+	JSBool		rfc822=JS_FALSE;
 	JSBool		msg_specified=JS_FALSE;
 	JSBool		existing_msg=JS_FALSE;
 	JSString*	js_str;
@@ -2321,7 +2280,7 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 		strip_ctrl_a=JSVAL_TO_BOOLEAN(argv[n++]);
 
 	if(n<argc && JSVAL_IS_BOOLEAN(argv[n]))
-		dot_stuffing=JSVAL_TO_BOOLEAN(argv[n++]);
+		rfc822=JSVAL_TO_BOOLEAN(argv[n++]);
 
 	if(n<argc && JSVAL_IS_BOOLEAN(argv[n]))
 		tails=JSVAL_TO_BOOLEAN(argv[n++]);
@@ -2336,7 +2295,7 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 		getmsgtxtmode |= GETMSGTXT_PLAIN;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	buf = get_msg_text(p, msgptr, strip_ctrl_a, dot_stuffing, getmsgtxtmode, existing_msg);
+	buf = get_msg_text(p, msgptr, strip_ctrl_a, rfc822, getmsgtxtmode, existing_msg);
 	JS_RESUMEREQUEST(cx, rc);
 	if(buf==NULL)
 		return JS_TRUE;
@@ -2360,7 +2319,7 @@ js_get_msg_tail(JSContext *cx, uintN argc, jsval *arglist)
 	smbmsg_t	*msgptr;
 	JSBool		by_offset=JS_FALSE;
 	JSBool		strip_ctrl_a=JS_FALSE;
-	JSBool		dot_stuffing=JS_FALSE;
+	JSBool		rfc822=JS_FALSE;
 	JSBool		msg_specified=JS_FALSE;
 	JSBool		existing_msg=JS_FALSE;
 	JSString*	js_str;
@@ -2435,10 +2394,10 @@ js_get_msg_tail(JSContext *cx, uintN argc, jsval *arglist)
 		strip_ctrl_a=JSVAL_TO_BOOLEAN(argv[n++]);
 
 	if(n<argc && JSVAL_IS_BOOLEAN(argv[n]))
-		dot_stuffing=JSVAL_TO_BOOLEAN(argv[n++]);
+		rfc822=JSVAL_TO_BOOLEAN(argv[n++]);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	buf = get_msg_text(p, msgptr, strip_ctrl_a, dot_stuffing, GETMSGTXT_TAILS|GETMSGTXT_NO_BODY, existing_msg);
+	buf = get_msg_text(p, msgptr, strip_ctrl_a, rfc822, GETMSGTXT_TAILS|GETMSGTXT_NO_BODY, existing_msg);
 	JS_RESUMEREQUEST(cx, rc);
 	if(buf==NULL)
 		return JS_TRUE;
@@ -3021,7 +2980,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	},
 	{"get_all_msg_headers", js_get_all_msg_headers, 1, JSTYPE_OBJECT, JSDOCSTR("[include_votes=<tt>false</tt>] [,expand_fields=<tt>true</tt>]")
 	,JSDOCSTR("returns an object (associative array) of all message headers \"indexed\" by message number.<br>"
-	"Message headers returned by this function include additional properties: <tt>upvotes</tt>, <tt>downvotes</tt> and <tt>total_votes</tt>.<br>"
+	"Message headers returned by this function include 2 additional properties: <tt>upvotes</tt> and <tt>downvotes</tt>.<br>"
 	"Vote messages are excluded by default.")
 	,316
 	},
@@ -3030,15 +2989,13 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,310
 	},
 	{"get_msg_body",	js_get_msg_body,	2, JSTYPE_STRING,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id_or_header [,strip_ctrl_a=<tt>false</tt>] "
-		"[,dot_stuffing=<tt>false</tt>] [,include_tails=<tt>true</tt>] [,plain_text=<tt>false</tt>]")
+		"[,rfc822_encoded=<tt>false</tt>] [,include_tails=<tt>true</tt>] [,plain_text=<tt>false</tt>]")
 	,JSDOCSTR("returns the entire body text of a specific message as a single String, <i>null</i> on failure. "
-	"The default behavior is to leave Ctrl-A codes intact, do not stuff dots (e.g. per RFC-821), and to include tails (if any) in the "
+		"The default behavior is to leave Ctrl-A codes intact, perform no RFC-822 encoding, and to include tails (if any) in the "
 		"returned body text. When <i>plain_text</i> is true, only the first plain-text portion of a multi-part MIME encoded message body is returned. "
 		"The first argument (following the optional <i>by_offset</i> boolean) must be either a number (message number or index-offset), string (message-ID), or object (message header). "
 		"The <i>by_offfset</i> (<tt>true</tt>) argument should only be passed when the argument following it is the numeric index-offset of the message to be "
-		"retrieved. By default (<i>by_offset</i>=<tt>false</tt>), a numeric argument would be interpreted as the message <i>number</i> to be retrieved."
-		"<br>"
-		"After reading/parsing MIME plain-text, a new <i>charset</i> header property (string) may be available to reflect the content-type 'charset' value."
+		"retrieved. By default (<i>by_offset</i>=<tt>false</tt>), a numeric argument would be interpreted as the message <i>number</i> to be retrieved. "
 	)
 	,310
 	},
@@ -3089,8 +3046,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>to_net_type</tt><td>Recipient's network type (default: 0 for local)"
 	"<tr><td align=top><tt>to_net_addr</tt><td>Recipient's network address"
 	"<tr><td align=top><tt>to_agent</tt><td>Recipient's agent type"
-	"<tr><td align=top><tt>to_list</tt><td>Comma-separated listed of primary recipients, RFC822-style"
-	"<tr><td align=top><tt>cc_list</tt><td>Comma-separated listed of secondary recipients, RFC822-style"
 	"<tr><td align=top><tt>from</tt><td>Sender's name <i>(required)</i>"
 	"<tr><td align=top><tt>from_ext</tt><td>Sender's user number"
 	"<tr><td align=top><tt>from_org</tt><td>Sender's organization"
@@ -3110,10 +3065,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>replyto_net_type</tt><td>Replies should be sent to this network type"
 	"<tr><td align=top><tt>replyto_net_addr</tt><td>Replies should be sent to this network address"
 	"<tr><td align=top><tt>replyto_agent</tt><td>Replies should be sent to this agent type"
-	"<tr><td align=top><tt>replyto_list</tt><td>Comma-separated list of mailboxes to reply-to, RFC822-style"
-	"<tr><td align=top><tt>mime-version</tt><td>MIME Version (optional)"
-	"<tr><td align=top><tt>content-type</tt><td>MIME Content-Type (optional)"
-	"<tr><td align=top><tt>charset</tt><td>MIME plain-text charset value (optional)"
 	"<tr><td align=top><tt>summary</tt><td>Message Summary (optional)"
 	"<tr><td align=top><tt>tags</tt><td>Message Tags (space-delimited, optional)"
 	"<tr><td align=top><tt>id</tt><td>Message's RFC-822 compliant Message-ID"
