@@ -1,8 +1,9 @@
 /* tmp_xfer.cpp */
 
 /* Synchronet temp directory file transfer routines */
+// vi: tabstop=4
 
-/* $Id: tmp_xfer.cpp,v 1.48 2018/02/20 11:43:08 rswindell Exp $ */
+/* $Id: tmp_xfer.cpp,v 1.50 2019/02/17 06:21:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,8 +129,8 @@ void sbbs_t::temp_xfer()
 					break;
 				if(!checkfname(str))
 					break;
-				SAFEPRINTF3(tmp2,"%s added %s to %s"
-					,useron.alias,str,f.name);
+				SAFEPRINTF2(tmp2,"added %s to %s"
+					,str,f.name);
 				logline(nulstr,tmp2);
 				SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,str);
 				SAFEPRINTF2(str,"%s%s",cfg.temp_dir,f.name);
@@ -414,7 +415,7 @@ void sbbs_t::extract(uint dirnum)
 					errormsg(WHERE,ERR_EXEC,cmdstr(excmd,path,str,NULL),i);
 					return; 
 				}
-				SAFEPRINTF3(tmp,"%s extracted %s from %s",useron.alias,str,path);
+				SAFEPRINTF2(tmp,"extracted %s from %s", str,path);
 				logline(nulstr,tmp);
 				CRLF;
 				break;
@@ -439,16 +440,17 @@ ulong sbbs_t::create_filelist(const char *name, long mode)
 	uint	i,j,d;
 	ulong	l,k;
 
-	bprintf(text[CreatingFileList],name);
+	if(online == ON_REMOTE)
+		bprintf(text[CreatingFileList],name);
 	SAFEPRINTF2(str,"%s%s",cfg.temp_dir,name);
 	if((file=nopen(str,O_CREAT|O_WRONLY|O_APPEND))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_WRONLY|O_APPEND);
-		return(0); 
+		return(0);
 	}
 	k=0;
 	if(mode&FL_ULTIME) {
 		SAFEPRINTF(str,"New files since: %s\r\n",timestr(ns_time));
-		write(file,str,strlen(str)); 
+		write(file,str,strlen(str));
 	}
 	for(i=j=d=0;i<usrlibs;i++) {
 		for(j=0;j<usrdirs[i];j++,d++) {
@@ -462,22 +464,23 @@ ulong sbbs_t::create_filelist(const char *name, long mode)
 			l=listfiles(usrdir[i][j],nulstr,file,mode);
 			if((long)l==-1)
 				break;
-			k+=l; 
+			k+=l;
 		}
 		if(j<usrdirs[i])
-			break; 
+			break;
 	}
 	if(k>1) {
 		SAFEPRINTF(str,"\r\n%ld Files Listed.\r\n",k);
-		write(file,str,strlen(str)); 
+		write(file,str,strlen(str));
 	}
 	close(file);
 	if(k)
 		bprintf(text[CreatedFileList],name);
 	else {
-		bputs(text[NoFiles]);
+		if(online == ON_REMOTE)
+			bputs(text[NoFiles]);
 		SAFEPRINTF2(str,"%s%s",cfg.temp_dir,name);
-		remove(str); 
+		remove(str);
 	}
 	SAFECOPY(temp_file,name);
 	SAFECOPY(temp_uler,"File List");
