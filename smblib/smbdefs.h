@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.110 2019/04/11 00:36:49 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.111 2019/04/11 10:59:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -277,8 +277,8 @@
 
 										/* Auxiliary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
-#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg */
-#define MSG_TRUNCFILE		(1<<2)		/* Truncate file(s) when sent */
+#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg (file paths/names in subject) */
+#define MSG_MIMEATTACH		(1<<2)		/* Message has one or more MIME-embedded attachments */
 #define MSG_KILLFILE		(1<<3)		/* Delete file(s) when sent */
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
