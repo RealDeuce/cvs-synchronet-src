@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.93 2018/07/29 01:00:04 rswindell Exp $ */
+/* $Id: uifc.h,v 1.94 2019/03/22 21:29:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,7 +53,7 @@
 
 #ifdef _WIN32
         #ifdef __BORLANDC__
-                #define UIFCCALL __stdcall
+                #define UIFCCALL
         #else
                 #define UIFCCALL
         #endif
