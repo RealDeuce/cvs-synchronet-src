@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.170 2019/07/24 04:41:49 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.169 2019/03/24 07:11:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -36,11 +36,10 @@
 
 #define STARTUP_INI_BITDESC_TABLES
 
-#include "sockwrap.h"
 #include <string.h>	/* strchr, memset */
 
-#include "sbbs_ini.h"
 #include "dirwrap.h"	/* backslash */
+#include "sbbs_ini.h"
 #include "sbbsdefs.h"	/* JAVASCRIPT_* macros */
 
 static const char*	nulstr="";

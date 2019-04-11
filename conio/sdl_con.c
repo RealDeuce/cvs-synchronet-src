@@ -595,38 +595,37 @@ void sdl_flush(void)
 
 static int sdl_init_mode(int mode)
 {
-	int oldcols;
+    int oldcols;
 
 	oldcols = cvstat.cols;
 
 	sdl_user_func(SDL_USEREVENT_FLUSH);
 
-	pthread_mutex_lock(&blinker_lock);
 	pthread_mutex_lock(&vstatlock);
 	bitmap_drv_init_mode(mode, &bitmap_width, &bitmap_height);
 	if(yuv.enabled)
 		vstat.scaling = 2;
-	/* Deal with 40 col doubling */
-	else {
-		if(oldcols != vstat.cols) {
-			if(oldcols == 40)
-				vstat.scaling /= 2;
-			if(vstat.cols == 40)
-				vstat.scaling *= 2;
-		}
-	}
-	if(vstat.scaling < 1)
-		vstat.scaling = 1;
-	if(vstat.vmultiplier < 1)
-		vstat.vmultiplier = 1;
-
 	cvstat = vstat;
 	pthread_mutex_unlock(&vstatlock);
-	pthread_mutex_unlock(&blinker_lock);
+
+	/* Deal with 40 col doubling */
+	if(!yuv.enabled) {
+		if(oldcols != cvstat.cols) {
+			if(oldcols == 40)
+				cvstat.scaling /= 2;
+			if(cvstat.cols == 40)
+				cvstat.scaling *= 2;
+		}
+	}
+
+	if(cvstat.scaling < 1)
+		cvstat.scaling = 1;
+	if(cvstat.vmultiplier < 1)
+		cvstat.vmultiplier = 1;
 
 	sdl_user_func_ret(SDL_USEREVENT_SETVIDMODE);
 
-	return(0);
+    return(0);
 }
 
 /* Called from main thread only (Passes Event) */
@@ -859,25 +858,8 @@ static void setup_surfaces(void)
 		else
 			win=sdl.SetVideoMode(yuv.win_width,yuv.win_height,0,flags);
 	}
-	else {
-		if (win != NULL) {
-			if (!yuv.enabled) {
-				if (new_rect->w != char_width || new_rect->h != char_height) {
-					SDL_Rect	upd_rect;
-					upd_rect.x = 0;
-					upd_rect.y = 0;
-					sdl.mutexP(newrect_mutex);
-					upd_rect.w=new_rect->w;
-					upd_rect.h=new_rect->h;
-					sdl.FillRect(new_rect, &upd_rect, sdl.MapRGB(win->format, 0, 0, 0));
-					sdl.BlitSurface(new_rect, &upd_rect, win, &upd_rect);
-					sdl.mutexV(newrect_mutex);
-					sdl.Flip(win);
-				}
-			}
-		}
+	else
 		win=sdl.SetVideoMode(char_width,char_height,0,flags);
-	}
 
 #if !defined(NO_X) && defined(__unix__)
 	if(sdl_x11available && sdl_using_x11) {
@@ -1272,7 +1254,7 @@ static unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod, uns
 	int i;
 
 #ifdef __DARWIN__
-	if(unicode==0x7f && !(mod & KMOD_CTRL)) {
+	if(unicode==0x7f) {
 		unicode=0x08;
 		keysym=SDLK_BACKSPACE;
 	}
