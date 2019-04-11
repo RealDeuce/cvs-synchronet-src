@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.114 2019/04/30 08:21:53 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.110 2019/04/11 00:36:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -181,7 +181,7 @@
 #define SENDERTIME			0x0d		/* authentication/connection time */
 #define SENDERSERVER		0x0e		/* server hostname that authenticated user */
 
-#define REPLYTO 			0x20		/* Name only */
+#define REPLYTO 			0x20
 #define REPLYTOAGENT		0x21
 #define REPLYTONETTYPE		0x22
 #define REPLYTONETADDR		0x23
@@ -202,7 +202,7 @@
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
 #define SMB_COMMENT 		0x62
-#define SMB_CARBONCOPY		0x63	/* Comma-separated list of secondary recipients, RFC822-style */
+#define SMB_CARBONCOPY		0x63
 #define SMB_GROUP			0x64
 #define SMB_EXPIRATION		0x65
 #define SMB_PRIORITY		0x66
@@ -225,9 +225,9 @@
 #define RFC822HEADER		0xb0
 #define RFC822MSGID 		0xb1
 #define RFC822REPLYID		0xb2
-#define RFC822TO			0xb3		// Comma-separated list of recipients, RFC822-style
-#define RFC822FROM			0xb4		// Original, unparsed/modified RFC822 header "From" value
-#define RFC822REPLYTO		0xb5		// Comma-separated list of recipients, RFC822-style
+#define RFC822TO			0xb3
+#define RFC822FROM			0xb4
+#define RFC822REPLYTO		0xb5
 
 #define USENETPATH			0xc0
 #define USENETNEWSGROUPS	0xc1
@@ -277,8 +277,8 @@
 
 										/* Auxiliary header attributes */
 #define MSG_FILEREQUEST 	(1<<0)		/* File request */
-#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg (file paths/names in subject) */
-#define MSG_MIMEATTACH		(1<<2)		/* Message has one or more MIME-embedded attachments */
+#define MSG_FILEATTACH		(1<<1)		/* File(s) attached to Msg */
+#define MSG_TRUNCFILE		(1<<2)		/* Truncate file(s) when sent */
 #define MSG_KILLFILE		(1<<3)		/* Delete file(s) when sent */
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
@@ -308,6 +308,13 @@ enum smb_net_type {
     ,NET_POSTLINK			/* Imported with UTI driver */
     ,NET_QWK				/* QWK networked messsage */
 	,NET_INTERNET			/* Internet e-mail, netnews, etc. */
+	,NET_WWIV				/* unused */
+	,NET_MHS				/* unused */
+	,NET_FIDO_ASCII			/* FidoNet address, ASCIIZ format (e.g. 5D) - unused and deprecated */
+
+/* Add new ones here */
+
+    ,NET_TYPES
 };
 
 enum smb_agent_type {
@@ -315,11 +322,27 @@ enum smb_agent_type {
     ,AGENT_PROCESS			/* unknown process type */
 	,AGENT_SMBUTIL			/* imported via Synchronet SMBUTIL */
 	,AGENT_SMTPSYSMSG		/* Synchronet SMTP server system message */
+
+/* Add new ones here */
+
+    ,AGENT_TYPES
 };
 
 enum smb_xlat_type {
      XLAT_NONE              /* No translation/End of translation list */
-	,XLAT_LZH = 9			/* LHarc (LHA) Dynamic Huffman coding */
+    ,XLAT_ENCRYPT           /* Encrypted data */
+    ,XLAT_ESCAPED           /* 7-bit ASCII escaping for ctrl and 8-bit data */
+    ,XLAT_HUFFMAN           /* Static and adaptive Huffman coding compression */
+    ,XLAT_LZW               /* Limpel/Ziv/Welch compression */
+    ,XLAT_MLZ78             /* Modified LZ78 compression */
+    ,XLAT_RLE               /* Run length encoding compression */
+    ,XLAT_IMPLODE           /* Implode compression (PkZIP) */
+    ,XLAT_SHRINK            /* Shrink compression (PkZIP) */
+	,XLAT_LZH				/* LHarc (LHA) Dynamic Huffman coding */
+
+/* Add new ones here */
+
+    ,XLAT_TYPES
 };
 
 
@@ -515,7 +538,6 @@ typedef struct {				/* Message */
 	msghdr_t	hdr;			/* Header record (fixed portion) */
 	char		*to,			/* To name */
 				*to_ext,		/* To extension */
-				*to_list,		/* Comma-separated list of recipients, RFC822-style */
 				*from,			/* From name */
 				*from_ext,		/* From extension */
 				*from_org,		/* From organization */
@@ -524,8 +546,6 @@ typedef struct {				/* Message */
 				*from_prot,		/* From protocol (e.g. "Telnet", "NNTP", "HTTP", etc.) */
 				*replyto,		/* Reply-to name */
 				*replyto_ext,	/* Reply-to extension */
-				*replyto_list,	/* Comma-separated list of mailboxes, RFC822-style */
-				*cc_list,		/* Comma-separated list of additional recipients, RFC822-style */
 				*id,			/* RFC822 Message-ID */
 				*reply_id,		/* RFC822 Reply-ID */
 				*forward_path,	/* SMTP forward-path (RCPT TO: argument) */
@@ -544,7 +564,6 @@ typedef struct {				/* Message */
 	char*		editor;			/* Message editor (if known) */
 	char*		mime_version;	/* MIME Version (if applicable) */
 	char*		content_type;	/* MIME Content-Type (if applicable) */
-	char*		charset;		/* MIME plain-text/charset value (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */

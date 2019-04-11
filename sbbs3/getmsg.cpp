@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.84 2019/05/02 00:40:45 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.80 2019/04/10 20:03:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -119,7 +119,7 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 /****************************************************************************/
 /* Displays a message header to the screen                                  */
 /****************************************************************************/
-void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const char* from, const char* to)
+void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg)
 {
 	char	str[MAX_PATH+1];
 	char	age[64];
@@ -127,10 +127,8 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 	int 	i;
 	smb_t	saved_smb = this->smb;
 
-	if(smb != NULL)
-		this->smb = *smb;	// Needed for @-codes and JS bbs.smb_* properties
-	if(msg != NULL)
-		current_msg = msg;		// Needed for @-codes and JS bbs.msg_* properties
+	this->smb = *smb;	// Needed for @-codes and JS bbs.smb_* properties
+	current_msg = msg;	// Needed for @-codes and JS bbs.msg_* properties
 
 	attr(LIGHTGRAY);
 	if(!tos) {
@@ -139,25 +137,24 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 		else
 			CRLF;
 	}
-	msghdr_tos = tos;
 	if(!menu("msghdr", P_NOERROR)) {
-		bprintf(text[MsgSubj], subject == NULL ? msg->subj : subject);
+		bprintf(text[MsgSubj],msg->subj);
 		if(msg->tags && *msg->tags)
 			bprintf(text[MsgTags], msg->tags);
 		if(msg->hdr.attr)
 			show_msgattr(msg);
-		if(to != NULL || msg->to_list != NULL || (msg->to && *msg->to)) {
-			bprintf(text[MsgTo], to == NULL ? (msg->to_list == NULL ? msg->to : msg->to_list) : to);
+		if(msg->to && *msg->to) {
+			bprintf(text[MsgTo],msg->to);
 			if(msg->to_net.addr!=NULL)
 				bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 			if(msg->to_ext)
 				bprintf(text[MsgToExt],msg->to_ext);
 		}
-		if((from != NULL || msg->from != NULL) && (!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)) {
-			bprintf(text[MsgFrom], from == NULL ? msg->from : from);
+		if(!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP) {
+			bprintf(text[MsgFrom],msg->from);
 			if(msg->from_ext)
 				bprintf(text[MsgFromExt],msg->from_ext);
-			if(msg->from_net.addr!=NULL && (msg->from == NULL || strchr(msg->from,'@')==NULL))
+			if(msg->from_net.addr!=NULL && strchr(msg->from,'@')==NULL)
 				bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str));
 		}
 		if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
@@ -264,7 +261,7 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		if(p == NULL)
 			p = txt;
 		else
-			bprintf(text[MIMEDecodedPlainTextFmt], msg->charset == NULL ? "US-ASCII" : msg->charset);
+			bputs(text[MIMEDecodedPlainText]);
 	}
 	truncsp(p);
 	SKIP_CRLF(p);
