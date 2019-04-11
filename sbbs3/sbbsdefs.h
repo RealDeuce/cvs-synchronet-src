@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.238 2019/04/28 10:03:23 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.235 2019/04/09 20:58:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -70,7 +70,6 @@
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
 #define STR_UNKNOWN_USER	"<unknown user>"
-#define STR_NO_HOSTNAME		"<no name>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
@@ -411,7 +410,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
 #define QUOTEWRAP		(1<<21)		/* Word-wrap quoted message text		*/
-#define SAVECOLUMNS		(1<<22)		/* Save/share current terminal width	*/
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
 
 									/* Bits in cfg.xtrn_misc				*/
@@ -653,9 +651,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 #define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
-#define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
