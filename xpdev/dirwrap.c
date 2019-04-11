@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.103 2019/01/12 11:56:27 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.104 2019/01/15 03:05:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,11 +117,11 @@ char* DLLCALL getdirname(const char* path)
 	if(*last == '/') {
 		if(last == path)
 			return last;
-		for(last--; last > path; last--) {
-			if(*last == '/' || *last == '\\')
+		for(last--; last >= path; last--) {
+			if(IS_PATH_DELIM(*last))
 				return last + 1;
 		}
-		return last;
+		return (char*)path;
 	}
 	return getfname(path);
 }
