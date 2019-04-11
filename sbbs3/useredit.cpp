@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.53 2018/10/25 21:15:03 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.54 2019/04/11 01:18:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -812,7 +812,7 @@ void sbbs_t::maindflts(user_t* user)
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
 		long term = (user == &useron) ? term_supports() : user->misc;
 		if(term&PETSCII)
-			safe_snprintf(str,sizeof(str),"%sPETSCII %u columns"
+			safe_snprintf(str,sizeof(str),"%sPETSCII %lu columns"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,cols);
 		else
