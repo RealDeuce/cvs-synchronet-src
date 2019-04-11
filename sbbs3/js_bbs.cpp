@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.180 2019/04/11 10:01:49 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.181 2019/04/11 20:30:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3657,7 +3657,7 @@ js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_BOOLEAN(argv[n])) {
-			del = JSVAL_TO_BOOLEAN(argv[n]);
+			del = JSVAL_TO_BOOLEAN(argv[n]) ? true : false;
 		}
 	}
 	if(smb == NULL || msg == NULL)
