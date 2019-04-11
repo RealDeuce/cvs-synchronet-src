@@ -24,7 +24,6 @@ typedef struct
 	size_t	unflushed;
 	char	peeked_byte;
 	BOOL	peeked;
-	uint16_t local_port;
 } js_socket_private_t;
 
 #ifdef __cplusplus
