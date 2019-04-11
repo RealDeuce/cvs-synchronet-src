@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.687 2019/04/11 08:44:31 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.688 2019/04/11 11:04:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3636,6 +3636,8 @@ static void smtp_thread(void* arg)
 				smb.subnum=INVALID_SUB;
 				/* creates message data, but no header or index records (since msg.to==NULL) */
 				i=savemsg(&scfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
+				if(smb_countattachments(&smb, &msg, msgbuf) > 0)
+					msg.hdr.auxattr |= MSG_MIMEATTACH;
 				free(msgbuf);
 				if(i!=SMB_SUCCESS) {
 					smb_close(&smb);
@@ -5718,7 +5720,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.687 $", "%*s %s", revision);
+	sscanf("$Revision: 1.688 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
