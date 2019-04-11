@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.38 2019/04/10 22:54:08 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.39 2019/04/11 10:34:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -318,7 +318,7 @@ static BOOL mime_getattachment(char* beg, char* end, char* attachment, size_t at
 		*term = 0;
 		if(attachment != NULL && attachment_len > 0) {
 			strncpy(attachment, getfname(fname), attachment_len);
-			attachment[attachment_len] = '\0';
+			attachment[attachment_len - 1] = '\0';
 		}
 		return TRUE;
 	}
