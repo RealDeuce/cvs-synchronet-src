@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.50 2018/03/10 06:20:23 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.54 2019/04/11 01:18:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,13 +810,18 @@ void sbbs_t::maindflts(user_t* user)
 		if(user->rows)
 			rows=user->rows;
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
-		safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
+		long term = (user == &useron) ? term_supports() : user->misc;
+		if(term&PETSCII)
+			safe_snprintf(str,sizeof(str),"%sPETSCII %lu columns"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
-							,user->misc&ANSI ? "ANSI ":"TTY "
-							,user->misc&COLOR ? "(Color) ":"(Mono) "
-							,user->misc&WIP	? "WIP" : user->misc&RIP ? "RIP "
-								: user->misc&HTML ? "HTML " : nulstr
-							,user->misc&NO_EXASCII ? "ASCII Only":nulstr);
+							,cols);
+		else
+			safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
+							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
+							,term&ANSI ? "ANSI ":"TTY "
+							,term&COLOR ? "(Color) ":"(Mono) "
+							,term&RIP ? "RIP " : nulstr
+							,term&NO_EXASCII ? "ASCII":"CP437");
 		bprintf(text[UserDefaultsTerminal],str);
 		if(cfg.total_xedits)
 			bprintf(text[UserDefaultsXeditor]
@@ -858,7 +863,7 @@ void sbbs_t::maindflts(user_t* user)
 		if(startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
 			bprintf(text[UserDefaultsAutoLogon]
 			,user->misc&AUTOLOGON ? text[On] : text[Off]);
-		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
+		if(user->exempt&FLAG('Q') || user->misc&QUIET)
 			bprintf(text[UserDefaultsQuiet]
 				,user->misc&QUIET ? text[On] : text[Off]);
 		SAFECOPY(str,"None");
@@ -878,7 +883,7 @@ void sbbs_t::maindflts(user_t* user)
 		SAFECOPY(str,"HTBALPRSYFNCQXZ\r");
 		if(cfg.sys_misc&SM_PWEDIT && !(user->rest&FLAG('G')))
 			strcat(str,"W");
-		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
+		if(user->exempt&FLAG('Q') || user->misc&QUIET)
 			strcat(str,"D");
 		if(cfg.total_xedits)
 			strcat(str,"E");
@@ -905,13 +910,13 @@ void sbbs_t::maindflts(user_t* user)
 					else
 						user->misc&=~(ANSI|COLOR); 
 				}
-				if(user->misc&ANSI) {
+				if(user->misc&(ANSI|PETSCII)) {
 					if(yesno(text[ColorTerminalQ]))
 						user->misc|=COLOR;
 					else
 						user->misc&=~COLOR; 
 				}
-				if(!yesno(text[ExAsciiTerminalQ]))
+				if(!(user->misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
 					user->misc|=NO_EXASCII;
 				else
 					user->misc&=~NO_EXASCII;
@@ -1063,8 +1068,7 @@ void sbbs_t::maindflts(user_t* user)
 					now=time(NULL);
 					putuserrec(&cfg,user->number,U_PWMOD,8,ultoa((ulong)now,tmp,16));
 					bputs(text[PasswordChanged]);
-					SAFEPRINTF(str,"%s changed password",useron.alias);
-					logline(LOG_NOTICE,nulstr,str);
+					logline(LOG_NOTICE,nulstr,"changed password");
 				}
 				SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,user->number);
 				if(fexist(str) && yesno(text[ViewSignatureQ]))
