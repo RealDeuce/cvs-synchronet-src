@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.100 2017/11/25 01:24:23 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.109 2019/04/11 00:11:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -123,7 +123,7 @@
 #define HDT 				0xC258		/* Hawaii/Alaska		(-09:00) */
 #define BDT 				0xC294		/* Bering				(-10:00) */
 
-										/* Non-standard Time Zones */
+										/* Non-US Time Zones */
 #define MID 				0x2294		/* Midway				(-11:00) */
 #define VAN 				0x21E0		/* Vancouver			(-08:00) */
 #define EDM 				0x21A4		/* Edmonton 			(-07:00) */
@@ -149,13 +149,18 @@
 #define BAN 				0x11A4		/* Bangkok				(+07:00) */
 #define HON 				0x11E0		/* Hong Kong			(+08:00) */
 #define TOK 				0x121C		/* Tokyo				(+09:00) */
-#define SYD 				0x1258		/* Sydney				(+10:00) */
+#define ACST				0x123a		/* Australian Central	(+09:30) */
+#define AEST 				0x1258		/* Australian Eastern	(+10:00) (Sydney) */
+#define ACDT				0x923a		/* Australian Central D	(+10:30) */
+#define AEDT 				0x9258		/* Australian Eastern D	(+11:00) (Sydney) */
 #define NOU 				0x1294		/* Noumea				(+11:00) */
-#define WEL 				0x12D0		/* Wellington			(+12:00) */
+#define NZST 				0x12D0		/* New Zealand 			(+12:00) (Wellington) */
+#define NZDT				0x92D0		/* New Zealand Daylight	(+13:00) (Wellington) */
 
 #define OTHER_ZONE(zone) (zone<=1000 && zone>=-1000)
 
-#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) || zone==WET || zone==CET || zone==EET))
+#define SMB_TZ_HAS_DST(zone)	((!OTHER_ZONE(zone)) && ((zone&(US_ZONE|DAYLIGHT)) \
+								|| zone==WET || zone==CET || zone==EET || zone==NZST || zone==AEST || zone==ACST))
 
 										/* Valid hfield_t.types */
 #define SENDER				0x00
@@ -174,15 +179,7 @@
 										/* Used for the SMTP Originator-Info header field: */
 #define SENDERUSERID		0x0c		/* user-id */
 #define SENDERTIME			0x0d		/* authentication/connection time */
-#define SENDERSERVER		0x0e		/* server hostname that authenticed user */
-
-#define AUTHOR				0x10
-#define AUTHORAGENT 		0x11
-#define AUTHORNETTYPE		0x12
-#define AUTHORNETADDR		0x13
-#define AUTHOREXT			0x14
-#define AUTHORPOS			0x15
-#define AUTHORORG			0x16
+#define SENDERSERVER		0x0e		/* server hostname that authenticated user */
 
 #define REPLYTO 			0x20
 #define REPLYTOAGENT		0x21
@@ -200,29 +197,7 @@
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
 
-#define FORWARDTO			0x40
-#define FORWARDTOAGENT		0x41
-#define FORWARDTONETTYPE	0x42
-#define FORWARDTONETADDR	0x43
-#define FORWARDTOEXT		0x44
-#define FORWARDTOPOS		0x45
-#define FORWARDTOORG		0x46
-
 #define FORWARDED			0x48
-
-#if 0	/* Deprecating the following fields: (Jan-2009) never used */
-
-#define RECEIVEDBY			0x50
-#define RECEIVEDBYAGENT 	0x51
-#define RECEIVEDBYNETTYPE	0x52
-#define RECEIVEDBYNETADDR	0x53
-#define RECEIVEDBYEXT		0x54
-#define RECEIVEDBYPOS		0x55
-#define RECEIVEDBYORG		0x56
-
-#define RECEIVED			0x58
-
-#endif
 
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
@@ -233,31 +208,9 @@
 #define SMB_PRIORITY		0x66
 #define SMB_COST			0x67
 #define	SMB_EDITOR			0x68
-
-#define FILEATTACH			0x70
-#define DESTFILE			0x71
-#define FILEATTACHLIST		0x72
-#define DESTFILELIST		0x73
-#define FILEREQUEST 		0x74
-#define FILEPASSWORD		0x75
-#define FILEREQUESTLIST 	0x76
-#define FILEPASSWORDLIST	0x77
-
-#define IMAGEATTACH 		0x80
-#define ANIMATTACH			0x81
-#define FONTATTACH			0x82
-#define SOUNDATTACH 		0x83
-#define PRESENTATTACH		0x84
-#define VIDEOATTACH 		0x85
-#define APPDATAATTACH		0x86
-
-#define IMAGETRIGGER		0x90
-#define ANIMTRIGGER 		0x91
-#define FONTTRIGGER 		0x92
-#define SOUNDTRIGGER		0x93
-#define PRESENTTRIGGER		0x94
-#define VIDEOTRIGGER		0x95
-#define APPDATATRIGGER		0x96
+#define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
+#define SMB_TAG_DELIMITER	" "
+#define SMB_COLUMNS			0x6a	/* original text editor width in fixed-width columns */
 
 #define FIDOCTRL			0xa0
 #define FIDOAREA			0xa1
@@ -284,7 +237,7 @@
 #define SMTPFORWARDPATH		0xd2		/* RCPT TO: argument, "forward path" */
 #define SMTPRECEIVED		0xd3		/* SMTP "Received" information */
 
-#define SMTPSYSMSG			0xd8		/* for delivery failure notification */
+#define SMTPSYSMSG			0xd8		/* for delivery failure notification (deprecated) */
 
 #define SMB_POLL_ANSWER		0xe0		/* the subject is the question */
 
@@ -294,16 +247,8 @@
 
 										/* Valid dfield_t.types */
 #define TEXT_BODY			0x00
-#define TEXT_SOUL			0x01
 #define TEXT_TAIL			0x02
-#define TEXT_WING			0x03
-#define IMAGEEMBED			0x20
-#define ANIMEMBED			0x21
-#define FONTEMBED			0x22
-#define SOUNDEMBED			0x23
-#define PRESENTEMBED		0x24
-#define VIDEOEMBED			0x25
-#define APPDATAEMBED		0x26
+
 #define UNUSED				0xff
 
 
@@ -623,6 +568,10 @@ typedef struct {				/* Message */
 				*ftn_reply;		/* FTN REPLY */
 	char*		summary;		/* Summary  */
 	char*		subj;			/* Subject  */
+	char*		tags;			/* Message tags (space-delimited) */
+	char*		editor;			/* Message editor (if known) */
+	char*		mime_version;	/* MIME Version (if applicable) */
+	char*		content_type;	/* MIME Content-Type (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
@@ -643,6 +592,7 @@ typedef struct {				/* Message */
 	uint32_t	upvotes;		/* Vote tally for this message */
 	uint32_t	downvotes;		/* Vote tally for this message */
 	uint32_t	total_votes;	/* Total votes for this message or poll */
+	uint8_t		columns;		/* 0 means unknown or N/A */
 
 } smbmsg_t;
 
