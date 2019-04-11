@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.54 2018/12/17 06:02:40 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.56 2019/04/10 00:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -125,10 +125,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	if((fp=fopen(fname,"r"))!=NULL) {
-		twit_list=strListReadFile(fp,NULL,128);
-		fclose(fp);
-	}
+	twit_list = findstr_list(fname);
 
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
 		if(terminated) {
@@ -254,7 +251,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);
-			if(qwk_import_msg(qwk,(char *)block,blocks,hubnum+1,INVALID_SUB,usernum,&msg)) {
+			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg)) {
 				SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 				putsmsg(&cfg,usernum,str);
 				tmsgs++;
@@ -328,7 +325,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			lastsub=j; 
 		}
 
-		if(qwk_import_msg(qwk,(char *)block,blocks,hubnum+1,/*subnum: */j,/*touser: */0,&msg)) {
+		if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, /*touser: */0, &msg)) {
 			signal_sub_sem(&cfg,j);
 			msgs++;
 			tmsgs++;
