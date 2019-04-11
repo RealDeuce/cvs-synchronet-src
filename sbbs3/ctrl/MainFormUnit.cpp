@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.201 2018/10/05 01:33:06 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.204 2019/02/15 06:26:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@
 TMainForm *MainForm;
 
 #define LOG_TIME_FMT "  m/d  hh:mm:ssa/p"
-#define STATUSBAR_LAST_PANEL  5
+#define STATUSBAR_LAST_PANEL  6
 
 /* Service functions are NT-only, must call dynamically :-( */
 typedef WINADVAPI SC_HANDLE (WINAPI *OpenSCManager_t)(LPCTSTR,LPCTSTR,DWORD);
@@ -153,6 +153,8 @@ link_list_t ftp_log_list;
 link_list_t web_log_list;
 link_list_t services_log_list;
 link_list_t	login_attempt_list;
+
+bool clearLoginAttemptList = false;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
@@ -1002,7 +1004,7 @@ void __fastcall TMainForm::FormCreate(TObject *Sender)
     long bbs_ver = bbs_ver_num();
     if(bbs_ver != VERSION_HEX) {
         char str[128];
-        sprintf(str,"Incorrect SBBS.DLL Version (%lX)",bbs_ver);
+        sprintf(str,"Incorrect SBBS.DLL Version (%lX, expected %lx)", bbs_ver, VERSION_HEX);
     	Application->MessageBox(str,"ERROR",MB_OK|MB_ICONEXCLAMATION);
         Application->Terminate();
     }
@@ -2954,6 +2956,11 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         sysop_available = ChatToggle->Checked;
         set_sysop_availability(&cfg, sysop_available);
     }
+	
+	if(clearLoginAttemptList) {
+		loginAttemptListClear(&login_attempt_list);
+		clearLoginAttemptList = false;
+	}
 
     if(!start)
         start=time(NULL);
@@ -2993,10 +3000,15 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
     if(MainForm->StatusBar->Panels->Items[3]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[3]->Text=Str;
 
-    sprintf(str,"Errors: %u",errors);
+    sprintf(str,"Failed: %u",loginAttemptListCount(&login_attempt_list));
     Str=AnsiString(str);
     if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
 		MainForm->StatusBar->Panels->Items[4]->Text=Str;
+
+    sprintf(str,"Errors: %u",errors);
+    Str=AnsiString(str);
+    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
+		MainForm->StatusBar->Panels->Items[5]->Text=Str;
 
 #if 0
     THeapStatus hp=GetHeapStatus();
@@ -3904,6 +3916,13 @@ void __fastcall TMainForm::LogPopupCopyClick(TObject *Sender)
 {
     TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
     Log->CopyToClipboard();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
+      TObject *Sender)
+{
+    clearLoginAttemptList = true;
 }
 //---------------------------------------------------------------------------
 
