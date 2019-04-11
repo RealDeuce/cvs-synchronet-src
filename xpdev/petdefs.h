@@ -1,4 +1,4 @@
-/* $Id: petdefs.h,v 1.3 2019/05/06 10:48:55 rswindell Exp $ */
+/* $Id: petdefs.h,v 1.2 2018/10/30 01:22:44 rswindell Exp $ */
 
 /* Commodore/PET definitions */
 
@@ -76,8 +76,6 @@ enum petscii_char {
 	/* Symbols (which don't align with ASCII) */
 	PETSCII_BRITPOUND	= 92,
 	/* Graphic chars */
-	PETSCII_UPARROW		= 0x5E,
-	PETSCII_LEFTARROW	= 0x5f,
 	PETSCII_LIGHTHASH	= 0xA6,
 	PETSCII_MEDIUMHASH	= 0xDE,
 	PETSCII_HEAVYHASH	= 0xA9,
