@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.236 2019/04/09 19:24:23 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.237 2019/04/11 00:12:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1441,14 +1441,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 					case SMB_POLL_ANSWER:
 					case SMB_CARBONCOPY:
 					case SMB_GROUP:
-					case FILEATTACH:
-					case DESTFILE:
-					case FILEATTACHLIST:
-					case DESTFILELIST:
-					case FILEREQUEST:
-					case FILEPASSWORD:
-					case FILEREQUESTLIST:
-					case FILEPASSWORDLIST:
 					case FIDOCTRL:
 					case FIDOSEENBY:
 					case FIDOPATH:

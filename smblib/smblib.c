@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.190 2019/04/10 22:54:08 rswindell Exp $ */
+/* $Id: smblib.c,v 1.191 2019/04/11 00:11:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -727,9 +727,6 @@ ulong SMBCALL smb_getmsgtxtlen(smbmsg_t* msg)
 static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfield_dat)
 {
 	switch(hfield_type) {	/* convenience variables */
-		case AUTHOR:
-			msg->from=(char*)hfield_dat;
-			break; 
 		case SENDER:
 			if(msg->from==NULL || *(msg->from)==0) {
 				msg->from=(char*)hfield_dat;
