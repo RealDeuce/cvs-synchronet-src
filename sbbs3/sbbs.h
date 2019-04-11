@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.511 2019/04/10 07:30:50 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.512 2019/04/11 10:01:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,8 @@ public:
 	uchar	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
-	long 	tos;			/* Top of Screen */
+	bool 	tos;			/* Cursor is currently at the Top of Screen */
+	bool	msghdr_tos;		/* Message header was displayed at Top of Screen */
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
