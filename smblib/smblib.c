@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.196 2019/05/03 00:13:02 rswindell Exp $ */
+/* $Id: smblib.c,v 1.192 2019/04/11 01:00:30 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -767,9 +767,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case REPLYTO:
 			msg->replyto=(char*)hfield_dat;
 			break;
-		case RFC822REPLYTO:
-			msg->replyto_list = (char*)hfield_dat;
-			break;
 		case REPLYTOEXT:
 			msg->replyto_ext=(char*)hfield_dat;
 			break;
@@ -784,9 +781,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 			break;
 		case RECIPIENT:
 			msg->to=(char*)hfield_dat;
-			break;
-		case RFC822TO:
-			msg->to_list = (char*)hfield_dat;
 			break;
 		case RECIPIENTEXT:
 			msg->to_ext=(char*)hfield_dat;
@@ -803,9 +797,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SUBJECT:
 			msg->subj=(char*)hfield_dat;
 			break;
-		case SMB_CARBONCOPY:
-			msg->cc_list = (char*)hfield_dat;
-			break;
 		case SMB_SUMMARY:
 			msg->summary=(char*)hfield_dat;
 			break;
@@ -821,6 +812,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_EXPIRATION:
 			msg->expiration=*(uint32_t*)hfield_dat;
 			break;
+		case SMB_PRIORITY:
+			msg->priority=*(uint32_t*)hfield_dat;
+			break;
 		case SMB_COST:
 			msg->cost=*(uint32_t*)hfield_dat;
 			break;
@@ -832,9 +826,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 			break;
 		case SMTPREVERSEPATH:
 			msg->reverse_path=(char*)hfield_dat;
-			break;
-		case SMTPFORWARDPATH:
-			msg->forward_path=(char*)hfield_dat;
 			break;
 		case USENETPATH:
 			msg->path=(char*)hfield_dat;
@@ -892,15 +883,12 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 
 	msg->replyto=NULL;
 	msg->replyto_ext=NULL;
-	msg->replyto_list=NULL;
 	memset(&msg->replyto_net,0,sizeof(net_t));
 
 	msg->to=NULL;
 	msg->to_ext=NULL;
-	msg->to_list=NULL;
 	memset(&msg->to_net,0,sizeof(net_t));
 
-	msg->cc_list=NULL;
 	msg->subj=NULL;
 	msg->summary=NULL;
 	msg->tags=NULL;
@@ -908,7 +896,6 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->id=NULL;
 	msg->reply_id=NULL;
 	msg->reverse_path=NULL;
-	msg->forward_path=NULL;
 	msg->path=NULL;
 	msg->newsgroups=NULL;
 	msg->mime_version=NULL;
@@ -1096,7 +1083,6 @@ void SMBCALL smb_freemsgmem(smbmsg_t* msg)
 		msg->dfield=NULL;
 	}
 	msg->hdr.total_dfields=0;
-	FREE_AND_NULL(msg->charset);
 	smb_freemsghdrmem(msg);
 }
 
