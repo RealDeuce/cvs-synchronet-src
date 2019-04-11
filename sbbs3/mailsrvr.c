@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.683 2019/03/07 01:11:01 deuce Exp $ */
+/* $Id: mailsrvr.c,v 1.687 2019/04/11 08:44:31 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -838,11 +838,6 @@ static ulong sockmsgtxt(SOCKET socket, const char* prot, CRYPT_SESSION sess, smb
 
 		boundary = mimegetboundary();
 		file_list = strListInit();
-
-		/* Parse header fields */
-		for(i=0;i<msg->total_hfields;i++)
-	        if(msg->hfield[i].type==FILEATTACH) 
-				strListPush(&file_list,(char*)msg->hfield_dat[i]);
 
 		/* Parse subject (if necessary) */
 		if(!strListCount(file_list)) {	/* filename(s) stored in subject */
@@ -1701,11 +1696,11 @@ static ulong rblchk(SOCKET sock, const char* prot, union xp_sockaddr *addr, cons
 	switch(addr->addr.sa_family) {
 		case AF_INET:
 			mail_addr=ntohl(addr->in.sin_addr.s_addr);
-			safe_snprintf(name,sizeof(name),"%ld.%ld.%ld.%ld.%.128s"
-				,mail_addr&0xff
-				,(mail_addr>>8)&0xff
-				,(mail_addr>>16)&0xff
-				,(mail_addr>>24)&0xff
+			safe_snprintf(name,sizeof(name),"%lu.%lu.%lu.%lu.%.128s"
+				,(ulong)(mail_addr&0xff)
+				,(ulong)(mail_addr>>8)&0xff
+				,(ulong)(mail_addr>>16)&0xff
+				,(ulong)(mail_addr>>24)&0xff
 				,rbl_addr
 				);
 			break;
@@ -1820,7 +1815,7 @@ static BOOL chk_email_addr(SOCKET socket, const char* prot, char* p, char* host_
 	char	tmp[128];
 
 	SKIP_WHITESPACE(p);
-	char* lt = strrchr(p, '<');
+	char* lt = strchr(p, '<');
 	if(lt!= NULL)
 		p = lt+1;
 	SAFECOPY(addr,p);
@@ -2531,7 +2526,7 @@ static void parse_mail_address(char* p
 	SKIP_WHITESPACE(p);
 
 	/* Get the address */
-	if((tp=strrchr(p,'<'))!=NULL)
+	if((tp=strchr(p,'<'))!=NULL)
 		tp++;
 	else
 		tp=p;
@@ -2544,13 +2539,13 @@ static void parse_mail_address(char* p
 	/* Get the "name" (if possible) */
 	if((tp=strchr(p,'"'))!=NULL) {	/* name in quotes? */
 		p=tp+1;
-		tp=strrchr(p,'"');
+		tp=strchr(p,'"');
 	} else if((tp=strchr(p,'('))!=NULL) {	/* name in parenthesis? */
 		p=tp+1;
-		tp=strrchr(p,')');
+		tp=strchr(p,')');
 	} else if(*p=='<') {					/* address in brackets? */
 		p++;
-		tp=strrchr(p,'>');
+		tp=strchr(p,'>');
 	} else									/* name, then address in brackets */
 		tp=strchr(p,'<');
 	if(tp) *tp=0;
@@ -5723,7 +5718,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.683 $", "%*s %s", revision);
+	sscanf("$Revision: 1.687 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
