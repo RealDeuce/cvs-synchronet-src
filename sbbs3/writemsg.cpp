@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.152 2019/04/30 02:48:34 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.146 2019/04/12 00:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,14 +103,8 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
 		strip_invalid_attr(buf);
 		truncsp(buf);
-		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {
-			int wrap_cols = 0;
-			if(useron_xedit > 0)
-				wrap_cols = cfg.xedit[useron_xedit-1]->quotewrap_cols;
-			if(wrap_cols == 0)
-				wrap_cols = cols - 1;
-			wrapped=::wordwrap(buf, wrap_cols, org_cols - 1, /* handle_quotes: */TRUE);
-		}
+		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
+			wrapped=::wordwrap(buf, cols-4, org_cols - 1, /* handle_quotes: */TRUE);
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
 			free(wrapped);
@@ -137,18 +131,11 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 		useron_xedit = 0;
 
 	for(l=i=0;buf[l] && i<maxlines;l++) {
-		if((uchar)buf[l] == FIDO_SOFT_CR && useron_xedit) {
+		if((uchar)buf[l]==141 && useron_xedit
+    		&& cfg.xedit[useron_xedit-1]->misc&QUICKBBS) {
+			len+=fwrite(crlf,1,2,stream);
 			i++;
-			switch(cfg.xedit[useron_xedit-1]->soft_cr) {
-				case XEDIT_SOFT_CR_EXPAND:
-					len += fwrite(crlf,1,2,stream);
-					continue;
-				case XEDIT_SOFT_CR_STRIP:
-					continue;
-				case XEDIT_SOFT_CR_RETAIN:
-				case XEDIT_SOFT_CR_UNDEFINED:
-					break;
-			}
+			continue; 
 		}
 		/* Expand LF to CRLF? */
 		if(buf[l]==LF && (!l || buf[l-1]!=CR) && useron_xedit
@@ -1334,7 +1321,7 @@ void sbbs_t::automsg()
 		mnemonics(text[AutoMsg]);
 		switch(getkeys("RWQ",0)) {
 			case 'R':
-				printfile(automsg,P_NOABORT|P_NOATCODES|P_WORDWRAP);
+				printfile(automsg,P_NOABORT|P_NOATCODES);
 				break;
 			case 'W':
 				if(useron.rest&FLAG('W')) {
@@ -1343,16 +1330,17 @@ void sbbs_t::automsg()
 				}
 				action=NODE_AMSG;
 				SYNC;
-				bputs("\r\nMaximum of 3 lines:\r\n");
-				if(!getstr(str, 76, K_WRAP|K_MSG))
+				bputs("\r\n3 lines:\r\n");
+				if(!getstr(str,68,K_WRAP|K_MSG))
 					break;
-				sprintf(buf, quote_fmt, 79, str);
-				if(getstr(str, 76, K_WRAP|K_MSG)) {
-					sprintf(buf + strlen(buf), quote_fmt, 79, str);
-					if(getstr(str, 76, K_MSG)) {
-						sprintf(buf + strlen(buf), quote_fmt, 79, str);
-					}
-				}
+				strcpy(buf,str);
+				strcat(buf,"\r\n          ");
+				getstr(str,68,K_WRAP|K_MSG);
+				strcat(buf,str);
+				strcat(buf,"\r\n          ");
+				getstr(str,68,K_MSG);
+				strcat(str,crlf);
+				strcat(buf,str);
 				if(yesno(text[OK])) {
 					if(useron.exempt&FLAG('A')) {
 						if(!noyes(text[AnonymousQ]))
@@ -1367,6 +1355,7 @@ void sbbs_t::automsg()
 					else
 						SAFEPRINTF2(tmp,"%s #%d",useron.alias,useron.number);
 					SAFEPRINTF2(str,text[AutoMsgBy],tmp,timestr(now));
+					strcat(str,"          ");
 					write(file,str,strlen(str));
 					write(file,buf,strlen(buf));
 					close(file); 
