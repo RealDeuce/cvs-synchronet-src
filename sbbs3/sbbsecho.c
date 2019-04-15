@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.110 2019/04/12 19:39:45 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.111 2019/04/15 10:32:39 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1213,9 +1213,9 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
-	if(msg->columns)
-		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
+		if(msg->columns)
+			fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
@@ -6004,7 +6004,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.110 $", "%*s %s", revision);
+	sscanf("$Revision: 3.111 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
