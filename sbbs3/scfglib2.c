@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.51 2019/09/23 02:14:56 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.47 2019/04/16 08:48:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -495,9 +495,6 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 
 		get_int(cfg->xedit[i]->type,instream);
 		get_int(c,instream);
-		if(c == XEDIT_SOFT_CR_UNDEFINED)
-			c = (cfg->xedit[i]->misc&QUICKBBS) ? XEDIT_SOFT_CR_EXPAND : XEDIT_SOFT_CR_RETAIN;
-		cfg->xedit[i]->soft_cr = c;
 		get_int(cfg->xedit[i]->quotewrap_cols, instream);
 		for(j=0;j<6;j++)
 			get_int(n,instream);
@@ -607,10 +604,6 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 
 		for(j=0;j<4;j++)
 			get_int(n,instream);
-
-		// You can't require exclusion *and* not specify which node/instance will execute the event
-		if(cfg->event[i]->node == NODE_ANY)
-			cfg->event[i]->misc &= ~EVENT_EXCL;
 	}
 	cfg->total_events=i;
 
@@ -881,7 +874,7 @@ long aftol(char *str)
 /*****************************************************************************/
 char *ltoaf(long l,char *str)
 {
-	int	c=0;
+	size_t	c=0;
 
 	while(c<26) {
 		if(l&(long)(1L<<c))
@@ -896,9 +889,9 @@ char *ltoaf(long l,char *str)
 /****************************************************************************/
 /* Returns the actual attribute code from a string of ATTR characters       */
 /****************************************************************************/
-uint attrstr(char *str)
+uchar attrstr(char *str)
 {
-	int atr;
+	uchar atr;
 	ulong l=0;
 
 	atr=LIGHTGRAY;
@@ -909,9 +902,6 @@ uint attrstr(char *str)
 				break;
 			case 'I':	/* Blink */
 				atr|=BLINK;
-				break;
-			case 'E':	/* iCE color */
-				atr|=BG_BRIGHT;
 				break;
 			case 'K':	/* Black */
 				atr=(atr&0xf8)|BLACK;
