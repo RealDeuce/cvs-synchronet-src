@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.45 2019/02/21 22:36:12 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.46 2019/04/16 08:48:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,6 +288,7 @@ typedef struct {							/* External Editors */
 	uchar		*ar;
 	uint32_t	misc;						/* Misc. bits */
 	uchar		type;						/* Drop file type */
+	uint16_t	quotewrap_cols;				/* When word-wrapping quoted text, use this width (if non-zero */
 
 } xedit_t;
 
