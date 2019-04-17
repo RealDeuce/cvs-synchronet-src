@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.65 2019/04/16 08:54:56 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.66 2019/04/17 04:07:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1884,9 +1884,9 @@ void xedit_cfg()
 							uifc.helpbuf=
 								"`Screen width to wrap to:`\n"
 								"\n"
-								"Set to `0` to wrap the quoted text for the current user's terminal width.\n"
-								"Set to `80` to wrap the quoted text to 80 columns.\n"
-								"Set to `9999` to unwrap quoted text to long-lines.\n"
+								"Set to `0` to wrap the quoted text suiting the user's terminal width.\n"
+								"Set to `79` to wrap the quoted text suiting an 80 column terminal.\n"
+								"Set to `9999` to unwrap quoted text to long-line paragraphs.\n"
 								;
 							if(uifc.input(WIN_MID|WIN_SAV,0,0
 								,"Screen width to wrap to (0 = current terminal width)"
