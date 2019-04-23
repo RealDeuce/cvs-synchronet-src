@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.52 2019/09/02 10:27:36 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.46 2019/04/16 08:48:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,8 +68,6 @@ typedef struct {							/* Message sub board info */
 	uint32_t	misc,						/* Miscellaneous flags */
 				maxmsgs,					/* Max number of messages allowed */
 				maxcrcs;					/* Max number of CRCs to keep */
-	int32_t		pmode;						/* printfile()/putmsg() mode flags */
-	int32_t		n_pmode;					/* set of negated pmode flags */
 	faddr_t		faddr;						/* FidoNet address */
 
 } sub_t;
@@ -281,13 +279,6 @@ typedef struct {							/* Download events */
 
 } dlevent_t;
 
-enum xedit_soft_cr {						// What to do with so-called "Soft CRs"
-	XEDIT_SOFT_CR_UNDEFINED,
-	XEDIT_SOFT_CR_EXPAND,
-	XEDIT_SOFT_CR_STRIP,
-	XEDIT_SOFT_CR_RETAIN
-};								
-
 typedef struct {							/* External Editors */
 	char		code[LEN_CODE+1],
 				name[41],					/* Name (description) */
@@ -298,7 +289,6 @@ typedef struct {							/* External Editors */
 	uint32_t	misc;						/* Misc. bits */
 	uchar		type;						/* Drop file type */
 	uint16_t	quotewrap_cols;				/* When word-wrapping quoted text, use this width (if non-zero */
-	enum xedit_soft_cr soft_cr;				// What to do with so-called "Soft CRs"
 
 } xedit_t;
 
@@ -603,7 +593,7 @@ typedef struct
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */
 	uint16_t		sec_hangup; 			/* Seconds before inactivity hang-up */
 
-	uint* 			color;					/* Different colors for the BBS */
+	char* 			color;					/* Different colors for the BBS */
 	uint32_t		total_colors;
 	uint32_t		ctrlkey_passthru;		/* Bits represent control keys NOT handled by inkey() */
 
@@ -613,7 +603,6 @@ typedef struct
 	uint16_t		user_backup_level;
 	uint16_t		mail_backup_level;
 
-	// Run-time state information (not configuration)
 	int				tls_certificate;
 
 } scfg_t;
