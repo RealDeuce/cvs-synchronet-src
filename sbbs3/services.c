@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.330 2019/06/20 20:48:53 rswindell Exp $ */
+/* $Id: services.c,v 1.328 2019/04/23 16:31:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1001,16 +1001,20 @@ static void js_service_thread(void* arg)
 	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
-	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
-
 	/* Host name lookup and filtering */
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
+	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
+			|| startup->options&BBS_OPT_NO_HOST_LOOKUP)
+		SAFECOPY(host_name, "<no name>");
+	else {
+		if(getnameinfo(&service_client.addr.addr, xp_sockaddr_len(&service_client), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD) != 0)
+			SAFECOPY(host_name, "<no name>");
+	}
+
 	if(!(service->options&BBS_OPT_NO_HOST_LOOKUP)
-		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&service_client.addr.addr, xp_sockaddr_len(&service_client), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		if(service->log_level >= LOG_INFO)
-			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]"
-				,socket, service->protocol, host_name, client.addr);
+		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)
+		&& service->log_level >= LOG_INFO) {
+		lprintf(LOG_INFO,"%04d %s Hostname: %s"
+			,socket, service->protocol, host_name);
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
@@ -1080,6 +1084,7 @@ static void js_service_thread(void* arg)
 
 	client.size=sizeof(client);
 	client.time=time32(NULL);
+	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
@@ -1384,15 +1389,18 @@ static void native_service_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
-	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
-
 	/* Host name lookup and filtering */
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
+	if(service->options&BBS_OPT_NO_HOST_LOOKUP 
+			|| startup->options&BBS_OPT_NO_HOST_LOOKUP)
+		SAFECOPY(host_name, "<no name>");
+	else 
+		if(getnameinfo(&service_client.addr.addr, xp_sockaddr_len(&service_client), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0)
+			SAFECOPY(host_name, "<no name>");
+
 	if(!(service->options&BBS_OPT_NO_HOST_LOOKUP)
 		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
-		getnameinfo(&service_client.addr.addr, xp_sockaddr_len(&service_client), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]"
-			,socket, service->protocol, host_name, client.addr);
+		lprintf(LOG_INFO,"%04d %s Hostname: %s"
+			,socket, service->protocol, host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
@@ -1430,6 +1438,7 @@ static void native_service_thread(void* arg)
 
 	client.size=sizeof(client);
 	client.time=time32(NULL);
+	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
@@ -1664,7 +1673,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.330 $", "%*s %s", revision);
+	sscanf("$Revision: 1.328 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
