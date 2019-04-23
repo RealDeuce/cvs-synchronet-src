@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.236 2019/04/12 00:10:39 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.237 2019/04/23 23:07:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -70,6 +70,7 @@
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
 #define STR_UNKNOWN_USER	"<unknown user>"
+#define STR_NO_HOSTNAME		"<no name>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)

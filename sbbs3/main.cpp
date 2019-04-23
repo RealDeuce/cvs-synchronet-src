@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.746 2019/04/11 10:01:48 rswindell Exp $ */
+/* $Id: main.cpp,v 1.747 2019/04/23 23:07:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5676,7 +5676,7 @@ NO_SSH:
 		sbbs->bprintf("\r\n%s\r\n", VERSION_NOTICE);
 		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
-		SAFECOPY(host_name, "<no name>");
+		SAFECOPY(host_name, STR_NO_HOSTNAME);
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
