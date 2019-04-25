@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.45 2019/03/24 09:28:07 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.46 2019/04/25 23:42:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,7 +134,20 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
 			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
-			attr(ahtoul(tmp2));
+			ulong val = ahtoul(tmp2);
+			// @X00 saves the current color and @XFF restores that saved color
+			static uchar save_attr;
+			switch(val) {
+				case 0x00:
+					save_attr = curatr;
+					break;
+				case 0xff:
+					attr(save_attr);
+					break;
+				default:
+					attr(val);
+					break;
+			}
 			exatr=1;
 			l+=4; 
 		}
