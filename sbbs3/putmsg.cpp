@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
  
-/* $Id: putmsg.cpp,v 1.44 2019/01/11 11:29:38 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.46 2019/04/25 23:42:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,7 @@
 /* the attributes prior to displaying the message are always restored.      */
 /* Stops parsing/displaying upon CTRL-Z (only in P_CPM_EOF mode).           */
 /****************************************************************************/
-char sbbs_t::putmsg(const char *buf, long mode)
+char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 {
 	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
@@ -77,7 +77,9 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				*wrapoff = 0;
 		}
 		char *wrapped;
-		if((wrapped=::wordwrap((char*)str+l, cols-1, 79, /* handle_quotes: */TRUE)) == NULL)
+		if(org_cols < TERM_COLS_MIN)
+			org_cols = TERM_COLS_DEFAULT;
+		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -132,7 +134,20 @@ char sbbs_t::putmsg(const char *buf, long mode)
 		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
 			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
-			attr(ahtoul(tmp2));
+			ulong val = ahtoul(tmp2);
+			// @X00 saves the current color and @XFF restores that saved color
+			static uchar save_attr;
+			switch(val) {
+				case 0x00:
+					save_attr = curatr;
+					break;
+				case 0xff:
+					attr(save_attr);
+					break;
+				default:
+					attr(val);
+					break;
+			}
 			exatr=1;
 			l+=4; 
 		}
@@ -305,7 +320,7 @@ char sbbs_t::putmsg(const char *buf, long mode)
 				}
 				if(memcmp(str+l, "@WORDWRAP@", 10) == 0) {
 					l += 10;
-					putmsg(str+l, mode|P_WORDWRAP);
+					putmsg(str+l, mode|P_WORDWRAP, org_cols);
 					break;
 				}
 
