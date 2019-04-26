@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.380 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_global.c,v 1.378 2019/04/23 05:32:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,9 +52,7 @@
 
 #ifdef JAVASCRIPT
 
-extern JSClass js_global_class;
-
-/* Global Object Properties */
+/* Global Object Properites */
 enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
@@ -270,7 +268,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
-	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -1604,7 +1602,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
+	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], inbuf, NULL);
@@ -4487,7 +4485,7 @@ static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
 	return(js_global_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_global_class = {
+static JSClass js_global_class = {
      "Global"				/* name			*/
     ,JSCLASS_HAS_PRIVATE|JSCLASS_GLOBAL_FLAGS	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
