@@ -1,6 +1,6 @@
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.60 2020/01/03 20:35:14 rswindell Exp $ */
+/* $Id: uedit.c,v 1.58 2019/01/01 04:39:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1556,7 +1556,7 @@ int edit_personal(scfg_t *cfg, user_t *user)
 			case 12:
 				/* IP Address */
 				GETUSERDAT(cfg,user);
-				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"IP Address",user->ipaddr,LEN_IPADDR,K_EDIT);
+				uifc.input(WIN_MID|WIN_ACT|WIN_SAV,0,0,"IP Address",user->modem,LEN_IPADDR,K_EDIT);
 				if(uifc.changes)
 					putuserrec(cfg,user->number,U_IPADDR,LEN_IPADDR,user->ipaddr);
 				break;
@@ -1895,7 +1895,7 @@ int main(int argc, char** argv)  {
 	int		main_dflt=0;
 	int		main_bar=0;
 	char	revision[16];
-	char	str[256],ctrl_dir[MAX_PATH + 1];
+	char	str[256],ctrl_dir[41],*p;
 	char	title[256];
 	int		i,j;
 	scfg_t	cfg;
@@ -1912,12 +1912,22 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.60 $", "%*s %s", revision);
+	sscanf("$Revision: 1.58 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
 
-	SAFECOPY(ctrl_dir, get_ctrl_dir());
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\7\nSBBSCTRL environment variable is not set.\n");
+		printf("This environment variable must be set to your CTRL directory.");
+		printf("\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+		exit(1); }
+
+	sprintf(ctrl_dir,"%.40s",p);
+	if(ctrl_dir[strlen(ctrl_dir)-1]!='\\'
+		&& ctrl_dir[strlen(ctrl_dir)-1]!='/')
+		strcat(ctrl_dir,"/");
 
 	gethostname(str,sizeof(str)-1);
 

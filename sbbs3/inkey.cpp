@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.63 2019/10/24 20:54:30 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.57 2018/10/22 04:18:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
 
 int kbincom(sbbs_t* sbbs, unsigned long timeout)
 {
@@ -67,12 +66,12 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 	}
 
 	if(cfg.node_misc&NM_7BITONLY
-		&& (!(sys_status&SS_USERON) || term_supports(NO_EXASCII)))
+		&& (!(sys_status&SS_USERON) || useron.misc&NO_EXASCII))
 		ch&=0x7f; 
 
 	this->timeout=time(NULL);
-	long term = term_supports();
-	if(term&PETSCII) {
+
+	if(term_supports(PETSCII)) {
 		switch(ch) {
 			case PETSCII_HOME:
 				return TERM_KEY_HOME;
@@ -81,7 +80,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 			case PETSCII_INSERT:
 				return TERM_KEY_INSERT;
 			case PETSCII_DELETE:
-				return '\b';
+				return TERM_KEY_DELETE;
 			case PETSCII_LEFT:
 				return TERM_KEY_LEFT;
 			case PETSCII_RIGHT:
@@ -95,17 +94,6 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 			ch = 0x60 | (ch&0x1f);
 		if(isalpha((unsigned char)ch))
 			ch ^= 0x20;	/* Swap upper/lower case */
-	}
-
-	if(term&SWAP_DELETE) {
-		switch(ch) {
-			case TERM_KEY_DELETE:
-				ch = '\b';
-				break;
-			case '\b':
-				ch = TERM_KEY_DELETE;
-				break;
-		}
 	}
 
 	/* Is this a control key */
@@ -183,14 +171,10 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				attr(LIGHTGRAY);
 				CRLF; 
 			}
-			if(cfg.hotkey[i]->cmd[0]=='?') {
-				if(js_hotkey_cx == NULL) {
-					js_hotkey_cx = js_init(&js_hotkey_runtime, &js_hotkey_glob, "HotKey");
-					js_create_user_objects(js_hotkey_cx, js_hotkey_glob);
-				}
-				js_execfile(cmdstr(cfg.hotkey[i]->cmd+1,nulstr,nulstr,tmp), /* startup_dir: */NULL, /* scope: */js_hotkey_glob, js_hotkey_cx);
-			} else
-				external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,tmp),0);
+			if(cfg.hotkey[i]->cmd[0]=='?')
+				js_execfile(cmdstr(cfg.hotkey[i]->cmd+1,nulstr,nulstr,NULL), /* startup_dir: */NULL, /* scope: */js_glob);
+			else
+				external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
 			if(!(sys_status&SS_SPLITP)) {
 				CRLF;
 				RESTORELINE; 
@@ -207,7 +191,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 		case CTRL_P:	/* Ctrl-P Private node-node comm */
 			if(!(sys_status&SS_USERON))
-				break;;
+				return(0);			 /* keep from being recursive */
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -230,8 +214,9 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 
 		case CTRL_U:	/* Ctrl-U Users online */
+			/* needs recursion checking */
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -255,7 +240,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -281,7 +266,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
