@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.58 2019/04/28 10:03:24 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.59 2019/04/28 10:37:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 			case PETSCII_INSERT:
 				return TERM_KEY_INSERT;
 			case PETSCII_DELETE:
-				return TERM_KEY_DELETE;
+				return '\b';
 			case PETSCII_LEFT:
 				return TERM_KEY_LEFT;
 			case PETSCII_RIGHT:
