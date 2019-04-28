@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.108 2019/03/19 20:46:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.111 2019/04/15 10:32:39 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1213,9 +1213,9 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
-	if(msg->columns)
-		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
+		if(msg->columns)
+			fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
@@ -4377,7 +4377,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 		}
 	}
 
-	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0 
+	if(stricmp(hdr.to, FIDO_AREAMGR_NAME) == 0
 		|| stricmp(hdr.to, "SBBSecho") == 0
 		|| stricmp(hdr.to, FIDO_PING_NAME) == 0) {
 		fmsgbuf=getfmsg(fp,NULL);
@@ -4729,7 +4729,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			if(msg.from_net.type!=NET_NONE
 				&& msg.from_net.type!=NET_FIDO
-				&& msg.from_net.type!=NET_FIDO_ASCII
 				&& !(scfg.sub[subnum]->misc&SUB_GATE)) {
 				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
@@ -5170,7 +5169,7 @@ int export_netmail(void)
 			char filename[MAX_PATH+1] = {0};
 			uint32_t filelen = 0;
 			uint8_t* filedata;
-			if((filedata = smb_getattachment(&msg, txt, filename, &filelen, /* attachment_index */0)) != NULL
+			if((filedata = smb_getattachment(&msg, txt, filename, sizeof(filename), &filelen, /* attachment_index */0)) != NULL
 				&& filename[0] != 0 && filelen > 0) {
 				lprintf(LOG_DEBUG, "MIME attachment decoded: %s (%lu bytes)", filename, (ulong)filelen);
 				char outdir[MAX_PATH+1];
@@ -6005,7 +6004,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.108 $", "%*s %s", revision);
+	sscanf("$Revision: 3.111 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
