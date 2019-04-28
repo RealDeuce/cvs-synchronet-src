@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.98 2019/05/06 10:44:41 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.96 2019/04/28 10:03:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,13 +93,6 @@ unsigned char cp437_to_petscii(unsigned char ch)
 		return ch ^ 0x20;	/* swap upper/lower case */
 	switch(ch) {
 		case '\1':		return '@';
-		case '\x10':	return '>';
-		case '\x11':	return '<';
-		case '\x18':	
-		case '\x1e':	return PETSCII_UPARROW;
-		case '\x19':
-		case '\x1f':	return 'V';
-		case '\x1a':	return '>';
 		case '|':		return PETSCII_VERTLINE;
 		case '\\':		return PETSCII_BACKSLASH;
 		case '`':		return PETSCII_BACKTICK;
@@ -441,8 +434,6 @@ int sbbs_t::outchar(char ch)
 	else {
 		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-		if(ch == '\r' && (console&CON_CR_CLREOL))
-			cleartoeol();
 		if(term&PETSCII) {
 			uchar pet = cp437_to_petscii(ch);
 			if(pet == PETSCII_SOLID)

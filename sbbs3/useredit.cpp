@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.56 2019/05/06 10:43:27 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.54 2019/04/11 01:18:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -816,14 +816,13 @@ void sbbs_t::maindflts(user_t* user)
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,cols);
 		else
-			safe_snprintf(str,sizeof(str),"%s%s%s%s%s%s"
+			safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,term&ANSI ? "ANSI ":"TTY "
 							,term&COLOR ? "(Color) ":"(Mono) "
 							,term&RIP ? "RIP " : nulstr
-							,term&NO_EXASCII ? "ASCII ":"CP437 "
-							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
-		bprintf(text[UserDefaultsTerminal], truncsp(str));
+							,term&NO_EXASCII ? "ASCII":"CP437");
+		bprintf(text[UserDefaultsTerminal],str);
 		if(cfg.total_xedits)
 			bprintf(text[UserDefaultsXeditor]
 				,user->xedit ? cfg.xedit[user->xedit-1]->name : "None");
@@ -900,7 +899,8 @@ void sbbs_t::maindflts(user_t* user)
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
 					user->misc|=AUTOTERM;
-					user->misc&=~(ANSI|RIP|WIP|HTML|PETSCII);
+					user->misc&=~(ANSI|RIP|WIP|HTML);
+					user->misc|=autoterm; 
 				}
 				else
 					user->misc&=~AUTOTERM;
@@ -916,16 +916,10 @@ void sbbs_t::maindflts(user_t* user)
 					else
 						user->misc&=~COLOR; 
 				}
-				if(!(user->misc&PETSCII)) {
-					if(!yesno(text[ExAsciiTerminalQ]))
-						user->misc|=NO_EXASCII;
-					else
-						user->misc&=~NO_EXASCII;
-					if(!noyes(text[SwapDeleteKeyQ]))
-						user->misc|=SWAP_DELETE;
-					else
-						user->misc&=~SWAP_DELETE;
-				}
+				if(!(user->misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
+					user->misc|=NO_EXASCII;
+				else
+					user->misc&=~NO_EXASCII;
 				if(!(user->misc&AUTOTERM) && (user->misc&(ANSI|NO_EXASCII)) == ANSI) {
 					if(!noyes(text[RipTerminalQ]))
 						user->misc|=RIP;
