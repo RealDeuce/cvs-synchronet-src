@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.57 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.58 2019/04/28 10:03:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,8 +70,8 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 		ch&=0x7f; 
 
 	this->timeout=time(NULL);
-
-	if(term_supports(PETSCII)) {
+	long term = term_supports();
+	if(term&PETSCII) {
 		switch(ch) {
 			case PETSCII_HOME:
 				return TERM_KEY_HOME;
@@ -94,6 +94,17 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 			ch = 0x60 | (ch&0x1f);
 		if(isalpha((unsigned char)ch))
 			ch ^= 0x20;	/* Swap upper/lower case */
+	}
+
+	if(term&SWAP_DELETE) {
+		switch(ch) {
+			case TERM_KEY_DELETE:
+				ch = '\b';
+				break;
+			case '\b':
+				ch = TERM_KEY_DELETE;
+				break;
+		}
 	}
 
 	/* Is this a control key */
