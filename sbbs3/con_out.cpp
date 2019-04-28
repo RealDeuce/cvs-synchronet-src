@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.95 2019/02/19 07:33:20 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.96 2019/04/28 10:03:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -326,6 +326,9 @@ void sbbs_t::backspace(void)
 long sbbs_t::term_supports(long cmp_flags)
 {
 	long flags = ((sys_status&SS_USERON) && !(useron.misc&AUTOTERM)) ? useron.misc : autoterm;
+
+	if((sys_status&SS_USERON) && (useron.misc&AUTOTERM))
+		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
 }
