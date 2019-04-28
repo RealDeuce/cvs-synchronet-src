@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.55 2019/07/29 22:38:01 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.47 2019/04/26 00:25:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,8 +36,6 @@
 
 #include "sbbs.h"
 #include "wordwrap.h"
-#include "utf8.h"
-#include "zmodem.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string with @-code parsing,                    */
@@ -51,8 +49,7 @@
 /****************************************************************************/
 char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 {
-	uint 	tmpatr;
-	char 	tmp2[256],tmp3[128];
+	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
 	char*	str=(char*)buf;
 	uchar	exatr=0;
@@ -67,9 +64,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
-	str = auto_utf8(str, &mode);
-	size_t len = strlen(str);
-
 	long term = term_supports();
 	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
 		mode &= ~P_WORDWRAP;
@@ -85,8 +79,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		char *wrapped;
 		if(org_cols < TERM_COLS_MIN)
 			org_cols = TERM_COLS_DEFAULT;
-		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE
-			,/* is_utf8: */INT_TO_BOOL(mode&P_UTF8))) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -98,38 +91,21 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		}
 	}
 
-	while(l < len && (mode&P_NOABORT || !msgabort()) && online) {
-		switch(str[l]) {
-			case '\r':
-			case '\n':
-			case FF:
-			case CTRL_A:
-				break;
-			case ZHEX:
-				if(l && str[l - 1] == ZDLE) {
+	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
+		if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+			switch(str[l]) {
+				case '\r':
+				case '\n':
+				case FF:
+				case CTRL_A:
+					break;
+				default:
 					l++;
 					continue;
-				}
-				// fallthrough
-			default: // printing char
-				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
-					l++;
-					continue;
-				} else if(mode&P_WRAP) {
-					if(org_cols) {
-						if(column > (org_cols - 1)) {
-							CRLF;
-						}
-					} else {
-						if(column >= (cols - 1)) {
-							CRLF;
-						}
-					}
-				}
-				break;
+			}
 		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
-			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF) && !(mode&P_NOATCODES)) {  /* Quote a file */
+			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
 				while(i<(int)sizeof(tmp2)-1 && isprint((unsigned char)str[l]) && str[l]!='\\' && str[l]!='/')
@@ -155,8 +131,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			outchar(ESC); /* Convert `[ and ú[ to ESC[ */
 			l++;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_PCBOARD) && str[l]=='@' && str[l+1]=='X'
+		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
 			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
 			ulong val = ahtoul(tmp2);
@@ -176,16 +151,14 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=4;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_WILDCAT) && str[l]=='@' && str[l+3]=='@'
+		else if(cfg.sys_misc&SM_WILDCAT && str[l]=='@' && str[l+3]=='@'
 			&& isxdigit((unsigned char)str[l+1]) && isxdigit((unsigned char)str[l+2])) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			attr(ahtoul(tmp2));
 			// exatr=1;
 			l+=4;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_RENEGADE) && str[l]=='|' && isdigit((unsigned char)str[l+1])
+		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
 			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&RIP)) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
@@ -200,8 +173,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=3;	/* Skip |xx */
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_CELERITY) && str[l]=='|' && isalpha((unsigned char)str[l+1])
+		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha((unsigned char)str[l+1])
 			&& !(useron.misc&RIP)) {
 			switch(str[l+1]) {
 				case 'k':
@@ -259,8 +231,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=2;	/* Skip |x */
 		}  /* Skip second digit if it exists */
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_WWIV) && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
+		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
 			exatr=1;
 			switch(str[l+1]) {
 				default:
@@ -372,20 +343,14 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			}
 			if(mode&P_CPM_EOF && str[l]==CTRL_Z)
 				break;
-			size_t skip = sizeof(char);
 			if(mode&P_PETSCII) {
 				if(term&PETSCII)
 					outcom(str[l]);
 				else
 					petscii_to_ansibbs(str[l]);
-			} else if((str[l]&0x80) && (mode&P_UTF8)) {
-				if(term&UTF8)
-					outcom(str[l]);
-				else
-					skip = utf8_to_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
-			l += skip;
+			l++;
 		}
 	}
 	if(!(mode&P_SAVEATR)) {
