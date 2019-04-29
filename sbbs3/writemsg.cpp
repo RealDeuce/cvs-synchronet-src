@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.148 2019/04/29 05:55:03 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.149 2019/04/29 06:13:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,7 +137,7 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 		useron_xedit = 0;
 
 	for(l=i=0;buf[l] && i<maxlines;l++) {
-		if((uchar)buf[l]==141 && useron_xedit
+		if((uchar)buf[l] == FIDO_SOFT_CR && useron_xedit
     		&& cfg.xedit[useron_xedit-1]->misc&QUICKBBS) {
 			len+=fwrite(crlf,1,2,stream);
 			i++;
