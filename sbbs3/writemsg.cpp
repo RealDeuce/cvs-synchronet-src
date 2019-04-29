@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.140 2019/01/21 09:20:06 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.150 2019/04/29 08:22:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ char* sbbs_t::quotes_fname(int xedit, char *path, size_t len)
 
 /****************************************************************************/
 /****************************************************************************/
-void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
+bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 {
 	char	fname[MAX_PATH+1];
 	char*	buf;
@@ -94,23 +94,35 @@ void sbbs_t::quotemsg(smbmsg_t* msg, int tails)
 
 	if((fp=fopen(fname,"w"))==NULL) {
 		errormsg(WHERE,ERR_OPEN,fname,0);
-		return; 
+		return false; 
 	}
 
-	if((buf=smb_getmsgtxt(&smb,msg,tails)) != NULL) {
+	bool result = false;
+	ulong mode = GETMSGTXT_PLAIN;
+	if(tails) mode |= GETMSGTXT_TAILS;
+	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
 		strip_invalid_attr(buf);
 		truncsp(buf);
-		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP)))
-			wrapped=::wordwrap(buf, cols-4, org_cols - 1, /* handle_quotes: */TRUE);
+		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {
+			int wrap_cols = 0;
+			if(useron_xedit > 0)
+				wrap_cols = cfg.xedit[useron_xedit-1]->quotewrap_cols;
+			if(wrap_cols == 0)
+				wrap_cols = cols - 1;
+			wrapped=::wordwrap(buf, wrap_cols, org_cols - 1, /* handle_quotes: */TRUE);
+		}
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
 			free(wrapped);
 		} else
 			fputs(buf,fp);
 		smb_freemsgtxt(buf); 
+		result = true;
 	} else if(smb_getmsgdatlen(msg)>2)
-		errormsg(WHERE,ERR_READ,smb.file,smb_getmsgdatlen(msg));
+		errormsg(WHERE,ERR_READ,smb->file,smb_getmsgdatlen(msg));
+
 	fclose(fp);
+	return result;
 }
 
 /****************************************************************************/
@@ -125,11 +137,15 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 		useron_xedit = 0;
 
 	for(l=i=0;buf[l] && i<maxlines;l++) {
-		if((uchar)buf[l]==141 && useron_xedit
-    		&& cfg.xedit[useron_xedit-1]->misc&QUICKBBS) {
-			len+=fwrite(crlf,1,2,stream);
+		if((uchar)buf[l] == FIDO_SOFT_CR && useron_xedit) {
 			i++;
-			continue; 
+			switch(cfg.xedit[useron_xedit-1]->soft_cr) {
+				case XEDIT_SOFT_CR_EXPAND:
+					len += fwrite(crlf,1,2,stream);
+					continue;
+				case XEDIT_SOFT_CR_STRIP:
+					continue;
+			}
 		}
 		/* Expand LF to CRLF? */
 		if(buf[l]==LF && (!l || buf[l-1]!=CR) && useron_xedit
@@ -226,6 +242,9 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		errormsg(WHERE, ERR_CHK, "columns", cols);
 		return false;
 	}
+
+	if(top == NULL)
+		top = "";
 
 	if(useron_xedit && !chk_ar(cfg.xedit[useron_xedit-1]->ar, &useron, &client))
 		useron_xedit = 0;
@@ -648,6 +667,20 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	return(true);
 }
 
+void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor)
+{
+	if(editor != NULL)
+		smb_hfield_str(msg, SMB_EDITOR, editor);
+
+	ushort useron_xedit = useron.xedit;
+
+	if(useron_xedit > 0 && !chk_ar(cfg.xedit[useron_xedit - 1]->ar, &useron, &client))
+		useron_xedit = 0;
+
+	if(editor == NULL || useron_xedit == 0 || (cfg.xedit[useron_xedit - 1]->misc&SAVECOLUMNS))
+		smb_hfield_bin(msg, SMB_COLUMNS, cols);
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /* Modify 'str' to for quoted format. Remove ^A codes, etc.                 */
@@ -961,7 +994,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				if(j) j--;  /* start from line j */
 				while(str[j] != NULL && !msgabort()) {
 					if(linenums) { /* line numbers */
-						SAFEPRINTF3(tmp,"%3d: %-.*s",j+1,cols-6,str[j]);
+						SAFEPRINTF3(tmp,"%3d: %-.*s", j+1, (int)(cols-6), str[j]);
 						putmsg(tmp,P_SAVEATR|P_NOATCODES); 
 					}
 					else
@@ -1361,7 +1394,7 @@ void sbbs_t::editmsg(smbmsg_t *msg, uint subnum)
 
 	msg_tmp_fname(useron.xedit, msgtmp, sizeof(msgtmp));
 	removecase(msgtmp);
-	msgtotxt(msg,msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
+	msgtotxt(&smb, msg, msgtmp, /* header: */false, /* mode: */GETMSGTXT_ALL);
 	if(!editfile(msgtmp, /* msg: */true))
 		return;
 	length=(long)flength(msgtmp);
