@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.331 2019/08/09 00:49:19 rswindell Exp $ */
+/* $Id: services.c,v 1.329 2019/04/23 23:07:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -348,7 +348,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		user;
-	char*		pass = NULL;
+	char*		pass;
 	JSBool		inc_logons=JS_FALSE;
 	jsval		val;
 	service_client_t* client;
@@ -365,11 +365,10 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* Password */
-	if(argc > 1) {
-		JSVALUE_TO_ASTRING(cx, argv[1], pass, LEN_PASS+2, NULL);
-		if(pass==NULL) 
-			return(JS_FALSE);
-	}
+	JSVALUE_TO_ASTRING(cx, argv[1], pass, LEN_PASS+2, NULL);
+	if(pass==NULL) 
+		return(JS_FALSE);
+
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&client->user,0,sizeof(user_t));
 
@@ -400,7 +399,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	/* Password */
-	if(client->user.pass[0] && (pass == NULL || stricmp(client->user.pass,pass))) { /* Wrong password */
+	if(client->user.pass[0] && stricmp(client->user.pass,pass)) { /* Wrong password */
 		lprintf(LOG_WARNING,"%04d %s !INVALID PASSWORD ATTEMPT FOR USER: %s"
 			,client->socket,client->service->protocol,client->user.alias);
 		badlogin(client->socket, client->service->protocol, user, pass, client->client->host, &client->addr);
@@ -1002,16 +1001,14 @@ static void js_service_thread(void* arg)
 	sbbs_srand();	/* Seed random number generator */
 	protected_uint32_adjust(&threads_pending_start, -1);
 
-	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
-
 	/* Host name lookup and filtering */
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(service->options&BBS_OPT_NO_HOST_LOOKUP)
 		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&service_client.addr.addr, xp_sockaddr_len(&service_client), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 		if(service->log_level >= LOG_INFO)
-			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]"
-				,socket, service->protocol, host_name, client.addr);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s"
+				,socket, service->protocol, host_name);
 	}
 
 	if(trashcan(&scfg,host_name,"host")) {
@@ -1081,6 +1078,7 @@ static void js_service_thread(void* arg)
 
 	client.size=sizeof(client);
 	client.time=time32(NULL);
+	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
@@ -1385,15 +1383,13 @@ static void native_service_thread(void* arg)
 	thread_up(TRUE /* setuid */);
 	protected_uint32_adjust(&threads_pending_start, -1);
 
-	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
-
 	/* Host name lookup and filtering */
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(service->options&BBS_OPT_NO_HOST_LOOKUP)
 		&& !(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&service_client.addr.addr, xp_sockaddr_len(&service_client), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]"
-			,socket, service->protocol, host_name, client.addr);
+		lprintf(LOG_INFO,"%04d %s Hostname: %s"
+			,socket, service->protocol, host_name);
 #if	0 /* gethostbyaddr() is apparently not (always) thread-safe
 	     and getnameinfo() doesn't return alias information */
 		for(i=0;host!=NULL && host->h_aliases!=NULL 
@@ -1431,6 +1427,7 @@ static void native_service_thread(void* arg)
 
 	client.size=sizeof(client);
 	client.time=time32(NULL);
+	inet_addrtop(&service_client.addr, client.addr, sizeof(client.addr));
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
@@ -1665,7 +1662,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.331 $", "%*s %s", revision);
+	sscanf("$Revision: 1.329 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
