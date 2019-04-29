@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.178 2019/03/24 09:28:07 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.181 2019/04/11 20:30:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,6 +145,8 @@ enum {
 	,BBS_PROP_MSG_REPLY_ID
 	,BBS_PROP_MSG_DELIVERY_ATTEMPTS
 
+	,BBS_PROP_MSGHDR_TOS
+
 	/* READ ONLY */
 	,BBS_PROP_BATCH_UPLOAD_TOTAL
 	,BBS_PROP_BATCH_DNLOAD_TOTAL
@@ -267,6 +269,8 @@ enum {
 	,"message identifier"
 	,"message replied-to identifier"
 	,"message delivery attempt counter"
+
+	,"message header displayed at top-of-screen"
 
 	,"file name"
 	,"file description"
@@ -691,6 +695,9 @@ static JSBool js_bbs_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			else
 				p=sbbs->current_msg->reply_id;
 			break;
+		case BBS_PROP_MSGHDR_TOS:
+			val = sbbs->msghdr_tos;
+			break;
 
 		/* Currently Displayed File (sbbs.current_file) */
 		case BBS_PROP_FILE_NAME:
@@ -1081,6 +1088,8 @@ static jsSyncPropertySpec js_bbs_properties[] = {
 	{	"msg_reply_id"		,BBS_PROP_MSG_REPLY_ID		,PROP_READONLY	,310},
 	{	"msg_delivery_attempts"	,BBS_PROP_MSG_DELIVERY_ATTEMPTS
 														,PROP_READONLY	,310},
+
+	{	"msghdr_top_of_screen"	,BBS_PROP_MSGHDR_TOS	,PROP_READONLY	,31702},
 
 	{	"file_name"			,BBS_PROP_FILE_NAME			,PROP_READONLY	,317},
 	{	"file_description"	,BBS_PROP_FILE_DESC			,PROP_READONLY	,317},
@@ -3624,6 +3633,44 @@ js_show_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	uintN		n;
+	JSObject*	hdrobj;
+	sbbs_t*		sbbs;
+	smb_t*		smb = NULL;
+	smbmsg_t*	msg = NULL;
+	bool		del = true;
+	jsrefcount	rc;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
+		return(JS_FALSE);
+
+	for(n=0; n<argc; n++) {
+		if(JSVAL_IS_OBJECT(argv[n])) {
+			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
+				return JS_FALSE;
+			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				return JS_FALSE;
+			}
+		} else if(JSVAL_IS_BOOLEAN(argv[n])) {
+			del = JSVAL_TO_BOOLEAN(argv[n]) ? true : false;
+		}
+	}
+	if(smb == NULL || msg == NULL)
+		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	sbbs->download_msg_attachments(smb, msg, del);
+	JS_RESUMEREQUEST(cx, rc);
+
+	return(JS_TRUE);
+}
+
+static JSBool
 js_msgscan_cfg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
@@ -4214,6 +4261,11 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	},
 	{"show_msg_header",	js_show_msg_header,	1,	JSTYPE_VOID,	JSDOCSTR("[object header]")
 	,JSDOCSTR("show a message's header (only)<br>"
+		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
+	,31702
+	},
+	{"download_msg_attachments", js_download_msg_attachments, 1, JSTYPE_VOID, JSDOCSTR("[object header]")
+	,JSDOCSTR("prompt the user to download each of the message's file attachments (if there are any)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
 	,31702
 	},
