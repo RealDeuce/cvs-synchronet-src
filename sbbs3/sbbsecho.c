@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.111 2019/04/15 10:32:39 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.112 2019/04/29 06:14:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3495,7 +3495,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 			continue;
 		}
 
-		if(ch!='\n' && ch!=0x8d) {	/* ignore LF and soft CRs */
+		if(ch!='\n' && ch != FIDO_SOFT_CR) {	/* ignore LF and soft CRs */
 			if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
 				|| !strncmp((char *)fbuf+l,"---\r",4)))
 				done=1; 			/* tear line and down go into tail */
@@ -6004,7 +6004,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.111 $", "%*s %s", revision);
+	sscanf("$Revision: 3.112 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
