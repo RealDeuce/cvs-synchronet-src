@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.54 2020/02/22 19:34:35 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.51 2019/01/12 12:09:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,12 +284,15 @@ void sys_cfg(void)
 						break;
 					case 9:
 						cfg.sys_timezone=WET;
+						configure_dst();
 						break;
 					case 10:
 						cfg.sys_timezone=CET;
+						configure_dst();
 						break;
 					case 11:
 						cfg.sys_timezone=EET;
+						configure_dst();
 						break;
 					case 12:
 						cfg.sys_timezone=MOS;
@@ -332,6 +335,7 @@ void sys_cfg(void)
 						break;
 					case 25:
 						cfg.sys_timezone=NZST;
+						configure_dst();
 						break;
 					default:
 						if(cfg.sys_timezone>720 || cfg.sys_timezone<-720)
@@ -362,8 +366,6 @@ void sys_cfg(void)
 						}
 						break;
 				}
-				if(SMB_TZ_HAS_DST(cfg.sys_timezone))
-					configure_dst();
 				break;
 			case 3:
 				uifc.helpbuf=
@@ -553,14 +555,14 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Time Banking:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to deposit\n"
+								"If you want the users of your system to be allowed to be deposit\n"
 								"any extra time they may have left during a call into their minute bank,\n"
 								"set this option to `Yes`. If this option is set to `No`, then the only\n"
 								"way a user may get minutes in their minute bank is to purchase them\n"
 								"with credits.\n"
 							;
 							i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-								,"Allow Users to Deposit Time in Minute Bank",opt);
+								,"Allow Users to Depost Time in Minute Bank",opt);
 							if(!i && !(cfg.sys_misc&SM_TIMEBANK)) {
 								cfg.sys_misc|=SM_TIMEBANK;
 								uifc.changes=1; 
@@ -578,7 +580,7 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Credits to be Converted into Minutes:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to convert\n"
+								"If you want the users of your system to be allowed to be convert\n"
 								"any credits they may have into minutes for their minute bank,\n"
 								"set this option to `Yes`.\n"
 							;
