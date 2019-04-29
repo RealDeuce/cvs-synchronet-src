@@ -1,6 +1,6 @@
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.80 2017/11/15 10:39:53 rswindell Exp $ */
+/* $Id: startup.h,v 1.84 2019/03/22 21:28:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -91,6 +91,8 @@ typedef struct {
     WORD	last_node;
 	WORD	telnet_port;
 	WORD	rlogin_port;
+	WORD	pet40_port;			// 40-column PETSCII terminal server
+	WORD	pet80_port;			// 80-column PETSCII terminal server
 	WORD	ssh_port;
 	WORD	ssh_connect_timeout;
 	WORD	outbuf_highwater_mark;	/* output block size control */
@@ -177,7 +179,7 @@ static struct init_field {
 #define BBS_OPT_XTRN_MINIMIZED		(1<<1)	/* Run externals minimized			*/
 #define BBS_OPT_AUTO_LOGON			(1<<2)	/* Auto-logon via IP				*/
 #define BBS_OPT_DEBUG_TELNET		(1<<3)	/* Debug telnet commands			*/
-#define BBS_OPT_SYSOP_AVAILABLE		(1<<4)	/* Available for chat				*/
+#define BBS_OPT_SYSOP_AVAILABLE		(1<<4)	/* Available for chat - DEPRECATED (controlled via semfile) */
 #define BBS_OPT_ALLOW_RLOGIN		(1<<5)	/* Allow logins via BSD RLogin		*/
 #define BBS_OPT_USE_2ND_RLOGIN		(1<<6)	/* Use 2nd username in BSD RLogin - DEPRECATED (Always enabled)	*/
 #define BBS_OPT_NO_QWK_EVENTS		(1<<7)	/* Don't run QWK-related events		*/
@@ -187,6 +189,7 @@ static struct init_field {
 #define BBS_OPT_NO_HOST_LOOKUP		(1<<11)
 #define BBS_OPT_ALLOW_SSH			(1<<12)	/* Allow logins via BSD SSH			*/
 #define BBS_OPT_NO_DOS				(1<<13) /* Don't attempt to run 16-bit DOS programs */
+#define BBS_OPT_NO_NEWDAY_EVENTS	(1<<14)	/* Don't check for a new day in event thread */
 #define BBS_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
 #define BBS_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
@@ -211,6 +214,7 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_NO_SPY_SOCKETS		,"NO_SPY_SOCKETS"		},
 	{ BBS_OPT_ALLOW_SSH				,"ALLOW_SSH"			},
 	{ BBS_OPT_NO_DOS				,"NO_DOS"				},
+	{ BBS_OPT_NO_NEWDAY_EVENTS		,"NO_NEWDAY_EVENTS"		},
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
@@ -239,7 +243,7 @@ extern "C" {
 		#define DLLEXPORT __declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL __stdcall
+		#define DLLCALL
 	#else
 		#define DLLCALL
 	#endif
