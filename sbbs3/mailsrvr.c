@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.690 2019/04/29 04:02:13 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.691 2019/04/29 04:45:01 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -714,7 +714,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		if(!sockprintf(socket,prot,sess,"Cc: %s", msg->cc_list))
 			return(0);
 	np=NULL;
-	if((p = msg->replyto_list) == NULL) {
+	if((p = (uchar*)msg->replyto_list) == NULL) {
 		np=msg->replyto;
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
@@ -5729,7 +5729,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.690 $", "%*s %s", revision);
+	sscanf("$Revision: 1.691 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
