@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.77 2019/02/15 00:06:56 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.80 2019/04/29 08:22:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1005,10 +1005,11 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_int(cfg->xedit[i]->misc,stream);
 		put_str(cfg->xedit[i]->arstr,stream);
 		put_int(cfg->xedit[i]->type,stream);
-		c=0;
+		c = cfg->xedit[i]->soft_cr;
 		put_int(c,stream);
 		n=0;
-		for(j=0;j<7;j++)
+		put_int(cfg->xedit[i]->quotewrap_cols, stream);
+		for(j=0;j<6;j++)
 			put_int(n,stream);
 		}
 
@@ -1025,11 +1026,16 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of xtrn programs that will be written */
 	n = 0;
 	for (i = 0; i < cfg->total_xtrns; i++)
-		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs)	/* Total VALID xtrn progs */
+		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs	/* Total VALID xtrn progs */
+			&& cfg->xtrn[i]->name[0]
+			&& cfg->xtrn[i]->code[0])
 			n++;
 	put_int(n,stream);
 	for(sec=0;sec<cfg->total_xtrnsecs;sec++)
 		for(i=0;i<cfg->total_xtrns;i++) {
+			if(cfg->xtrn[i]->name[0] == 0
+				|| cfg->xtrn[i]->code[0] == 0)
+				continue;
 			if(cfg->xtrn[i]->sec!=sec)
 				continue;
 			put_int(cfg->xtrn[i]->sec,stream);
