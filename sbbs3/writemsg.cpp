@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.152 2019/04/30 02:48:34 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.150 2019/04/29 08:22:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,9 +145,6 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 					continue;
 				case XEDIT_SOFT_CR_STRIP:
 					continue;
-				case XEDIT_SOFT_CR_RETAIN:
-				case XEDIT_SOFT_CR_UNDEFINED:
-					break;
 			}
 		}
 		/* Expand LF to CRLF? */
@@ -1334,7 +1331,7 @@ void sbbs_t::automsg()
 		mnemonics(text[AutoMsg]);
 		switch(getkeys("RWQ",0)) {
 			case 'R':
-				printfile(automsg,P_NOABORT|P_NOATCODES|P_WORDWRAP);
+				printfile(automsg,P_NOABORT|P_NOATCODES);
 				break;
 			case 'W':
 				if(useron.rest&FLAG('W')) {
@@ -1343,16 +1340,17 @@ void sbbs_t::automsg()
 				}
 				action=NODE_AMSG;
 				SYNC;
-				bputs("\r\nMaximum of 3 lines:\r\n");
-				if(!getstr(str, 76, K_WRAP|K_MSG))
+				bputs("\r\n3 lines:\r\n");
+				if(!getstr(str,68,K_WRAP|K_MSG))
 					break;
-				sprintf(buf, quote_fmt, 79, str);
-				if(getstr(str, 76, K_WRAP|K_MSG)) {
-					sprintf(buf + strlen(buf), quote_fmt, 79, str);
-					if(getstr(str, 76, K_MSG)) {
-						sprintf(buf + strlen(buf), quote_fmt, 79, str);
-					}
-				}
+				strcpy(buf,str);
+				strcat(buf,"\r\n          ");
+				getstr(str,68,K_WRAP|K_MSG);
+				strcat(buf,str);
+				strcat(buf,"\r\n          ");
+				getstr(str,68,K_MSG);
+				strcat(str,crlf);
+				strcat(buf,str);
 				if(yesno(text[OK])) {
 					if(useron.exempt&FLAG('A')) {
 						if(!noyes(text[AnonymousQ]))
@@ -1367,6 +1365,7 @@ void sbbs_t::automsg()
 					else
 						SAFEPRINTF2(tmp,"%s #%d",useron.alias,useron.number);
 					SAFEPRINTF2(str,text[AutoMsgBy],tmp,timestr(now));
+					strcat(str,"          ");
 					write(file,str,strlen(str));
 					write(file,buf,strlen(buf));
 					close(file); 

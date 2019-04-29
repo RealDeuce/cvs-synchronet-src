@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.248 2019/05/05 10:58:11 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.247 2019/04/09 21:33:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -421,7 +421,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	native = native_executable(&cfg, cmdline, mode);
 
 	if(!native && (startup->options&BBS_OPT_NO_DOS)) {
-		lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
 		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
 		return -1;
 	}
@@ -1381,7 +1380,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	} else {
 		if(startup->options&BBS_OPT_NO_DOS) {
-			lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
 			bprintf("Sorry, DOS programs are not supported on this node.\r\n");
 			return -1;
 		}
@@ -1683,9 +1681,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fclose(dosemubat);
 
 #else
-		lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
-		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
-
+		bprintf("\r\nExternal DOS programs are not yet supported in \r\n%s\r\n"
+			,VERSION_NOTICE);
 		return(-1);
 #endif
 	}
