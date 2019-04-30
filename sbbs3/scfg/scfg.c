@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.104 2019/07/13 21:09:26 rswindell Exp $ */
+/* $Id: scfg.c,v 1.102 2019/04/22 22:20:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -46,7 +46,7 @@
 scfg_t	cfg;    /* Synchronet Configuration */
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 
-BOOL forcesave=FALSE;
+BOOL no_dirchk=FALSE,forcesave=FALSE;
 BOOL new_install=FALSE;
 static BOOL auto_save=FALSE;
 extern BOOL all_msghdr;
@@ -223,6 +223,9 @@ int main(int argc, char **argv)
 				case 'U':
 					umask(strtoul(argv[i]+2,NULL,8));
 					break;
+                case 'S':
+        			no_dirchk=!no_dirchk;
+                    break;
 				case 'G':
 					if(isalpha(argv[i][2]))
 						grpname = argv[i]+2;
@@ -283,6 +286,7 @@ int main(int argc, char **argv)
 					USAGE:
                     printf("\nusage: scfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
+                        "-s  =  don't check directories\r\n"
                         "-f  =  force save of configuration files\r\n"
                         "-a  =  update all message base status headers\r\n"
                         "-h  =  don't update message base status headers\r\n"
@@ -786,8 +790,8 @@ BOOL save_xtrn_cfg(scfg_t* cfg, int backup_level)
 
 
 /****************************************************************************/
-/* Checks the uifc.changes variable. If there have been no changes, returns 2.	*/
-/* If there have been changes, it prompts the user to change or not. If the */
+/* Checks the uifc.changes variable. If there have been no uifc.changes, returns 2.	*/
+/* If there have been uifc.changes, it prompts the user to change or not. If the */
 /* user escapes the menu, returns -1, selects Yes, 0, and selects no, 1 	*/
 /****************************************************************************/
 int save_changes(int mode)
@@ -804,14 +808,14 @@ int save_changes(int mode)
 	strcpy(opt[1],"No");
 	opt[2][0]=0;
 	uifc.helpbuf=
-		"`Save Changes:`\n"
+		"`Save uifc.changes:`\n"
 		"\n"
-		"You have made some changes to the configuration. If you want to save\n"
-		"these changes, select `Yes`. If you are positive you DO NOT want to save\n"
-		"these changes, select `No`. If you are not sure and want to review the\n"
+		"You have made some uifc.changes to the configuration. If you want to save\n"
+		"these uifc.changes, select `Yes`. If you are positive you DO NOT want to save\n"
+		"these uifc.changes, select `No`. If you are not sure and want to review the\n"
 		"configuration before deciding, hit ~ ESC ~.\n"
 	;
-	i=uifc.list(mode|WIN_SAV,0,0,0,&i,0,"Save Changes",opt);
+	i=uifc.list(mode|WIN_ACT,0,0,0,&i,0,"Save Changes",opt);
 	if(i!=-1)
 		uifc.changes=0;
 	return(i);

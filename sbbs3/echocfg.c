@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.49 2019/09/17 10:29:34 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.39 2019/04/30 03:33:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,32 +73,20 @@ void global_settings(void)
 		int i = 0;
 		char str[128];
 		char duration[64];
-		sprintf(opt[i++], "%-30s %s", "Mailer Type"
+		sprintf(opt[i++], "%-25s %s", "Mailer Type"
 			,cfg.flo_mailer ? "Binkley/FLO":"ArcMail/Attach");
-		sprintf(opt[i++], "%-30s %s", "Log Level", logLevelStringList[cfg.log_level]);
-		sprintf(opt[i++], "%-30s %s", "Log Timestamp Format", cfg.logtime);
-		sprintf(opt[i++], "%-30s %s", "Strict Packet Passwords", cfg.strict_packet_passwords ? "Enabled" : "Disabled");
-		sprintf(opt[i++], "%-30s %u", "Config File Backups", cfg.cfgfile_backups);
-		sprintf(opt[i++], "%-30s %s bytes", "Minimum Free Disk Space"
+		sprintf(opt[i++], "%-25s %s", "Log Level", logLevelStringList[cfg.log_level]);
+		sprintf(opt[i++], "%-25s %s", "Log Timestamp Format", cfg.logtime);
+		sprintf(opt[i++], "%-25s %s", "Strict Packet Passwords", cfg.strict_packet_passwords ? "Enabled" : "Disabled");
+		sprintf(opt[i++], "%-25s %u", "Config File Backups", cfg.cfgfile_backups);
+		sprintf(opt[i++], "%-25s %s bytes", "Minimum Free Disk Space"
 			, byte_count_to_str(cfg.min_free_diskspace, str, sizeof(str)));
-
-		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Strip Incoming Soft CRs "
-			,cfg.strip_soft_cr ? "Yes":"No");
-		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Strip Outgoing Line Feeds "
-			,cfg.strip_lf ? "Yes":"No");
-		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Auto-detect UTF-8 Messages "
-			,cfg.auto_utf8 ? "Yes":"No");
-		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Use Outboxes for Mail Files "
-			,cfg.use_outboxes ? "Yes":"No");
-
-		sprintf(opt[i++], "%-30s %s", "BSY Mutex File Timeout", duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration)));
+		sprintf(opt[i++], "%-25s %s", "BSY Mutex File Timeout", duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration)));
 		if(cfg.flo_mailer) {
-			sprintf(opt[i++], "%-30s %s", "BSO Lock Attempt Delay", duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration)));
-			sprintf(opt[i++], "%-30s %lu", "BSO Lock Attempt Limit", cfg.bso_lock_attempts);
-			sprintf(opt[i++], "%-30s %s", "BinkP Capabilities", cfg.binkp_caps);
-			sprintf(opt[i++], "%-30s %s", "BinkP Sysop Name", cfg.binkp_sysop);
-			sprintf(opt[i++], "%-30s %s", "BinkP Authentication", cfg.binkp_plainAuthOnly ? "Plain Only" : "Plain or CRAM-MD5");
-			sprintf(opt[i++], "%-30s %s", "BinkP Encryption", !cfg.binkp_plainTextOnly && !cfg.binkp_plainAuthOnly ? "Supported" : "Unsupported");
+			sprintf(opt[i++], "%-25s %s", "BSO Lock Attempt Delay", duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration)));
+			sprintf(opt[i++], "%-25s %lu", "BSO Lock Attempt Limit", cfg.bso_lock_attempts);
+			sprintf(opt[i++], "%-25s %s", "BinkP Capabilities", cfg.binkp_caps);
+			sprintf(opt[i++], "%-25s %s", "BinkP Sysop Name", cfg.binkp_sysop);
 		}
 		opt[i][0] = 0;
 		uifc.helpbuf=
@@ -123,8 +111,8 @@ void global_settings(void)
 			"    For SBBSecho v2 timestamp format, use `%m/%d/%y %H:%M:%S`\n"
 			"\n"
 			"`Strict Packet Passwords`, when enabled, requires that Packet Passwords\n"
-			"    must match the password for the linked node from which the packet\n"
-			"    was received, even if that linked node has no password configured.\n"
+			"    must match the password for the linked-node from which the packet\n"
+			"    was received, even if that linked-node has no password configured.\n"
 			"    If you wish to revert to the SBBSecho v2 behavior with less strict\n"
 			"    enforcement of matching packet passwords, disable this option.\n"
 			"    Default: Enabled\n"
@@ -137,27 +125,6 @@ void global_settings(void)
 			"    space for SBBSecho to run.  SBBSecho will just exit with an error\n"
 			"    message (and an error level of 1) if the minimum amount of free\n"
 			"    space is not found in directories into which SBBSecho may write.\n"
-			"\n"
-			"`Strip Incoming Soft CRs` instructs SBBSecho to remove any \"Soft\"\n"
-			"    Carriage Return (ASCII 141) characters from the text of `imported`\n"
-			"    EchoMail and NetMail messages.\n"
-			"\n"
-			"`Strip Outgoing Line Feeds` instructs SBBSecho to remove any Line Feed\n"
-			"    (ASCII 10) characters from the body text of `exported` EchoMail and\n"
-			"    NetMail messages.\n"
-			"\n"
-			"`Auto-detect UTF-8 Messages` instructs SBBSecho to treat incoming\n"
-			"    messages which lack a CHRS/CHARSET control line and contain valid\n"
-			"    UTF-8 character sequences in the message text, as UTF-8 encoded\n"
-			"    messages.\n"
-			"\n"
-			"`Use Outboxes for Mail Files` instructs SBBSecho to place outbound\n"
-			"    NetMail and EchoMail files into the configured `Outbox Directory`\n"
-			"    of the relevant linked node. If the linked node has no configured\n"
-			"    outbox, then outbound mail files for that node are placed in the\n"
-			"    normal outbound directory hierarchy.  The BinkIT mailer will\n"
-			"    send files from configured outboxes in addition to the normal\n"
-			"    outbound directories, even when this option is set to `No`.\n"
 			"\n"
 			"`BSY Mutex File Timeout` determines the maximum age of an existing\n"
 			"    mutex file (`*.bsy`) before SBBSecho will act as though the mutex\n"
@@ -182,17 +149,8 @@ void global_settings(void)
 			"    command). Default capabilities value is '115200,TCP,BINKP'\n"
 			"\n"
 			"`BinkP Sysop` may be used to over-ride the default BinkP sysop name\n"
-			"    sent during a `BinkIT` mailer session (via the ZYZ command).\n"
+			"    sent during a `BinkIT` mailer session (via the ZYZ comamnd).\n"
 			"    Default sysop name is that set in `SCFG->System->Operator`\n"
-			"\n"
-			"`BinkP Authentication` may be set to `Plain Only` if you wish to disable\n"
-			"    CRAM-MD5 authentication for both inbound and outbound sessions.\n"
-		    "    Note: CRAM-MD5 authentication is required for encrypted sessions.\n"
-			"    Default: Plain or CRAM-MD5\n"
-			"\n"
-			"`BinkP Encryption` may be set to `Supported` (the default) only when\n"
-			"    BinkP Authentication is set to Plain or CRAM-MD5.\n"
-			"    Default: Supported\n"
 			;
 
 		int key = uifc.list(WIN_BOT|WIN_L2R|WIN_ACT|WIN_SAV, 0, 0, 0, &global_opt,0, "Global Settings", opt);
@@ -240,109 +198,32 @@ void global_settings(void)
 				break;
 
 			case 6:
-			{
-				int k = !cfg.strip_soft_cr;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"Strip Soft Carriage Returns from Incoming Messages",uifcYesNoOpts)) {
-					case 0:	cfg.strip_soft_cr = true;	break;
-					case 1:	cfg.strip_soft_cr = false;	break;
-				}
-				break;
-			}
-			case 7:
-			{
-				int k = !cfg.strip_lf;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"Strip Line Feeds from Outgoing Messages",uifcYesNoOpts)) {
-					case 0:	cfg.strip_lf = true;	break;
-					case 1:	cfg.strip_lf = false;	break;
-				}
-				break;
-			}
-			case 8:
-			{
-				int k = !cfg.auto_utf8;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"Auto-detect incoming UTF-8 encoded messages",uifcYesNoOpts)) {
-					case 0:	cfg.auto_utf8 = true;	break;
-					case 1:	cfg.auto_utf8 = false;	break;
-				}
-				break;
-			}
-			case 9:
-			{
-				int k = !cfg.use_outboxes;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"Use Outboxes for Outbound NetMail and EchoMail",uifcYesNoOpts)) {
-					case 0:	cfg.use_outboxes = true;	break;
-					case 1:	cfg.use_outboxes = false;	break;
-				}
-				break;
-			}
-			case 10:
 				duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration));
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "BSY Mutex File Timeout", duration, 10, K_EDIT) > 0)
 					cfg.bsy_timeout = (ulong)parse_duration(duration);
 				break;
 
-			case 11:
+			case 7:
 				duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration));
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Delay Between BSO Lock Attempts", duration, 10, K_EDIT) > 0)
 					cfg.bso_lock_delay = (ulong)parse_duration(duration);
 				break;
 
-			case 12:
+			case 8:
 				sprintf(str, "%lu", cfg.bso_lock_attempts);
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Maximum BSO Lock Attempts", str, 5, K_EDIT|K_NUMBER) > 0)
 					cfg.bso_lock_attempts = atoi(str);
 				break;
 
-			case 13:
+			case 9:
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Capabilities (BinkIT)", cfg.binkp_caps, sizeof(cfg.binkp_caps)-1, K_EDIT);
 				break;
 
-			case 14:
+			case 10:
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Sysop Name (BinkIT)", cfg.binkp_sysop, sizeof(cfg.binkp_sysop)-1, K_EDIT);
 				break;
-
-			case 15:
-			{
-				int k = !cfg.binkp_plainAuthOnly;
-				strcpy(opt[0], "Plain-Password Only");
-				strcpy(opt[1], "Plain-Password or CRAM-MD5");
-				opt[2][0] = 0;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"BinkP Authentication",opt)) {
-					case 0:
-						cfg.binkp_plainAuthOnly = true;
-						break;
-					case 1:
-						cfg.binkp_plainAuthOnly = false;
-						break;
-				}
-				break;
-			}
-
-			case 16:
-			{
-				if(cfg.binkp_plainAuthOnly) {
-					uifc.msg("CRAM-MD5 authentication/encryption has been disabled globally");
-					break;
-				}
-				int k = cfg.binkp_plainTextOnly;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"BinkP Encryption Supported",uifcYesNoOpts)) {
-					case 0:
-						cfg.binkp_plainTextOnly = false;
-						break;
-					case 1:
-						cfg.binkp_plainTextOnly = true;
-						break;
-				}
-				break;
-			}
 		}
 	}
 }
@@ -435,9 +316,8 @@ void binkp_settings(nodecfg_t* node)
 		sprintf(opt[i++], "%-20s %s", "Poll", node->binkp_poll ? "Yes" : "No");
 		char* auth = "Plain Only";
 		char* crypt = "Unsupported";
-		if(!cfg.binkp_plainAuthOnly && !node->binkp_plainAuthOnly) {
-			if(!cfg.binkp_plainTextOnly)
-				crypt = node->binkp_allowPlainText ? "Supported" : "Required";
+		if(!node->binkp_plainAuthOnly) {
+			crypt = node->binkp_allowPlainText ? "Supported" : "Required";
 			if(node->binkp_allowPlainAuth) 
 				auth = "Plain or CRAM-MD5";
 			else
@@ -467,8 +347,6 @@ void binkp_settings(nodecfg_t* node)
 			"`Authentication` determines what types of authentication will be supported\n"
 			"    during both inbound and outbound sessions with this linked node.\n"
 			"    The supported BinkP-auth methods are `Plain-Password` and `CRAM-MD5`.\n"
-			"    Note: For `incoming` connections, CRAM-MD5 will be supported unless\n"
-			"    CRAM-MD5 authentication has been `globally` disabled.\n"
 			"\n"
 			"`Encryption` determines whether unencrypted data transfers will be\n"
 			"    supported or required when communicating with this linked node.\n"
@@ -505,10 +383,6 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 3:
-				if(cfg.binkp_plainAuthOnly) {
-					uifc.msg("CRAM-MD5 authentication/ has been disabled globally");
-					break;
-				}
 				k = node->binkp_plainAuthOnly ? 0 : (1 + !node->binkp_allowPlainAuth);
 				strcpy(opt[0], "Plain-Password Only");
 				strcpy(opt[1], "Plain-Password or CRAM-MD5");
@@ -536,14 +410,6 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 4:
-				if(cfg.binkp_plainTextOnly) {
-					uifc.msg("BinkP encryption has been disabled globally");
-					break;
-				}
-				if(cfg.binkp_plainAuthOnly) {
-					uifc.msg("CRAM-MD5 authentication/encryption has been disabled globally");
-					break;
-				}
 				k = !node->binkp_allowPlainText;
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Allow Plain-Text (Unencrypted) Sessions",uifcYesNoOpts)) {
@@ -577,7 +443,7 @@ void binkp_settings(nodecfg_t* node)
 int main(int argc, char **argv)
 {
 	char str[256],*p;
-	int i,j,k,x,dflt,nodeop=0,nodeopbar=0,packop=0,listop=0;
+	int i,j,k,x,dflt,nodeop=0,packop=0,listop=0;
 	echolist_t savlistcfg;
 	nodecfg_t savnodecfg;
 	arcdef_t savarcdef;
@@ -744,11 +610,8 @@ int main(int argc, char **argv)
 	int node_opt = 0;
 	int node_bar = 0;
 	int archive_opt = 0;
-	int archive_bar = 0;
 	int echolist_opt = 0;
-	int echolist_bar = 0;
 	int domain_opt = 0;
-	int domain_bar = 0;
 	dflt=0;
 	while(1) {
 		if(memcmp(&cfg, &orig_cfg, sizeof(cfg)) != 0)
@@ -846,7 +709,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if (savnodecfg.addr.zone)
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&node_opt,&node_bar,"Linked Nodes",opt);
+					i=uifc.list(mode,0,0,0,&node_opt,NULL,"Linked Nodes",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -1042,7 +905,7 @@ int main(int argc, char **argv)
 						opt[j][0]=0;
 						SAFEPRINTF(str, "Linked Node - %s"
 							,cfg.nodecfg[i].name[0] ? cfg.nodecfg[i].name : faddrtoa(&cfg.nodecfg[i].addr));
-						k=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&nodeop,&nodeopbar,str,opt);
+						k=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&nodeop,&node_bar,str,opt);
 						if(k==-1)
 							break;
 						switch(k) {
@@ -1266,7 +1129,7 @@ int main(int argc, char **argv)
 	uifc.helpbuf=
 	"~ Uplink for Message Groups ~\n\n"
 	"These are Message Group short names (as configured in SCFG) for which\n"
-	"this linked node is your system's uplink (hub).\n"
+	"this linked-node is your system's uplink (hub).\n"
 	"\n"
 	"Use of this setting allows your hub to be automatically linked with new\n"
 	"areas when new Sub-boards (within a listed group) are auto-added to the\n"
@@ -1771,10 +1634,20 @@ int main(int argc, char **argv)
 	"    (`---`) existing in outgoing EchoMail message text to `===`.\n"
 	"    This setting defaults to `No`.\n"
 	"\n"
-	"`Automatically Add New Subs to Area List`, when enabled, instructs\n"
+	"`Strip Soft CRs from Incoming Messages` when set to `Yes` instructs\n"
+	"    SBBSecho to remove any so-called \"Soft\" Carriage Return (ASCII 141)\n"
+	"    characters from the text of imported EchoMail and NetMail messages.\n"
+	"    This setting defaults to `No`.\n"
+	"\n"
+	"`Strip Line Feeds from Outgoing Messages` when set to `Yes` instructs\n"
+	"    SBBSecho to remove any line-feed (ASCII 10) characters from the body\n"
+	"    text of messages being exported to FidoNet EchoMail.\n"
+	"    This setting defaults to `No`.\n"
+	"\n"
+	"`Automatically Add New Subs to Area File`, when set to `Yes`, enables\n"
 	"    SBBSecho to detect newly added Sub-boards in any Message Groups that\n"
-	"    are listed with a `Linked Node` as their hub/uplink and add those new\n"
-	"    Sub-boards as new areas to your Area List and optionally, Area File.\n"
+	"    are listed with a `Linked Node` as their hub/uplink and add those\n"
+	"    Sub-boards as new areas in your Area File.\n"
 	"\n"
 	"`Allow Nodes to Add Areas from Area File` when set to `Yes` allows linked\n"
 	"    nodes to add areas listed in your Area File (e.g. `areas.bbs`).\n"
@@ -1822,8 +1695,12 @@ int main(int argc, char **argv)
 						,cfg.echomail_notify ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Convert Existing Tear Lines"
 						,cfg.convert_tear ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Automatically Add New Subs "
-						"to Area List", cfg.auto_add_subs ? (cfg.auto_add_to_areafile ? "List/File":"List Only"):"No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Strip Soft CRs "
+						"from Incoming Messages",cfg.strip_soft_cr ? "Yes":"No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Strip Line Feeds "
+						"from Outgoing Messages",cfg.strip_lf ? "Yes":"No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Automatically Add New Subs "
+						"to Area File",cfg.auto_add_subs ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Allow Nodes to Add Areas "
 						"from Area File",cfg.add_from_echolists_only ? "No":"Yes");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%u","Maximum Backups to Maintain of Area File"
@@ -1904,25 +1781,30 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 6:
-							i=0;
-							strncpy(opt[i++], "Area List (memory) Only", MAX_OPLN-1);
-							strncpy(opt[i++], "Area List and Area File", MAX_OPLN-1);
-							strncpy(opt[i++], "No", MAX_OPLN-1);
-							opt[i][0] = 0;
-							if(!cfg.auto_add_subs)
-								k = 2;
-							else if(cfg.auto_add_to_areafile)
-								k = 1;
-							else
-								k = 0;
+							k = !cfg.strip_soft_cr;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Automatically Add New Sub-boards to Area List",opt)) {
-								case 0:	cfg.auto_add_subs = true;	cfg.auto_add_to_areafile = false; break;
-								case 1:	cfg.auto_add_subs = true;	cfg.auto_add_to_areafile = true; break;
-								case 2:	cfg.auto_add_subs = false;	break;
+								,"Strip Soft Carriage Returns",uifcYesNoOpts)) {
+								case 0:	cfg.strip_soft_cr = true;	break;
+								case 1:	cfg.strip_soft_cr = false;	break;
 							}
 							break;
 						case 7:
+							k = !cfg.strip_lf;
+							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+								,"Strip Line Feeds",uifcYesNoOpts)) {
+								case 0:	cfg.strip_lf = true;	break;
+								case 1:	cfg.strip_lf = false;	break;
+							}
+							break;
+						case 8:
+							k = !cfg.auto_add_subs;
+							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+								,"Automatically Add New Sub-boards to Area File",uifcYesNoOpts)) {
+								case 0:	cfg.auto_add_subs = true;	break;
+								case 1:	cfg.auto_add_subs = false;	break;
+							}
+							break;
+						case 9:
 							k = cfg.add_from_echolists_only;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Allow AreaFix-Add from Area File",uifcYesNoOpts)) {
@@ -1930,13 +1812,13 @@ int main(int argc, char **argv)
 								case 1:	cfg.add_from_echolists_only = true;		break;
 							}
 							break;
-						case 8:
+						case 10:
 							sprintf(str, "%u", cfg.areafile_backups);
 							if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Total Area File Backups to Maintain"
 								,str, 5, K_EDIT|K_NUMBER) >= 0)
 								cfg.areafile_backups = atoi(str);
 							break;
-						case 9:
+						case 11:
 							k = !cfg.check_path;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Circular Path Detection",uifcYesNoOpts)) {
@@ -1944,7 +1826,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.check_path = false;	break;
 							}
 							break;
-						case 10:
+						case 12:
 							k = !cfg.check_path;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 								,"Relay Filtered EchoMail Messages",uifcYesNoOpts)) {
@@ -1952,7 +1834,7 @@ int main(int argc, char **argv)
 								case 1:	cfg.relay_filtered_msgs = false;	break;
 							}
 							break;
-						case 11:
+						case 13:
 						{
 							k = cfg.trunc_bundles;
 							char* opt[] = {"Delete after Sent", "Truncate after Sent", NULL };
@@ -1963,7 +1845,7 @@ int main(int argc, char **argv)
 							}
 							break;
 						}
-						case 12:
+						case 14:
 							k = !cfg.zone_blind;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Zone Blind",uifcYesNoOpts)) {
 								case 0:
@@ -1981,7 +1863,7 @@ int main(int argc, char **argv)
 									break;
 							}
 							break;
-						case 13:
+						case 15:
 							uifc.helpbuf=
 							"~ Maximum Age of Imported EchoMail ~\n\n"
 							"Maximum age of EchoMail that may be imported. The age is based\n"
@@ -2022,7 +1904,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if(savarcdef.name[0])
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&archive_opt,&archive_bar,"Archive Types",opt);
+					i=uifc.list(mode,0,0,0,&archive_opt,0,"Archive Types",opt);
 					if(i==-1)
 						break;
 					int msk = i & MSK_ON;
@@ -2199,7 +2081,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if(savedomain.name[0])
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&domain_opt,&domain_bar,"Domains",opt);
+					i=uifc.list(mode,0,0,0,&domain_opt,0,"Domains",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -2315,7 +2197,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if(savlistcfg.listpath[0])
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&echolist_opt,&echolist_bar,"EchoLists",opt);
+					i=uifc.list(mode,0,0,0,&echolist_opt,0,"EchoLists",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -2470,10 +2352,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 8:
-				uifc.pop("Writing config ...");
-				bool success = sbbsecho_write_ini(&cfg);
-				uifc.pop(NULL);
-				if(!success)
+				if(!sbbsecho_write_ini(&cfg))
 					uifc.msg("Error saving configuration file");
 				else {
 					orig_cfg = cfg;
@@ -2487,13 +2366,10 @@ int main(int argc, char **argv)
 		"Select `Yes` to save the config file, `No` to quit without saving,\n"
 		"or hit ~ ESC ~ to go back to the menu.\n\n";
 					i=0;
-					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
+					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
 					if(i==-1) break;
 					if(i == 0) {
-						uifc.pop("Writing config ...");
-						bool success = sbbsecho_write_ini(&cfg);
-						uifc.pop(NULL);
-						if(!success)
+						if(!sbbsecho_write_ini(&cfg))
 							uifc.msg("Error saving configuration file");
 					}
 				}
