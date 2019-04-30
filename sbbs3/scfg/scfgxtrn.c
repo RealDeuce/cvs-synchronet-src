@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.69 2019/08/04 23:05:24 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.67 2019/04/29 08:34:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1670,7 +1670,7 @@ void xedit_cfg()
 				,cfg.xedit[i]->misc&QUICKBBS ? "QuickBBS MSGINF/MSGTMP":"WWIV EDITOR.INF/RESULT.ED");
 			sprintf(opt[k++],"%-32.32s%s","Expand Line Feeds to CRLF"
 				,cfg.xedit[i]->misc&EXPANDLF ? "Yes":"No");
-			const char* p;
+			const char* p = "Unspecified";
 			switch(cfg.xedit[i]->soft_cr) {
 				case XEDIT_SOFT_CR_EXPAND:
 					p = "Convert to CRLF";
@@ -1681,16 +1681,10 @@ void xedit_cfg()
 				case XEDIT_SOFT_CR_RETAIN:
 					p = "Retain";
 					break;
-				default:
-				case XEDIT_SOFT_CR_UNDEFINED:
-					p = "Unspecified";
-					break;
 			}
 			sprintf(opt[k++],"%-32.32s%s","Handle Soft Carriage Returns", p);
 			sprintf(opt[k++],"%-32.32s%s","Strip FidoNet Kludge Lines"
 				,cfg.xedit[i]->misc&STRIPKLUDGE ? "Yes":"No");
-			sprintf(opt[k++],"%-32.32s%s","Support UTF-8 Encoding"
-				,cfg.xedit[i]->misc&XTRN_UTF8 ? "Yes":"No");
 			sprintf(opt[k++],"%-32.32s%s","BBS Drop File Type"
 				,dropfile(cfg.xedit[i]->type,cfg.xedit[i]->misc));
 			opt[k][0]=0;
@@ -2060,26 +2054,6 @@ void xedit_cfg()
 					}
 					break;
 				case 14:
-					k=(cfg.xedit[i]->misc&XTRN_UTF8) ? 0:1;
-					uifc.helpbuf=
-						"`Support UTF-8 Encoding:`\n"
-						"\n"
-						"If this editor can detect and support UTF-8 terminals, set this option\n"
-						"to `Yes`."
-					;
-					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-                		,"Support UTF-8 Encoding"
-						,uifcYesNoOpts);
-					if(!k && !(cfg.xedit[i]->misc&XTRN_UTF8)) {
-						cfg.xedit[i]->misc ^= XTRN_UTF8;
-						uifc.changes=TRUE; 
-					}
-					else if(k==1 && (cfg.xedit[i]->misc&XTRN_UTF8)) {
-						cfg.xedit[i]->misc ^= XTRN_UTF8;
-						uifc.changes=TRUE; 
-					}
-					break;
-				case 15:
 					k=0;
 					strcpy(opt[k++],"None");
 					sprintf(opt[k++],"%-15s %s","Synchronet","XTRN.DAT");
