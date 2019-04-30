@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.85 2018/03/17 06:13:18 deuce Exp $ */
+/* $Id: umonitor.c,v 1.87 2019/01/01 04:39:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,7 +805,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.85 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -898,7 +898,7 @@ int main(int argc, char** argv)  {
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
+							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
@@ -988,8 +988,8 @@ USAGE:
 		}
 		mopt[i][0]=0;
 
-		uifc.helpbuf=	"`Synchronet UNIX Monitor\n"
-		                "`------------------\n"
+		uifc.helpbuf=  "`Synchronet UNIX Monitor\n"
+		               "`------------------\n"
 		                "Welcome to the Synchronet UNIX Monitor.\n"
 		                "Displayed on this screen are the statitics for the BBS\n"
 		                "You can scroll through the list starting at \"System Options\" \n"
