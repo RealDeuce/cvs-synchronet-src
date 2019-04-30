@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.194 2019/04/29 03:56:47 rswindell Exp $ */
+/* $Id: smblib.c,v 1.195 2019/04/30 08:21:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1099,6 +1099,7 @@ void SMBCALL smb_freemsgmem(smbmsg_t* msg)
 		msg->dfield=NULL;
 	}
 	msg->hdr.total_dfields=0;
+	FREE_AND_NULL(msg->charset);
 	smb_freemsghdrmem(msg);
 }
 

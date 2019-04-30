@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.113 2019/04/29 03:19:48 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.114 2019/04/30 08:21:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -544,6 +544,7 @@ typedef struct {				/* Message */
 	char*		editor;			/* Message editor (if known) */
 	char*		mime_version;	/* MIME Version (if applicable) */
 	char*		content_type;	/* MIME Content-Type (if applicable) */
+	char*		charset;		/* MIME plain-text/charset value (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
