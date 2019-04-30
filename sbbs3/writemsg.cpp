@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.151 2019/04/30 02:36:14 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.152 2019/04/30 02:48:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -145,6 +145,9 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 					continue;
 				case XEDIT_SOFT_CR_STRIP:
 					continue;
+				case XEDIT_SOFT_CR_RETAIN:
+				case XEDIT_SOFT_CR_UNDEFINED:
+					break;
 			}
 		}
 		/* Expand LF to CRLF? */
