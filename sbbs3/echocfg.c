@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.39 2019/04/30 03:33:47 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.40 2019/04/30 04:40:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1641,7 +1641,7 @@ int main(int argc, char **argv)
 	"\n"
 	"`Strip Line Feeds from Outgoing Messages` when set to `Yes` instructs\n"
 	"    SBBSecho to remove any line-feed (ASCII 10) characters from the body\n"
-	"    text of messages being exported to FidoNet EchoMail.\n"
+	"    text of exported EchoMail and NetMail messages.\n"
 	"    This setting defaults to `No`.\n"
 	"\n"
 	"`Automatically Add New Subs to Area File`, when set to `Yes`, enables\n"
