@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.114 2019/04/30 04:40:10 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.113 2019/04/30 03:33:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -867,7 +867,7 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	return 0;
 }
 
-/* Writes text buffer to file, expanding sole LFs to CRLFs or stripping LFs */
+/* Writes text buffer to file, expanding sole LFs to CRLFs */
 size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 {
 	char	ch,last_ch=0;
@@ -876,14 +876,10 @@ size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 
 	for(i=0;i<len;i++) {
 		ch=*buf++;
-		if(ch=='\n') {
-			if(last_ch!='\r') {
-				if(fputc('\r', fp) == EOF)
-					break;
-				wr++;
-			}
-			if(cfg.strip_lf)
-				continue;
+		if(ch=='\n' && last_ch!='\r') {
+			if(fputc('\r', fp) == EOF)
+				break;
+			wr++;
 		}
 		if(fputc(ch,fp)==EOF)
 			break;
@@ -6009,7 +6005,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.114 $", "%*s %s", revision);
+	sscanf("$Revision: 3.113 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

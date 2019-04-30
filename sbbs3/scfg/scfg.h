@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.28 2019/05/22 09:53:40 rswindell Exp $ */
+/* $Id: scfg.h,v 1.27 2019/01/12 12:09:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -144,7 +144,6 @@ int  bits(long l);
 void getar(char *desc, char *ar);
 bool new_sub(unsigned new_subnum, unsigned group_num);
 bool new_qhub_sub(qhub_t*, unsigned qsubnum, sub_t*, unsigned confnum);
-void remove_sub(scfg_t*, unsigned subnum);
 void sort_subs(int grpnum);
 void sort_dirs(int libnum);
 unsigned subs_in_group(unsigned grpnum);

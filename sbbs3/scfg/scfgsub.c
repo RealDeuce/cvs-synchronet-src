@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.52 2019/05/22 09:53:39 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.51 2019/02/15 01:36:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -95,29 +95,13 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 	return true;
 }
 
-void remove_sub(scfg_t* cfg, unsigned subnum)
-{
-	sub_t* sub = cfg->sub[subnum];
-	// Remove the sub-board from any QWKnet hub sub-boards
-	for (unsigned q = 0; q < cfg->total_qhubs; q++) {
-		for (unsigned s = 0; s < cfg->qhub[q]->subs; s++) {
-			if (cfg->qhub[q]->sub[s] == sub)
-				cfg->qhub[q]->sub[s] = NULL;
-		}
-	}
-	FREE_AND_NULL(cfg->sub[subnum]);
-	--cfg->total_subs;
-	for (unsigned i = subnum; i < cfg->total_subs; i++)
-		cfg->sub[i] = cfg->sub[i + 1];
-}
-
 void sub_cfg(uint grpnum)
 {
 	static int dflt,tog_dflt,opt_dflt,net_dflt,adv_dflt,bar;
 	char str[128],str2[128],done=0,code[128];
 	char path[MAX_PATH+1];
 	char data_dir[MAX_PATH+1];
-	int j,m,n,ptridx;
+	int j,m,n,ptridx,q,s;
 	uint i,subnum[MAX_OPTS+1];
 	static sub_t savsub;
 
@@ -307,7 +291,15 @@ void sub_cfg(uint grpnum)
 			}
 			if(msk == MSK_CUT)
 				savsub = *cfg.sub[subnum[i]];
-			remove_sub(&cfg, subnum[i]);
+			free(cfg.sub[subnum[i]]);
+			cfg.total_subs--;
+			for(j=subnum[i];j<cfg.total_subs;j++)
+				cfg.sub[j]=cfg.sub[j+1];
+			for(q=0;q<cfg.total_qhubs;q++)
+				for(s=0;s<cfg.qhub[q]->subs;s++) {
+					if(cfg.qhub[q]->sub[s] == cfg.sub[subnum[i]])
+						cfg.qhub[q]->sub[s] = NULL;
+				}
 			uifc.changes = TRUE;
 			continue; 
 		}
