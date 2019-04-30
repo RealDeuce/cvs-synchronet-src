@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.126 2018/03/14 05:41:41 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.131 2019/04/11 01:18:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -119,6 +119,11 @@ char *usage=
 "       p[k] = pack msg base (k specifies minimum packable Kbytes)\n"
 "       L    = lock a msg base for exclusive-access/backup\n"
 "       U    = unlock a msg base\n"
+"\n"
+"            [n] may represent 1-based message index offset, or\n"
+"            [#n] actual message number, or\n"
+"            [-n] message age (in days)\n"
+"\n"
 "opts:\n"
 "      -c[m] = create message base if it doesn't exist (m=max msgs)\n"
 "      -a    = always pack msg base (disable compression analysis)\n"
@@ -138,7 +143,7 @@ char *usage=
 "      -s<s> = set 'subject' for imported message\n"
 "      -z[n] = set time zone (n=min +/- from UT or 'EST','EDT','CST',etc)\n"
 #ifdef __unix__
-"      -U[n] = set umask to specified value\n"
+"      -U[n] = set umask to specified value (use leading 0 for octal, e.g. 022)\n"
 #endif
 "      -#    = set number of messages to view/list (e.g. -1)\n"
 ;
@@ -191,8 +196,8 @@ char* gen_msgid(smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen)
 	);
 	safe_snprintf(msgid, maxlen
 		,"<%08lX.%lu.%s@%s>"
-		,msg->hdr.when_imported.time
-		,smb->status.last_msg + 1
+		,(ulong)msg->hdr.when_imported.time
+		,(ulong)smb->status.last_msg + 1
 		,getfname(smb->file)
 		,host);
 	return msgid;
@@ -708,9 +713,10 @@ void maint(void)
 				hash_t*	hashes = malloc(max_hashes * SMB_HASH_SOURCE_TYPES * sizeof(hash_t));
 				if(hashes != NULL) {
 					if(fread(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp) == max_hashes * SMB_HASH_SOURCE_TYPES) {
-						CHSIZE_FP(smb.hash_fp,0);
 						rewind(smb.hash_fp);
 						fwrite(hashes, sizeof(hash_t), max_hashes * SMB_HASH_SOURCE_TYPES, smb.hash_fp);
+						fflush(smb.hash_fp);
+						CHSIZE_FP(smb.hash_fp, sizeof(hash_t) * max_hashes * SMB_HASH_SOURCE_TYPES);
 					}
 					free(hashes);
 				}
@@ -860,15 +866,16 @@ void maint(void)
 
 	printf("Re-writing index...\n");
 	rewind(smb.sid_fp);
-	CHSIZE_FP(smb.sid_fp,0);
 	for(m=n=0;m<l;m++) {
 		if(idx[m].attr&MSG_DELETE)
 			continue;
-		printf("%lu of %lu\r",++n,l-flagged);
+		n++;
+		printf("%lu of %lu\r", n, l-flagged);
 		fwrite(&idx[m],sizeof(idxrec_t),1,smb.sid_fp); 
 	}
-	printf("\nDone.\n\n");
 	fflush(smb.sid_fp);
+	CHSIZE_FP(smb.sid_fp, n * sizeof(idxrec_t));
+	printf("\nDone.\n\n");
 
 	free(idx);
 	smb.status.total_msgs-=flagged;
@@ -1389,7 +1396,7 @@ void readmsgs(ulong start)
 				break; 
 			}
 
-			printf("\n%"PRIu32" (%d)\n",msg.hdr.number,msg.offset+1);
+			printf("\n#%"PRIu32" (%d)\n",msg.hdr.number,msg.offset+1);
 			printf("Subj : %s\n",msg.subj);
 			printf("Attr : %04hX\n", msg.hdr.attr);
 			printf("To   : %s",msg.to);
@@ -1510,6 +1517,28 @@ short str2tzone(const char* str)
 	return 0;	/* UTC */
 }
 
+long getmsgnum(const char* str)
+{
+	if(*str == '-') {
+		time_t t = time(NULL) - (atol(str+1) * 24 * 60 * 60);
+		printf("%.24s\n", ctime(&t));
+		idxrec_t	idx;
+		int result = smb_getmsgidx_by_time(&smb, &idx, t);
+//		printf("match = %d, num %d\n", result, idx.number);
+		if(result >= 0)
+			return result + 1;	/* 1-based offset */
+	}
+	if(*str == '#') {
+		smbmsg_t msg;
+		ZERO_VAR(msg);
+		msg.hdr.number = atol(str + 1);
+		int result = smb_getmsgidx(&smb, &msg);
+		if(result == SMB_SUCCESS)
+			return msg.offset + 1;
+	}
+	return atol(str);
+}
+
 /***************/
 /* Entry point */
 /***************/
@@ -1543,7 +1572,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.126 $", "%*s %s", revision);
+	sscanf("$Revision: 1.131 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1734,11 +1763,11 @@ int main(int argc, char **argv)
 							config();
 							break;
 						case 'l':
-							listmsgs(atol(cmd+1),count);
+							listmsgs(getmsgnum(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'x':
-							dumpindex(atol(cmd+1),count);
+							dumpindex(getmsgnum(cmd+1),count);
 							y=strlen(cmd)-1;
 							break;
 						case 'p':
@@ -1769,7 +1798,7 @@ int main(int argc, char **argv)
 								fprintf(errfp, "\nError %d (%s) unlocking %s\n", i, smb.last_error, smb.file);
 							break;
 						case 'r':
-							readmsgs(atol(cmd+1));
+							readmsgs(getmsgnum(cmd+1));
 							y=strlen(cmd)-1;
 							break;
 						case 'R':
@@ -1802,7 +1831,7 @@ int main(int argc, char **argv)
 							break;
 						case 'v':
 						case 'V':
-							viewmsgs(atol(cmd+1),count,cmd[y]=='V');
+							viewmsgs(getmsgnum(cmd+1),count,cmd[y]=='V');
 							y=strlen(cmd)-1;
 							break;
 						case 'h':
