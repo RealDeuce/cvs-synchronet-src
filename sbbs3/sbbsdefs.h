@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.241 2019/06/28 23:04:48 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.238 2019/04/28 10:03:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -486,7 +486,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_HIGH_FONT	(1<<19)	/* Alt high-intensity font activated		*/
 #define CON_BLINK_FONT	(1<<20)	/* Alt blink attribute font activated		*/
 #define CON_HBLINK_FONT	(1<<21)	/* Alt high-blink attribute font activated	*/
-#define CON_CR_CLREOL	(1<<31)	// outchar('\r') clears to end-of-line first
 
 							/* Number of milliseconds						*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
@@ -655,10 +654,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
 #define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
-#define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
-#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -757,7 +754,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define	P_TRUNCATE	(1<<9)		/* Truncate (don't display) long lines		*/
 #define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
-#define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -947,7 +943,6 @@ enum COLORS {
 
 #define ANSI_NORMAL		0x100
 #define BG_BLACK		0x200
-#define BG_BRIGHT		0x400		// Not an IBM-CGA/ANSI.SYS compatible attribute
 #define BG_BLUE			(BLUE<<4)
 #define BG_GREEN		(GREEN<<4)
 #define BG_CYAN			(CYAN<<4)
