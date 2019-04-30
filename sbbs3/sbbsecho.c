@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.115 2019/05/28 08:47:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.114 2019/04/30 04:40:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5935,11 +5935,11 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 
 void check_free_diskspace(const char* path)
 {
-	if(cfg.min_free_diskspace && isdir(path)) {
+	if(cfg.min_free_diskspace) {
 		ulong freek = getfreediskspace(path, 1024);
 
 		if(freek < cfg.min_free_diskspace / 1024) {
-			lprintf(LOG_ERR, "!Insufficient free disk space (%luK < %"PRId64"K bytes) in %s\n"
+			fprintf(stderr, "!Insufficient free disk space (%luK < %"PRId64"K bytes) in %s\n"
 				, freek, cfg.min_free_diskspace / 1024, path);
 			bail(1);
 		}
@@ -6009,7 +6009,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.115 $", "%*s %s", revision);
+	sscanf("$Revision: 3.114 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
