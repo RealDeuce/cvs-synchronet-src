@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.692 2019/05/01 07:36:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.693 2019/05/01 07:44:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1859,7 +1859,10 @@ static void exempt_email_addr(const char* comment
 	char	tmp[128];
 	FILE*	fp;
 
-	SAFEPRINTF(to,"<%s>",toaddr);
+	if(*toaddr == '<')
+		SAFECOPY(to, toaddr);
+	else
+		SAFEPRINTF(to,"<%s>",toaddr);
 	if(!email_addr_is_exempt(to)) {
 		SAFEPRINTF(fname,"%sdnsbl_exempt.cfg",scfg.ctrl_dir);
 		if((fp=fopen(fname,"a"))==NULL)
@@ -5732,7 +5735,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.692 $", "%*s %s", revision);
+	sscanf("$Revision: 1.693 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
