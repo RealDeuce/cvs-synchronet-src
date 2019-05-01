@@ -825,18 +825,7 @@ enum {
 	,CharacterReceivedFmt
 	,InvalidBackspaceKeyFmt
 	,SwapDeleteKeyQ
-	,PetTerminalDetected
-	,PetTerminalQ
-	,TerminalAutoDetect
-	,TerminalColumns
-	,TerminalRows
-	,TerminalMonochrome
-	,TerminalColor
-	,TerminalIceColor
-	,IceColorTerminalQ
-	,Utf8TerminalQ
-	,MsgCarbonCopyList
-	,LoggingOn
+	,PetTermDetected
 
 	,TOTAL_TEXT
 };

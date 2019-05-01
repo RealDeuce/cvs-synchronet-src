@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.72 2019/06/29 00:06:14 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.71 2018/10/08 00:07:17 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -108,11 +108,13 @@ OBJS	=	$(MTOBJODIR)$(DIRSEP)ansiterm$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)upload$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)userdat$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)useredit$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)uucode$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)viewfile$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)wordwrap$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)writemsg$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)xtrn$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)xtrn_sec$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)yenc$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)ver$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)ssl$(OFILE)
 
