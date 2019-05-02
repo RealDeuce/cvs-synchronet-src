@@ -807,7 +807,7 @@ enum {
 	,Only
 	,SPAMVisibilityIsNow
 	,VoteInThisPollNow
-	,MIMEDecodedPlainText
+	,MIMEDecodedPlainTextFmt
 	,MsgHdrBodySeparator
 	,FileHdrDescSeparator
 	,RemoveFileQ
@@ -821,6 +821,11 @@ enum {
 	,Scanning
 	,Done
 	,Scanned
+	,HitYourBackspaceKey
+	,CharacterReceivedFmt
+	,InvalidBackspaceKeyFmt
+	,SwapDeleteKeyQ
+	,PetTermDetected
 
 	,TOTAL_TEXT
 };
