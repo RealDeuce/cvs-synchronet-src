@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.514 2019/05/02 00:31:19 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.515 2019/05/02 03:40:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -542,6 +542,9 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
+	const char*	current_msg_subj;
+	const char*	current_msg_from;
+	const char*	current_msg_to;
 	file_t*		current_file;
 
 			/* Global command shell variables */
