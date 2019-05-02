@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.513 2019/04/12 00:10:39 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.514 2019/05/02 00:31:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -681,7 +681,7 @@ public:
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	void	show_msgattr(smbmsg_t*);
-	void	show_msghdr(smb_t*, smbmsg_t*);
+	void	show_msghdr(smb_t*, smbmsg_t*, const char *subj = NULL, const char* from = NULL, const char* to = NULL);
 	bool	show_msg(smb_t*, smbmsg_t*, long p_mode = 0, post_t* post = NULL);
 	bool	msgtotxt(smb_t*, smbmsg_t*, const char *fname, bool header = true, ulong gettxt_mode = GETMSGTXT_ALL);
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
