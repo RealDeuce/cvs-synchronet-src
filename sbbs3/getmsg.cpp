@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.89 2019/07/06 07:52:21 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.85 2019/05/02 01:48:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -39,7 +39,6 @@
 /***********************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
 
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
@@ -95,7 +94,6 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 	uint16_t attr = msg->hdr.attr;
 	uint16_t poll = attr&MSG_POLL_VOTE_MASK;
 	uint32_t auxattr = msg->hdr.auxattr;
-	uint32_t netattr = msg->hdr.netattr;
 
 	bprintf(text[MsgAttr]
 		,attr&MSG_PRIVATE	? "Private  "   :nulstr
@@ -112,9 +110,9 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		,attr&MSG_NOREPLY	? "NoReply  "	:nulstr
 		,poll == MSG_POLL	? "Poll  "		:nulstr
 		,poll == MSG_POLL && auxattr&POLL_CLOSED ? "(Closed)  "	:nulstr
-		,auxattr&(MSG_FILEATTACH|MSG_MIMEATTACH) ? "Attach  "   :nulstr
-		,netattr&MSG_SENT						 ? "Sent  "		:nulstr
-		,netattr&MSG_INTRANSIT					 ? "InTransit  ":nulstr
+		,nulstr
+		,nulstr
+		,nulstr
 		);
 }
 
@@ -131,18 +129,8 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 
 	if(smb != NULL)
 		this->smb = *smb;	// Needed for @-codes and JS bbs.smb_* properties
-	if(msg != NULL) {
+	if(msg != NULL)
 		current_msg = msg;		// Needed for @-codes and JS bbs.msg_* properties
-		current_msg_subj = msg->subj;
-		current_msg_from = msg->from;
-		current_msg_to = msg->to;
-	}
-	if(subject != NULL)
-		current_msg_subj = subject;
-	if(from != NULL)
-		current_msg_from = from;
-	if(to != NULL)
-		current_msg_to = to;
 
 	attr(LIGHTGRAY);
 	if(!tos) {
@@ -153,13 +141,13 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 	}
 	msghdr_tos = tos;
 	if(!menu("msghdr", P_NOERROR)) {
-		bprintf(text[MsgSubj], current_msg_subj);
+		bprintf(text[MsgSubj], subject == NULL ? msg->subj : subject);
 		if(msg->tags && *msg->tags)
 			bprintf(text[MsgTags], msg->tags);
-		if(msg->hdr.attr || msg->hdr.netattr || msg->hdr.auxattr)
+		if(msg->hdr.attr)
 			show_msgattr(msg);
-		if(current_msg_to != NULL && *current_msg_to != 0) {
-			bprintf(text[MsgTo], current_msg_to);
+		if(to != NULL || msg->to_list != NULL || (msg->to && *msg->to)) {
+			bprintf(text[MsgTo], to == NULL ? (msg->to_list == NULL ? msg->to : msg->to_list) : to);
 			if(msg->to_net.addr!=NULL)
 				bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 			if(msg->to_ext)
@@ -167,11 +155,11 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 		}
 		if(msg->cc_list != NULL)
 			bprintf(text[MsgCarbonCopyList], msg->cc_list);
-		if(current_msg_from != NULL && (!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)) {
-			bprintf(text[MsgFrom], current_msg_from);
+		if((from != NULL || msg->from != NULL) && (!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)) {
+			bprintf(text[MsgFrom], from == NULL ? msg->from : from);
 			if(msg->from_ext)
 				bprintf(text[MsgFromExt],msg->from_ext);
-			if(msg->from_net.addr!=NULL && (current_msg_from == NULL || strchr(current_msg_from,'@')==NULL))
+			if(msg->from_net.addr!=NULL && (msg->from == NULL || strchr(msg->from,'@')==NULL))
 				bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str));
 		}
 		if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
@@ -193,9 +181,6 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 				,timestr(*(time32_t *)msg->hfield_dat[i]));
 	}
 	this->smb = saved_smb;
-	current_msg_subj = NULL;
-	current_msg_from = NULL;
-	current_msg_to = NULL;
 }
 
 /****************************************************************************/
@@ -281,17 +266,10 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		if(p == NULL)
 			p = txt;
 		else
-			bprintf(text[MIMEDecodedPlainTextFmt]
-				, msg->text_charset == NULL ? "unspecified (US-ASCII)" : msg->text_charset
-				, msg->text_subtype);
+			bprintf(text[MIMEDecodedPlainTextFmt], msg->charset == NULL ? "US-ASCII" : msg->charset);
 	}
 	truncsp(p);
 	SKIP_CRLF(p);
-	if(smb_msg_is_utf8(msg)) {
-		if(!term_supports(UTF8))
-			utf8_normalize_str(txt);
-		p_mode |= P_UTF8;
-	}
 	putmsg(p, p_mode, msg->columns);
 	smb_freemsgtxt(txt);
 	if(column)
