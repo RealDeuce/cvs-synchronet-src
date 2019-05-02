@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.62 2019/07/24 04:44:00 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.59 2019/04/28 10:37:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
 
 int kbincom(sbbs_t* sbbs, unsigned long timeout)
 {
@@ -67,7 +66,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 	}
 
 	if(cfg.node_misc&NM_7BITONLY
-		&& (!(sys_status&SS_USERON) || term_supports(NO_EXASCII)))
+		&& (!(sys_status&SS_USERON) || useron.misc&NO_EXASCII))
 		ch&=0x7f; 
 
 	this->timeout=time(NULL);
@@ -203,7 +202,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 		case CTRL_P:	/* Ctrl-P Private node-node comm */
 			if(!(sys_status&SS_USERON))
-				break;;
+				return(0);			 /* keep from being recursive */
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -226,8 +225,9 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 
 		case CTRL_U:	/* Ctrl-U Users online */
+			/* needs recursion checking */
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -251,7 +251,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);
@@ -277,7 +277,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
+				return(0);
 			if(hotkey_inside&(1<<ch))
 				return(0);
 			hotkey_inside |= (1<<ch);

@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.50 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.48 2019/04/29 08:22:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -877,7 +877,7 @@ long aftol(char *str)
 /*****************************************************************************/
 char *ltoaf(long l,char *str)
 {
-	int	c=0;
+	size_t	c=0;
 
 	while(c<26) {
 		if(l&(long)(1L<<c))
@@ -892,9 +892,9 @@ char *ltoaf(long l,char *str)
 /****************************************************************************/
 /* Returns the actual attribute code from a string of ATTR characters       */
 /****************************************************************************/
-uint attrstr(char *str)
+uchar attrstr(char *str)
 {
-	int atr;
+	uchar atr;
 	ulong l=0;
 
 	atr=LIGHTGRAY;
@@ -905,9 +905,6 @@ uint attrstr(char *str)
 				break;
 			case 'I':	/* Blink */
 				atr|=BLINK;
-				break;
-			case 'E':	/* iCE color */
-				atr|=BG_BRIGHT;
 				break;
 			case 'K':	/* Black */
 				atr=(atr&0xf8)|BLACK;
