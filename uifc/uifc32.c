@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.238 2019/06/01 00:31:18 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.236 2019/02/01 10:47:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1214,10 +1214,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			}
 			/* For compatibility with terminals lacking special keys */
 			switch(gotkey) {
+				case '\b':
+					gotkey=ESC;
+					break;
 				case '+':
 					gotkey=CIO_KEY_IC;	/* insert */
 					break;
-				case '\b':
 				case '-':
 				case DEL:
 					gotkey=CIO_KEY_DC;	/* delete */
@@ -2533,7 +2535,7 @@ char *utimestr(time_t *intime)
 			strcpy(mon,"Dec");
 			break;
 	}
-	if(gm->tm_hour>=12) {
+	if(gm->tm_hour>12) {
 		strcpy(mer,"pm");
 		hour=gm->tm_hour-12;
 	}

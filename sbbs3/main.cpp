@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.749 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: main.cpp,v 1.748 2019/05/02 03:40:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -462,16 +462,6 @@ int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
-
-void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
-{
-	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
-
-	if(ret == NULL)
-		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
-			, cls == NULL ? "???" : cls->name);
-	return ret;
-}
 
 JSBool
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
