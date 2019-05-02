@@ -1,6 +1,6 @@
 /* Synchronet message database scanning routines */
 
-/* $Id: scansubs.cpp,v 1.24 2016/12/10 08:02:25 rswindell Exp $ */
+/* $Id: scansubs.cpp,v 1.28 2019/04/26 02:44:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,40 +80,42 @@ void sbbs_t::scansubs(long mode)
 						found=listsub(usrsub[curgrp][i],SCAN_FIND,0,str);
 						subs_scanned++;
 					}
-				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
-					,useron.alias,subs_scanned,str);
+				sprintf(tmp,"searched %lu sub-boards for '%s'"
+					,subs_scanned,str);
 				logline(nulstr,tmp);
 				if(!found)
 					CRLF;
-				return; 
-			} 
+				return;
+			}
 		}
 		else if(mode&SCAN_TOYOU && subj_only) {
 			if(ch=='S')
 				found=listsub(usrsub[curgrp][cursub[curgrp]],mode,0,NULL);
 			else if(ch=='G')
-				for(i=0;i<usrsubs[curgrp] && !msgabort();i++)
-					found=listsub(usrsub[curgrp][i],mode,0,NULL);
+				for(i=0;i<usrsubs[curgrp] && !msgabort();i++) {
+					if(subscan[usrsub[curgrp][i]].cfg&SUB_CFG_SSCAN)
+						found=listsub(usrsub[curgrp][i],mode,0,NULL);
+				}
 			if(!found)
 				CRLF;
-			return; 
-		} 
+			return;
+		}
 	}
 
 	if(ch=='S') {
 		if(useron.misc&(RIP|WIP|HTML) && !(useron.misc&EXPERT)) {
-			menu("msgscan"); 
+			menu("msgscan");
 		}
 		i=scanposts(usrsub[curgrp][cursub[curgrp]],mode,str);
 		subs_scanned++;
 		bputs(text[MessageScan]);
 		if(i) bputs(text[MessageScanAborted]);
 		else bprintf(text[MessageScanComplete],subs_scanned);
-		return; 
+		return;
 	}
 	if(ch=='G') {
 		if(useron.misc&(RIP|WIP|HTML) && !(useron.misc&EXPERT)) {
-			menu("msgscan"); 
+			menu("msgscan");
 		}
 		for(i=0;i<usrsubs[curgrp] && !msgabort();i++) {
 			if((mode&SCAN_NEW) && !(subscan[usrsub[curgrp][i]].cfg&SUB_CFG_NSCAN) && !(cfg.sub[usrsub[curgrp][i]]->misc&SUB_FORCED))
@@ -123,19 +125,19 @@ void sbbs_t::scansubs(long mode)
 			if((mode&SCAN_POLLS) && cfg.sub[usrsub[curgrp][i]]->misc&SUB_NOVOTING)
 				continue;
 			if(mode&SCAN_POLLS)
-				progress("Scanning", i, usrsubs[curgrp], 10);
-			if(scanposts(usrsub[curgrp][i],mode,str)) 
+				progress(text[Scanning], i, usrsubs[curgrp], 10);
+			if(scanposts(usrsub[curgrp][i],mode,str))
 				break;
 			subs_scanned++;
 		}
 		if(mode&SCAN_POLLS) {
-			progress("Done", subs_scanned, usrsubs[curgrp]);
+			progress(text[Done], subs_scanned, usrsubs[curgrp]);
 			cleartoeol();
 		}
 		bputs(text[MessageScan]);
 		if(i==usrsubs[curgrp]) bprintf(text[MessageScanComplete],subs_scanned);
 			else bputs(text[MessageScanAborted]);
-		return; 
+		return;
 	}
 
 	scanallsubs(mode);
@@ -174,38 +176,40 @@ void sbbs_t::scanallsubs(long mode)
 			bputs(text[SearchStringPrompt]);
 			if(!getstr(str,40,K_LINE|K_UPPER))
 				return;
-			if(subj_only) { 			
+			if(subj_only) {
 				for(i=0;i<usrgrps;i++) {
 					for(j=0;j<usrsubs[i] && !msgabort();j++) {
 						found=listsub(usrsub[i][j],SCAN_FIND,0,str);
 						subs_scanned++;
 					}
 					if(j<usrsubs[i])
-						break; 
+						break;
 				}
 				if(!found)
 					CRLF;
-				sprintf(tmp,"%s searched %lu sub-boards for '%s'"
-					,useron.alias,subs_scanned,str);
+				sprintf(tmp,"searched %lu sub-boards for '%s'"
+					,subs_scanned,str);
 				logline(nulstr,tmp);
-				return; 
+				return;
 			}
 		}
 		else if((mode&SCAN_TOYOU) && subj_only) {
 			for(i=0;i<usrgrps;i++) {
-				for(j=0;j<usrsubs[i] && !msgabort();j++) 
-					found=listsub(usrsub[i][j],mode,0,NULL);
+				for(j=0;j<usrsubs[i] && !msgabort();j++) {
+					if(subscan[usrsub[i][j]].cfg&SUB_CFG_SSCAN)
+						found=listsub(usrsub[i][j],mode,0,NULL);
+				}
 				if(j<usrsubs[i])
-					break; 
+					break;
 			}
 			if(!found)
 				CRLF;
-			return; 
-		} 
+			return;
+		}
 	}
 
 	if(useron.misc&(RIP|WIP|HTML) && !(useron.misc&EXPERT)) {
-		menu("msgscan"); 
+		menu("msgscan");
 	}
 	if((sub = (uint*)malloc(sizeof(uint) * cfg.total_subs)) == NULL) {
 		errormsg(WHERE, ERR_ALLOC, "subs", sizeof(uint)*cfg.total_subs);
@@ -224,26 +228,26 @@ void sbbs_t::scanallsubs(long mode)
 		}
 	for(i=0; i<total_subs && !msgabort(); i++) {
 		if(mode&SCAN_POLLS)
-			progress("Scanning", i, total_subs, 10);
-		if(scanposts(sub[i],mode,str)) 
+			progress(text[Scanning], i, total_subs, 10);
+		if(scanposts(sub[i],mode,str))
 			break;
 	}
 	subs_scanned = i;
 	free(sub);
 	if(mode&SCAN_POLLS) {
-		progress("Done", subs_scanned, total_subs);
+		progress(text[Done], subs_scanned, total_subs);
 		cleartoeol();
 	}
 	bputs(text[MessageScan]);
 	if(subs_scanned<total_subs) {
 		bputs(text[MessageScanAborted]);
-		return; 
+		return;
 	}
 	bprintf(text[MessageScanComplete],subs_scanned);
 	if(mode&SCAN_NEW && !(mode&(SCAN_MSGSONLY|SCAN_BACK|SCAN_TOYOU))
 		&& useron.misc&ANFSCAN && !(useron.rest&FLAG('T'))) {
 		xfer_cmds++;
-		scanalldirs(FL_ULTIME); 
+		scanalldirs(FL_ULTIME);
 	}
 }
 
@@ -262,7 +266,7 @@ void sbbs_t::new_scan_ptr_cfg()
 			checkline();
 			if(i<9) outchar(' ');
 			if(i<99) outchar(' ');
-			bprintf(text[CfgGrpLstFmt],i+1,cfg.grp[usrgrp[i]]->lname); 
+			bprintf(text[CfgGrpLstFmt],i+1,cfg.grp[usrgrp[i]]->lname);
 		}
 		SYNC;
 		mnemonics(text[WhichOrAll]);
@@ -284,12 +288,12 @@ void sbbs_t::new_scan_ptr_cfg()
 						for(j=0;j<usrsubs[i] && online;j++) {
 							progress(text[LoadingMsgPtrs], subs++, total_subs, 10);
 							checkline();
-							subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t); 
+							subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t);
 						}
 					}
 					progress(text[LoadingMsgPtrs], subs, total_subs);
 				}
-				continue; 
+				continue;
 			}
 			if(s=='L')
 				s=0;
@@ -301,14 +305,18 @@ void sbbs_t::new_scan_ptr_cfg()
 				for(j=0;j<usrsubs[i] && online;j++) {
 					progress(text[LoadingMsgPtrs], subs++, total_subs, 10);
 					checkline();
+					if(s == 0) {
+						subscan[usrsub[i][j]].ptr = ~0;
+						continue;
+					}
 					getlastmsg(usrsub[i][j],&l,0);
 					if(s>(long)l)
 						subscan[usrsub[i][j]].ptr=0;
 					else
-						subscan[usrsub[i][j]].ptr=l-s; 
+						subscan[usrsub[i][j]].ptr=l-s;
 				}
 			progress(text[LoadingMsgPtrs], subs, total_subs);
-			continue; 
+			continue;
 		}
 		i=(s&~0x80000000L)-1;
 		while(online) {
@@ -322,14 +330,14 @@ void sbbs_t::new_scan_ptr_cfg()
 				if(t>(long)l)
 					l=(uint32_t)t;
 				bprintf(text[SubPtrLstFmt],j+1,cfg.sub[usrsub[i][j]]->lname
-					,timestr(t),nulstr); 
+					,timestr(t),nulstr);
 			}
 			SYNC;
 			mnemonics(text[WhichOrAll]);
 			s=getkeys("AQ",usrsubs[i]);
 			if(sys_status&SS_ABORT) {
 				lncntr=0;
-				return; 
+				return;
 			}
 			if(s==-1 || !s || s=='Q')
 				break;
@@ -345,11 +353,11 @@ void sbbs_t::new_scan_ptr_cfg()
 						for(j=0;j<usrsubs[i] && online;j++) {
 							progress(text[LoadingMsgPtrs], j, usrsubs[i], 10);
 							checkline();
-							subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t); 
+							subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t);
 						}
 						progress(text[LoadingMsgPtrs], j, usrsubs[i]);
 					}
-					continue; 
+					continue;
 				}
 				if(s=='L')
 					s=0;
@@ -358,14 +366,18 @@ void sbbs_t::new_scan_ptr_cfg()
 				for(j=0;j<usrsubs[i] && online;j++) {
 					progress(text[LoadingMsgPtrs], j, usrsubs[i], 10);
 					checkline();
+					if(s == 0) {
+						subscan[usrsub[i][j]].ptr = ~0;
+						continue;
+					}
 					getlastmsg(usrsub[i][j],&l,0);
 					if(s>(long)l)
 						subscan[usrsub[i][j]].ptr=0;
 					else
-						subscan[usrsub[i][j]].ptr=l-s; 
+						subscan[usrsub[i][j]].ptr=l-s;
 				}
 				progress(text[LoadingMsgPtrs], j, usrsubs[i]);
-				continue; 
+				continue;
 			}
 			else {
 				j=(s&~0x80000000L)-1;
@@ -378,21 +390,23 @@ void sbbs_t::new_scan_ptr_cfg()
 					t=getmsgtime(usrsub[i][j],subscan[usrsub[i][j]].ptr);
 					if(inputnstime(&t) && !(sys_status&SS_ABORT)) {
 						bputs(text[LoadingMsgPtrs]);
-						subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t); 
+						subscan[usrsub[i][j]].ptr=getmsgnum(usrsub[i][j],t);
 					}
-					continue; 
+					continue;
 				}
-				if(s=='L')
-					s=0;
+				if(s=='L') {
+					subscan[usrsub[i][j]].ptr = ~0;
+					continue;
+				}
 				if(s)
 					s&=~0x80000000L;
 				getlastmsg(usrsub[i][j],&l,0);
 				if(s>(long)l)
 					subscan[usrsub[i][j]].ptr=0;
 				else
-					subscan[usrsub[i][j]].ptr=l-s; 
+					subscan[usrsub[i][j]].ptr=l-s;
 			}
-		} 
+		}
 	}
 }
 
@@ -408,7 +422,7 @@ void sbbs_t::new_scan_cfg(ulong misc)
 			checkline();
 			if(i<9) outchar(' ');
 			if(i<99) outchar(' ');
-			bprintf(text[CfgGrpLstFmt],i+1,cfg.grp[usrgrp[i]]->lname); 
+			bprintf(text[CfgGrpLstFmt],i+1,cfg.grp[usrgrp[i]]->lname);
 		}
 		SYNC;
 		if(misc&SUB_CFG_NSCAN)
@@ -441,7 +455,7 @@ void sbbs_t::new_scan_cfg(ulong misc)
 			s=getkeys("AQ",usrsubs[i]);
 			if(sys_status&SS_ABORT) {
 				lncntr=0;
-				return; 
+				return;
 			}
 			if(!s || s==-1 || s=='Q')
 				break;
@@ -456,20 +470,20 @@ void sbbs_t::new_scan_cfg(ulong misc)
 					else  {
 						if(misc&SUB_CFG_NSCAN)
 							subscan[usrsub[i][j]].cfg&=~SUB_CFG_YSCAN;
-						subscan[usrsub[i][j]].cfg|=misc; 
-					} 
+						subscan[usrsub[i][j]].cfg|=misc;
+					}
 				}
-				continue; 
+				continue;
 			}
 			j=(s&~0x80000000L)-1;
 			if(misc&SUB_CFG_NSCAN && !(subscan[usrsub[i][j]].cfg&misc)) {
 				if(!(useron.rest&FLAG('Q')) && !noyes("Messages to you only"))
 					subscan[usrsub[i][j]].cfg|=SUB_CFG_YSCAN;
 				else
-					subscan[usrsub[i][j]].cfg&=~SUB_CFG_YSCAN; 
+					subscan[usrsub[i][j]].cfg&=~SUB_CFG_YSCAN;
 			}
-			subscan[usrsub[i][j]].cfg^=misc; 
-		} 
+			subscan[usrsub[i][j]].cfg^=misc;
+		}
 	}
 }
 
