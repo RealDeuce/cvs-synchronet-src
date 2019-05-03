@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.694 2019/05/03 00:16:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.695 2019/05/03 03:00:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1566,7 +1566,6 @@ static void pop3_thread(void* arg)
 								,socket, client.protocol, user.alias, i, smb.last_error);
 						} else {
 							msg.hdr.attr|=MSG_READ;
-							msg.hdr.netattr|=MSG_SENT;
 
 							if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) 
 								lprintf(LOG_ERR,"%04d %s <%s> !ERROR %d (%s) locking message header #%u"
@@ -5623,6 +5622,7 @@ static void sendmail_thread(void* arg)
 
 			/* Now lets mark this message for deletion without corrupting the index */
 			msg.hdr.attr|=MSG_DELETE;
+			msg.hdr.netattr|=MSG_SENT;
 			msg.hdr.netattr&=~MSG_INTRANSIT;
 			if((i=smb_updatemsg(&smb,&msg))!=SMB_SUCCESS)
 				lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) deleting message #%u"
@@ -5747,7 +5747,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.694 $", "%*s %s", revision);
+	sscanf("$Revision: 1.695 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
