@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.49 2019/07/06 07:52:22 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.47 2019/04/26 00:25:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,7 @@
 /****************************************************************************/
 char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 {
-	uint 	tmpatr;
-	char 	tmp2[256],tmp3[128];
+	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
 	char*	str=(char*)buf;
 	uchar	exatr=0;
@@ -65,10 +64,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
-	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
-		mode |= P_UTF8;
-		str += 3;
-	}
 	long term = term_supports();
 	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
 		mode &= ~P_WORDWRAP;
@@ -96,30 +91,18 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		}
 	}
 
-	size_t len = strlen(str);
-	while(l < len && (mode&P_NOABORT || !msgabort()) && online) {
-		switch(str[l]) {
-			case '\r':
-			case '\n':
-			case FF:
-			case CTRL_A:
-				break;
-			default: // printing char
-				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
+		if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+			switch(str[l]) {
+				case '\r':
+				case '\n':
+				case FF:
+				case CTRL_A:
+					break;
+				default:
 					l++;
 					continue;
-				} else if(mode&P_WRAP) {
-					if(org_cols) {
-						if(column > (org_cols - 1)) {
-							CRLF;
-						}
-					} else {
-						if(column >= (cols - 1)) {
-							CRLF;
-						}
-					}
-				}
-				break;
+			}
 		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
@@ -360,20 +343,14 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			}
 			if(mode&P_CPM_EOF && str[l]==CTRL_Z)
 				break;
-			size_t skip = sizeof(char);
 			if(mode&P_PETSCII) {
 				if(term&PETSCII)
 					outcom(str[l]);
 				else
 					petscii_to_ansibbs(str[l]);
-			} else if((str[l]&0x80) && (mode&P_UTF8)) {
-				if(term&UTF8)
-					outcom(str[l]);
-				else
-					skip = utf8_to_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
-			l += skip;
+			l++;
 		}
 	}
 	if(!(mode&P_SAVEATR)) {
