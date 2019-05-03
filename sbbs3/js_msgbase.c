@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.251 2019/08/06 05:04:30 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.245 2019/05/03 00:27:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -58,6 +58,18 @@ typedef struct
 
 } privatemsg_t;
 
+static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
+
+JSBool JS_ValueToUint32(JSContext *cx, jsval v, uint32 *ip)
+{
+	jsdouble d;
+
+	if(!JS_ValueToNumber(cx, v, &d))
+		return JS_FALSE;
+	*ip = (uint32)d;
+	return JS_TRUE;
+}
+
 /* Destructor */
 
 static void js_finalize_msgbase(JSContext *cx, JSObject *obj)
@@ -77,8 +89,6 @@ static void js_finalize_msgbase(JSContext *cx, JSObject *obj)
 
 /* Methods */
 
-extern JSClass js_msgbase_class;
-
 static JSBool
 js_open(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -86,7 +96,8 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	private_t* p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -118,7 +129,8 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 	private_t* p;
 	jsrefcount	rc;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -832,7 +844,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	prop_name = "columns";
 	hfield_type = SMB_COLUMNS;
 	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToECMAUint32(cx, val, &u32)) {
+		if(!JS_ValueToUint32(cx, val, &u32)) {
 			JS_ReportError(cx, "Invalid \"%s\" number in header object", prop_name);
 			goto err;
 		}
@@ -858,7 +870,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToECMAUint32(cx,val,&u32))
+		if(!JS_ValueToUint32(cx,val,&u32))
 			goto err;
 		msg->hdr.auxattr=u32;
 	}
@@ -908,11 +920,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		msg->hdr.thread_first=i32;
-	}
-	if(JS_GetProperty(cx, hdr, "delivery_attempts", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
-			goto err;
-		msg->hdr.delivery_attempts=i32;
 	}
 
 	if(JS_GetProperty(cx, hdr, "priority", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -1098,7 +1105,8 @@ js_get_msg_index(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -1170,7 +1178,8 @@ js_get_index(JSContext *cx, uintN argc, jsval *arglist)
 
     JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(array));
 
-	if((priv=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((priv=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -1223,13 +1232,6 @@ js_get_index(JSContext *cx, uintN argc, jsval *arglist)
 	return JS_TRUE;
 }
 
-#define LAZY_BOOLEAN(PropName, PropValue, flags) \
-	if(name==NULL || strcmp(name, (PropName))==0) { \
-		if(name) free(name); \
-		v=INT_TO_BOOL((PropValue)); \
-		JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
-		if(name) return JS_TRUE; \
-	}
 
 #define LAZY_INTEGER(PropName, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
@@ -1390,8 +1392,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER_EXPAND("columns", p->msg.columns, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("mime_version", p->msg.mime_version, JSPROP_ENUMERATE|JSPROP_READONLY);
 	LAZY_STRING_TRUNCSP_NULL("content_type", p->msg.content_type, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_STRING_TRUNCSP_NULL("text_charset", p->msg.text_charset, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_STRING_TRUNCSP_NULL("text_subtype", p->msg.text_subtype, JSPROP_ENUMERATE|JSPROP_READONLY);
+	LAZY_STRING_TRUNCSP_NULL("charset", p->msg.charset, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	/* Fixed length portion of msg header */
 	LAZY_UINTEGER("type", p->msg.hdr.type, JSPROP_ENUMERATE);
@@ -1421,7 +1422,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER("upvotes", p->msg.upvotes, JSPROP_ENUMERATE|JSPROP_READONLY);
 	LAZY_UINTEGER("downvotes", p->msg.downvotes, JSPROP_ENUMERATE|JSPROP_READONLY);
 	LAZY_UINTEGER("total_votes", p->msg.total_votes, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_BOOLEAN("is_utf8", smb_msg_is_utf8(&p->msg), JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(name==NULL || strcmp(name,"reply_id")==0) {
 		if(name) free(name);
@@ -1683,7 +1683,8 @@ js_get_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	memset(p,0,sizeof(privatemsg_t));
 
-	if((p->p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p->p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		free(p);
 		return JS_FALSE;
 	}
@@ -1822,7 +1823,8 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((priv=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((priv=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2003,7 +2005,8 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2114,7 +2117,8 @@ js_remove_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2255,7 +2259,8 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2369,7 +2374,8 @@ js_get_msg_tail(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2478,7 +2484,8 @@ js_save_msg(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc<2)
 		return JS_TRUE;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2627,7 +2634,8 @@ js_vote_msg(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc < 1)
 		return JS_TRUE;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class)) == NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx, obj)) == NULL) {
+		JS_ReportError(cx, getprivate_failure, WHERE);
 		return JS_FALSE;
 	}
 
@@ -2694,7 +2702,8 @@ js_add_poll(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc < 1)
 		return JS_TRUE;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class)) == NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj)) == NULL) {
+		JS_ReportError(cx, getprivate_failure, WHERE);
 		return JS_FALSE;
 	}
 
@@ -2753,7 +2762,8 @@ js_how_user_voted(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2794,7 +2804,8 @@ js_close_poll(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -2844,7 +2855,8 @@ static JSBool js_msgbase_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
     jsint       tiny;
 	private_t*	p;
 
-	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
+	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL) {
+		JS_ReportError(cx,getprivate_failure,WHERE);
 		return JS_FALSE;
 	}
 
@@ -3008,10 +3020,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	{"get_msg_header",	js_get_msg_header,	4, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id [,expand_fields=<tt>true</tt>] [,include_votes=<tt>false</tt>]")
 	,JSDOCSTR("returns a specific message header, <i>null</i> on failure. "
 	"<br><i>New in v3.12:</i> Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
-	"if you will be re-writing the header later with <i>put_msg_header()</i>"
-	"<br>"
-	"Additional read-only header properties: <i>mime_version</i>, <i>content_type</i>, and <i>is_utf8</i>"
-	)
+	"if you will be re-writing the header later with <i>put_msg_header()</i>")
 	,312
 	},
 	{"get_all_msg_headers", js_get_all_msg_headers, 1, JSTYPE_OBJECT, JSDOCSTR("[include_votes=<tt>false</tt>] [,expand_fields=<tt>true</tt>]")
@@ -3033,7 +3042,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 		"The <i>by_offfset</i> (<tt>true</tt>) argument should only be passed when the argument following it is the numeric index-offset of the message to be "
 		"retrieved. By default (<i>by_offset</i>=<tt>false</tt>), a numeric argument would be interpreted as the message <i>number</i> to be retrieved."
 		"<br>"
-		"After reading a multi-part MIME-encoded message, new header properties may be available: <i>text_charset</i> and <i>text_subtype</i>."
+		"After reading/parsing MIME plain-text, a new <i>charset</i> header property (string) may be available to reflect the content-type 'charset' value."
 	)
 	,310
 	},
@@ -3108,6 +3117,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>replyto_list</tt><td>Comma-separated list of mailboxes to reply-to, RFC822-style"
 	"<tr><td align=top><tt>mime-version</tt><td>MIME Version (optional)"
 	"<tr><td align=top><tt>content-type</tt><td>MIME Content-Type (optional)"
+	"<tr><td align=top><tt>charset</tt><td>MIME plain-text charset value (optional)"
 	"<tr><td align=top><tt>summary</tt><td>Message Summary (optional)"
 	"<tr><td align=top><tt>tags</tt><td>Message Tags (space-delimited, optional)"
 	"<tr><td align=top><tt>id</tt><td>Message's RFC-822 compliant Message-ID"
@@ -3220,7 +3230,7 @@ static JSBool js_msgbase_enumerate(JSContext *cx, JSObject *obj)
 	return(js_msgbase_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_msgbase_class = {
+static JSClass js_msgbase_class = {
      "MsgBase"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
