@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.693 2019/05/01 07:44:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.694 2019/05/03 00:16:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -731,6 +731,10 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		return(0);
 	if(msg->reply_id!=NULL)
 		if(!sockprintf(socket,prot,sess,"In-Reply-To: %s",msg->reply_id))
+			return(0);
+
+	if(msg->hdr.priority != SMB_PRIORITY_UNSPECIFIED)
+		if(!sockprintf(socket,prot,sess,"X-Priority: %u", (uint)msg->hdr.priority))
 			return(0);
 
 	originator_info(socket, prot, sess, msg);
@@ -2430,6 +2434,14 @@ static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
 	if(!stricmp(field, "RETURN-PATH")) {
 		*type=UNKNOWN;
 		return SMB_SUCCESS;	/* Ignore existing "Return-Path" header fields */
+	}
+
+	if(!stricmp(field, "X-PRIORITY")) {
+		msg->hdr.priority = atoi(p);
+		if(msg->hdr.priority > SMB_PRIORITY_LOWEST)
+			msg->hdr.priority = SMB_PRIORITY_UNSPECIFIED;
+		*type=UNKNOWN;
+		return SMB_SUCCESS;
 	}
 
 	/* Fall-through */
@@ -5735,7 +5747,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.693 $", "%*s %s", revision);
+	sscanf("$Revision: 1.694 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
