@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.233 2019/06/03 23:10:21 deuce Exp $
+# $Id: GNUmakefile,v 1.232 2018/10/17 19:41:06 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -84,7 +84,6 @@ else
  endif
 endif
 export LD_RUN_PATH
-LDFLAGS += -rpath $(LD_RUN_PATH)
 
 CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared

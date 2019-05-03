@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.59 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: str_util.c,v 1.58 2019/02/08 02:39:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -521,7 +521,6 @@ BOOL DLLCALL valid_ctrl_a_attr(char a)
 		case 'C':   /* cyan     fg  */
 		case 'G':   /* green    fg  */
 		case 'H':   /* high     fg  */
-		case 'E':	/* high		bg	*/
 		case 'I':   /* blink        */
 		case 'K':   /* black    fg  */
 		case 'M':   /* magenta  fg  */
