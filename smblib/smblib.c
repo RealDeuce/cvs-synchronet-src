@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.195 2019/04/30 08:21:53 rswindell Exp $ */
+/* $Id: smblib.c,v 1.196 2019/05/03 00:13:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -820,9 +820,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 			break;
 		case SMB_EXPIRATION:
 			msg->expiration=*(uint32_t*)hfield_dat;
-			break;
-		case SMB_PRIORITY:
-			msg->priority=*(uint32_t*)hfield_dat;
 			break;
 		case SMB_COST:
 			msg->cost=*(uint32_t*)hfield_dat;
