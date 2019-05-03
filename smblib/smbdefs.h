@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.119 2019/07/30 10:20:20 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.115 2019/05/03 00:13:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -188,7 +188,6 @@
 #define REPLYTOEXT			0x24
 #define REPLYTOPOS			0x25
 #define REPLYTOORG			0x26
-#define REPLYTOLIST			0x27
 
 #define RECIPIENT			0x30
 #define RECIPIENTAGENT		0x31
@@ -197,7 +196,6 @@
 #define RECIPIENTEXT		0x34
 #define RECIPIENTPOS		0x35
 #define RECIPIENTORG		0x36
-#define RECIPIENTLIST		0x37
 
 #define FORWARDED			0x48
 
@@ -209,7 +207,7 @@
 #define SMB_EXPIRATION		0x65
 #define SMB_PRIORITY		0x66	/* DEPRECATED */
 #define SMB_COST			0x67
-#define	SMB_EDITOR			0x68	/* Associated with FTN ^aNOTE: control line */
+#define	SMB_EDITOR			0x68
 #define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
 #define SMB_TAG_DELIMITER	" "
 #define SMB_COLUMNS			0x6a	/* original text editor width in fixed-width columns */
@@ -223,19 +221,13 @@
 #define FIDOPID 			0xa6
 #define FIDOFLAGS			0xa7
 #define FIDOTID 			0xa8
-#define FIDOCHARSET			0xa9	// CHRS or CHARSET control line
 
-// RFC822* header field values are strings of US-ASCII chars, but potentially MIME-encoded (RFC2047)
-// (i.e. base64 or Q-encoded UTF-8, ISO-8859-1, etc.)
 #define RFC822HEADER		0xb0
 #define RFC822MSGID 		0xb1
 #define RFC822REPLYID		0xb2
 #define RFC822TO			0xb3		// Comma-separated list of recipients, RFC822-style
 #define RFC822FROM			0xb4		// Original, unparsed/modified RFC822 header "From" value
 #define RFC822REPLYTO		0xb5		// Comma-separated list of recipients, RFC822-style
-#define RFC822CC			0xb6
-#define RFC822ORG			0xb7
-#define RFC822SUBJECT		0xb8
 
 #define USENETPATH			0xc0
 #define USENETNEWSGROUPS	0xc1
@@ -264,7 +256,7 @@
 #define MSG_PRIVATE 		(1<<0)
 #define MSG_READ			(1<<1)
 #define MSG_PERMANENT		(1<<2)
-#define MSG_LOCKED			(1<<3)		/* DEPRECATED (never used) */
+#define MSG_LOCKED			(1<<3)
 #define MSG_DELETE			(1<<4)
 #define MSG_ANONYMOUS		(1<<5)
 #define MSG_KILLREAD		(1<<6)
@@ -291,7 +283,6 @@
 #define MSG_RECEIPTREQ		(1<<4)		/* Return receipt requested */
 #define MSG_CONFIRMREQ		(1<<5)		/* Confirmation receipt requested */
 #define MSG_NODISP			(1<<6)		/* Msg may not be displayed to user */
-#define MSG_HFIELDS_UTF8	(1<<13)		/* Message header fields are UTF-8 encoded */
 #define POLL_CLOSED			(1<<24)		/* Closed to voting */
 #define POLL_RESULTS_MASK	(3U<<30)	/* 4 possible values: */
 #define POLL_RESULTS_SECRET	(3U<<30)	/* No one but pollster can see results */
@@ -560,7 +551,6 @@ typedef struct {				/* Message */
 				*ftn_tid,		/* FTN TID */
 				*ftn_area,		/* FTN AREA */
 				*ftn_flags,		/* FTN FLAGS */
-				*ftn_charset,	/* FTN CHRS */
 				*ftn_msgid,		/* FTN MSGID */
 				*ftn_reply;		/* FTN REPLY */
 	char*		summary;		/* Summary  */
@@ -569,8 +559,7 @@ typedef struct {				/* Message */
 	char*		editor;			/* Message editor (if known) */
 	char*		mime_version;	/* MIME Version (if applicable) */
 	char*		content_type;	/* MIME Content-Type (if applicable) */
-	char*		text_charset;	/* MIME text <charset>  (if applicable) - malloc'd */
-	char*		text_subtype;	/* MIME text/<sub-type> (if applicable) - malloc'd */
+	char*		charset;		/* MIME plain-text/charset value (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
