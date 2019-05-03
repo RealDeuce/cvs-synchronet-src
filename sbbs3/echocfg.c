@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.45 2019/06/22 22:53:12 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.41 2019/04/30 09:12:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,8 +93,6 @@ void global_settings(void)
 			sprintf(opt[i++], "%-25s %lu", "BSO Lock Attempt Limit", cfg.bso_lock_attempts);
 			sprintf(opt[i++], "%-25s %s", "BinkP Capabilities", cfg.binkp_caps);
 			sprintf(opt[i++], "%-25s %s", "BinkP Sysop Name", cfg.binkp_sysop);
-			sprintf(opt[i++], "%-25s %s", "BinkP Authentication", cfg.binkp_plainAuthOnly ? "Plain Only" : "Plain or CRAM-MD5");
-			sprintf(opt[i++], "%-25s %s", "BinkP Encryption", !cfg.binkp_plainTextOnly && !cfg.binkp_plainAuthOnly ? "Supported" : "Unsupported");
 		}
 		opt[i][0] = 0;
 		uifc.helpbuf=
@@ -165,17 +163,8 @@ void global_settings(void)
 			"    command). Default capabilities value is '115200,TCP,BINKP'\n"
 			"\n"
 			"`BinkP Sysop` may be used to over-ride the default BinkP sysop name\n"
-			"    sent during a `BinkIT` mailer session (via the ZYZ command).\n"
+			"    sent during a `BinkIT` mailer session (via the ZYZ comamnd).\n"
 			"    Default sysop name is that set in `SCFG->System->Operator`\n"
-			"\n"
-			"`BinkP Authentication` may be set to `Plain Only` if you wish to disable\n"
-			"    CRAM-MD5 authentication for both inbound and outbound sessions.\n"
-		    "    Note: CRAM-MD5 authentication is required for encrypted sessions.\n"
-			"    Default: Plain or CRAM-MD5\n"
-			"\n"
-			"`BinkP Encryption` may be set to `Supported` (the default) only when\n"
-			"    BinkP Authentication is set to Plain or CRAM-MD5.\n"
-			"    Default: Supported\n"
 			;
 
 		int key = uifc.list(WIN_BOT|WIN_L2R|WIN_ACT|WIN_SAV, 0, 0, 0, &global_opt,0, "Global Settings", opt);
@@ -269,43 +258,6 @@ void global_settings(void)
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Sysop Name (BinkIT)", cfg.binkp_sysop, sizeof(cfg.binkp_sysop)-1, K_EDIT);
 				break;
-
-			case 13:
-			{
-				int k = !cfg.binkp_plainAuthOnly;
-				strcpy(opt[0], "Plain-Password Only");
-				strcpy(opt[1], "Plain-Password or CRAM-MD5");
-				opt[2][0] = 0;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"BinkP Authentication",opt)) {
-					case 0:
-						cfg.binkp_plainAuthOnly = true;
-						break;
-					case 1:
-						cfg.binkp_plainAuthOnly = false;
-						break;
-				}
-				break;
-			}
-
-			case 14:
-			{
-				if(cfg.binkp_plainAuthOnly) {
-					uifc.msg("CRAM-MD5 authentication/encryption has been disabled globally");
-					break;
-				}
-				int k = cfg.binkp_plainTextOnly;
-				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-					,"BinkP Encryption Supported",uifcYesNoOpts)) {
-					case 0:
-						cfg.binkp_plainTextOnly = false;
-						break;
-					case 1:
-						cfg.binkp_plainTextOnly = true;
-						break;
-				}
-				break;
-			}
 		}
 	}
 }
@@ -398,9 +350,8 @@ void binkp_settings(nodecfg_t* node)
 		sprintf(opt[i++], "%-20s %s", "Poll", node->binkp_poll ? "Yes" : "No");
 		char* auth = "Plain Only";
 		char* crypt = "Unsupported";
-		if(!cfg.binkp_plainAuthOnly && !node->binkp_plainAuthOnly) {
-			if(!cfg.binkp_plainTextOnly)
-				crypt = node->binkp_allowPlainText ? "Supported" : "Required";
+		if(!node->binkp_plainAuthOnly) {
+			crypt = node->binkp_allowPlainText ? "Supported" : "Required";
 			if(node->binkp_allowPlainAuth) 
 				auth = "Plain or CRAM-MD5";
 			else
@@ -430,8 +381,6 @@ void binkp_settings(nodecfg_t* node)
 			"`Authentication` determines what types of authentication will be supported\n"
 			"    during both inbound and outbound sessions with this linked node.\n"
 			"    The supported BinkP-auth methods are `Plain-Password` and `CRAM-MD5`.\n"
-			"    Note: For `incoming` connections, CRAM-MD5 will be supported unless\n"
-			"    CRAM-MD5 authentication has been `globally` disabled.\n"
 			"\n"
 			"`Encryption` determines whether unencrypted data transfers will be\n"
 			"    supported or required when communicating with this linked node.\n"
@@ -468,10 +417,6 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 3:
-				if(cfg.binkp_plainAuthOnly) {
-					uifc.msg("CRAM-MD5 authentication/ has been disabled globally");
-					break;
-				}
 				k = node->binkp_plainAuthOnly ? 0 : (1 + !node->binkp_allowPlainAuth);
 				strcpy(opt[0], "Plain-Password Only");
 				strcpy(opt[1], "Plain-Password or CRAM-MD5");
@@ -499,14 +444,6 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 4:
-				if(cfg.binkp_plainTextOnly) {
-					uifc.msg("BinkP encryption has been disabled globally");
-					break;
-				}
-				if(cfg.binkp_plainAuthOnly) {
-					uifc.msg("CRAM-MD5 authentication/encryption has been disabled globally");
-					break;
-				}
 				k = !node->binkp_allowPlainText;
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Allow Plain-Text (Unencrypted) Sessions",uifcYesNoOpts)) {
@@ -2419,10 +2356,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 8:
-				uifc.pop("Writing config ...");
-				bool success = sbbsecho_write_ini(&cfg);
-				uifc.pop(NULL);
-				if(!success)
+				if(!sbbsecho_write_ini(&cfg))
 					uifc.msg("Error saving configuration file");
 				else {
 					orig_cfg = cfg;
@@ -2436,13 +2370,10 @@ int main(int argc, char **argv)
 		"Select `Yes` to save the config file, `No` to quit without saving,\n"
 		"or hit ~ ESC ~ to go back to the menu.\n\n";
 					i=0;
-					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
+					i=uifc.list(WIN_MID,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
 					if(i==-1) break;
 					if(i == 0) {
-						uifc.pop("Writing config ...");
-						bool success = sbbsecho_write_ini(&cfg);
-						uifc.pop(NULL);
-						if(!success)
+						if(!sbbsecho_write_ini(&cfg))
 							uifc.msg("Error saving configuration file");
 					}
 				}
