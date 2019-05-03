@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.c,v 1.166 2019/01/13 00:04:42 rswindell Exp $ */
+/* $Id: sbbs_ini.c,v 1.169 2019/03/24 07:11:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -47,8 +47,8 @@ static const char*  strAutoStart="AutoStart";
 static const char*  strCtrlDirectory="CtrlDirectory";
 static const char*  strTempDirectory="TempDirectory";
 static const char*	strOptions="Options";
-static const char*	strOutgoing4="OutgoingV4";
-static const char*	strOutgoing6="OutgoingV6";
+static const char*	strOutgoing4="OutboundInterface";
+static const char*	strOutgoing6="OutboundV6Interface";
 static const char*	strInterfaces="Interface";
 static const char*	strPort="Port";
 static const char*	strMaxClients="MaxClients";
@@ -745,7 +745,9 @@ BOOL sbbs_write_ini(
 
 	memset(&style, 0, sizeof(style));
 	style.key_prefix = "\t";
-    style.bit_separator = " | ";
+	style.section_separator = "";
+	style.value_separator = " = ";
+	style.bit_separator = " | ";
 
 	if((list=iniReadFile(fp))==NULL)
 		return(FALSE);
