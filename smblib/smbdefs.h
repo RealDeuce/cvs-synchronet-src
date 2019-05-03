@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.115 2019/05/03 00:13:02 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.116 2019/05/03 02:49:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -256,7 +256,7 @@
 #define MSG_PRIVATE 		(1<<0)
 #define MSG_READ			(1<<1)
 #define MSG_PERMANENT		(1<<2)
-#define MSG_LOCKED			(1<<3)
+#define MSG_LOCKED			(1<<3)		/* DEPRECATED (never used) */
 #define MSG_DELETE			(1<<4)
 #define MSG_ANONYMOUS		(1<<5)
 #define MSG_KILLREAD		(1<<6)
