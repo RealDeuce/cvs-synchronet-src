@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.252 2019/08/23 04:50:06 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.247 2019/05/04 03:09:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,6 +57,16 @@ typedef struct
 	post_t		post;
 
 } privatemsg_t;
+
+JSBool JS_ValueToUint32(JSContext *cx, jsval v, uint32 *ip)
+{
+	jsdouble d;
+
+	if(!JS_ValueToNumber(cx, v, &d))
+		return JS_FALSE;
+	*ip = (uint32)d;
+	return JS_TRUE;
+}
 
 /* Destructor */
 
@@ -774,19 +784,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		}
 	}
 
-	if(JS_GetProperty(cx, hdr, "ftn_charset", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"ftn_charset\" string in header object");
-			goto err;
-		}
-		if((smb_result = smb_hfield_str(msg, FIDOCHARSET, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOCHARSET field to message header", smb_result);
-			goto err;
-		}
-	}
-
 	if(JS_GetProperty(cx, hdr, "date", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
 		HANDLE_PENDING(cx, cp);
@@ -845,7 +842,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	prop_name = "columns";
 	hfield_type = SMB_COLUMNS;
 	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToECMAUint32(cx, val, &u32)) {
+		if(!JS_ValueToUint32(cx, val, &u32)) {
 			JS_ReportError(cx, "Invalid \"%s\" number in header object", prop_name);
 			goto err;
 		}
@@ -871,7 +868,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToECMAUint32(cx,val,&u32))
+		if(!JS_ValueToUint32(cx,val,&u32))
 			goto err;
 		msg->hdr.auxattr=u32;
 	}
@@ -921,11 +918,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		msg->hdr.thread_first=i32;
-	}
-	if(JS_GetProperty(cx, hdr, "delivery_attempts", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
-			goto err;
-		msg->hdr.delivery_attempts=i32;
 	}
 
 	if(JS_GetProperty(cx, hdr, "priority", &val) && !JSVAL_NULL_OR_VOID(val)) {
@@ -1236,13 +1228,6 @@ js_get_index(JSContext *cx, uintN argc, jsval *arglist)
 	return JS_TRUE;
 }
 
-#define LAZY_BOOLEAN(PropName, PropValue, flags) \
-	if(name==NULL || strcmp(name, (PropName))==0) { \
-		if(name) free(name); \
-		v=INT_TO_BOOL((PropValue)); \
-		JS_DefineProperty(cx, obj, (PropName), v, NULL,NULL,flags); \
-		if(name) return JS_TRUE; \
-	}
 
 #define LAZY_INTEGER(PropName, PropValue, flags) \
 	if(name==NULL || strcmp(name, (PropName))==0) { \
@@ -1403,8 +1388,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER_EXPAND("columns", p->msg.columns, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("mime_version", p->msg.mime_version, JSPROP_ENUMERATE|JSPROP_READONLY);
 	LAZY_STRING_TRUNCSP_NULL("content_type", p->msg.content_type, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_STRING_TRUNCSP_NULL("text_charset", p->msg.text_charset, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_STRING_TRUNCSP_NULL("text_subtype", p->msg.text_subtype, JSPROP_ENUMERATE|JSPROP_READONLY);
+	LAZY_STRING_TRUNCSP_NULL("charset", p->msg.charset, JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	/* Fixed length portion of msg header */
 	LAZY_UINTEGER("type", p->msg.hdr.type, JSPROP_ENUMERATE);
@@ -1434,7 +1418,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_UINTEGER("upvotes", p->msg.upvotes, JSPROP_ENUMERATE|JSPROP_READONLY);
 	LAZY_UINTEGER("downvotes", p->msg.downvotes, JSPROP_ENUMERATE|JSPROP_READONLY);
 	LAZY_UINTEGER("total_votes", p->msg.total_votes, JSPROP_ENUMERATE|JSPROP_READONLY);
-	LAZY_BOOLEAN("is_utf8", smb_msg_is_utf8(&p->msg), JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	if(name==NULL || strcmp(name,"reply_id")==0) {
 		if(name) free(name);
@@ -1497,7 +1480,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING_TRUNCSP_NULL("ftn_tid", p->msg.ftn_tid, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("ftn_area", p->msg.ftn_area, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("ftn_flags", p->msg.ftn_flags, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("ftn_charset", p->msg.ftn_charset, JSPROP_ENUMERATE);
 
 	if(name==NULL || strcmp(name,"field_list")==0) {
 		if(name) free(name);
@@ -3022,10 +3004,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	{"get_msg_header",	js_get_msg_header,	4, JSTYPE_OBJECT,	JSDOCSTR("[by_offset=<tt>false</tt>,] number_or_offset_or_id [,expand_fields=<tt>true</tt>] [,include_votes=<tt>false</tt>]")
 	,JSDOCSTR("returns a specific message header, <i>null</i> on failure. "
 	"<br><i>New in v3.12:</i> Pass <i>false</i> for the <i>expand_fields</i> argument (default: <i>true</i>) "
-	"if you will be re-writing the header later with <i>put_msg_header()</i>"
-	"<br>"
-	"Additional read-only header properties: <i>mime_version</i>, <i>content_type</i>, and <i>is_utf8</i>"
-	)
+	"if you will be re-writing the header later with <i>put_msg_header()</i>")
 	,312
 	},
 	{"get_all_msg_headers", js_get_all_msg_headers, 1, JSTYPE_OBJECT, JSDOCSTR("[include_votes=<tt>false</tt>] [,expand_fields=<tt>true</tt>]")
@@ -3047,7 +3026,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 		"The <i>by_offfset</i> (<tt>true</tt>) argument should only be passed when the argument following it is the numeric index-offset of the message to be "
 		"retrieved. By default (<i>by_offset</i>=<tt>false</tt>), a numeric argument would be interpreted as the message <i>number</i> to be retrieved."
 		"<br>"
-		"After reading a multi-part MIME-encoded message, new header properties may be available: <i>text_charset</i> and <i>text_subtype</i>."
+		"After reading/parsing MIME plain-text, a new <i>charset</i> header property (string) may be available to reflect the content-type 'charset' value."
 	)
 	,310
 	},
@@ -3122,6 +3101,7 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>replyto_list</tt><td>Comma-separated list of mailboxes to reply-to, RFC822-style"
 	"<tr><td align=top><tt>mime-version</tt><td>MIME Version (optional)"
 	"<tr><td align=top><tt>content-type</tt><td>MIME Content-Type (optional)"
+	"<tr><td align=top><tt>charset</tt><td>MIME plain-text charset value (optional)"
 	"<tr><td align=top><tt>summary</tt><td>Message Summary (optional)"
 	"<tr><td align=top><tt>tags</tt><td>Message Tags (space-delimited, optional)"
 	"<tr><td align=top><tt>id</tt><td>Message's RFC-822 compliant Message-ID"
@@ -3136,7 +3116,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>ftn_flags</tt><td>FidoNet FSC-53 FLAGS"
 	"<tr><td align=top><tt>ftn_pid</tt><td>FidoNet FSC-46 Program Identifier"
 	"<tr><td align=top><tt>ftn_tid</tt><td>FidoNet FSC-46 Tosser Identifier"
-	"<tr><td align=top><tt>ftn_charset</tt><td>FidoNet FTS-5003 Character Set Identifier"
 	"<tr><td align=top><tt>date</tt><td>RFC-822 formatted date/time"
 	"<tr><td align=top><tt>attr</tt><td>Attribute bitfield"
 	"<tr><td align=top><tt>auxattr</tt><td>Auxillary attribute bitfield"
