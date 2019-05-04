@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.96 2019/04/28 10:03:24 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.97 2019/05/04 05:25:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -434,6 +434,8 @@ int sbbs_t::outchar(char ch)
 	else {
 		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+		if(ch == '\r' && (console&CON_CR_CLREOL))
+			cleartoeol();
 		if(term&PETSCII) {
 			uchar pet = cp437_to_petscii(ch);
 			if(pet == PETSCII_SOLID)
