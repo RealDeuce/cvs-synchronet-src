@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.67 2019/02/20 05:43:18 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.71 2019/04/12 00:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,7 +103,7 @@ bool sbbs_t::lookup_netuser(char *into)
 bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resmb, smbmsg_t* remsg)
 {
 	char	str[256],fname[128],*buf,*p,ch;
-	char	to[FIDO_NAME_LEN] = "";
+	char	to[256] = "";
 	char	from[FIDO_NAME_LEN]= "";
 	char	subj[FIDO_SUBJ_LEN]= "";
 	char	msgpath[MAX_PATH+1];
@@ -135,10 +135,17 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	if(remsg != NULL) {
 		if(subj[0] == 0 && remsg->subj != NULL)
 			SAFECOPY(subj, remsg->subj);
-		if(to[0] == 0 && remsg->from != NULL)
-			SAFECOPY(to, remsg->from);
-//		if(addr[0] == 0 && remsg->from_net.addr != NULL)
-//			smb_netaddrstr(&remsg->from_net, addr);
+		if(to[0] == 0) {
+			if((p = smb_netaddrstr(&remsg->from_net, tmp)) != NULL) {
+				if(strchr(p, '@')) {
+					SAFECOPY(to, p);
+				} else {
+					SAFEPRINTF2(to, "%s@%s", remsg->from, p);
+				}
+			} else {
+				SAFECOPY(to, remsg->from);
+			}
+		}
 	}
 
 	lookup_netuser(to);
@@ -150,8 +157,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		qnetmail(to, title, mode);
-		return false; 
+		return qnetmail(to, title, mode, resmb, remsg);
 	}
 	if(net_type == NET_INTERNET) {
 		if(!(cfg.inetmail_misc&NMAIL_ALLOW)) {
@@ -162,7 +168,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return inetmail(into, title, mode, resmb, remsg);
+		return inetmail(to, title, mode, resmb, remsg);
 	}
 	p=strrchr(to,'@');      /* Find '@' in name@addr */
 	if(p==NULL || net_type != NET_FIDO) {
@@ -234,7 +240,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	}
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB, into, from, &editor)) {
+	if(!writemsg(msgpath,nulstr,subj,WM_NETMAIL|mode,INVALID_SUB, to, from, &editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -344,9 +350,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 
 	smb_hfield_str(&msg,SUBJECT, subj);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor);
 
 	if(cfg.netmail_misc&NMAIL_DIRECT)
 		msg.hdr.netattr |= MSG_DIRECT;
