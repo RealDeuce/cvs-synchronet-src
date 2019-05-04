@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.236 2019/04/12 00:10:39 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.239 2019/05/04 05:25:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -70,6 +70,7 @@
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
 #define STR_UNKNOWN_USER	"<unknown user>"
+#define STR_NO_HOSTNAME		"<no name>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
@@ -485,6 +486,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_HIGH_FONT	(1<<19)	/* Alt high-intensity font activated		*/
 #define CON_BLINK_FONT	(1<<20)	/* Alt blink attribute font activated		*/
 #define CON_HBLINK_FONT	(1<<21)	/* Alt high-blink attribute font activated	*/
+#define CON_CR_CLREOL	(1<<31)	// outchar('\r') clears to end-of-line first
 
 							/* Number of milliseconds						*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
@@ -652,8 +654,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 #define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
+#define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B

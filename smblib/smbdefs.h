@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.112 2019/04/11 20:29:15 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.116 2019/05/03 02:49:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -181,7 +181,7 @@
 #define SENDERTIME			0x0d		/* authentication/connection time */
 #define SENDERSERVER		0x0e		/* server hostname that authenticated user */
 
-#define REPLYTO 			0x20
+#define REPLYTO 			0x20		/* Name only */
 #define REPLYTOAGENT		0x21
 #define REPLYTONETTYPE		0x22
 #define REPLYTONETADDR		0x23
@@ -202,10 +202,10 @@
 #define SUBJECT 			0x60	/* or filename */
 #define SMB_SUMMARY 		0x61	/* or file description */
 #define SMB_COMMENT 		0x62
-#define SMB_CARBONCOPY		0x63
+#define SMB_CARBONCOPY		0x63	/* Comma-separated list of secondary recipients, RFC822-style */
 #define SMB_GROUP			0x64
 #define SMB_EXPIRATION		0x65
-#define SMB_PRIORITY		0x66
+#define SMB_PRIORITY		0x66	/* DEPRECATED */
 #define SMB_COST			0x67
 #define	SMB_EDITOR			0x68
 #define SMB_TAGS			0x69	/* List of tags (ala hash-tags) related to this message */
@@ -225,9 +225,9 @@
 #define RFC822HEADER		0xb0
 #define RFC822MSGID 		0xb1
 #define RFC822REPLYID		0xb2
-#define RFC822TO			0xb3
-#define RFC822FROM			0xb4
-#define RFC822REPLYTO		0xb5
+#define RFC822TO			0xb3		// Comma-separated list of recipients, RFC822-style
+#define RFC822FROM			0xb4		// Original, unparsed/modified RFC822 header "From" value
+#define RFC822REPLYTO		0xb5		// Comma-separated list of recipients, RFC822-style
 
 #define USENETPATH			0xc0
 #define USENETNEWSGROUPS	0xc1
@@ -256,7 +256,7 @@
 #define MSG_PRIVATE 		(1<<0)
 #define MSG_READ			(1<<1)
 #define MSG_PERMANENT		(1<<2)
-#define MSG_LOCKED			(1<<3)
+#define MSG_LOCKED			(1<<3)		/* DEPRECATED (never used) */
 #define MSG_DELETE			(1<<4)
 #define MSG_ANONYMOUS		(1<<5)
 #define MSG_KILLREAD		(1<<6)
@@ -322,6 +322,14 @@ enum smb_xlat_type {
 	,XLAT_LZH = 9			/* LHarc (LHA) Dynamic Huffman coding */
 };
 
+enum smb_priority {			/* msghdr_t.priority */
+	SMB_PRIORITY_UNSPECIFIED	= 0,
+	SMB_PRIORITY_HIGHEST		= 1,
+	SMB_PRIORITY_HIGH			= 2,
+	SMB_PRIORITY_NORMAL			= 3,
+	SMB_PRIORITY_LOW			= 4,
+	SMB_PRIORITY_LOWEST			= 5
+};
 
 /************/
 /* Typedefs */
@@ -460,8 +468,15 @@ typedef struct _PACK {		/* Message header */
 	/* 30 */ uint16_t	delivery_attempts;	/* Delivery attempt counter */
 	/* 32 */ int16_t	votes;				/* Votes value (response to poll) or maximum votes per ballot (poll) */
 	/* 34 */ uint32_t	thread_id;			/* Number of original message in thread (or 0 if unknown) */
-	/* 38 */ uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
-	/* 3c */ uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
+	union {	/* 38-3f */
+		struct {		// message
+			uint8_t		priority;			/* enum smb_priority_t */
+		};
+		struct {		// file
+			uint32_t	times_downloaded;	/* Total number of times downloaded (moved Mar-6-2012) */
+			uint32_t	last_downloaded;	/* Date/time of last download (moved Mar-6-2012) */
+		};
+	};
     /* 40 */ uint32_t	offset;				/* Offset for buffer into data file (0 or mod 256) */
 	/* 44 */ uint16_t	total_dfields;		/* Total number of data fields */
 
@@ -515,6 +530,7 @@ typedef struct {				/* Message */
 	msghdr_t	hdr;			/* Header record (fixed portion) */
 	char		*to,			/* To name */
 				*to_ext,		/* To extension */
+				*to_list,		/* Comma-separated list of recipients, RFC822-style */
 				*from,			/* From name */
 				*from_ext,		/* From extension */
 				*from_org,		/* From organization */
@@ -523,6 +539,8 @@ typedef struct {				/* Message */
 				*from_prot,		/* From protocol (e.g. "Telnet", "NNTP", "HTTP", etc.) */
 				*replyto,		/* Reply-to name */
 				*replyto_ext,	/* Reply-to extension */
+				*replyto_list,	/* Comma-separated list of mailboxes, RFC822-style */
+				*cc_list,		/* Comma-separated list of additional recipients, RFC822-style */
 				*id,			/* RFC822 Message-ID */
 				*reply_id,		/* RFC822 Reply-ID */
 				*forward_path,	/* SMTP forward-path (RCPT TO: argument) */
@@ -541,6 +559,7 @@ typedef struct {				/* Message */
 	char*		editor;			/* Message editor (if known) */
 	char*		mime_version;	/* MIME Version (if applicable) */
 	char*		content_type;	/* MIME Content-Type (if applicable) */
+	char*		charset;		/* MIME plain-text/charset value (if applicable) */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
@@ -554,7 +573,6 @@ typedef struct {				/* Message */
 	int32_t		offset; 		/* Offset (number of records) into index */
 	BOOL		forwarded;		/* Forwarded from agent to another */
 	uint32_t	expiration; 	/* Message will expire on this day (if >0) */
-	uint32_t	priority;		/* Message priority (0 is lowest) */
 	uint32_t	cost;			/* Cost to download/read */
 	uint32_t	flags;			/* Various smblib run-time flags (see MSG_FLAG_*) */
 	uint16_t	user_voted;		/* How the current user viewing this message, voted on it */
