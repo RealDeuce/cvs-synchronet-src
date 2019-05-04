@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.246 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.247 2019/05/04 03:09:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3214,7 +3214,7 @@ static JSBool js_msgbase_enumerate(JSContext *cx, JSObject *obj)
 	return(js_msgbase_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_msgbase_class = {
+JSClass js_msgbase_class = {
      "MsgBase"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/

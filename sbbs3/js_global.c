@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.379 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: js_global.c,v 1.380 2019/05/04 03:09:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4487,7 +4487,7 @@ static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
 	return(js_global_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_global_class = {
+JSClass js_global_class = {
      "Global"				/* name			*/
     ,JSCLASS_HAS_PRIVATE|JSCLASS_GLOBAL_FLAGS	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/

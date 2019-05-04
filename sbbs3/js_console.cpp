@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.127 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.128 2019/05/04 03:09:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2092,7 +2092,7 @@ static JSBool js_console_enumerate(JSContext *cx, JSObject *obj)
 	return(js_console_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_console_class = {
+JSClass js_console_class = {
      "Console"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
