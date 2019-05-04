@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.57 2019/08/05 06:49:58 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.53 2019/05/03 06:50:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@ char sbbs_t::getkey(long mode)
 {
 	uchar	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
-	long	term = term_supports();
 
 	if(online==ON_REMOTE && !input_thread_running)
 		online=FALSE;
@@ -70,7 +69,7 @@ char sbbs_t::getkey(long mode)
 		}
 
 		if(mode&K_SPIN) {
-			if(term&NO_EXASCII) {
+			if(useron.misc&NO_EXASCII) {
 				switch(c++) {
 					case 0:
 						outchar(BS);
@@ -431,9 +430,11 @@ bool sbbs_t::noyes(const char *str)
 /* If 'keys' is NULL, *any* non-numeric key is valid input.					*/
 /* 'max' is non-zero, allow that a decimal number input up to that size		*/
 /* and return the value OR'd with 0x80000000.								*/
-/* default mode value is K_UPPER											*/
+/* 'str' should contain uppercase characters only. When a valid key is hit, */
+/* it is echoed (upper case) and is the return value.                       */
+/* Called from quite a few functions                                        */
 /****************************************************************************/
-long sbbs_t::getkeys(const char *keys, ulong max, long mode)
+long sbbs_t::getkeys(const char *keys, ulong max)
 {
 	char	str[81];
 	uchar	ch,n=0,c=0;
@@ -441,23 +442,21 @@ long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 
 	if(keys != NULL) {
 		SAFECOPY(str,keys);
+		strupr(str);
 	}
 	while(online) {
-		ch=getkey(mode);
+		ch=getkey(K_UPPER);
 		if(max && ch>0x7f)  /* extended ascii chars are digits to isdigit() */
 			continue;
 		if(sys_status&SS_ABORT) {   /* return -1 if Ctrl-C hit */
-			if(!(mode&(K_NOECHO|K_NOCRLF))) {
-				attr(LIGHTGRAY);
-				CRLF;
-			}
+			attr(LIGHTGRAY);
+			CRLF;
 			lncntr=0;
 			return(-1); 
 		}
 		if(ch && !n && ((keys == NULL && !isdigit(ch)) || (strchr(str,ch)))) {  /* return character if in string */
 			if(ch > ' ') {
-				if(!(mode&K_NOECHO))
-					outchar(ch);
+				outchar(ch);
 				if(useron.misc&COLDKEYS) {
 					while(online && !(sys_status&SS_ABORT)) {
 						c=getkey(0);
@@ -465,38 +464,30 @@ long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 							break; 
 					}
 					if(sys_status&SS_ABORT) {
-						if(!(mode&(K_NOECHO|K_NOCRLF))) {
-							CRLF;
-						}
+						CRLF;
 						return(-1); 
 					}
 					if(c==BS || c==DEL) {
-						if(!(mode&K_NOECHO))
-							backspace();
+						backspace();
 						continue; 
 					} 
 				}
-				if(!(mode&(K_NOECHO|K_NOCRLF))) {
-					attr(LIGHTGRAY);
-					CRLF;
-				}
+				attr(LIGHTGRAY);
+				CRLF;
 				lncntr=0;
 			}
 			return(ch); 
 		}
 		if(ch==CR && max) {             /* return 0 if no number */
-			if(!(mode&(K_NOECHO|K_NOCRLF))) {
-				attr(LIGHTGRAY);
-				CRLF;
-			}
+			attr(LIGHTGRAY);
+			CRLF;
 			lncntr=0;
 			if(n)
 				return(i|0x80000000L);		 /* return number plus high bit */
 			return(0); 
 		}
 		if((ch==BS || ch==DEL) && n) {
-			if(!(mode&K_NOECHO))
-				backspace();
+			backspace();
 			i/=10;
 			n--; 
 		}
@@ -504,13 +495,10 @@ long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 			i*=10;
 			n++;
 			i+=ch&0xf;
-			if(!(mode&K_NOECHO))	
-				outchar(ch);
+			outchar(ch);
 			if(i*10>max && !(useron.misc&COLDKEYS)) {
-				if(!(mode&(K_NOECHO|K_NOCRLF))) {
-					attr(LIGHTGRAY);
-					CRLF;
-				}
+				attr(LIGHTGRAY);
+				CRLF;
 				lncntr=0;
 				return(i|0x80000000L); 
 			} 
@@ -525,17 +513,17 @@ long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 void sbbs_t::pause()
 {
 	char	ch;
-	uint	tempattrs=curatr; /* was lclatr(-1) */
+	uchar	tempattrs=curatr; /* was lclatr(-1) */
+    int		i,j;
 	long	l=K_UPPER;
-	size_t	len;
 
- 	if(sys_status&SS_ABORT)
+	if(sys_status&SS_ABORT)
 		return;
 	lncntr=0;
 	if(online==ON_REMOTE)
 		rioctl(IOFI);
 	bputs(text[Pause]);
-	len = bstrlen(text[Pause]);
+	j=bstrlen(text[Pause]);
 	if(sys_status&SS_USERON && !(useron.misc&(HTML|WIP|NOPAUSESPIN))
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
@@ -545,7 +533,8 @@ void sbbs_t::pause()
 	else if(ch==LF)	// down arrow == display one more line
 		lncntr=rows-2;
 	if(text[Pause][0]!='@')
-		backspace(len);
+		for(i=0;i<j;i++)
+			backspace();
 	getnodedat(cfg.node_num,&thisnode,0);
 	nodesync();
 	attr(tempattrs);
