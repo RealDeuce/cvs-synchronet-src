@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.47 2019/05/06 01:33:28 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.44 2019/05/04 23:34:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -251,26 +251,17 @@ char* qp_decode(char* buf)
 	return buf;
 }
 
-static size_t strStartsWith_i(const char* buf, const char* match)
-{
-	size_t len = strlen(match);
-	if (strnicmp(buf, match, len) == 0)
-		return len;
-	return 0;
-}
-
 static enum content_transfer_encoding mime_getxferencoding(const char* beg, const char* end)
 {
 	const char* p = beg;
 
 	while(p < end) {
 		SKIP_WHITESPACE(p);
-		size_t len = strStartsWith_i(p, "content-transfer-encoding:");
-		if(len < 1) {
+		if(strnicmp(p, "content-transfer-encoding:", 26) != 0) {
 			FIND_CHAR(p, '\n');
 			continue;
 		}
-		p += len;
+		p += 26;
 		SKIP_WHITESPACE(p);
 		if(strnicmp(p, "base64", 6) == 0)
 			return CONTENT_TRANFER_ENCODING_BASE64;
@@ -292,12 +283,11 @@ static BOOL mime_getattachment(const char* beg, const char* end, char* attachmen
 
 	while(p < end) {
 		SKIP_WHITESPACE(p);
-		size_t len = strStartsWith_i(p, "content-disposition:");
-		if(len < 1) {
+		if(strnicmp(p, "content-disposition:", 20) != 0) {
 			FIND_CHAR(p, '\n');
 			continue;
 		}
-		p += len;
+		p += 20;
 		SKIP_WHITESPACE(p);
 		if(strnicmp(p, "inline", 6) == 0) {
 			FIND_CHAR(p, '\n');
@@ -348,20 +338,18 @@ void SMBCALL smb_parse_content_type(const char* content_type, char** subtype, ch
 	char* p;
 	if((p = strstr(buf, "\r\n\r\n")) != NULL)	/* Don't parse past the end of header */
 		*p = 0;
-	size_t len = strStartsWith_i(buf, "text/");
-	if(len > 0) {
-		p = buf + len;
+	if((p = strstr(buf, "text/")) == buf) {
+		p += 5;
 		if(subtype != NULL) {
-			if((*subtype = strdup(p)) != NULL) {
-				char* tp = *subtype;
-				FIND_WHITESPACE(tp);
-				*tp = 0;
-				tp = *subtype;
-				FIND_CHAR(tp, ';');
-				*tp = 0;
-			}
+			*subtype = strdup(p);
+			char* tp = *subtype;
+			FIND_WHITESPACE(tp);
+			*tp = 0;
+			tp = *subtype;
+			FIND_CHAR(tp, ';');
+			*tp = 0;
 		}
-		if(charset != NULL && (p = strcasestr(p, "charset=")) != NULL) {
+		if(charset != NULL && (p = strstr(p, "charset=")) != NULL) {
 			p += 8;
 			if(*p == '"')
 				p++;
@@ -376,7 +364,7 @@ void SMBCALL smb_parse_content_type(const char* content_type, char** subtype, ch
 	}
 }
 
-/* Find the specified content-type in a multi-pat MIME-encoded message body, recursively */
+/* Find the specified content-type in a MIME-encoded message body, recursively */
 static const char* mime_getcontent(const char* buf, const char* content_type, const char* content_match
 	,int depth, enum content_transfer_encoding* encoding, char** charset, char* attachment, size_t attachment_len, int index)
 {
@@ -397,14 +385,13 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 		return NULL;
 	if(content_type == NULL)	/* Not MIME-encoded */
 		return NULL;
-	size_t len;
-	if(((len = strStartsWith_i(content_type, "multipart/alternative;")) < 1)
-	&& ((len = strStartsWith_i(content_type, "multipart/mixed;")) < 1)
-	&& ((len = strStartsWith_i(content_type, "multipart/report;")) < 1)
-	&& ((len = strStartsWith_i(content_type, "multipart/")) < 1))
+	if(strstr(content_type, "multipart/alternative;") == content_type)
+		content_type += 22;
+	else if(strstr(content_type, "multipart/mixed;") == content_type)
+		content_type +=16;
+	else
 		return NULL;
-	content_type += len;
-	p = strcasestr(content_type, "boundary=");
+	p = strstr(content_type, "boundary=");
 	if(p == NULL)
 		return NULL;
 	p += 9;
@@ -424,8 +411,8 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 			continue;
 		for(content_type = txt; content_type < p; content_type++) {
 			SKIP_WHITESPACE(content_type);
-			if((len = strStartsWith_i(content_type, "Content-Type:")) > 0) {
-				content_type += len;
+			if(strnicmp(content_type, "Content-Type:", 13) == 0) {
+				content_type += 13;
 				SKIP_WHITESPACE(content_type);
 				break;
 			}

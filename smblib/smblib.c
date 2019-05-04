@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.198 2019/05/05 11:06:52 rswindell Exp $ */
+/* $Id: smblib.c,v 1.197 2019/05/04 22:56:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -914,8 +914,6 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->newsgroups=NULL;
 	msg->mime_version=NULL;
 	msg->content_type=NULL;
-	msg->text_subtype=NULL;
-	msg->text_charset=NULL;
 
 	msg->ftn_msgid=NULL;
 	msg->ftn_reply=NULL;
