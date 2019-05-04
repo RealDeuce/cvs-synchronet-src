@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.175 2019/07/11 06:11:16 deuce Exp $ */
+/* $Id: ciolib.c,v 1.173 2019/02/01 10:29:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1842,6 +1842,19 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 		free(ret);
 		return NULL;
 	}
+	ret->foreground = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->foreground[0]));
+	if (ret->foreground == NULL) {
+		free(ret->vmem);
+		free(ret);
+		return NULL;
+	}
+	ret->background = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->background[0]));
+	if (ret->background == NULL) {
+		free(ret->foreground);
+		free(ret->vmem);
+		free(ret);
+		return NULL;
+	}
 
 	if (vmode != -1) {
 		ret->pixels = ciolib_getpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1);
@@ -1862,6 +1875,8 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *scrn)
 		return;
 
 	ciolib_freepixels(scrn->pixels);
+	FREE_AND_NULL(scrn->background);
+	FREE_AND_NULL(scrn->foreground);
 	FREE_AND_NULL(scrn->vmem);
 	free(scrn);
 }
@@ -1883,7 +1898,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 	ciolib_textcolor(scrn->text_info.attribute);
 	ciolib_window(scrn->text_info.winleft, scrn->text_info.wintop, scrn->text_info.winright, scrn->text_info.winbottom);
 	vmode = find_vmode(scrn->text_info.currmode);
-	if (vmode != -1 && scrn->pixels != NULL)
+	if (vmode != -1)
 		ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
 	for (i=0; i<5; i++)
 		ciolib_setfont(scrn->fonts[i], FALSE, i);

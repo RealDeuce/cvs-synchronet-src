@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.48 2019/06/29 00:44:29 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.43 2019/05/04 22:56:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,6 @@
 /* SMB-specific */
 #include "smblib.h"
 #include "base64.h"
-#include "lzh.h"
 
 char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 {
@@ -252,26 +251,17 @@ char* qp_decode(char* buf)
 	return buf;
 }
 
-static size_t strStartsWith_i(const char* buf, const char* match)
+static enum content_transfer_encoding mime_getxferencoding(char* beg, char* end)
 {
-	size_t len = strlen(match);
-	if (strnicmp(buf, match, len) == 0)
-		return len;
-	return 0;
-}
-
-static enum content_transfer_encoding mime_getxferencoding(const char* beg, const char* end)
-{
-	const char* p = beg;
+	char* p = beg;
 
 	while(p < end) {
 		SKIP_WHITESPACE(p);
-		size_t len = strStartsWith_i(p, "content-transfer-encoding:");
-		if(len < 1) {
+		if(strnicmp(p, "content-transfer-encoding:", 26) != 0) {
 			FIND_CHAR(p, '\n');
 			continue;
 		}
-		p += len;
+		p += 26;
 		SKIP_WHITESPACE(p);
 		if(strnicmp(p, "base64", 6) == 0)
 			return CONTENT_TRANFER_ENCODING_BASE64;
@@ -286,19 +276,18 @@ static enum content_transfer_encoding mime_getxferencoding(const char* beg, cons
 }
 
 /* ToDo: parse and return the "modification-date" value */
-static BOOL mime_getattachment(const char* beg, const char* end, char* attachment, size_t attachment_len)
+static BOOL mime_getattachment(char* beg, char* end, char* attachment, size_t attachment_len)
 {
 	char fname[MAX_PATH+1];
-	const char* p = beg;
+	char* p = beg;
 
 	while(p < end) {
 		SKIP_WHITESPACE(p);
-		size_t len = strStartsWith_i(p, "content-disposition:");
-		if(len < 1) {
+		if(strnicmp(p, "content-disposition:", 20) != 0) {
 			FIND_CHAR(p, '\n');
 			continue;
 		}
-		p += len;
+		p += 20;
 		SKIP_WHITESPACE(p);
 		if(strnicmp(p, "inline", 6) == 0) {
 			FIND_CHAR(p, '\n');
@@ -347,22 +336,18 @@ void SMBCALL smb_parse_content_type(const char* content_type, char** subtype, ch
 	char buf[512];
 	SAFECOPY(buf, content_type);
 	char* p;
-	if((p = strstr(buf, "\r\n\r\n")) != NULL)	/* Don't parse past the end of header */
-		*p = 0;
-	size_t len = strStartsWith_i(buf, "text/");
-	if(len > 0) {
-		p = buf + len;
+	if((p = strstr(buf, "text/")) == buf) {
+		p += 5;
 		if(subtype != NULL) {
-			if((*subtype = strdup(p)) != NULL) {
-				char* tp = *subtype;
-				FIND_WHITESPACE(tp);
-				*tp = 0;
-				tp = *subtype;
-				FIND_CHAR(tp, ';');
-				*tp = 0;
-			}
+			*subtype = strdup(p);
+			char* tp = *subtype;
+			FIND_WHITESPACE(tp);
+			*tp = 0;
+			tp = *subtype;
+			FIND_CHAR(tp, ';');
+			*tp = 0;
 		}
-		if(charset != NULL && (p = strcasestr(p, "charset=")) != NULL) {
+		if(charset != NULL && (p = strstr(p, "charset=")) != NULL) {
 			p += 8;
 			if(*p == '"')
 				p++;
@@ -377,11 +362,11 @@ void SMBCALL smb_parse_content_type(const char* content_type, char** subtype, ch
 	}
 }
 
-/* Find the specified content-type in a multi-pat MIME-encoded message body, recursively */
-static const char* mime_getcontent(const char* buf, const char* content_type, const char* content_match
+/* Find the specified content-type in a MIME-encoded message body, recursively */
+static char* mime_getcontent(char* buf, const char* content_type, const char* content_match
 	,int depth, enum content_transfer_encoding* encoding, char** charset, char* attachment, size_t attachment_len, int index)
 {
-	const char*	txt;
+	char*	txt;
 	char*	p;
 	char	boundary[256];
 	char	match1[128];
@@ -398,14 +383,13 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 		return NULL;
 	if(content_type == NULL)	/* Not MIME-encoded */
 		return NULL;
-	size_t len;
-	if(((len = strStartsWith_i(content_type, "multipart/alternative;")) < 1)
-	&& ((len = strStartsWith_i(content_type, "multipart/mixed;")) < 1)
-	&& ((len = strStartsWith_i(content_type, "multipart/report;")) < 1)
-	&& ((len = strStartsWith_i(content_type, "multipart/")) < 1))
+	if(strstr(content_type, "multipart/alternative;") == content_type)
+		content_type += 22;
+	else if(strstr(content_type, "multipart/mixed;") == content_type)
+		content_type +=16;
+	else
 		return NULL;
-	content_type += len;
-	p = strcasestr(content_type, "boundary=");
+	p = strstr(content_type, "boundary=");
 	if(p == NULL)
 		return NULL;
 	p += 9;
@@ -423,10 +407,12 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 		p = strstr(txt, "\r\n\r\n");	/* End of header */
 		if(p==NULL)
 			continue;
+		*p = 0;	// terminate the header
+		char* content_type;
 		for(content_type = txt; content_type < p; content_type++) {
 			SKIP_WHITESPACE(content_type);
-			if((len = strStartsWith_i(content_type, "Content-Type:")) > 0) {
-				content_type += len;
+			if(strnicmp(content_type, "Content-Type:", 13) == 0) {
+				content_type += 13;
 				SKIP_WHITESPACE(content_type);
 				break;
 			}
@@ -434,16 +420,15 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 		}
 		if(content_type >= p)
 			continue;
-		const char* cp;
 		if((match_len && strnicmp(content_type, match1, match_len) && strnicmp(content_type, match2, match_len))
 			|| (attachment != NULL && !mime_getattachment(txt, p, attachment, attachment_len))) {
-			if((cp = mime_getcontent(p, content_type, content_match, depth + 1, encoding, charset, attachment, attachment_len, index)) != NULL)
-				return cp;
+			if((p = mime_getcontent(p, content_type, content_match, depth + 1, encoding, charset, attachment, attachment_len, index)) != NULL)
+				return p;
 			continue;
 		}
 		if(found++ != index) {
-			if((cp = mime_getcontent(p, content_type, content_match, depth + 1, encoding, charset, attachment, attachment_len, index)) != NULL)
-				return cp;
+			if((p = mime_getcontent(p, content_type, content_match, depth + 1, encoding, charset, attachment, attachment_len, index)) != NULL)
+				return p;
 			continue;
 		}
 		if(encoding != NULL)
@@ -464,7 +449,7 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 /* Returns NULL if there is no MIME-encoded plain-text/html portion of the message */
 char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
 {
-	const char*	txt;
+	char*	txt;
 	enum content_transfer_encoding xfer_encoding = CONTENT_TRANFER_ENCODING_NONE;
 
 	FREE_AND_NULL(msg->text_subtype);
@@ -502,7 +487,7 @@ char* SMBCALL smb_getplaintext(smbmsg_t* msg, char* buf)
 /* This function is destructive (over-writes 'buf' with decoded attachment)! */
 uint8_t* SMBCALL smb_getattachment(smbmsg_t* msg, char* buf, char* filename, size_t filename_len, uint32_t* filelen, int index)
 {
-	const char*	txt;
+	char*	txt;
 	enum content_transfer_encoding xfer_encoding = CONTENT_TRANFER_ENCODING_NONE;
 
 	if(msg->mime_version == NULL || msg->content_type == NULL)	/* not MIME */
