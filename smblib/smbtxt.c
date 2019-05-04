@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.44 2019/05/04 23:34:43 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.45 2019/05/04 23:45:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,6 +389,8 @@ static const char* mime_getcontent(const char* buf, const char* content_type, co
 		content_type += 22;
 	else if(strstr(content_type, "multipart/mixed;") == content_type)
 		content_type +=16;
+	else if(strstr(content_type, "multipart/report;") == content_type)
+		content_type +=17;
 	else
 		return NULL;
 	p = strstr(content_type, "boundary=");
