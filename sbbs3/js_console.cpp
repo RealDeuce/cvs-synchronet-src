@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.132 2019/07/10 20:38:35 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.127 2019/05/04 01:04:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,8 +55,6 @@ enum {
 	,CON_PROP_TABSTOP
 	,CON_PROP_AUTOTERM
 	,CON_PROP_TERMINAL
-	,CON_PROP_TERM_TYPE
-	,CON_PROP_CHARSET
 	,CON_PROP_CTERM_VERSION
 	,CON_PROP_WORDWRAP
 	,CON_PROP_QUESTION
@@ -124,16 +122,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_TERMINAL:
 			if((js_str=JS_NewStringCopyZ(cx, sbbs->terminal))==NULL)
-				return(JS_FALSE);
-			*vp = STRING_TO_JSVAL(js_str);
-			return(JS_TRUE);
-		case CON_PROP_TERM_TYPE:
-			if((js_str=JS_NewStringCopyZ(cx, sbbs->term_type()))==NULL)
-				return(JS_FALSE);
-			*vp = STRING_TO_JSVAL(js_str);
-			return(JS_TRUE);
-		case CON_PROP_CHARSET:
-			if((js_str=JS_NewStringCopyZ(cx, sbbs->term_charset()))==NULL)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			return(JS_TRUE);
@@ -346,8 +334,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"tabstop"			,CON_PROP_TABSTOP			,CON_PROP_FLAGS	,31700},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
-	{	"type"				,CON_PROP_TERM_TYPE			,JSPROP_ENUMERATE|JSPROP_READONLY ,31702},
-	{	"charset"			,CON_PROP_CHARSET			,JSPROP_ENUMERATE|JSPROP_READONLY ,31702},
 	{	"cterm_version"		,CON_PROP_CTERM_VERSION		,CON_PROP_FLAGS ,317},
 	{	"inactivity_warning",CON_PROP_INACTIV_WARN		,CON_PROP_FLAGS, 31401},
 	{	"inactivity_hangup"	,CON_PROP_INACTIV_HANGUP	,CON_PROP_FLAGS, 31401},
@@ -380,9 +366,7 @@ static const char* con_prop_desc[] = {
 	,"current tab stop interval (tab size), in columns"
 	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"terminal type description, possibly supplied by client (e.g. 'ANSI')"
-	,"terminal type (i.e. 'ANSI', 'RIP', 'PETSCII', or 'DUMB')"
-	,"terminal character set (i.e. 'UTF-8', 'CP437', 'CBM-ASCII', or 'US-ASCII')"
+	,"terminal type description (e.g. 'ANSI')"
 	,"detected CTerm (SyncTERM) version as an integer > 1000 where major version is cterm_version / 1000 and minor version is cterm_version % 1000"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
 	,"number of seconds before disconnection due to user/keyboard inactivity"
@@ -690,8 +674,7 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	char		key[2];
 	uintN		i;
 	int32		val;
-	uint32		maxnum = 0;
-	long		mode = K_UPPER;
+	uint32		maxnum=~0;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
 	char*		cstr=NULL;
@@ -704,12 +687,8 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx, argv[i], &val))
+			if(!JS_ValueToInt32(cx,argv[i],(int32*)&maxnum))
 				return JS_FALSE;
-			if(maxnum == 0)
-				maxnum = val;
-			else
-				mode = val;
 			continue;
 		}
 		if(JSVAL_IS_STRING(argv[i])) {
@@ -720,11 +699,8 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
-	if(maxnum == 0)
-		maxnum = ~0;
-
 	rc=JS_SUSPENDREQUEST(cx);
-	val=sbbs->getkeys(cstr, maxnum, mode);
+	val=sbbs->getkeys(cstr,maxnum);
 	FREE_AND_NULL(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1218,7 +1194,6 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
-	int32		columns=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1235,16 +1210,12 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
-	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
-		if(!JS_ValueToInt32(cx,argv[2],&columns))
-			return JS_FALSE;
-	}
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->printfile(cstr,mode,columns);
+	bool result = sbbs->printfile(cstr,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1259,7 +1230,6 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		lines=0;
 	int32		mode=0;
-	int32		columns=0;
 	uintN		i;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -1275,12 +1245,8 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 				if(!JS_ValueToInt32(cx,argv[i],&lines))
 					return JS_FALSE;
 			}
-			else if(!mode){
-				if(!JS_ValueToInt32(cx,argv[i],&mode))
-					return JS_FALSE;
-			}
 			else {
-				if(!JS_ValueToInt32(cx,argv[i],&columns))
+				if(!JS_ValueToInt32(cx,argv[i],&mode))
 					return JS_FALSE;
 			}
 		} else if(JSVAL_IS_STRING(argv[i]))
@@ -1297,7 +1263,7 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->printtail(cstr,lines,mode,columns);
+	bool result = sbbs->printtail(cstr,lines,mode);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1431,34 +1397,6 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->center(cstr);
-	free(cstr);
-	JS_RESUMEREQUEST(cx, rc);
-    return(JS_TRUE);
-}
-
-static JSBool
-js_wide(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-    JSString*	str;
-	sbbs_t*		sbbs;
-	char*		cstr;
-	jsrefcount	rc;
-
-	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
-		return(JS_FALSE);
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	str = JS_ValueToString(cx, argv[0]);
-	if (str == NULL)
-		return(JS_FALSE);
-
-	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	if(cstr==NULL)
-		return JS_FALSE;
-	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->wide(cstr);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1919,7 +1857,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user with a default value of <i>default</i>")
 	,310
 	},
-	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("[keys] [,maxnum] [,mode=<tt>K_UPPER</tt>]")
+	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("[keys] [,maxnum]")
 	,JSDOCSTR("get one key from of a list of valid command <i>keys</i> (any key, if not specified), "
 		"or a number between 1 and <i>maxnum</i>")
 	,310
@@ -1997,20 +1935,15 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a string centered on the screen")
 	,310
 	},
-	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a string double-wide on the screen (sending \"fullwidth\" Unicode characters when possible)")
-	,31702
-	},
 	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
-	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>] [,orig_columns=0")
-	,JSDOCSTR("print a message text file with optional mode.<br>"
-		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
+	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
+	,JSDOCSTR("print a message text file with optional mode")
 	,310
 	},
-	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>] [,orig_columns=0]")
+	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
 	},
@@ -2159,7 +2092,7 @@ static JSBool js_console_enumerate(JSContext *cx, JSObject *obj)
 	return(js_console_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_console_class = {
+static JSClass js_console_class = {
      "Console"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
