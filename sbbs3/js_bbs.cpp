@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.185 2019/05/04 03:03:05 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.184 2019/05/04 01:04:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4489,7 +4489,7 @@ static JSBool js_bbs_enumerate(JSContext *cx, JSObject *obj)
 	return(js_bbs_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_bbs_class = {
+static JSClass js_bbs_class = {
      "BBS"					/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/

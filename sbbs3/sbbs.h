@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.529 2019/07/10 20:38:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.516 2019/05/04 01:04:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,7 +278,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
-#include "unicode_defs.h"
 
 /***********************/
 /* Synchronet-specific */
@@ -302,6 +301,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
+#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -463,8 +463,8 @@ public:
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
 	time_t 	timeout;		/* User inactivity timeout reference */
 	ulong 	timeleft_warn;	/* low timeleft warning flag */
-	uint	curatr; 		/* Current Text Attributes Always */
-	uint	attr_stack[64];	/* Saved attributes (stack) */
+	uchar 	curatr; 		/* Current Text Attributes Always */
+	uchar	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
 	bool 	tos;			/* Cursor is currently at the Top of Screen */
@@ -480,7 +480,7 @@ public:
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
-	uint	latr;			/* Starting attribute of line buffer */
+	char 	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
@@ -651,7 +651,7 @@ public:
 	/* writemsg.cpp */
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
-				,const char *to, const char* from, const char** editor=NULL, const char** charset=NULL);
+				,const char *to, const char* from, char** editor=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode, long org_cols = 0);
@@ -671,7 +671,7 @@ public:
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
-	void	editor_info_to_msg(smbmsg_t*, const char* editor, const char* charset);
+	void	editor_info_to_msg(smbmsg_t*, const char* editor);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
@@ -716,10 +716,7 @@ public:
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
-	int		outchar(enum unicode_codepoint, char cp437_fallback = 0);
-	void	inc_column(int count);
 	void	center(char *str);
-	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
 	void	cleartoeos(void);
@@ -732,14 +729,11 @@ public:
 	void	line_feed(void);
 	void	newline(void);
 	long	term_supports(long cmp_flags=0);
-	const char* term_type(long term_supports = -1);
-	const char* term_charset(long term_supports = -1);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
 	bool	saveline(void);
 	bool	restoreline(void);
 	int		petscii_to_ansibbs(unsigned char);
-	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 
@@ -751,7 +745,7 @@ public:
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
-	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
+	long	getkeys(const char *str, ulong max);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
 	bool	yesno(const char *str);
@@ -765,8 +759,8 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	bool	printfile(const char* fname, long mode, long org_cols = 0);
-	bool	printtail(const char* fname, int lines, long mode, long org_cols = 0);
+	bool	printfile(const char* fname, long mode);
+	bool	printtail(const char* fname, int lines, long mode);
 	bool	menu(const char *code, long mode = 0);
 	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
@@ -930,7 +924,6 @@ public:
 
 	/* xtrn.cpp */
 	int		external(const char* cmdline, long mode, const char* startup_dir=NULL);
-	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
@@ -1133,7 +1126,6 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
 	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
-	DLLEXPORT BOOL		DLLCALL str_is_ascii(const char*);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);

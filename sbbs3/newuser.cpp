@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.83 2019/07/09 05:38:46 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.79 2019/04/28 22:53:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
 #include "cmdshell.h"
 
 /****************************************************************************/
@@ -171,7 +170,7 @@ BOOL sbbs_t::newuser()
 
 		while(text[HitYourBackspaceKey][0] && !(useron.misc&(PETSCII|SWAP_DELETE)) && online) {
 			bputs(text[HitYourBackspaceKey]);
-			uchar key = getkey(K_NONE);
+			char key = getkey(K_NONE);
 			bprintf(text[CharacterReceivedFmt], key, key);
 			if(key == '\b')
 				break;
@@ -180,19 +179,18 @@ BOOL sbbs_t::newuser()
 					useron.misc |= SWAP_DELETE;
 			}
 			else if(key == PETSCII_DELETE)
-				useron.misc |= (AUTOTERM|PETSCII|COLOR);
+				useron.misc |= PETSCII;
 			else {
 				bprintf(text[InvalidBackspaceKeyFmt], key, key);
 				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
 					return FALSE;
+				newline();
 			}
 		}
 
-		if(useron.misc&PETSCII) {
-			autoterm |= PETSCII;
-			outcom(PETSCII_UPPERLOWER);
-			bputs(text[PetTerminalDetected]);
-		} else {
+		if(useron.misc&PETSCII)
+			bputs(text[PetTermDetected]);
+		else {
 			if(!yesno(text[ExAsciiTerminalQ]))
 				useron.misc|=NO_EXASCII;
 			else
