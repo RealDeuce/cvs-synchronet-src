@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.40 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.42 2019/04/12 00:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -111,13 +111,11 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg.hdr.when_written.time=time32(NULL);
 	msg.hdr.when_written.zone=sys_timezone(&cfg);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor);
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);

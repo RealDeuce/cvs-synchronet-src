@@ -1,6 +1,6 @@
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.35 2019/02/01 10:47:30 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.37 2019/02/01 21:59:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,6 +33,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "genwrap.h"
 #include "gen_defs.h"
 #include "uifc.h"
 
@@ -177,34 +178,6 @@ static int which(char* prompt, int max)
             return(i-1);
     }
 }
-
-/****************************************************************************/
-/* Truncates white-space chars off end of 'str'								*/
-/****************************************************************************/
-static void truncsp(char *str)
-{
-	uint c;
-
-	c=strlen(str);
-	while(c && (uchar)str[c-1]<=' ') c--;
-	str[c]=0;
-}
-
-/****************************************************************************/
-/* Convert ASCIIZ string to upper case										*/
-/****************************************************************************/
-#if defined(__unix__) && !defined(__HAIKU__)
-static char* strupr(char* str)
-{
-	char*	p=str;
-
-	while(*p) {
-		*p=toupper(*p);
-		p++;
-	}
-	return(str);
-}
-#endif
 
 /****************************************************************************/
 /* General menu function, see uifc.h for details.							*/
