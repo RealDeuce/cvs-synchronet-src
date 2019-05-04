@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "Queue" Object */
 
-/* $Id: js_queue.c,v 1.56 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_queue.c,v 1.55 2019/05/04 01:04:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,7 +391,7 @@ static JSBool js_queue_enumerate(JSContext *cx, JSObject *obj)
 	return(js_queue_resolve(cx, obj, JSID_VOID));
 }
 
-JSClass js_queue_class = {
+static JSClass js_queue_class = {
      "Queue"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
