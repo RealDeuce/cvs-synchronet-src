@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.45 2019/05/04 23:45:39 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.46 2019/05/05 11:12:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -341,13 +341,14 @@ void SMBCALL smb_parse_content_type(const char* content_type, char** subtype, ch
 	if((p = strstr(buf, "text/")) == buf) {
 		p += 5;
 		if(subtype != NULL) {
-			*subtype = strdup(p);
-			char* tp = *subtype;
-			FIND_WHITESPACE(tp);
-			*tp = 0;
-			tp = *subtype;
-			FIND_CHAR(tp, ';');
-			*tp = 0;
+			if((*subtype = strdup(p)) != NULL) {
+				char* tp = *subtype;
+				FIND_WHITESPACE(tp);
+				*tp = 0;
+				tp = *subtype;
+				FIND_CHAR(tp, ';');
+				*tp = 0;
+			}
 		}
 		if(charset != NULL && (p = strstr(p, "charset=")) != NULL) {
 			p += 8;
