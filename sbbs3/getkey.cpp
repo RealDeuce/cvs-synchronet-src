@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.57 2019/08/05 06:49:58 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.54 2019/05/04 03:59:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@ char sbbs_t::getkey(long mode)
 {
 	uchar	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
-	long	term = term_supports();
 
 	if(online==ON_REMOTE && !input_thread_running)
 		online=FALSE;
@@ -70,7 +69,7 @@ char sbbs_t::getkey(long mode)
 		}
 
 		if(mode&K_SPIN) {
-			if(term&NO_EXASCII) {
+			if(useron.misc&NO_EXASCII) {
 				switch(c++) {
 					case 0:
 						outchar(BS);
@@ -525,17 +524,17 @@ long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 void sbbs_t::pause()
 {
 	char	ch;
-	uint	tempattrs=curatr; /* was lclatr(-1) */
+	uchar	tempattrs=curatr; /* was lclatr(-1) */
+    int		i,j;
 	long	l=K_UPPER;
-	size_t	len;
 
- 	if(sys_status&SS_ABORT)
+	if(sys_status&SS_ABORT)
 		return;
 	lncntr=0;
 	if(online==ON_REMOTE)
 		rioctl(IOFI);
 	bputs(text[Pause]);
-	len = bstrlen(text[Pause]);
+	j=bstrlen(text[Pause]);
 	if(sys_status&SS_USERON && !(useron.misc&(HTML|WIP|NOPAUSESPIN))
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
@@ -545,7 +544,8 @@ void sbbs_t::pause()
 	else if(ch==LF)	// down arrow == display one more line
 		lncntr=rows-2;
 	if(text[Pause][0]!='@')
-		backspace(len);
+		for(i=0;i<j;i++)
+			backspace();
 	getnodedat(cfg.node_num,&thisnode,0);
 	nodesync();
 	attr(tempattrs);
