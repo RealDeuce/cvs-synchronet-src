@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.33 2018/09/08 21:35:49 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.35 2019/04/30 09:12:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -266,7 +266,6 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	SAFECOPY(cfg->temp_dir		, iniGetString(ini, ROOT_SECTION, "TempDirectory"	,DEFAULT_TEMP_DIR		, value));
 	SAFECOPY(cfg->outgoing_sem	, iniGetString(ini, ROOT_SECTION, "OutgoingSemaphore",	"", value));
 	cfg->log_level				= iniGetLogLevel(ini, ROOT_SECTION, "LogLevel", cfg->log_level);
-	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
 	cfg->flo_mailer				= iniGetBool(ini, ROOT_SECTION, "BinkleyStyleOutbound", cfg->flo_mailer);
 	cfg->bsy_timeout			= (ulong)iniGetDuration(ini, ROOT_SECTION, "BsyTimeout", cfg->bsy_timeout);
 	cfg->bso_lock_attempts		= iniGetLongInt(ini, ROOT_SECTION, "BsoLockAttempts", cfg->bso_lock_attempts);
@@ -277,6 +276,8 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->areafile_backups		= iniGetInteger(ini, ROOT_SECTION, "AreaFileBackups", cfg->areafile_backups);
 	cfg->cfgfile_backups		= iniGetInteger(ini, ROOT_SECTION, "CfgFileBackups", cfg->cfgfile_backups);
 	cfg->min_free_diskspace		= iniGetBytes(ini, ROOT_SECTION, "MinFreeDiskSpace", 1, cfg->min_free_diskspace);
+	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
+	cfg->strip_soft_cr			= iniGetBool(ini, ROOT_SECTION, "StripSoftCRs", cfg->strip_soft_cr);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -514,6 +515,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetBool(&ini,		ROOT_SECTION, "SecureEchomail"			,cfg->secure_echomail			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "EchomailNotify"			,cfg->echomail_notify			,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "StripLineFeeds"			,cfg->strip_lf					,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "StripLineSoftCRs"		,cfg->strip_soft_cr				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "ConvertTearLines"		,cfg->convert_tear				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "FuzzyNetmailZones"		,cfg->fuzzy_zone				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "BinkleyStyleOutbound"	,cfg->flo_mailer				,NULL);
