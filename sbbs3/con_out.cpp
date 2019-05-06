@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.97 2019/05/04 05:25:18 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.98 2019/05/06 10:44:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,6 +93,13 @@ unsigned char cp437_to_petscii(unsigned char ch)
 		return ch ^ 0x20;	/* swap upper/lower case */
 	switch(ch) {
 		case '\1':		return '@';
+		case '\x10':	return '>';
+		case '\x11':	return '<';
+		case '\x18':	
+		case '\x1e':	return PETSCII_UPARROW;
+		case '\x19':
+		case '\x1f':	return 'V';
+		case '\x1a':	return '>';
 		case '|':		return PETSCII_VERTLINE;
 		case '\\':		return PETSCII_BACKSLASH;
 		case '`':		return PETSCII_BACKTICK;
