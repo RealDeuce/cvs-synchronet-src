@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.62 2019/07/07 20:43:42 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.59 2019/02/15 01:36:07 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -329,7 +329,7 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			return -2;
 
 		if(j==cfg.total_subs) {
-			if(!new_sub(j, grpnum, /* pasted_sub: */NULL))
+			if(!new_sub(j, grpnum))
 				return -3;
 			if(added != NULL)
 				(*added)++;
@@ -340,12 +340,16 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			cfg.sub[j]->ptridx=sav_ptridx;	/* restore original ptridx */
 		} else {
 			cfg.sub[j]->grp=grpnum;
+			if(cfg.total_faddrs)
+				cfg.sub[j]->faddr=cfg.faddr[0];
 			SAFECOPY(cfg.sub[j]->code_suffix,tmpsub.code_suffix);
 			SAFECOPY(cfg.sub[j]->sname,tmpsub.sname);
 			SAFECOPY(cfg.sub[j]->lname,tmpsub.lname);
 			SAFECOPY(cfg.sub[j]->newsgroup,tmpsub.newsgroup);
 			SAFECOPY(cfg.sub[j]->qwkname,tmpsub.qwkname);
 			SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
+//			if(j==cfg.total_subs)
+//				cfg.sub[j]->maxmsgs=1000;
 		}
 		if(qhub != NULL)
 			new_qhub_sub(qhub, qhub->subs, cfg.sub[j], qwk_confnum);
@@ -375,7 +379,7 @@ void msgs_cfg()
 	static int export_list_type;
 	char	str[256],str2[256],done=0;
     char	tmp[128];
-	int		j,k,q;
+	int		j,k,q,s;
 	int		i,file;
 	long	ported;
 	static grp_t savgrp;
@@ -522,7 +526,17 @@ void msgs_cfg()
 			if (msk == MSK_DEL) {
 				for (j = 0; j < cfg.total_subs;) {
 					if (cfg.sub[j]->grp == grpnum) {	/* delete subs of this group */
-						remove_sub(&cfg, j, /* cut: */false);
+						free(cfg.sub[j]);
+						cfg.total_subs--;
+						k = j;
+						while (k < cfg.total_subs) {	/* move all subs down */
+							cfg.sub[k] = cfg.sub[k + 1];
+							for (q = 0; q < cfg.total_qhubs; q++)
+								for (s = 0; s < cfg.qhub[q]->subs; s++)
+									if (cfg.qhub[q]->sub[s] == cfg.sub[j])
+										cfg.qhub[q]->sub[s] = NULL;
+							k++;
+						}
 					}
 					else j++;
 				}
