@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.48 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.47 2019/04/26 00:25:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -49,8 +49,7 @@
 /****************************************************************************/
 char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 {
-	uint 	tmpatr;
-	char 	tmp2[256],tmp3[128];
+	char	tmpatr,tmp2[256],tmp3[128];
 	char	ret;
 	char*	str=(char*)buf;
 	uchar	exatr=0;
@@ -93,28 +92,17 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 	}
 
 	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
-		switch(str[l]) {
-			case '\r':
-			case '\n':
-			case FF:
-			case CTRL_A:
-				break;
-			default: // printing char
-				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+		if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+			switch(str[l]) {
+				case '\r':
+				case '\n':
+				case FF:
+				case CTRL_A:
+					break;
+				default:
 					l++;
 					continue;
-				} else if(mode&P_WRAP) {
-					if(org_cols) {
-						if(column > (org_cols - 1)) {
-							CRLF;
-						}
-					} else {
-						if(column >= (cols - 1)) {
-							CRLF;
-						}
-					}
-				}
-				break;
+			}
 		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
