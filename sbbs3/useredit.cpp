@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.55 2019/04/28 22:53:12 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.56 2019/05/06 10:43:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -900,8 +900,7 @@ void sbbs_t::maindflts(user_t* user)
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
 					user->misc|=AUTOTERM;
-					user->misc&=~(ANSI|RIP|WIP|HTML);
-					user->misc|=autoterm; 
+					user->misc&=~(ANSI|RIP|WIP|HTML|PETSCII);
 				}
 				else
 					user->misc&=~AUTOTERM;
