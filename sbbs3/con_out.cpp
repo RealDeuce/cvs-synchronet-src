@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.94 2019/01/11 11:29:37 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.98 2019/05/06 10:44:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,6 +93,13 @@ unsigned char cp437_to_petscii(unsigned char ch)
 		return ch ^ 0x20;	/* swap upper/lower case */
 	switch(ch) {
 		case '\1':		return '@';
+		case '\x10':	return '>';
+		case '\x11':	return '<';
+		case '\x18':	
+		case '\x1e':	return PETSCII_UPARROW;
+		case '\x19':
+		case '\x1f':	return 'V';
+		case '\x1a':	return '>';
 		case '|':		return PETSCII_VERTLINE;
 		case '\\':		return PETSCII_BACKSLASH;
 		case '`':		return PETSCII_BACKTICK;
@@ -327,6 +334,9 @@ long sbbs_t::term_supports(long cmp_flags)
 {
 	long flags = ((sys_status&SS_USERON) && !(useron.misc&AUTOTERM)) ? useron.misc : autoterm;
 
+	if((sys_status&SS_USERON) && (useron.misc&AUTOTERM))
+		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE);
+
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
 }
 
@@ -405,77 +415,88 @@ int sbbs_t::outchar(char ch)
 		}
 	}
 
-	if(online==ON_REMOTE && console&CON_R_ECHO) {
-		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
-			ch=text[YNQP][3];
-			if(text[YNQP][2]==0 || ch==0) ch='X';
-		}
-		if(ch==FF) {
-			if(term&ANSI)
-				putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
-			else if(term&PETSCII)
-				outcom(PETSCII_CLEAR);
-			else
-				outcom(FF);
-		}
-		else if(ch == '\t') {
+	if(!(console&CON_R_ECHO))
+		return 0;
+
+	if((console&CON_R_ECHOX) && (uchar)ch>=' ' && !outchar_esc) {
+		ch=text[YNQP][3];
+		if(text[YNQP][2]==0 || ch==0) ch='X';
+	}
+	if(ch==FF) {
+		if(term&ANSI)
+			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
+		else if(term&PETSCII)
+			outcom(PETSCII_CLEAR);
+		else
+			outcom(FF);
+	}
+	else if(ch == '\t') {
+		outcom(' ');
+		column++;
+		while(column%tabstop) {
 			outcom(' ');
 			column++;
-			while(column%tabstop) {
-				outcom(' ');
-				column++;
-			}
 		}
-		else {
-			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
-				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			if(term&PETSCII) {
-				uchar pet = cp437_to_petscii(ch);
-				if(pet == PETSCII_SOLID)
-					outcom(PETSCII_REVERSE_ON);
-				outcom(pet);
-				if(pet == PETSCII_SOLID)
-					outcom(PETSCII_REVERSE_OFF);
-			} else
-				outcom(ch);
-		}
+	}
+	else {
+		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+		if(ch == '\r' && (console&CON_CR_CLREOL))
+			cleartoeol();
+		if(term&PETSCII) {
+			uchar pet = cp437_to_petscii(ch);
+			if(pet == PETSCII_SOLID)
+				outcom(PETSCII_REVERSE_ON);
+			outcom(pet);
+			if(pet == PETSCII_SOLID)
+				outcom(PETSCII_REVERSE_OFF);
+		} else
+			outcom(ch);
 	}
 	if(!outchar_esc) {
-		if((uchar)ch>=' ') {
-			column++;
-			if(column >= cols) {	// assume terminal has/will auto-line-wrap
-				lncntr++;
-				lbuflen = 0;
-				tos = 0;
+		/* Track cursor position locally */
+		switch(ch) {
+			case '\a':	// 7
+			case '\t':	// 9
+				/* Non-printing or handled elsewhere */
+				break;
+			case '\b':	// 8
+				if(column > 0)
+					column--;
+				if(lbuflen > 0)
+					lbuflen--;
+				break;
+			case '\n':	// 10
+				if(lncntr || lastlinelen)
+					lncntr++;
+				lbuflen=0;
+				tos=0;
+				column=0;
+				break;
+			case FF:	// 12
+				lncntr=0;
+				lbuflen=0;
+				tos=1;
+				column=0;
+			case '\r':	// 13
 				lastlinelen = column;
-				column = 0;
-			}
+				column=0;
+				break;
+			default:
+				column++;
+				if(column >= cols) {	// assume terminal has/will auto-line-wrap
+					lncntr++;
+					lbuflen = 0;
+					tos = 0;
+					lastlinelen = column;
+					column = 0;
+				}
+				if(!lbuflen)
+					latr=curatr;
+				if(lbuflen<LINE_BUFSIZE)
+					lbuf[lbuflen++]=ch;
+				break;
 		}
-		else if(ch=='\r') {
-			lastlinelen = column;
-			column=0;
-		}
-		else if(ch=='\b') {
-			if(column)
-				column--;
-		}
-	}
-	if(ch==LF) {
-		if(lncntr || lastlinelen)
-			lncntr++;
-		lbuflen=0;
-		tos=0;
-		column=0;
-	} else if(ch==FF) {
-		lncntr=0;
-		lbuflen=0;
-		tos=1;
-		column=0;
-	} else {
-		if(!lbuflen)
-			latr=curatr;
-		if(lbuflen<LINE_BUFSIZE)
-			lbuf[lbuflen++]=ch;
 	}
 	if(outchar_esc==3)
 		outchar_esc=0;
