@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) message text library routines */
 
-/* $Id: smbtxt.c,v 1.48 2019/06/29 00:44:29 rswindell Exp $ */
+/* $Id: smbtxt.c,v 1.47 2019/05/06 01:33:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,7 +40,6 @@
 /* SMB-specific */
 #include "smblib.h"
 #include "base64.h"
-#include "lzh.h"
 
 char* SMBCALL smb_getmsgtxt(smb_t* smb, smbmsg_t* msg, ulong mode)
 {
