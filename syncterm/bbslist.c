@@ -976,26 +976,26 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 					default:
 						iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes_enum,item->screen_mode,&ini_style);
 						if(item->screen_mode == SCREEN_MODE_C64) {
-							SAFECOPY(item->font,font_names[33]);
+							strcpy(item->font,font_names[33]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						if(item->screen_mode == SCREEN_MODE_C128_40
 								|| item->screen_mode == SCREEN_MODE_C128_80) {
-							SAFECOPY(item->font,font_names[35]);
+							strcpy(item->font,font_names[35]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						if(item->screen_mode == SCREEN_MODE_ATARI) {
-							SAFECOPY(item->font,font_names[36]);
+							strcpy(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
-							SAFECOPY(item->font,font_names[36]);
+							strcpy(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
@@ -1128,7 +1128,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						break;
 					default:
 					if(i!=find_font_id(item->font)) {
-						SAFECOPY(item->font,font_names[i]);
+						strcpy(item->font,font_names[i]);
 						iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 						changed=1;
 					}
@@ -1518,8 +1518,7 @@ void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaul
  */
 struct bbslist *show_bbslist(char *current, int connected)
 {
-#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist *))
-	struct	bbslist	**list;
+	struct	bbslist	*list[MAX_OPTS+1];
 	int		i,j;
 	static int		opt=0,bar=0;
 	int		oldopt=-1;
@@ -1560,25 +1559,18 @@ struct bbslist *show_bbslist(char *current, int connected)
 		return(NULL);
 
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
-	list = malloc(BBSLIST_SIZE);
-	if (list == NULL)
-		return (NULL);
-	load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
+	load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
 
 	uifc.helpbuf="Help Button Hack";
 	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_ACT|WIN_INACT
 		,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 	for(;;) {
-		if (quitting) {
-			free(list);
+		if (quitting)
 			return NULL;
-		}
 		if (!at_settings) {
 			for(;!at_settings;) {
-				if (quitting) {
-					free(list);
+				if (quitting)
 					return NULL;
-				}
 				if(connected)
 					uifc.helpbuf=	"`SyncTERM Directory`\n\n"
 									"Commands:\n\n"
@@ -1600,7 +1592,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							*p=')';
 					}
 					else
-						SAFECOPY(title, syncterm_version);
+						strncpy(title, syncterm_version, sizeof(title));
 					settitle(title);
 				}
 				oldopt=opt;
@@ -1672,7 +1664,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 								if(uifc.changes) {
 									parse_url(addy,&retlist,defaults.conn_type,FALSE);
 									free_list(&list[0],listcount);
-									free(list);
 									return(&retlist);
 								}
 							}
@@ -1682,7 +1673,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 								if (!check_exit(TRUE))
 									continue;
 							free_list(&list[0],listcount);
-							free(list);
 							return(NULL);
 					}
 				}
@@ -1772,7 +1762,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else {
 								add_bbs(settings.list_path,list[listcount-1]);
-								load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[listcount-1]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1814,7 +1804,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,str,YesNo)!=0)
 								break;
 							del_bbs(settings.list_path,list[opt]);
-							load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, NULL, NULL, NULL);
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, NULL, NULL, NULL);
 							oldopt=-1;
 							break;
 						case MSK_EDIT:
@@ -1827,7 +1817,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								break;
 							}
 							if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-								load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
+								load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 								oldopt=-1;
 							}
 							break;
@@ -1843,14 +1833,13 @@ struct bbslist *show_bbslist(char *current, int connected)
 							check_exit(FALSE);
 						}
 						else if(edit_list(list, list[opt],settings.list_path,FALSE)) {
-							load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
+							load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, strdup(list[opt]->name));
 							oldopt=-1;
 						}
 					}
 					else {
 						memcpy(&retlist,list[val],sizeof(struct bbslist));
 						free_list(&list[0],listcount);
-						free(list);
 						return(&retlist);
 					}
 				}
@@ -1905,7 +1894,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 							if (!check_exit(TRUE))
 								continue;
 						free_list(&list[0],listcount);
-						free(list);
 						return(NULL);
 					case 0:			/* Edit default connection settings */
 						edit_list(NULL, &defaults,settings.list_path,TRUE);
@@ -1942,7 +1930,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 							}
 							else if (check_exit(FALSE)) {
 								free_list(&list[0],listcount);
-								free(list);
 								return(NULL);
 							}
 						}
@@ -1955,7 +1942,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						break;
 					case 3:			/* Program settings */
 						change_settings();
-						load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
+						load_bbslist(list, sizeof(list), &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 						oldopt=-1;
 						break;
 				}
@@ -1963,36 +1950,3 @@ struct bbslist *show_bbslist(char *current, int connected)
 		}
 	}
 }
-
-cterm_emulation_t
-get_emulation(struct bbslist *bbs)
-{
-	if (bbs == NULL)
-		return CTERM_EMULATION_ANSI_BBS;
-
-	switch(bbs->screen_mode) {
-		case SCREEN_MODE_C64:
-		case SCREEN_MODE_C128_40:
-		case SCREEN_MODE_C128_80:
-			return CTERM_EMULATION_PETASCII;
-		case SCREEN_MODE_ATARI:
-		case SCREEN_MODE_ATARI_XEP80:
-			return CTERM_EMULATION_ATASCII;
-		default:
-			return CTERM_EMULATION_ANSI_BBS;
-	}
-}
-
-const char *
-get_emulation_str(cterm_emulation_t emu)
-{
-	switch (emu) {
-		case CTERM_EMULATION_ANSI_BBS:
-			return "syncterm";
-		case CTERM_EMULATION_PETASCII:
-			return "PETSCII";
-		case CTERM_EMULATION_ATASCII:
-			return "ATASCII";
-	}
-}
-
