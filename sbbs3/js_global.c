@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.380 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_global.c,v 1.381 2019/05/06 01:58:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2427,8 +2427,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			continue;
 		}
 
-		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
-			outbuf[j++]='\'';	/* single quotation mark */
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0
+			|| strcmp(token,"lsaquo")==0 || strcmp(token,"rsaquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark: should lsaquo be converted to backtick (`)? */
 			continue;
 		}
 
@@ -2441,6 +2442,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]='-';	/* dash */
 			continue;
 		}
+
+		if(strcmp(token, "zwj") == 0 || strcmp(token, "zwnj") == 0)	/* zero-width joiner / non-joiner */
+			continue;
 
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
