@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.53 2018/10/25 21:15:03 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.56 2019/05/06 10:43:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -812,17 +812,18 @@ void sbbs_t::maindflts(user_t* user)
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
 		long term = (user == &useron) ? term_supports() : user->misc;
 		if(term&PETSCII)
-			safe_snprintf(str,sizeof(str),"%sPETSCII %u columns"
+			safe_snprintf(str,sizeof(str),"%sPETSCII %lu columns"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,cols);
 		else
-			safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
+			safe_snprintf(str,sizeof(str),"%s%s%s%s%s%s"
 							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
 							,term&ANSI ? "ANSI ":"TTY "
 							,term&COLOR ? "(Color) ":"(Mono) "
 							,term&RIP ? "RIP " : nulstr
-							,term&NO_EXASCII ? "ASCII":"CP437");
-		bprintf(text[UserDefaultsTerminal],str);
+							,term&NO_EXASCII ? "ASCII ":"CP437 "
+							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
+		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(cfg.total_xedits)
 			bprintf(text[UserDefaultsXeditor]
 				,user->xedit ? cfg.xedit[user->xedit-1]->name : "None");
@@ -899,8 +900,7 @@ void sbbs_t::maindflts(user_t* user)
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
 					user->misc|=AUTOTERM;
-					user->misc&=~(ANSI|RIP|WIP|HTML);
-					user->misc|=autoterm; 
+					user->misc&=~(ANSI|RIP|WIP|HTML|PETSCII);
 				}
 				else
 					user->misc&=~AUTOTERM;
@@ -916,10 +916,16 @@ void sbbs_t::maindflts(user_t* user)
 					else
 						user->misc&=~COLOR; 
 				}
-				if(!(user->misc&PETSCII) && !yesno(text[ExAsciiTerminalQ]))
-					user->misc|=NO_EXASCII;
-				else
-					user->misc&=~NO_EXASCII;
+				if(!(user->misc&PETSCII)) {
+					if(!yesno(text[ExAsciiTerminalQ]))
+						user->misc|=NO_EXASCII;
+					else
+						user->misc&=~NO_EXASCII;
+					if(!noyes(text[SwapDeleteKeyQ]))
+						user->misc|=SWAP_DELETE;
+					else
+						user->misc&=~SWAP_DELETE;
+				}
 				if(!(user->misc&AUTOTERM) && (user->misc&(ANSI|NO_EXASCII)) == ANSI) {
 					if(!noyes(text[RipTerminalQ]))
 						user->misc|=RIP;
