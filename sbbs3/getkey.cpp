@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.54 2019/05/04 03:59:31 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.55 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -524,7 +524,7 @@ long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 void sbbs_t::pause()
 {
 	char	ch;
-	uchar	tempattrs=curatr; /* was lclatr(-1) */
+	uint	tempattrs=curatr; /* was lclatr(-1) */
     int		i,j;
 	long	l=K_UPPER;
 
