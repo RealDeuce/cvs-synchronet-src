@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.751 2019/06/20 20:48:53 rswindell Exp $ */
+/* $Id: main.cpp,v 1.749 2019/05/04 01:04:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5205,7 +5205,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300 && CRYPTLIB_VERSION > 999
+#if CRYPTLIB_VERSION < 3300
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
@@ -5694,7 +5694,7 @@ NO_SSH:
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", client_socket, client.protocol, host_name, host_ip);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s", client_socket, client.protocol, host_name);
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
