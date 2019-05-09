@@ -3,7 +3,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.108 2019/02/21 22:36:12 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.109 2019/05/09 21:00:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -742,6 +742,8 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 	int 	file;
     csi_t   bin;
 
+	if(cmdline == NULL || *cmdline == 0)
+		return -33;
 	SAFECOPY(mod,cmdline);
 	p=mod;
 	FIND_CHAR(p,' ');
