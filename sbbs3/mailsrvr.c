@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.695 2019/05/03 03:00:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.696 2019/05/11 08:23:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4888,6 +4888,8 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	newmsg.hfield_dat=NULL;
 	newmsg.total_hfields=0;
 	newmsg.hdr.delivery_attempts=0;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 	char* reverse_path = msg->reverse_path==NULL ? msg->from : msg->reverse_path;
 
 	lprintf(LOG_WARNING,"%04d SEND !Bouncing message back to %s", sock, reverse_path);
@@ -5747,7 +5749,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.695 $", "%*s %s", revision);
+	sscanf("$Revision: 1.696 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
