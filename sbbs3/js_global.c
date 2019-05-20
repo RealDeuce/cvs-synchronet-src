@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.382 2019/05/09 21:01:05 rswindell Exp $ */
+/* $Id: js_global.c,v 1.383 2019/05/20 06:59:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -723,12 +723,13 @@ js_require(JSContext *cx, uintN argc, jsval *arglist)
 
 	ret = js_load(cx, argc-1, arglist);
 
-	// TODO: this error is happening if the file doesn't exist!
-	if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
-		JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
-		JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
-		free(filename);
-		return(JS_FALSE);
+	if (!JS_IsExceptionPending(cx)) {
+		if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
+			JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
+			JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
+			free(filename);
+			return(JS_FALSE);
+		}
 	}
 	free(property);
 	return ret;
