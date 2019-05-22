@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.69 2019/03/26 07:45:42 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.71 2019/04/12 00:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -157,8 +157,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		qnetmail(to, title, mode, resmb, remsg);
-		return false; 
+		return qnetmail(to, title, mode, resmb, remsg);
 	}
 	if(net_type == NET_INTERNET) {
 		if(!(cfg.inetmail_misc&NMAIL_ALLOW)) {
@@ -351,9 +350,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 
 	smb_hfield_str(&msg,SUBJECT, subj);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor);
 
 	if(cfg.netmail_misc&NMAIL_DIRECT)
 		msg.hdr.netattr |= MSG_DIRECT;
