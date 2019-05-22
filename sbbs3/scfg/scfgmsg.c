@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.55 2018/03/11 21:27:06 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.60 2019/05/22 09:53:39 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -67,60 +67,6 @@ char *stou(char *str)
 	return(out);
 }
 
-void clearptrs(int subnum)
-{
-	char str[256];
-	ushort idx,scancfg;
-	int file, i;
-	size_t gi;
-	long l=0L;
-	glob_t g;
-
-    uifc.pop("Clearing Pointers...");
-    sprintf(str,"%suser/ptrs/*.ixb",cfg.data_dir);
-
-	glob(str,0,NULL,&g);
-   	for(gi=0;gi<g.gl_pathc;gi++) {
-
-        if(flength(g.gl_pathv[gi])>=((long)cfg.sub[subnum]->ptridx+1L)*10L) {
-            if((file=nopen(g.gl_pathv[gi],O_WRONLY))==-1) {
-                errormsg(WHERE,ERR_OPEN,g.gl_pathv[gi],O_WRONLY);
-                bail(1);
-            }
-            while(filelength(file)<(long)(cfg.sub[subnum]->ptridx)*10) {
-                lseek(file,0L,SEEK_END);
-                idx=(ushort)(tell(file)/10);
-                for(i=0;i<cfg.total_subs;i++)
-                    if(cfg.sub[i]->ptridx==idx)
-                        break;
-                write(file,&l,sizeof(l));
-                write(file,&l,sizeof(l));
-                scancfg=0xff;
-                if(i<cfg.total_subs) {
-                    if(!(cfg.sub[i]->misc&SUB_NSDEF))
-                        scancfg&=~SUB_CFG_NSCAN;
-                    if(!(cfg.sub[i]->misc&SUB_SSDEF))
-                        scancfg&=~SUB_CFG_SSCAN; 
-				} else	/* Default to scan OFF for unknown sub */
-					scancfg&=~(SUB_CFG_NSCAN|SUB_CFG_SSCAN);
-                write(file,&scancfg,sizeof(scancfg)); 
-			}
-            lseek(file,((long)cfg.sub[subnum]->ptridx)*10L,SEEK_SET);
-            write(file,&l,sizeof(l));	/* date set to null */
-            write(file,&l,sizeof(l));	/* date set to null */
-            scancfg=0xff;
-            if(!(cfg.sub[subnum]->misc&SUB_NSDEF))
-                scancfg&=~SUB_CFG_NSCAN;
-            if(!(cfg.sub[subnum]->misc&SUB_SSDEF))
-                scancfg&=~SUB_CFG_SSCAN;
-            write(file,&scancfg,sizeof(scancfg));
-            close(file); 
-		}
-    }
-	globfree(&g);
-    uifc.pop(0);
-}
-
 static bool new_grp(unsigned new_grpnum)
 {
 	grp_t* new_group = malloc(sizeof(grp_t));
@@ -164,6 +110,8 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 	int			read_qwk_confs = 0;
 	int			qwk_confnum;
 	size_t		grpname_len = strlen(cfg.grp[grpnum]->sname);
+	char		duplicate_code[LEN_CODE+1]="";
+	uint		duplicate_codes = 0;	// consecutive duplicate codes
 
 	if(added != NULL)
 		*added = 0;
@@ -290,6 +238,8 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 				SAFECOPY(tmp_code,p);		/* Copy tag to internal code */
 				SAFECOPY(tmpsub.lname,utos(p));
 				SAFECOPY(tmpsub.sname,tmpsub.lname);
+				if(strlen(p) > sizeof(tmpsub.sname) - 1)
+					SAFECOPY(tmpsub.newsgroup, p);
 			}
 			else if(type == IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS) { /* AREAS.BBS SBBSecho */
 				p=str;
@@ -303,6 +253,8 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 				truncstr(p," \t");			/* Truncate tag */
 				SAFECOPY(tmpsub.lname,utos(p));
 				SAFECOPY(tmpsub.sname,tmpsub.lname);
+				if(strlen(p) > sizeof(tmpsub.sname) - 1)
+					SAFECOPY(tmpsub.newsgroup, p);
 			}
 			else if(type == IMPORT_LIST_TYPE_BACKBONE_NA) { /* BACKBONE.NA */
 				p=str;
@@ -312,6 +264,8 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 				*tp=0;						/* Truncate echo tag */
 				SAFECOPY(tmp_code,p);		/* Copy tag to internal code suffix */
 				SAFECOPY(tmpsub.sname,utos(p));	/* ... to short name, converting underscores to spaces */
+				if(strlen(p) > sizeof(tmpsub.sname) - 1)
+					SAFECOPY(tmpsub.newsgroup, p);
 				p=tp+1;
 				SKIP_WHITESPACE(p);			/* Find description */
 				SAFECOPY(tmpsub.lname,p);	/* Copy description to long name */
@@ -327,16 +281,29 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 		if(tmpsub.code_suffix[0]==0	|| tmpsub.sname[0]==0)
 			continue;
 
-		if(tmpsub.lname[0] == 0)
-			SAFECOPY(tmpsub.lname, tmpsub.sname);
+		if(tmpsub.lname[0] == 0) {
+			if(tmpsub.newsgroup[0])
+				SAFECOPY(tmpsub.lname, tmpsub.newsgroup);
+			else
+				SAFECOPY(tmpsub.lname, tmpsub.sname);
+		}
 
 		uint j;
-		int mod_offset = LEN_CODE-1;
-		for(j=0; j < cfg.total_subs && mod_offset >= 0; j++) {
+		int attempts = 0;	// attempts to generate a unique internal code
+		if(stricmp(tmpsub.code_suffix, duplicate_code) == 0)
+			attempts = ++duplicate_codes;
+		else
+			duplicate_codes = 0;
+		for(j=0; j < cfg.total_subs && attempts < (36*36*36); j++) {
 			/* same group and duplicate name/echotag or QWK confname? overwrite the sub entry */
 			if(cfg.sub[j]->grp == grpnum) {
-				if(stricmp(cfg.sub[j]->sname, tmpsub.sname) == 0)
-					break;
+				if(cfg.sub[j]->newsgroup[0] || tmpsub.newsgroup[0]) {
+					if(stricmp(cfg.sub[j]->newsgroup, tmpsub.newsgroup) == 0)
+						break;
+				} else {
+					if(stricmp(cfg.sub[j]->sname, tmpsub.sname) == 0)
+						break;
+				}				
 			} else {
 				if((cfg.grp[grpnum]->code_prefix[0] || cfg.grp[cfg.sub[j]->grp]->code_prefix[0]))
 					continue;
@@ -344,26 +311,26 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			if(stricmp(cfg.sub[j]->code_suffix, tmpsub.code_suffix) == 0) {
 				if(type == IMPORT_LIST_TYPE_SUBS_TXT)	/* subs.txt import (don't modify internal code) */
 					break;
+				if(attempts == 0)
+					SAFECOPY(duplicate_code, tmpsub.code_suffix);
 				int code_len = strlen(tmpsub.code_suffix);
 				if(code_len < 1)
 					break;
-				if(code_len < LEN_CODE)
-					memset(tmpsub.code_suffix + code_len, '0', LEN_CODE - code_len);
-				else if(tmpsub.code_suffix[mod_offset] == 'Z')
-					tmpsub.code_suffix[mod_offset] = '0';
-				else if(tmpsub.code_suffix[mod_offset] == '9')
-					mod_offset--;
-				else 
-					tmpsub.code_suffix[mod_offset]++;
+				tmpsub.code_suffix[code_len-1] = random_code_char();
+				if(attempts > 10 && code_len > 1)
+					tmpsub.code_suffix[code_len-2] = random_code_char();
+				if(attempts > 100 && code_len > 2)
+					tmpsub.code_suffix[code_len-3] = random_code_char();
 				j=0;
+				attempts++;
 			}
 		}
-		if(mod_offset < 0)
-			break;
+		if(attempts >= (36*36*36))
+			return -2;
 
 		if(j==cfg.total_subs) {
 			if(!new_sub(j, grpnum))
-				break;
+				return -3;
 			if(added != NULL)
 				(*added)++;
 		}
@@ -378,10 +345,11 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			SAFECOPY(cfg.sub[j]->code_suffix,tmpsub.code_suffix);
 			SAFECOPY(cfg.sub[j]->sname,tmpsub.sname);
 			SAFECOPY(cfg.sub[j]->lname,tmpsub.lname);
+			SAFECOPY(cfg.sub[j]->newsgroup,tmpsub.newsgroup);
 			SAFECOPY(cfg.sub[j]->qwkname,tmpsub.qwkname);
 			SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
-			if(j==cfg.total_subs)
-				cfg.sub[j]->maxmsgs=1000;
+//			if(j==cfg.total_subs)
+//				cfg.sub[j]->maxmsgs=1000;
 		}
 		if(qhub != NULL)
 			new_qhub_sub(qhub, qhub->subs, cfg.sub[j], qwk_confnum);
@@ -481,7 +449,7 @@ void msgs_cfg()
 			if(j==-1)
 			   continue;
 			if(!j) {
-				write_msgs_cfg(&cfg,backup_level);
+				save_msgs_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -491,7 +459,7 @@ void msgs_cfg()
 		if(msk == MSK_INS) {
 			char long_name[LEN_GLNAME+1];
 			uifc.helpbuf=grp_long_name_help;
-			strcpy(long_name,"Main");
+			SAFECOPY(long_name,"Main");
 			if(uifc.input(WIN_MID|WIN_SAV,0,0, "Group Long Name", long_name, sizeof(long_name)-1, K_EDIT)<1)
 				continue;
 
@@ -531,28 +499,26 @@ void msgs_cfg()
 					"select `Yes`.\n"
 					;
 				j = 1;
-				strcpy(opt[0], "Yes");
-				strcpy(opt[1], "No");
-				opt[2][0] = 0;
-				j = uifc.list(WIN_MID | WIN_SAV, 0, 0, 0, &j, 0, "Delete All Data in Group", opt);
+				j = uifc.list(WIN_MID | WIN_SAV, 0, 0, 0, &j, 0, "Delete All Data in Group", uifcYesNoOpts);
 				if (j == -1)
 					continue;
+				uifc.pop("Deleting Data Files...");
 				if (j == 0) {
 					for (j = 0; j < cfg.total_subs; j++) {
 						if (cfg.sub[j]->grp == grpnum) {
-							sprintf(str, "%s%s.s*"
+							SAFEPRINTF2(str, "%s%s.*"
 								, cfg.grp[cfg.sub[j]->grp]->code_prefix
 								, cfg.sub[j]->code_suffix);
 							strlwr(str);
 							if (!cfg.sub[j]->data_dir[0])
-								sprintf(tmp, "[%ssubs/]", cfg.data_dir);
+								SAFEPRINTF(tmp, "%ssubs/", cfg.data_dir);
 							else
-								strcpy(tmp, cfg.sub[j]->data_dir);
+								SAFECOPY(tmp, cfg.sub[j]->data_dir);
 							delfiles(tmp, str);
-							clearptrs(j);
 						}
 					}
 				}
+				uifc.pop(NULL);
 			}
 			if(msk == MSK_CUT)
 				savgrp = *cfg.grp[grpnum];
@@ -560,17 +526,7 @@ void msgs_cfg()
 			if (msk == MSK_DEL) {
 				for (j = 0; j < cfg.total_subs;) {
 					if (cfg.sub[j]->grp == grpnum) {	/* delete subs of this group */
-						free(cfg.sub[j]);
-						cfg.total_subs--;
-						k = j;
-						while (k < cfg.total_subs) {	/* move all subs down */
-							cfg.sub[k] = cfg.sub[k + 1];
-							for (q = 0; q < cfg.total_qhubs; q++)
-								for (s = 0; s < cfg.qhub[q]->subs; s++)
-									if (cfg.qhub[q]->sub[s] == cfg.sub[j])
-										cfg.qhub[q]->sub[s] = NULL;
-							k++;
-						}
+						remove_sub(&cfg, j);
 					}
 					else j++;
 				}
@@ -637,15 +593,17 @@ void msgs_cfg()
 					break;
 				case __COUNTER__:
 					uifc.helpbuf=grp_long_name_help;
-					strcpy(str,cfg.grp[grpnum]->lname);	/* save incase setting to null */
-					if(!uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Listings"
-						,cfg.grp[grpnum]->lname,LEN_GLNAME,K_EDIT))
-						strcpy(cfg.grp[grpnum]->lname,str);
+					SAFECOPY(str, cfg.grp[grpnum]->lname);
+					if(uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Listings"
+						,str,LEN_GLNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.grp[grpnum]->lname, str);
 					break;
 				case __COUNTER__:
 					uifc.helpbuf=grp_short_name_help;
-					uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Prompts"
-						,cfg.grp[grpnum]->sname,LEN_GSNAME,K_EDIT);
+					SAFECOPY(str, cfg.grp[grpnum]->sname);
+					if(uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Prompts"
+						,str,LEN_GSNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.grp[grpnum]->sname, str);
 					break;
 				case __COUNTER__:
 				{
@@ -664,7 +622,7 @@ void msgs_cfg()
 					break;
 				}
 				case __COUNTER__:
-					sprintf(str,"%s Group",cfg.grp[grpnum]->sname);
+					SAFEPRINTF(str,"%s Group",cfg.grp[grpnum]->sname);
 					getar(str,cfg.grp[grpnum]->arstr);
 					break;
 				case __COUNTER__:
@@ -821,13 +779,16 @@ void msgs_cfg()
 
 							fprintf(stream,"%-*s %-*s %s\n"
 								,LEN_EXTCODE, extcode
-								,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname)
+								,FIDO_AREATAG_LEN
+								,cfg.sub[j]->newsgroup[0] ? cfg.sub[j]->newsgroup : stou(cfg.sub[j]->sname)
 								,str2);
 							continue; 
 						}
 						if(k==2) {		/* BACKBONE.NA */
 							fprintf(stream,"%-*s %s\n"
-								,FIDO_AREATAG_LEN, stou(cfg.sub[j]->sname),cfg.sub[j]->lname);
+								,FIDO_AREATAG_LEN
+								,cfg.sub[j]->newsgroup[0] ? cfg.sub[j]->newsgroup : stou(cfg.sub[j]->sname)
+								,cfg.sub[j]->lname);
 							continue; 
 						}
 						fprintf(stream,"%s\n%s\n%s\n%s\n%s\n%s\n"
@@ -998,24 +959,24 @@ void msg_opts()
 			,"Maximum QWK Message Age",str);
 		sprintf(opt[i++],"%-33.33s%s","Pre-pack QWK Requirements",cfg.preqwk_arstr);
 		if(cfg.mail_maxage)
-			sprintf(str,"Enabled (%u days old)",cfg.mail_maxage);
+			SAFEPRINTF(str,"Enabled (%u days old)",cfg.mail_maxage);
         else
-            strcpy(str,"Disabled");
+            SAFECOPY(str,"Disabled");
 		sprintf(opt[i++],"%-33.33s%s","Purge E-mail by Age",str);
 		if(cfg.max_spamage)
-			sprintf(str,"Enabled (%u days old)",cfg.max_spamage);
+			SAFEPRINTF(str,"Enabled (%u days old)",cfg.max_spamage);
         else
-            strcpy(str,"Disabled");
+            SAFECOPY(str,"Disabled");
 		sprintf(opt[i++],"%-33.33s%s","Purge SPAM by Age",str);
 		if(cfg.sys_misc&SM_DELEMAIL)
-			strcpy(str,"Immediately");
+			SAFECOPY(str,"Immediately");
 		else
-			strcpy(str,"Daily");
+			SAFECOPY(str,"Daily");
 		sprintf(opt[i++],"%-33.33s%s","Purge Deleted E-mail",str);
 		if(cfg.mail_maxcrcs)
-			sprintf(str,"Enabled (%"PRIu32" mail CRCs)",cfg.mail_maxcrcs);
+			SAFEPRINTF(str,"Enabled (%"PRIu32" mail CRCs)",cfg.mail_maxcrcs);
 		else
-			strcpy(str,"Disabled");
+			SAFECOPY(str,"Disabled");
 		sprintf(opt[i++],"%-33.33s%s","Duplicate E-mail Checking",str);
 		sprintf(opt[i++],"%-33.33s%s","Allow Anonymous E-mail"
 			,cfg.sys_misc&SM_ANON_EM ? "Yes" : "No");
@@ -1052,13 +1013,13 @@ void msg_opts()
 				   continue;
 				if(!i) {
 					cfg.new_install=new_install;
-					write_msgs_cfg(&cfg,backup_level);
-					write_main_cfg(&cfg,backup_level);
+					save_msgs_cfg(&cfg,backup_level);
+					save_main_cfg(&cfg,backup_level);
                     refresh_cfg(&cfg);
                 }
 				return;
 			case 0:
-				strcpy(str,cfg.sys_id);
+				SAFECOPY(str,cfg.sys_id);
 				uifc.helpbuf=
 					"`BBS ID for QWK Packets:`\n"
 					"\n"
@@ -1075,7 +1036,7 @@ void msg_opts()
 				uifc.input(WIN_MID|WIN_SAV,0,0,"BBS ID for QWK Packets"
 					,str,LEN_QWKID,K_EDIT|K_UPPER);
 				if(code_ok(str))
-					strcpy(cfg.sys_id,str);
+					SAFECOPY(cfg.sys_id,str);
 				else
 					uifc.msg("Invalid ID");
 				break;
@@ -1205,9 +1166,6 @@ void msg_opts()
                 cfg.mail_maxcrcs=atol(str);
                 break;
 			case 9:
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
 				i=cfg.sys_misc&SM_ANON_EM ? 0:1;
 				uifc.helpbuf=
 					"`Allow Anonymous E-mail:`\n"
@@ -1217,7 +1175,7 @@ void msg_opts()
 				;
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Allow Anonymous E-mail",opt);
+					,"Allow Anonymous E-mail",uifcYesNoOpts);
 				if(!i && !(cfg.sys_misc&SM_ANON_EM)) {
 					cfg.sys_misc|=SM_ANON_EM;
 					uifc.changes=1; 
@@ -1228,9 +1186,6 @@ void msg_opts()
 				}
 				break;
 			case 10:
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
 				i=cfg.sys_misc&SM_QUOTE_EM ? 0:1;
 				uifc.helpbuf=
 					"`Allow Quoting in E-mail:`\n"
@@ -1240,7 +1195,7 @@ void msg_opts()
 				;
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Allow Quoting in E-mail",opt);
+					,"Allow Quoting in E-mail",uifcYesNoOpts);
 				if(!i && !(cfg.sys_misc&SM_QUOTE_EM)) {
 					cfg.sys_misc|=SM_QUOTE_EM;
 					uifc.changes=1; 
@@ -1251,9 +1206,6 @@ void msg_opts()
 				}
 				break;
 			case 11:
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
 				i=cfg.sys_misc&SM_FILE_EM ? 0:1;
 				uifc.helpbuf=
 					"`Allow File Attachment Uploads in E-mail:`\n"
@@ -1263,7 +1215,7 @@ void msg_opts()
 				;
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Allow File Attachment Uploads in E-mail",opt);
+					,"Allow File Attachment Uploads in E-mail",uifcYesNoOpts);
 				if(!i && !(cfg.sys_misc&SM_FILE_EM)) {
 					cfg.sys_misc|=SM_FILE_EM;
 					uifc.changes=1; 
@@ -1274,9 +1226,6 @@ void msg_opts()
 				}
 				break;
 			case 12:
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
 				i=cfg.sys_misc&SM_FWDTONET ? 0:1;
 				uifc.helpbuf=
 					"`Allow Users to Have Their E-mail Forwarded to NetMail:`\n"
@@ -1287,7 +1236,7 @@ void msg_opts()
 				;
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Allow Forwarding of E-mail to NetMail",opt);
+					,"Allow Forwarding of E-mail to NetMail",uifcYesNoOpts);
 				if(!i && !(cfg.sys_misc&SM_FWDTONET)) {
 					cfg.sys_misc|=SM_FWDTONET;
 					uifc.changes=1; 
@@ -1298,9 +1247,6 @@ void msg_opts()
 				}
                 break;
 			case 13:
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
 				i=cfg.sys_misc&SM_DELREADM ? 0:1;
 				uifc.helpbuf=
 					"`Kill Read E-mail Automatically:`\n"
@@ -1310,7 +1256,7 @@ void msg_opts()
 				;
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Kill Read E-mail Automatically",opt);
+					,"Kill Read E-mail Automatically",uifcYesNoOpts);
 				if(!i && !(cfg.sys_misc&SM_DELREADM)) {
 					cfg.sys_misc|=SM_DELREADM;
 					uifc.changes=1; 
@@ -1321,9 +1267,6 @@ void msg_opts()
 				}
                 break;
 			case 14:
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
 				i=cfg.msg_misc&MM_REALNAME ? 0:1;
 				uifc.helpbuf=
 					"`Receive E-mail by Real Name:`\n"
@@ -1333,7 +1276,7 @@ void msg_opts()
 				;
 
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-					,"Receive E-mail by Real Name",opt);
+					,"Receive E-mail by Real Name",uifcYesNoOpts);
 				if(!i && !(cfg.msg_misc&MM_REALNAME)) {
 					cfg.msg_misc|=MM_REALNAME;
 					uifc.changes=1; 
@@ -1344,10 +1287,7 @@ void msg_opts()
 				}
                 break;
 			case 15:
-				n=(cfg.sub[i]->misc&MM_EMAILSIG) ? 0:1;
-				strcpy(opt[0],"Yes");
-				strcpy(opt[1],"No");
-				opt[2][0]=0;
+				n=(cfg.msg_misc&MM_EMAILSIG) ? 0:1;
 				uifc.helpbuf=
 					"`Include User Signatures in E-mail:`\n"
 					"\n"
@@ -1355,7 +1295,7 @@ void msg_opts()
 					"messages, set this option to ~Yes~.\n"
 				;
 				n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-					,"Include User Signatures in E-mail",opt);
+					,"Include User Signatures in E-mail",uifcYesNoOpts);
 				if(n==-1)
                     break;
 				if(!n && !(cfg.msg_misc&MM_EMAILSIG)) {
