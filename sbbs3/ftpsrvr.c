@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.493 2019/06/20 20:48:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.490 2019/05/07 21:12:33 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3096,7 +3096,7 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s [%s]", sock, host_name, host_ip);
+		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 	}
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
@@ -5991,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.493 $", "%*s %s", revision);
+	sscanf("$Revision: 1.490 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
