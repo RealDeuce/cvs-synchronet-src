@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.194 2019/04/29 03:56:47 rswindell Exp $ */
+/* $Id: smblib.c,v 1.198 2019/05/05 11:06:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -821,9 +821,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_EXPIRATION:
 			msg->expiration=*(uint32_t*)hfield_dat;
 			break;
-		case SMB_PRIORITY:
-			msg->priority=*(uint32_t*)hfield_dat;
-			break;
 		case SMB_COST:
 			msg->cost=*(uint32_t*)hfield_dat;
 			break;
@@ -876,6 +873,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 				p += 13;
 				SKIP_WHITESPACE(p);
 				msg->content_type = p;
+				smb_parse_content_type(p, &msg->text_subtype, &msg->text_charset);
 				break;
 			}
 			break;
@@ -916,6 +914,8 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->newsgroups=NULL;
 	msg->mime_version=NULL;
 	msg->content_type=NULL;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 
 	msg->ftn_msgid=NULL;
 	msg->ftn_reply=NULL;
@@ -1099,6 +1099,8 @@ void SMBCALL smb_freemsgmem(smbmsg_t* msg)
 		msg->dfield=NULL;
 	}
 	msg->hdr.total_dfields=0;
+	FREE_AND_NULL(msg->text_subtype);
+	FREE_AND_NULL(msg->text_charset);
 	smb_freemsghdrmem(msg);
 }
 
