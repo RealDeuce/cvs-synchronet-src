@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.59 2019/02/15 01:36:07 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.60 2019/05/22 09:53:39 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -526,17 +526,7 @@ void msgs_cfg()
 			if (msk == MSK_DEL) {
 				for (j = 0; j < cfg.total_subs;) {
 					if (cfg.sub[j]->grp == grpnum) {	/* delete subs of this group */
-						free(cfg.sub[j]);
-						cfg.total_subs--;
-						k = j;
-						while (k < cfg.total_subs) {	/* move all subs down */
-							cfg.sub[k] = cfg.sub[k + 1];
-							for (q = 0; q < cfg.total_qhubs; q++)
-								for (s = 0; s < cfg.qhub[q]->subs; s++)
-									if (cfg.qhub[q]->sub[s] == cfg.sub[j])
-										cfg.qhub[q]->sub[s] = NULL;
-							k++;
-						}
+						remove_sub(&cfg, j);
 					}
 					else j++;
 				}
