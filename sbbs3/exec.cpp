@@ -3,7 +3,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.112 2019/10/24 20:54:30 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.109 2019/05/09 21:00:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -562,7 +562,14 @@ js_OperationCallback(JSContext *cx)
 	return ret;
 }
 
-long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope, JSContext* js_cx)
+static const char* js_ext(const char* fname)
+{
+	if(getfext(fname)==NULL)
+		return(".js");
+	return("");
+}
+
+long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope)
 {
 	char*		p;
 	char*		args=NULL;
@@ -575,10 +582,7 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	jsval		old_js_argv = JSVAL_VOID;
 	jsval		old_js_argc = JSVAL_VOID;
 	jsval		rval;
-	int32		result=0;
-
-	if(js_cx == NULL)
-		js_cx = this->js_cx;
+	int32_t		result=0;
 
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -596,15 +600,12 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 
 	path[0]=0;
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		const char* js_ext = "";
-		if(getfext(fname) == NULL)
-			js_ext = ".js";
 		if(startup_dir!=NULL && *startup_dir)
-			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext);
+			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext(fname));
 		if(path[0]==0 || !fexistcase(path)) {
-			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext);
+			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 			if(cfg.mods_dir[0]==0 || !fexistcase(path))
-				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext);
+				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
 		}
 	} else
 		SAFECOPY(path,fname);
@@ -723,8 +724,9 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		JS_RemoveValueRoot(js_cx, &old_js_argc);
 	}
 
-	JS_ENDREQUEST(js_cx);
 	JS_GC(js_cx);
+
+	JS_ENDREQUEST(js_cx);
 
 	return(result);
 }
