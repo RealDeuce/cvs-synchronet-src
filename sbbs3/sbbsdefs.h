@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.242 2019/07/06 07:52:22 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.240 2019/05/09 21:14:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -656,9 +656,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
 #define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
 #define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
-#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -758,7 +757,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 #define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
-#define P_UTF8		(1<<13)		/* Message is UTF-8							*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
