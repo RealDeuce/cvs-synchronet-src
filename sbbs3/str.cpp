@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.85 2020/03/30 21:42:00 rswindell Exp $ */
+/* $Id: str.cpp,v 1.83 2018/10/26 03:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -694,8 +694,7 @@ bool sbbs_t::inputnstime(time_t *dt)
 /*****************************************************************************/
 bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 {
-	char first[128],last[128],sysop[41],sysname[41],*p;
-	int  c, d;
+	char c,d,first[128],last[128],sysop[41],sysname[41],*p;
 	char alias[LEN_ALIAS+1], name[LEN_NAME+1], handle[LEN_HANDLE+1];
 	char pass[LEN_PASS+1];
 
@@ -1207,7 +1206,7 @@ void sbbs_t::change_user(void)
 	if(online==ON_REMOTE) {
 		getuserrec(&cfg,i,U_LEVEL,2,str);
 		if(atoi(str)>logon_ml) {
-			getuserrec(&cfg,i,U_PASS,LEN_PASS,tmp);
+			getuserrec(&cfg,i,U_PASS,8,tmp);
 			bputs(text[ChUserPwPrompt]);
 			console|=CON_R_ECHOX;
 			getstr(str,8,K_UPPER);
