@@ -1,4 +1,4 @@
-/* $Id: scfgxfr1.c,v 1.30 2019/07/13 23:13:58 rswindell Exp $ */
+/* $Id: scfgxfr1.c,v 1.29 2019/02/15 01:37:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1078,9 +1078,9 @@ void xfer_opts()
 						"\n"
 						"This option allows the sysop to add and configure alternate file paths\n"
 						"for files stored on drives and directories other than the configured\n"
-						"`File Transfer Path` of a file directory. This option is useful for sysops\n"
-						"that have file directories where they wish to have files listed from\n"
-						"multiple locations (CD-ROMs or hard disks).\n"
+						"storage path for a file directory. This command is useful for those who\n"
+						"have file directories where they wish to have files listed from\n"
+						"multiple CD-ROMs or hard disks.\n"
 					;
 					i=uifc.list(i,0,0,50,&altpath_dflt,&altpath_bar,"Alternate File Paths",opt);
 					if(i==-1)
