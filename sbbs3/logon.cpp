@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.65 2017/12/06 04:49:33 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.69 2019/05/05 10:54:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,14 +79,14 @@ bool sbbs_t::logon()
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
 		useron.rows=0;
-		useron.misc&=~(ANSI|RIP|WIP|NO_EXASCII|COLOR|HTML);
+		useron.misc&=~(ANSI|RIP|NO_EXASCII|COLOR|PETSCII);
 		useron.misc|=autoterm;
-		if(!(useron.misc&ANSI) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
+		if(!(useron.misc&(ANSI|PETSCII)) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
 			useron.misc|=ANSI;
-		if(useron.misc&(RIP|WIP|HTML)
-			|| (useron.misc&ANSI && text[ColorTerminalQ][0] && yesno(text[ColorTerminalQ])))
+		if((useron.misc&RIP) || !(cfg.uq&UQ_COLORTERM)
+			|| (useron.misc&(ANSI|PETSCII) && yesno(text[ColorTerminalQ])))
 			useron.misc|=COLOR;
-		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(!(useron.misc&(NO_EXASCII|PETSCII)) && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
@@ -175,8 +175,8 @@ bool sbbs_t::logon()
 
 
 	if(useron.misc&AUTOTERM) {
-		useron.misc&=~(ANSI|RIP|WIP|HTML);
-		useron.misc|=autoterm; 
+		useron.misc&=~(ANSI|RIP|PETSCII);
+		useron.misc|=autoterm;
 	}
 
 	if(!chk_ar(cfg.shell[useron.shell]->ar,&useron,&client)) {
@@ -212,9 +212,11 @@ bool sbbs_t::logon()
 		rows=useron.rows;
 	unixtodstr(&cfg,(time32_t)logontime,str);
 	if(!strncmp(str,useron.birth,5) && !(useron.rest&FLAG('Q'))) {
-		bputs(text[HappyBirthday]);
-		pause();
-		CLS;
+		if(text[HappyBirthday][0]) {
+			bputs(text[HappyBirthday]);
+			pause();
+			CLS;
+		}
 		user_event(EVENT_BIRTHDAY); 
 	}
 	useron.ltoday++;
@@ -435,8 +437,10 @@ bool sbbs_t::logon()
 		close(file); 
 	}
 
-	if(cfg.sys_logon[0])				/* execute system logon event */
+	if(cfg.sys_logon[0]) {				/* execute system logon event */
+		lprintf(LOG_DEBUG, "executing logon event: %s", cfg.sys_logon);
 		external(cmdstr(cfg.sys_logon,nulstr,nulstr,NULL),EX_STDOUT); /* EX_SH */
+	}
 
 	if(qwklogon)
 		return(true);
