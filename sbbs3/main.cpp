@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.745 2019/04/09 20:26:50 rswindell Exp $ */
+/* $Id: main.cpp,v 1.749 2019/05/04 01:04:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -462,6 +462,16 @@ int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
+
+void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
+{
+	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
+
+	if(ret == NULL)
+		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
+			, cls == NULL ? "???" : cls->name);
+	return ret;
+}
 
 JSBool
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
@@ -3403,8 +3413,10 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	listInit(&savedlines, /* flags: */0);
+	sys_status=lncntr=criterrs=0L;
+	tos = false;
+	msghdr_tos = false;
 	listInit(&smb_list, /* flags: */0);
-	sys_status=lncntr=tos=criterrs=0L;
 	column=0;
 	tabstop=8;
 	lastlinelen=0;
@@ -3419,6 +3431,9 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
+	current_msg_subj=NULL;
+	current_msg_from=NULL;
+	current_msg_to=NULL;
 	current_file=NULL;
 	mnestr=NULL;
 
@@ -5674,7 +5689,7 @@ NO_SSH:
 		sbbs->bprintf("\r\n%s\r\n", VERSION_NOTICE);
 		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
-		SAFECOPY(host_name, "<no name>");
+		SAFECOPY(host_name, STR_NO_HOSTNAME);
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
