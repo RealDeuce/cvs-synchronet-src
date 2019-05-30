@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.47 2019/04/29 08:22:24 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.48 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -601,7 +601,7 @@ typedef struct
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */
 	uint16_t		sec_hangup; 			/* Seconds before inactivity hang-up */
 
-	char* 			color;					/* Different colors for the BBS */
+	uint* 			color;					/* Different colors for the BBS */
 	uint32_t		total_colors;
 	uint32_t		ctrlkey_passthru;		/* Bits represent control keys NOT handled by inkey() */
 
