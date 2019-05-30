@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.108 2018/07/20 05:44:42 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.110 2019/05/06 00:31:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -80,13 +80,16 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 
 #ifdef _MSC_VER
 /****************************************************************************/
-/* Case insensitive version of strstr()										*/
+/* Case insensitive version of strstr()	- currently heavy-handed			*/
 /****************************************************************************/
 char* DLLCALL strcasestr(const char* haystack, const char* needle)
 {
+	char* p = NULL;
+	/* temporary performance hack begin (warning: different behavior from traditional strcasestr): */
+	if((p = strstr(haystack, needle)) != NULL)
+		return p;
 	char* h = strdup(haystack);
 	char* n = strdup(needle);
-	char* p = NULL;
 	if(h != NULL && n != NULL)
 		p = strstr(strupr(h), strupr(n));
 	int offset = p - h;
@@ -311,16 +314,16 @@ char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
    This function also appends 'B' for exact byte counts (< 1024).
    'unit' is the smallest divisor used.
 */
-char* DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit)
+char* DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit, int precision)
 {
 	if(bytes >= one_tebibyte)
-		safe_snprintf(str, size, "%1.1fT", bytes/one_tebibyte);
+		safe_snprintf(str, size, "%1.*fT", precision, bytes/one_tebibyte);
 	else if(bytes >= one_gibibyte || unit == one_gibibyte)
-		safe_snprintf(str, size, "%1.1fG", bytes/one_gibibyte);
+		safe_snprintf(str, size, "%1.*fG", precision, bytes/one_gibibyte);
 	else if(bytes >= one_mebibyte || unit == one_mebibyte)
-		safe_snprintf(str, size, "%1.1fM", bytes/one_mebibyte);
+		safe_snprintf(str, size, "%1.*fM", precision, bytes/one_mebibyte);
 	else if(bytes >= one_kibibyte || unit == one_kibibyte)
-		safe_snprintf(str, size, "%1.1fK", bytes/one_kibibyte);
+		safe_snprintf(str, size, "%1.*fK", precision, bytes/one_kibibyte);
 	else
 		safe_snprintf(str, size, "%"PRIi64"B", bytes);
 
