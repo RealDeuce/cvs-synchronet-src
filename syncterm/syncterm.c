@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.219 2019/03/15 23:42:37 rswindell Exp $ */
+/* $Id: syncterm.c,v 1.220 2019/05/30 06:24:44 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -788,7 +788,8 @@ BOOL check_exit(BOOL force)
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
-	struct	bbslist	*list[MAX_OPTS+1]={NULL};
+#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist *))
+	struct	bbslist	**list;
 	int		listcount=0, i;
 
 	bbs->id=-1;
@@ -870,6 +871,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
+	list = calloc(1, BBSLIST_SIZE);
 	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
 	for(i=0;i<listcount;i++) {
 		if((stricmp(bbs->addr,list[i]->addr)==0)
@@ -890,6 +892,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		}
 	}
 	free_list(&list[0],listcount);
+	free(list);
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
