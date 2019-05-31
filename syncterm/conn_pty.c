@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.31 2019/07/11 18:31:44 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.30 2018/02/20 21:04:18 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -389,9 +389,10 @@ int pty_connect(struct bbslist *bbs)
 {
 	struct winsize ws;
 	struct termios ts;
+	struct text_info ti;
 	char	*termcap;
-	int	cols, rows;
 
+	/* Init ti */
 	ts.c_iflag = TTYDEF_IFLAG;
 	ts.c_oflag = TTYDEF_OFLAG;
 	ts.c_lflag = TTYDEF_LFLAG;
@@ -399,13 +400,30 @@ int pty_connect(struct bbslist *bbs)
 	memcpy(ts.c_cc,ttydefchars,sizeof(ts.c_cc));
 	cfsetspeed(&ts, 115200);
 
-	get_term_size(bbs, &cols, &rows);
-	ws.ws_col = cols;
-	ws.ws_row = rows;
+	/* Horrible way to determine the screen size */
+	textmode(screen_to_ciolib(bbs->screen_mode));
+
+	gettextinfo(&ti);
+	if(ti.screenwidth < 80)
+		ws.ws_col=40;
+	else {
+		if(ti.screenwidth < 132)
+			ws.ws_col=80;
+		else
+			ws.ws_col=132;
+	}
+	ws.ws_row=ti.screenheight;
+	if(!bbs->nostatus)
+		ws.ws_row--;
+	if(ws.ws_row<24)
+		ws.ws_row=24;
 
 	child_pid = forkpty(&master, NULL, &ts, &ws);
 	switch(child_pid) {
 	case -1:
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	case 0:		/* Child */
 		setenv("TERM",settings.TERM,1);
@@ -449,15 +467,25 @@ int pty_connect(struct bbslist *bbs)
 		exit(1);
 	}
 
-	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE))
+	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
+	}
 	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
 		destroy_conn_buf(&conn_inbuf);
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	}
 	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
@@ -465,6 +493,9 @@ int pty_connect(struct bbslist *bbs)
 		free(conn_api.rd_buf);
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
