@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.239 2019/06/01 05:44:26 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.237 2019/05/29 20:21:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2448,16 +2448,10 @@ void bottomline(int mode)
 		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Paste  ");
 	}
 	if(mode&WIN_INS) {
-#ifdef __DARWIN__
-		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"+/");
-#endif
 		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"INS");
 		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"ert Item  ");
 	}
 	if(mode&WIN_DEL) {
-#ifdef __DARWIN__
-		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"fn-");
-#endif
 		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"DEL");
 		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"ete Item  ");
 	}
@@ -2467,6 +2461,7 @@ void bottomline(int mode)
 	textattr(BLACK|(api->cclr<<4));
 	clreol();
 }
+
 
 /*****************************************************************************/
 /* Generates a 24 character ASCII string that represents the time_t pointer  */
