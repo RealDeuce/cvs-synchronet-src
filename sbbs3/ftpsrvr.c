@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.490 2019/05/07 21:12:33 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.491 2019/05/31 03:31:13 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3152,7 +3152,7 @@ static void ctrl_thread(void* arg)
 	}
 
 	sockprintf(sock,sess,"220-%s (%s)",scfg.sys_name, startup->host_name);
-	sockprintf(sock,sess," Synchronet FTP Server %s-%s Ready"
+	sockprintf(sock,sess,"220-Synchronet FTP Server %s-%s Ready"
 		,revision,PLATFORM_DESC);
 	sprintf(str,"%sftplogin.txt",scfg.text_dir);
 	if((fp=fopen(str,"rb"))!=NULL) {
@@ -5991,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.490 $", "%*s %s", revision);
+	sscanf("$Revision: 1.491 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
