@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.10 2017/08/09 20:05:48 rswindell Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.12 2019/05/09 21:02:18 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.10 2017/08/09 20:05:48 rswindell Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.12 2019/05/09 21:02:18 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 			while(isspace(*macro))
 				macro++;
 			if((int)lno != i) {
-				fprintf(stderr,"Mismatch! %s has %d... should be %d\n", comment, lno, i);
+				fprintf(stderr,"Mismatch! %s has %ld... should be %d\n", comment, lno, i);
 			}
 			fprintf(text_h, "\t%c%s\n", i==1?' ':',', macro);
 			fprintf(text_js, "var %s=%d;\n", macro, i);
@@ -268,6 +268,7 @@ int main(int argc, char **argv)
 	fclose(text_h);
 	fputs("\n",text_js);
 	fprintf(text_js, "var TOTAL_TEXT=%d;\n",i);
+	fprintf(text_js, "\nthis;\n");
 	fclose(text_js);
 	fputs("};\n",text_defaults_c);
 	fclose(text_defaults_c);
