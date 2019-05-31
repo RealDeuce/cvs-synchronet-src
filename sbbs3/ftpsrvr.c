@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.487 2019/01/18 09:14:42 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.491 2019/05/31 03:31:13 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2000,7 +2000,9 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 			sockprintf(*sock, *sess, "431 TLS not available");
 		return FALSE;
 	}
+	lock_ssl_cert();
 	if ((status=cryptSetAttribute(*sess, CRYPT_SESSINFO_PRIVATEKEY, scfg.tls_certificate)) != CRYPT_OK) {
+		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting private key");
 		cryptDestroySession(*sess);
 		*sess = -1;
@@ -2013,6 +2015,7 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	nb=0;
 	ioctlsocket(*sock,FIONBIO,&nb);
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_NETWORKSOCKET, *sock)) != CRYPT_OK) {
+		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting network socket");
 		cryptDestroySession(*sess);
 		*sess = -1;
@@ -2023,9 +2026,11 @@ static BOOL start_tls(SOCKET *sock, CRYPT_SESSION *sess, BOOL resp)
 	if (resp)
 		sockprintf(*sock, -1, "234 Ready to start TLS");
 	if ((status = cryptSetAttribute(*sess, CRYPT_SESSINFO_ACTIVE, 1)) != CRYPT_OK) {
+		unlock_ssl_cert();
 		GCES(status, *sock, *sess, estr, "setting session active");
 		return TRUE;
 	}
+	unlock_ssl_cert();
 	if (startup->max_inactivity) {
 		if ((status = cryptSetAttribute(*sess, CRYPT_OPTION_NET_READTIMEOUT, startup->max_inactivity)) != CRYPT_OK) {
 			GCES(status, *sock, *sess, estr, "setting read timeout");
@@ -3088,15 +3093,11 @@ static void ctrl_thread(void* arg)
 	lprintf(LOG_INFO,"%04d CTRL connection accepted from: %s port %u"
 		,sock, host_ip, inet_addrport(&ftp.client_addr));
 
-	if(startup->options&FTP_OPT_NO_HOST_LOOKUP)
-		strcpy(host_name,"<no name>");
-	else {
-		if(getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD)!=0)
-			strcpy(host_name,"<no name>");
-	}
-
-	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP))
+	SAFECOPY(host_name, STR_NO_HOSTNAME);
+	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
+		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
+	}
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
 	if(banned || trashcan(&scfg,host_ip,"ip")) {
@@ -3151,7 +3152,7 @@ static void ctrl_thread(void* arg)
 	}
 
 	sockprintf(sock,sess,"220-%s (%s)",scfg.sys_name, startup->host_name);
-	sockprintf(sock,sess," Synchronet FTP Server %s-%s Ready"
+	sockprintf(sock,sess,"220-Synchronet FTP Server %s-%s Ready"
 		,revision,PLATFORM_DESC);
 	sprintf(str,"%sftplogin.txt",scfg.text_dir);
 	if((fp=fopen(str,"rb"))!=NULL) {
@@ -4674,9 +4675,11 @@ static void ctrl_thread(void* arg)
 						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, f.size, f.date, str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
 						l++;
 					}
-					lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
-						,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
-						,(ulong)g.gl_pathc, (long)time(NULL) - start);
+					if (cmd[3] == 'D') {
+						lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
+						    ,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
+						    ,(ulong)g.gl_pathc, (long)time(NULL) - start);
+					}
 					globfree(&g);
 				} else 
 					lprintf(LOG_INFO,"%04d <%s> %s listing: /%s/%s directory in %s mode (empty - no access)"
@@ -5988,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.487 $", "%*s %s", revision);
+	sscanf("$Revision: 1.491 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
