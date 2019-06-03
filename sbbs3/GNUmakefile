@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.230 2018/03/17 05:43:39 deuce Exp $
+# $Id: GNUmakefile,v 1.233 2019/06/03 23:10:21 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -84,6 +84,7 @@ else
  endif
 endif
 export LD_RUN_PATH
+LDFLAGS += -rpath $(LD_RUN_PATH)
 
 CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
@@ -207,7 +208,7 @@ $(JSDOOR): $(JSDOOR_OBJS) $(SBBS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(JS_LIBS) $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
 # ANS2ASC
 $(ANS2ASC): $(OBJODIR)/ans2asc.o
@@ -268,3 +269,13 @@ $(READSAUCE): $(READSAUCE_OBJS) $(OBJODIR) $(EXEODIR)
 $(SHOWSTAT): $(SHOWSTAT_OBJS) $(OBJODIR) $(EXEODIR)
 	@echo Linking $@
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(SHOWSTAT_OBJS) $(XPDEV_LIBS)
+
+# PKTDUMP
+$(PKTDUMP): $(PKTDUMP_OBJS) $(OBJODIR) $(EXEODIR)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(PKTDUMP_OBJS)
+
+# FMSGDUMP
+$(FMSGDUMP): $(FMSGDUMP_OBJS) $(OBJODIR) $(EXEODIR)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(FMSGDUMP_OBJS)
