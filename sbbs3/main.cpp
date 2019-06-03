@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.749 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: main.cpp,v 1.750 2019/06/03 20:55:17 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5205,7 +5205,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300
+#if CRYPTLIB_VERSION < 3300 && CRYPTLIB_VERSION > 999
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
