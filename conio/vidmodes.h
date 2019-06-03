@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.30 2019/07/25 18:20:45 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.29 2018/07/24 01:10:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -107,7 +107,7 @@ enum {
 	,ATARI_PALETTE
 };
 
-extern struct video_params vparams[53];
+extern struct video_params vparams[52];
 #define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
 extern uint32_t palettes[5][16];
 extern struct dac_colors dac_default[TOTAL_DAC_SIZE];
