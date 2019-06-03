@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.58 2019/06/28 23:59:50 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.57 2019/05/09 21:14:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -821,7 +821,7 @@ void sbbs_t::maindflts(user_t* user)
 							,term&ANSI ? "ANSI ":"TTY "
 							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
 							,term&RIP ? "RIP " : nulstr
-							,term&UTF8 ? "UTF-8" : (term&NO_EXASCII ? "ASCII ":"CP437 ")
+							,term&NO_EXASCII ? "ASCII ":"CP437 "
 							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
 		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(user->rows)
