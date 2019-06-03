@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.250 2019/07/07 02:01:13 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.248 2019/05/05 10:58:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,7 +406,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	xtrn_mode = mode;
 	lprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
@@ -938,10 +937,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(mode&EX_BIN)
-						RingBufWrite(&outbuf, bp, rd);
-					else
-						rputs((char*)bp, rd);
+					if(!(mode&EX_BIN) && term_supports(PETSCII))
+						petscii_convert(bp, rd);
+					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
 
@@ -1341,7 +1339,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
  	char* p;
 #endif
 
-	xtrn_mode = mode;
 	lprintf(LOG_DEBUG, "Executing external: %s", cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
