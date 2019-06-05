@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.489 2019/04/23 23:07:26 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.492 2019/05/31 15:39:17 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4675,9 +4675,11 @@ static void ctrl_thread(void* arg)
 						send_mlsx_entry(fp, sock, sess, mlsx_feats, "file", permstr, f.size, f.date, str, uniq, f.dateuled, cmd[3] == 'T' ? mls_path : getfname(g.gl_pathv[i]));
 						l++;
 					}
-					lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
-						,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
-						,(ulong)g.gl_pathc, (long)time(NULL) - start);
+					if (cmd[3] == 'D') {
+						lprintf(LOG_INFO, "%04d <%s> %s listing (%lu bytes) of /%s/%s (%lu files) created in %ld seconds"
+						    ,sock, user.alias, cmd, ftell(fp), scfg.lib[lib]->sname, scfg.dir[dir]->code_suffix
+						    ,(ulong)g.gl_pathc, (long)time(NULL) - start);
+					}
 					globfree(&g);
 				} else 
 					lprintf(LOG_INFO,"%04d <%s> %s listing: /%s/%s directory in %s mode (empty - no access)"
@@ -5989,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.489 $", "%*s %s", revision);
+	sscanf("$Revision: 1.492 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
