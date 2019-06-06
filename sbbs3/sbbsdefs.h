@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.241 2019/06/28 23:04:48 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.240 2019/05/09 21:14:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -656,9 +656,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
 #define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
 #define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
-#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
