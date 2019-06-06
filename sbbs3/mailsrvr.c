@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.694 2019/05/03 00:16:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.697 2019/05/24 02:02:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1566,7 +1566,6 @@ static void pop3_thread(void* arg)
 								,socket, client.protocol, user.alias, i, smb.last_error);
 						} else {
 							msg.hdr.attr|=MSG_READ;
-							msg.hdr.netattr|=MSG_SENT;
 
 							if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) 
 								lprintf(LOG_ERR,"%04d %s <%s> !ERROR %d (%s) locking message header #%u"
@@ -2952,7 +2951,7 @@ static void smtp_thread(void* arg)
 
 		spam_block_exempt = findstr(host_ip,spam_block_exemptions) || findstr(host_name,spam_block_exemptions);
 		if(trashcan(&scfg,host_ip,"ip") 
-			|| (findstr(host_ip,spam_block) && !spam_block_exempt)) {
+			|| ((!spam_block_exempt) && findstr(host_ip,spam_block))) {
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT IP ADDRESS BLOCKED: %s (%lu total)"
 				,socket, client.protocol, host_ip, ++stats.sessions_refused);
 			sockprintf(socket,client.protocol,session,"550 CLIENT IP ADDRESS BLOCKED: %s", host_ip);
@@ -2964,8 +2963,7 @@ static void smtp_thread(void* arg)
 			return;
 		}
 
-		if(trashcan(&scfg,host_name,"host") 
-			|| (findstr(host_name,spam_block) && !spam_block_exempt)) {
+		if(trashcan(&scfg,host_name,"host")) {
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT HOSTNAME BLOCKED: %s (%lu total)"
 				,socket, client.protocol, host_name, ++stats.sessions_refused);
 			sockprintf(socket,client.protocol,session,"550 CLIENT HOSTNAME BLOCKED: %s", host_name);
@@ -4889,6 +4887,8 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	newmsg.hfield_dat=NULL;
 	newmsg.total_hfields=0;
 	newmsg.hdr.delivery_attempts=0;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 	char* reverse_path = msg->reverse_path==NULL ? msg->from : msg->reverse_path;
 
 	lprintf(LOG_WARNING,"%04d SEND !Bouncing message back to %s", sock, reverse_path);
@@ -5623,6 +5623,7 @@ static void sendmail_thread(void* arg)
 
 			/* Now lets mark this message for deletion without corrupting the index */
 			msg.hdr.attr|=MSG_DELETE;
+			msg.hdr.netattr|=MSG_SENT;
 			msg.hdr.netattr&=~MSG_INTRANSIT;
 			if((i=smb_updatemsg(&smb,&msg))!=SMB_SUCCESS)
 				lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) deleting message #%u"
@@ -5747,7 +5748,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.694 $", "%*s %s", revision);
+	sscanf("$Revision: 1.697 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
