@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.682 2019/05/23 00:40:03 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.683 2019/06/07 19:46:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2549,7 +2549,7 @@ static BOOL parse_headers(http_session_t * session)
 								session->req.auth.algorithm=ALGORITHM_MD5;
 								session->req.auth.type=AUTHENTICATION_DIGEST;
 								/* Parse out values one at a time and store */
-								while(*p) {
+								while(p != NULL && *p) {
 									while(isspace(*p))
 										p++;
 									if(strnicmp(p,"username=",9)==0) {
@@ -6553,7 +6553,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.682 $", "%*s %s", revision);
+	sscanf("$Revision: 1.683 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
