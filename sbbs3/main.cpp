@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.751 2019/06/20 20:48:53 rswindell Exp $ */
+/* $Id: main.cpp,v 1.750 2019/06/03 20:55:17 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5694,7 +5694,7 @@ NO_SSH:
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", client_socket, client.protocol, host_name, host_ip);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s", client_socket, client.protocol, host_name);
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
