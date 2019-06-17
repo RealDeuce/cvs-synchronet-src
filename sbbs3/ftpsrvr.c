@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.495 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.492 2019/05/31 15:39:17 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3096,7 +3096,7 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s [%s]", sock, host_name, host_ip);
+		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
 	}
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
@@ -3142,7 +3142,6 @@ static void ctrl_thread(void* arg)
 	client.port=inet_addrport(&ftp.client_addr);
 	client.protocol="FTP";
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(sock,&client,FALSE /* update */);
 
 	if(startup->login_attempt.throttle
@@ -3409,7 +3408,6 @@ static void ctrl_thread(void* arg)
 				sprintf(str,"%s <%.32s>",user.alias,password);
 				client.user=str;
 			}
-			client.usernum = user.number;
 			client_on(sock,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d <%s> logged in (%u today, %u total)"
@@ -3560,7 +3558,7 @@ static void ctrl_thread(void* arg)
 		if(!stricmp(cmd, "SITE WHO")) {
 			sockprintf(sock,sess,"211-Active Telnet Nodes:");
 			for(i=0;i<scfg.sys_nodes && i<scfg.sys_lastnode;i++) {
-				if((result=getnodedat(&scfg, i+1, &node, FALSE, NULL))!=0) {
+				if((result=getnodedat(&scfg, i+1, &node, 0))!=0) {
 					sockprintf(sock,sess," Error %d getting data for Telnet Node %d",result,i+1);
 					continue;
 				}
@@ -5993,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.495 $", "%*s %s", revision);
+	sscanf("$Revision: 1.492 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
