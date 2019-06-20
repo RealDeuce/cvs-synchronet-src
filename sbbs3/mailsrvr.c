@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.695 2019/05/03 03:00:12 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.698 2019/06/20 20:48:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1002,7 +1002,7 @@ static void pop3_thread(void* arg)
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&pop3.client_addr.addr, pop3.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 		if(startup->options&MAIL_OPT_DEBUG_POP3)
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", socket, client.protocol, host_name, host_ip);
 	}
 	if (pop3.tls_port) {
 		if (get_ssl_cert(&scfg, &estr, &level) == -1) {
@@ -2919,7 +2919,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&smtp.client_addr.addr, smtp.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+		lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", socket, client.protocol, host_name, host_ip);
 	}
 	protected_uint32_adjust(&active_clients, 1);
 	update_clients();
@@ -2951,7 +2951,7 @@ static void smtp_thread(void* arg)
 
 		spam_block_exempt = findstr(host_ip,spam_block_exemptions) || findstr(host_name,spam_block_exemptions);
 		if(trashcan(&scfg,host_ip,"ip") 
-			|| (findstr(host_ip,spam_block) && !spam_block_exempt)) {
+			|| ((!spam_block_exempt) && findstr(host_ip,spam_block))) {
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT IP ADDRESS BLOCKED: %s (%lu total)"
 				,socket, client.protocol, host_ip, ++stats.sessions_refused);
 			sockprintf(socket,client.protocol,session,"550 CLIENT IP ADDRESS BLOCKED: %s", host_ip);
@@ -2963,8 +2963,7 @@ static void smtp_thread(void* arg)
 			return;
 		}
 
-		if(trashcan(&scfg,host_name,"host") 
-			|| (findstr(host_name,spam_block) && !spam_block_exempt)) {
+		if(trashcan(&scfg,host_name,"host")) {
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT HOSTNAME BLOCKED: %s (%lu total)"
 				,socket, client.protocol, host_name, ++stats.sessions_refused);
 			sockprintf(socket,client.protocol,session,"550 CLIENT HOSTNAME BLOCKED: %s", host_name);
@@ -4888,6 +4887,8 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	newmsg.hfield_dat=NULL;
 	newmsg.total_hfields=0;
 	newmsg.hdr.delivery_attempts=0;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 	char* reverse_path = msg->reverse_path==NULL ? msg->from : msg->reverse_path;
 
 	lprintf(LOG_WARNING,"%04d SEND !Bouncing message back to %s", sock, reverse_path);
@@ -5747,7 +5748,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.695 $", "%*s %s", revision);
+	sscanf("$Revision: 1.698 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

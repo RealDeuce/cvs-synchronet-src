@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.516 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.519 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -463,8 +463,8 @@ public:
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
 	time_t 	timeout;		/* User inactivity timeout reference */
 	ulong 	timeleft_warn;	/* low timeleft warning flag */
-	uchar 	curatr; 		/* Current Text Attributes Always */
-	uchar	attr_stack[64];	/* Saved attributes (stack) */
+	uint	curatr; 		/* Current Text Attributes Always */
+	uint	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
 	bool 	tos;			/* Cursor is currently at the Top of Screen */
@@ -480,7 +480,7 @@ public:
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
-	char 	latr;			/* Starting attribute of line buffer */
+	uint	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
@@ -745,7 +745,7 @@ public:
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
-	long	getkeys(const char *str, ulong max);
+	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
 	bool	yesno(const char *str);
@@ -759,8 +759,8 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	bool	printfile(const char* fname, long mode);
-	bool	printtail(const char* fname, int lines, long mode);
+	bool	printfile(const char* fname, long mode, long org_cols = 0);
+	bool	printtail(const char* fname, int lines, long mode, long org_cols = 0);
 	bool	menu(const char *code, long mode = 0);
 	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 

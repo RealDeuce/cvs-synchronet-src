@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.87 2019/05/03 03:08:31 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.88 2019/05/04 23:02:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -280,7 +280,9 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		if(p == NULL)
 			p = txt;
 		else
-			bprintf(text[MIMEDecodedPlainTextFmt], msg->charset == NULL ? "US-ASCII" : msg->charset);
+			bprintf(text[MIMEDecodedPlainTextFmt]
+				, msg->text_charset == NULL ? "unspecified (US-ASCII)" : msg->text_charset
+				, msg->text_subtype);
 	}
 	truncsp(p);
 	SKIP_CRLF(p);

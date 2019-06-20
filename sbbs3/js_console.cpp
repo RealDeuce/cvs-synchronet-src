@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.127 2019/05/04 01:04:22 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.130 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -674,7 +674,8 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	char		key[2];
 	uintN		i;
 	int32		val;
-	uint32		maxnum=~0;
+	uint32		maxnum = 0;
+	long		mode = K_UPPER;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
 	char*		cstr=NULL;
@@ -687,8 +688,12 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],(int32*)&maxnum))
+			if(!JS_ValueToInt32(cx, argv[i], &val))
 				return JS_FALSE;
+			if(maxnum == 0)
+				maxnum = val;
+			else
+				mode = val;
 			continue;
 		}
 		if(JSVAL_IS_STRING(argv[i])) {
@@ -699,8 +704,11 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 		}
 	}
 
+	if(maxnum == 0)
+		maxnum = ~0;
+
 	rc=JS_SUSPENDREQUEST(cx);
-	val=sbbs->getkeys(cstr,maxnum);
+	val=sbbs->getkeys(cstr, maxnum, mode);
 	FREE_AND_NULL(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1194,6 +1202,7 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		mode=0;
+	int32		columns=0;
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
@@ -1210,12 +1219,16 @@ js_printfile(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToInt32(cx,argv[1],&mode))
 			return JS_FALSE;
 	}
+	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
+		if(!JS_ValueToInt32(cx,argv[2],&columns))
+			return JS_FALSE;
+	}
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->printfile(cstr,mode);
+	bool result = sbbs->printfile(cstr,mode,columns);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1230,6 +1243,7 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		lines=0;
 	int32		mode=0;
+	int32		columns=0;
 	uintN		i;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -1245,8 +1259,12 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 				if(!JS_ValueToInt32(cx,argv[i],&lines))
 					return JS_FALSE;
 			}
-			else {
+			else if(!mode){
 				if(!JS_ValueToInt32(cx,argv[i],&mode))
+					return JS_FALSE;
+			}
+			else {
+				if(!JS_ValueToInt32(cx,argv[i],&columns))
 					return JS_FALSE;
 			}
 		} else if(JSVAL_IS_STRING(argv[i]))
@@ -1263,7 +1281,7 @@ js_printtail(JSContext *cx, uintN argc, jsval *arglist)
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	bool result = sbbs->printtail(cstr,lines,mode);
+	bool result = sbbs->printtail(cstr,lines,mode,columns);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1857,7 +1875,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("get a number between 1 and <i>maxnum</i> from the user with a default value of <i>default</i>")
 	,310
 	},
-	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("[keys] [,maxnum]")
+	{"getkeys",			js_getkeys,			1, JSTYPE_NUMBER,	JSDOCSTR("[keys] [,maxnum] [,mode=<tt>K_UPPER</tt>]")
 	,JSDOCSTR("get one key from of a list of valid command <i>keys</i> (any key, if not specified), "
 		"or a number between 1 and <i>maxnum</i>")
 	,310
@@ -1939,11 +1957,12 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
-	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>]")
-	,JSDOCSTR("print a message text file with optional mode")
+	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>] [,orig_columns=0")
+	,JSDOCSTR("print a message text file with optional mode.<br>"
+		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
 	,310
 	},
-	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>]")
+	{"printtail",		js_printtail,		2, JSTYPE_BOOLEAN,		JSDOCSTR("filename, lines [,mode=<tt>P_NONE</tt>] [,orig_columns=0]")
 	,JSDOCSTR("print last x lines of file with optional mode")
 	,310
 	},
@@ -2092,7 +2111,7 @@ static JSBool js_console_enumerate(JSContext *cx, JSObject *obj)
 	return(js_console_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_console_class = {
+JSClass js_console_class = {
      "Console"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
