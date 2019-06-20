@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.697 2019/05/24 02:02:56 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.698 2019/06/20 20:48:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1002,7 +1002,7 @@ static void pop3_thread(void* arg)
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&pop3.client_addr.addr, pop3.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 		if(startup->options&MAIL_OPT_DEBUG_POP3)
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", socket, client.protocol, host_name, host_ip);
 	}
 	if (pop3.tls_port) {
 		if (get_ssl_cert(&scfg, &estr, &level) == -1) {
@@ -2919,7 +2919,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&smtp.client_addr.addr, smtp.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+		lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", socket, client.protocol, host_name, host_ip);
 	}
 	protected_uint32_adjust(&active_clients, 1);
 	update_clients();
@@ -5748,7 +5748,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.697 $", "%*s %s", revision);
+	sscanf("$Revision: 1.698 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
