@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.228 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.229 2019/06/21 19:53:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1855,8 +1855,9 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 									}
 								}
 								if(ret==CRYPT_OK) {
-									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK)
+									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK) {
 										GCES(ret, p, estr, "setting session active");
+									}
 									if (tiny == SOCK_PROP_SSL_SERVER)
 										unlock_ssl_cert();
 								}
