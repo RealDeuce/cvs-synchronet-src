@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.689 2019/07/04 01:57:42 deuce Exp $ */
+/* $Id: websrvr.c,v 1.685 2019/06/21 18:54:30 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -206,7 +206,6 @@ typedef struct  {
 	char		host[128];				/* The requested host. (as used for self-referencing URLs) */
 	char		vhost[128];				/* The requested host. (virtual host) */
 	int			send_location;
-	BOOL			send_content;
 	const char*	mime_type;
 	str_list_t	headers;
 	char		status[MAX_REQUEST_LINE+1];
@@ -239,7 +238,6 @@ typedef struct  {
 	char		*cleanup_file[MAX_CLEANUPS];
 	BOOL	sent_headers;
 	BOOL	prev_write;
-	BOOL	manual_length;
 
 	/* webctrl.ini overrides */
 	char	*error_dir;
@@ -562,8 +560,6 @@ static int writebuf(http_session_t	*session, const char *buf, size_t len)
 	size_t	sent=0;
 	size_t	avail;
 
-	if (session->req.sent_headers && session->req.send_content == FALSE)
-		return (0);
 	while(sent < len) {
 		ResetEvent(session->outbuf.empty_event);
 		avail=RingBufFree(&session->outbuf);
@@ -1223,6 +1219,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 {
 	int		ret;
 	int		stat_code;
+	BOOL	send_file=TRUE;
 	time_t	ti;
 	size_t	idx;
 	const char	*status_line;
@@ -1230,7 +1227,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 	struct tm	tm;
 	char	*headers;
 	char	header[MAX_REQUEST_LINE+1];
-	BOOL	send_entity = TRUE;
+	BOOL	send_entity=TRUE;
 
 	if(session->socket==INVALID_SOCKET) {
 		session->req.sent_headers=TRUE;
@@ -1247,28 +1244,20 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 	headers=malloc(MAX_HEADERS_SIZE);
 	if(headers==NULL)  {
 		lprintf(LOG_CRIT,"Could not allocate memory for response headers.");
-		session->req.sent_headers=TRUE;
 		return(FALSE);
 	}
 	*headers=0;
-	/* send_headers() is called a second time when using chunked
-	 * transfer encoding.  This allows setting headers while sending
-	 * the response, and the CRLF at the end is required to terminate
-	 * the response. */
-	if (!session->req.sent_headers) {
-		session->req.send_content = TRUE;
+	if(!session->req.sent_headers) {
+		session->req.sent_headers=TRUE;
 		status_line=status;
 		ret=stat(session->req.physical_path,&stats);
-		if(session->req.method==HTTP_HEAD)
-			session->req.send_content = FALSE;
-		if(session->req.method==HTTP_OPTIONS) {
+		if(session->req.method==HTTP_OPTIONS)
 			ret=-1;
-			session->req.send_content = FALSE;
-		}
 		if(!ret && session->req.if_modified_since && (stats.st_mtime <= session->req.if_modified_since) && !session->req.dynamic) {
 			status_line="304 Not Modified";
-			ret=-1;	// Avoid forcing 200 OK next
-			/* 304 is further handled in stat_code == below */
+			ret=-1;
+			send_file=FALSE;
+			send_entity=FALSE;
 		}
 		if(!ret && session->req.if_range && (stats.st_mtime > session->req.if_range || session->req.dynamic)) {
 			status_line="200 OK";
@@ -1278,14 +1267,12 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		if(session->req.send_location==MOVED_PERM)  {
 			status_line=error_301;
 			ret=-1;
-			session->req.send_content = FALSE;
-			send_entity = FALSE;
+			send_file=FALSE;
 		}
 		if(session->req.send_location==MOVED_TEMP)  {
 			status_line=error_302;
 			ret=-1;
-			session->req.send_content = FALSE;
-			send_entity = FALSE;
+			send_file=FALSE;
 		}
 
 		stat_code=atoi(status_line);
@@ -1293,9 +1280,8 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			session->req.ld->status=stat_code;
 
 		if(stat_code==304 || stat_code==204 || (stat_code >= 100 && stat_code<=199)) {
-			session->req.send_content = FALSE;
+			send_file=FALSE;
 			chunked=FALSE;
-			send_entity = FALSE;
 		}
 
 		/* Status-Line */
@@ -1351,15 +1337,18 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			safecat(headers,header,MAX_HEADERS_SIZE);
 		}
 
-		/* DO NOT send a content-length for chunked */
+		/* DO NOT send a content-length for chunked *
+		 * Per RFC 7230 (HTTP/1.1):
+		 * "A sender MUST NOT send a Content-Length header field in any message that contains a Transfer-Encoding header field.
+		 */
 		if(send_entity) {
-			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked) && (!session->req.manual_length)) {
+			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
 				}
 				else  {
-					if((session->req.range_start || session->req.range_end) && stat_code == 206) {
+					if((session->req.range_start || session->req.range_end) && atoi(status_line)==206) {
 						safe_snprintf(header,sizeof(header),"%s: %ld",get_header(HEAD_LENGTH),session->req.range_end-session->req.range_start+1);
 						safecat(headers,header,MAX_HEADERS_SIZE);
 					}
@@ -1382,7 +1371,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			}
 
 			if(session->req.range_start || session->req.range_end) {
-				switch(stat_code) {
+				switch(atoi(status_line)) {
 					case 206:	/* Partial reply */
 						safe_snprintf(header,sizeof(header),"%s: bytes %ld-%ld/%ld",get_header(HEAD_CONTENT_RANGE),session->req.range_start,session->req.range_end,stats.st_size);
 						safecat(headers,header,MAX_HEADERS_SIZE);
@@ -1406,12 +1395,11 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 	}
 
 	safecat(headers,"",MAX_HEADERS_SIZE);
-	ret = bufprint(session,headers);
-	session->req.sent_headers=TRUE;
+	send_file = (bufprint(session,headers) && send_file);
 	drain_outbuf(session);
 	session->req.write_chunked=chunked;
 	free(headers);
-	return (ret);
+	return(send_file);
 }
 
 static int sock_sendfile(http_session_t *session,char *path,unsigned long start, unsigned long end)
@@ -4347,9 +4335,12 @@ static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_
 					if(i!=-1 && i!=0)  {
 						int snt=0;
 						start=time(NULL);
-						snt=writebuf(session,buf,i);
-						if(session->req.ld!=NULL)
-							session->req.ld->size+=snt;
+						if(session->req.method!=HTTP_HEAD) {
+							snt=writebuf(session,buf,i);
+							if(session->req.ld!=NULL) {
+								session->req.ld->size+=snt;
+							}
+						}
 					}
 					else
 						done_reading=TRUE;
@@ -4757,9 +4748,12 @@ static BOOL exec_cgi(http_session_t *session)
 			if(i!=-1 && i!=0)  {
 				int snt=0;
 				start=time(NULL);
-				snt=writebuf(session,buf,i);
-				if(session->req.ld!=NULL)
-					session->req.ld->size+=snt;
+				if(session->req.method!=HTTP_HEAD) {
+					snt=writebuf(session,buf,i);
+					if(session->req.ld!=NULL) {
+						session->req.ld->size+=snt;
+					}
+				}
 			}
 		}
 
@@ -5073,7 +5067,7 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 static void js_writebuf(http_session_t *session, const char *buf, size_t buflen)
 {
 	if(session->req.sent_headers) {
-		if(session->req.send_content)
+		if(session->req.method!=HTTP_HEAD && session->req.method!=HTTP_OPTIONS)
 			writebuf(session,buf,buflen);
 	}
 	else
@@ -5696,7 +5690,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSObject*	reply;
 	JSIdArray*	heads;
 	JSObject*	headers;
-	int			i, h;
+	int			i;
 	char		str[MAX_REQUEST_LINE+1];
 	char		*p=NULL,*p2=NULL;
 	size_t		p_sz=0, p2_sz=0;
@@ -5729,37 +5723,8 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 					free(p2);
 				return FALSE;
 			}
-			if (!session->req.sent_headers) {
-				h = get_header_type(p);
-				switch(h) {
-				case HEAD_LOCATION:
-					if (*p2 == '/') {
-						unescape(p2);
-						SAFECOPY(session->req.virtual_path,p2);
-						session->req.send_location=MOVED_STAT;
-					}
-					else {
-						SAFECOPY(session->req.virtual_path,p2);
-						session->req.send_location=MOVED_TEMP;
-					}
-					if (atoi(session->req.status) == 200)
-						SAFECOPY(session->req.status, error_302);
-					break;
-				case HEAD_LENGTH:
-				case HEAD_TRANSFER_ENCODING:
-					/* If either of these are manually set, point
-					 * the gun at the script writers foot for them */
-					chunked = false;
-					session->req.manual_length = TRUE;
-				default:
-					safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-					strListPush(&session->req.dynamic_heads,str);
-				}
-			}
-			else {
-				safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-				strListPush(&session->req.dynamic_heads,str);
-			}
+			safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
+			strListPush(&session->req.dynamic_heads,str);
 		}
 		if(p)
 			free(p);
@@ -5851,8 +5816,9 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 
 	/* Read http_reply object */
-	if(!session->req.sent_headers)
+	if(!session->req.sent_headers) {
 		retval=ssjs_send_headers(session,FALSE);
+	}
 
 	/* Free up temporary resources here */
 
@@ -5864,8 +5830,11 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 
 static void respond(http_session_t * session)
 {
-	if(session->req.method==HTTP_OPTIONS)
+	BOOL		send_file=TRUE;
+
+	if(session->req.method==HTTP_OPTIONS) {
 		send_headers(session,session->req.status,FALSE);
+	}
 	else {
 		if(session->req.dynamic==IS_FASTCGI)  {
 			if(!exec_fastcgi(session)) {
@@ -5895,10 +5864,12 @@ static void respond(http_session_t * session)
 		}
 		else {
 			session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
-			send_headers(session,session->req.status,FALSE);
+			send_file=send_headers(session,session->req.status,FALSE);
 		}
 	}
-	if(session->req.send_content)  {
+	if(session->req.method==HTTP_HEAD || session->req.method==HTTP_OPTIONS)
+		send_file=FALSE;
+	if(send_file)  {
 		int snt=0;
 		lprintf(LOG_INFO,"%04d Sending file: %s (%"PRIuOFF" bytes)"
 			,session->socket, session->req.physical_path, flength(session->req.physical_path));
@@ -6581,7 +6552,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.689 $", "%*s %s", revision);
+	sscanf("$Revision: 1.685 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
