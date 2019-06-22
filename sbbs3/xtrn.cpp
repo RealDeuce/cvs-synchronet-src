@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.254 2019/08/24 08:04:53 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.248 2019/05/05 10:58:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,6 +227,33 @@ BYTE* wwiv_expand(BYTE* buf, ulong buflen, BYTE* outbuf, ulong& newlen
     return(outbuf);
 }
 
+/*****************************************************************************/
+// Escapes Telnet IAC (255) by doubling the IAC char
+/*****************************************************************************/
+BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
+{
+	BYTE*   first_iac;
+	ulong	i,outlen;
+
+    first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
+
+	if(first_iac==NULL) {	/* Nothing to expand */
+		newlen=inlen;
+		return(inbuf);
+	}
+
+	outlen=first_iac-inbuf;
+	memcpy(outbuf, inbuf, outlen);
+
+    for(i=outlen;i<inlen;i++) {
+		if(inbuf[i]==TELNET_IAC)
+			outbuf[outlen++]=TELNET_IAC;
+		outbuf[outlen++]=inbuf[i];
+	}
+    newlen=outlen;
+    return(outbuf);
+}
+
 static void petscii_convert(BYTE* buf, ulong len)
 {
     for(ulong i=0; i<len; i++) {
@@ -379,7 +406,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
-	xtrn_mode = mode;
 	lprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
@@ -676,11 +702,15 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 	if(native && !(mode&EX_OFFLINE)) {
 
-		if(!(mode&EX_STDIN)) {
-			if(passthru_thread_running)
-				passthru_socket_active = true;
-			else
-				pthread_mutex_lock(&input_thread_mutex);
+		if(!(mode&EX_STDIN) && input_thread_running) {
+			pthread_mutex_lock(&input_thread_mutex);
+			input_thread_mutex_locked=true;
+		}
+
+		if(!(mode&EX_STDOUT)) {	 /* Native Socket I/O program */
+			/* Enable the Nagle algorithm */
+			BOOL nodelay=FALSE;
+			setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 		}
 	}
 
@@ -701,11 +731,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	if(!success) {
 		XTRN_CLEANUP;
-		if(!(mode&EX_STDIN)) {
-			if(passthru_thread_running)
-				passthru_socket_active = false;
-			else
-				pthread_mutex_unlock(&input_thread_mutex);
+		if(input_thread_mutex_locked && input_thread_running) {
+			pthread_mutex_unlock(&input_thread_mutex);
+			input_thread_mutex_locked=false;
 		}
 		SetLastError(last_error);	/* Restore LastError */
         errormsg(WHERE, ERR_EXEC, realcmdline, mode);
@@ -901,16 +929,17 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
-                		rd = telnet_expand(buf, rd, telnet_buf, sizeof(telnet_buf), /* expand_cr: */false, &bp);
+                		bp=telnet_expand(buf, rd, telnet_buf, rd);
+						if(rd>sizeof(telnet_buf))
+							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(mode&EX_BIN)
-						RingBufWrite(&outbuf, bp, rd);
-					else
-						rputs((char*)bp, rd);
+					if(!(mode&EX_BIN) && term_supports(PETSCII))
+						petscii_convert(bp, rd);
+					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
 
@@ -969,7 +998,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
-                		rd = telnet_expand(buf, rd, telnet_buf, sizeof(telnet_buf), /* expand_cr: */false, &bp);
+                		bp=telnet_expand(buf, rd, telnet_buf, rd);
+						if(rd>sizeof(telnet_buf))
+							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
 					}
 					if(rd>RingBufFree(&outbuf)) {
 						lprintf(LOG_ERR,"output buffer overflow");
@@ -1072,11 +1103,18 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
 
 		if(native) {
-			if(!(mode&EX_STDIN)) {
-				if(passthru_thread_running)
-					passthru_socket_active = false;
-				else
-					pthread_mutex_unlock(&input_thread_mutex);
+
+			/* Re-enable blocking (incase disabled by xtrn program) */
+			ulong l=0;
+			ioctlsocket(client_socket, FIONBIO, &l);
+
+			/* Re-set socket options */
+			if(set_socket_options(&cfg, client_socket, client.protocol, str, sizeof(str)))
+				lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
+
+			if(input_thread_mutex_locked && input_thread_running) {
+				pthread_mutex_unlock(&input_thread_mutex);
+				input_thread_mutex_locked=false;
 			}
 		}
 
@@ -1301,7 +1339,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
  	char* p;
 #endif
 
-	xtrn_mode = mode;
 	lprintf(LOG_DEBUG, "Executing external: %s", cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
@@ -1653,13 +1690,11 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 #endif
 	}
 
-	if(!(mode&EX_STDIN)) {
-		if(!(mode&EX_STDIN)) {
-			if(passthru_thread_running)
-				passthru_socket_active = true;
-			else
-				pthread_mutex_lock(&input_thread_mutex);
-		}
+	if(!(mode&EX_STDIN) && input_thread_running) {
+		lprintf(LOG_DEBUG,"Locking input thread mutex");
+		if(pthread_mutex_lock(&input_thread_mutex)!=0)
+			errormsg(WHERE,ERR_LOCK,"input_thread_mutex",0);
+		input_thread_mutex_locked=true;
 	}
 
 	if(!(mode&EX_NOLOG) && pipe(err_pipe)!=0) {
@@ -1685,11 +1720,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		winsize.ws_row=rows;
 		winsize.ws_col=cols;
 		if((pid=forkpty(&in_pipe[1],NULL,&term,&winsize))==-1) {
-			if(!(mode&EX_STDIN)) {
-				if(passthru_thread_running)
-					passthru_socket_active = false;
-				else
-					pthread_mutex_unlock(&input_thread_mutex);
+			if(input_thread_mutex_locked && input_thread_running) {
+				if(pthread_mutex_unlock(&input_thread_mutex)!=0)
+					errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				input_thread_mutex_locked=false;
 			}
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
 			return(-1);
@@ -1710,11 +1744,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 
 		if((pid=FORK())==-1) {
-			if(!(mode&EX_STDIN)) {
-				if(passthru_thread_running)
-					passthru_socket_active = false;
-				else
-					pthread_mutex_unlock(&input_thread_mutex);
+			if(input_thread_mutex_locked && input_thread_running) {
+				if(pthread_mutex_unlock(&input_thread_mutex)!=0)
+					errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+				input_thread_mutex_locked=false;
 			}
 			errormsg(WHERE,ERR_EXEC,fullcmdline,0);
 			return(-1);
@@ -1919,7 +1952,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					output_len=rd;
 				}
 				else
-   	       			output_len = telnet_expand(buf, rd, output_buf, sizeof(output_buf), /* expand_cr: */false, &bp);
+   	       			bp=telnet_expand(buf, rd, output_buf, output_len);
 			} else {
 				if ((mode & EX_STDIO) != EX_STDIO) {
 					/* LF to CRLF expansion */
@@ -1967,6 +2000,13 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 			close(in_pipe[1]);
 		close(out_pipe[0]);
 	}
+#if 0
+	else {
+		/* Enable the Nagle algorithm */
+		int nodelay=FALSE;
+		setsockopt(client_socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
+	}
+#endif
 	if(mode&EX_NOLOG)
 		waitpid(pid, &i, 0);
 	else {
@@ -1997,6 +2037,14 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	}
 	if(!(mode&EX_OFFLINE)) {	/* !off-line execution */
 
+		/* Re-enable blocking (incase disabled by xtrn program) */
+		ulong l=0;
+		ioctlsocket(client_socket, FIONBIO, &l);
+
+		/* Re-set socket options */
+		if(set_socket_options(&cfg, client_socket, client.protocol, str, sizeof(str)))
+			lprintf(LOG_ERR,"%04d !ERROR %s",client_socket, str);
+
 		curatr=~0;			// Can't guarantee current attributes
 		attr(LIGHTGRAY);	// Force to "normal"
 
@@ -2009,11 +2057,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	if(!(mode&EX_NOLOG))
 		close(err_pipe[0]);
 
-	if(!(mode&EX_STDIN)) {
-		if(passthru_thread_running)
-			passthru_socket_active = false;
-		else
-			pthread_mutex_unlock(&input_thread_mutex);
+	if(input_thread_mutex_locked && input_thread_running) {
+		if(pthread_mutex_unlock(&input_thread_mutex)!=0)
+			errormsg(WHERE,ERR_UNLOCK,"input_thread_mutex",0);
+		input_thread_mutex_locked=false;
 	}
 
 	return(errorlevel = WEXITSTATUS(i));
@@ -2101,7 +2148,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                     strncat(cmd,QUOTED_STRING(instr[i],cfg.sys_op,str,sizeof(str)), avail);
                     break;
                 case 'P':   /* Client protocol */
-                    strncat(cmd, passthru_thread_running ? "raw" : client.protocol, avail);
+                    strncat(cmd,client.protocol, avail);
                     break;
                 case 'Q':   /* QWK ID */
                     strncat(cmd,cfg.sys_id, avail);
