@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.701 2019/06/28 23:05:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.700 2019/06/22 07:50:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2414,13 +2414,6 @@ static uchar* normalize_utf8(uchar* str)
 			continue;
 		}
 		if(*src == 0xe2) {
-			// UNICODE HORIZONTAL ELLIPSIS -> ASCII periods (3)
-			if(*(src + 1) == 0x80 && *(src + 2) == 0xa6) {
-				src += 2;
-				for(int i = 0; i < 3; i++)
-					*dest++ =  '.';
-				continue;
-			}
 			// UNICODE EN SPACE -> ASCII space
 			// UNICODE EM SPACE -> ASCII space
 			if(*(src + 1) == 0x80 && (*(src + 2) == 0x82 || *(src + 2) == 0x83)) {
@@ -5939,7 +5932,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.701 $", "%*s %s", revision);
+	sscanf("$Revision: 1.700 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
