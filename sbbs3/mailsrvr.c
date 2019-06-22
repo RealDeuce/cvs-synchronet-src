@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.699 2019/06/22 07:19:40 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.700 2019/06/22 07:50:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2498,14 +2498,14 @@ bool normalize_hfield_value(char* str)
 				if(encoding == 'Q') {
 					mimehdr_q_decode(tmp);
 					if(charset == MIMEHDR_CHARSET_UTF8)
-						normalize_utf8(tmp);
+						normalize_utf8((uchar*)tmp);
 					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
 						p = tmp;
 				}
 				else if(encoding == 'B' 
 					&& b64_decode(tmp, sizeof(tmp), tmp, strlen(tmp)) > 0) { // base64
 					if(charset == MIMEHDR_CHARSET_UTF8)
-						normalize_utf8(tmp);
+						normalize_utf8((uchar*)tmp);
 					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
 						p = tmp;
 				}
@@ -5932,7 +5932,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.699 $", "%*s %s", revision);
+	sscanf("$Revision: 1.700 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
