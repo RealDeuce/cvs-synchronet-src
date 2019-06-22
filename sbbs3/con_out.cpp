@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.100 2019/06/28 23:04:48 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.99 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 /**********************************************************************/
 
 #include "sbbs.h"
-#include "cp437_utf8_tbl.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
@@ -403,13 +402,8 @@ int sbbs_t::outchar(char ch)
 	else
 		outchar_esc=0;
 	long term = term_supports();
-	const char* utf8 = NULL;
-	if(!(term&PETSCII)) {
-		if((term&NO_EXASCII) && (ch&0x80))
-			ch = exascii_to_ascii_char(ch);  /* seven bit table */
-		else if(term&UTF8)
-			utf8 = cp437_utf8_tbl[(uchar)ch];
-	}
+	if((term&(PETSCII|NO_EXASCII)) == NO_EXASCII && ch&0x80)
+		ch=exascii_to_ascii_char(ch);  /* seven bit table */
 
 	if(ch==FF && lncntr > 0 && !tos) {
 		lncntr=0;
@@ -458,12 +452,8 @@ int sbbs_t::outchar(char ch)
 				outcom(PETSCII_REVERSE_OFF);
 			if(ch == '\r' && (curatr&0xf0) != 0) // reverse video is disabled upon CR
 				curatr >>= 4;
-		} else {
-			if(utf8 != NULL)
-				putcom(utf8);
-			else
-				outcom(ch);
-		}
+		} else
+			outcom(ch);
 	}
 	if(!outchar_esc) {
 		/* Track cursor position locally */
