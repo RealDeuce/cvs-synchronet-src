@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.11 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: delfiles.c,v 1.10 2018/07/18 04:50:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 			if(cfg.dir[i]->maxage && cfg.dir[i]->misc&DIR_SINCEDL && workfile.datedled
 				&& (now-workfile.datedled)/86400L>cfg.dir[i]->maxage) {
 					printf("Deleting %s (%ld days since last download)\n",fname
-						,(long)(now-workfile.datedled)/86400L);
+						,(now-workfile.datedled)/86400L);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT)) {
 						removefiledat(&cfg, &workfile);
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
 				&& !(workfile.datedled && cfg.dir[i]->misc&DIR_SINCEDL)
 				&& (now-workfile.dateuled)/86400L>cfg.dir[i]->maxage) {
 					printf("Deleting %s (uploaded %ld days ago)\n",fname
-						,(long)(now-workfile.dateuled)/86400L);
+						,(now-workfile.dateuled)/86400L);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT)) {
 						removefiledat(&cfg, &workfile);
