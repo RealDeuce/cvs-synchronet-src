@@ -264,6 +264,16 @@ bool DLLCALL is_crypt_initialized(void)
 	return cryptlib_initialized;
 }
 
+void lock_ssl_cert(void)
+{
+	pthread_mutex_lock(&ssl_cert_mutex);
+}
+
+void unlock_ssl_cert(void)
+{
+	pthread_mutex_unlock(&ssl_cert_mutex);
+}
+
 #define DO(action, handle, x)	get_crypt_error_string(x, handle, estr, action, level)
 
 CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
@@ -271,7 +281,6 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 	CRYPT_KEYSET		ssl_keyset;
 	CRYPT_CONTEXT		ssl_context = -1;	// MSVC requires this to be initialized
 	CRYPT_CERTIFICATE	ssl_cert;
-	int					i;
 	char				sysop_email[sizeof(cfg->sys_inetaddr)+6];
 	char				str[MAX_PATH+1];
 
@@ -294,7 +303,7 @@ CRYPT_CONTEXT DLLCALL get_ssl_cert(scfg_t *cfg, char **estr, int *level)
 	}
 	else {
 		/* Couldn't do that... create a new context and use the cert from there... */
-		if(!DO("creating SSL context", CRYPT_UNUSED, cryptStatusOK(i=cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA)))) {
+		if(!DO("creating SSL context", CRYPT_UNUSED,cryptCreateContext(&ssl_context, CRYPT_UNUSED, CRYPT_ALGO_RSA))) {
 			pthread_mutex_unlock(&ssl_cert_mutex);
 			return -1;
 		}
