@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.744 2019/02/21 22:36:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.751 2019/06/20 20:48:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -462,6 +462,16 @@ int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
+
+void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
+{
+	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
+
+	if(ret == NULL)
+		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
+			, cls == NULL ? "???" : cls->name);
+	return ret;
+}
 
 JSBool
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
@@ -3403,7 +3413,10 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	telnet_ack_event=CreateEvent(NULL, /* Manual Reset: */FALSE,/* InitialState */FALSE,NULL);
 
 	listInit(&savedlines, /* flags: */0);
-	sys_status=lncntr=tos=criterrs=0L;
+	sys_status=lncntr=criterrs=0L;
+	tos = false;
+	msghdr_tos = false;
+	listInit(&smb_list, /* flags: */0);
 	column=0;
 	tabstop=8;
 	lastlinelen=0;
@@ -3418,6 +3431,9 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
+	current_msg_subj=NULL;
+	current_msg_from=NULL;
+	current_msg_to=NULL;
 	current_file=NULL;
 	mnestr=NULL;
 
@@ -3907,6 +3923,7 @@ sbbs_t::~sbbs_t()
 	FREE_AND_NULL(batdn_alt);
 
 	listFree(&savedlines);
+	listFree(&smb_list);
 
 #ifdef USE_CRYPTLIB
 	while(ssh_mutex_created && pthread_mutex_destroy(&ssh_mutex)==EBUSY)
@@ -3923,6 +3940,25 @@ sbbs_t::~sbbs_t()
 #ifdef _DEBUG
 	lprintf(LOG_DEBUG, "destructor end");
 #endif
+}
+
+int sbbs_t::smb_stack(smb_t* smb, bool push)
+{
+	if(push) {
+		if(smb == NULL || !SMB_IS_OPEN(smb))
+			return SMB_SUCCESS;	  /* Msg base not open, do nothing */
+		if(listPushNodeData(&smb_list, smb, sizeof(*smb)) == NULL)
+			return SMB_FAILURE;
+		return SMB_SUCCESS;
+	}
+	/* pop */
+	smb_t* data = (smb_t*)listPopNode(&smb_list);
+	if(data == NULL)	/* Nothing on the stack, so do nothing */
+		return SMB_SUCCESS;
+
+	*smb = *data;
+	free(data);
+	return SMB_SUCCESS;
 }
 
 /****************************************************************************/
@@ -5169,7 +5205,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300
+#if CRYPTLIB_VERSION < 3300 && CRYPTLIB_VERSION > 999
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
@@ -5642,8 +5678,8 @@ NO_SSH:
 		SOCKADDR_IN local_addr;
 		memset(&local_addr, 0, sizeof(local_addr));
 		socklen_t addr_len=sizeof(local_addr);
-		if(getsockname(client_socket, (struct sockaddr *)&local_addr, &addr_len) == 0 
-			&& (ntohs(local_addr.sin_port) == startup->pet40_port 
+		if(getsockname(client_socket, (struct sockaddr *)&local_addr, &addr_len) == 0
+			&& (ntohs(local_addr.sin_port) == startup->pet40_port
 				|| ntohs(local_addr.sin_port) == startup->pet80_port)) {
 			sbbs->autoterm = PETSCII;
 			sbbs->cols = ntohs(local_addr.sin_port) == startup->pet40_port ? 40 : 80;
@@ -5653,12 +5689,12 @@ NO_SSH:
 		sbbs->bprintf("\r\n%s\r\n", VERSION_NOTICE);
 		sbbs->bprintf("%s connection from: %s\r\n", client.protocol, host_ip);
 
-		SAFECOPY(host_name, "<no name>");
+		SAFECOPY(host_name, STR_NO_HOSTNAME);
 		if(!(startup->options&BBS_OPT_NO_HOST_LOOKUP)) {
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", client_socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", client_socket, client.protocol, host_name, host_ip);
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
