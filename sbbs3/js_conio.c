@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.34 2019/08/15 07:42:03 rswindell Exp $ */
+/* $Id: js_conio.c,v 1.33 2018/02/20 11:56:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1045,7 +1045,7 @@ static jsSyncMethodSpec js_functions[] = {
 				"<tr><td>\"SDL\"</td><td>Use the SDL library for output.</td></tr><tr><td>"
 				"<tr><td>\"SDL_FULLSCREEN\"</td><td>Use the SDL library for output (fullscreen).</td></tr><tr><td>"
 				"<tr><td>\"SDL_YUV\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling.</td></tr><tr><td>"
-				"<tr><td>\"SDL_YUV_FULLSCREEN\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling (fullscreen).</td></tr><tr><td></table>"
+				"<tr><td>\"SDL_YUV\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling (fullscreen).</td></tr><tr><td></table>"
 			),315
 	},
 	{"suspend",			js_conio_suspend,		0
