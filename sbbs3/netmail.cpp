@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.57 2019/03/26 07:45:42 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.58 2019/04/12 00:10:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -279,9 +279,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -493,9 +491,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
