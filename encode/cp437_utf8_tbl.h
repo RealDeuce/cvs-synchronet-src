@@ -1,6 +1,6 @@
 /* Synchronet CP437 <-> UTF-8 translation table */
 
-/* $Id: cp437_utf8_tbl.h,v 1.1 2019/06/28 22:46:04 rswindell Exp $ */
+/* $Id: cp437_utf8_tbl.h,v 1.2 2019/06/28 23:42:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4       (Plain Text/Source Code File Header)            *
@@ -36,13 +36,13 @@
 #ifndef CP437_UTF8_TBL_H_
 #define CP437_UTF8_TBL_H_
 
-#ifdef _cpluslus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 extern const char* cp437_utf8_tbl[];
 
-#ifdef _cpluslus
+#ifdef __cplusplus
 }
 #endif
 
