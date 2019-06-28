@@ -1,6 +1,6 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.8 2019/07/24 04:11:23 rswindell Exp $ */
+/* $Id: semfile.c,v 1.7 2019/03/19 23:04:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,7 +96,6 @@ str_list_t DLLCALL semfile_list_init(const char* parent,
 	strListPush(&list,path);
 	SAFEPRINTF3(path,"%s%s.%s",parent,action,service);
 	strListPush(&list,path);
-#if !defined(NO_SOCKET_SUPPORT)
 	if(gethostname(hostname,sizeof(hostname))==0) {
 		SAFEPRINTF3(path,"%s%s.%s",parent,action,hostname);
 		strListPush(&list,path);
@@ -110,7 +109,7 @@ str_list_t DLLCALL semfile_list_init(const char* parent,
 			strListPush(&list,path);
 		}
 	}
-#endif
+
 	return(list);
 }
 
