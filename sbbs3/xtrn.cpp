@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.249 2019/07/06 10:23:09 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.248 2019/05/05 10:58:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -937,10 +937,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(mode&EX_BIN)
-						RingBufWrite(&outbuf, bp, rd);
-					else
-						rputs((char*)bp, rd);
+					if(!(mode&EX_BIN) && term_supports(PETSCII))
+						petscii_convert(bp, rd);
+					RingBufWrite(&outbuf, bp, rd);
 				}
 			} else {	// Windows 9x
 
