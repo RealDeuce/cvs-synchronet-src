@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.100 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.88 2019/05/04 23:02:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -39,7 +39,6 @@
 /***********************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
 
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
@@ -118,37 +117,6 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		);
 }
 
-/* Returns a CP437 text.dat string converted to UTF-8, when appropriate */
-const char* sbbs_t::msghdr_text(const smbmsg_t* msg, uint index)
-{
-	if(msg == NULL || !(msg->hdr.auxattr & MSG_HFIELDS_UTF8))
-		return text[index];
-
-	if(cp437_to_utf8_str(text[index], msghdr_utf8_text, sizeof(msghdr_utf8_text), /* min-char-val: */'\x80') < 1)
-		return text[index];
-
-	return msghdr_utf8_text;
-}
-
-// Returns a CP437 version of a message header field or UTF-8 if can_utf8 is true
-// Doesn't do CP437->UTF-8 conversion
-const char* sbbs_t::msghdr_field(const smbmsg_t* msg, const char* str, char* buf, bool can_utf8)
-{
-	if(msg == NULL || !(msg->hdr.auxattr & MSG_HFIELDS_UTF8))
-		return str;
-
-	if(can_utf8)
-		return str;
-
-	if(buf == NULL)
-		buf = msgghdr_field_cp437_str;
-
-	strncpy(buf, str, sizeof(msgghdr_field_cp437_str));
-	utf8_to_cp437_str(buf);
-
-	return buf;
-}
-
 /****************************************************************************/
 /* Displays a message header to the screen                                  */
 /****************************************************************************/
@@ -159,7 +127,6 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 	char	*sender=NULL;
 	int 	i;
 	smb_t	saved_smb = this->smb;
-	long	pmode = 0;
 
 	if(smb != NULL)
 		this->smb = *smb;	// Needed for @-codes and JS bbs.smb_* properties
@@ -168,8 +135,6 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 		current_msg_subj = msg->subj;
 		current_msg_from = msg->from;
 		current_msg_to = msg->to;
-		if(msg->hdr.auxattr & MSG_HFIELDS_UTF8)
-			pmode |= P_UTF8;
 	}
 	if(subject != NULL)
 		current_msg_subj = subject;
@@ -187,13 +152,13 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 	}
 	msghdr_tos = tos;
 	if(!menu("msghdr", P_NOERROR)) {
-		bprintf(pmode, msghdr_text(msg, MsgSubj), current_msg_subj);
+		bprintf(text[MsgSubj], current_msg_subj);
 		if(msg->tags && *msg->tags)
 			bprintf(text[MsgTags], msg->tags);
-		if(msg->hdr.attr || msg->hdr.netattr || (msg->hdr.auxattr & ~MSG_HFIELDS_UTF8))
+		if(msg->hdr.attr || msg->hdr.netattr || msg->hdr.auxattr)
 			show_msgattr(msg);
 		if(current_msg_to != NULL && *current_msg_to != 0) {
-			bprintf(pmode, msghdr_text(msg, MsgTo), current_msg_to);
+			bprintf(text[MsgTo], current_msg_to);
 			if(msg->to_net.addr!=NULL)
 				bprintf(text[MsgToNet],smb_netaddrstr(&msg->to_net,str));
 			if(msg->to_ext)
@@ -202,7 +167,7 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 		if(msg->cc_list != NULL)
 			bprintf(text[MsgCarbonCopyList], msg->cc_list);
 		if(current_msg_from != NULL && (!(msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)) {
-			bprintf(pmode, msghdr_text(msg, MsgFrom), current_msg_from);
+			bprintf(text[MsgFrom], current_msg_from);
 			if(msg->from_ext)
 				bprintf(text[MsgFromExt],msg->from_ext);
 			if(msg->from_net.addr!=NULL && (current_msg_from == NULL || strchr(current_msg_from,'@')==NULL))
@@ -310,8 +275,7 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		return false;
 	char* p = txt;
 	if(!(console&CON_RAW_IN)) {
-		if(strstr(txt, "\x1b[") == NULL)	// Don't word-wrap raw ANSI text
-			p_mode|=P_WORDWRAP;
+		p_mode|=P_WORDWRAP;
 		p = smb_getplaintext(msg, txt);
 		if(p == NULL)
 			p = txt;
@@ -322,15 +286,6 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 	}
 	truncsp(p);
 	SKIP_CRLF(p);
-	if(smb_msg_is_utf8(msg)) {
-		if(!term_supports(UTF8))
-			utf8_normalize_str(txt);
-		p_mode |= P_UTF8;
-	}
-	if(smb->subnum < cfg.total_subs) {
-		p_mode |= cfg.sub[smb->subnum]->pmode;
-		p_mode &= ~cfg.sub[smb->subnum]->n_pmode;
-	}
 	putmsg(p, p_mode, msg->columns);
 	smb_freemsgtxt(txt);
 	if(column)
@@ -378,15 +333,16 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 	}
 
 	if(msg->hdr.auxattr&MSG_FILEATTACH) {  /* Attached file */
-		char subj[FIDO_SUBJ_LEN];
 		smb_getmsgidx(smb, msg);
-		SAFECOPY(subj, msg->subj);					/* filenames (multiple?) in title */
-		char *p,*tp,ch;
-		tp=subj;
+		SAFECOPY(str, msg->subj);					/* filenames (multiple?) in title */
+		char *p,*tp,*sp,ch;
+		tp=str;
 		while(online) {
 			p=strchr(tp,' ');
 			if(p) *p=0;
-			tp=getfname(tp);
+			sp=strrchr(tp,'/');              /* sp is slash pointer */
+			if(!sp) sp=strrchr(tp,'\\');
+			if(sp) tp=sp+1;
 			file_t	fd;
 			fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 			padfname(tp,fd.name);
@@ -405,7 +361,7 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 				char 	tmp[512];
 				int		i;
 				SAFEPRINTF2(str, text[DownloadAttachedFileQ]
-					,getfname(fpath),ultoac(length,tmp));
+					,tp,ultoac(length,tmp));
 				if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str)) {
 					{	/* Remote User */
 						xfer_prot_menu(XFER_DOWNLOAD);

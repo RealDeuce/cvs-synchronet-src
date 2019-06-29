@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.711 2019/08/09 09:44:22 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.701 2019/06/28 23:05:39 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -48,7 +48,6 @@
 #undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "mailsrvr.h"
-#include "utf8.h"
 #include "mime.h"
 #include "md5.h"
 #include "crc32.h"
@@ -630,7 +629,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 	char		fromhost[256];
 	char		msgid[256];
 	char		date[64];
-	char*		p;
+	uchar*		p;
 	char*		np;
 	char*		content_type=NULL;
 	int			i;
@@ -684,22 +683,16 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 	if(!s)
 		return(0);
 
-	if((p = smb_get_hfield(msg, RFC822ORG, NULL)) != NULL) {
-		if(!sockprintf(socket,prot,sess,"Organization: %s", p))
+	if(msg->from_org!=NULL || msg->from_net.type==NET_NONE)
+		if(!sockprintf(socket,prot,sess,"Organization: %s"
+			,msg->from_org==NULL ? scfg.sys_name : msg->from_org))
 			return(0);
-	} else {
-		if(msg->from_org!=NULL || msg->from_net.type==NET_NONE)
-			if(!sockprintf(socket,prot,sess,"Organization: %s"
-				,msg->from_org==NULL ? scfg.sys_name : msg->from_org))
-				return(0);
-	}
 
-	p = smb_get_hfield(msg, RFC822SUBJECT, NULL);
-	if(!sockprintf(socket,prot,sess,"Subject: %s", p == NULL ? msg->subj : p))
+	if(!sockprintf(socket,prot,sess,"Subject: %s",msg->subj))
 		return(0);
 
-	if((p = smb_get_hfield(msg, RFC822TO, NULL)) != NULL)
-		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field */
+	if(msg->to_list != NULL)
+		s=sockprintf(socket,prot,sess,"To: %s", msg->to_list);	/* use original RFC822 header field */
 	else {
 		if(strchr(msg->to,'@')!=NULL || msg->to_net.addr==NULL)
 			s=sockprintf(socket,prot,sess,"To: %s",msg->to);	/* Avoid double-@ */
@@ -717,16 +710,16 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 	}
 	if(!s)
 		return(0);
-	if((p = smb_get_hfield(msg, RFC822CC, NULL)) != NULL || msg->cc_list != NULL)
-		if(!sockprintf(socket,prot,sess,"Cc: %s", p == NULL ? msg->cc_list : p))
+	if(msg->cc_list != NULL)
+		if(!sockprintf(socket,prot,sess,"Cc: %s", msg->cc_list))
 			return(0);
 	np=NULL;
-	if((p = smb_get_hfield(msg, RFC822REPLYTO, NULL)) == NULL) {
+	if((p = (uchar*)msg->replyto_list) == NULL) {
 		np=msg->replyto;
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
 	}
-	if(p!=NULL && strchr((char*)p, '@') != NULL) {
+	if(p!=NULL) {
 		if(np!=NULL)
 			s=sockprintf(socket,prot,sess,"Reply-To: \"%s\" <%s>",np,p);
 		else 
@@ -772,10 +765,9 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
         }
     }
 	/* Default MIME Content-Type for non-Internet messages */
-	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
-		const char* charset =  smb_msg_is_utf8(msg) ? "UTF-8" : startup->default_charset;
-		if(*charset)
-			sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", charset);
+	if(msg->from_net.type!=NET_INTERNET && content_type==NULL && startup->default_charset[0]) {
+		/* No content-type specified, so assume IBM code-page 437 (full ex-ASCII) */
+		sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", startup->default_charset);
 		sockprintf(socket,prot,sess,"Content-Transfer-Encoding: 8bit");
 	}
 
@@ -2346,6 +2338,15 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 }
 #endif
 
+bool strIsPlainAscii(const char* str)
+{
+	for(const char* p = str; *p != 0; p++) {
+		if(*p < 0)
+			return false;
+	}
+	return true;
+}
+
 static size_t strStartsWith_i(const char* buf, const char* match)
 {
 	size_t len = strlen(match);
@@ -2401,12 +2402,83 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 	return MIMEHDR_CHARSET_OTHER;
 }
 
-// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
-// Returns true if the value was MIME-encoded
-bool mimehdr_value_decode(char* str, smbmsg_t* msg)
+static uchar* normalize_utf8(uchar* str)
 {
-	bool encoded = false;
-	bool encoded_word = false;
+	uchar* dest = str;
+
+	for(uchar* src = str; *src != 0; src++) {
+		// UNICODE NO-BREAK SPACE -> ASCII space
+		if(*src == 0xc2 && *src == 0xa0) {
+			src++;
+			*dest++ = ' ';
+			continue;
+		}
+		if(*src == 0xe2) {
+			// UNICODE HORIZONTAL ELLIPSIS -> ASCII periods (3)
+			if(*(src + 1) == 0x80 && *(src + 2) == 0xa6) {
+				src += 2;
+				for(int i = 0; i < 3; i++)
+					*dest++ =  '.';
+				continue;
+			}
+			// UNICODE EN SPACE -> ASCII space
+			// UNICODE EM SPACE -> ASCII space
+			if(*(src + 1) == 0x80 && (*(src + 2) == 0x82 || *(src + 2) == 0x83)) {
+				src += 2;
+				*dest++ = ' ';
+				continue;
+			}
+			// UNICODE HYPEN -> ASCII hyphen
+			// UNICODE HYPEN BULLET -> ASCII hyphen
+			// UNICODE NON-BREAKING HYPEN -> ASCII hyphen
+			// UNICODE MINUS SIGN -> ASCII hyphen
+			if((*(src + 1) == 0x80 && *(src + 2) == 0x90)
+				|| (*(src + 1) == 0x80 && *(src + 2) == 0x91)
+				|| (*(src + 1) == 0x81 && *(src + 2) == 0x83)
+				|| (*(src + 1) == 0x88 && *(src + 2) == 0x92)) {
+				src += 2;
+				*dest++ = '-';
+				continue;
+			}
+			// UNICODE EN DASH -> ASCII hyphen
+			// UNICODE EM DASH -> ASCII hyphen
+			if(*(src + 1) == 0x80 && (*(src + 2) == 0x93 || *(src + 2) == 0x94)) {
+				src += 2;
+				*dest++ = '-';
+				continue;
+			}
+			// UNICODE LEFT SINGLE QUOTATION MARK -> ASCII backtick
+			if(*(src + 1) == 0x80 && *(src + 2) == 0x98) {
+				src += 2;
+				*dest++ = '`';
+				continue;
+			}
+			// UNICODE PRIME -> ASCII apostrophe
+			// UNICODE RIGHT SINGLE QUOTATION MARK -> ASCII apostrophe
+			if(*(src + 1) == 0x80 && (*(src + 2) == 0xB2 || *(src + 2) == 0x99)) {
+				src += 2;
+				*dest++ = '\'';
+				continue;
+			}
+			// UNICODE LEFT DOUBLE QUOTATION MARK -> ASCII double-quote
+			// UNICODE RIGHT DOUBLE QUOTATION MARK -> ASCII double-quote
+			if(*(src + 1) == 0x80 && (*(src + 2) == 0x9c || *(src + 2) == 0x9d)) {
+				src += 2;
+				*dest++ = '"';
+				continue;
+			}
+		}
+		*dest++ = *src;
+	}
+	*dest = 0;
+	return str;
+}
+
+// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
+// Returns true if the last 'atom' in 'str' was an 'encoded-word' that was normalized
+bool normalize_hfield_value(char* str)
+{
+	bool normalized = false;
 	if (str == NULL)
 		return false;
 	char* buf = strdup(str);
@@ -2416,15 +2488,13 @@ bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 	*str = 0;
 	char tmp[256]; // "An 'encoded-word' may not be more than 75 characters long"
 	for(char* p = strtok_r(buf, " \t", &state); p != NULL; p = strtok_r(NULL, " \t", &state)) {
+		if(*str)
+			strcat(str, " ");
 		char* end = lastchar(p);
 		if(*p == '=' && *(p+1) == '?' && *(end - 1) == '?' && *end == '=' && end - p < sizeof(tmp)) {
-			if(*str && !encoded_word)
-				strcat(str, " ");
-			encoded = true;
-			encoded_word = true;
 			char* cp = p + 2;
 			enum mimehdr_charset charset = mimehdr_charset_decode(cp);
-			FIND_CHAR(cp, '?');
+			FIND_CHAR(cp, '?');	// we don't actually care what the charset is
 			if(*cp == '?' && *(cp + 1) != 0 && *(cp + 2) == '?') {
 				cp++;
 				char encoding = toupper(*cp);
@@ -2434,27 +2504,25 @@ bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 				*(tp - 1) = 0;	// remove the terminating "?="
 				if(encoding == 'Q') {
 					mimehdr_q_decode(tmp);
-					if(charset == MIMEHDR_CHARSET_UTF8 && !str_is_ascii(tmp) && utf8_str_is_valid(tmp))
-						msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
-					// TODO consider converting other 8-bit charsets (e.g. CP437, ISO-8859-1) to UTF-8 here
-					p = tmp;
+					if(charset == MIMEHDR_CHARSET_UTF8)
+						normalize_utf8((uchar*)tmp);
+					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+						p = tmp;
 				}
 				else if(encoding == 'B' 
 					&& b64_decode(tmp, sizeof(tmp), tmp, strlen(tmp)) > 0) { // base64
-					if(charset == MIMEHDR_CHARSET_UTF8 && !str_is_ascii(tmp) && utf8_str_is_valid(tmp))
-						msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
-					p = tmp;
+					if(charset == MIMEHDR_CHARSET_UTF8)
+						normalize_utf8((uchar*)tmp);
+					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+						p = tmp;
 				}
 			}
-		} else {
-			if(*str)
-				strcat(str, " ");
-			encoded_word = false;
 		}
+		normalized = (p == tmp);
 		strcat(str, p);
 	}
 	free(buf);
-	return encoded;
+	return normalized;
 }
 
 static char* get_header_field(char* buf, char* name, size_t maxlen)
@@ -2479,7 +2547,7 @@ static char* get_header_field(char* buf, char* name, size_t maxlen)
 	return p;
 }
 
-static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
+static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type, bool* normalized)
 {
 	char*	p;
 	char*	tp;
@@ -2493,8 +2561,10 @@ static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
 		if(*type==RFC822HEADER || *type==SMTPRECEIVED)
 			smb_hfield_append_str(msg,*type,"\r\n");
 		else { /* Unfold other common header field types (e.g. Subject, From, To) */
-			smb_hfield_append_str(msg,*type," ");
+			if(!*normalized)
+				smb_hfield_append_str(msg,*type," ");
 			SKIP_WHITESPACE(p);
+			*normalized = normalize_hfield_value(p);
 		}
 		return smb_hfield_append_str(msg, *type, p);
 	}
@@ -2530,7 +2600,7 @@ static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
 		return smb_hfield_str(msg, *type=RFC822FROM, p);
 
 	if(!stricmp(field, "ORGANIZATION"))
-		return smb_hfield_str(msg, *type=RFC822ORG, p);
+		return smb_hfield_str(msg, *type=SENDERORG, p);
 
 	if(!stricmp(field, "DATE")) {
 		msg->hdr.when_written=rfc822date(p);
@@ -2544,7 +2614,7 @@ static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
 		return smb_hfield_str(msg, *type=RFC822REPLYID, p);
 
 	if(!stricmp(field, "CC"))
-		return smb_hfield_str(msg, *type=RFC822CC, p);
+		return smb_hfield_str(msg, *type=SMB_CARBONCOPY, p);
 
 	if(!stricmp(field, "RECEIVED"))
 		return smb_hfield_str(msg, *type=SMTPRECEIVED, p);
@@ -2654,7 +2724,7 @@ static void parse_mail_address(char* p
 							   ,char* addr, size_t addr_len)
 {
 	char*	tp;
-	char	tmp[256];
+	char	tmp[128];
 
 	SKIP_WHITESPACE(p);
 
@@ -3482,6 +3552,7 @@ static void smtp_thread(void* arg)
 				hfield_type=UNKNOWN;
 				smb_error=SMB_SUCCESS; /* no SMB error */
 				errmsg=insuf_stor;
+				bool normalized = false;
 				while(!feof(msgtxt)) {
 					char field[32];
 
@@ -3492,7 +3563,7 @@ static void smtp_thread(void* arg)
 						break;
 
 					if((p=get_header_field(buf, field, sizeof(field)))!=NULL) {
-						//normalize_hfield_value(p);
+						normalized = normalize_hfield_value(p);
 						if(stricmp(field, "SUBJECT")==0) {
 							/* SPAM Filtering/Logging */
 							if(relay_user.number==0) {
@@ -3517,7 +3588,7 @@ static void smtp_thread(void* arg)
 									msg.hdr.attr |= MSG_SPAM;
 								}
 							}
-							smb_hfield_str(&msg, hfield_type=RFC822SUBJECT, p);
+							smb_hfield_str(&msg, hfield_type=SUBJECT, p);
 							continue;
 						}
 						if(relay_user.number==0	&& stricmp(field, "FROM")==0
@@ -3535,7 +3606,7 @@ static void smtp_thread(void* arg)
 						if(stricmp(field, "X-Spam-Flag") == 0 && stricmp(p, "Yes") == 0)
 							msg.hdr.attr |= MSG_SPAM;	/* e.g. flagged by SpamAssasin */
 					}
-					if((smb_error=parse_header_field((char*)buf, &msg, &hfield_type))!=SMB_SUCCESS) {
+					if((smb_error=parse_header_field((char*)buf, &msg, &hfield_type, &normalized))!=SMB_SUCCESS) {
 						if(smb_error==SMB_ERR_HDR_LEN)
 							lprintf(LOG_WARNING,"%04d %s !MESSAGE HEADER EXCEEDS %u BYTES"
 								,socket, client.protocol, SMB_MAX_HDR_LEN);
@@ -3550,29 +3621,15 @@ static void smtp_thread(void* arg)
 					stats.msgs_refused++;
 					continue;
 				}
-				hfield_t* hfield;
-				if((p=smb_get_hfield(&msg, RFC822TO, &hfield))!=NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						if(mimehdr_value_decode(np, &msg))
-							smb_hfield_str(&msg, RECIPIENTLIST, np);
-						else
-							hfield->type = RECIPIENTLIST;
-						parse_mail_address(np
-							,rcpt_name	,sizeof(rcpt_name)-1
-							,rcpt_addr	,sizeof(rcpt_addr)-1);
-						free(np);
-					}
+				if((p=smb_get_hfield(&msg, RFC822TO, NULL))!=NULL) {
+					parse_mail_address(p
+						,rcpt_name	,sizeof(rcpt_name)-1
+						,rcpt_addr	,sizeof(rcpt_addr)-1);
 				}
 				if((p=smb_get_hfield(&msg, RFC822FROM, NULL))!=NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						mimehdr_value_decode(np, &msg);
-						parse_mail_address(p 
-							,sender		,sizeof(sender)-1
-							,sender_addr,sizeof(sender_addr)-1);
-						free(np);
-					}
+					parse_mail_address(p 
+						,sender		,sizeof(sender)-1
+						,sender_addr,sizeof(sender_addr)-1);
 				}
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
@@ -3629,37 +3686,7 @@ static void smtp_thread(void* arg)
 					smb_hfield_str(&msg, SENDERNETADDR, sender_addr);
 				}
 				smb_hfield_str(&msg, SMTPREVERSEPATH, reverse_path);
-				if((p = smb_get_hfield(&msg, RFC822ORG, &hfield)) != NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						if(mimehdr_value_decode(np, &msg))
-							smb_hfield_str(&msg, SENDERORG, np);
-						else
-							hfield->type = SENDERORG;
-						free(np);
-					}
-				}
-				if((p = smb_get_hfield(&msg, RFC822CC, &hfield)) != NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						if(mimehdr_value_decode(np, &msg))
-							smb_hfield_str(&msg, SMB_CARBONCOPY, np);
-						else
-							hfield->type = SMB_CARBONCOPY;
-						free(np);
-					}
-				}
-				if((p = smb_get_hfield(&msg, RFC822SUBJECT, &hfield)) != NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						if(mimehdr_value_decode(np, &msg))
-							smb_hfield_str(&msg, SUBJECT, np);
-						else
-							hfield->type = SUBJECT;
-						free(np);
-					}
-				}
-				else
+				if(msg.subj==NULL)
 					smb_hfield(&msg, SUBJECT, 0, NULL);
 
 				length=filelength(fileno(msgtxt))-ftell(msgtxt);
@@ -4075,7 +4102,7 @@ static void smtp_thread(void* arg)
 			sockprintf(socket,client.protocol,session,"250-SOML");
 			sockprintf(socket,client.protocol,session,"250-SAML");
 			sockprintf(socket,client.protocol,session,"250-8BITMIME");
-			if (session == -1)
+			if (session != -1)
 				sockprintf(socket,client.protocol,session,"250-STARTTLS");
 			if (startup->max_msg_size)
 				sockprintf(socket,client.protocol,session,"250-SIZE %u", startup->max_msg_size);
@@ -4834,6 +4861,7 @@ static void smtp_thread(void* arg)
 			fprintf(rcptlst,"[%u]\n",rcpt_count++);
 			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 			fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTEXT),user.number);
+			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 
 			/* Forward to Internet */
 			tp=strrchr(user.netmail,'@');
@@ -4854,7 +4882,6 @@ static void smtp_thread(void* arg)
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
 					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),user.alias);
 				}						
-				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 				sockprintf(socket,client.protocol,session,ok_rsp);
 			}
 			state=SMTP_STATE_RCPT_TO;
@@ -5912,7 +5939,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.711 $", "%*s %s", revision);
+	sscanf("$Revision: 1.701 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
