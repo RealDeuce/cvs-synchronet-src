@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.109 2019/04/10 20:03:48 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.116 2019/06/22 22:27:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -867,7 +867,7 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 	return 0;
 }
 
-/* Writes text buffer to file, expanding sole LFs to CRLFs */
+/* Writes text buffer to file, expanding sole LFs to CRLFs or stripping LFs */
 size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 {
 	char	ch,last_ch=0;
@@ -876,10 +876,14 @@ size_t fwrite_crlf(const char* buf, size_t len, FILE* fp)
 
 	for(i=0;i<len;i++) {
 		ch=*buf++;
-		if(ch=='\n' && last_ch!='\r') {
-			if(fputc('\r', fp) == EOF)
-				break;
-			wr++;
+		if(ch=='\n') {
+			if(last_ch!='\r') {
+				if(fputc('\r', fp) == EOF)
+					break;
+				wr++;
+			}
+			if(cfg.strip_lf)
+				continue;
 		}
 		if(fputc(ch,fp)==EOF)
 			break;
@@ -1213,9 +1217,9 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	if(hdr.origpoint)
 		fprintf(fp,"\1FMPT %hu\r",hdr.origpoint);
 	fprintf(fp,"\1PID: %s\r", (msg==NULL || msg->ftn_pid==NULL) ? sbbsecho_pid() : msg->ftn_pid);
-	if(msg->columns)
-		fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 	if(msg != NULL) {
+		if(msg->columns)
+			fprintf(fp,"\1COLS: %u\r", (unsigned int)msg->columns);
 		/* Unknown kludge lines are added here */
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
@@ -1899,7 +1903,7 @@ bool add_sub_to_areafile(sub_t* sub, fidoaddr_t uplink)
 /******************************************************************************
  Used by AREAFIX to add/remove/change link info in the configuration file
 ******************************************************************************/
-bool alter_config(fidoaddr_t addr, const char* key, const char* value)
+bool alter_config(nodecfg_t* nodecfg, const char* key, const char* value)
 {
 	FILE* fp;
 
@@ -1909,18 +1913,20 @@ bool alter_config(fidoaddr_t addr, const char* key, const char* value)
 
 	if((fp=iniOpenFile(cfg.cfgfile, false)) == NULL) {
 		lprintf(LOG_ERR, "ERROR %d (%s) opening %s for altering configuration of node %s"
-			,errno, strerror(errno), cfg.cfgfile, smb_faddrtoa(&addr, NULL));
+			,errno, strerror(errno), cfg.cfgfile, smb_faddrtoa(&nodecfg->addr, NULL));
 		return false;
 	}
 	str_list_t ini = iniReadFile(fp);
 	if(ini == NULL) {
 		lprintf(LOG_ERR, "ERROR reading %s for altering configuration of node %s"
-			,cfg.cfgfile, smb_faddrtoa(&addr,NULL));
+			,cfg.cfgfile, smb_faddrtoa(&nodecfg->addr,NULL));
 		iniCloseFile(fp);
 		return false;
 	}
 	char section[128];
-	SAFEPRINTF(section, "node:%s", smb_faddrtoa(&addr,NULL));
+	SAFEPRINTF2(section, "node:%s@%s", smb_faddrtoa(&nodecfg->addr,NULL), nodecfg->domain);
+	if(!iniSectionExists(ini, section))
+		SAFEPRINTF(section, "node:%s", smb_faddrtoa(&nodecfg->addr,NULL));
 	ini_style_t style = {  .key_prefix = "\t", .value_separator = " = " };
 	iniSetString(&ini, section, key, value, &style);
 	iniWriteFile(fp, ini);
@@ -1976,7 +1982,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 
 	if(stricmp(nodecfg->name, to) != 0) {
 		lprintf(LOG_INFO, "AreaFix (for %s) Changing name to: %s", faddrtoa(&addr), to);
-		alter_config(addr, "Name", to);
+		alter_config(nodecfg, "Name", to);
 	}
 
 	if(strnicmp(instr, "COMPRESSION ", 12) == 0 || strnicmp(instr, "COMPRESS ", 9) == 0) {
@@ -2007,7 +2013,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 			}
 			nodecfg->archive = &cfg.arcdef[u];
 		}
-		alter_config(addr,"archive",p);
+		alter_config(nodecfg,"archive",p);
 		SAFEPRINTF(str, "Compression type changed to: %s", p);
 		lprintf(LOG_INFO, "AreaFix (for %s) %s", faddrtoa(&addr), str);
 		create_netmail(to, /* msg: */NULL, "Compression Type Change", str, addr);
@@ -2027,7 +2033,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 			create_netmail(to, /* msg: */NULL, "AreaMgr Password Change Request", str, addr);
 			return true;
 		}
-		if(alter_config(addr,"AreaFixPwd", password)) {
+		if(alter_config(nodecfg,"AreaFixPwd", password)) {
 			SAFEPRINTF2(str,"Your AreaMgr password has been changed from '%s' to '%s'."
 				,nodecfg->password,password);
 			SAFECOPY(nodecfg->password, password);
@@ -2052,7 +2058,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 			create_netmail(to, /* msg: */NULL, "Packet Password Change Request", str, addr);
 			return true;
 		}
-		if(alter_config(addr,"PacketPwd", pktpwd)) {
+		if(alter_config(nodecfg,"PacketPwd", pktpwd)) {
 			SAFEPRINTF2(str,"Your packet password has been changed from '%s' to '%s'."
 				,nodecfg->pktpwd, pktpwd);
 			SAFECOPY(nodecfg->pktpwd, pktpwd);
@@ -2077,7 +2083,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 			create_netmail(to, /* msg: */NULL, "TIC File Password Change Request", str, addr);
 			return true;
 		}
-		if(alter_config(addr,"TicFilePwd", ticpwd)) {
+		if(alter_config(nodecfg,"TicFilePwd", ticpwd)) {
 			SAFEPRINTF2(str,"Your TIC File password has been changed from '%s' to '%s'."
 				,nodecfg->ticpwd, ticpwd);
 			SAFECOPY(nodecfg->ticpwd, ticpwd);
@@ -2093,7 +2099,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 		char* p = instr;
 		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
-		if(alter_config(addr,"Notify", p)) {
+		if(alter_config(nodecfg,"Notify", p)) {
 			SAFEPRINTF2(str,"Your Notification Messages have been changed from '%s' to '%s'."
 				,nodecfg->send_notify ? "ON" : "OFF", p);
 		} else {
@@ -2160,7 +2166,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 			return true;
 		}
 		nodecfg->passive = false;
-		alter_config(addr,"passive","false");
+		alter_config(nodecfg,"passive","false");
 		create_netmail(to,/* msg: */NULL,"Reconnect Disconnected (paused) Areas"
 			,"Temporarily disconnected areas have been reconnected.",addr);
 		return true;
@@ -2173,7 +2179,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 			return true;
 		}
 		nodecfg->passive = true;
-		alter_config(addr,"passive","true");
+		alter_config(nodecfg,"passive","true");
 		create_netmail(to,/* msg: */NULL,"Temporarily Disconnect (pause) Areas"
 			,"Your areas have been temporarily disconnected.",addr);
 		return true;
@@ -3495,61 +3501,62 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 			continue;
 		}
 
-		if(ch!='\n' && ch!=0x8d) {	/* ignore LF and soft CRs */
-			if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
-				|| !strncmp((char *)fbuf+l,"---\r",4)))
-				done=1; 			/* tear line and down go into tail */
-			if(done && cr && !strncmp((char *)fbuf+l,"SEEN-BY:",8)) {
-				l+=8;
-				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
-				m=l;
-				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
-				if(m>l)
-					smb_hfield(&msg,FIDOSEENBY,(ushort)(m-l),fbuf+l);
-				while(l<length && fbuf[l]!='\r') l++;
-				continue;
-			}
+		if(ch == '\n' ||
+			(ch == FIDO_SOFT_CR && cfg.strip_soft_cr))
+			continue;
+		if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
+			|| !strncmp((char *)fbuf+l,"---\r",4)))
+			done=1; 			/* tear line and down go into tail */
+		if(done && cr && !strncmp((char *)fbuf+l,"SEEN-BY:",8)) {
+			l+=8;
+			while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
+			m=l;
+			while(m<length && fbuf[m]!='\r') m++;
+			while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+			if(m>l)
+				smb_hfield(&msg,FIDOSEENBY,(ushort)(m-l),fbuf+l);
+			while(l<length && fbuf[l]!='\r') l++;
+			continue;
+		}
+		if(done) {
+			if(taillen<MAX_TAILLEN)
+				stail[taillen++]=ch;
+		}
+		else
+			sbody[bodylen++]=ch;
+		col++;
+		if(ch=='\r') {
+			cr=1;
+			col=0;
 			if(done) {
 				if(taillen<MAX_TAILLEN)
-					stail[taillen++]=ch;
+					stail[taillen++]='\n';
 			}
 			else
-				sbody[bodylen++]=ch;
-			col++;
-			if(ch=='\r') {
-				cr=1;
-				col=0;
-				if(done) {
-					if(taillen<MAX_TAILLEN)
-						stail[taillen++]='\n';
-				}
-				else
-					sbody[bodylen++]='\n';
+				sbody[bodylen++]='\n';
+		}
+		else {
+			cr=0;
+			if(col==1 && !strncmp((char *)fbuf+l," * Origin: ",11)) {
+				p=(char*)fbuf+l+11;
+				while(*p && *p!='\r') p++;	 /* Find CR */
+				while(p && *p!='(') p--;     /* rewind to '(' */
+				if(p)
+					origaddr=atofaddr(p+1); 	/* get orig address */
+				done=1;
 			}
-			else {
-				cr=0;
-				if(col==1 && !strncmp((char *)fbuf+l," * Origin: ",11)) {
-					p=(char*)fbuf+l+11;
-					while(*p && *p!='\r') p++;	 /* Find CR */
-					while(p && *p!='(') p--;     /* rewind to '(' */
-					if(p)
-						origaddr=atofaddr(p+1); 	/* get orig address */
-					done=1;
-				}
-				if(done)
-					continue;
+			if(done)
+				continue;
 
-				if(ch==ESC) esc=1;		/* ANSI codes */
-				if(ch==' ' && col>40 && !esc) {	/* word wrap */
-					for(m=l+1;m<length;m++) 	/* find next space */
-						if(fbuf[m]<=' ' && fbuf[m]>=0)
-							break;
-					if(m<length && m-l>80-col) {  /* if it's beyond the eol */
-						sbody[bodylen++]='\r';
-						sbody[bodylen++]='\n';
-						col=0;
-					}
+			if(ch==ESC) esc=1;		/* ANSI codes */
+			if(ch==' ' && col>40 && !esc) {	/* word wrap */
+				for(m=l+1;m<length;m++) 	/* find next space */
+					if(fbuf[m]<=' ' && fbuf[m]>=0)
+						break;
+				if(m<length && m-l>80-col) {  /* if it's beyond the eol */
+					sbody[bodylen++]='\r';
+					sbody[bodylen++]='\n';
+					col=0;
 				}
 			}
 		}
@@ -4729,7 +4736,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			if(msg.from_net.type!=NET_NONE
 				&& msg.from_net.type!=NET_FIDO
-				&& msg.from_net.type!=NET_FIDO_ASCII
 				&& !(scfg.sub[subnum]->misc&SUB_GATE)) {
 				smb_unlockmsghdr(&smb, &msg);
 				smb_freemsgmem(&msg);
@@ -5931,11 +5937,11 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 
 void check_free_diskspace(const char* path)
 {
-	if(cfg.min_free_diskspace) {
+	if(cfg.min_free_diskspace && isdir(path)) {
 		ulong freek = getfreediskspace(path, 1024);
 
 		if(freek < cfg.min_free_diskspace / 1024) {
-			fprintf(stderr, "!Insufficient free disk space (%luK < %"PRId64"K bytes) in %s\n"
+			lprintf(LOG_ERR, "!Insufficient free disk space (%luK < %"PRId64"K bytes) in %s\n"
 				, freek, cfg.min_free_diskspace / 1024, path);
 			bail(1);
 		}
@@ -6005,7 +6011,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.109 $", "%*s %s", revision);
+	sscanf("$Revision: 3.116 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
