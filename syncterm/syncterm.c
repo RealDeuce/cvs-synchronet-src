@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.222 2019/07/11 18:31:45 deuce Exp $ */
+/* $Id: syncterm.c,v 1.220 2019/05/30 06:24:44 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -38,12 +38,6 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <filewrap.h>	// STDOUT_FILENO
 
 #include <cterm.h>
-#if !(defined __BORLANDC__ || defined _MSC_VER)
- #include <stdbool.h>
-#else
- #define bool int
- enum { false, true };
-#endif
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -1569,11 +1563,7 @@ int main(int argc, char **argv)
 	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
-		if(conn_connect(bbs)) {
-			load_font_files();
-			textmode(txtinfo.currmode);
-			settitle("SyncTERM");
-		} else {
+		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			bbs->connected=time(NULL);
