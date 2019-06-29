@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.50 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.49 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -877,7 +877,7 @@ long aftol(char *str)
 /*****************************************************************************/
 char *ltoaf(long l,char *str)
 {
-	int	c=0;
+	size_t	c=0;
 
 	while(c<26) {
 		if(l&(long)(1L<<c))
