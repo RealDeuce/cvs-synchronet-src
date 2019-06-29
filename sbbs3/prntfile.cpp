@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.39 2019/08/16 06:47:09 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.34 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,11 +37,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
-
-#ifndef PRINTFILE_MAX_LINE_LEN
-#define PRINTFILE_MAX_LINE_LEN (1024*1024)
-#endif
 
 /****************************************************************************/
 /* Prints a file remotely and locally, interpreting ^A sequences, checks    */
@@ -67,8 +62,6 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 			mode|=P_NOPAUSE;
 		} else if(stricmp(p, ".seq") == 0) {
 			mode |= P_PETSCII;
-		} else if(stricmp(p, ".utf8") == 0) {
-			mode |= P_UTF8;
 		}
 	}
 
@@ -101,47 +94,20 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 		errormsg(WHERE,ERR_CHK,fpath,length);
 		return false;
 	}
-
-	if(mode&P_OPENCLOSE) {
-		if((buf=(char*)malloc(length+1L))==NULL) {
-			fclose(stream);
-			errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
-			return false; 
-		}
-		l=lread(file,buf,length);
+	if((buf=(char*)malloc(length+1L))==NULL) {
 		fclose(stream);
-		if(l!=length)
-			errormsg(WHERE,ERR_READ,fpath,length);
-		else {
-			buf[l]=0;
-			if((mode&P_UTF8) && !term_supports(UTF8))
-				utf8_normalize_str(buf);
-			putmsg(buf,mode,org_cols);
-		}
-		free(buf);
-	} else {	// Line-at-a-time mode
-		uint tmpatr = curatr;
-		if(!(mode&P_SAVEATR))
-			attr(LIGHTGRAY);
-		if(length > PRINTFILE_MAX_LINE_LEN)
-			length = PRINTFILE_MAX_LINE_LEN;
-		if((buf=(char*)malloc(length+1L))==NULL) {
-			fclose(stream);
-			errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
-			return false; 
-		}
-		while(!feof(stream) && !msgabort()) {
-			if(fgets(buf, length + 1, stream) == NULL)
-				break;
-			if((mode&P_UTF8) && !term_supports(UTF8))
-				utf8_normalize_str(buf);
-			putmsg(buf, mode|P_SAVEATR, org_cols);
-		}
-		free(buf);
-		fclose(stream);
-		if(!(mode&P_SAVEATR))
-			attr(tmpatr);
+		errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
+		return false; 
 	}
+	l=lread(file,buf,length);
+	fclose(stream);
+	if(l!=length)
+		errormsg(WHERE,ERR_READ,fpath,length);
+	else {
+		buf[l]=0;
+		putmsg(buf,mode,org_cols);
+	}
+	free(buf); 
 
 	if((mode&P_NOABORT || rip) && online==ON_REMOTE) {
 		SYNC;
