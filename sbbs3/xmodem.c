@@ -2,7 +2,7 @@
 
 /* Synchronet X/YMODEM Functions */
 
-/* $Id: xmodem.c,v 1.51 2019/08/24 09:07:45 rswindell Exp $ */
+/* $Id: xmodem.c,v 1.50 2018/02/20 05:31:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -523,9 +523,6 @@ BOOL xmodem_send_file(xmodem_t* xm, const char* fname, FILE* fp, time_t* start, 
 			
 			block_len=strlen(block)+1+i;
 			for(xm->errors=0;xm->errors<=xm->max_errors && !is_cancelled(xm) && is_connected(xm);xm->errors++) {
-				int ch;
-				while((ch=getcom(0))!=NOINP && is_connected(xm))
-					lprintf(xm,LOG_INFO,"Throwing out received: %s",chr((uchar)ch));
 				xmodem_put_block(xm, (uchar*)block, block_len <=XMODEM_MIN_BLOCK_SIZE ? XMODEM_MIN_BLOCK_SIZE:XMODEM_MAX_BLOCK_SIZE, 0  /* block_num */);
 				if((i=xmodem_get_ack(xm,/* tries: */1, /* block_num: */0)) == ACK) {
 					sent_header=TRUE;
@@ -621,7 +618,7 @@ const char* xmodem_source(void)
 
 char* xmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.51 $", "%*s %s", buf);
+	sscanf("$Revision: 1.50 $", "%*s %s", buf);
 
 	return(buf);
 }
