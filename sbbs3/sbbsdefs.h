@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.233 2019/02/21 22:36:12 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.241 2019/06/28 23:04:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -70,6 +70,7 @@
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
 #define STR_UNKNOWN_USER	"<unknown user>"
+#define STR_NO_HOSTNAME		"<no name>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
@@ -409,14 +410,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
-#define WORDWRAP80		(1<<21)		/* Word-wrap editor to 80 columns		*/
-#define WORDWRAPTERM	(1<<22)		/* Word-wrap editor to terminal width	*/
-#define WORDWRAPLONG	(WORDWRAP80|WORDWRAPTERM)	/* word-wrap to maxlen	*/
-#define WORDWRAPNONE	0			/* No word-wrapping on editor in/ouput	*/
-#define WORDWRAPMASK	WORDWRAPLONG
+#define QUOTEWRAP		(1<<21)		/* Word-wrap quoted message text		*/
+#define SAVECOLUMNS		(1<<22)		/* Save/share current terminal width	*/
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
-#define QUOTEWRAP		WORDWRAP80	/* for temporary backwards compat.		*/
-
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/
@@ -490,6 +486,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_HIGH_FONT	(1<<19)	/* Alt high-intensity font activated		*/
 #define CON_BLINK_FONT	(1<<20)	/* Alt blink attribute font activated		*/
 #define CON_HBLINK_FONT	(1<<21)	/* Alt high-blink attribute font activated	*/
+#define CON_CR_CLREOL	(1<<31)	// outchar('\r') clears to end-of-line first
 
 							/* Number of milliseconds						*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
@@ -657,8 +654,11 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 #define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
+#define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
+#define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
+#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -757,6 +757,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define	P_TRUNCATE	(1<<9)		/* Truncate (don't display) long lines		*/
 #define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
+#define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -820,6 +821,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_CHKTIME	XTRN_CHKTIME	/* Check time left						*/
 #define EX_NOECHO	XTRN_NOECHO		/* Don't echo stdin to stdout 			*/
 #define EX_STDIO	(EX_STDIN|EX_STDOUT)
+#define EX_NOLOG	(1<<30)		/* Don't log intercepted stdio				*/
 #define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
 #if defined(__unix__)
@@ -945,6 +947,7 @@ enum COLORS {
 
 #define ANSI_NORMAL		0x100
 #define BG_BLACK		0x200
+#define BG_BRIGHT		0x400		// Not an IBM-CGA/ANSI.SYS compatible attribute
 #define BG_BLUE			(BLUE<<4)
 #define BG_GREEN		(GREEN<<4)
 #define BG_CYAN			(CYAN<<4)
