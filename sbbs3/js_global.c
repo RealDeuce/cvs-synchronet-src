@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.377 2019/01/20 05:25:19 rswindell Exp $ */
+/* $Id: js_global.c,v 1.383 2019/05/20 06:59:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,7 +52,9 @@
 
 #ifdef JAVASCRIPT
 
-/* Global Object Properites */
+extern JSClass js_global_class;
+
+/* Global Object Properties */
 enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
@@ -268,7 +270,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -721,11 +723,13 @@ js_require(JSContext *cx, uintN argc, jsval *arglist)
 
 	ret = js_load(cx, argc-1, arglist);
 
-	if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
-		JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
-		JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
-		free(filename);
-		return(JS_FALSE);
+	if (!JS_IsExceptionPending(cx)) {
+		if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
+			JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
+			JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
+			free(filename);
+			return(JS_FALSE);
+		}
 	}
 	free(property);
 	return ret;
@@ -1602,7 +1606,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
+	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], inbuf, NULL);
@@ -2425,8 +2429,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			continue;
 		}
 
-		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
-			outbuf[j++]='\'';	/* single quotation mark */
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0
+			|| strcmp(token,"lsaquo")==0 || strcmp(token,"rsaquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark: should lsaquo be converted to backtick (`)? */
 			continue;
 		}
 
@@ -2439,6 +2444,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]='-';	/* dash */
 			continue;
 		}
+
+		if(strcmp(token, "zwj") == 0 || strcmp(token, "zwnj") == 0)	/* zero-width joiner / non-joiner */
+			continue;
 
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
@@ -4275,7 +4283,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
 	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
-		"<i>line_length</i> defaults to <i>79</i> <i>orig_line_length</i> defaults to <i>79</i> "
+		"<i>line_length</i> defaults to <i>79</i>, <i>orig_line_length</i> defaults to <i>79</i>, "
 		"and <i>handle_quotes</i> defaults to <i>true</i>")
 	,311
 	},
@@ -4485,7 +4493,7 @@ static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
 	return(js_global_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_global_class = {
+JSClass js_global_class = {
      "Global"				/* name			*/
     ,JSCLASS_HAS_PRIVATE|JSCLASS_GLOBAL_FLAGS	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
