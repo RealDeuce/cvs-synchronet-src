@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.752 2019/07/07 02:01:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.751 2019/06/20 20:48:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2285,13 +2285,9 @@ void passthru_input_thread(void* arg)
 			break;
 		}
 
-		if(sbbs->xtrn_mode & EX_BIN) {
-    		if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
-				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
-				break;
-			}
-		} else {
-			sbbs->rputs((char*)&ch, sizeof(ch));
+    	if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
+			lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
+			break;
 		}
 	}
 	if(sbbs->passthru_socket!=INVALID_SOCKET) {
