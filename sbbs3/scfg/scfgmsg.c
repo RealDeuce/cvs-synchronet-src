@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.69 2020/03/31 06:05:59 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.61 2019/05/22 20:11:38 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -98,9 +98,8 @@ static bool new_grp(unsigned new_grpnum)
 	return true;
 }
 
-// Return number of imported (including over-written) subs or negative on error
 long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
-	, int min_confnum, int max_confnum, qhub_t* qhub, const char* pkt_orig, faddr_t* faddr
+	, int min_confnum, int max_confnum, qhub_t* qhub
 	, long* added)
 {
 	char		str[256];
@@ -113,239 +112,171 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 	size_t		grpname_len = strlen(cfg.grp[grpnum]->sname);
 	char		duplicate_code[LEN_CODE+1]="";
 	uint		duplicate_codes = 0;	// consecutive duplicate codes
-	long		new_sub_misc;
-	str_list_t	ini = NULL;
-	str_list_t	list = NULL;
-	uint		i = 0;
 
 	if(added != NULL)
 		*added = 0;
 	if(grpnum >= cfg.total_grps)
 		return -1;
 
-	// Set the new_sub_misc and perform any necessary preprocessing of the input file
-	switch(type) {
-		case IMPORT_LIST_TYPE_SUBS_TXT:
-			new_sub_misc = 0;
-			break;
-		case IMPORT_LIST_TYPE_NEWSGROUPS:
-			new_sub_misc = SUB_INET;
-			break;
-		case IMPORT_LIST_TYPE_QWK_CONTROL_DAT:
-			new_sub_misc = SUB_QNET;
-
-			/* Skip/ignore the first 10 lines */
-			for(int i = 0; i < 10; i++) {
-				if(!fgets(str,sizeof(str),stream))
-					break;
-			}
-			str[0] = 0;
-			fgets(str,sizeof(str),stream);
-			total_qwk_confs = atoi(str) + 1;
-			break;
-		case IMPORT_LIST_TYPE_ECHOSTATS:
-			new_sub_misc = SUB_FIDO;
-			ini = iniReadFile(stream);
-			if(ini == NULL)
-				return 0;
-			list = iniGetSectionList(ini, /* prefix: */NULL);
-			if(list == NULL)
-				return 0;
-			break;
-		default: // EchoLists (e.g. BACKBONE.NA, badareas.lst) and AREAS.BBS
-			new_sub_misc = SUB_FIDO;
-			break;
+	if(type == IMPORT_LIST_TYPE_QWK_CONTROL_DAT) {
+		/* Skip/ignore the first 10 lines */
+		for(int i = 0; i < 10; i++) {
+			if(!fgets(str,sizeof(str),stream))
+				break;
+		}
+		str[0] = 0;
+		fgets(str,sizeof(str),stream);
+		total_qwk_confs = atoi(str) + 1;
 	}
 
-	while(1) {
+	while(!feof(stream)) {
+		if(!fgets(str,sizeof(str),stream)) break;
+		truncsp(str);
+		if(!str[0])
+			continue;
 		memset(&tmpsub,0,sizeof(tmpsub));
 //		tmpsub.misc = (SUB_FIDO|SUB_NAME|SUB_TOUSER|SUB_QUOTE|SUB_HYPER);
 		tmpsub.grp = grpnum;
-		if(type == IMPORT_LIST_TYPE_ECHOSTATS) {
-			char value[INI_MAX_VALUE_LEN];
-			char areatag[FIDO_AREATAG_LEN + 1];
-			if(list[i] == NULL)
-				break;
-			SAFECOPY(areatag, list[i]);
-			i++;
-			if(iniGetBool(ini, areatag, "Known", TRUE))
-				continue;
-			if(pkt_orig != NULL && *pkt_orig
-				&& strcmp(pkt_orig, iniGetString(ini, areatag, "LastReceived.pkt_orig", "", value)) != 0)
-				continue;
-			SAFECOPY(tmp_code, areatag);			// Copy tag to internal code suffix
-			SAFECOPY(tmpsub.sname, utos(areatag));	// ... to short name, converting underscores to spaces
-			if(strlen(areatag) > sizeof(tmpsub.sname) - 1)
-				SAFECOPY(tmpsub.newsgroup, areatag);
-			SAFECOPY(tmpsub.lname, iniGetString(ini, areatag, "Title", "", value));
-		} else {
-			if(feof(stream))
-				break;
-			if(!fgets(str,sizeof(str),stream)) break;
+		if(type == IMPORT_LIST_TYPE_SUBS_TXT) {
+			sprintf(tmpsub.lname,"%.*s",LEN_SLNAME,str);
+			if(!fgets(str,128,stream)) break;
 			truncsp(str);
-			if(!str[0])
-				continue;
-			if(type == IMPORT_LIST_TYPE_SUBS_TXT) {
-				sprintf(tmpsub.lname,"%.*s",LEN_SLNAME,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.sname,"%.*s",LEN_SSNAME,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.qwkname,"%.*s",10,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				SAFECOPY(tmp_code,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.data_dir,"%.*s",LEN_DIR,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.arstr,"%.*s",LEN_ARSTR,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.read_arstr,"%.*s",LEN_ARSTR,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.post_arstr,"%.*s",LEN_ARSTR,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.op_arstr,"%.*s",LEN_ARSTR,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				tmpsub.misc=ahtoul(str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.tagline,"%.*s",80,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.origline,"%.*s",50,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.post_sem,"%.*s",LEN_DIR,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				SAFECOPY(tmpsub.newsgroup,str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				tmpsub.faddr=atofaddr(str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				tmpsub.maxmsgs=atol(str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				tmpsub.maxcrcs=atol(str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				tmpsub.maxage=atoi(str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				tmpsub.ptridx=atoi(str);
-				if(!fgets(str,128,stream)) break;
-				truncsp(str);
-				sprintf(tmpsub.mod_arstr,"%.*s",LEN_ARSTR,str);
+			sprintf(tmpsub.sname,"%.*s",LEN_SSNAME,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.qwkname,"%.*s",10,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			SAFECOPY(tmp_code,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.data_dir,"%.*s",LEN_DIR,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.arstr,"%.*s",LEN_ARSTR,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.read_arstr,"%.*s",LEN_ARSTR,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.post_arstr,"%.*s",LEN_ARSTR,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.op_arstr,"%.*s",LEN_ARSTR,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			tmpsub.misc=ahtoul(str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.tagline,"%.*s",80,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.origline,"%.*s",50,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.post_sem,"%.*s",LEN_DIR,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			SAFECOPY(tmpsub.newsgroup,str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			tmpsub.faddr=atofaddr(str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			tmpsub.maxmsgs=atol(str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			tmpsub.maxcrcs=atol(str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			tmpsub.maxage=atoi(str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			tmpsub.ptridx=atoi(str);
+			if(!fgets(str,128,stream)) break;
+			truncsp(str);
+			sprintf(tmpsub.mod_arstr,"%.*s",LEN_ARSTR,str);
 
-				while(!feof(stream)
-					&& strcmp(str,"***END-OF-SUB***")) {
-					if(!fgets(str,128,stream)) break;
-					truncsp(str); 
-				} 
-			}
-			else if(type == IMPORT_LIST_TYPE_QWK_CONTROL_DAT) {
-				if(read_qwk_confs >= total_qwk_confs)
-					break;
-				read_qwk_confs++;
-				qwk_confnum = atoi(str);
+			while(!feof(stream)
+				&& strcmp(str,"***END-OF-SUB***")) {
 				if(!fgets(str,128,stream)) break;
-				if (qwk_confnum < min_confnum || qwk_confnum > max_confnum)
-					continue;
-				truncsp(str);
-				char* p=str;
-				SKIP_WHITESPACE(p);
-				if(*p == 0)
-					continue;
-				if(strlen(p) > grpname_len && strnicmp(p, cfg.grp[grpnum]->sname, grpname_len) == 0)
-					p += grpname_len;
-				SKIP_WHITESPACE(p);
-				SAFECOPY(tmp_code, p);
-				SAFECOPY(tmpsub.lname, p);
-				SAFECOPY(tmpsub.sname, p);
-				SAFECOPY(tmpsub.qwkname, p);
+				truncsp(str); 
+			} 
+		}
+		else if(type == IMPORT_LIST_TYPE_QWK_CONTROL_DAT) {
+			if(read_qwk_confs >= total_qwk_confs)
+				break;
+			read_qwk_confs++;
+			qwk_confnum = atoi(str);
+			if(!fgets(str,128,stream)) break;
+			if (qwk_confnum < min_confnum || qwk_confnum > max_confnum)
+				continue;
+			truncsp(str);
+			char* p=str;
+			SKIP_WHITESPACE(p);
+			if(*p == 0)
+				continue;
+			if(strlen(p) > grpname_len && strnicmp(p, cfg.grp[grpnum]->sname, grpname_len) == 0)
+				p += grpname_len;
+			SKIP_WHITESPACE(p);
+			SAFECOPY(tmp_code, p);
+			SAFECOPY(tmpsub.lname, p);
+			SAFECOPY(tmpsub.sname, p);
+			SAFECOPY(tmpsub.qwkname, p);
+		}
+		else {
+			char* p=str;
+			SKIP_WHITESPACE(p);
+			if(!*p || *p==';')
+				continue;
+			if(type == IMPORT_LIST_TYPE_GENERIC_AREAS_BBS) {		/* AREAS.BBS Generic/.MSG */
+				p=str;
+				SKIP_WHITESPACE(p);			/* Find path	*/
+				FIND_WHITESPACE(p);			/* Skip path	*/
+				SKIP_WHITESPACE(p);			/* Find tag		*/
+				truncstr(p," \t");			/* Truncate tag */
+				SAFECOPY(tmp_code,p);		/* Copy tag to internal code */
+				SAFECOPY(tmpsub.lname,utos(p));
+				SAFECOPY(tmpsub.sname,tmpsub.lname);
+				if(strlen(p) > sizeof(tmpsub.sname) - 1)
+					SAFECOPY(tmpsub.newsgroup, p);
 			}
-			else if(type == IMPORT_LIST_TYPE_NEWSGROUPS) {
-				char* p=str;
-				SKIP_WHITESPACE(p);
-				if(*p == 0)
-					continue;
-				char* tp = p + 1;
+			else if(type == IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS) { /* AREAS.BBS SBBSecho */
+				p=str;
+				SKIP_WHITESPACE(p);			/* Find internal code */
+				char* tp=p;
 				FIND_WHITESPACE(tp);
-				*tp = 0;
-				tp++;
-				SKIP_WHITESPACE(tp);
-				SAFECOPY(tmpsub.newsgroup, p);
-				if(strlen(p) > grpname_len && strnicmp(p, cfg.grp[grpnum]->sname, grpname_len) == 0)
-					p += grpname_len;
-				SKIP_CHAR(p, '.');
-				SAFECOPY(tmp_code, p);
-				SAFECOPY(tmpsub.lname, tp);
-				SAFECOPY(tmpsub.sname, p);
-				SAFECOPY(tmpsub.qwkname, p);
+				*tp=0;						/* Truncate internal code */
+				SAFECOPY(tmp_code,p);		/* Copy internal code suffix */
+				p=tp+1;
+				SKIP_WHITESPACE(p);			/* Find echo tag */
+				truncstr(p," \t");			/* Truncate tag */
+				SAFECOPY(tmpsub.lname,utos(p));
+				SAFECOPY(tmpsub.sname,tmpsub.lname);
+				if(strlen(p) > sizeof(tmpsub.sname) - 1)
+					SAFECOPY(tmpsub.newsgroup, p);
 			}
-			else {
-				char* p=str;
-				SKIP_WHITESPACE(p);
-				if(!*p || *p==';')
-					continue;
-				if(type == IMPORT_LIST_TYPE_GENERIC_AREAS_BBS) {		/* AREAS.BBS Generic/.MSG */
-					p=str;
-					SKIP_WHITESPACE(p);			/* Find path	*/
-					FIND_WHITESPACE(p);			/* Skip path	*/
-					SKIP_WHITESPACE(p);			/* Find tag		*/
-					truncstr(p," \t");			/* Truncate tag */
-					SAFECOPY(tmp_code,p);		/* Copy tag to internal code */
-					SAFECOPY(tmpsub.lname,utos(p));
-					SAFECOPY(tmpsub.sname,tmpsub.lname);
-					if(strlen(p) > sizeof(tmpsub.sname) - 1)
-						SAFECOPY(tmpsub.newsgroup, p);
-				}
-				else if(type == IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS) { /* AREAS.BBS SBBSecho */
-					p=str;
-					SKIP_WHITESPACE(p);			/* Find internal code */
-					char* tp=p;
-					FIND_WHITESPACE(tp);
-					*tp=0;						/* Truncate internal code */
-					SAFECOPY(tmp_code,p);		/* Copy internal code suffix */
-					p=tp+1;
-					SKIP_WHITESPACE(p);			/* Find echo tag */
-					truncstr(p," \t");			/* Truncate tag */
-					SAFECOPY(tmpsub.lname,utos(p));
-					SAFECOPY(tmpsub.sname,tmpsub.lname);
-					if(strlen(p) > sizeof(tmpsub.sname) - 1)
-						SAFECOPY(tmpsub.newsgroup, p);
-				}
-				else if(type == IMPORT_LIST_TYPE_BACKBONE_NA) { /* BACKBONE.NA */
-					p=str;
-					SKIP_WHITESPACE(p);			/* Find echo tag */
-					char* tp=p;
-					FIND_WHITESPACE(tp);		/* Find end of tag */
-					*tp=0;						/* Truncate echo tag */
-					SAFECOPY(tmp_code,p);		/* Copy tag to internal code suffix */
-					SAFECOPY(tmpsub.sname,utos(p));	/* ... to short name, converting underscores to spaces */
-					if(strlen(p) > sizeof(tmpsub.sname) - 1)
-						SAFECOPY(tmpsub.newsgroup, p);
-					p=tp+1;
-					SKIP_WHITESPACE(p);			/* Find description */
-					SAFECOPY(tmpsub.lname,p);	/* Copy description to long name */
-				}
+			else if(type == IMPORT_LIST_TYPE_BACKBONE_NA) { /* BACKBONE.NA */
+				p=str;
+				SKIP_WHITESPACE(p);			/* Find echo tag */
+				char* tp=p;
+				FIND_WHITESPACE(tp);		/* Find end of tag */
+				*tp=0;						/* Truncate echo tag */
+				SAFECOPY(tmp_code,p);		/* Copy tag to internal code suffix */
+				SAFECOPY(tmpsub.sname,utos(p));	/* ... to short name, converting underscores to spaces */
+				if(strlen(p) > sizeof(tmpsub.sname) - 1)
+					SAFECOPY(tmpsub.newsgroup, p);
+				p=tp+1;
+				SKIP_WHITESPACE(p);			/* Find description */
+				SAFECOPY(tmpsub.lname,p);	/* Copy description to long name */
 			}
 		}
+
 		SAFECOPY(tmpsub.code_suffix, prep_code(tmp_code,cfg.grp[grpnum]->code_prefix));
 		truncsp(tmpsub.sname);
 		truncsp(tmpsub.lname);
 		truncsp(tmpsub.qwkname);
-		if(tmpsub.qwkname[0] == 0) {
-			SAFECOPY(tmpsub.qwkname, tmpsub.sname);
-		}
+		SAFECOPY(tmpsub.qwkname,tmpsub.sname);
 
 		if(tmpsub.code_suffix[0]==0	|| tmpsub.sname[0]==0)
 			continue;
@@ -394,16 +325,12 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 				attempts++;
 			}
 		}
-		if(attempts >= (36*36*36)) {
-			ported = -2;
-			break;
-		}
+		if(attempts >= (36*36*36))
+			return -2;
 
 		if(j==cfg.total_subs) {
-			if(!new_sub(j, grpnum, /* pasted_sub: */NULL, new_sub_misc)) {
-				ported = -3;
-				break;
-			}
+			if(!new_sub(j, grpnum, /* pasted_sub: */NULL))
+				return -3;
 			if(added != NULL)
 				(*added)++;
 		}
@@ -413,25 +340,23 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			cfg.sub[j]->ptridx=sav_ptridx;	/* restore original ptridx */
 		} else {
 			cfg.sub[j]->grp=grpnum;
+			if(cfg.total_faddrs)
+				cfg.sub[j]->faddr=cfg.faddr[0];
 			SAFECOPY(cfg.sub[j]->code_suffix,tmpsub.code_suffix);
 			SAFECOPY(cfg.sub[j]->sname,tmpsub.sname);
 			SAFECOPY(cfg.sub[j]->lname,tmpsub.lname);
 			SAFECOPY(cfg.sub[j]->newsgroup,tmpsub.newsgroup);
 			SAFECOPY(cfg.sub[j]->qwkname,tmpsub.qwkname);
-			if(tmpsub.data_dir[0])
-				SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
+			SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
+//			if(j==cfg.total_subs)
+//				cfg.sub[j]->maxmsgs=1000;
 		}
-		if(faddr != NULL && faddr->zone)
-			cfg.sub[j]->faddr = *faddr;
 		if(qhub != NULL)
 			new_qhub_sub(qhub, qhub->subs, cfg.sub[j], qwk_confnum);
 		ported++;
 	}
-	if(ported > 0 && cfg.grp[grpnum]->sort)
+	if(ported && cfg.grp[grpnum]->sort)
 		sort_subs(grpnum);
-
-	strListFree(&ini);
-	strListFree(&list);
 
 	return ported;
 }
@@ -589,7 +514,7 @@ void msgs_cfg()
 								SAFEPRINTF(tmp, "%ssubs/", cfg.data_dir);
 							else
 								SAFECOPY(tmp, cfg.sub[j]->data_dir);
-							delfiles(tmp, str, /* keep: */0);
+							delfiles(tmp, str);
 						}
 					}
 				}
@@ -779,7 +704,6 @@ void msgs_cfg()
 					strcpy(opt[k++],"subs.txt       Synchronet Sub-boards");
 					strcpy(opt[k++],"areas.bbs      SBBSecho Area File");
 					strcpy(opt[k++],"backbone.na    FidoNet EchoList");
-					strcpy(opt[k++],"newsgroup.lst  USENET Newsgroup List");
 					opt[k][0]=0;
 					uifc.helpbuf=
 						"`Export Area File Format:`\n"
@@ -798,12 +722,9 @@ void msgs_cfg()
 						"`backbone.na` (also `fidonet.na` and `badareas.lst`)\n"
 						"  FidoNet standard EchoList containing standardized echo `Area Tags`\n"
 						"  and (optional) descriptions.\n"
-						"\n"
-						"`newsgroup.lst`\n"
-						"  Standard (RFC3977) NNTP `LIST NEWSGROUPS` output format:\n"
-						"  Newsgroup names and (optional) descriptions, one line per newsgroup."
+
 					;
-					k = uifc.list(WIN_MID|WIN_ACT,0,0,0,&export_list_type,0
+					k = uifc.list(WIN_MID|WIN_SAV,0,0,0,&export_list_type,0
 						,"Export Area File Format",opt);
 					if(k==-1)
 						break;
@@ -813,8 +734,6 @@ void msgs_cfg()
 						sprintf(str,"%sareas.bbs",cfg.data_dir);
 					else if(k==2)
 						sprintf(str,"backbone.na");
-					else if(k==3)
-						sprintf(str,"newsgroup.lst");
 					if(k==1)
 						if(uifc.input(WIN_MID|WIN_SAV,0,0,"Uplinks"
 							,str2,sizeof(str2)-1,0)<=0) {
@@ -872,12 +791,6 @@ void msgs_cfg()
 								,cfg.sub[j]->lname);
 							continue; 
 						}
-						if(k==3) {		/* newsgroup.lst */
-							fprintf(stream,"%s %s\n"
-								,subnewsgroupname(&cfg, cfg.sub[j], str, sizeof(str))
-								,cfg.sub[j]->lname);
-							continue;
-						}
 						fprintf(stream,"%s\n%s\n%s\n%s\n%s\n%s\n"
 								"%s\n%s\n%s\n"
 							,cfg.sub[j]->lname
@@ -922,8 +835,6 @@ void msgs_cfg()
 					strcpy(opt[k++],"areas.bbs       SBBSecho Area File");
 					strcpy(opt[k++],"backbone.na     FidoNet EchoList");
 					strcpy(opt[k++],"badareas.lst    SBBSecho Bad Area List");
-					strcpy(opt[k++],"echostats.ini   SBBSecho EchoMail Statistics");
-					strcpy(opt[k++],"newsgroup.lst   USENET Newsgroup List");
 					opt[k][0]=0;
 					uifc.helpbuf=
 						"`Import Area File Format:`\n"
@@ -936,25 +847,15 @@ void msgs_cfg()
 						"`subs.txt`\n"
 						"  Complete details of a group of sub-boards as exported from `SCFG`.\n"
 						"\n"
-						"`control.dat`\n"
-						"  Standard file contained within QWK packets (typically ZIP archives).\n"
-						"\n"
 						"`areas.bbs`\n"
 						"  FidoNet EchoMail Area File, in either `Generic` or `SBBSecho` flavors,\n"
 						"  as used by most FidoNet EchoMail Programs or SBBSecho.\n"
 						"\n"
 						"`backbone.na` (also `fidonet.na` and `badareas.lst`)\n"
 						"  FidoNet standard EchoList containing standardized echo `Area Tags`\n"
-						"  and optional `Titles` (descriptions).\n"
-						"\n"
-						"`echostats.ini`\n"
-						"  SBBSecho cumulative EchoMail statistics (imports `Unknown Areas` only).\n"
-						"\n"
-						"`newsgroup.lst`\n"
-						"  Standard (RFC3977) NNTP `LIST NEWSGROUPS` output format:\n"
-						"  Newsgroup names and (optional) descriptions, one line per newsgroup."
+						"  and (optional) descriptions.\n"
 					;
-					k=uifc.list(WIN_MID|WIN_ACT,0,0,0,&import_list_type,0
+					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&import_list_type,0
 						,"Import Area File Format",opt);
 					if(k < 0)
 						break;
@@ -975,14 +876,8 @@ void msgs_cfg()
 						case IMPORT_LIST_TYPE_BACKBONE_NA:
 							sprintf(filename, "backbone.na");
 							break;
-						case IMPORT_LIST_TYPE_NEWSGROUPS:
-							SAFECOPY(filename, "newsgroup.lst");
-							break;
-						case IMPORT_LIST_TYPE_ECHOSTATS:
-							SAFEPRINTF(filename, "%sechostats.ini", cfg.data_dir);
-							break;
 						default:
-							SAFEPRINTF(filename, "%sbadareas.lst", cfg.data_dir);
+							sprintf(filename,"%sbadareas.lst", cfg.data_dir);
 							k = IMPORT_LIST_TYPE_BACKBONE_NA;
 							break;
 					}
@@ -1005,16 +900,6 @@ void msgs_cfg()
 							break;
 						max_confnum = atoi(str);
 					}
-					char pkt_orig[25] = "";
-					if(k == IMPORT_LIST_TYPE_ECHOSTATS) {
-						uifc.helpbuf = "`Filter Areas by Originating Packet Address:`\n"
-							"\n"
-							"Enter the relevant uplink's FidoNet address or ENTER for All origins."
-							;
-						if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Filter Areas by Packet Address"
-							,pkt_orig, sizeof(pkt_orig)-1, K_EDIT) < 0)
-							break;
-					}
 					uifc.helpbuf = "Enter the path to the Area List file to import";
 					if(uifc.input(WIN_MID|WIN_SAV,0,0,"Filename"
 						,filename,sizeof(filename)-1,K_EDIT)<=0)
@@ -1026,7 +911,7 @@ void msgs_cfg()
 					}
 					uifc.pop("Importing Areas...");
 					long added = 0;
-					ported = import_msg_areas(k, stream, i, min_confnum, max_confnum, /* qhub: */NULL, pkt_orig, /* faddr: */NULL, &added);
+					ported = import_msg_areas(k, stream, i, min_confnum, max_confnum, /* qhub: */NULL, &added);
 					fclose(stream);
 					uifc.pop(0);
 					if(ported < 0)
