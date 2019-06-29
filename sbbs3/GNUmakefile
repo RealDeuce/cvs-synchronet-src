@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.230 2018/03/17 05:43:39 deuce Exp $
+# $Id: GNUmakefile,v 1.237 2019/06/28 23:04:49 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -84,6 +84,9 @@ else
  endif
 endif
 export LD_RUN_PATH
+ifeq ($(CCPRE),clang)
+ LDFLAGS += -rpath $(LD_RUN_PATH)
+endif
 
 CON_LIBS	+= -lsbbs -lftpsrvr -lwebsrvr -lmailsrvr -lservices
 SHLIBOPTS	:=	-shared
@@ -102,12 +105,12 @@ else
  endif
 endif
 
-CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS)
+CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(ENCODE_CFLAGS) $(HASH_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
+LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(ENCODE_LDFLAGS) $(HASH_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
 $(SBBSMONO): $(MONO_OBJS) $(OBJS)
@@ -115,9 +118,10 @@ $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 	$(QUIET)$(CXX) -o $@ $(LDFLAGS) $(MT_LDFLAGS) $(MONO_OBJS) $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS) $(JS_LIBS) $(CRYPT_LIBS)
 
 # Synchronet BBS library Link Rule
-$(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) $(EXTRA_SBBS_DEPENDS) | $(LIBODIR)
+$(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) $(EXTRA_SBBS_DEPENDS) $(ENCODE_LIB) | $(LIBODIR)
 	@echo Linking $@
-	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS) $(XPDEV-MT_LIBS)
+	@echo $(ENCODE_LIB)
+	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS) $(ENCODE_LIBS) $(XPDEV-MT_LIBS)
 
 # FTP Server Link Rule
 $(FTPSRVR): $(MTOBJODIR)/ftpsrvr.o
@@ -207,7 +211,7 @@ $(JSDOOR): $(JSDOOR_OBJS) $(SBBS)
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSEXEC_OBJS) -lsbbs $(JS_LIBS) $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
 
 # ANS2ASC
 $(ANS2ASC): $(OBJODIR)/ans2asc.o
@@ -268,3 +272,13 @@ $(READSAUCE): $(READSAUCE_OBJS) $(OBJODIR) $(EXEODIR)
 $(SHOWSTAT): $(SHOWSTAT_OBJS) $(OBJODIR) $(EXEODIR)
 	@echo Linking $@
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(SHOWSTAT_OBJS) $(XPDEV_LIBS)
+
+# PKTDUMP
+$(PKTDUMP): $(PKTDUMP_OBJS) $(OBJODIR) $(EXEODIR)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(PKTDUMP_OBJS)
+
+# FMSGDUMP
+$(FMSGDUMP): $(FMSGDUMP_OBJS) $(OBJODIR) $(EXEODIR)
+	@echo Linking $@
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(FMSGDUMP_OBJS)
