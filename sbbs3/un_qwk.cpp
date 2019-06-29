@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.57 2019/07/03 20:27:19 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.56 2019/04/10 00:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,16 +35,6 @@
 
 #include "sbbs.h"
 #include "qwk.h"
-
-static void log_qwk_import_stats(ulong msgs, time_t start)
-{
-	if(msgs) {
-		time_t t = time(NULL) - start;
-		if(t < 1)
-			t = 1;
-		eprintf(LOG_INFO,"Imported %lu QWK messages in %lu seconds (%lu msgs/sec)", msgs, (ulong)t, (ulong)(msgs/t));
-	}
-}
 
 /****************************************************************************/
 /* Unpacks .QWK packet, hubnum is the number of the QWK net hub 			*/
@@ -262,7 +252,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			}
 			smb_unlocksmbhdr(&smb);
 			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg)) {
-				eprintf(LOG_INFO,"Imported QWK mail message from %s to %s #%u", msg.from, msg.to, usernum);
 				SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 				putsmsg(&cfg,usernum,str);
 				tmsgs++;
@@ -289,8 +278,12 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 		if(j!=lastsub) {
 
-			if(lastsub != INVALID_SUB)
-				log_qwk_import_stats(msgs, startsub);
+			if(msgs) {
+				t=(ulong)(time(NULL)-startsub);
+				if(t<1)
+					t=1;
+				eprintf(LOG_INFO,"Imported %lu QWK msgs in %lu seconds (%lu msgs/sec)", msgs,t,msgs/t);
+			}
 			msgs=0;
 			startsub=time(NULL);
 
@@ -338,10 +331,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			tmsgs++;
 		}
 	}
-	if(lastsub != INVALID_SUB) {
-		log_qwk_import_stats(msgs, startsub);
-		smb_close(&smb);
-	}
 
 	qwk_handle_remaining_votes(&voting, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
 
@@ -357,6 +346,9 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	strListFree(&host_can);
 	strListFree(&subject_can);
 	strListFree(&twit_list);
+
+	if(lastsub!=INVALID_SUB)
+		smb_close(&smb);
 
 	delfiles(cfg.temp_dir,"*.NDX");
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
