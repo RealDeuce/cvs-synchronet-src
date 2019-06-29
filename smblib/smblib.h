@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.93 2019/05/04 22:56:55 rswindell Exp $ */
+/* $Id: smblib.h,v 1.94 2019/06/29 00:44:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -36,8 +36,6 @@
 
 #ifndef _SMBLIB_H
 #define _SMBLIB_H
-
-#include "lzh.h"
 
 #ifdef SMBEXPORT
 	#undef SMBEXPORT
