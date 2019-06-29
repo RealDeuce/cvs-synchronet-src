@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.225 2018/10/09 01:34:09 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.241 2019/06/28 23:04:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -50,15 +50,15 @@
 /*************/
 
 #define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
+#define REVISION	'c'     /* Revision: lowercase letter */
 #define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
 #define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2018 Rob Swindell"
-#define COPYRIGHT_CRC		0x930AE2A9
+#define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
+#define COPYRIGHT_CRC		0x0E0503DF
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -70,6 +70,7 @@
 #define UNKNOWN_LOAD_ERROR	"Unknown load error - Library mismatch?"
 
 #define STR_UNKNOWN_USER	"<unknown user>"
+#define STR_NO_HOSTNAME		"<no name>"
 
 #define	JAVASCRIPT_MAX_BYTES		(8*1024*1024)
 #define JAVASCRIPT_CONTEXT_STACK	(16*1024)
@@ -385,6 +386,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define EVENT_INIT		(1<<2)		/* Always run event after init			*/
 #define EVENT_DISABLED	(1<<3)		/* Disabled								*/
 
+#define NODE_ANY		0			/* special qhub/event_t.node value		*/
+
 									/* Bits in xtrn_t.misc					*/
 #define MULTIUSER		(1<<0) 		/* allow multi simultaneous users		*/
 #define XTRN_ANSI		(1<<1)		/* LEGACY (not used)                    */
@@ -407,14 +410,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_SH			(1<<18)		/* Use command shell to execute			*/
 #define XTRN_PAUSE		(1<<19)		/* Force a screen pause on exit			*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
-#define WORDWRAP80		(1<<21)		/* Word-wrap editor to 80 columns		*/
-#define WORDWRAPTERM	(1<<22)		/* Word-wrap editor to terminal width	*/
-#define WORDWRAPLONG	(WORDWRAP80|WORDWRAPTERM)	/* word-wrap to maxlen	*/
-#define WORDWRAPNONE	0			/* No word-wrapping on editor in/ouput	*/
-#define WORDWRAPMASK	WORDWRAPLONG
+#define QUOTEWRAP		(1<<21)		/* Word-wrap quoted message text		*/
+#define SAVECOLUMNS		(1<<22)		/* Save/share current terminal width	*/
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
-#define QUOTEWRAP		WORDWRAP80	/* for temporary backwards compat.		*/
-
 
 									/* Bits in cfg.xtrn_misc				*/
 #define XTRN_NO_MUTEX	(1<<0)		/* Do not use exec_mutex for FOSSIL VXD	*/
@@ -488,6 +486,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define CON_HIGH_FONT	(1<<19)	/* Alt high-intensity font activated		*/
 #define CON_BLINK_FONT	(1<<20)	/* Alt blink attribute font activated		*/
 #define CON_HBLINK_FONT	(1<<21)	/* Alt high-blink attribute font activated	*/
+#define CON_CR_CLREOL	(1<<31)	// outchar('\r') clears to end-of-line first
 
 							/* Number of milliseconds						*/
 #define DELAY_AUTOHG 1500	/* Delay for auto-hangup (xfer) 				*/
@@ -654,8 +653,12 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define HTML		(1L<<23)		/* Using Zuul/HTML terminal				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
 #define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
+#define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
+#define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
+#define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
+#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -669,6 +672,13 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define TERM_KEY_ABORT	CTRL_C
 #define TERM_KEY_PAGEUP	CTRL_P
 #define TERM_KEY_PAGEDN	CTRL_N
+
+#define TERM_COLS_MIN		40
+#define TERM_COLS_MAX		255
+#define TERM_COLS_DEFAULT	80
+#define TERM_ROWS_MIN		10
+#define TERM_ROWS_MAX		255
+#define TERM_ROWS_DEFAULT	24
 
 							/* Online status (online)						*/
 #define ON_LOCAL	1	 	/* Online locally								*/
@@ -735,7 +745,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
-#define P_SAVEATR   (1<<1)		/* Save the new current attributres after	*/
+#define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */
 #define P_NOATCODES (1<<2)		/* Don't allow @ codes                      */
 #define P_OPENCLOSE (1<<3)		/* Open and close the file					*/
@@ -744,6 +754,10 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOCRLF	(1<<6)		/* Don't prepend a CRLF	in printfile()		*/
 #define P_WORDWRAP	(1<<7)		/* Word-wrap long lines for user's terminal	*/
 #define P_CPM_EOF	(1<<8)		/* Ignore Ctrl-Z chars (CPM End-of-File)	*/
+#define	P_TRUNCATE	(1<<9)		/* Truncate (don't display) long lines		*/
+#define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
+#define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
+#define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -754,6 +768,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define FL_VIEW     (1<<5)		/* View ZIP/ARC/GIF etc. info               */
 
 								/* Bits in the mode of writemsg and email() */
+#define WM_NONE		0			/* No bit flags set							*/
 #define WM_EXTDESC	(1<<0)		/* Writing extended file description		*/
 #define WM_EMAIL	(1<<1)		/* Writing e-mail							*/
 #define WM_NETMAIL	(1<<2)		/* Writing NetMail							*/
@@ -782,6 +797,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LM_INCDEL	(1<<1)		/* Include deleted mail		 				*/
 #define LM_NOSPAM	(1<<2)		/* Exclude SPAM								*/
 #define LM_SPAMONLY	(1<<3)		/* Load SPAM only							*/
+#define LM_REVERSE	(1<<4)		/* Reverse the index order (newest-first)	*/
 
 enum {							/* readmail and delmailidx which types		*/
 	 MAIL_YOUR					/* mail sent to you							*/
@@ -805,6 +821,7 @@ enum {							/* readmail and delmailidx which types		*/
 #define EX_CHKTIME	XTRN_CHKTIME	/* Check time left						*/
 #define EX_NOECHO	XTRN_NOECHO		/* Don't echo stdin to stdout 			*/
 #define EX_STDIO	(EX_STDIN|EX_STDOUT)
+#define EX_NOLOG	(1<<30)		/* Don't log intercepted stdio				*/
 #define EX_CONIO	(1<<31)		/* Intercept Windows console I/O (doorway)	*/
 
 #if defined(__unix__)
@@ -930,6 +947,7 @@ enum COLORS {
 
 #define ANSI_NORMAL		0x100
 #define BG_BLACK		0x200
+#define BG_BRIGHT		0x400		// Not an IBM-CGA/ANSI.SYS compatible attribute
 #define BG_BLUE			(BLUE<<4)
 #define BG_GREEN		(GREEN<<4)
 #define BG_CYAN			(CYAN<<4)
