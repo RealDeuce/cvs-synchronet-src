@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.80 2019/05/06 10:52:27 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.81 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ BOOL sbbs_t::newuser()
 					useron.misc |= SWAP_DELETE;
 			}
 			else if(key == PETSCII_DELETE)
-				useron.misc |= (AUTOTERM|PETSCII);
+				useron.misc |= (AUTOTERM|PETSCII|COLOR);
 			else {
 				bprintf(text[InvalidBackspaceKeyFmt], key, key);
 				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
@@ -191,7 +191,7 @@ BOOL sbbs_t::newuser()
 		if(useron.misc&PETSCII) {
 			autoterm |= PETSCII;
 			outcom(PETSCII_UPPERLOWER);
-			bputs(text[PetTermDetected]);
+			bputs(text[PetTerminalDetected]);
 		} else {
 			if(!yesno(text[ExAsciiTerminalQ]))
 				useron.misc|=NO_EXASCII;
