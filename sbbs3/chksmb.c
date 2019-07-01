@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.68 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.67 2019/02/17 05:24:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,9 +55,9 @@
 char *ultoac(ulong l, char *string)
 {
 	char str[256];
-	size_t i,j,k;
+	signed char i,j,k;
 
-	SAFEPRINTF(str,"%lu",l);
+	sprintf(str,"%lu",l);
 	i=strlen(str)-1;
 	j=i/3+1+i;
 	string[j--]=0;
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.68 $", "%*s %s", revision);
+	sscanf("$Revision: 1.67 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
