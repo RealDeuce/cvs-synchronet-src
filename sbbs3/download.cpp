@@ -2,7 +2,7 @@
 
 /* Synchronet file download routines */
 
-/* $Id: download.cpp,v 1.58 2019/08/31 22:40:36 rswindell Exp $ */
+/* $Id: download.cpp,v 1.56 2019/04/10 19:34:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -193,7 +193,7 @@ const char* sbbs_t::protcmdline(prot_t* prot, enum XFER_TYPE type)
 /* Handles start and stop routines for transfer protocols                   */
 /****************************************************************************/
 int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
-					 ,char *fpath, char *fspec, bool cd, bool autohangup)
+					 ,char *fpath, char *fspec, bool cd)
 {
 	char	protlog[256],*p;
 	char*	cmdline;
@@ -204,14 +204,14 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 
 	SAFEPRINTF(protlog,"%sPROTOCOL.LOG",cfg.node_dir);
 	remove(protlog);                        /* Deletes the protocol log */
-	autohang=false;
-	if(autohangup) {
-		if(useron.misc&AUTOHANG)
-			autohang=true;
-		else if(text[HangUpAfterXferQ][0])
-			autohang=yesno(text[HangUpAfterXferQ]);
-	}
+	if(useron.misc&AUTOHANG)
+		autohang=true;
+	else if(text[HangUpAfterXferQ][0])
+		autohang=yesno(text[HangUpAfterXferQ]);
+	else
+		autohang=false;
 	if(sys_status&SS_ABORT || !online) {	/* if ctrl-c or hangup */
+		autohang=false;
 		return(-1);
 	}
 	bputs(text[StartXferNow]);
@@ -229,7 +229,7 @@ int sbbs_t::protocol(prot_t* prot, enum XFER_TYPE type
 	ex_mode = EX_BIN;
 	if(prot->misc&PROT_NATIVE)
 		ex_mode|=EX_NATIVE;
-#ifdef __unix__		/* file xfer progs may use stdio on Unix */
+#ifdef __unix__		/* file xfer progs must use stdio on Unix */
 	if(!(prot->misc&PROT_SOCKET))
 		ex_mode|=EX_STDIO;
 #endif
@@ -445,7 +445,7 @@ void sbbs_t::seqwait(uint devnum)
 
 }
 
-bool sbbs_t::sendfile(char* fname, char prot, const char* desc, bool autohang)
+bool sbbs_t::sendfile(char* fname, char prot, const char* desc)
 {
 	char	keys[128];
 	char	ch;
@@ -473,7 +473,7 @@ bool sbbs_t::sendfile(char* fname, char prot, const char* desc, bool autohang)
 			break;
 	if(i >= cfg.total_prots)
 		return false;
-	error = protocol(cfg.prot[i], XFER_DOWNLOAD, fname, fname, false, autohang);
+	error = protocol(cfg.prot[i],XFER_DOWNLOAD,fname,fname,false);
 	if(cfg.prot[i]->misc&PROT_DSZLOG)
 		result = checkdszlog(fname);
 	else
