@@ -1,6 +1,7 @@
 /* Synchronet console output routines */
+// vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.85 2018/07/01 09:40:27 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.100 2019/06/28 23:04:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,6 +41,7 @@
 /**********************************************************************/
 
 #include "sbbs.h"
+#include "cp437_utf8_tbl.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
@@ -51,15 +53,15 @@ int sbbs_t::bputs(const char *str)
     ulong l=0;
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
-		return(eprintf(LOG_INFO,"%s",str));
+		return(lputs(LOG_INFO, str));
 
 	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
-			if(toupper(str[l])=='Z')	/* EOF */
+			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
 				break;
 			ctrl_a(str[l++]);
-			continue; 
+			continue;
 		}
 		if(str[l]=='@') {           /* '@' */
 			if(str==mnestr			/* Mnemonic string or */
@@ -68,7 +70,7 @@ int sbbs_t::bputs(const char *str)
 				i=show_atcode(str+l);	/* return 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
 				if(i)					/* if valid string, go to top */
-					continue; 
+					continue;
 			}
 			for(i=0;i<TOTAL_TEXT;i++)
 				if(str==text[i])
@@ -77,19 +79,179 @@ int sbbs_t::bputs(const char *str)
 				i=show_atcode(str+l);
 				l+=i;
 				if(i)
-					continue; 
-			} 
+					continue;
+			}
 		}
-		outchar(str[l++]); 
+		outchar(str[l++]);
 	}
 	return(l);
 }
+
+/* Perform PETSCII terminal output translation (from ASCII/CP437) */
+unsigned char cp437_to_petscii(unsigned char ch)
+{
+	if(isalpha(ch))
+		return ch ^ 0x20;	/* swap upper/lower case */
+	switch(ch) {
+		case '\1':		return '@';
+		case '\x10':	return '>';
+		case '\x11':	return '<';
+		case '\x18':	
+		case '\x1e':	return PETSCII_UPARROW;
+		case '\x19':
+		case '\x1f':	return 'V';
+		case '\x1a':	return '>';
+		case '|':		return PETSCII_VERTLINE;
+		case '\\':		return PETSCII_BACKSLASH;
+		case '`':		return PETSCII_BACKTICK;
+		case '~':		return PETSCII_TILDE;
+		case '_':		return PETSCII_UNDERSCORE;
+		case '{':		return '(';
+		case '}':		return ')';
+		case '\b':		return PETSCII_LEFT;
+		case 156:		return PETSCII_BRITPOUND;
+		case 251:		return PETSCII_CHECKMARK;
+		case 176:		return PETSCII_LIGHTHASH;
+		case 177:		return PETSCII_MEDIUMHASH;
+		case 178:		return PETSCII_HEAVYHASH;
+		case 219:		return PETSCII_SOLID;
+		case 220:		return PETSCII_BOTTOMHALF;
+		case 221:		return PETSCII_LEFTHALF;
+		case 222:		return PETSCII_RIGHTHALF;
+		case 223:		return PETSCII_TOPHALF;
+		case 254:		return PETSCII_UPRLFTBOX;
+		/* Line drawing chars */
+		case 186:
+		case 179:		return PETSCII_VERTLINE;
+		case 205:
+		case 196:		return PETSCII_HORZLINE;
+		case 206:
+		case 215:
+		case 216:
+		case 197:		return PETSCII_CROSS;
+		case 188:
+		case 189:
+		case 190:
+		case 217:		return '\xBD';
+		case 201:
+		case 213:
+		case 214:
+		case 218:		return '\xB0';
+		case 183:
+		case 184:
+		case 187:
+		case 191:		return '\xAE';
+		case 200:
+		case 211:
+		case 212:
+		case 192:		return '\xAD';
+		case 198:
+		case 199:
+		case 204:
+		case 195:		return '\xAB';
+		case 180:
+		case 181:
+		case 182:
+		case 185:		return '\xB3';
+		case 203:
+		case 209:
+		case 210:
+		case 194:		return '\xB2';
+		case 202:
+		case 207:
+		case 208:
+		case 193:		return '\xB1';
+	}
+	if(ch&0x80)
+		return exascii_to_ascii_char(ch);
+	return ch;
+}
+
+/* Perform PETSCII conversion to ANSI-BBS/CP437 */
+int sbbs_t::petscii_to_ansibbs(unsigned char ch)
+{
+	if((ch&0xe0) == 0xc0)	/* "Codes $60-$7F are, actually, copies of codes $C0-$DF" */
+		ch = 0x60 | (ch&0x1f);
+	if(isalpha(ch))
+		return outchar(ch ^ 0x20);	/* swap upper/lower case */
+	switch(ch) {
+		case '\r':					newline();		break;
+		case PETSCII_HOME:			cursor_home();	break;
+		case PETSCII_CLEAR:			return CLS;
+		case PETSCII_DELETE:		backspace();	break;
+		case PETSCII_LEFT:			cursor_left();	break;
+		case PETSCII_RIGHT:			cursor_right();	break;
+		case PETSCII_UP:			cursor_up();	break;
+		case PETSCII_DOWN:			cursor_down();	break;
+
+		case PETSCII_BRITPOUND:		return outchar((char)156);
+		case PETSCII_CHECKMARK:		return outchar((char)251);
+		case PETSCII_CHECKERBRD:
+		case PETSCII_LIGHTHASH:		return outchar((char)176);
+		case 0x7e:
+		case PETSCII_MEDIUMHASH:	return outchar((char)177);
+		case PETSCII_HEAVYHASH:		return outchar((char)178);
+		case PETSCII_SOLID:			return outchar((char)219);
+		case PETSCII_BOTTOMHALF:	return outchar((char)220);
+		case PETSCII_LEFTHALF:		return outchar((char)221);
+		case PETSCII_RIGHTHALF:		return outchar((char)222);
+		case PETSCII_TOPHALF:		return outchar((char)223);
+		case PETSCII_LWRLFTBOX:
+		case PETSCII_LWRRHTBOX:
+		case PETSCII_UPRRHTBOX:
+		case PETSCII_UPRLFTBOX:		return outchar((char)254);
+
+		/* Line drawing chars */
+		case 0x7D:
+		case PETSCII_VERTLINE:		return outchar((char)179);
+		case PETSCII_HORZLINE:		return outchar((char)196);
+		case 0x7B:
+		case PETSCII_CROSS:			return outchar((char)197);
+		case (uchar)'\xBD':			return outchar((char)217);
+		case (uchar)'\xB0':			return outchar((char)218);
+		case (uchar)'\xAE':			return outchar((char)191);
+		case (uchar)'\xAD':			return outchar((char)192);
+		case (uchar)'\xAB':			return outchar((char)195);
+		case (uchar)'\xB3':			return outchar((char)180);
+		case (uchar)'\xB2':			return outchar((char)194);
+		case (uchar)'\xB1':			return outchar((char)193);
+		case PETSCII_BLACK:			return attr(BLACK);
+		case PETSCII_WHITE:			return attr(WHITE);
+		case PETSCII_RED:			return attr(RED);
+		case PETSCII_GREEN:			return attr(GREEN);
+		case PETSCII_BLUE:			return attr(BLUE);
+		case PETSCII_ORANGE:		return attr(MAGENTA);
+		case PETSCII_BROWN:			return attr(BROWN);
+		case PETSCII_YELLOW:		return attr(YELLOW);
+		case PETSCII_CYAN:			return attr(LIGHTCYAN);
+		case PETSCII_LIGHTRED:		return attr(LIGHTRED);
+		case PETSCII_DARKGRAY:		return attr(DARKGRAY);
+		case PETSCII_MEDIUMGRAY:	return attr(CYAN);
+		case PETSCII_LIGHTGREEN:	return attr(LIGHTGREEN);
+		case PETSCII_LIGHTBLUE:		return attr(LIGHTBLUE);
+		case PETSCII_LIGHTGRAY:		return attr(LIGHTGRAY);
+		case PETSCII_PURPLE:		return attr(LIGHTMAGENTA);
+		case PETSCII_REVERSE_ON:	return attr((curatr&0x07) << 4);
+		case PETSCII_REVERSE_OFF:	return attr(curatr >> 4);
+		case PETSCII_FLASH_ON:		return attr(curatr | BLINK);
+		case PETSCII_FLASH_OFF:		return attr(curatr & ~BLINK);
+		default:					
+			if(ch&0x80)				return bprintf("#%3d", ch);
+			return outchar(ch);
+		case PETSCII_UPPERLOWER:
+		case PETSCII_UPPERGRFX:
+			/* Do nothing */
+			return 0;
+	}
+	return 0;
+}
+
 
 /****************************************************************************/
 /* Raw put string (remotely)												*/
 /* Performs Telnet IAC escaping												*/
 /* Performs saveline buffering (for restoreline)							*/
-/* DOES NOT expand ctrl-A codes, track colunms, lines, auto-pause, etc.     */
+/* DOES NOT expand ctrl-A codes, track columns, lines, auto-pause, etc.     */
 /****************************************************************************/
 int sbbs_t::rputs(const char *str, size_t len)
 {
@@ -99,13 +261,17 @@ int sbbs_t::rputs(const char *str, size_t len)
 		return 0;
 	if(len==0)
 		len=strlen(str);
+	long term = term_supports();
 	for(l=0;l<len && online;l++) {
 		if(str[l]==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-		if(outcom(str[l])!=0)
+		uchar ch = str[l];
+		if(term&PETSCII)
+			ch = cp437_to_petscii(ch);
+		if(outcom(ch)!=0)
 			break;
 		if(lbuflen<LINE_BUFSIZE)
-			lbuf[lbuflen++]=str[l]; 
+			lbuf[lbuflen++] = ch;
 	}
 	return(l);
 }
@@ -143,14 +309,18 @@ int sbbs_t::rprintf(const char *fmt, ...)
 }
 
 /****************************************************************************/
-/* Outputs destructive backspace locally and remotely (if applicable),		*/
+/* Outputs destructive backspace 											*/
 /****************************************************************************/
 void sbbs_t::backspace(void)
 {
 	if(!(console&CON_ECHO_OFF)) {
-		outcom('\b');
-		outcom(' ');
-		outcom('\b');
+		if(term_supports(PETSCII))
+			outcom(PETSCII_DELETE);
+		else {
+			outcom('\b');
+			outcom(' ');
+			outcom('\b');
+		}
 		if(column)
 			column--;
 	}
@@ -163,7 +333,10 @@ void sbbs_t::backspace(void)
 /****************************************************************************/
 long sbbs_t::term_supports(long cmp_flags)
 {
-	long flags = sys_status&SS_USERON ? useron.misc : autoterm;
+	long flags = ((sys_status&SS_USERON) && !(useron.misc&AUTOTERM)) ? useron.misc : autoterm;
+
+	if((sys_status&SS_USERON) && (useron.misc&AUTOTERM))
+		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
 }
@@ -172,10 +345,11 @@ long sbbs_t::term_supports(long cmp_flags)
 /* Outputs character														*/
 /* Performs terminal translations (e.g. EXASCII-to-ASCII, FF->ESC[2J)		*/
 /* Performs Telnet IAC escaping												*/
+/* Performs tab expansion													*/
 /* Performs column counting, line counting, and auto-pausing				*/
 /* Performs saveline buffering (for restoreline)							*/
 /****************************************************************************/
-void sbbs_t::outchar(char ch)
+int sbbs_t::outchar(char ch)
 {
 	/*
 	 * outchar_esc values:
@@ -189,7 +363,7 @@ void sbbs_t::outchar(char ch)
      */
 
 	if(console&CON_ECHO_OFF)
-		return;
+		return 0;
 	if(ch==ESC && outchar_esc < 4)
 		outchar_esc=1;
 	else if(outchar_esc==1) {
@@ -228,82 +402,123 @@ void sbbs_t::outchar(char ch)
 	}
 	else
 		outchar_esc=0;
-	if(term_supports(NO_EXASCII) && ch&0x80)
-		ch=exascii_to_ascii_char(ch);  /* seven bit table */
+	long term = term_supports();
+	const char* utf8 = NULL;
+	if(!(term&PETSCII)) {
+		if((term&NO_EXASCII) && (ch&0x80))
+			ch = exascii_to_ascii_char(ch);  /* seven bit table */
+		else if(term&UTF8)
+			utf8 = cp437_utf8_tbl[(uchar)ch];
+	}
+
 	if(ch==FF && lncntr > 0 && !tos) {
 		lncntr=0;
-		CRLF;
+		newline();
 		if(!(sys_status&SS_PAUSEOFF)) {
 			pause();
 			while(lncntr && online && !(sys_status&SS_ABORT))
-				pause(); 
+				pause();
 		}
 	}
 
-	if(online==ON_REMOTE && console&CON_R_ECHO) {
-		if(console&CON_R_ECHOX && (uchar)ch>=' ' && !outchar_esc) {
-			ch=text[YNQP][3];
-			if(text[YNQP][2]==0 || ch==0) ch='X';
-		}
-		if(ch==FF && term_supports(ANSI)) {
+	if(!(console&CON_R_ECHO))
+		return 0;
+
+	if((console&CON_R_ECHOX) && (uchar)ch>=' ' && !outchar_esc) {
+		ch=text[YNQP][3];
+		if(text[YNQP][2]==0 || ch==0) ch='X';
+	}
+	if(ch==FF) {
+		if(term&ANSI)
 			putcom("\x1b[2J\x1b[H");	/* clear screen, home cursor */
+		else if(term&PETSCII)
+			outcom(PETSCII_CLEAR);
+		else
+			outcom(FF);
+	}
+	else if(ch == '\t') {
+		outcom(' ');
+		column++;
+		while(column%tabstop) {
+			outcom(' ');
+			column++;
 		}
-		else {
-			if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
-				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			outcom(ch);
-		} 
+	}
+	else {
+		if(ch==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+		if(ch == '\r' && (console&CON_CR_CLREOL))
+			cleartoeol();
+		if(term&PETSCII) {
+			uchar pet = cp437_to_petscii(ch);
+			if(pet == PETSCII_SOLID)
+				outcom(PETSCII_REVERSE_ON);
+			outcom(pet);
+			if(pet == PETSCII_SOLID)
+				outcom(PETSCII_REVERSE_OFF);
+			if(ch == '\r' && (curatr&0xf0) != 0) // reverse video is disabled upon CR
+				curatr >>= 4;
+		} else {
+			if(utf8 != NULL)
+				putcom(utf8);
+			else
+				outcom(ch);
+		}
 	}
 	if(!outchar_esc) {
-		if((uchar)ch>=' ') {
-			column++;
-			if(column >= cols) {	// assume terminal has/will auto-line-wrap
-				lncntr++;
-				lbuflen = 0;
-				tos = 0;
+		/* Track cursor position locally */
+		switch(ch) {
+			case '\a':	// 7
+			case '\t':	// 9
+				/* Non-printing or handled elsewhere */
+				break;
+			case '\b':	// 8
+				if(column > 0)
+					column--;
+				if(lbuflen > 0)
+					lbuflen--;
+				break;
+			case '\n':	// 10
+				if(lncntr || lastlinelen)
+					lncntr++;
+				lbuflen=0;
+				tos=0;
+				column=0;
+				break;
+			case FF:	// 12
+				lncntr=0;
+				lbuflen=0;
+				tos=1;
+				column=0;
+			case '\r':	// 13
 				lastlinelen = column;
-				column = 0;
-			}
-		}
-		else if(ch=='\r') {
-			lastlinelen = column;
-			column=0;
-		}
-		else if(ch=='\b') {
-			if(column)
-				column--;
-		}
-		else if(ch=='\t') {
-			column++;
-			while(column%8)
+				column=0;
+				break;
+			default:
 				column++;
+				if(column >= cols) {	// assume terminal has/will auto-line-wrap
+					lncntr++;
+					lbuflen = 0;
+					tos = 0;
+					lastlinelen = column;
+					column = 0;
+				}
+				if(!lbuflen)
+					latr=curatr;
+				if(lbuflen<LINE_BUFSIZE)
+					lbuf[lbuflen++]=ch;
+				break;
 		}
-	}
-	if(ch==LF) {
-		if(lncntr || lastlinelen)
-			lncntr++;
-		lbuflen=0;
-		tos=0;
-		column=0;
-	} else if(ch==FF) {
-		lncntr=0;
-		lbuflen=0;
-		tos=1;
-		column=0;
-	} else {
-		if(!lbuflen)
-			latr=curatr;
-		if(lbuflen<LINE_BUFSIZE)
-			lbuf[lbuflen++]=ch; 
 	}
 	if(outchar_esc==3)
 		outchar_esc=0;
 
-	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON) 
-		&& !(sys_status&SS_PAUSEOFF)) {
+	if(lncntr==rows-1 && ((useron.misc&UPAUSE) || sys_status&SS_PAUSEON)
+		&& !(sys_status&(SS_PAUSEOFF|SS_ABORT))) {
 		lncntr=0;
-		pause(); 
+		pause();
 	}
+	return 0;
 }
 
 void sbbs_t::center(char *instr)
@@ -314,23 +529,51 @@ void sbbs_t::center(char *instr)
 	SAFECOPY(str,instr);
 	truncsp(str);
 	j=bstrlen(str);
-	for(i=0;i<(cols-j)/2;i++)
-		outchar(' ');
+	if(j < cols)
+		for(i=0;i<(cols-j)/2;i++)
+			outchar(' ');
 	bputs(str);
-	CRLF;
+	newline();
+}
+
+// Send a bare carriage return, hopefully moving the cursor to the far left, current row
+void sbbs_t::carriage_return(void)
+{
+	if(term_supports(PETSCII))
+		cursor_left(column);
+	else
+		outcom('\r');
+	column = 0;
+}
+
+// Send a bare line_feed, hopefully moving the cursor down one row, current column
+void sbbs_t::line_feed(void)
+{
+	if(term_supports(PETSCII))
+		outcom(PETSCII_DOWN);
+	else 
+		outcom('\n');
+}
+
+void sbbs_t::newline(void)
+{
+	outchar('\r');
+	outchar('\n');
 }
 
 void sbbs_t::clearline(void)
 {
-	outcom(CR);
-	column=0;
+	carriage_return();
 	cleartoeol();
 }
 
 void sbbs_t::cursor_home(void)
 {
-	if(term_supports(ANSI))
+	long term = term_supports();
+	if(term&ANSI)
 		rputs("\x1b[H");
+	else if(term&PETSCII)
+		outcom(PETSCII_HOME);
 	else
 		outchar(FF);	/* this will clear some terminals, do nothing with others */
 	tos=1;
@@ -341,38 +584,52 @@ void sbbs_t::cursor_up(int count)
 {
 	if(count<1)
 		return;
-	if(!term_supports(ANSI))
-		return;
-	if(count>1)
-		rprintf("\x1b[%dA",count);
-	else
-		rputs("\x1b[A");
+	long term = term_supports();
+	if(term&ANSI) {
+		if(count>1)
+			rprintf("\x1b[%dA",count);
+		else
+			rputs("\x1b[A");
+	} else {
+		if(term&PETSCII) {
+			for(int i=0;i<count;i++)
+				outcom(PETSCII_UP);
+		}
+	}
 }
 
 void sbbs_t::cursor_down(int count)
 {
 	if(count<1)
 		return;
-	if(!term_supports(ANSI))
-		return;
-	if(count>1)
-		rprintf("\x1b[%dB",count);
-	else
-		rputs("\x1b[B");
+	if(term_supports(ANSI)) {
+		if(count>1)
+			rprintf("\x1b[%dB",count);
+		else
+			rputs("\x1b[B");
+	} else {
+		for(int i=0;i<count;i++)
+			line_feed();
+	}
 }
 
 void sbbs_t::cursor_right(int count)
 {
 	if(count<1)
 		return;
-	if(term_supports(ANSI)) {
+	long term = term_supports();
+	if(term&ANSI) {
 		if(count>1)
 			rprintf("\x1b[%dC",count);
 		else
 			rputs("\x1b[C");
 	} else {
-		for(int i=0;i<count;i++)
-			outcom(' ');
+		for(int i=0;i<count;i++) {
+			if(term&PETSCII)
+				outcom(PETSCII_RIGHT);
+			else
+				outcom(' ');
+		}
 	}
 	column+=count;
 }
@@ -381,14 +638,19 @@ void sbbs_t::cursor_left(int count)
 {
 	if(count<1)
 		return;
-	if(term_supports(ANSI)) {
+	long term = term_supports();
+	if(term&ANSI) {
 		if(count>1)
 			rprintf("\x1b[%dD",count);
 		else
 			rputs("\x1b[D");
 	} else {
-		for(int i=0;i<count;i++)
-			outcom('\b');
+		for(int i=0;i<count;i++) {
+			if(term&PETSCII)
+				outcom(PETSCII_LEFT);
+			else
+				outcom('\b');
+		}
 	}
 	if(column > count)
 		column-=count;
@@ -400,14 +662,19 @@ void sbbs_t::cleartoeol(void)
 {
 	int i,j;
 
-	if(term_supports(ANSI))
+	long term = term_supports();
+	if(term&ANSI)
 		rputs("\x1b[K");
 	else {
 		i=j=column;
 		while(++i<cols)
 			outcom(' ');
-		while(++j<cols)
-			outcom(BS); 
+		while(++j<cols) {
+			if(term&PETSCII)
+				outcom(PETSCII_LEFT);
+			else
+				outcom('\b');
+		}
 	}
 }
 
@@ -422,17 +689,21 @@ void sbbs_t::cleartoeos(void)
 /****************************************************************************/
 void sbbs_t::ctrl_a(char x)
 {
-	char	tmp1[128],atr=curatr;
+	char	tmp1[128];
+	uint	atr = curatr;
 	struct	tm tm;
 
 	if(x && (uchar)x<=CTRL_Z) {    /* Ctrl-A through Ctrl-Z for users with MF only */
 		if(!(useron.flags1&FLAG(x+64)))
 			console^=(CON_ECHO_OFF);
-		return; 
+		return;
 	}
 	if((uchar)x>0x7f) {
 		cursor_right((uchar)x-0x7f);
-		return; 
+		return;
+	}
+	if(isdigit(x)) {	/* background color */
+		atr &= (BG_BRIGHT|BLINK|0x0f);
 	}
 	switch(toupper(x)) {
 		case '!':   /* level 10 or higher */
@@ -474,7 +745,7 @@ void sbbs_t::ctrl_a(char x)
 		case ')':   /* turn echo back on */
 			console&=~CON_ECHO_OFF;
 			break;
-		case '+':	/* push current attribte */
+		case '+':	/* push current attribute */
 			if(attr_sp<(int)sizeof(attr_stack))
 				attr_stack[attr_sp++]=curatr;
 			break;
@@ -536,34 +807,45 @@ void sbbs_t::ctrl_a(char x)
 			cleartoeol();
 			break;
 		case '<':   /* Non-destructive backspace */
-			outchar(BS);
+			cursor_left();
 			break;
 		case '/':	/* Conditional new-line */
 			if(column > 0)
-				CRLF;
+				newline();
+			break;
+		case '\\':	/* Conditional New-line / Continuation prefix (if cols < 80) */
+			if(column > 0 && cols < TERM_COLS_DEFAULT)
+				bputs(text[LongLineContinuationPrefix]);
 			break;
 		case '?':	/* Conditional blank-line */
 			if(column > 0)
-				CRLF;
+				newline();
 			if(lastlinelen)
-				CRLF;
+				newline();
 			break;
 		case '[':   /* Carriage return */
-			outchar(CR);
+			carriage_return();
 			break;
 		case ']':   /* Line feed */
-			outchar(LF);
+			line_feed();
 			break;
 		case 'A':   /* Ctrl-A */
 			outchar(CTRL_A);
+			break;
+		case 'Z':	/* Ctrl-Z */
+			outchar(CTRL_Z);
 			break;
 		case 'H': 	/* High intensity */
 			atr|=HIGH;
 			attr(atr);
 			break;
-		case 'I':	/* Blink */
-			atr|=BLINK;
-			attr(atr);
+		case 'I':
+ 			if((term_supports()&(ICE_COLOR|PETSCII)) != ICE_COLOR)
+				attr(atr|BLINK);
+			break;
+		case 'E': /* Bright Background */
+ 			if(term_supports()&(ICE_COLOR|PETSCII))
+				attr(atr|BG_BRIGHT);
 			break;
 		case 'F':	/* Blink, only if alt Blink Font is loaded */
 			if(((atr&HIGH) && (console&CON_HBLINK_FONT)) || (!(atr&HIGH) && (console&CON_BLINK_FONT)))
@@ -607,56 +889,110 @@ void sbbs_t::ctrl_a(char x)
 			attr(atr);
 			break;
 		case '0':	/* Black Background */
-			atr=(atr&0x8f);
 			attr(atr);
 			break;
 		case '1':	/* Red Background */
-			atr=(atr&0x8f)|(uchar)BG_RED;
-			attr(atr);
+			attr(atr | BG_RED);
 			break;
 		case '2':	/* Green Background */
-			atr=(atr&0x8f)|(uchar)BG_GREEN;
-			attr(atr);
+			attr(atr | BG_GREEN);
 			break;
 		case '3':	/* Yellow Background */
-			atr=(atr&0x8f)|(uchar)BG_BROWN;
-			attr(atr);
+			attr(atr | BG_BROWN);
 			break;
 		case '4':	/* Blue Background */
-			atr=(atr&0x8f)|(uchar)BG_BLUE;
-			attr(atr);
+			attr(atr | BG_BLUE);
 			break;
 		case '5':	/* Magenta Background */
-			atr=(atr&0x8f)|(uchar)BG_MAGENTA;
-			attr(atr);
+			attr(atr |BG_MAGENTA);
 			break;
 		case '6':	/* Cyan Background */
-			atr=(atr&0x8f)|(uchar)BG_CYAN;
-			attr(atr);
+			attr(atr | BG_CYAN);
 			break;
 		case '7':	/* White Background */
-			atr=(atr&0x8f)|(uchar)BG_LIGHTGRAY;
-			attr(atr);
-			break; 
+			attr(atr | BG_LIGHTGRAY);
+			break;
 	}
 }
 
-/***************************************************************************/
-/* Changes local and remote text attributes accounting for monochrome      */
-/***************************************************************************/
 /****************************************************************************/
-/* Sends ansi codes to change remote ansi terminal's colors                 */
-/* Only sends necessary codes - tracks remote terminal's current attributes */
-/* through the 'curatr' variable                                            */
+/* Sends terminal control codes to change remote terminal colors/attributes */
 /****************************************************************************/
-void sbbs_t::attr(int atr)
+int sbbs_t::attr(int atr)
 {
 	char	str[16];
+	int		newatr = atr;
 
-	if(!term_supports(ANSI))
-		return;
-	rputs(ansi(atr,curatr,str));
-	curatr=atr;
+	long term = term_supports();
+	if(term&PETSCII) {
+		if(atr&(0x70|BG_BRIGHT)) {	// background color (reverse video for PETSCII)
+			if(atr&BG_BRIGHT)
+				atr |= HIGH;
+			else
+				atr &= ~HIGH;
+			atr = (atr&(BLINK|HIGH)) | ((atr&0x70)>>4);
+			outcom(PETSCII_REVERSE_ON);
+		} else
+			outcom(PETSCII_REVERSE_OFF);
+		if(atr&BLINK)
+			outcom(PETSCII_FLASH_ON);
+		else
+			outcom(PETSCII_FLASH_OFF);
+		switch(atr&0x0f) {
+			case BLACK:
+				outcom(PETSCII_BLACK);
+				break;
+			case WHITE:
+				outcom(PETSCII_WHITE);
+				break;
+			case DARKGRAY:
+				outcom(PETSCII_DARKGRAY);
+				break;
+			case LIGHTGRAY:
+				outcom(PETSCII_LIGHTGRAY);
+				break;
+			case BLUE:
+				outcom(PETSCII_BLUE);
+				break;
+			case LIGHTBLUE:
+				outcom(PETSCII_LIGHTBLUE);
+				break;
+			case CYAN:
+				outcom(PETSCII_MEDIUMGRAY);
+				break;
+			case LIGHTCYAN:
+				outcom(PETSCII_CYAN);
+				break;
+			case YELLOW:
+				outcom(PETSCII_YELLOW);
+				break;
+			case BROWN:
+				outcom(PETSCII_BROWN);
+				break;
+			case RED:
+				outcom(PETSCII_RED);
+				break;
+			case LIGHTRED:
+				outcom(PETSCII_LIGHTRED);
+				break;
+			case GREEN:
+				outcom(PETSCII_GREEN);
+				break;
+			case LIGHTGREEN:
+				outcom(PETSCII_LIGHTGREEN);
+				break;
+			case MAGENTA:
+				outcom(PETSCII_ORANGE);
+				break;
+			case LIGHTMAGENTA:
+				outcom(PETSCII_PURPLE);
+				break;
+		}
+	}
+	else if(term&ANSI)
+		rputs(ansi(newatr,curatr,str));
+	curatr=newatr;
+	return 0;
 }
 
 /****************************************************************************/
@@ -670,7 +1006,7 @@ bool sbbs_t::msgabort()
 {
 	static ulong counter;
 
-	if(sys_status&SS_SYSPAGE && !(++counter%100)) 
+	if(sys_status&SS_SYSPAGE && !(++counter%100))
 		sbbs_beep(sbbs_random(800),1);
 
 	checkline();
@@ -683,8 +1019,8 @@ bool sbbs_t::msgabort()
 
 int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr)
 {
-	int	atr;
-	int save_atr = curatr;
+	uint atr;
+	uint save_atr = curatr;
 	int len;
 	char* str = strip_ctrl(instr, NULL);
 
@@ -718,4 +1054,37 @@ void sbbs_t::progress(const char* text, int count, int total, int interval)
 	float pct = ((float)count/total)*100.0F;
 	SAFEPRINTF2(str, "[ %-8s  %4.1f%% ]", text, pct);
 	cursor_left(backfill(str, pct, cfg.color[clr_progress_full], cfg.color[clr_progress_empty]));
+}
+
+struct savedline {
+	char 	buf[LINE_BUFSIZE+1];	/* Line buffer (i.e. ANSI-encoded) */
+	uint	beg_attr;				/* Starting attribute of each line */
+	uint	end_attr;				/* Ending attribute of each line */
+	long	column;					/* Current column number */
+};
+
+bool sbbs_t::saveline(void)
+{
+	struct savedline line;
+	line.beg_attr = latr;
+	line.end_attr = curatr;
+	line.column = column;
+	snprintf(line.buf, sizeof(line.buf), "%.*s", lbuflen, lbuf);
+	TERMINATE(line.buf);
+	lbuflen=0;
+	return listPushNodeData(&savedlines, &line, sizeof(line)) != NULL;
+}
+
+bool sbbs_t::restoreline(void)
+{
+	struct savedline* line = (struct savedline*)listPopNode(&savedlines);
+	if(line == NULL)
+		return false;
+	lbuflen=0;
+	attr(line->beg_attr);
+	rputs(line->buf);
+	curatr = line->end_attr;
+	column = line->column;
+	free(line);
+	return true;
 }
