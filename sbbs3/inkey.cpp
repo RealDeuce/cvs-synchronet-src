@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.61 2019/07/09 05:38:46 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.60 2019/05/06 10:46:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
 
 int kbincom(sbbs_t* sbbs, unsigned long timeout)
 {
