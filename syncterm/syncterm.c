@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.221 2019/07/09 22:35:11 deuce Exp $ */
+/* $Id: syncterm.c,v 1.220 2019/05/30 06:24:44 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -38,12 +38,6 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <filewrap.h>	// STDOUT_FILENO
 
 #include <cterm.h>
-#if !(defined __BORLANDC__ || defined _MSC_VER)
- #include <stdbool.h>
-#else
- #define bool int
- enum { false, true };
-#endif
 
 #include "st_crypt.h"
 #include "fonts.h"

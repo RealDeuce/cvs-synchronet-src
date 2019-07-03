@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.689 2019/07/04 01:57:42 deuce Exp $ */
+/* $Id: websrvr.c,v 1.687 2019/07/03 05:17:48 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -239,7 +239,6 @@ typedef struct  {
 	char		*cleanup_file[MAX_CLEANUPS];
 	BOOL	sent_headers;
 	BOOL	prev_write;
-	BOOL	manual_length;
 
 	/* webctrl.ini overrides */
 	char	*error_dir;
@@ -1353,7 +1352,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked) && (!session->req.manual_length)) {
+			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -5696,7 +5695,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSObject*	reply;
 	JSIdArray*	heads;
 	JSObject*	headers;
-	int			i, h;
+	int			i;
 	char		str[MAX_REQUEST_LINE+1];
 	char		*p=NULL,*p2=NULL;
 	size_t		p_sz=0, p2_sz=0;
@@ -5729,37 +5728,8 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 					free(p2);
 				return FALSE;
 			}
-			if (!session->req.sent_headers) {
-				h = get_header_type(p);
-				switch(h) {
-				case HEAD_LOCATION:
-					if (*p2 == '/') {
-						unescape(p2);
-						SAFECOPY(session->req.virtual_path,p2);
-						session->req.send_location=MOVED_STAT;
-					}
-					else {
-						SAFECOPY(session->req.virtual_path,p2);
-						session->req.send_location=MOVED_TEMP;
-					}
-					if (atoi(session->req.status) == 200)
-						SAFECOPY(session->req.status, error_302);
-					break;
-				case HEAD_LENGTH:
-				case HEAD_TRANSFER_ENCODING:
-					/* If either of these are manually set, point
-					 * the gun at the script writers foot for them */
-					chunked = false;
-					session->req.manual_length = TRUE;
-				default:
-					safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-					strListPush(&session->req.dynamic_heads,str);
-				}
-			}
-			else {
-				safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-				strListPush(&session->req.dynamic_heads,str);
-			}
+			safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
+			strListPush(&session->req.dynamic_heads,str);
 		}
 		if(p)
 			free(p);
@@ -6581,7 +6551,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.689 $", "%*s %s", revision);
+	sscanf("$Revision: 1.687 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
