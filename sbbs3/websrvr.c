@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.690 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.687 2019/07/03 05:17:48 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -239,7 +239,6 @@ typedef struct  {
 	char		*cleanup_file[MAX_CLEANUPS];
 	BOOL	sent_headers;
 	BOOL	prev_write;
-	BOOL	manual_length;
 
 	/* webctrl.ini overrides */
 	char	*error_dir;
@@ -1353,7 +1352,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked) && (!session->req.manual_length)) {
+			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -3853,7 +3852,7 @@ static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t 
 		*end += 4;
 	}
 	else {
-		(*msg)->body[(*end)++] = (char)namelen;
+		(*msg)->body[(*end)++] = namelen;
 	}
 	if (vallen > 127) {
 		l = htonl(vallen | 0x80000000);
@@ -3861,7 +3860,7 @@ static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t 
 		*end += 4;
 	}
 	else {
-		(*msg)->body[(*end)++] = (char)vallen;
+		(*msg)->body[(*end)++] = vallen;
 	}
 	memcpy((*msg)->body + *end, env, namelen);
 	*end += namelen;
@@ -3889,7 +3888,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 			return FALSE;
 		}
 		if (end > 32000) {
-			msg->head.len = htons((uint16_t)end);
+			msg->head.len = htons(end);
 			if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 				lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 				free(msg);
@@ -3901,7 +3900,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 	}
 	strListFree(&env);
 	if (end) {
-		msg->head.len = htons((uint16_t)end);
+		msg->head.len = htons(end);
 		if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 			lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 			free(msg);
@@ -3909,7 +3908,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 		}
 		end = 0;
 	}
-	msg->head.len = htons((uint16_t)end);
+	msg->head.len = htons(end);
 	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 		lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 		free(msg);
@@ -4111,7 +4110,7 @@ static int fastcgi_write_in(void *arg, char *buf, size_t bufsz)
 		chunk_size = bufsz - pos;
 		if (chunk_size > UINT16_MAX)
 			chunk_size = UINT16_MAX;
-		head.len = htons((uint16_t)chunk_size);
+		head.len = htons(chunk_size);
 		if (sendsocket(cd->sock, (void *)&head, sizeof(head)) != sizeof(head))
 			return -1;
 		if (sendsocket(cd->sock, buf+pos, chunk_size) != chunk_size)
@@ -5696,7 +5695,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSObject*	reply;
 	JSIdArray*	heads;
 	JSObject*	headers;
-	int			i, h;
+	int			i;
 	char		str[MAX_REQUEST_LINE+1];
 	char		*p=NULL,*p2=NULL;
 	size_t		p_sz=0, p2_sz=0;
@@ -5729,37 +5728,8 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 					free(p2);
 				return FALSE;
 			}
-			if (!session->req.sent_headers) {
-				h = get_header_type(p);
-				switch(h) {
-				case HEAD_LOCATION:
-					if (*p2 == '/') {
-						unescape(p2);
-						SAFECOPY(session->req.virtual_path,p2);
-						session->req.send_location=MOVED_STAT;
-					}
-					else {
-						SAFECOPY(session->req.virtual_path,p2);
-						session->req.send_location=MOVED_TEMP;
-					}
-					if (atoi(session->req.status) == 200)
-						SAFECOPY(session->req.status, error_302);
-					break;
-				case HEAD_LENGTH:
-				case HEAD_TRANSFER_ENCODING:
-					/* If either of these are manually set, point
-					 * the gun at the script writers foot for them */
-					chunked = false;
-					session->req.manual_length = TRUE;
-				default:
-					safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-					strListPush(&session->req.dynamic_heads,str);
-				}
-			}
-			else {
-				safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-				strListPush(&session->req.dynamic_heads,str);
-			}
+			safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
+			strListPush(&session->req.dynamic_heads,str);
 		}
 		if(p)
 			free(p);
@@ -6581,7 +6551,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.690 $", "%*s %s", revision);
+	sscanf("$Revision: 1.687 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
