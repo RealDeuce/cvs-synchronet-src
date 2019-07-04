@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.81 2018/10/22 04:18:06 rswindell Exp $ */
+/* $Id: str.cpp,v 1.83 2018/10/26 03:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -855,7 +855,6 @@ char* sbbs_t::datestr(time_t t)
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
-	char	path[MAX_PATH+1];
 	uint	i;
 	stats_t stats;
 
@@ -881,15 +880,15 @@ void sbbs_t::sys_info()
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	SAFEPRINTF(path, "%ssystem.msg", cfg.text_dir);
-	if(fexistcase(path) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	const char* fname = "../system";
+	if(menu_exists(fname) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
-		printfile(path,0); 
+		menu(fname);
 	}
-	SAFEPRINTF(path, "%smenu/logon.asc", cfg.text_dir);
-	if(fexistcase(path) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	fname = "logon";
+	if(menu_exists(fname) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
-		menu("logon"); 
+		menu(fname);
 	}
 }
 
@@ -942,15 +941,13 @@ void sbbs_t::user_info()
 void sbbs_t::xfer_policy()
 {
 	if(!usrlibs) return;
-	if(menu_exists("tpolicy"))
-		menu("tpolicy");
-	else {
+	if(!menu("tpolicy", P_NOERROR)) {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
 		bprintf(text[TpUpload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->up_pct);
 		bprintf(text[TpDownload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->dn_pct);
-		}
+	}
 }
 
 const char* prot_menu_file[] = {
@@ -963,8 +960,7 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	if(menu_exists(prot_menu_file[type])) {
-		menu(prot_menu_file[type]);
+	if(menu(prot_menu_file[type], P_NOERROR)) {
 		return;
 	}
 
