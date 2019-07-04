@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.35 2019/07/25 10:48:27 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.34 2019/03/13 08:43:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,7 +93,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case FIDOPID:			return("X-FTN-PID");
 		case FIDOFLAGS:			return("X-FTN-Flags");
 		case FIDOTID:			return("X-FTN-TID");
-		case FIDOCHARSET:		return("X-FTN-CHRS");
 
 		case RFC822HEADER:		return("OtherHeader");
 		case RFC822MSGID:		return("Message-ID");			/* RFC-compliant */
