@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.186 2019/08/27 16:47:58 deuce Exp $ */
+/* $Id: js_file.c,v 1.180 2019/05/04 03:09:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "xpendian.h"
 #include "md5.h"
 #include "base64.h"
 #include "uucode.h"
@@ -184,9 +183,8 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 				/* Remove (C11 standard) 'x'clusive mode char to avoid MSVC assertion: */
 				for(e=strchr(fdomode, 'x'); e ; e=strchr(e, 'x'))
 					memmove(e, e+1, strlen(e));
-				if((p->fp=fdopen(file,fdomode)) == NULL) {
-					JS_ReportWarning(cx, "fdopen(%s, %s) ERROR %d: %s", p->name, fdomode, errno, strerror(errno));
-				}
+				if((p->fp=fdopen(file,fdomode))==NULL)
+					close(file);
 			}
 			free(fdomode);
 		}
@@ -535,11 +533,11 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_FALSE);
 	}
 
-	if((buf=malloc(len + 1))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(fgets(buf,len + 1,p->fp)!=NULL) {
+	if(fgets(buf,len,p->fp)!=NULL) {
 		len=strlen(buf);
 		while(len>0 && (buf[len-1]=='\r' || buf[len-1]=='\n'))
 			len--;
@@ -622,17 +620,9 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 					JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(*b));
 					break;
 				case sizeof(WORD):
-					if (p->network_byte_order)
-						*w = BE_SHORT(*w);
-					else
-						*w = LE_SHORT(*w);
 					JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(*w));
 					break;
 				case sizeof(DWORD):
-					if (p->network_byte_order)
-						*l = BE_LONG(*l);
-					else
-						*l = LE_LONG(*l);
 					JS_SET_RVAL(cx, arglist, UINT_TO_JSVAL(*l));
 					break;
 			}
@@ -648,17 +638,9 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 					v = INT_TO_JSVAL(*(b++));
 					break;
 				case sizeof(WORD):
-					if (p->network_byte_order)
-						*w = BE_SHORT(*w);
-					else
-						*w = LE_SHORT(*w);
 					v = INT_TO_JSVAL(*(w++));
 					break;
 				case sizeof(DWORD):
-					if (p->network_byte_order)
-						*l = BE_LONG(*l);
-					else
-						*l = LE_LONG(*l);
 					v=UINT_TO_JSVAL(*(l++));
 					break;
 			}
@@ -1848,17 +1830,9 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 				break;
 			case sizeof(WORD):
 				*w=(WORD)val;
-				if (p->network_byte_order)
-					*w = BE_SHORT(*w);
-				else
-					*w = LE_SHORT(*w);
 				break;
 			case sizeof(DWORD):
 				*l=(DWORD)val;
-				if (p->network_byte_order)
-					*l = BE_LONG(*l);
-				else
-					*l = LE_LONG(*l);
 				break;
 		}
 	}
@@ -1873,20 +1847,10 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 					*(b++)=(BYTE)val;
 					break;
 				case sizeof(WORD):
-					*(w)=(WORD)val;
-					if (p->network_byte_order)
-						*w = BE_SHORT(*w);
-					else
-						*w = LE_SHORT(*w);
-					w++;
+					*(w++)=(WORD)val;
 					break;
 				case sizeof(DWORD):
-					*(l)=(DWORD)val;
-					if (p->network_byte_order)
-						*l = BE_LONG(*l);
-					else
-						*l = LE_LONG(*l);
-					l++;
+					*(l++)=(DWORD)val;
 					break;
 			}
 		}
@@ -2453,7 +2417,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
-			in=getfmode(p->name);
+			in=getfattr(p->name);
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=INT_TO_JSVAL(in);
 			break;
@@ -2652,7 +2616,7 @@ static const char* file_prop_desc[] = {
 	,"the current file position (offset in bytes), change value to seek within file"
 	,"last modified date/time (in time_t format)"
 	,"the current length of the file (in bytes)"
-	,"file type/mode flags (i.e. <tt>struct stat.st_mode</tt> value, compatible with <tt>file_chmod()</tt>)"
+	,"file mode/attributes"
 	,"set to <i>true</i> if binary data is to be written and read in Network Byte Order (big end first)"
 	,"set to <i>true</i> to enable automatic ROT13 translation of text"
 	,"set to <i>true</i> to enable automatic Unix-to-Unix encode and decode on <tt>read</tt> and <tt>write</tt> calls"
@@ -2862,7 +2826,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
 	},
-	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_BOOLEAN,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
+	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,312
