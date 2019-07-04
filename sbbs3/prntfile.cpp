@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.32 2019/02/02 00:44:08 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.34 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 /* for pauses, aborts and ANSI. 'str' is the path of the file to print      */
 /* Called from functions menu and text_sec                                  */
 /****************************************************************************/
-bool sbbs_t::printfile(const char* fname, long mode)
+bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 {
 	char* buf;
 	char fpath[MAX_PATH+1];
@@ -105,7 +105,7 @@ bool sbbs_t::printfile(const char* fname, long mode)
 		errormsg(WHERE,ERR_READ,fpath,length);
 	else {
 		buf[l]=0;
-		putmsg(buf,mode);
+		putmsg(buf,mode,org_cols);
 	}
 	free(buf); 
 
@@ -119,7 +119,7 @@ bool sbbs_t::printfile(const char* fname, long mode)
 	return true;
 }
 
-bool sbbs_t::printtail(const char* fname, int lines, long mode)
+bool sbbs_t::printtail(const char* fname, int lines, long mode, long org_cols)
 {
 	char*	buf;
 	char	fpath[MAX_PATH+1];
@@ -177,7 +177,7 @@ bool sbbs_t::printtail(const char* fname, int lines, long mode)
 			}
 			p--; 
 		}
-		putmsg(p,mode);
+		putmsg(p,mode,org_cols);
 	}
 	if(mode&P_NOABORT && online==ON_REMOTE) {
 		SYNC;
@@ -249,7 +249,7 @@ bool sbbs_t::menu_exists(const char *code, const char* ext, char* path)
 		backslash(menu_dir);
 		SAFEPRINTF3(prefix, "%smenu/%s%s", cfg.text_dir, menu_dir, code);
 	}
-	safe_snprintf(path, MAX_PATH, "%s.%ucol.%s", prefix, cols, ext);
+	safe_snprintf(path, MAX_PATH, "%s.%lucol.%s", prefix, cols, ext);
 	if(fexistcase(path))
 		return true;
 	safe_snprintf(path, MAX_PATH, "%s.%s", prefix, ext);
