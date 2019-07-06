@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.64 2019/08/29 02:24:05 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.57 2019/07/03 20:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,8 +63,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	ulong	t;
 	ulong	msgs=0;
 	ulong	tmsgs=0;
-	ulong	dupes=0;
-	ulong	errors=0;
 	time_t	start;
 	time_t	startsub;
 	DIR*	dir;
@@ -78,7 +76,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
 	str_list_t	twit_list=NULL;
-	link_list_t user_list={0};
 	const char* hostname;
 
 	memset(&msg,0,sizeof(msg));
@@ -151,31 +148,26 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			eprintf(LOG_NOTICE,"!Invalid QWK message status (%02X) at offset %lu in %s"
 				,block[0], l, packet);
 			blocks=1;
-			errors++;
 			continue;
 		}
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
-		n=(uint)block[123]|(((uint)block[124])<<8);  /* conference number */
 		if(blocks<2) {
 			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
-				if(!qwk_voting(&voting, l, NET_QWK, cfg.qhub[hubnum]->id, n, hubnum)) {
-					lprintf(LOG_WARNING, "QWK vote failure, offset %lu in %s", l, packet);
-					errors++;
-				}
+				qwk_voting(&voting, l, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
 				continue;
 			}
 			eprintf(LOG_NOTICE,"!Invalid number of QWK blocks (%d) at offset %lu in %s"
 				,blocks, l+116, packet);
-			errors++;
 			blocks=1;
 			continue; 
 		}
+		/*********************************/
+		/* public message on a sub-board */
+		/*********************************/
+		n=(uint)block[123]|(((uint)block[124])<<8);  /* conference number */
 
-		if(!qwk_new_msg(n, &msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true)) {
-			errors++;
-			continue;
-		}
+		qwk_new_msg(n, &msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
@@ -242,7 +234,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			if((k=smb_open(&smb))!=0) {
 				errormsg(WHERE,ERR_OPEN,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
-				errors++;
 				continue; 
 			}
 			if(!filelength(fileno(smb.shd_fp))) {
@@ -254,7 +245,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 					smb_close(&smb);
 					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
 					smb_stack(&smb,SMB_STACK_POP);
-					errors++;
 					continue; 
 				} 
 			}
@@ -262,41 +252,29 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				smb_close(&smb);
 				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
-				errors++;
 				continue; 
 			}
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
 				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
 				smb_stack(&smb,SMB_STACK_POP);
-				errors++;
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);
-			bool dupe=false;
-			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg, &dupe)) {
+			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg)) {
 				eprintf(LOG_INFO,"Imported QWK mail message from %s to %s #%u", msg.from, msg.to, usernum);
 				SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 				putsmsg(&cfg,usernum,str);
 				tmsgs++;
-			} else {
-				if(dupe)
-					dupes++;
-				else
-					errors++;
 			}
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			continue;
 		}
-		/*********************************/
-		/* public message on a sub-board */
-		/*********************************/
 
 		if((j = resolve_qwkconf(n, hubnum)) == INVALID_SUB) {	/* ignore messages for subs not in config */
 			eprintf(LOG_NOTICE,"!Message from %s on UNKNOWN QWK CONFERENCE NUMBER: %u"
 				,cfg.qhub[hubnum]->id, n);
-			errors++;
 			continue;
 		}
 
@@ -327,7 +305,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			smb.subnum=j;
 			if((k=smb_open(&smb))!=0) {
 				errormsg(WHERE,ERR_OPEN,smb.file,k,smb.last_error);
-				errors++;
 				continue; 
 			}
 			if(!filelength(fileno(smb.shd_fp))) {
@@ -338,44 +315,27 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				if((k=smb_create(&smb))!=0) {
 					smb_close(&smb);
 					errormsg(WHERE,ERR_CREATE,smb.file,k,smb.last_error);
-					errors++;
 					continue; 
 				} 
 			}
 			if((k=smb_locksmbhdr(&smb))!=0) {
 				smb_close(&smb);
 				errormsg(WHERE,ERR_LOCK,smb.file,k,smb.last_error);
-				errors++;
 				continue; 
 			}
 			if((k=smb_getstatus(&smb))!=0) {
 				smb_close(&smb);
 				errormsg(WHERE,ERR_READ,smb.file,k,smb.last_error);
-				errors++;
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);
 			lastsub=j; 
 		}
 
-		bool dupe = false;
-		if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, /*touser: */0, &msg, &dupe)) {
+		if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, /*touser: */0, &msg)) {
 			signal_sub_sem(&cfg,j);
 			msgs++;
 			tmsgs++;
-			int destuser = lookup_user(&cfg, &user_list, msg.to);
-			if(destuser > 0) {
-				SAFEPRINTF4(str, text[MsgPostedToYouVia]
-					,msg.from
-					,cfg.qhub[hubnum]->id
-					,cfg.grp[cfg.sub[j]->grp]->sname, cfg.sub[j]->lname);
-				putsmsg(&cfg, destuser, str);
-			}
-		} else {
-			if(dupe)
-				dupes++;
-			else
-				errors++;
 		}
 	}
 	if(lastsub != INVALID_SUB) {
@@ -397,7 +357,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	strListFree(&host_can);
 	strListFree(&subject_can);
 	strListFree(&twit_list);
-	listFree(&user_list);
 
 	delfiles(cfg.temp_dir,"*.NDX");
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
@@ -437,16 +396,16 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		closedir(dir);
 
 	t=(ulong)(time(NULL)-start);
-	if(tmsgs || errors || dupes) {
+	if(tmsgs) {
 		if(t<1)
 			t=1;
 		eprintf(LOG_INFO,"Finished Importing QWK Network Packet from %s: "
-			"(%lu msgs) in %lu seconds (%lu msgs/sec), %lu errors, %lu dupes"
-			,cfg.qhub[hubnum]->id, tmsgs, t, tmsgs/t, errors, dupes);
+			"(%lu msgs) in %lu seconds (%lu msgs/sec)"
+			,cfg.qhub[hubnum]->id, tmsgs, t, tmsgs/t);
 		/* trigger timed event with internal code of 'qnet-qwk' to run */
 		sprintf(str,"%sqnet-qwk.now",cfg.data_dir);
 		ftouch(str);
 	}
 	delfiles(cfg.temp_dir,ALLFILES);
-	return errors == 0;
+	return(true);
 }
