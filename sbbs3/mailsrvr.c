@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.693 2019/05/01 07:44:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.703 2019/07/06 08:04:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -48,6 +48,7 @@
 #undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "mailsrvr.h"
+#include "utf8.h"
 #include "mime.h"
 #include "md5.h"
 #include "crc32.h"
@@ -719,7 +720,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
 	}
-	if(p!=NULL) {
+	if(p!=NULL && strchr((char*)p, '@') != NULL) {
 		if(np!=NULL)
 			s=sockprintf(socket,prot,sess,"Reply-To: \"%s\" <%s>",np,p);
 		else 
@@ -731,6 +732,10 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		return(0);
 	if(msg->reply_id!=NULL)
 		if(!sockprintf(socket,prot,sess,"In-Reply-To: %s",msg->reply_id))
+			return(0);
+
+	if(msg->hdr.priority != SMB_PRIORITY_UNSPECIFIED)
+		if(!sockprintf(socket,prot,sess,"X-Priority: %u", (uint)msg->hdr.priority))
 			return(0);
 
 	originator_info(socket, prot, sess, msg);
@@ -998,7 +1003,7 @@ static void pop3_thread(void* arg)
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&pop3.client_addr.addr, pop3.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 		if(startup->options&MAIL_OPT_DEBUG_POP3)
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", socket, client.protocol, host_name, host_ip);
 	}
 	if (pop3.tls_port) {
 		if (get_ssl_cert(&scfg, &estr, &level) == -1) {
@@ -1562,7 +1567,6 @@ static void pop3_thread(void* arg)
 								,socket, client.protocol, user.alias, i, smb.last_error);
 						} else {
 							msg.hdr.attr|=MSG_READ;
-							msg.hdr.netattr|=MSG_SENT;
 
 							if((i=smb_lockmsghdr(&smb,&msg))!=SMB_SUCCESS) 
 								lprintf(LOG_ERR,"%04d %s <%s> !ERROR %d (%s) locking message header #%u"
@@ -2335,6 +2339,121 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 }
 #endif
 
+bool strIsPlainAscii(const char* str)
+{
+	for(const char* p = str; *p != 0; p++) {
+		if(*p < 0)
+			return false;
+	}
+	return true;
+}
+
+static size_t strStartsWith_i(const char* buf, const char* match)
+{
+	size_t len = strlen(match);
+	if (strnicmp(buf, match, len) == 0)
+		return len;
+	return 0;
+}
+
+/* Decode RFC2047 'Q' encoded-word (in-place), "similar to" Quoted-printable */
+char* mimehdr_q_decode(char* buf)
+{
+	uchar*	p=(uchar*)buf;
+	uchar*	dest=p;
+
+	for(;*p != 0; p++) {
+		if(*p == '=') {
+			p++;
+			if(isxdigit(*p) && isxdigit(*(p + 1))) {
+				uchar ch = HEX_CHAR_TO_INT(*p) << 4;
+				p++;
+				ch |= HEX_CHAR_TO_INT(*p);
+				if(ch >= ' ')
+					*dest++ = ch;
+			} else {	/* bad encoding */
+				*dest++ = '=';
+				*dest++ = *p;
+			}
+		}
+		else if(*p == '_')
+			*dest++ = ' ';
+		else if(*p >= '!' && *p <= '~')
+			*dest++ = *p;
+	}
+	*dest=0;
+	return buf;
+}
+
+enum mimehdr_charset {
+	MIMEHDR_CHARSET_ASCII,
+	MIMEHDR_CHARSET_UTF8,
+	MIMEHDR_CHARSET_CP437,
+	MIMEHDR_CHARSET_OTHER
+};
+
+static enum mimehdr_charset mimehdr_charset_decode(const char* str)
+{
+	if (strStartsWith_i(str, "ascii?") || strStartsWith_i(str, "us-ascii?"))
+		return MIMEHDR_CHARSET_ASCII;
+	if (strStartsWith_i(str, "utf-8?"))
+		return MIMEHDR_CHARSET_UTF8;
+	if (strStartsWith_i(str, "cp437?") || strStartsWith_i(str, "ibm437?"))
+		return MIMEHDR_CHARSET_CP437;
+	return MIMEHDR_CHARSET_OTHER;
+}
+
+// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
+// Returns true if the last 'atom' in 'str' was an 'encoded-word' that was normalized
+bool normalize_hfield_value(char* str)
+{
+	bool normalized = false;
+	if (str == NULL)
+		return false;
+	char* buf = strdup(str);
+	if (buf == NULL)
+		return false;
+	char* state = NULL;
+	*str = 0;
+	char tmp[256]; // "An 'encoded-word' may not be more than 75 characters long"
+	for(char* p = strtok_r(buf, " \t", &state); p != NULL; p = strtok_r(NULL, " \t", &state)) {
+		if(*str)
+			strcat(str, " ");
+		char* end = lastchar(p);
+		if(*p == '=' && *(p+1) == '?' && *(end - 1) == '?' && *end == '=' && end - p < sizeof(tmp)) {
+			char* cp = p + 2;
+			enum mimehdr_charset charset = mimehdr_charset_decode(cp);
+			FIND_CHAR(cp, '?');	// we don't actually care what the charset is
+			if(*cp == '?' && *(cp + 1) != 0 && *(cp + 2) == '?') {
+				cp++;
+				char encoding = toupper(*cp);
+				cp += 2;
+				SAFECOPY(tmp, cp);
+				char* tp = lastchar(tmp);
+				*(tp - 1) = 0;	// remove the terminating "?="
+				if(encoding == 'Q') {
+					mimehdr_q_decode(tmp);
+					if(charset == MIMEHDR_CHARSET_UTF8)
+						utf8_normalize_str(tmp);
+					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+						p = tmp;
+				}
+				else if(encoding == 'B' 
+					&& b64_decode(tmp, sizeof(tmp), tmp, strlen(tmp)) > 0) { // base64
+					if(charset == MIMEHDR_CHARSET_UTF8)
+						utf8_normalize_str(tmp);
+					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+						p = tmp;
+				}
+			}
+		}
+		normalized = (p == tmp);
+		strcat(str, p);
+	}
+	free(buf);
+	return normalized;
+}
+
 static char* get_header_field(char* buf, char* name, size_t maxlen)
 {
 	char*	p;
@@ -2357,7 +2476,7 @@ static char* get_header_field(char* buf, char* name, size_t maxlen)
 	return p;
 }
 
-static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
+static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type, bool* normalized)
 {
 	char*	p;
 	char*	tp;
@@ -2371,8 +2490,10 @@ static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
 		if(*type==RFC822HEADER || *type==SMTPRECEIVED)
 			smb_hfield_append_str(msg,*type,"\r\n");
 		else { /* Unfold other common header field types (e.g. Subject, From, To) */
-			smb_hfield_append_str(msg,*type," ");
+			if(!*normalized)
+				smb_hfield_append_str(msg,*type," ");
 			SKIP_WHITESPACE(p);
+			*normalized = normalize_hfield_value(p);
 		}
 		return smb_hfield_append_str(msg, *type, p);
 	}
@@ -2430,6 +2551,14 @@ static int parse_header_field(char* buf, smbmsg_t* msg, ushort* type)
 	if(!stricmp(field, "RETURN-PATH")) {
 		*type=UNKNOWN;
 		return SMB_SUCCESS;	/* Ignore existing "Return-Path" header fields */
+	}
+
+	if(!stricmp(field, "X-PRIORITY")) {
+		msg->hdr.priority = atoi(p);
+		if(msg->hdr.priority > SMB_PRIORITY_LOWEST)
+			msg->hdr.priority = SMB_PRIORITY_UNSPECIFIED;
+		*type=UNKNOWN;
+		return SMB_SUCCESS;
 	}
 
 	/* Fall-through */
@@ -2908,7 +3037,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(startup->options&MAIL_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&smtp.client_addr.addr, smtp.client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d %s Hostname: %s", socket, client.protocol, host_name);
+		lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", socket, client.protocol, host_name, host_ip);
 	}
 	protected_uint32_adjust(&active_clients, 1);
 	update_clients();
@@ -2940,7 +3069,7 @@ static void smtp_thread(void* arg)
 
 		spam_block_exempt = findstr(host_ip,spam_block_exemptions) || findstr(host_name,spam_block_exemptions);
 		if(trashcan(&scfg,host_ip,"ip") 
-			|| (findstr(host_ip,spam_block) && !spam_block_exempt)) {
+			|| ((!spam_block_exempt) && findstr(host_ip,spam_block))) {
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT IP ADDRESS BLOCKED: %s (%lu total)"
 				,socket, client.protocol, host_ip, ++stats.sessions_refused);
 			sockprintf(socket,client.protocol,session,"550 CLIENT IP ADDRESS BLOCKED: %s", host_ip);
@@ -2952,8 +3081,7 @@ static void smtp_thread(void* arg)
 			return;
 		}
 
-		if(trashcan(&scfg,host_name,"host") 
-			|| (findstr(host_name,spam_block) && !spam_block_exempt)) {
+		if(trashcan(&scfg,host_name,"host")) {
 			lprintf(LOG_NOTICE,"%04d %s !CLIENT HOSTNAME BLOCKED: %s (%lu total)"
 				,socket, client.protocol, host_name, ++stats.sessions_refused);
 			sockprintf(socket,client.protocol,session,"550 CLIENT HOSTNAME BLOCKED: %s", host_name);
@@ -3353,6 +3481,7 @@ static void smtp_thread(void* arg)
 				hfield_type=UNKNOWN;
 				smb_error=SMB_SUCCESS; /* no SMB error */
 				errmsg=insuf_stor;
+				bool normalized = false;
 				while(!feof(msgtxt)) {
 					char field[32];
 
@@ -3363,6 +3492,7 @@ static void smtp_thread(void* arg)
 						break;
 
 					if((p=get_header_field(buf, field, sizeof(field)))!=NULL) {
+						normalized = normalize_hfield_value(p);
 						if(stricmp(field, "SUBJECT")==0) {
 							/* SPAM Filtering/Logging */
 							if(relay_user.number==0) {
@@ -3405,7 +3535,7 @@ static void smtp_thread(void* arg)
 						if(stricmp(field, "X-Spam-Flag") == 0 && stricmp(p, "Yes") == 0)
 							msg.hdr.attr |= MSG_SPAM;	/* e.g. flagged by SpamAssasin */
 					}
-					if((smb_error=parse_header_field((char*)buf,&msg,&hfield_type))!=SMB_SUCCESS) {
+					if((smb_error=parse_header_field((char*)buf, &msg, &hfield_type, &normalized))!=SMB_SUCCESS) {
 						if(smb_error==SMB_ERR_HDR_LEN)
 							lprintf(LOG_WARNING,"%04d %s !MESSAGE HEADER EXCEEDS %u BYTES"
 								,socket, client.protocol, SMB_MAX_HDR_LEN);
@@ -4877,6 +5007,8 @@ BOOL bounce(SOCKET sock, smb_t* smb, smbmsg_t* msg, char* err, BOOL immediate)
 	newmsg.hfield_dat=NULL;
 	newmsg.total_hfields=0;
 	newmsg.hdr.delivery_attempts=0;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 	char* reverse_path = msg->reverse_path==NULL ? msg->from : msg->reverse_path;
 
 	lprintf(LOG_WARNING,"%04d SEND !Bouncing message back to %s", sock, reverse_path);
@@ -5611,6 +5743,7 @@ static void sendmail_thread(void* arg)
 
 			/* Now lets mark this message for deletion without corrupting the index */
 			msg.hdr.attr|=MSG_DELETE;
+			msg.hdr.netattr|=MSG_SENT;
 			msg.hdr.netattr&=~MSG_INTRANSIT;
 			if((i=smb_updatemsg(&smb,&msg))!=SMB_SUCCESS)
 				lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) deleting message #%u"
@@ -5735,7 +5868,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.693 $", "%*s %s", revision);
+	sscanf("$Revision: 1.703 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
