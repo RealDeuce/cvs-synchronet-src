@@ -1,6 +1,6 @@
 /* Synchronet message base constant and structure definitions */
 
-/* $Id: smbdefs.h,v 1.115 2019/05/03 00:13:02 rswindell Exp $ */
+/* $Id: smbdefs.h,v 1.117 2019/05/04 22:56:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -256,7 +256,7 @@
 #define MSG_PRIVATE 		(1<<0)
 #define MSG_READ			(1<<1)
 #define MSG_PERMANENT		(1<<2)
-#define MSG_LOCKED			(1<<3)
+#define MSG_LOCKED			(1<<3)		/* DEPRECATED (never used) */
 #define MSG_DELETE			(1<<4)
 #define MSG_ANONYMOUS		(1<<5)
 #define MSG_KILLREAD		(1<<6)
@@ -559,7 +559,8 @@ typedef struct {				/* Message */
 	char*		editor;			/* Message editor (if known) */
 	char*		mime_version;	/* MIME Version (if applicable) */
 	char*		content_type;	/* MIME Content-Type (if applicable) */
-	char*		charset;		/* MIME plain-text/charset value (if applicable) */
+	char*		text_charset;	/* MIME text <charset>  (if applicable) - malloc'd */
+	char*		text_subtype;	/* MIME text/<sub-type> (if applicable) - malloc'd */
 	uint16_t	to_agent,		/* Type of agent message is to */
 				from_agent, 	/* Type of agent message is from */
 				replyto_agent;	/* Type of agent replies should be sent to */
