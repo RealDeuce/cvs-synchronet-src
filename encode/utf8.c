@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.1 2019/07/06 07:39:40 rswindell Exp $ */
+/* $Id: utf8.c,v 1.2 2019/07/06 08:03:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,7 +166,7 @@ int utf8_getc(const char *str, size_t len, uint32_t* val)
     int ret;
     if (len <= 0)
         return 0;
-    p = str;
+    p = (const unsigned char*)str;
 
     /* Check syntax and work out the encoded value (if correct) */
     if ((*p & 0x80) == 0) {
