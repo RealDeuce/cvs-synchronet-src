@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.76 2019/07/26 19:58:35 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.75 2018/01/07 23:11:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -563,9 +563,8 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		cfg->sub[i]->mod_ar=ARSTR(cfg->sub[i]->mod_arstr,cfg);
 
 		get_int(cfg->sub[i]->qwkconf,instream);
-		get_int(c,instream); // unused
-		get_int(cfg->sub[i]->pmode,instream);
-		for(j=0;j<24;j++)
+		get_int(c,instream);
+		for(j=0;j<26;j++)
 			get_int(n,instream);
 		}
 	cfg->total_subs=i;
