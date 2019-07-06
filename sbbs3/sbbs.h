@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.519 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.520 2019/07/06 07:52:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,6 +734,7 @@ public:
 	bool	saveline(void);
 	bool	restoreline(void);
 	int		petscii_to_ansibbs(unsigned char);
+	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 
