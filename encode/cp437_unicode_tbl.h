@@ -1,6 +1,6 @@
 /* Synchronet CP437 <-> UNICODE translation table */
 
-/* $Id: cp437_unicode_tbl.h,v 1.1 2019/07/06 07:39:40 rswindell Exp $ */
+/* $Id: cp437_unicode_tbl.h,v 1.2 2019/07/06 08:02:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4       (Plain Text/Source Code File Header)            *
@@ -42,7 +42,7 @@
 extern "C" {
 #endif
 
-uint32_t cp437_unicode_tbl[];
+extern uint32_t cp437_unicode_tbl[];
 
 #ifdef __cplusplus
 }
