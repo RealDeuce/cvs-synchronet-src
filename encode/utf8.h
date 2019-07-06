@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 translation functions */
 
-/* $Id: utf8.h,v 1.1 2019/07/06 07:39:40 rswindell Exp $ */
+/* $Id: utf8.h,v 1.2 2019/07/06 08:02:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 #define UTF8_H_
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define UTF8_MAX_LEN 6	// Longest possible UTF-8 sequence
 
