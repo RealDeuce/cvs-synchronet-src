@@ -1,11 +1,12 @@
 object MainForm: TMainForm
-  Left = 714
-  Top = 385
+  Left = 724
+  Top = 315
   Width = 793
   Height = 400
   Caption = 'Synchronet Control Panel'
   Color = clBtnFace
   UseDockManager = True
+  DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
