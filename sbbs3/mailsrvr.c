@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.706 2019/07/25 02:19:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.702 2019/07/06 07:43:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -720,7 +720,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
 	}
-	if(p!=NULL && strchr((char*)p, '@') != NULL) {
+	if(p!=NULL && strchr(p, '@') != NULL) {
 		if(np!=NULL)
 			s=sockprintf(socket,prot,sess,"Reply-To: \"%s\" <%s>",np,p);
 		else 
@@ -766,10 +766,9 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
         }
     }
 	/* Default MIME Content-Type for non-Internet messages */
-	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
-		const char* charset =  smb_msg_is_utf8(msg) ? "UTF-8" : startup->default_charset;
-		if(*charset)
-			sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", charset);
+	if(msg->from_net.type!=NET_INTERNET && content_type==NULL && startup->default_charset[0]) {
+		/* No content-type specified, so assume IBM code-page 437 (full ex-ASCII) */
+		sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", startup->default_charset);
 		sockprintf(socket,prot,sess,"Content-Transfer-Encoding: 8bit");
 	}
 
@@ -2340,6 +2339,15 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 }
 #endif
 
+bool strIsPlainAscii(const char* str)
+{
+	for(const char* p = str; *p != 0; p++) {
+		if(*p < 0)
+			return false;
+	}
+	return true;
+}
+
 static size_t strStartsWith_i(const char* buf, const char* match)
 {
 	size_t len = strlen(match);
@@ -2427,14 +2435,14 @@ bool normalize_hfield_value(char* str)
 					mimehdr_q_decode(tmp);
 					if(charset == MIMEHDR_CHARSET_UTF8)
 						utf8_normalize_str(tmp);
-					if(charset == MIMEHDR_CHARSET_CP437 || str_is_ascii(tmp))
+					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
 						p = tmp;
 				}
 				else if(encoding == 'B' 
 					&& b64_decode(tmp, sizeof(tmp), tmp, strlen(tmp)) > 0) { // base64
 					if(charset == MIMEHDR_CHARSET_UTF8)
 						utf8_normalize_str(tmp);
-					if(charset == MIMEHDR_CHARSET_CP437 || str_is_ascii(tmp))
+					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
 						p = tmp;
 				}
 			}
@@ -2645,7 +2653,7 @@ static void parse_mail_address(char* p
 							   ,char* addr, size_t addr_len)
 {
 	char*	tp;
-	char	tmp[256];
+	char	tmp[128];
 
 	SKIP_WHITESPACE(p);
 
@@ -5860,7 +5868,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.706 $", "%*s %s", revision);
+	sscanf("$Revision: 1.702 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
