@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.8 2019/07/10 00:02:40 rswindell Exp $ */
+/* $Id: utf8.c,v 1.2 2019/07/06 08:03:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,9 +34,6 @@
  ****************************************************************************/
 
 #include "utf8.h"
-#include "unicode.h"
-#include <stdbool.h>
-#include <string.h>
 
 char* utf8_normalize_str(char* str)
 {
@@ -139,85 +136,6 @@ char* utf8_normalize_str(char* str)
 	return str;
 }
 
-/* Replace all multi-byte UTF-8 sequences with 'ch' or 'zwch' (when non-zero) */
-/* When ch and zwch are 0, effectively strips all UTF-8 chars from str */
-char* utf8_replace_chars(char* str, char (*lookup)(enum unicode_codepoint), char unsupported_ch, char unsupported_zwch, char error_ch)
-{
-	char* end = str + strlen(str);
-	char* dest = str;
-
-	int len ;
-	for(char* src= str; src < end; src += len) {
-		if(!(*src & 0x80)) {
-			*dest++ = *src;
-			len = 1;
-			continue;
-		}
-		enum unicode_codepoint codepoint = 0;
-		len = utf8_getc(src, end - src, &codepoint);
-		if(len < 2) {
-			if(error_ch)
-				*dest++ = error_ch;
-			len = 1;
-			continue;
-		}
-		if(lookup != NULL) {
-			char ch = lookup(codepoint);
-			if(ch) {
-				*dest++ = ch;
-				continue;
-			}
-		}
-		if(unicode_width(codepoint) == 0) {
-			if(unsupported_zwch)
-				*dest++ = unsupported_zwch;
-		} 
-		else if(unsupported_ch)
-			*dest++ = unsupported_ch;
-	}
-	*dest = 0;
-	return str;
-}
-
-bool utf8_str_is_valid(const char* str)
-{
-	const char* end = str + strlen(str);
-	while (str < end) {
-		int len = utf8_getc(str, end - str, NULL);
-		if (len < 1)
-			return false;
-		str += len;
-	}
-	return true;
-}
-
-int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char minval)
-{
-	int retval = 0;
-	size_t outlen = 0;
-	for(const unsigned char* p = (const unsigned char*)str; *p != 0; p++) {
-		if(outlen >= maxlen) {
-			retval = -1;
-			break;
-		}
-		enum unicode_codepoint codepoint = 0;
-		if(*p >= minval)
-			codepoint = cp437_unicode_tbl[*p];
-		if(codepoint) {
-			retval = utf8_putc(dest + outlen, maxlen - outlen, codepoint);
-			if(retval < 1)
-				break;
-			outlen += retval;
-		} else {
-			*(dest + outlen) = *p;
-			outlen++;
-		}
-	}
-	*(dest + outlen) = 0;
-	return retval;
-}
-
-
 // From openssl/crypto/asn1/a_utf8.c:
 /*
  * Copyright 1995-2016 The OpenSSL Project Authors. All Rights Reserved.
@@ -241,7 +159,7 @@ int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char 
  * -4 = character encoded incorrectly (not minimal length).
  */
 
-int utf8_getc(const char *str, size_t len, enum unicode_codepoint* val)
+int utf8_getc(const char *str, size_t len, uint32_t* val)
 {
     const unsigned char *p;
     unsigned long value;
@@ -324,10 +242,9 @@ int utf8_getc(const char *str, size_t len, enum unicode_codepoint* val)
         if (value < 0x4000000)
             return -4;
         ret = 6;
-	} else
+    } else
         return -2;
-	if(val != NULL)
-		*val = value;
+    *val = value;
     return ret;
 }
 
@@ -339,7 +256,7 @@ int utf8_getc(const char *str, size_t len, enum unicode_codepoint* val)
  * most 6 characters.
  */
 
-int utf8_putc(char *str, size_t len, enum unicode_codepoint value)
+int utf8_putc(char *str, size_t len, uint32_t value)
 {
     if (!str)
         len = 6;                /* Maximum we will need */
