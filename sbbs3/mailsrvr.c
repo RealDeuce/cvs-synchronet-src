@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.703 2019/07/06 08:04:41 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.704 2019/07/06 22:10:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2653,7 +2653,7 @@ static void parse_mail_address(char* p
 							   ,char* addr, size_t addr_len)
 {
 	char*	tp;
-	char	tmp[128];
+	char	tmp[256];
 
 	SKIP_WHITESPACE(p);
 
@@ -5868,7 +5868,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.703 $", "%*s %s", revision);
+	sscanf("$Revision: 1.704 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
