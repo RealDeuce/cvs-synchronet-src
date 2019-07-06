@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.49 2019/07/26 19:58:35 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.48 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,7 +68,6 @@ typedef struct {							/* Message sub board info */
 	uint32_t	misc,						/* Miscellaneous flags */
 				maxmsgs,					/* Max number of messages allowed */
 				maxcrcs;					/* Max number of CRCs to keep */
-	int32_t		pmode;						/* printfile()/putmsg() mode flags */
 	faddr_t		faddr;						/* FidoNet address */
 
 } sub_t;
