@@ -1,6 +1,6 @@
 /* Synchronet CP437 <-> UNICODE translation table */
 
-/* $Id: cp437_unicode_tbl.c,v 1.1 2019/07/06 07:39:39 rswindell Exp $ */
+/* $Id: cp437_unicode_tbl.c,v 1.2 2019/07/06 09:12:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,7 @@ uint32_t cp437_unicode_tbl[] =
 	/* 0x18 */ 0x2191,
 	/* 0x19 */ 0x2193,
 	/* 0x1A */ 0x2192,
-	/* 0x1B */ 0x2190,
+	/* 0x1B '\e' */ UNICODE_TERM_CTRL_CHAR_CODE(0x2190),
 	/* 0x1C */ 0x221F,
 	/* 0x1D */ 0x2194,
 	/* 0x1E */ 0x25B2,
