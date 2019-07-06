@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.102 2019/07/06 08:09:03 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.103 2019/07/06 09:36:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -507,14 +507,26 @@ int sbbs_t::rputs(const char *str, size_t len)
 	if(len==0)
 		len=strlen(str);
 	long term = term_supports();
+	char utf8[UTF8_MAX_LEN + 1] = "";
 	for(l=0;l<len && online;l++) {
 		if(str[l]==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		uchar ch = str[l];
+		utf8[0] = 0;
 		if(term&PETSCII)
 			ch = cp437_to_petscii(ch);
-		if(outcom(ch)!=0)
-			break;
+		else if((term&NO_EXASCII) && (ch&0x80))
+			ch = exascii_to_ascii_char(ch);  /* seven bit table */
+		else if(term&UTF8) {
+			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
+			if(codepoint != 0)
+				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
+		}
+		if(utf8[0])
+			putcom(utf8);
+		else
+			if(outcom(ch)!=0)
+				break;
 		if(lbuflen<LINE_BUFSIZE)
 			lbuf[lbuflen++] = ch;
 	}
