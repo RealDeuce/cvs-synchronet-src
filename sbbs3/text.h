@@ -834,12 +834,7 @@ enum {
 	,TerminalColor
 	,TerminalIceColor
 	,IceColorTerminalQ
-	,Utf8TerminalQ
 	,MsgCarbonCopyList
-	,LoggingOn
-	,QWKSettingsUtf8
-	,MsgPostedToYouVia
-	,Unlimited
 
 	,TOTAL_TEXT
 };
