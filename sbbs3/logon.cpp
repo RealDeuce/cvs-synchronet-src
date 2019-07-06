@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.77 2020/04/01 22:06:27 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.69 2019/05/05 10:54:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,15 +63,14 @@ bool sbbs_t::logon()
 		return(false);
 
 	client.user=useron.alias;
-	client.usernum = useron.number;
 	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
-	js_create_user_objects(js_cx, js_glob);
+	js_create_user_objects();
 #endif
 
 	if(useron.rest&FLAG('Q'))
-		sys_status ^= SS_QWKLOGON;
+		qwklogon=1;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
 		hangup();
 		return(false);
@@ -203,12 +202,12 @@ bool sbbs_t::logon()
 	sprintf(str,"%smsgs/n%3.3u.ixb",cfg.data_dir,cfg.node_num);
 	remove(str);			/* remove any pending node message indices */
 
-	if(!SYSOP && online==ON_REMOTE && !(sys_status&SS_QWKLOGON)) {
+	if(!SYSOP && online==ON_REMOTE && !qwklogon) {
 		rioctl(IOCM|ABORT);	/* users can't abort anything */
 		rioctl(IOCS|ABORT); 
 	}
 
-	bputs(text[LoggingOn]);
+	CLS;
 	if(useron.rows)
 		rows=useron.rows;
 	unixtodstr(&cfg,(time32_t)logontime,str);
@@ -225,14 +224,14 @@ bool sbbs_t::logon()
 	gettimeleft();
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
 	batch_add_list(str);
-	if(!(sys_status&SS_QWKLOGON)) { 	 /* QWK Nodes don't go through this */
+	if(!qwklogon) { 	 /* QWK Nodes don't go through this */
 
 		if(cfg.sys_pwdays
 			&& (ulong)logontime>(useron.pwmod+((ulong)cfg.sys_pwdays*24UL*60UL*60UL))) {
 			bprintf(text[TimeToChangePw],cfg.sys_pwdays);
 
 			c=0;
-			while(c < RAND_PASS_LEN) { 				/* Create random password */
+			while(c<LEN_PASS) { 				/* Create random password */
 				str[c]=sbbs_random(43)+'0';
 				if(isalnum(str[c]))
 					c++; 
@@ -242,7 +241,7 @@ bool sbbs_t::logon()
 
 			if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
 				while(online) {
-					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
+					bputs(text[NewPassword]);
 					getstr(str,LEN_PASS,K_UPPER|K_LINE);
 					truncsp(str);
 					if(chkpass(str,&useron,true))
@@ -261,7 +260,7 @@ bool sbbs_t::logon()
 				getstr(tmp,LEN_PASS*2,K_UPPER);
 				console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				if(strcmp(str,tmp)) {
-					bputs(text[Wrong]); // Should be WrongPassword instead?
+					bputs(text[Wrong]);
 					continue; 
 				}
 				break; 
@@ -414,11 +413,11 @@ bool sbbs_t::logon()
 	/* SUCCESSFUL LOGON */
 	/********************/
 	totallogons=logonstats();
-	sprintf(str,"(%04u)  %-25s  %sLogon %lu - %u"
-		,useron.number,useron.alias, (sys_status&SS_FASTLOGON) ? "Fast-":"", totallogons,useron.ltoday);
+	sprintf(str,"(%04u)  %-25s  Logon %lu - %u"
+		,useron.number,useron.alias,totallogons,useron.ltoday);
 	logline("++",str);
 
-	if(!(sys_status&SS_QWKLOGON) && cfg.logon_mod[0])
+	if(!qwklogon && cfg.logon_mod[0])
 		exec_bin(cfg.logon_mod,&main_csi);
 
 	if(thisnode.status!=NODE_QUIET && (!REALSYSOP || cfg.sys_misc&SM_SYSSTAT)) {
@@ -443,7 +442,7 @@ bool sbbs_t::logon()
 		external(cmdstr(cfg.sys_logon,nulstr,nulstr,NULL),EX_STDOUT); /* EX_SH */
 	}
 
-	if(sys_status&SS_QWKLOGON)
+	if(qwklogon)
 		return(true);
 
 	sys_status|=SS_PAUSEON;	/* always force pause on during this section */
