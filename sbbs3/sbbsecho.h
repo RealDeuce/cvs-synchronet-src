@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.32 2019/07/22 22:34:26 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.31 2019/06/17 05:37:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -76,7 +76,6 @@ enum pkt_type {
 #define DFLT_BDL_SIZE   (250*1024L)
 
 #define SBBSECHO_MAX_KEY_LEN	25	/* for AreaFix/EchoList keys (previously known as "flags") */
-#define SBBSECHO_MAX_TICPWD_LEN 40	/* FRL-1039: no restrictions on the length ... of the password */
 
 typedef struct {
     uint		sub;						/* Set to INVALID_SUB if pass-thru */
@@ -111,7 +110,7 @@ typedef struct {
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
 	char		sesspwd[41];				/* Binkd's MAXPWDLEN = 40 */
 	char		pktpwd[FIDO_PASS_LEN+1];	/* Packet password for this node */
-    char		ticpwd[SBBSECHO_MAX_TICPWD_LEN + 1]; /* TIC File password for this node */
+	char		ticpwd[FIDO_PASS_LEN+1];	/* TIC File password for this node */
 	char		comment[64];	/* Comment for this node */
 	char		name[FIDO_NAME_LEN];
 	char		inbox[MAX_PATH+1];
