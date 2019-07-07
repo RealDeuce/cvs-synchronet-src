@@ -1,6 +1,6 @@
-/* Synchronet CP437 <-> UTF-8 translation table */
+/* Synchronet CP437 <-> UNICODE translation table */
 
-/* $Id: cp437_utf8_tbl.h,v 1.1 2019/06/28 22:46:04 rswindell Exp $ */
+/* $Id: cp437_unicode_tbl.h,v 1.2 2019/07/06 08:02:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4       (Plain Text/Source Code File Header)            *
@@ -33,16 +33,18 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs. *
  ****************************************************************************/
 
-#ifndef CP437_UTF8_TBL_H_
-#define CP437_UTF8_TBL_H_
+#ifndef CP437_UNICODE_TBL_H_
+#define CP437_UNICODE_TBL_H_
 
-#ifdef _cpluslus
+#include <stdint.h>
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const char* cp437_utf8_tbl[];
+extern uint32_t cp437_unicode_tbl[];
 
-#ifdef _cpluslus
+#ifdef __cplusplus
 }
 #endif
 
