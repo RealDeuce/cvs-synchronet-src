@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.27 2018/01/12 22:15:42 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.30 2019/07/07 01:56:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -88,6 +88,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 		artype=(**ptrptr);
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
+			case AR_PETSCII:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -146,19 +147,40 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ANSI:
-				if(!(user->misc&ANSI))
+				if(!term_supports(ANSI))
 					result=_not;
 				else result=!_not;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=ANSI; 
+				}
+				break;
+			case AR_PETSCII:
+				if(!term_supports(PETSCII))
+					result=_not;
+				else result=!_not;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=PETSCII; 
+				}
 				break;
 			case AR_RIP:
-				if(!(user->misc&RIP))
+				if(!term_supports(RIP))
 					result=_not;
 				else result=!_not;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=RIP; 
+				}
 				break;
 			case AR_WIP:
-				if(!(user->misc&WIP))
+				if(!term_supports(WIP))
 					result=_not;
 				else result=!_not;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=WIP; 
+				}
 				break;
 			case AR_OS2:
 				#ifndef __OS2__
@@ -167,8 +189,13 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 					result=!_not;
 				#endif
 				break;
-			case AR_DOS:
+			case AR_DOS:	/* DOS program support */
 				result=_not;
+				if(startup->options&BBS_OPT_NO_DOS)
+					break;
+				#if defined(_WIN32) || (defined(__linux__) && defined(USE_DOSEMU)) || defined(__FreeBSD__)
+					result=!_not;
+				#endif
 				break;
 			case AR_WIN32:
 				#ifndef _WIN32
@@ -638,6 +665,38 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 					result=!_not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
+				break;
+			case AR_TERM:
+				if(!findstr_in_string(terminal, (char*)*ptrptr))
+					result=_not;
+				else
+					result=!_not;
+				while(*(*ptrptr))
+					(*ptrptr)++;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=0; 
+				}
+				break;
+			case AR_COLS:
+				if((equal && cols != n) || (!equal && cols < (long)n))
+					result=_not;
+				else
+					result=!_not;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=n; 
+				}
+				break;
+			case AR_ROWS:
+				if((equal && rows != n) || (!equal && rows < (long)n))
+					result=_not;
+				else
+					result=!_not;
+				if(!result) {
+					noaccess_str=text[NoAccessTerminal];
+					noaccess_val=n; 
+				}
 				break;
 		}
 	}
