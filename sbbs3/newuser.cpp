@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.86 2020/04/01 22:06:28 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.81 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
 #include "cmdshell.h"
 
 /****************************************************************************/
@@ -185,6 +184,7 @@ BOOL sbbs_t::newuser()
 				bprintf(text[InvalidBackspaceKeyFmt], key, key);
 				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
 					return FALSE;
+				newline();
 			}
 		}
 
@@ -367,7 +367,7 @@ BOOL sbbs_t::newuser()
 	}
 	else {
 		c=0;
-		while(c < RAND_PASS_LEN) { 				/* Create random password */
+		while(c<LEN_PASS) { 				/* Create random password */
 			useron.pass[c]=sbbs_random(43)+'0';
 			if(isalnum(useron.pass[c]))
 				c++; 
@@ -378,7 +378,7 @@ BOOL sbbs_t::newuser()
 
 		if(cfg.sys_misc&SM_PWEDIT && text[NewPasswordQ][0] && yesno(text[NewPasswordQ]))
 			while(online) {
-				bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
+				bputs(text[NewPassword]);
 				getstr(str,LEN_PASS,K_UPPER|K_LINE);
 				truncsp(str);
 				if(chkpass(str,&useron,true)) {
@@ -474,7 +474,7 @@ BOOL sbbs_t::newuser()
 	answertime=starttime=time(NULL);	  /* set answertime to now */
 
 #ifdef JAVASCRIPT
-	js_create_user_objects(js_cx, js_glob);
+	js_create_user_objects();
 #endif
 
 	if(cfg.newuser_mod[0])
