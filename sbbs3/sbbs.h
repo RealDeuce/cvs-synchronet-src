@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.520 2019/07/06 07:52:22 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.521 2019/07/07 02:01:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -925,6 +925,7 @@ public:
 
 	/* xtrn.cpp */
 	int		external(const char* cmdline, long mode, const char* startup_dir=NULL);
+	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */

@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.249 2019/07/06 10:23:09 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.250 2019/07/07 02:01:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -406,6 +406,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	sbbsexec_start_t start;
 	OPENVXDHANDLE OpenVxDHandle;
 
+	xtrn_mode = mode;
 	lprintf(LOG_DEBUG,"Executing external: %s",cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
@@ -1340,6 +1341,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
  	char* p;
 #endif
 
+	xtrn_mode = mode;
 	lprintf(LOG_DEBUG, "Executing external: %s", cmdline);
 
 	if(startup_dir!=NULL && startup_dir[0] && !isdir(startup_dir)) {
