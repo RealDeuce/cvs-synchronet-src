@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.247 2019/04/09 21:33:29 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.249 2019/07/06 10:23:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -421,6 +421,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 	native = native_executable(&cfg, cmdline, mode);
 
 	if(!native && (startup->options&BBS_OPT_NO_DOS)) {
+		lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
 		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
 		return -1;
 	}
@@ -936,9 +937,10 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 						lprintf(LOG_ERR,"output buffer overflow");
 						rd=RingBufFree(&outbuf);
 					}
-					if(!(mode&EX_BIN) && term_supports(PETSCII))
-						petscii_convert(bp, rd);
-					RingBufWrite(&outbuf, bp, rd);
+					if(mode&EX_BIN)
+						RingBufWrite(&outbuf, bp, rd);
+					else
+						rputs((char*)bp, rd);
 				}
 			} else {	// Windows 9x
 
@@ -1380,6 +1382,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 
 	} else {
 		if(startup->options&BBS_OPT_NO_DOS) {
+			lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
 			bprintf("Sorry, DOS programs are not supported on this node.\r\n");
 			return -1;
 		}
@@ -1681,8 +1684,9 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fclose(dosemubat);
 
 #else
-		bprintf("\r\nExternal DOS programs are not yet supported in \r\n%s\r\n"
-			,VERSION_NOTICE);
+		lprintf((mode&EX_OFFLINE) ? LOG_ERR : LOG_WARNING, "DOS programs not supported: %s", cmdline);
+		bprintf("Sorry, DOS programs are not supported on this node.\r\n");
+
 		return(-1);
 #endif
 	}
