@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.59 2019/07/07 01:55:23 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.60 2019/07/07 21:18:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -907,10 +907,14 @@ void sbbs_t::maindflts(user_t* user)
 				if(sys_status&SS_ABORT)
 					break;
 				if(!(user->misc&AUTOTERM)) {
+					if(!noyes(text[Utf8TerminalQ]))
+						user->misc |= UTF8;
+					else
+						user->misc &= ~UTF8;
 					if(yesno(text[AnsiTerminalQ])) {
 						user->misc |= ANSI;
 						user->misc &= ~PETSCII;
-					} else {
+					} else if(!(user->misc&UTF8)) {
 						user->misc &= ~(ANSI|COLOR|ICE_COLOR);
 						if(!noyes(text[PetTerminalQ]))
 							user->misc |= PETSCII|COLOR;
