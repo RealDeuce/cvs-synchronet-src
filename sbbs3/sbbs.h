@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.515 2019/05/02 03:40:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.521 2019/07/07 02:01:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -463,8 +463,8 @@ public:
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
 	time_t 	timeout;		/* User inactivity timeout reference */
 	ulong 	timeleft_warn;	/* low timeleft warning flag */
-	uchar 	curatr; 		/* Current Text Attributes Always */
-	uchar	attr_stack[64];	/* Saved attributes (stack) */
+	uint	curatr; 		/* Current Text Attributes Always */
+	uint	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
 	bool 	tos;			/* Cursor is currently at the Top of Screen */
@@ -480,7 +480,7 @@ public:
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
-	char 	latr;			/* Starting attribute of line buffer */
+	uint	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
@@ -734,6 +734,7 @@ public:
 	bool	saveline(void);
 	bool	restoreline(void);
 	int		petscii_to_ansibbs(unsigned char);
+	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 
@@ -745,7 +746,7 @@ public:
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
-	long	getkeys(const char *str, ulong max);
+	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
 	bool	yesno(const char *str);
@@ -759,8 +760,8 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	bool	printfile(const char* fname, long mode);
-	bool	printtail(const char* fname, int lines, long mode);
+	bool	printfile(const char* fname, long mode, long org_cols = 0);
+	bool	printtail(const char* fname, int lines, long mode, long org_cols = 0);
 	bool	menu(const char *code, long mode = 0);
 	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
@@ -924,6 +925,7 @@ public:
 
 	/* xtrn.cpp */
 	int		external(const char* cmdline, long mode, const char* startup_dir=NULL);
+	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
@@ -1250,6 +1252,8 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, const char* str[], unsigned flags);
+	DLLEXPORT void*		DLLCALL js_GetClassPrivate(JSContext*, JSObject*, JSClass*);
+
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */

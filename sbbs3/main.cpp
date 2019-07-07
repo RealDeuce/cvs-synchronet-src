@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.748 2019/05/02 03:40:57 rswindell Exp $ */
+/* $Id: main.cpp,v 1.752 2019/07/07 02:01:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -462,6 +462,16 @@ int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
+
+void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
+{
+	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
+
+	if(ret == NULL)
+		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
+			, cls == NULL ? "???" : cls->name);
+	return ret;
+}
 
 JSBool
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
@@ -2275,9 +2285,13 @@ void passthru_input_thread(void* arg)
 			break;
 		}
 
-    	if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
-			lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
-			break;
+		if(sbbs->xtrn_mode & EX_BIN) {
+    		if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
+				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
+				break;
+			}
+		} else {
+			sbbs->rputs((char*)&ch, sizeof(ch));
 		}
 	}
 	if(sbbs->passthru_socket!=INVALID_SOCKET) {
@@ -5195,7 +5209,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300
+#if CRYPTLIB_VERSION < 3300 && CRYPTLIB_VERSION > 999
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
@@ -5684,7 +5698,7 @@ NO_SSH:
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", client_socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", client_socket, client.protocol, host_name, host_ip);
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
