@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.57 2019/05/09 21:14:21 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.59 2019/07/07 01:55:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -821,7 +821,7 @@ void sbbs_t::maindflts(user_t* user)
 							,term&ANSI ? "ANSI ":"TTY "
 							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
 							,term&RIP ? "RIP " : nulstr
-							,term&NO_EXASCII ? "ASCII ":"CP437 "
+							,term&UTF8 ? "UTF-8 " : (term&NO_EXASCII ? "ASCII ":"CP437 ")
 							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
 		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(user->rows)
@@ -900,7 +900,7 @@ void sbbs_t::maindflts(user_t* user)
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
 					user->misc |= AUTOTERM;
-					user->misc &= ~(ANSI|RIP|WIP|HTML|PETSCII);
+					user->misc &= ~(ANSI|RIP|WIP|HTML|PETSCII|UTF8);
 				}
 				else
 					user->misc &= ~AUTOTERM;
@@ -933,7 +933,7 @@ void sbbs_t::maindflts(user_t* user)
 				if(sys_status&SS_ABORT)
 					break;
 				if(!(term&PETSCII)) {
-					if(!yesno(text[ExAsciiTerminalQ]))
+					if(!(user->misc&UTF8) && !yesno(text[ExAsciiTerminalQ]))
 						user->misc|=NO_EXASCII;
 					else
 						user->misc&=~NO_EXASCII;

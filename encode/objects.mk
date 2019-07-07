@@ -2,9 +2,15 @@
 
 # Make 'include file' listing object files for ENCODE LIB
 
-# $Id: objects.mk,v 1.1 2019/06/28 22:46:04 rswindell Exp $
+# $Id: objects.mk,v 1.4 2019/07/06 07:39:40 rswindell Exp $
 
 # OBJODIR, DIRSEP, and OFILE must be pre-defined
 
-OBJS	=	$(OBJODIR)$(DIRSEP)cp437_utf8_tbl$(OFILE)
+OBJS	=	$(OBJODIR)$(DIRSEP)cp437_unicode_tbl$(OFILE) \
+        $(OBJODIR)$(DIRSEP)utf8$(OFILE) \
+		$(OBJODIR)$(DIRSEP)uucode$(OFILE) \
+		$(OBJODIR)$(DIRSEP)yenc$(OFILE) \
+		$(OBJODIR)$(DIRSEP)lzh$(OFILE) \
+		$(OBJODIR)$(DIRSEP)base64$(OFILE)
+
 
