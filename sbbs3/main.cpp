@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.754 2019/07/16 07:07:17 rswindell Exp $ */
+/* $Id: main.cpp,v 1.751 2019/06/20 20:48:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -38,7 +38,6 @@
 #include "ident.h"
 #include "telnet.h"
 #include "netwrap.h"
-#include "petdefs.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "ssl.h"
@@ -2286,13 +2285,9 @@ void passthru_input_thread(void* arg)
 			break;
 		}
 
-		if(sbbs->xtrn_mode & EX_BIN) {
-    		if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
-				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
-				break;
-			}
-		} else {
-			sbbs->rputs((char*)&ch, sizeof(ch));
+    	if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
+			lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
+			break;
 		}
 	}
 	if(sbbs->passthru_socket!=INVALID_SOCKET) {
@@ -4311,8 +4306,11 @@ void sbbs_t::reset_logon_vars(void)
 {
 	int i;
 
+    /* bools */
+    qwklogon=false;
+
     sys_status&=~(SS_USERON|SS_TMPSYSOP|SS_LCHAT|SS_ABORT
-        |SS_PAUSEON|SS_PAUSEOFF|SS_EVENT|SS_NEWUSER|SS_NEWDAY|SS_QWKLOGON|SS_FASTLOGON);
+        |SS_PAUSEON|SS_PAUSEOFF|SS_EVENT|SS_NEWUSER|SS_NEWDAY);
     cid[0]=0;
     wordwrap[0]=0;
     question[0]=0;
@@ -4499,7 +4497,7 @@ void node_thread(void* arg)
 
 		login_success = true;
 		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
-		if(sbbs->sys_status&SS_QWKLOGON) {
+		if(sbbs->qwklogon) {
 			sbbs->getsmsg(sbbs->useron.number);
 			sbbs->qwk_sec();
 		} else while(sbbs->useron.number
@@ -4660,16 +4658,6 @@ void node_thread(void* arg)
  	[External Code]
 
 	node_threads_running	{value=0 mutex={DebugInfo=0x00000000 <NULL> LockCount=-6 RecursionCount=0 ...} }	protected_uint32_t
-
-	and again on July-10-2019:
-
-	ntdll.dll!RtlpWaitOnCriticalSection()	Unknown
- 	ntdll.dll!RtlpEnterCriticalSectionContended()	Unknown
- 	ntdll.dll!_RtlEnterCriticalSection@4()	Unknown
- 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex) Line 171	C
- 	sbbs.dll!protected_uint32_adjust(protected_uint32_t * i, int adjustment) Line 244	C
- 	sbbs.dll!update_clients() Line 187	C++
->	sbbs.dll!node_thread(void * arg) Line 4668	C++
 	*/
 	update_clients();
 	thread_down();
