@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.6 2019/07/08 04:30:32 rswindell Exp $ */
+/* $Id: utf8.c,v 1.7 2019/07/08 07:11:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -137,34 +137,6 @@ char* utf8_normalize_str(char* str)
 	}
 	*dest = 0;
 	return str;
-}
-
-bool unicode_is_zerowidth(uint32_t u)
-{
-	switch(u) {
-		case 0x200B: // ZERO WIDTH SPACE
-		case 0x200C: // ZERO WIDTH NON-JOINER
-		case 0x200D: // ZERO WIDTH JOINER
-		case 0xFE00: // VARIATION SELECTOR-1
-		case 0xFE01: // VARIATION SELECTOR-2
-		case 0xFE02: // VARIATION SELECTOR-3
-		case 0xFE03: // VARIATION SELECTOR-4
-		case 0xFE04: // VARIATION SELECTOR-5
-		case 0xFE05: // VARIATION SELECTOR-6
-		case 0xFE06: // VARIATION SELECTOR-7
-		case 0xFE07: // VARIATION SELECTOR-8
-		case 0xFE08: // VARIATION SELECTOR-9
-		case 0xFE09: // VARIATION SELECTOR-10
-		case 0xFE0A: // VARIATION SELECTOR-11
-		case 0xFE0B: // VARIATION SELECTOR-12
-		case 0xFE0C: // VARIATION SELECTOR-13
-		case 0xFE0D: // VARIATION SELECTOR-14
-		case 0xFE0E: // VARIATION SELECTOR-15
-		case 0xFE0F: // VARIATION SELECTOR-16
-		case 0xFEFF: // ZERO WIDTH NO-BREAK SPACE
-			return true;
-	}
-	return false;
 }
 
 /* Replace all multi-byte UTF-8 sequences with 'ch' or 'zwch' (when non-zero) */
