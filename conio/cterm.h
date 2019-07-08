@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.61 2020/04/08 09:56:26 deuce Exp $ */
+/* $Id: cterm.h,v 1.56 2018/02/13 08:11:18 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,12 @@
 #define _CTERM_H_
 
 #include <stdio.h>	/* FILE* */
+#if !(defined __BORLANDC__ || defined _MSC_VER)
+#include <stdbool.h>
+#else
+#define bool int
+enum { false, true };
+#endif
 #include <link_list.h>
 #include <semwrap.h>
 #include "ciolib.h"
@@ -85,6 +91,8 @@ struct cterminal {
 	struct vmem_cell	*scrollback;
 	int					backlines;		// Number of lines in scrollback
 	char				DA[1024];		// Device Attributes
+	bool				autowrap;
+	bool				origin_mode;
 #define	CTERM_SAVEMODE_AUTOWRAP			0x001
 #define CTERM_SAVEMODE_CURSOR			0x002
 #define	CTERM_SAVEMODE_ALTCHARS			0x004
@@ -92,18 +100,8 @@ struct cterminal {
 #define CTERM_SAVEMODE_BGBRIGHT			0x010
 #define CTERM_SAVEMODE_SIXEL_SCROLL		0x020
 #define CTERM_SAVEMODE_ORIGIN			0x040
-#define	CTERM_SAVEMODE_BLINKALTCHARS		0x080
+#define	CTERM_SAVEMODE_BLINKALTCHARS	0x080
 #define CTERM_SAVEMODE_NOBLINK			0x100
-#define CTERM_SAVEMODE_MOUSE_X10		0x200
-#define CTERM_SAVEMODE_MOUSE_NORMAL		0x400
-#define CTERM_SAVEMODE_MOUSE_HIGHLIGHT		0x500
-#define CTERM_SAVEMODE_MOUSE_BUTTONTRACK	0x1000
-#define CTERM_SAVEMODE_MOUSE_ANY		0x2000
-#define CTERM_SAVEMODE_MOUSE_FOCUS		0x4000
-#define CTERM_SAVEMODE_MOUSE_UTF8		0x8000
-#define CTERM_SAVEMODE_MOUSE_SGR		0x10000
-#define CTERM_SAVEMODE_MOUSE_ALTSCROLL		0x20000
-#define CTERM_SAVEMODE_MOUSE_URXVT		0x40000
 	int32_t				saved_mode;
 	int32_t				saved_mode_mask;
 
@@ -113,10 +111,6 @@ struct cterminal {
 	unsigned char		attr;			// Current attribute
 	uint32_t			fg_color;
 	uint32_t			bg_color;
-	unsigned int		extattr;		// Extended attributes
-#define CTERM_EXTATTR_AUTOWRAP		0x0001
-#define CTERM_EXTATTR_ORIGINMODE	0x0002
-#define CTERM_EXTATTR_SXSCROLL		0x0004
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
@@ -154,10 +148,6 @@ struct cterminal {
 	int					doorway_mode;
 	int					doorway_char;	// Indicates next char is a "doorway" mode char
 	int					cursor;			// Current cursor mode (Normal or None)
-	char				*fg_tc_str;
-	char				*bg_tc_str;
-	int					*tabs;
-	int					tab_count;
 
 	/* Sixel state */
 	int					sixel;			// Sixel status
@@ -175,6 +165,7 @@ struct cterminal {
 										   Raster Attributes are ignore if this is true. */
 	int					sx_first_pass;	// First pass through a line
 	int					sx_hold_update;	// hold_update value to restore on completion
+	bool				sx_scroll_mode;	// Sixel scrolling mode
 	int					sx_start_x;		// Starting X position
 	int					sx_start_y;		// Starting Y position
 	int					sx_row_max_x;	// Max right size of this sixel line
@@ -187,12 +178,6 @@ struct cterminal {
 	/* APC Handler */
 	void				(*apc_handler)(char *strbuf, size_t strlen, void *cbdata);
 	void				*apc_handler_data;
-
-	/* Mouse state change callback */
-	void (*mouse_state_change)(int parameter, int enable, void *cbdata);
-	void *mouse_state_change_cbdata;
-	int (*mouse_state_query)(int parameter, void *cbdata);
-	void *mouse_state_query_cbdata;
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO

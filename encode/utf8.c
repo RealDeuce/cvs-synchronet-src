@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.9 2019/08/03 08:05:09 rswindell Exp $ */
+/* $Id: utf8.c,v 1.6 2019/07/08 04:30:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,9 +139,37 @@ char* utf8_normalize_str(char* str)
 	return str;
 }
 
+bool unicode_is_zerowidth(uint32_t u)
+{
+	switch(u) {
+		case 0x200B: // ZERO WIDTH SPACE
+		case 0x200C: // ZERO WIDTH NON-JOINER
+		case 0x200D: // ZERO WIDTH JOINER
+		case 0xFE00: // VARIATION SELECTOR-1
+		case 0xFE01: // VARIATION SELECTOR-2
+		case 0xFE02: // VARIATION SELECTOR-3
+		case 0xFE03: // VARIATION SELECTOR-4
+		case 0xFE04: // VARIATION SELECTOR-5
+		case 0xFE05: // VARIATION SELECTOR-6
+		case 0xFE06: // VARIATION SELECTOR-7
+		case 0xFE07: // VARIATION SELECTOR-8
+		case 0xFE08: // VARIATION SELECTOR-9
+		case 0xFE09: // VARIATION SELECTOR-10
+		case 0xFE0A: // VARIATION SELECTOR-11
+		case 0xFE0B: // VARIATION SELECTOR-12
+		case 0xFE0C: // VARIATION SELECTOR-13
+		case 0xFE0D: // VARIATION SELECTOR-14
+		case 0xFE0E: // VARIATION SELECTOR-15
+		case 0xFE0F: // VARIATION SELECTOR-16
+		case 0xFEFF: // ZERO WIDTH NO-BREAK SPACE
+			return true;
+	}
+	return false;
+}
+
 /* Replace all multi-byte UTF-8 sequences with 'ch' or 'zwch' (when non-zero) */
 /* When ch and zwch are 0, effectively strips all UTF-8 chars from str */
-char* utf8_replace_chars(char* str, char (*lookup)(enum unicode_codepoint), char unsupported_ch, char unsupported_zwch, char error_ch)
+char* utf8_replace_chars(char* str, char (*lookup)(uint32_t), char unsupported_ch, char unsupported_zwch, char error_ch)
 {
 	char* end = str + strlen(str);
 	char* dest = str;
@@ -153,7 +181,7 @@ char* utf8_replace_chars(char* str, char (*lookup)(enum unicode_codepoint), char
 			len = 1;
 			continue;
 		}
-		enum unicode_codepoint codepoint = 0;
+		uint32_t codepoint = 0;
 		len = utf8_getc(src, end - src, &codepoint);
 		if(len < 2) {
 			if(error_ch)
@@ -168,7 +196,7 @@ char* utf8_replace_chars(char* str, char (*lookup)(enum unicode_codepoint), char
 				continue;
 			}
 		}
-		if(unicode_width(codepoint) == 0) {
+		if(unicode_is_zerowidth(codepoint)) {
 			if(unsupported_zwch)
 				*dest++ = unsupported_zwch;
 		} 
@@ -191,40 +219,6 @@ bool utf8_str_is_valid(const char* str)
 	return true;
 }
 
-// Return the total printed-width of UTF-8 string (str) accounting for zero/half/full-width codepoints
-size_t utf8_str_total_width(const char* str)
-{
-	size_t count = 0;
-	const char* end = str + strlen(str);
-	while (str < end) {
-		enum unicode_codepoint codepoint = 0;
-		int len = utf8_getc(str, end - str, &codepoint);
-		if (len < 1)
-			break;
-		count += unicode_width(codepoint);
-		str += len;
-	}
-	return count;
-}
-
-// Return the count of chars within the specified width range in UTF-8 string (str)
-size_t utf8_str_count_width(const char* str, size_t min_width, size_t max_width)
-{
-	size_t count = 0;
-	const char* end = str + strlen(str);
-	while (str < end) {
-		enum unicode_codepoint codepoint = 0;
-		int len = utf8_getc(str, end - str, &codepoint);
-		if (len < 1)
-			break;
-		size_t width = unicode_width(codepoint);
-		if(width >= min_width && width <= max_width)
-			count++;
-		str += len;
-	}
-	return count;
-}
-
 int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char minval)
 {
 	int retval = 0;
@@ -234,7 +228,7 @@ int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char 
 			retval = -1;
 			break;
 		}
-		enum unicode_codepoint codepoint = 0;
+		uint32_t codepoint = 0;
 		if(*p >= minval)
 			codepoint = cp437_unicode_tbl[*p];
 		if(codepoint) {
@@ -275,7 +269,7 @@ int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char 
  * -4 = character encoded incorrectly (not minimal length).
  */
 
-int utf8_getc(const char *str, size_t len, enum unicode_codepoint* val)
+int utf8_getc(const char *str, size_t len, uint32_t* val)
 {
     const unsigned char *p;
     unsigned long value;
@@ -373,7 +367,7 @@ int utf8_getc(const char *str, size_t len, enum unicode_codepoint* val)
  * most 6 characters.
  */
 
-int utf8_putc(char *str, size_t len, enum unicode_codepoint value)
+int utf8_putc(char *str, size_t len, uint32_t value)
 {
     if (!str)
         len = 6;                /* Maximum we will need */
