@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.56 2019/07/24 05:00:09 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.55 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,7 +46,6 @@ char sbbs_t::getkey(long mode)
 {
 	uchar	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
-	long	term = term_supports();
 
 	if(online==ON_REMOTE && !input_thread_running)
 		online=FALSE;
@@ -70,7 +69,7 @@ char sbbs_t::getkey(long mode)
 		}
 
 		if(mode&K_SPIN) {
-			if(term&NO_EXASCII) {
+			if(useron.misc&NO_EXASCII) {
 				switch(c++) {
 					case 0:
 						outchar(BS);
