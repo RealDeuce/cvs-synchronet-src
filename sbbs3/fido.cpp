@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.72 2019/07/08 00:49:25 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.73 2019/07/08 00:59:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,8 +108,8 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	char	subj[FIDO_SUBJ_LEN]= "";
 	char	msgpath[MAX_PATH+1];
 	char 	tmp[512];
-	char*	editor=NULL;
-	char*	charset=NULL;
+	const char*	editor=NULL;
+	const char*	charset=NULL;
 	int		file,x;
 	uint	i;
 	long	length,l;

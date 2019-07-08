@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.523 2019/07/08 00:52:51 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.524 2019/07/08 00:59:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -651,7 +651,7 @@ public:
 	/* writemsg.cpp */
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
-				,const char *to, const char* from, char** editor=NULL, char** charset=NULL);
+				,const char *to, const char* from, const char** editor=NULL, const char** charset=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode, long org_cols = 0);
