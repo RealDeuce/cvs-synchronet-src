@@ -2,7 +2,7 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.42 2019/04/12 00:10:39 rswindell Exp $ */
+/* $Id: bulkmail.cpp,v 1.43 2019/07/08 00:49:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	char		msgpath[MAX_PATH+1];
 	char*		msgbuf;
 	char*		editor=NULL;
+	char*		charset=NULL;
 	char 		tmp[512];
 	int 		i,j,x;
 	long		msgs=0;
@@ -69,7 +70,8 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	if(!writemsg(msgpath,nulstr,title,wm_mode,INVALID_SUB,"Bulk Mailing"
 		,/* From: */useron.alias
-		,&editor)) {
+		,&editor
+		,&charset)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -111,7 +113,7 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg.hdr.when_written.time=time32(NULL);
 	msg.hdr.when_written.zone=sys_timezone(&cfg);
 
-	editor_info_to_msg(&msg, editor);
+	editor_info_to_msg(&msg, editor, charset);
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
