@@ -1,6 +1,6 @@
 /* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: unicode.h,v 1.1 2019/07/08 00:07:23 rswindell Exp $ */
+/* $Id: unicode.h,v 1.2 2019/07/08 00:16:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 extern "C" {
 #endif
 
-uint32_t cp437_unicode_tbl[];
+extern uint32_t cp437_unicode_tbl[];
 bool unicode_is_zerowidth(uint32_t);
 char unicode_to_cp437(uint32_t);
 
