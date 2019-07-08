@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.69 2020/03/31 08:23:49 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.60 2019/07/07 21:18:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,16 @@ void sbbs_t::useredit(int usernumber)
 	user_t	user;
 	struct	tm tm;
 
-	if(!chksyspass())
+	if(online==ON_REMOTE && console&(CON_R_ECHO|CON_R_INPUT) && !chksyspass())
 		return;
+#if 0	/* no local logins in v3 */
+	if(online==ON_LOCAL) {
+		if(!(cfg.sys_misc&SM_L_SYSOP))
+			return;
+		if(cfg.node_misc&NM_SYSPW && !chksyspass())
+			return; 
+	}
+#endif
 	if(usernumber)
 		user.number=usernumber;
 	else
@@ -163,13 +171,11 @@ void sbbs_t::useredit(int usernumber)
 			SAFECOPY(str,"QG[]?/{},");
 		else
 			SAFECOPY(str,"ABCDEFGHIJKLMNOPQRSTUVWXYZ+[]?/{}~*$#");
-		l=getkeys(str, l, K_UPPER|K_NOCRLF);
+		l=getkeys(str,l);
 		if(l&0x80000000L) {
 			user.number=(ushort)(l&~0x80000000L);
 			continue; 
 		}
-		if(l != '[' && l != ']' && l != '{' && l != '}' && l != '?')
-			newline();
 		switch(l) {
 			case 'A':
 				bputs(text[EnterYourAlias]);
@@ -443,7 +449,6 @@ void sbbs_t::useredit(int usernumber)
 				putuserrec(&cfg,user.number,U_PHONE,LEN_PHONE,user.phone);
 				break;
 			case 'Q':
-				lncntr = 0;
 				CLS;
 				sys_status&=~SS_INUEDIT;
 				FREE_AR(ar);	/* assertion here */
@@ -582,7 +587,11 @@ void sbbs_t::useredit(int usernumber)
 					l*=1024;
 				else if(strstr(str,"$"))
 					l*=cfg.cdt_per_dollar;
-				adjustuserrec(&cfg, user.number, U_CDT, 10, l);
+				if(l<0L && l*-1 > (long)user.cdt)
+					user.cdt=0L;
+				else
+					user.cdt+=l;
+				putuserrec(&cfg,user.number,U_CDT,10,ultoa(user.cdt,tmp,10));
 				break;
 			case '*':
 				bputs(text[ModifyMinutes]);
@@ -807,12 +816,13 @@ void sbbs_t::maindflts(user_t* user)
 							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
 							,cols, text[TerminalColumns]);
 		else
-			safe_snprintf(str,sizeof(str),"%s%s / %s %s%s"
+			safe_snprintf(str,sizeof(str),"%s%s%s%s%s%s"
 							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
-							,term_charset(term)
-							,term_type(term)
+							,term&ANSI ? "ANSI ":"TTY "
 							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
-							,term&SWAP_DELETE ? "DEL=BS" : nulstr);
+							,term&RIP ? "RIP " : nulstr
+							,term&UTF8 ? "UTF-8 " : (term&NO_EXASCII ? "ASCII ":"CP437 ")
+							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
 		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(user->rows)
 			ultoa(user->rows,tmp,10);
@@ -919,8 +929,7 @@ void sbbs_t::maindflts(user_t* user)
 					user->misc |= COLOR;
 					user->misc &= ~ICE_COLOR;
 					if(yesno(text[ColorTerminalQ])) {
-						if(!(console&(CON_BLINK_FONT|CON_HBLINK_FONT))
-							&& !noyes(text[IceColorTerminalQ]))
+						if(!noyes(text[IceColorTerminalQ]))
 							user->misc |= ICE_COLOR;
 					} else
 						user->misc &= ~COLOR;
@@ -932,20 +941,10 @@ void sbbs_t::maindflts(user_t* user)
 						user->misc|=NO_EXASCII;
 					else
 						user->misc&=~NO_EXASCII;
-					user->misc &= ~SWAP_DELETE;
-					while(text[HitYourBackspaceKey][0] && !(user->misc&SWAP_DELETE) && online) {
-						bputs(text[HitYourBackspaceKey]);
-						uchar key = getkey(K_NONE);
-						bprintf(text[CharacterReceivedFmt], key, key);
-						if(key == '\b')
-							break;
-						if(key == DEL) {
-							if(text[SwapDeleteKeyQ][0] == 0 || yesno(text[SwapDeleteKeyQ]))
-								user->misc |= SWAP_DELETE;
-						}
-						else
-							bprintf(text[InvalidBackspaceKeyFmt], key, key);
-					}
+					if(!noyes(text[SwapDeleteKeyQ]))
+						user->misc|=SWAP_DELETE;
+					else
+						user->misc&=~SWAP_DELETE;
 				}
 				if(sys_status&SS_ABORT)
 					break;
@@ -1064,7 +1063,7 @@ void sbbs_t::maindflts(user_t* user)
 				if(!noyes(text[NewPasswordQ])) {
 					bputs(text[CurrentPassword]);
 					console|=CON_R_ECHOX;
-					ch=(char)getstr(str,LEN_PASS,K_UPPER);
+					ch=getstr(str,LEN_PASS,K_UPPER);
 					if(sys_status&SS_ABORT)
 						break;
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
@@ -1073,7 +1072,7 @@ void sbbs_t::maindflts(user_t* user)
 						pause();
 						break; 
 					}
-					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
+					bputs(text[NewPassword]);
 					if(!getstr(str,LEN_PASS,K_UPPER|K_LINE))
 						break;
 					truncsp(str);
