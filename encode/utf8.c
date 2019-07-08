@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.4 2019/07/08 00:17:03 rswindell Exp $ */
+/* $Id: utf8.c,v 1.5 2019/07/08 04:23:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,6 +34,7 @@
  ****************************************************************************/
 
 #include "utf8.h"
+#include "unicode.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -217,6 +218,33 @@ bool utf8_str_is_valid(const char* str)
 	}
 	return true;
 }
+
+int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char minval)
+{
+	int retval = 0;
+	size_t outlen = 0;
+	for(const unsigned char* p = str; *p != 0; p++) {
+		if(outlen >= maxlen) {
+			retval = -1;
+			break;
+		}
+		uint32_t codepoint = 0;
+		if(*p >= minval)
+			codepoint = cp437_unicode_tbl[*p];
+		if(codepoint) {
+			retval = utf8_putc(dest + outlen, maxlen - outlen, codepoint);
+			if(retval < 1)
+				break;
+			outlen += retval;
+		} else {
+			*(dest + outlen) = *p;
+			outlen++;
+		}
+	}
+	*(dest + outlen) = 0;
+	return retval;
+}
+
 
 // From openssl/crypto/asn1/a_utf8.c:
 /*
