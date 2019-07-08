@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.704 2019/07/06 22:10:43 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.705 2019/07/08 00:11:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2339,15 +2339,6 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 }
 #endif
 
-bool strIsPlainAscii(const char* str)
-{
-	for(const char* p = str; *p != 0; p++) {
-		if(*p < 0)
-			return false;
-	}
-	return true;
-}
-
 static size_t strStartsWith_i(const char* buf, const char* match)
 {
 	size_t len = strlen(match);
@@ -2435,14 +2426,14 @@ bool normalize_hfield_value(char* str)
 					mimehdr_q_decode(tmp);
 					if(charset == MIMEHDR_CHARSET_UTF8)
 						utf8_normalize_str(tmp);
-					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+					if(charset == MIMEHDR_CHARSET_CP437 || str_is_ascii(tmp))
 						p = tmp;
 				}
 				else if(encoding == 'B' 
 					&& b64_decode(tmp, sizeof(tmp), tmp, strlen(tmp)) > 0) { // base64
 					if(charset == MIMEHDR_CHARSET_UTF8)
 						utf8_normalize_str(tmp);
-					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+					if(charset == MIMEHDR_CHARSET_CP437 || str_is_ascii(tmp))
 						p = tmp;
 				}
 			}
@@ -5868,7 +5859,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.704 $", "%*s %s", revision);
+	sscanf("$Revision: 1.705 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
