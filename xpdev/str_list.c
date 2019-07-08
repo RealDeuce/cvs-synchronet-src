@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.56 2020/04/07 19:56:24 rswindell Exp $ */
+/* $Id: str_list.c,v 1.53 2019/02/14 09:48:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,7 +39,6 @@
 #include <string.h>		/* strtok */
 #include "genwrap.h"	/* stricmp */
 #include "str_list.h"
-#include "xpprintf.h"
 
 str_list_t DLLCALL strListInit(void)
 {
@@ -59,11 +58,6 @@ size_t DLLCALL strListCount(const str_list_t list)
 	COUNT_LIST_ITEMS(list,i);
 
 	return(i);
-}
-
-BOOL DLLCALL strListIsEmpty(const str_list_t list)
-{
-	return (list == NULL) || (list[0] == NULL);
 }
 
 int DLLCALL strListIndexOf(const str_list_t list, const char* str)
@@ -275,28 +269,6 @@ size_t DLLCALL	strListAppendList(str_list_t* list, const str_list_t add_list)
 	return(count);
 }
 
-#if !defined(__BORLANDC__) // Doesn't have asprintf() or va_copy()_vscprintf()
-char* DLLCALL strListAppendFormat(str_list_t* list, const char* format, ...)
-{
-	char *ret;
-	char* buf = NULL;
-	int len;
-	va_list va;
-
-	va_start(va, format);
-	len = vasprintf(&buf, format, va);
-	va_end(va);
-
-	if(len == -1 || buf == NULL)
-		return NULL;
-
-	ret = str_list_append(list, buf, strListCount(*list));
-	if (ret == NULL)
-		free(buf);
-	return ret;
-}
-#endif
-
 char* DLLCALL strListInsert(str_list_t* list, const char* str, size_t index)
 {
 	char* buf;
@@ -324,28 +296,6 @@ size_t DLLCALL strListInsertList(str_list_t* list, const str_list_t add_list, si
 
 	return(i);
 }
-
-#if !defined(__BORLANDC__) // Doesn't have asprintf() or va_copy()_vscprintf()
-char* DLLCALL strListInsertFormat(str_list_t* list, size_t index, const char* format, ...)
-{
-	char *ret;
-	char* buf = NULL;
-	int len;
-	va_list va;
-
-	va_start(va, format);
-	len = vasprintf(&buf, format, va);
-	va_end(va);
-
-	if(len == -1 || buf == NULL)
-		return NULL;
-
-	ret = str_list_insert(list, buf, index);
-	if (ret == NULL)
-		free(buf);
-	return ret;
-}
-#endif
 
 str_list_t DLLCALL strListSplit(str_list_t* lp, char* str, const char* delimit)
 {
@@ -617,31 +567,6 @@ size_t DLLCALL strListWriteFile(FILE* fp, const str_list_t list, const char* sep
 	}
 	
 	return(i);
-}
-
-char* strListJoin(const str_list_t list, char* buf, size_t buflen, const char* separator)
-{
-	size_t		i;
-
-	if(buflen < 1)
-		return NULL;
-
-	*buf = '\0';
-
-	if(list == NULL)
-		return buf;
-
-	if(separator == NULL)
-		separator = ", ";
-
-	for(i = 0; list[i] != NULL; i++) {
-		if(strlen(buf) + strlen(separator) + strlen(list[i]) >= buflen)
-			break;
-		if(i > 0)
-			strcat(buf, separator);
-		strcat(buf, list[i]);
-	}
-	return buf;
 }
 
 size_t DLLCALL strListBlockLength(char* block)
