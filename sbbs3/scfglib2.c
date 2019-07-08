@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.47 2019/04/16 08:48:18 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.49 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -495,6 +495,9 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 
 		get_int(cfg->xedit[i]->type,instream);
 		get_int(c,instream);
+		if(c == XEDIT_SOFT_CR_UNDEFINED)
+			c = (cfg->xedit[i]->misc&QUICKBBS) ? XEDIT_SOFT_CR_EXPAND : XEDIT_SOFT_CR_RETAIN;
+		cfg->xedit[i]->soft_cr = c;
 		get_int(cfg->xedit[i]->quotewrap_cols, instream);
 		for(j=0;j<6;j++)
 			get_int(n,instream);
@@ -889,9 +892,9 @@ char *ltoaf(long l,char *str)
 /****************************************************************************/
 /* Returns the actual attribute code from a string of ATTR characters       */
 /****************************************************************************/
-uchar attrstr(char *str)
+uint attrstr(char *str)
 {
-	uchar atr;
+	int atr;
 	ulong l=0;
 
 	atr=LIGHTGRAY;
@@ -902,6 +905,9 @@ uchar attrstr(char *str)
 				break;
 			case 'I':	/* Blink */
 				atr|=BLINK;
+				break;
+			case 'E':	/* iCE color */
+				atr|=BG_BRIGHT;
 				break;
 			case 'K':	/* Black */
 				atr=(atr&0xf8)|BLACK;
