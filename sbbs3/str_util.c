@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.53 2017/10/28 20:16:19 rswindell Exp $ */
+/* $Id: str_util.c,v 1.61 2019/07/08 00:11:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,7 @@ char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
+			if(str[i]==0 || str[i]=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -73,7 +73,7 @@ char* DLLCALL strip_ctrl(const char *str, char* dest)
 	for(i=j=0;str[i];i++) {
 		if(str[i]==CTRL_A) {
 			i++;
-			if(str[i]==0 || toupper(str[i])=='Z')	/* EOF */
+			if(str[i]==0 || str[i]=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -121,7 +121,7 @@ char* DLLCALL prep_file_desc(const char *str, char* dest)
 	for(i=j=0;str[i];i++)
 		if(str[i]==CTRL_A && str[i+1]!=0) {
 			i++;
-			if(toupper(str[i])=='Z')	/* EOF */
+			if(str[i]==0 || str[i]=='Z')	/* EOF */
 				break;
 			/* convert non-destructive backspace to a destructive backspace */
 			if(str[i]=='<' && j)	
@@ -159,7 +159,7 @@ BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 	SAFECOPY(str,string);
 
 	p=str;	
-	SKIP_WHITESPACE(p);
+//	SKIP_WHITESPACE(p);
 
 	if(*p==';')		/* comment */
 		return(FALSE);
@@ -258,7 +258,7 @@ BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 	ip_addr = parse_ipv4_address(insearchof);
 	for(index=0; list[index]!=NULL; index++) {
 		p=list[index];
-		SKIP_WHITESPACE(p);
+//		SKIP_WHITESPACE(p);
 		if(ip_addr != 0 && (cidr = parse_cidr(p, &subnet)) != 0)
 			found = is_cidr_match(p, ip_addr, cidr, subnet);
 		else
@@ -290,10 +290,13 @@ BOOL DLLCALL findstr(const char* insearchof, const char* fname)
 	while(!feof(fp) && !ferror(fp) && !found) {
 		if(!fgets(str,sizeof(str),fp))
 			break;
-		if(ip_addr !=0 && (cidr = parse_cidr(str, &subnet)) != 0)
-			found = is_cidr_match(str, ip_addr, cidr, subnet);
+		char* p = str;
+		SKIP_WHITESPACE(p);
+		c_unescape_str(p);
+		if(ip_addr !=0 && (cidr = parse_cidr(p, &subnet)) != 0)
+			found = is_cidr_match(p, ip_addr, cidr, subnet);
 		else
-			found = findstr_in_string(insearchof, str);
+			found = findstr_in_string(insearchof, p);
 	}
 
 	fclose(fp);
@@ -318,17 +321,23 @@ char* DLLCALL trashcan_fname(scfg_t* cfg, const char* name, char* fname, size_t 
 	return fname;
 }
 
-/****************************************************************************/
-str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
+static char* process_findstr_item(size_t index, char *str, void* cbdata)
 {
-	char	fname[MAX_PATH+1];
+	SKIP_WHITESPACE(str);
+	return c_unescape_str(str);
+}
+
+/****************************************************************************/
+str_list_t DLLCALL findstr_list(const char* fname)
+{
 	FILE*	fp;
 	str_list_t	list;
 
-	if((fp=fopen(trashcan_fname(cfg, name, fname, sizeof(fname)),"r"))==NULL)
+	if((fp=fopen(fname,"r"))==NULL)
 		return NULL;
 
-	list=strListReadFile(fp,NULL,255);
+	list=strListReadFile(fp, NULL, /* Max line length: */255);
+	strListModifyEach(list, process_findstr_item, /* cbdata: */NULL);
 
 	fclose(fp);
 
@@ -336,8 +345,15 @@ str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 }
 
 /****************************************************************************/
-/* Returns the number of characters in 'str' not counting ctrl-ax codes		*/
-/* or the null terminator													*/
+str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
+{
+	char	fname[MAX_PATH+1];
+
+	return findstr_list(trashcan_fname(cfg, name, fname, sizeof(fname)));
+}
+
+/****************************************************************************/
+/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
 /****************************************************************************/
 size_t bstrlen(const char *str)
 {
@@ -346,7 +362,7 @@ size_t bstrlen(const char *str)
 	while(*str) {
 		if(*str==CTRL_A) {
 			str++;
-			if(toupper(*str)=='Z')	/* EOF */
+			if(*str==0 || *str=='Z')	/* EOF */
 				break;
 			if(*str=='[')
 				i=0;
@@ -505,6 +521,7 @@ BOOL DLLCALL valid_ctrl_a_attr(char a)
 		case 'C':   /* cyan     fg  */
 		case 'G':   /* green    fg  */
 		case 'H':   /* high     fg  */
+		case 'E':	/* high		bg	*/
 		case 'I':   /* blink        */
 		case 'K':   /* black    fg  */
 		case 'M':   /* magenta  fg  */
@@ -599,6 +616,15 @@ char DLLCALL exascii_to_ascii_char(uchar ch)
 	return ch;
 }
 
+BOOL DLLCALL str_is_ascii(const char* str)
+{
+	for(const char* p = str; *p != 0; p++) {
+		if(*p < 0)
+			return FALSE;
+	}
+	return TRUE;
+}
+
 /****************************************************************************/
 /* Convert string from IBM extended ASCII to just ASCII						*/
 /****************************************************************************/
@@ -612,142 +638,6 @@ char* DLLCALL ascii_str(uchar* str)
 		p++;
 	}
 	return((char*)str);
-}
-
-char* replace_named_values(const char* src
-					   ,char* buf
-					   ,size_t buflen	/* includes '\0' terminator */
-					   ,char* escape_seq
-					   ,named_string_t* string_list
-					   ,named_int_t* int_list
-					   ,BOOL case_sensitive)
-{
-	char	val[32];
-	size_t	i;
-	size_t	esc_len=0;
-	size_t	name_len;
-	size_t	value_len;
-	char*	p = buf;
-	int (*cmp)(const char*, const char*, size_t);
-
-	if(case_sensitive)
-		cmp=strncmp;
-	else
-		cmp=strnicmp;
-
-	if(escape_seq!=NULL)
-		esc_len = strlen(escape_seq);
-
-	while(*src && (size_t)(p-buf) < buflen-1) {
-		if(esc_len) {
-			if(cmp(src, escape_seq, esc_len)!=0) {
-				*p++ = *src++;
-				continue;
-			}
-			src += esc_len;	/* skip the escape seq */
-		}
-		if(string_list) {
-			for(i=0; string_list[i].name!=NULL /* terminator */; i++) {
-				name_len = strlen(string_list[i].name);
-				if(cmp(src, string_list[i].name, name_len)==0) {
-					value_len = strlen(string_list[i].value);
-					if((p-buf)+value_len > buflen-1)	/* buffer overflow? */
-						value_len = (buflen-1)-(p-buf);	/* truncate value */
-					memcpy(p, string_list[i].value, value_len);
-					p += value_len;
-					src += name_len;
-					break;
-				}
-			}
-			if(string_list[i].name!=NULL) /* variable match */
-				continue;
-		}
-		if(int_list) {
-			for(i=0; int_list[i].name!=NULL /* terminator */; i++) {
-				name_len = strlen(int_list[i].name);
-				if(cmp(src, int_list[i].name, name_len)==0) {
-					SAFEPRINTF(val,"%d",int_list[i].value);
-					value_len = strlen(val);
-					if((p-buf)+value_len > buflen-1)	/* buffer overflow? */
-						value_len = (buflen-1)-(p-buf);	/* truncate value */
-					memcpy(p, val, value_len);
-					p += value_len;
-					src += name_len;
-					break;
-				}
-			}
-			if(int_list[i].name!=NULL) /* variable match */
-				continue;
-		}
-
-		*p++ = *src++;
-	}
-	*p=0;	/* terminate string in destination buffer */
-
-	return(buf);
-}
-
-char* replace_keyed_values(const char* src
-					   ,char* buf
-					   ,size_t buflen	/* includes '\0' terminator */
-					   ,char esc_char
-					   ,keyed_string_t* string_list
-					   ,keyed_int_t* int_list
-					   ,BOOL case_sensitive)
-{
-	char	val[32];
-	size_t	i;
-	size_t	value_len;
-	char*	p = buf;
-
-
-	while(*src && (size_t)(p-buf) < buflen-1) {
-		if(esc_char) {
-			if(*src != esc_char) {
-				*p++ = *src++;
-				continue;
-			}
-			src ++;	/* skip the escape char */
-		}
-		if(string_list) {
-			for(i=0; string_list[i].key!=0 /* terminator */; i++) {
-				if((case_sensitive && *src == string_list[i].key)
-					|| ((!case_sensitive) && toupper(*src) == toupper(string_list[i].key))) {
-					value_len = strlen(string_list[i].value);
-					if((p-buf)+value_len > buflen-1)	/* buffer overflow? */
-						value_len = (buflen-1)-(p-buf);	/* truncate value */
-					memcpy(p, string_list[i].value, value_len);
-					p += value_len;
-					src++;
-					break;
-				}
-			}
-			if(string_list[i].key!=0) /* variable match */
-				continue;
-		}
-		if(int_list) {
-			for(i=0; int_list[i].key!=0 /* terminator */; i++) {
-				if((case_sensitive && *src == int_list[i].key)
-					|| ((!case_sensitive) && toupper(*src) == toupper(int_list[i].key))) {
-					SAFEPRINTF(val,"%d",int_list[i].value);
-					value_len = strlen(val);
-					if((p-buf)+value_len > buflen-1)	/* buffer overflow? */
-						value_len = (buflen-1)-(p-buf);	/* truncate value */
-					memcpy(p, val, value_len);
-					p += value_len;
-					src++;
-					break;
-				}
-			}
-			if(int_list[i].key!=0) /* variable match */
-				continue;
-		}
-
-		*p++ = *src++;
-	}
-	*p=0;	/* terminate string in destination buffer */
-
-	return(buf);
 }
 
 uint32_t DLLCALL str_to_bits(uint32_t val, const char *str)
@@ -782,186 +672,3 @@ uint32_t DLLCALL str_to_bits(uint32_t val, const char *str)
 	return val;
 }
 
-#if 0	/* replace_*_values test */
-
-void main(void)
-{
-	char buf[128];
-	keyed_string_t strs[] = {
-		{ '+', "plus" },
-		{ '=', "equals" },
-		{ 0 }
-	};
-	keyed_int_t ints[] = {
-		{ 'o', 1 },
-		{ 't', 2 },
-		{ 'h', 3 },
-		{ NULL }
-	};
-
-	printf("'%s'\n", replace_keyed_values("$o $+ $t $= $h", buf, sizeof(buf), '$'
-		,strs, ints, FALSE));
-
-}
-
-#endif
-
-#if 0 /* to be moved here from xtrn.cpp */
-
-char* quoted_string(const char* str, char* buf, size_t maxlen)
-{
-	if(strchr(str,' ')==NULL)
-		return((char*)str);
-	safe_snprintf(buf,maxlen,"\"%s\"",str);
-	return(buf);
-}
-
-#endif
-
-#if 0 /* I think it is a misguided idea :-(  */
-
-char* sbbs_cmdstr(const char* src
-					,char* buf
-					,size_t buflen	/* includes '\0' terminator */
-					,scfg_t* scfg
-					,user_t* user
-					,int node_num
-					,int minutes
-					,int rows
-					,int timeleft
-					,SOCKET socket_descriptor
-					,char* protocol
-					,char* ip_address
-					,char* fpath
-					,char* fspec
-					)
-{
-	const char* nulstr = "";
-	char alias_buf[LEN_ALIAS+1];
-	char fpath_buf[MAX_PATH+1];
-	char fspec_buf[MAX_PATH+1];
-	char sysop_buf[sizeof(scfg->sys_op)];
-
-	keyed_string_t str_list[] = {
-		/* user alias */
-		{ 'a',	user!=NULL ? quoted_string(user->alias, alias_buf, sizeof(alias_buf)) : nulstr },
-		{ 'A',	user!=NULL ? user->alias : nulstr },
-		
-		/* connection */
-		{ 'c',	protocol },
-		{ 'C',	protocol },
-
-		/* file path */
-		{ 'f',	quoted_string(fpath, fpath_buf, sizeof(fpath_buf)) },
-		{ 'F',	fpath },
-
-		/* temp dir */
-		{ 'g',	scfg->temp_dir },
-		{ 'G',	scfg->temp_dir },
-
-		/* IP address */
-		{ 'h',	ip_address },
-		{ 'H',	ip_address },
-
-		/* data dir */
-		{ 'j',	scfg->data_dir },
-		{ 'J',	scfg->data_dir },
-
-		/* ctrl dir */
-		{ 'k',	scfg->ctrl_dir },
-		{ 'K',	scfg->ctrl_dir },
-
-		/* node dir */
-		{ 'n',	scfg->node_dir },
-		{ 'N',	scfg->node_dir },
-
-		/* sysop */
-		{ 'o',	quoted_string(scfg->sys_op, sysop_buf, sizeof(sysop_buf)) },
-		{ 'O',	scfg->sys_op },
-
-		/* protocol */
-		{ 'p',	protocol },
-		{ 'P',	protocol },
-
-		/* system QWK-ID */
-		{ 'q',	scfg->sys_id },
-		{ 'Q',	scfg->sys_id },
-
-		/* file spec */
-		{ 's',	quoted_string(fspec, fspec_buf, sizeof(fspec_buf)) },
-		{ 'S',	fspec },
-
-		/* UART I/O Address (in hex) 'f' for FOSSIL */
-		{ 'u',	"f" },
-		{ 'U',	"f" },
-
-		/* text dir */
-		{ 'z',	scfg->text_dir },
-		{ 'Z',	scfg->text_dir },
-
-		/* exec dir */
-		{ '!',	scfg->exec_dir },
-		{ '@',
-#ifndef __unix__
-			scfg->exec_dir
-#else
-			nulstr
-#endif
-		},
-
-		/* .exe (on Windows) */
-		{ '.',
-#ifndef __unix__
-		".exe"
-#else
-		nulstr
-#endif
-		},
-
-		/* terminator */
-		{ 0 }	
-	};
-	keyed_int_t int_list[] = {
-		/* node number */
-		{ '#',	node_num },
-
-		/* DTE rate */
-		{ 'b',	38400 },	
-		{ 'B',	38400 },
-
-		/* DCE rate */
-		{ 'd',	30000 },
-		{ 'D',	30000 },
-
-		/* Estimated Rate (cps) */
-		{ 'e',	3000 },
-		{ 'E',	3000 },
-
-		{ 'h',	socket_descriptor },
-		{ 'H',	socket_descriptor },
-
-		{ 'l',	user==NULL ? 0 : scfg->level_linespermsg[user->level] },
-		{ 'L',	user==NULL ? 0 : scfg->level_linespermsg[user->level] },
-
-		{ 'm',	minutes },
-		{ 'M',	minutes },
-
-		{ 'r',	rows },
-		{ 'R',	rows },
-
-		/* Time left in seconds */
-		{ 't',	timeleft },
-		{ 'T',	timeleft },
-
-		/* Credits */
-		{ '$',	user==NULL ? 0 : (user->cdt+user->freecdt) },
-
-		/* terminator */
-		{ 0 }	
-	};
-
-
-	return replace_keyed_values(src, buf, buflen, '%', str_list, int_list, TRUE);
-}
-
-#endif
