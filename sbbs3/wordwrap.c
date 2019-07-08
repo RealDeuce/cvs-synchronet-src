@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.44 2019/04/05 21:44:34 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.45 2019/07/08 01:43:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -247,6 +247,8 @@ static struct section_len get_word_len(char *buf, int maxlen)
 			continue;
 		else if (buf[ret.bytes]=='\x01') {
 			ret.bytes++;
+			if (buf[ret.bytes] == '\\')
+				break;
 			if(buf[ret.bytes]!='\x01')
 				continue;
 		}
