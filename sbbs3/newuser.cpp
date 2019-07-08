@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.81 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.82 2019/07/08 21:18:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -184,7 +184,6 @@ BOOL sbbs_t::newuser()
 				bprintf(text[InvalidBackspaceKeyFmt], key, key);
 				if(text[ContinueQ][0] && !yesno(text[ContinueQ]))
 					return FALSE;
-				newline();
 			}
 		}
 
