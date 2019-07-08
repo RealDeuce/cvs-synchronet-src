@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.3 2019/07/08 00:07:22 rswindell Exp $ */
+/* $Id: utf8.c,v 1.4 2019/07/08 00:17:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -324,7 +324,7 @@ int utf8_getc(const char *str, size_t len, uint32_t* val)
         if (value < 0x4000000)
             return -4;
         ret = 6;
-    } else
+	} else
         return -2;
 	if(val != NULL)
 		*val = value;
