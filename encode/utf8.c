@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 encode/decode/translate functions */
 
-/* $Id: utf8.c,v 1.5 2019/07/08 04:23:47 rswindell Exp $ */
+/* $Id: utf8.c,v 1.6 2019/07/08 04:30:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,7 @@ char* utf8_normalize_str(char* str)
 	return str;
 }
 
-static bool unicode_is_zerowidth(uint32_t u)
+bool unicode_is_zerowidth(uint32_t u)
 {
 	switch(u) {
 		case 0x200B: // ZERO WIDTH SPACE
@@ -223,7 +223,7 @@ int cp437_to_utf8_str(const char* str, char* dest, size_t maxlen, unsigned char 
 {
 	int retval = 0;
 	size_t outlen = 0;
-	for(const unsigned char* p = str; *p != 0; p++) {
+	for(const unsigned char* p = (const unsigned char*)str; *p != 0; p++) {
 		if(outlen >= maxlen) {
 			retval = -1;
 			break;
