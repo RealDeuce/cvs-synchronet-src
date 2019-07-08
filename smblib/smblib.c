@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.199 2019/07/06 04:27:02 rswindell Exp $ */
+/* $Id: smblib.c,v 1.200 2019/07/08 07:16:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,7 +52,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.60"      /* SMB library version */
+#define SMBLIB_VERSION		"2.61"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
