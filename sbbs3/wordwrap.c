@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.45 2019/07/08 01:43:03 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.46 2019/07/08 02:34:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ static struct prefix parse_prefix(const char *text)
 		// Skip CTRL-A Codes
 		while(*pos == '\x01') {
 			pos++;
-			if (*pos != '\x01' && *pos != 0) {
+			if (*pos != 0) {
 				pos++;
 				continue;
 			}
@@ -249,8 +249,6 @@ static struct section_len get_word_len(char *buf, int maxlen)
 			ret.bytes++;
 			if (buf[ret.bytes] == '\\')
 				break;
-			if(buf[ret.bytes]!='\x01')
-				continue;
 		}
 		else if (buf[ret.bytes]=='\b') {
 			// This doesn't handle BS the same way... bit it's kinda BS anyway.
@@ -374,12 +372,6 @@ static struct paragraph *word_unwrap(char *inbuf, int oldlen, BOOL handle_quotes
 				case '\x1f':	// Strip delete chars.
 					break;
 				case '\x01':	// CTRL-A code.
-#if 0 // I'm not sure what this is supposed to be doing, but a literal Ctrl-A sequence is Ctrl-A/'A' (not Ctrl-A/Ctrl-A)
-					if (inbuf[inpos] == '\x01') {
-						// This is a literal CTRL-A... col advances and we can wrap
-						incol++;
-					}
-#endif
 					if (!paragraph_append(&ret[paragraph], inbuf+inpos, 2))
 						goto fail_return;
 					inpos++;
