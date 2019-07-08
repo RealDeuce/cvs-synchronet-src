@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.535 2019/08/02 10:36:45 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.522 2019/07/08 00:11:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,7 +278,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
-#include "unicode_defs.h"
 
 /***********************/
 /* Synchronet-specific */
@@ -302,6 +301,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
+#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -651,7 +651,7 @@ public:
 	/* writemsg.cpp */
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
-				,const char *to, const char* from, const char** editor=NULL, const char** charset=NULL);
+				,const char *to, const char* from, char** editor=NULL, bool* utf8=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode, long org_cols = 0);
@@ -671,8 +671,7 @@ public:
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
-	void	editor_info_to_msg(smbmsg_t*, const char* editor, const char* charset);
-	char	editor_details[128];
+	void	editor_info_to_msg(smbmsg_t*, const char* editor);
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
@@ -703,16 +702,11 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str, long mode = 0);	/* BBS puts function */
+	int		bputs(const char *str);					/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
 	int		bprintf(const char *fmt, ...)			/* BBS printf function */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
-	int		bprintf(long mode, const char *fmt, ...)
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this', 2 is 'mode'
 #endif
 	;
 	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
@@ -722,11 +716,7 @@ public:
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
-	int		outchar(enum unicode_codepoint, char cp437_fallback);
-	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
-	void	inc_column(int count);
 	void	center(char *str);
-	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
 	void	cleartoeos(void);
@@ -739,8 +729,6 @@ public:
 	void	line_feed(void);
 	void	newline(void);
 	long	term_supports(long cmp_flags=0);
-	const char* term_type(long term_supports = -1);
-	const char* term_charset(long term_supports = -1);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
 	bool	saveline(void);
@@ -749,7 +737,6 @@ public:
 	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
-	char*	auto_utf8(const char*, long* mode);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -807,7 +794,6 @@ public:
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
-	char*	parse_login(char*);
 
 	/* answer.cpp */
 	bool	answer();
@@ -884,14 +870,14 @@ public:
 	/* download.cpp */
 	void	downloadfile(file_t* f);
 	void	notdownloaded(ulong size, time_t start, time_t end);
-	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd, bool autohangup=true);
+	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd);
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
 	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0, const char* description = NULL, bool autohang=true);
-	bool	recvfile(char* fname, char prot=0, bool autohang=true);
+	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
+	bool	recvfile(char* fname, char prot=0);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -963,6 +949,7 @@ public:
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
+	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	uint	total_qwknodes;

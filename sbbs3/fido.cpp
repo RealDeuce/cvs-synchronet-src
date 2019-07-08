@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.75 2019/08/02 09:27:48 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.72 2019/07/08 00:49:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,8 +108,8 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	char	subj[FIDO_SUBJ_LEN]= "";
 	char	msgpath[MAX_PATH+1];
 	char 	tmp[512];
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*	editor=NULL;
+	char*	charset=NULL;
 	int		file,x;
 	uint	i;
 	long	length,l;
@@ -233,7 +233,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	if(cfg.netmail_misc&NMAIL_CRASH) msg.hdr.netattr |= MSG_CRASH;
 	if(cfg.netmail_misc&NMAIL_HOLD)  msg.hdr.netattr |= MSG_HOLD;
 	if(cfg.netmail_misc&NMAIL_KILL)  msg.hdr.netattr |= MSG_KILLSENT;
-	if(mode&WM_FILE) msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE); 
+	if(mode&WM_FILE) msg.hdr.auxattr |= MSG_FILEATTACH; 
 
 	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
 		if(quotemsg(resmb, remsg, /* include tails: */true))
@@ -917,6 +917,8 @@ void sbbs_t::qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub)
 			l++;
 			if(l>=length)
 				break;
+			if((ch=ctrl_a_to_ascii_char(qwkbuf[l])) != 0)
+				write(fido,&ch,1);
 		}
 		else if(qwkbuf[l]!=LF) {
 			if(qwkbuf[l]==QWK_NEWLINE) /* QWK cr/lf char converted to hard CR */

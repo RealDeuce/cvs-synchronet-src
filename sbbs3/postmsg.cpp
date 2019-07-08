@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.125 2019/07/08 00:59:26 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.124 2019/07/08 00:49:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -78,8 +78,8 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 	char	touser[64] = "";
 	char	from[64];
 	char	tags[64] = "";
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*	editor=NULL;
+	char*	charset=NULL;
 	char*	msgbuf=NULL;
 	uint16_t xlat;
 	ushort	msgattr = 0;
