@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.162 2019/07/20 19:06:43 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.153 2019/07/08 00:11:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,7 +38,6 @@
 #include "wordwrap.h"
 #include "utf8.h"
 #include "unicode.h"
-#include "cp437defs.h"
 
 #define MAX_LINES		10000
 #define MAX_LINE_LEN	(cols - 1)
@@ -106,17 +105,12 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
 		strip_invalid_attr(buf);
 		truncsp(buf);
-		BOOL is_utf8 = FALSE;
-		if(smb_msg_is_utf8(msg)) {
-			if(term_supports(UTF8))
-				is_utf8 = TRUE;
-			else {
-				utf8_normalize_str(buf);
-				utf8_replace_chars(buf, unicode_to_cp437
-					,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
-					,/* unsupported zero-width ch: */0
-					,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
-			}
+		if(smb_msg_is_utf8(msg) && !term_supports(UTF8)) {
+			utf8_normalize_str(buf);
+			utf8_replace_chars(buf, unicode_to_cp437
+				,/* unsupported char: */'\xA8' /* Inverted question mark */
+				,/* unsupported zero-width ch: */0
+				,/* decode error char: */ '\xAD' /* inverted exclamation mark */);
 		}
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {
 			int wrap_cols = 0;
@@ -124,7 +118,7 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 				wrap_cols = cfg.xedit[useron_xedit-1]->quotewrap_cols;
 			if(wrap_cols == 0)
 				wrap_cols = cols - 1;
-			wrapped=::wordwrap(buf, wrap_cols, org_cols - 1, /* handle_quotes: */TRUE, is_utf8);
+			wrapped=::wordwrap(buf, wrap_cols, org_cols - 1, /* handle_quotes: */TRUE);
 		}
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
@@ -241,7 +235,7 @@ int sbbs_t::process_edited_file(const char* src, const char* dest, long mode, un
 /* 'dest' contains a text description of where the message is going.        */
 /****************************************************************************/
 bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode, uint subnum
-	,const char *to, const char* from, const char** editor, const char** charset)
+	,const char *to, const char* from, char** editor, bool* utf8)
 {
 	char	str[256],quote[128],c,*buf,*p,*tp
 				,useron_level;
@@ -521,6 +515,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			bputs(text[OutOfBytes]); 
 	}
 
+
 	else if(useron_xedit) {
 
 		if(editor!=NULL)
@@ -575,23 +570,14 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			return(false); 
 		}
 		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		if(!(mode&(WM_EXTDESC|WM_FILE))
+		if(!(mode&(WM_EXTDESC|WM_FILE|WM_SUBJ_RO))
+			&& !(cfg.xedit[useron_xedit-1]->misc&QUICKBBS) 
 			&& fexistcase(str)) {
 			if((fp=fopen(str,"r")) != NULL) {
-				if (fgets(str, sizeof(str), fp) != NULL) {
-					str[0] = 0;
-					if (fgets(str, sizeof(str), fp) != NULL) {
-						truncsp(str);
-						if(str[0] && !(mode&WM_SUBJ_RO))
-							safe_snprintf(subj, LEN_TITLE, "%s", str);
-						editor_details[0] = 0;
-                        if (fgets(editor_details, sizeof(editor_details), fp) != NULL) {
-                            truncsp(editor_details);
-                            if (editor_details[0] && editor != NULL)
-                                *editor = editor_details;
-                        }
-					}
-				}
+				fgets(str,sizeof(str),fp);
+				fgets(str,sizeof(str),fp);
+				truncsp(str);
+				safe_snprintf(subj,LEN_TITLE,"%s",str);
 				fclose(fp);
 			}
 		}
@@ -654,11 +640,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		return(false); 
 	}
 	l=process_edited_text(buf,stream,mode,&lines,cfg.level_linespermsg[useron_level]);
-	bool utf8 = !str_is_ascii(buf) && utf8_str_is_valid(buf);
-	if(charset != NULL) {
-		if(utf8)
-			*charset = FIDO_CHARSET_UTF8;
-	}
+	if(utf8 != NULL)
+		*utf8 = (!str_is_ascii(buf) && utf8_str_is_valid(buf));
 
 	if(!(mode&(WM_EXTDESC|WM_ANON))) {
 		/* Signature file */
@@ -671,12 +654,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 					if(!fgets(str,sizeof(str),sig))
 						break;
 					truncsp(str);
-					if(utf8) {
-						char buf[sizeof(str)*4];
-						cp437_to_utf8_str(str, buf, sizeof(buf) - 1, /* minval: */'\x02');
-						l+=fprintf(stream,"%s\r\n", buf);
-					} else
-						l+=fprintf(stream,"%s\r\n",str);
+					l+=fprintf(stream,"%s\r\n",str);
 					lines++;		/* line counter */
 				}
 				fclose(sig);
@@ -690,12 +668,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 					if(!fgets(str,sizeof(str),tag))
 						break;
 					truncsp(str);
-					if(utf8) {
-						char buf[sizeof(str)*4];
-						cp437_to_utf8_str(str, buf, sizeof(buf) - 1, /* minval: */'\x02');
-						l+=fprintf(stream,"%s\r\n", buf);
-					} else
-						l+=fprintf(stream,"%s\r\n",str);
+					l+=fprintf(stream,"%s\r\n",str);
 					lines++;		/* line counter */
 				}
 				fclose(tag);
@@ -710,13 +683,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	return(true);
 }
 
-void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor, const char* charset)
+void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor)
 {
 	if(editor != NULL)
 		smb_hfield_str(msg, SMB_EDITOR, editor);
-
-	if(charset != NULL)
-		smb_hfield_str(msg, FIDOCTRL, charset);
 
 	ushort useron_xedit = useron.xedit;
 
@@ -747,8 +717,6 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 
 	xeditnum--;
 
-	SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
-	removecase(path);
 	if(cfg.xedit[xeditnum]->misc&QUICKBBS) {
 		SAFEPRINTF2(path,"%s%s",cfg.node_dir, cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "msginf":"MSGINF");
 		removecase(path);
@@ -770,6 +738,8 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 		fclose(fp);
 	}
 	else {
+		SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
+		removecase(path);
 		SAFEPRINTF2(path,"%s%s",cfg.node_dir,cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "editor.inf" : "EDITOR.INF");
 		removecase(path);
 		if((fp=fopen(path,"wb"))==NULL) {
@@ -796,7 +766,7 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 {
 	char*	buf;
-    size_t  slen;
+    char    slen;
     int     i,file;
 	long	l=0,flen;
     FILE    *stream;
