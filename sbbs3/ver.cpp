@@ -3,7 +3,7 @@
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.31 2019/10/08 02:07:26 rswindell Exp $ */
+/* $Id: ver.cpp,v 1.30 2018/02/17 23:29:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ char* socklib_version(char* str, char* winsock_ver)
 
 #else
 	
-	strcpy(str,"");
+	strcpy(str,"No socket library version available");
 
 #endif
 
@@ -107,6 +107,8 @@ void sbbs_t::ver()
 	}
 #endif
 
+	socklib_version(str,SOCKLIB_DESC);
+
 #ifdef USE_CRYPTLIB
 	if(is_crypt_initialized()) {
 		int cl_major=0, cl_minor=0, cl_step=0;
@@ -115,11 +117,11 @@ void sbbs_t::ver()
 		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MINORVERSION, &cl_minor);
 		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_STEPPING, &cl_step);
 		(void)result;
-		sprintf(str, "  cryptlib %u.%u.%u (%u)", cl_major, cl_minor, cl_step, CRYPTLIB_VERSION);
-		center(str);
-		CRLF;
+		sprintf(str + strlen(str), "  cryptlib %u.%u.%u (%u)", cl_major, cl_minor, cl_step, CRYPTLIB_VERSION);
 	}
 #endif
+	center(str);
+	CRLF;
 
 	center(os_version(str));
 }

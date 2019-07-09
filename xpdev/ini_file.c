@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.171 2019/07/24 04:21:42 rswindell Exp $ */
+/* $Id: ini_file.c,v 1.166 2018/08/28 22:12:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,7 +34,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "ini_file.h"
 #include <stdlib.h>		/* strtol */
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
@@ -43,6 +42,10 @@
 #include "datewrap.h"	/* ctime_r */
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
+#include "ini_file.h"
+#if !defined(NO_SOCKET_SUPPORT)
+#include "sockwrap.h"
+#endif
 
 /* Maximum length of entire line, includes '\0' */
 #define INI_MAX_LINE_LEN		(INI_MAX_VALUE_LEN*2)
@@ -741,9 +744,9 @@ char* DLLCALL iniSetEnumList(str_list_t* list, const char* section, const char* 
 		name_count = strListCount(names);
 		for(i=0; i < count; i++) {
 			if(value[0])
-				SAFECAT(value,sep);
+				strcat(value,sep);
 			if(val_list[i] < name_count)
-				SAFECAT(value, names[val_list[i]]);
+				strcat(value, names[val_list[i]]);
 			else
 				sprintf(value + strlen(value), "%u", val_list[i]);
 		}
@@ -809,20 +812,20 @@ char* DLLCALL iniSetBitField(str_list_t* list, const char* section, const char* 
 
 	if(style==NULL)
 		style=&default_style;
-	if(style->bit_separator!=NULL)
+	if(style->bit_separator==NULL)
 		bit_separator = style->bit_separator;
 	str[0]=0;
 	for(i=0;bitdesc[i].name;i++) {
 		if((value&bitdesc[i].bit)==0)
 			continue;
 		if(str[0])
-			SAFECAT(str, bit_separator);
-		SAFECAT(str,bitdesc[i].name);
+			strcat(str, bit_separator);
+		strcat(str,bitdesc[i].name);
 		value&=~bitdesc[i].bit;
 	}
 	if(value) {	/* left over bits? */
 		if(str[0])
-			SAFECAT(str, bit_separator);
+			strcat(str, bit_separator);
 		sprintf(str+strlen(str), "0x%lX", value);
 	}
 	return iniSetString(list, section, key, str, style);
@@ -2370,15 +2373,11 @@ str_list_t DLLCALL iniReadFile(FILE* fp)
 BOOL DLLCALL iniWriteFile(FILE* fp, const str_list_t list)
 {
 	size_t		count;
-	long pos;
 
 	rewind(fp);
 	count = strListWriteFile(fp,list,"\n");
 	fflush(fp);
-	pos = ftell(fp);
-	if (pos == -1)
-		return (FALSE);
-	if(chsize(fileno(fp), pos)!=0)	/* truncate */
+	if(chsize(fileno(fp), ftell(fp))!=0)	/* truncate */
 		return(FALSE);
 
 	return(count == strListCount(list));
