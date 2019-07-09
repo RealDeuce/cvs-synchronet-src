@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.159 2019/07/10 01:12:43 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.158 2019/07/09 05:27:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,9 +113,9 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 			else {
 				utf8_normalize_str(buf);
 				utf8_replace_chars(buf, unicode_to_cp437
-					,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+					,/* unsupported char: */CP437_CHAR_INVERTED_QUESTION_MARK
 					,/* unsupported zero-width ch: */0
-					,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
+					,/* decode error char: */CP437_CHAR_INVERTED_EXCLAMATION_MARK);
 			}
 		}
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {

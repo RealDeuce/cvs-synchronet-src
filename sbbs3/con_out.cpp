@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.111 2019/07/11 04:49:41 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.106 2019/07/09 05:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -250,7 +250,7 @@ size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 		outchar(*str);
 		return sizeof(char);
 	}
-	enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
+	uint32_t codepoint = 0;
 	len = utf8_getc(str, len, &codepoint);
 	if((int)len < 2) {
 		lprintf(LOG_NOTICE, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
@@ -266,8 +266,8 @@ size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 	char ch = unicode_to_cp437(codepoint);
 	if(ch)
 		outchar(ch);
-	else if(unicode_width(codepoint) > 0) {
-		outchar(CP437_INVERTED_QUESTION_MARK);
+	else if(!unicode_is_zerowidth(codepoint)) {
+		outchar(CP437_CHAR_INVERTED_QUESTION_MARK);
 		char seq[32] = "";
 		for(size_t i = 0; i < len; i++)
 			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
@@ -301,7 +301,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
 		else if(term&UTF8) {
-			enum unicode_codepoint codepoint = cp437_unicode_tbl[(uchar)ch];
+			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
 			if(codepoint != 0)
 				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
 		}
@@ -310,7 +310,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else {
 			if(outcom(ch)!=0)
 				break;
-			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		}
 		if(lbuflen<LINE_BUFSIZE)
@@ -385,38 +385,6 @@ long sbbs_t::term_supports(long cmp_flags)
 }
 
 /****************************************************************************/
-/* Returns description of the terminal type									*/
-/****************************************************************************/
-const char* sbbs_t::term_type(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "PETSCII";
-	if(term&RIP)
-		return "RIP";
-	if(term&ANSI)
-		return "ANSI";
-	return "DUMB";
-}
-
-/****************************************************************************/
-/* Returns description of the terminal supported character set (charset)	*/
-/****************************************************************************/
-const char* sbbs_t::term_charset(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "CBM-ASCII";
-	if(term&UTF8)
-		return "UTF-8";
-	if(term&NO_EXASCII)
-		return "US-ASCII";
-	return "CP437";
-}
-
-/****************************************************************************/
 /* Outputs character														*/
 /* Performs terminal translations (e.g. EXASCII-to-ASCII, FF->ESC[2J)		*/
 /* Performs Telnet IAC escaping												*/
@@ -483,7 +451,7 @@ int sbbs_t::outchar(char ch)
 		if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
 		else if(term&UTF8) {
-			enum unicode_codepoint codepoint = cp437_unicode_tbl[(uchar)ch];
+			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
 			if(codepoint != 0)
 				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
 		}
@@ -573,7 +541,14 @@ int sbbs_t::outchar(char ch)
 				column=0;
 				break;
 			default:
-				inc_column(1);
+				column++;
+				if(column >= cols) {	// assume terminal has/will auto-line-wrap
+					lncntr++;
+					lbuflen = 0;
+					tos = 0;
+					lastlinelen = column;
+					column = 0;
+				}
 				if(!lbuflen)
 					latr=curatr;
 				if(lbuflen<LINE_BUFSIZE)
@@ -592,34 +567,6 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
-int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
-{
-	if(term_supports(UTF8)) {
-		char str[UTF8_MAX_LEN];
-		int len = utf8_putc(str, sizeof(str), codepoint);
-		if(len < 1)
-			return len;
-		putcom(str, len);
-		inc_column(unicode_width(codepoint));
-		return 0;
-	}
-	if(cp437_fallback == 0)
-		return 0;
-	return outchar(cp437_fallback);
-}
-
-void sbbs_t::inc_column(int count)
-{
-	column += count;
-	if(column >= cols) {	// assume terminal has/will auto-line-wrap
-		lncntr++;
-		lbuflen = 0;
-		tos = 0;
-		lastlinelen = column;
-		column = 0;
-	}
-}
-
 void sbbs_t::center(char *instr)
 {
 	char str[256];
@@ -634,21 +581,6 @@ void sbbs_t::center(char *instr)
 	bputs(str);
 	newline();
 }
-
-void sbbs_t::wide(const char* str)
-{
-	long term = term_supports();
-	while(*str != '\0') {
-		if((term&UTF8) && *str >= '!' && *str <= '~')
-			outchar((enum unicode_codepoint)(UNICODE_FULLWIDTH_EXCLAMATION_MARK + (*str - '!')));
-		else {
-			outchar(*str);
-			outchar(' ');
-		}
-		str++;
-	}
-}
-
 
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
 void sbbs_t::carriage_return(void)
