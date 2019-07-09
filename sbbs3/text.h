@@ -807,7 +807,7 @@ enum {
 	,Only
 	,SPAMVisibilityIsNow
 	,VoteInThisPollNow
-	,MIMEDecodedPlainText
+	,MIMEDecodedPlainTextFmt
 	,MsgHdrBodySeparator
 	,FileHdrDescSeparator
 	,RemoveFileQ
@@ -825,7 +825,17 @@ enum {
 	,CharacterReceivedFmt
 	,InvalidBackspaceKeyFmt
 	,SwapDeleteKeyQ
-	,PetTermDetected
+	,PetTerminalDetected
+	,PetTerminalQ
+	,TerminalAutoDetect
+	,TerminalColumns
+	,TerminalRows
+	,TerminalMonochrome
+	,TerminalColor
+	,TerminalIceColor
+	,IceColorTerminalQ
+	,Utf8TerminalQ
+	,MsgCarbonCopyList
 
 	,TOTAL_TEXT
 };

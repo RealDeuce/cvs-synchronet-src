@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.27 2019/03/19 19:34:26 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.31 2019/06/17 05:37:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -194,6 +194,7 @@ typedef struct {
 	bool		secure_echomail;
 	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
 	bool		strip_lf;
+	bool		strip_soft_cr;
 	bool		convert_tear;
 	bool		fuzzy_zone;
 	bool		flo_mailer;				/* Binkley-Style-Outbound / FLO mailer */
@@ -220,6 +221,8 @@ typedef struct {
 	unsigned	domain_count;
 	char		binkp_caps[64];
 	char		binkp_sysop[64];
+	bool		binkp_plainAuthOnly;
+	bool		binkp_plainTextOnly;
 } sbbsecho_cfg_t;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
