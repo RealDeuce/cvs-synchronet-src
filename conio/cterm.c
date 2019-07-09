@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.252 2019/07/11 19:03:21 deuce Exp $ */
+/* $Id: cterm.c,v 1.248 2019/07/09 22:27:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -999,7 +999,7 @@ static bool parse_sub_parameters(struct sub_params *sub, struct esc_seq *seq, un
 	int i;
 	char *p;
 
-	sub->param_count = 1;
+	sub->param_count = 0;
 	sub->param_int = NULL;
 
 	if (param >= seq->param_count)
@@ -1013,8 +1013,7 @@ static bool parse_sub_parameters(struct sub_params *sub, struct esc_seq *seq, un
 	if (sub->param_int == NULL)
 		return false;
 	p = seq->param[param];
-	for (i=0; i<sub->param_count; i++) {
-		p++;
+	for (i=0; i<seq->param_count; i++) {
 		sub->param_int[i] = strtoull(p, &p, 10);
 		if (*p != ':' && *p != 0) {
 			free(seq->param_int);
@@ -1560,13 +1559,13 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 	uint32_t nc;
 	uint32_t *co;
 
-	if (seq == NULL || cterm == NULL || i == NULL)
-		return;
 	if (fg)
 		FREE_AND_NULL(cterm->fg_tc_str);
 	else
 		FREE_AND_NULL(cterm->bg_tc_str);
 	co = fg ? (&cterm->fg_color) : (&cterm->bg_color);
+	if (seq == NULL || cterm == NULL || i == NULL)
+		return;
 	if (*i>=seq->param_count)
 		return;
 
@@ -1600,15 +1599,15 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		if (parse_sub_parameters(&sub, seq, (*i)+1)) {
 			if (sub.param_count == 2)
 				*co = sub.param_int[1];
-			save_extended_colour_seq(cterm, fg, seq, *i, 2);
 			(*i)++;
+			save_extended_colour_seq(cterm, fg, seq, *i, 2);
 		}
 	}
 	else if ((*i)+2 < seq->param_count && seq->param_int[(*i)+1] == 5) {
 		// CSI 38 ; 5 ; X m variant
 		*co = seq->param_int[(*i)+2] + 16;
-		save_extended_colour_seq(cterm, fg, seq, *i, 3);
 		*i+=2;
+		save_extended_colour_seq(cterm, fg, seq, *i, 3);
 	}
 	else if ((*i)+1 < seq->param_count && seq->param_int[(*i)+1] == 2 && seq->param[(*i)+1][1] == ':') {
 		// CSI 38 ; 2 : Z? : R : G : B m variant
@@ -1621,7 +1620,6 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 			if (nc != UINT32_MAX)
 				*co = nc;
 			save_extended_colour_seq(cterm, fg, seq, *i, 2);
-			*i += 1;
 		}
 	}
 	else if ((*i)+4 < seq->param_count && seq->param_int[(*i)+1] == 2) {
@@ -1629,8 +1627,8 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		nc = map_rgb(seq->param_int[(*i)+2]<<8, seq->param_int[(*i)+3]<<8, seq->param_int[(*i)+4]<<8);
 		if (nc != UINT32_MAX)
 			*co = nc;
-		save_extended_colour_seq(cterm, fg, seq, *i, 5);
 		*i += 4;
+		save_extended_colour_seq(cterm, fg, seq, *i, 5);
 	}
 	free_sub_parameters(&sub);
 }
@@ -2893,7 +2891,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								switch (cterm->strbuf[2]) {
 									case 'm':
 										if (cterm->strbuf[3] == 0) {
-											strcpy(tmp, "\x1bP1$r0");
+											strcpy(tmp, "\x1b" "1$r0");
 											if (cterm->attr & 8)
 												strcat(tmp, ";1");
 											if (cterm->attr & 128)
@@ -2948,43 +2946,11 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 														break;
 												}
 											}
-											if (cterm->fg_tc_str) {
-												strcat(tmp, ";");
+											if (cterm->fg_tc_str)
 												strcat(tmp, cterm->fg_tc_str);
-											}
-											if (cterm->bg_tc_str) {
-												strcat(tmp, ";");
+											if (cterm->bg_tc_str)
 												strcat(tmp, cterm->bg_tc_str);
-											}
-											strcat(tmp, "m\x1b\\");
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case 'r':
-										if (cterm->strbuf[3] == 0) {
-											sprintf(tmp, "\x1bP1$r%d;%dr\x1b\\", cterm->top_margin, cterm->bottom_margin);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case 't':
-										if (cterm->strbuf[3] == 0) {
-											sprintf(tmp, "\x1bP1$r%dt\x1b\\", cterm->height);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case '$':
-										if (cterm->strbuf[3] == '|' && cterm->strbuf[4] == 0) {
-											sprintf(tmp, "\x1bP1$r%d$|\x1b\\", cterm->width);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case '*':
-										if (cterm->strbuf[3] == '|' && cterm->strbuf[4] == 0) {
-											sprintf(tmp, "\x1bP1$r%d$|\x1b\\", cterm->height);
+											strcat(tmp, "m");
 											if(strlen(retbuf)+strlen(tmp) < retsize)
 												strcat(retbuf, tmp);
 										}
@@ -3095,7 +3061,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.252 $";
+	char	*revision="$Revision: 1.248 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3993,7 +3959,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 							/* Movement */
 							case 13:	/* "\r\n" and disabled reverse. */
 								cterm->c64reversemode = 0;
-								/* Fall-through */
 							case 141:
 								GOTOXY(1, WHEREY());
 								/* Fall-through */
