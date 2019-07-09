@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.252 2019/07/11 19:03:21 deuce Exp $ */
+/* $Id: cterm.c,v 1.246 2019/07/09 20:13:26 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -999,7 +999,7 @@ static bool parse_sub_parameters(struct sub_params *sub, struct esc_seq *seq, un
 	int i;
 	char *p;
 
-	sub->param_count = 1;
+	sub->param_count = 0;
 	sub->param_int = NULL;
 
 	if (param >= seq->param_count)
@@ -1013,8 +1013,7 @@ static bool parse_sub_parameters(struct sub_params *sub, struct esc_seq *seq, un
 	if (sub->param_int == NULL)
 		return false;
 	p = seq->param[param];
-	for (i=0; i<sub->param_count; i++) {
-		p++;
+	for (i=0; i<seq->param_count; i++) {
 		sub->param_int[i] = strtoull(p, &p, 10);
 		if (*p != ':' && *p != 0) {
 			free(seq->param_int);
@@ -1540,16 +1539,16 @@ static void save_extended_colour_seq(struct cterminal *cterm, int fg, struct esc
 
 	switch (count) {
 		case 1:
-			asprintf(str, "%s", seq->param[seqoff]);
+			*str = asprintf("%s", seq->param[seqoff]);
 			break;
 		case 2:
-			asprintf(str, "%s;%s", seq->param[seqoff], seq->param[seqoff+1]);
+			*str = asprintf("%s;%s", seq->param[seqoff], seq->param[seqoff+1]);
 			break;
 		case 3:
-			asprintf(str, "%s;%s;%s", seq->param[seqoff], seq->param[seqoff+1], seq->param[seqoff+2]);
+			*str = asprintf("%s;%s;%s", seq->param[seqoff], seq->param[seqoff+1], seq->param[seqoff+2]);
 			break;
 		case 5:
-			asprintf(str, "%s;%s;%s;%s;%s", seq->param[seqoff], seq->param[seqoff+1], seq->param[seqoff+2], seq->param[seqoff+3], seq->param[seqoff+4]);
+			*str = asprintf("%s;%s;%s;%s;%s", seq->param[seqoff], seq->param[seqoff+1], seq->param[seqoff+2], seq->param[seqoff+3], seq->param[seqoff+4]);
 			break;
 	}
 }
@@ -1560,13 +1559,13 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 	uint32_t nc;
 	uint32_t *co;
 
-	if (seq == NULL || cterm == NULL || i == NULL)
-		return;
 	if (fg)
 		FREE_AND_NULL(cterm->fg_tc_str);
 	else
 		FREE_AND_NULL(cterm->bg_tc_str);
 	co = fg ? (&cterm->fg_color) : (&cterm->bg_color);
+	if (seq == NULL || cterm == NULL || i == NULL)
+		return;
 	if (*i>=seq->param_count)
 		return;
 
@@ -1600,15 +1599,15 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		if (parse_sub_parameters(&sub, seq, (*i)+1)) {
 			if (sub.param_count == 2)
 				*co = sub.param_int[1];
-			save_extended_colour_seq(cterm, fg, seq, *i, 2);
 			(*i)++;
+			save_extended_colour_seq(cterm, fg, seq, *i, 2);
 		}
 	}
 	else if ((*i)+2 < seq->param_count && seq->param_int[(*i)+1] == 5) {
 		// CSI 38 ; 5 ; X m variant
 		*co = seq->param_int[(*i)+2] + 16;
-		save_extended_colour_seq(cterm, fg, seq, *i, 3);
 		*i+=2;
+		save_extended_colour_seq(cterm, fg, seq, *i, 3);
 	}
 	else if ((*i)+1 < seq->param_count && seq->param_int[(*i)+1] == 2 && seq->param[(*i)+1][1] == ':') {
 		// CSI 38 ; 2 : Z? : R : G : B m variant
@@ -1621,7 +1620,6 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 			if (nc != UINT32_MAX)
 				*co = nc;
 			save_extended_colour_seq(cterm, fg, seq, *i, 2);
-			*i += 1;
 		}
 	}
 	else if ((*i)+4 < seq->param_count && seq->param_int[(*i)+1] == 2) {
@@ -1629,8 +1627,8 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		nc = map_rgb(seq->param_int[(*i)+2]<<8, seq->param_int[(*i)+3]<<8, seq->param_int[(*i)+4]<<8);
 		if (nc != UINT32_MAX)
 			*co = nc;
-		save_extended_colour_seq(cterm, fg, seq, *i, 5);
 		*i += 4;
+		save_extended_colour_seq(cterm, fg, seq, *i, 5);
 	}
 	free_sub_parameters(&sub);
 }
@@ -1865,7 +1863,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									strcpy(tmp, "\x1b[=2");
 									if(cterm->extattr & CTERM_EXTATTR_ORIGINMODE)
 										strcat(tmp, ";6");
-									if (cterm->extattr & CTERM_EXTATTR_AUTOWRAP)
+									if (cterm->extattr & CTERM_EXTATTR_AUTOWRAP);
 										strcat(tmp, ";7");
 									if(cterm->cursor == _NORMALCURSOR)
 										strcat(tmp, ";25");
@@ -2893,100 +2891,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								switch (cterm->strbuf[2]) {
 									case 'm':
 										if (cterm->strbuf[3] == 0) {
-											strcpy(tmp, "\x1bP1$r0");
-											if (cterm->attr & 8)
-												strcat(tmp, ";1");
-											if (cterm->attr & 128)
-												strcat(tmp, ";5");
-											if (cterm->fg_tc_str == NULL) {
-												switch (cterm->attr & 7) {
-													case 0:
-														strcat(tmp, ";30");
-														break;
-													case 1:
-														strcat(tmp, ";34");
-														break;
-													case 2:
-														strcat(tmp, ";32");
-														break;
-													case 3:
-														strcat(tmp, ";36");
-														break;
-													case 4:
-														strcat(tmp, ";31");
-														break;
-													case 5:
-														strcat(tmp, ";35");
-														break;
-													case 6:
-														strcat(tmp, ";33");
-														break;
-												}
-											}
-											if (cterm->bg_tc_str == NULL) {
-												switch ((cterm->attr >> 4) & 7) {
-													case 1:
-														strcat(tmp, ";44");
-														break;
-													case 2:
-														strcat(tmp, ";42");
-														break;
-													case 3:
-														strcat(tmp, ";46");
-														break;
-													case 4:
-														strcat(tmp, ";41");
-														break;
-													case 5:
-														strcat(tmp, ";45");
-														break;
-													case 6:
-														strcat(tmp, ";43");
-														break;
-													case 7:
-														strcat(tmp, ";47");
-														break;
-												}
-											}
-											if (cterm->fg_tc_str) {
-												strcat(tmp, ";");
-												strcat(tmp, cterm->fg_tc_str);
-											}
-											if (cterm->bg_tc_str) {
-												strcat(tmp, ";");
-												strcat(tmp, cterm->bg_tc_str);
-											}
-											strcat(tmp, "m\x1b\\");
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case 'r':
-										if (cterm->strbuf[3] == 0) {
-											sprintf(tmp, "\x1bP1$r%d;%dr\x1b\\", cterm->top_margin, cterm->bottom_margin);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case 't':
-										if (cterm->strbuf[3] == 0) {
-											sprintf(tmp, "\x1bP1$r%dt\x1b\\", cterm->height);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case '$':
-										if (cterm->strbuf[3] == '|' && cterm->strbuf[4] == 0) {
-											sprintf(tmp, "\x1bP1$r%d$|\x1b\\", cterm->width);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
-										}
-										break;
-									case '*':
-										if (cterm->strbuf[3] == '|' && cterm->strbuf[4] == 0) {
-											sprintf(tmp, "\x1bP1$r%d$|\x1b\\", cterm->height);
-											if(strlen(retbuf)+strlen(tmp) < retsize)
-												strcat(retbuf, tmp);
 										}
 										break;
 									default:
@@ -2994,7 +2898,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										if(retbuf!=NULL) {
 											strcpy(tmp,"\x1b[0n");
 											if(strlen(retbuf)+7 < retsize)
-												strcat(retbuf, "\x1bP0$r\x1b_");
+												strcat(retbuf, "\x1bP1$r\x1b_");
 										}
 								}
 							}
@@ -3095,7 +2999,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.252 $";
+	char	*revision="$Revision: 1.246 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3993,7 +3897,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 							/* Movement */
 							case 13:	/* "\r\n" and disabled reverse. */
 								cterm->c64reversemode = 0;
-								/* Fall-through */
 							case 141:
 								GOTOXY(1, WHEREY());
 								/* Fall-through */
