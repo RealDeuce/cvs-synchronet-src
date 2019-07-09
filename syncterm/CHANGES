@@ -20,10 +20,6 @@ Add a new ANSI compliant DCS command for font loading
 Support bright background mode in curses when in xterm 88 or 256 color mode
 Added support for cached font assets
 Support for XTerm and TundraDraw/PabloDraw 24-bit color modes
-Some PETSCII keyboard changes
-Add support for DECRQSS
-Terminal type is now sent as "syncterm", "PETSCII", or "ATASCII"
-Menus are now always in cp437, and there is no shadow corruption
 
 Version 1.0
 -----------
