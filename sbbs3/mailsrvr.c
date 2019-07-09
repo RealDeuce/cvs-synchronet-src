@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.706 2019/07/25 02:19:03 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.705 2019/07/08 00:11:50 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -766,10 +766,9 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
         }
     }
 	/* Default MIME Content-Type for non-Internet messages */
-	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
-		const char* charset =  smb_msg_is_utf8(msg) ? "UTF-8" : startup->default_charset;
-		if(*charset)
-			sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", charset);
+	if(msg->from_net.type!=NET_INTERNET && content_type==NULL && startup->default_charset[0]) {
+		/* No content-type specified, so assume IBM code-page 437 (full ex-ASCII) */
+		sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", startup->default_charset);
 		sockprintf(socket,prot,sess,"Content-Transfer-Encoding: 8bit");
 	}
 
@@ -5860,7 +5859,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.706 $", "%*s %s", revision);
+	sscanf("$Revision: 1.705 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

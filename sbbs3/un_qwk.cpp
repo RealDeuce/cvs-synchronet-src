@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.58 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.57 2019/07/03 20:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,6 +162,9 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			blocks=1;
 			continue; 
 		}
+		/*********************************/
+		/* public message on a sub-board */
+		/*********************************/
 		n=(uint)block[123]|(((uint)block[124])<<8);  /* conference number */
 
 		qwk_new_msg(n, &msg,(char*)block,/* offset: */l,headers,/* parse_sender_hfields: */true);
@@ -268,9 +271,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			smb_stack(&smb,SMB_STACK_POP);
 			continue;
 		}
-		/*********************************/
-		/* public message on a sub-board */
-		/*********************************/
 
 		if((j = resolve_qwkconf(n, hubnum)) == INVALID_SUB) {	/* ignore messages for subs not in config */
 			eprintf(LOG_NOTICE,"!Message from %s on UNKNOWN QWK CONFERENCE NUMBER: %u"
