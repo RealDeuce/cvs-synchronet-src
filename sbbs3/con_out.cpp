@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.100 2019/06/28 23:04:48 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.106 2019/07/09 05:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,14 +34,11 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-
-/**********************************************************************/
-/* Functions that pertain to console i/o - color, strings, chars etc. */
-/* Called from functions everywhere                                   */
-/**********************************************************************/
-
 #include "sbbs.h"
-#include "cp437_utf8_tbl.h"
+#include "utf8.h"
+#include "unicode.h"
+#include "petdefs.h"
+#include "cp437defs.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
@@ -246,10 +243,43 @@ int sbbs_t::petscii_to_ansibbs(unsigned char ch)
 	return 0;
 }
 
+// Return length of sequence
+size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
+{
+	if(((*str)&0x80) == 0) {
+		outchar(*str);
+		return sizeof(char);
+	}
+	uint32_t codepoint = 0;
+	len = utf8_getc(str, len, &codepoint);
+	if((int)len < 2) {
+		lprintf(LOG_NOTICE, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
+		return 1;
+	}
+	for(int i = 1; i < 0x100; i++) {
+		if(cp437_unicode_tbl[i]
+			&& cp437_unicode_tbl[i] == codepoint) {
+			outchar(i);
+			return len;
+		}
+	}
+	char ch = unicode_to_cp437(codepoint);
+	if(ch)
+		outchar(ch);
+	else if(!unicode_is_zerowidth(codepoint)) {
+		outchar(CP437_CHAR_INVERTED_QUESTION_MARK);
+		char seq[32] = "";
+		for(size_t i = 0; i < len; i++)
+			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
+		lprintf(LOG_DEBUG, "Unsupported UTF-8 sequence: %s (U+%X)", seq, codepoint);
+	}
+	return len;
+}
 
 /****************************************************************************/
 /* Raw put string (remotely)												*/
 /* Performs Telnet IAC escaping												*/
+/* Performs charset translations											*/
 /* Performs saveline buffering (for restoreline)							*/
 /* DOES NOT expand ctrl-A codes, track columns, lines, auto-pause, etc.     */
 /****************************************************************************/
@@ -262,14 +292,27 @@ int sbbs_t::rputs(const char *str, size_t len)
 	if(len==0)
 		len=strlen(str);
 	long term = term_supports();
+	char utf8[UTF8_MAX_LEN + 1] = "";
 	for(l=0;l<len && online;l++) {
-		if(str[l]==(char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
-			outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		uchar ch = str[l];
+		utf8[0] = 0;
 		if(term&PETSCII)
 			ch = cp437_to_petscii(ch);
-		if(outcom(ch)!=0)
-			break;
+		else if((term&NO_EXASCII) && (ch&0x80))
+			ch = exascii_to_ascii_char(ch);  /* seven bit table */
+		else if(term&UTF8) {
+			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
+			if(codepoint != 0)
+				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
+		}
+		if(utf8[0])
+			putcom(utf8);
+		else {
+			if(outcom(ch)!=0)
+				break;
+			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
+		}
 		if(lbuflen<LINE_BUFSIZE)
 			lbuf[lbuflen++] = ch;
 	}
@@ -403,12 +446,15 @@ int sbbs_t::outchar(char ch)
 	else
 		outchar_esc=0;
 	long term = term_supports();
-	const char* utf8 = NULL;
+	char utf8[UTF8_MAX_LEN + 1] = "";
 	if(!(term&PETSCII)) {
 		if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
-		else if(term&UTF8)
-			utf8 = cp437_utf8_tbl[(uchar)ch];
+		else if(term&UTF8) {
+			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
+			if(codepoint != 0)
+				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
+		}
 	}
 
 	if(ch==FF && lncntr > 0 && !tos) {
@@ -459,7 +505,7 @@ int sbbs_t::outchar(char ch)
 			if(ch == '\r' && (curatr&0xf0) != 0) // reverse video is disabled upon CR
 				curatr >>= 4;
 		} else {
-			if(utf8 != NULL)
+			if(utf8[0] != 0)
 				putcom(utf8);
 			else
 				outcom(ch);
