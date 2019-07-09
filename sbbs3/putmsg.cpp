@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.48 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.50 2019/07/08 07:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -65,6 +65,10 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
+	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
+		mode |= P_UTF8;
+		str += 3;
+	}
 	long term = term_supports();
 	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
 		mode &= ~P_WORDWRAP;
@@ -80,7 +84,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		char *wrapped;
 		if(org_cols < TERM_COLS_MIN)
 			org_cols = TERM_COLS_DEFAULT;
-		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE
+			,/* is_utf8: */INT_TO_BOOL(mode&P_UTF8))) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -92,7 +97,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		}
 	}
 
-	while(str[l] && (mode&P_NOABORT || !msgabort()) && online) {
+	size_t len = strlen(str);
+	while(l < len && (mode&P_NOABORT || !msgabort()) && online) {
 		switch(str[l]) {
 			case '\r':
 			case '\n':
@@ -355,14 +361,20 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			}
 			if(mode&P_CPM_EOF && str[l]==CTRL_Z)
 				break;
+			size_t skip = sizeof(char);
 			if(mode&P_PETSCII) {
 				if(term&PETSCII)
 					outcom(str[l]);
 				else
 					petscii_to_ansibbs(str[l]);
+			} else if((str[l]&0x80) && (mode&P_UTF8)) {
+				if(term&UTF8)
+					outcom(str[l]);
+				else
+					skip = utf8_to_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
-			l++;
+			l += skip;
 		}
 	}
 	if(!(mode&P_SAVEATR)) {
