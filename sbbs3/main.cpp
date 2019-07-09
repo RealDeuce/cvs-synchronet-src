@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.752 2019/07/07 02:01:12 rswindell Exp $ */
+/* $Id: main.cpp,v 1.753 2019/07/09 05:38:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -38,6 +38,7 @@
 #include "ident.h"
 #include "telnet.h"
 #include "netwrap.h"
+#include "petdefs.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "ssl.h"

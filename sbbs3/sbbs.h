@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.524 2019/07/08 00:59:26 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.525 2019/07/09 05:38:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -301,7 +301,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
-#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus

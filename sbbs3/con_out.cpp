@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.105 2019/07/09 05:34:36 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.106 2019/07/09 05:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 #include "sbbs.h"
 #include "utf8.h"
 #include "unicode.h"
+#include "petdefs.h"
 #include "cp437defs.h"
 
 /****************************************************************************/
