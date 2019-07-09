@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.134 2019/08/03 21:27:03 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.130 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,8 +55,6 @@ enum {
 	,CON_PROP_TABSTOP
 	,CON_PROP_AUTOTERM
 	,CON_PROP_TERMINAL
-	,CON_PROP_TERM_TYPE
-	,CON_PROP_CHARSET
 	,CON_PROP_CTERM_VERSION
 	,CON_PROP_WORDWRAP
 	,CON_PROP_QUESTION
@@ -124,16 +122,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_TERMINAL:
 			if((js_str=JS_NewStringCopyZ(cx, sbbs->terminal))==NULL)
-				return(JS_FALSE);
-			*vp = STRING_TO_JSVAL(js_str);
-			return(JS_TRUE);
-		case CON_PROP_TERM_TYPE:
-			if((js_str=JS_NewStringCopyZ(cx, sbbs->term_type()))==NULL)
-				return(JS_FALSE);
-			*vp = STRING_TO_JSVAL(js_str);
-			return(JS_TRUE);
-		case CON_PROP_CHARSET:
-			if((js_str=JS_NewStringCopyZ(cx, sbbs->term_charset()))==NULL)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			return(JS_TRUE);
@@ -346,8 +334,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"tabstop"			,CON_PROP_TABSTOP			,CON_PROP_FLAGS	,31700},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
-	{	"type"				,CON_PROP_TERM_TYPE			,JSPROP_ENUMERATE|JSPROP_READONLY ,31702},
-	{	"charset"			,CON_PROP_CHARSET			,JSPROP_ENUMERATE|JSPROP_READONLY ,31702},
 	{	"cterm_version"		,CON_PROP_CTERM_VERSION		,CON_PROP_FLAGS ,317},
 	{	"inactivity_warning",CON_PROP_INACTIV_WARN		,CON_PROP_FLAGS, 31401},
 	{	"inactivity_hangup"	,CON_PROP_INACTIV_HANGUP	,CON_PROP_FLAGS, 31401},
@@ -380,9 +366,7 @@ static const char* con_prop_desc[] = {
 	,"current tab stop interval (tab size), in columns"
 	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"terminal type description, possibly supplied by client (e.g. 'ANSI')"
-	,"terminal type (i.e. 'ANSI', 'RIP', 'PETSCII', or 'DUMB')"
-	,"terminal character set (i.e. 'UTF-8', 'CP437', 'CBM-ASCII', or 'US-ASCII')"
+	,"terminal type description (e.g. 'ANSI')"
 	,"detected CTerm (SyncTERM) version as an integer > 1000 where major version is cterm_version / 1000 and minor version is cterm_version % 1000"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
 	,"number of seconds before disconnection due to user/keyboard inactivity"
@@ -1084,24 +1068,13 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr=NULL;
 	size_t		cstr_sz=0;
 	jsrefcount	rc;
-	int32		pmode = 0;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc == 2 && JSVAL_IS_STRING(argv[0]) && JSVAL_IS_NUMBER(argv[1])) {
-		JSVALUE_TO_RASTRING(cx, argv[0], cstr, &cstr_sz, NULL);
-		if(cstr==NULL)
-		    return(JS_FALSE);
-		if(!JS_ValueToInt32(cx, argv[1], &pmode))
-			return JS_FALSE;
-		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->bputs(cstr, pmode);
-		JS_RESUMEREQUEST(cx, rc);
-	}
-    else for (i=0; i < argc; i++) {
+    for (i = 0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
 		if(cstr==NULL)
 		    return(JS_FALSE);
@@ -1442,34 +1415,6 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
 	sbbs->center(cstr);
-	free(cstr);
-	JS_RESUMEREQUEST(cx, rc);
-    return(JS_TRUE);
-}
-
-static JSBool
-js_wide(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-    JSString*	str;
-	sbbs_t*		sbbs;
-	char*		cstr;
-	jsrefcount	rc;
-
-	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
-		return(JS_FALSE);
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	str = JS_ValueToString(cx, argv[0]);
-	if (str == NULL)
-		return(JS_FALSE);
-
-	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	if(cstr==NULL)
-		return JS_FALSE;
-	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->wide(cstr);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1986,10 +1931,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("beep for <i>count</i> number of times (default count is 1)")
 	,311
 	},
-	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("[value [,value][...]] or [string [,mode=<tt>P_NONE</tt>]]")
-	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.).<br>"
-		"Supports a limited set of <tt>P_*</tt> flags, e.g. <tt>P_PETSCII</tt> and <tt>P_UTF8</tt>."
-	)
+	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
+	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.)")
 	,310
 	},
 	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
@@ -2009,10 +1952,6 @@ static jsSyncMethodSpec js_console_functions[] = {
 	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("display a string centered on the screen")
 	,310
-	},
-	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a string double-wide on the screen (sending \"fullwidth\" Unicode characters when possible)")
-	,31702
 	},
 	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
 	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
