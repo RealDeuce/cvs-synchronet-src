@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.52 2019/07/11 18:31:44 deuce Exp $ */
+/* $Id: bbslist.h,v 1.49 2018/02/07 06:06:46 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -14,8 +14,6 @@
 #if defined(_WIN32)
 	#include <malloc.h>	/* alloca() on Win32 */
 #endif
-
-#include <cterm.h>
 
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	64
@@ -105,8 +103,5 @@ void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
 int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault);
 int  get_rate_num(int rate);
-cterm_emulation_t get_emulation(struct bbslist *bbs);
-const char *get_emulation_str(cterm_emulation_t emu);
-void get_term_size(struct bbslist *bbs, int *cols, int *rows);
 
 #endif

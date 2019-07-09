@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.56 2019/07/11 21:13:43 deuce Exp $
+$Id: cterm.txt,v 1.54 2019/07/09 22:29:10 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -163,10 +163,6 @@ ESC P	Device Control String
 		Currently supported values of p1:
 
 		m	Request SGR parameters
-		r	Request top and bottom margins
-		t	Request height in lines
-		$|	Request width in columns
-		*|	Request height in lines
 
 ESC ^	Privacy Message
 	Begins a string consisting of the characters 0x08 - 0x0d and
@@ -241,30 +237,12 @@ CSI Pn @
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn SP @
-	Shift Left
-	Defaults: Pn = 1
-	Shifts the contents of the screen left Pn columns(s) with
-	leftmost columns going off-screen and the resulting hole being
-	filled with the current attribute.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
 CSI Pn A
 	Cursor Up
 	Defaults: Pn = 1
 	Moves the cursor position up Pn lines from the current position.
 	Attempting to move past the screen boundaries stops the cursor
 	at the screen boundary.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn SP A
-	Shift Right
-	Defaults: Pn = 1
-	Shifts the contents of the screen right Pn columns(s) with
-	rightmost columns going off-screen and the resulting hole being
-	filled with the current attribute.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
