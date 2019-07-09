@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.247 2019/07/09 22:17:57 deuce Exp $ */
+/* $Id: cterm.c,v 1.248 2019/07/09 22:27:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2950,6 +2950,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 												strcat(tmp, cterm->fg_tc_str);
 											if (cterm->bg_tc_str)
 												strcat(tmp, cterm->bg_tc_str);
+											strcat(tmp, "m");
 											if(strlen(retbuf)+strlen(tmp) < retsize)
 												strcat(retbuf, tmp);
 										}
@@ -3060,7 +3061,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.247 $";
+	char	*revision="$Revision: 1.248 $";
 	char *in;
 	char	*out;
 	int		i;
