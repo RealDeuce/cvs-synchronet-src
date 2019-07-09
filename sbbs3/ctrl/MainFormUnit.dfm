@@ -1,11 +1,12 @@
 object MainForm: TMainForm
-  Left = 760
-  Top = 266
+  Left = 724
+  Top = 315
   Width = 793
-  Height = 398
+  Height = 400
   Caption = 'Synchronet Control Panel'
   Color = clBtnFace
   UseDockManager = True
+  DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -62,7 +63,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 174
     Width = 777
-    Height = 141
+    Height = 143
     Align = alClient
     AutoSize = True
     Center = True
@@ -13540,7 +13541,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 174
     Width = 777
-    Height = 141
+    Height = 143
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
@@ -13549,7 +13550,7 @@ object MainForm: TMainForm
       Left = 235
       Top = 0
       Width = 2
-      Height = 141
+      Height = 143
       Cursor = crHSplit
       MinSize = 1
     end
@@ -13557,7 +13558,7 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 235
-      Height = 141
+      Height = 143
       Align = alLeft
       DockSite = True
       TabOrder = 0
@@ -13568,7 +13569,7 @@ object MainForm: TMainForm
       Left = 237
       Top = 0
       Width = 540
-      Height = 141
+      Height = 143
       Align = alClient
       DockSite = True
       TabOrder = 1
@@ -13578,7 +13579,7 @@ object MainForm: TMainForm
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 315
+    Top = 317
     Width = 777
     Height = 25
     Panels = <
@@ -13618,29 +13619,6 @@ object MainForm: TMainForm
     Left = 328
     object FileMenuItem: TMenuItem
       Caption = 'File'
-      object FileRunMenuItem: TMenuItem
-        Caption = '&Run'
-        ImageIndex = 0
-        object FileRunUpdateMenuItem: TMenuItem
-          Caption = 'Update'
-          Hint = 'update.js'
-          OnClick = RunJSClick
-        end
-        object FileRunChkSetupMenuItem: TMenuItem
-          Caption = 'Check Setup'
-          Hint = 'chksetup.js'
-          OnClick = RunJSClick
-        end
-        object FileRunInitFidonetMenuItem: TMenuItem
-          Caption = 'Initial FidoNet Setup'
-          Hint = 'init-fidonet.js'
-          OnClick = RunJSClick
-        end
-        object FileMenuRunJSMenuItem: TMenuItem
-          Caption = 'Other JavaScript Module...'
-          OnClick = FileMenuRunJSMenuItemClick
-        end
-      end
       object FileEditMenuItem: TMenuItem
         Caption = 'Edit'
         ImageIndex = 27
@@ -13998,7 +13976,7 @@ object MainForm: TMainForm
       end
       object TelnetEditMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = '&Edit'
+        Caption = 'Edit'
         ImageIndex = 27
         object TelnetEditRLoginList: TMenuItem
           Caption = 'Allowed RLogin List'
@@ -14033,7 +14011,7 @@ object MainForm: TMainForm
       end
       object MailViewMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = '&View'
+        Caption = 'View'
         ImageIndex = 47
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
@@ -14215,8 +14193,7 @@ object MainForm: TMainForm
       end
       object WebEditMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = '&Edit'
-        ImageIndex = 27
+        Caption = 'Edit'
         object WebEditMimeTypesMenuItem: TMenuItem
           Caption = 'MIME Types'
           Hint = 'mime_types.ini'
@@ -14257,65 +14234,10 @@ object MainForm: TMainForm
       end
       object ServicesEditMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = '&Edit'
-        ImageIndex = 27
+        Caption = 'Edit'
         object ServicesEditIniMenuOption: TMenuItem
           Caption = 'services.ini'
           Hint = 'services.ini'
-          OnClick = CtrlMenuItemEditClick
-        end
-      end
-    end
-    object FidonetMenuItem: TMenuItem
-      Caption = 'Fido&Net'
-      object FidonetConfigureMenuItem: TMenuItem
-        Caption = '&Configure'
-        ImageIndex = 4
-        OnClick = FidonetConfigureMenuItemClick
-      end
-      object FidonetPollMenuItem: TMenuItem
-        Caption = '&Poll'
-        ImageIndex = 0
-        OnClick = FidonetPollMenuItemClick
-      end
-      object N13: TMenuItem
-        Caption = '-'
-      end
-      object FidonetViewMenuItem: TMenuItem
-        Caption = '&View'
-        ImageIndex = 47
-        object binkstasViewMenuItem: TMenuItem
-          Caption = 'BinkP Statistics'
-          Hint = 'binkstats.ini'
-          OnClick = ViewLogClick
-        end
-        object echostatsViewMenuItem: TMenuItem
-          Caption = 'EchoMail Statistics'
-          Hint = 'echostats.ini'
-          OnClick = ViewLogClick
-        end
-        object sbbsechoLogViewMenuItem: TMenuItem
-          Caption = 'SBBSecho Log'
-          Hint = 'sbbsecho.log'
-          OnClick = ViewLogClick
-        end
-        object badareasViewMenuItem: TMenuItem
-          Caption = 'Bad Area List'
-          Hint = 'badareas.lst'
-          OnClick = ViewLogClick
-        end
-      end
-      object FidonetEditMenuItem: TMenuItem
-        Caption = '&Edit'
-        ImageIndex = 27
-        object areafileEditMenuItem: TMenuItem
-          Caption = 'Area File'
-          Hint = 'areas.bbs'
-          OnClick = DataMenuItemClick
-        end
-        object sbbsechoEditMenuItem: TMenuItem
-          Caption = 'sbbsecho.ini'
-          Hint = 'sbbsecho.ini'
           OnClick = CtrlMenuItemEditClick
         end
       end
@@ -16152,10 +16074,6 @@ object MainForm: TMainForm
     object LogPopupCopyAll: TMenuItem
       Caption = 'Copy &All'
       OnClick = LogPopupCopyAllClick
-    end
-    object LogRefresh: TMenuItem
-      Caption = 'Refresh'
-      OnClick = RefreshLogClick
     end
   end
 end
