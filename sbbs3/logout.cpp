@@ -2,7 +2,7 @@
 
 /* Synchronet user logout routines */
 
-/* $Id: logout.cpp,v 1.31 2018/07/25 03:39:28 rswindell Exp $ */
+/* $Id: logout.cpp,v 1.33 2019/05/05 10:54:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -93,13 +93,13 @@ void sbbs_t::logout()
 
 	if(!online) {		/* NOT re-login */
 		if(cfg.sys_logout[0]) {		/* execute system logout event */
-			lprintf(LOG_DEBUG, "executing logout event");
+			lprintf(LOG_DEBUG, "executing logout event: %s", cfg.sys_logout);
 			external(cmdstr(cfg.sys_logout,nulstr,nulstr,NULL),EX_OUTL|EX_OFFLINE);
 		}
 	}
 
 	if(cfg.logout_mod[0]) {
-		lprintf(LOG_DEBUG, "executing logout module");
+		lprintf(LOG_DEBUG, "executing logout module: %s", cfg.logout_mod);
 		exec_bin(cfg.logout_mod,&main_csi);
 	}
 	backout();
@@ -108,7 +108,9 @@ void sbbs_t::logout()
 		remove(path);
 
 	delfiles(cfg.temp_dir,ALLFILES);
-	putmsgptrs();
+	if(sys_status&SS_USERON) {	// Insures the useron actually when through logon()/getmsgptrs() first
+		putmsgptrs();
+	}
 	if(!REALSYSOP)
 		logofflist();
 	useron.laston=(time32_t)now;
