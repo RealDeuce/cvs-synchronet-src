@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.96 2019/07/10 04:27:01 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.97 2019/07/10 04:54:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,7 +148,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			outchar(codepoint, unicode_to_cp437(codepoint));
 		else {
 			char fallback = (char)strtoul(tp + 1, NULL, 16);
-			if(*tp == '|')
+			if(*tp == '/')
 				outchar(codepoint, fallback);
 			else if(*tp == '!') {
 				char ch = unicode_to_cp437(codepoint);
