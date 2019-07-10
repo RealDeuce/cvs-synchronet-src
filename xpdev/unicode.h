@@ -1,6 +1,6 @@
-/* Synchronet UTF-8 translation functions */
+/* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: utf8.h,v 1.5 2019/07/10 00:02:40 rswindell Exp $ */
+/* $Id: unicode.h,v 1.3 2019/07/10 00:02:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,41 +33,19 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef UTF8_H_
-#define UTF8_H_
+#ifndef UNICODE_H_
+#define UNICODE_H_
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include "unicode_defs.h"
-
-#define UTF8_MAX_LEN 6	// Longest possible UTF-8 sequence
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-// Returns true if the string is valid UTF-8
-bool utf8_str_is_valid(const char*);
-
-// Normalizes (to ASCII) chars in UTF-8 string 'str', in-place, resulting in string <= original in length
-char* utf8_normalize_str(char* str);
-
-// Replace or strip UTF-8 sequences in str (in-place)
-// 'lookup' is a Unicode codepoint look-up function (optional)
-// 'unsupported_ch' is the character used to replace unsupported Unicode codepoints (optional)
-// 'unsupported_zwch' is the character used to replace unsupported zero-width Unicode codepoints (optional)
-// 'error_ch' is the character used to replace invalid UTF-8 sequence bytes (optional)
-char* utf8_replace_chars(char* str, char (*lookup)(enum unicode_codepoint), char unsupported_ch, char unsupported_zwch, char error_ch);
-
-// Convert a CP437 char string (src) to UTF-8 string (dest) up to 'maxlen' chars long (sans NUL-terminator)
-// 'minval' can be used to limit the range of converted chars
-int cp437_to_utf8_str(const char* src, char* dest, size_t maxlen, unsigned char minval);
-
-// Decode a UTF-8 sequence to a UNICODE code point
-int utf8_getc(const char* str, size_t len, enum unicode_codepoint* codepoint);
-
-// Encode a UNICODE code point into a UTF-8 sequence (str)
-int utf8_putc(char* str, size_t len, enum unicode_codepoint codepoint);
+extern enum unicode_codepoint cp437_unicode_tbl[];
+size_t unicode_width(enum unicode_codepoint);
+char unicode_to_cp437(enum unicode_codepoint);
 
 #if defined(__cplusplus)
 }
