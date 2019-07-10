@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.54 2019/07/26 19:58:35 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.50 2019/07/08 07:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 
 #include "sbbs.h"
 #include "wordwrap.h"
-#include "utf8.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string with @-code parsing,                    */
@@ -66,9 +65,10 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
-	str = auto_utf8(str, &mode);
-	size_t len = strlen(str);
-
+	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
+		mode |= P_UTF8;
+		str += 3;
+	}
 	long term = term_supports();
 	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
 		mode &= ~P_WORDWRAP;
@@ -97,6 +97,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		}
 	}
 
+	size_t len = strlen(str);
 	while(l < len && (mode&P_NOABORT || !msgabort()) && online) {
 		switch(str[l]) {
 			case '\r':
@@ -122,7 +123,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				break;
 		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
-			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF) && !(mode&P_NOATCODES)) {  /* Quote a file */
+			if(str[l+1]=='"' && !(sys_status&SS_NEST_PF)) {  /* Quote a file */
 				l+=2;
 				i=0;
 				while(i<(int)sizeof(tmp2)-1 && isprint((unsigned char)str[l]) && str[l]!='\\' && str[l]!='/')
@@ -148,8 +149,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			outchar(ESC); /* Convert `[ and ú[ to ESC[ */
 			l++;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_PCBOARD) && str[l]=='@' && str[l+1]=='X'
+		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
 			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
 			ulong val = ahtoul(tmp2);
@@ -169,16 +169,14 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=4;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_WILDCAT) && str[l]=='@' && str[l+3]=='@'
+		else if(cfg.sys_misc&SM_WILDCAT && str[l]=='@' && str[l+3]=='@'
 			&& isxdigit((unsigned char)str[l+1]) && isxdigit((unsigned char)str[l+2])) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			attr(ahtoul(tmp2));
 			// exatr=1;
 			l+=4;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_RENEGADE) && str[l]=='|' && isdigit((unsigned char)str[l+1])
+		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
 			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&RIP)) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
@@ -193,8 +191,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=3;	/* Skip |xx */
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_CELERITY) && str[l]=='|' && isalpha((unsigned char)str[l+1])
+		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha((unsigned char)str[l+1])
 			&& !(useron.misc&RIP)) {
 			switch(str[l+1]) {
 				case 'k':
@@ -252,8 +249,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=2;	/* Skip |x */
 		}  /* Skip second digit if it exists */
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_WWIV) && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
+		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
 			exatr=1;
 			switch(str[l+1]) {
 				default:
