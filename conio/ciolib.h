@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.100 2018/04/18 06:44:48 deuce Exp $ */
+/* $Id: ciolib.h,v 1.101 2019/03/22 21:28:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -43,7 +43,7 @@
 
 #ifdef _WIN32
         #ifdef __BORLANDC__
-                #define CIOLIBCALL __stdcall
+                #define CIOLIBCALL
         #else
                 #define CIOLIBCALL
         #endif
