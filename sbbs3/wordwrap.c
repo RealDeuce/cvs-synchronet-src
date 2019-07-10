@@ -1,4 +1,4 @@
-/* $Id: wordwrap.c,v 1.49 2019/07/08 07:08:00 rswindell Exp $ */
+/* $Id: wordwrap.c,v 1.50 2019/07/10 22:40:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,6 +252,7 @@ static struct section_len get_word_len(char *buf, int maxlen, BOOL is_utf8)
 			ret.bytes++;
 			if (buf[ret.bytes] == '\\')
 				break;
+			continue;
 		}
 		else if (buf[ret.bytes]=='\b') {
 			// This doesn't handle BS the same way... bit it's kinda BS anyway.
