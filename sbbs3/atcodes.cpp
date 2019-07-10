@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.94 2019/07/10 01:14:42 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.95 2019/07/10 01:52:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -335,6 +335,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		char zone[32];
 		safe_snprintf(str, maxlen, "%s %s", timestr(time(NULL)), smb_zonestr(sys_timezone(&cfg),zone));
 		return str;
+	}
+	
+	if(strcmp(sp, "DATEFMT") == 0) {
+		return cfg.sys_misc&SM_EURODATE ? "DD/MM/YY" : "MM/DD/YY";
 	}
 
 	if(!strcmp(sp,"TMSG")) {
