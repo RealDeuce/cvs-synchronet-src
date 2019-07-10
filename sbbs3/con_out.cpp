@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.107 2019/07/10 00:08:29 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.108 2019/07/10 01:12:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -267,7 +267,7 @@ size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 	if(ch)
 		outchar(ch);
 	else if(unicode_width(codepoint) > 0) {
-		outchar(CP437_CHAR_INVERTED_QUESTION_MARK);
+		outchar(CP437_INVERTED_QUESTION_MARK);
 		char seq[32] = "";
 		for(size_t i = 0; i < len; i++)
 			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
