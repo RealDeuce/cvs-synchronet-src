@@ -1,4 +1,6 @@
-/* $Id: wordwrap.h,v 1.8 2019/07/08 07:08:01 rswindell Exp $ */
+/* Synchronet Unicode encode/decode/translate functions */
+
+/* $Id: unicode.h,v 1.3 2019/07/10 00:02:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -6,12 +8,12 @@
  *																			*
  * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
- * This program is free software; you can redistribute it and/or			*
- * modify it under the terms of the GNU General Public License				*
+ * This library is free software; you can redistribute it and/or			*
+ * modify it under the terms of the GNU Lesser General Public License		*
  * as published by the Free Software Foundation; either version 2			*
  * of the License, or (at your option) any later version.					*
- * See the GNU General Public License for more details: gpl.txt or			*
- * http://www.fsf.org/copyleft/gpl.html										*
+ * See the GNU Lesser General Public License for more details: lgpl.txt or	*
+ * http://www.fsf.org/copyleft/lesser.html									*
  *																			*
  * Anonymous FTP access to the most recent released source is available at	*
  * ftp://vert.synchro.net, ftp://cvs.synchro.net and ftp://ftp.synchro.net	*
@@ -31,17 +33,22 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _WORDWRAP_H_
-#define _WORDWRAP_H_
+#ifndef UNICODE_H_
+#define UNICODE_H_
 
-#ifdef __cplusplus
+#include <stdlib.h>
+#include "unicode_defs.h"
+
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
-char* wordwrap(char* inbuf, int len, int oldlen, BOOL handle_quotes, BOOL is_utf8);
+extern enum unicode_codepoint cp437_unicode_tbl[];
+size_t unicode_width(enum unicode_codepoint);
+char unicode_to_cp437(enum unicode_codepoint);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 
-#endif /* Don't add anything after this line */
+#endif // Don't add anything after this line
