@@ -1,6 +1,5 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -19,7 +18,6 @@
 #include "window.h"
 #include "term.h"
 #include "menu.h"
-#include "vidmodes.h"
 
 struct sort_order_info {
 	char		*name;
@@ -176,8 +174,8 @@ int sortorder[sizeof(sort_order)/sizeof(struct sort_order_info)];
 
 char *sort_orders[]={"Entry Name","Address","Connection Type","Port","Date Added","Date Last Connected"};
 
-char *screen_modes[]={     "Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", "Custom", NULL};
-char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37",        "132x52",       "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col",   "C128-80col",   "Atari", "Atari-XEP80", "Custom", NULL};
+char *screen_modes[]={     "Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37 (16:9)", "132x52 (5:4)", "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128 (40col)", "C128 (80col)", "Atari", "Atari XEP80", NULL};
+char *screen_modes_enum[]={"Current", "80x25", "80x28", "80x30", "80x43", "80x50", "80x60", "132x37",        "132x52",       "132x25", "132x28", "132x30", "132x34", "132x43", "132x50", "132x60", "C64", "C128-40col",   "C128-80col",   "Atari", "Atari-XEP80", NULL};
 char *log_levels[]={"Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug", NULL};
 char *log_level_desc[]={"None", "Alerts", "Critical Errors", "Errors", "Warnings", "Notices", "Normal", "All (Debug)", NULL};
 
@@ -194,7 +192,7 @@ char *address_family_help =	"`Address Family`\n\n"
 							"`IPv4 only`...: Only uses IPv4 addresses.\n"
 							"`IPv6 only`...: Only uses IPv6 addresses.\n";
 
-char *address_help=
+char *address_help=	
 					"`Address`, `Phone Number`, `Serial Port`, or `Command`\n\n"
 					"Enter the hostname, IP address, phone number, or serial port device of\n"
 					"the system to connect to. Example: `nix.synchro.net`\n\n"
@@ -213,10 +211,10 @@ char *conn_type_help=			"`Connection Type`\n\n"
 								;
 
 ini_style_t ini_style = {
-	/* key_len */ 15,
-	/* key_prefix */ "\t",
-	/* section_separator */ "\n",
-	/* value_separarator */NULL,
+	/* key_len */ 15, 
+	/* key_prefix */ "\t", 
+	/* section_separator */ "\n", 
+	/* value_separarator */NULL, 
 	/* bit_separator */ NULL };
 
 void viewofflinescroll(void)
@@ -983,31 +981,23 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						else if(item->screen_mode == SCREEN_MODE_C128_40
+						if(item->screen_mode == SCREEN_MODE_C128_40
 								|| item->screen_mode == SCREEN_MODE_C128_80) {
 							SAFECOPY(item->font,font_names[35]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						else if(item->screen_mode == SCREEN_MODE_ATARI) {
+						if(item->screen_mode == SCREEN_MODE_ATARI) {
 							SAFECOPY(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						else if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
+						if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
 							SAFECOPY(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
-							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
-						}
-						else if (i == SCREEN_MODE_C64 || i == SCREEN_MODE_C128_40 ||
-						    i == SCREEN_MODE_C128_80 || i == SCREEN_MODE_ATARI ||
-						    i == SCREEN_MODE_ATARI_XEP80) {
-							SAFECOPY(item->font,font_names[0]);
-							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
-							item->nostatus = 0;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						changed=1;
@@ -1166,7 +1156,7 @@ void add_bbs(char *listpath, struct bbslist *bbs)
 	else {
 		inifile=strListInit();
 	}
-	/*
+	/* 
 	 * Redundant:
 	 * iniAddSection(&inifile,bbs->name,NULL);
 	 */
@@ -1217,74 +1207,14 @@ void del_bbs(char *listpath, struct bbslist *bbs)
 	}
 }
 
-/*
- * This is pretty sketchy...
- * These are pointers to automatic variables in show_bbslist() which are
- * used to redraw the entire menu set if the custom mode is current
- * and is changed.
- */
-static int *glob_sopt;
-static int *glob_sbar;
-static char **glob_settings_menu;
-
-static int *glob_listcount;
-static int *glob_opt;
-static int *glob_bar;
-static char *glob_list_title;
-static struct bbslist ***glob_list;
-
-/*
- * This uses the above variables and therefore *must* be called from
- * show_bbslist().
- *
- * If show_bbslist() is not on the stack, this will do insane things.
- */
-static void
-custom_mode_adjusted(int *cur, char **opt)
-{
-	struct text_info ti;
-	int cvmode;
-
-	gettextinfo(&ti);
-	if (ti.currmode != CIOLIB_MODE_CUSTOM) {
-		cvmode = find_vmode(ti.currmode);
-		vparams[cvmode].cols = settings.custom_cols;
-		vparams[cvmode].rows = settings.custom_rows;
-		vparams[cvmode].charheight = settings.custom_fontheight;
-		return;
-	}
-
-	uifcbail();
-	textmode(0);
-	cvmode = find_vmode(ti.currmode);
-	vparams[cvmode].cols = settings.custom_cols;
-	vparams[cvmode].rows = settings.custom_rows;
-	vparams[cvmode].charheight = settings.custom_fontheight;
-	textmode(ti.currmode);
-	init_uifc(TRUE, TRUE);
-
-	// Draw BBS List
-	uifc.list((*glob_listcount<MAX_OPTS?WIN_XTR:0)
-		|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
-		|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
-		|WIN_SEL|WIN_INACT
-		,0,0,0,glob_opt,glob_bar,glob_list_title,(char **)*glob_list);
-	// Draw settings menu
-	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_ACT|WIN_INACT
-		,0,0,0,glob_sopt,glob_sbar,"SyncTERM Settings",glob_settings_menu);
-	// Draw program settings
-	uifc.list(WIN_MID|WIN_SAV|WIN_ACT|WIN_DYN|WIN_SEL|WIN_INACT,0,0,0,cur,NULL,"Program Settings",opt);
-}
-
-void change_settings(int connected)
+void change_settings(void)
 {
 	char	inipath[MAX_PATH+1];
 	FILE	*inifile;
 	str_list_t	inicontents;
-	char	opts[12][80];
-	char	*opt[13];
-	char	*subopts[8];
-	int		i,j,k,l;
+	char	opts[11][80];
+	char	*opt[12];
+	int		i,j;
 	char	str[64];
 	int	cur=0;
 
@@ -1297,7 +1227,7 @@ void change_settings(int connected)
 		inicontents=strListInit();
 	}
 
-	for(i=0; i<12; i++)
+	for(i=0; i<11; i++)
 		opt[i]=opts[i];
 	opt[i]=NULL;
 
@@ -1325,28 +1255,22 @@ void change_settings(int connected)
 						"~ List Path ~\n"
 						"        The complete path to the user's BBS list.\n\n"
 						"~ TERM For Shell ~\n"
-						"        The value to set the TERM envirnonment variable to goes here.\n\n"
-						"~ Custom Screen Mode ~\n"
-						"        Configure the Custom screen mode.\n\n";
-		SAFEPRINTF(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
-		SAFEPRINTF(opts[1],"Prompt to Save          %s",settings.prompt_save?"Yes":"No");
-		SAFEPRINTF(opts[2],"Startup Screen Mode     %s",screen_modes[settings.startup_mode]);
-		SAFEPRINTF(opts[3],"Video Output Mode       %s",output_descrs[settings.output_mode]);
-		SAFEPRINTF(opts[4],"Scrollback Buffer Lines %d",settings.backlines);
-		SAFEPRINTF(opts[5],"Modem/Comm Device       %s",settings.mdm.device_name);
+						"        The value to set the TERM envirnonment variable to goes here.\n\n";
+		sprintf(opts[0],"Confirm Program Exit    %s",settings.confirm_close?"Yes":"No");
+		sprintf(opts[1],"Prompt to Save          %s",settings.prompt_save?"Yes":"No");
+		sprintf(opts[2],"Startup Screen Mode     %s",screen_modes[settings.startup_mode]);
+		sprintf(opts[3],"Video Output Mode       %s",output_descrs[settings.output_mode]);
+		sprintf(opts[4],"Scrollback Buffer Lines %d",settings.backlines);
+		sprintf(opts[5],"Modem/Comm Device       %s",settings.mdm.device_name);
 		if(settings.mdm.com_rate)
 			sprintf(str,"%lubps",settings.mdm.com_rate);
 		else
 			strcpy(str,"Current");
-		SAFEPRINTF(opts[6],"Modem/Comm Rate         %s",str);
-		SAFEPRINTF(opts[7],"Modem Init String       %s",settings.mdm.init_string);
-		SAFEPRINTF(opts[8],"Modem Dial String       %s",settings.mdm.dial_string);
-		SAFEPRINTF(opts[9],"List Path               %s",settings.list_path);
-		SAFEPRINTF(opts[10],"TERM For Shell          %s",settings.TERM);
-		if (connected)
-			opt[11] = NULL;
-		else
-			sprintf(opts[11],"Custom Screen Mode");
+		sprintf(opts[6],"Modem/Comm Rate         %s",str);
+		sprintf(opts[7],"Modem Init String       %s",settings.mdm.init_string);
+		sprintf(opts[8],"Modem Dial String       %s",settings.mdm.dial_string);
+		sprintf(opts[9],"List Path               %s",settings.list_path);
+		sprintf(opts[10],"TERM For Shell          %s",settings.TERM);
 		switch(uifc.list(WIN_MID|WIN_SAV|WIN_ACT,0,0,0,&cur,NULL,"Program Settings",opt)) {
 			case -1:
 				check_exit(FALSE);
@@ -1426,6 +1350,13 @@ void change_settings(int connected)
 								"        This output mode allows switching to full-screen mode but is\n"
 								"        otherwise identical to X11 mode.\n\n"
 								"~ SDL Fullscreen ~\n"
+								"        As above, but starts in full-screen mode rather than a window\n\n"
+								"~ SDL Overlay ~\n"
+								"        The most resource intensive mode.  However, unlike the other\n"
+								"        graphical modes, this window can be scaled to any size and,\n"
+								"        when switched to full screen, will always use the entire\n"
+								"        display.\n\n"
+								"~ SDL Overlay Fullscreen ~\n"
 								"        As above, but starts in full-screen mode rather than a window\n\n"
 #endif
 								;
@@ -1551,104 +1482,6 @@ void change_settings(int connected)
 				else
 					check_exit(FALSE);
 				break;
-			case 11:
-				uifc.helpbuf=	"`Custom Screen Mode`\n\n"
-								"~ Rows ~\n"
-								"        Sets the number of rows in the custom screen mode\n"
-								"~ Columns ~\n"
-								"        Sets the number of columns in the custom screen mode\n"
-								"~ Font Size ~\n"
-								"        Chooses the font size used by the custom screen mode\n";
-				j = 0;
-				for (k=0; k==0;) {
-					// Beware case 2 below if adding things
-					asprintf(&subopts[0], "Rows      (%d)", settings.custom_rows);
-					asprintf(&subopts[1], "Columns   (%d)", settings.custom_cols);
-					asprintf(&subopts[2], "Font Size (%s)", settings.custom_fontheight == 8 ? "8x8" : settings.custom_fontheight == 14 ? "8x14" : "8x16");
-					subopts[3] = NULL;
-					switch (uifc.list(WIN_SAV,0,0,0,&j,NULL,"Video Output Mode",subopts)) {
-						case -1:
-							check_exit(FALSE);
-							k = 1;
-							break;
-						case 0:
-							uifc.helpbuf=	"`Rows`\n\n"
-											"Number of rows on the custom screen.  Must be between 14 and 255";
-							sprintf(str,"%d",settings.custom_rows);
-							if (uifc.input(WIN_SAV|WIN_MID, 0, 0, "Custom Rows", str, 3, K_NUMBER|K_EDIT)!=-1) {
-								l = atoi(str);
-								if (l < 14 || l > 255) {
-									uifc.msg("Rows must be between 14 and 255.");
-									check_exit(FALSE);
-								}
-								else {
-									settings.custom_rows = l;
-									iniSetInteger(&inicontents, "SyncTERM", "CustomRows", settings.custom_rows, &ini_style);
-									custom_mode_adjusted(&cur, opt);
-								}
-							}
-							break;
-						case 1:
-							uifc.helpbuf=	"`Columns`\n\n"
-											"Number of columns on the custom screen.  Must be between 40 and 255\n"
-											"Note that values other than 40, 80, and 132 are not supported.";
-							sprintf(str,"%d",settings.custom_cols);
-							if (uifc.input(WIN_SAV|WIN_MID, 0, 0, "Custom Columns", str, 3, K_NUMBER|K_EDIT)!=-1) {
-								l = atoi(str);
-								if (l < 40 || l > 255) {
-									uifc.msg("Columns must be between 40 and 255.");
-									check_exit(FALSE);
-								}
-								else {
-									settings.custom_cols = l;
-									iniSetInteger(&inicontents, "SyncTERM", "CustomColumns", settings.custom_cols, &ini_style);
-									custom_mode_adjusted(&cur, opt);
-								}
-							}
-							break;
-						case 2:
-							uifc.helpbuf=	"`Font Size`\n\n"
-											"Choose the font size for the custom mode.";
-							subopts[4] = "8x8";
-							subopts[5] = "8x14";
-							subopts[6] = "8x16";
-							subopts[7] = NULL;
-							switch(settings.custom_fontheight) {
-								case 8:
-									l = 0;
-									break;
-								case 14:
-									l = 1;
-									break;
-								default:
-									l = 2;
-									break;
-							}
-							switch (uifc.list(WIN_SAV, 0, 0, 0, &l, NULL, "Font Size", &subopts[4])) {
-								case -1:
-									check_exit(FALSE);
-									break;
-								case 0:
-									settings.custom_fontheight = 8;
-									iniSetInteger(&inicontents, "SyncTERM", "CustomFontHeight", settings.custom_fontheight, &ini_style);
-									custom_mode_adjusted(&cur, opt);
-									break;
-								case 1:
-									settings.custom_fontheight = 14;
-									iniSetInteger(&inicontents, "SyncTERM", "CustomFontHeight", settings.custom_fontheight, &ini_style);
-									custom_mode_adjusted(&cur, opt);
-									break;
-								case 2:
-									settings.custom_fontheight = 16;
-									iniSetInteger(&inicontents, "SyncTERM", "CustomFontHeight", settings.custom_fontheight, &ini_style);
-									custom_mode_adjusted(&cur, opt);
-									break;
-							}
-					}
-					free(subopts[0]);
-					free(subopts[1]);
-					free(subopts[2]);
-				}
 		}
 	}
 write_ini:
@@ -1722,16 +1555,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 	struct mouse_event mevent;
 	struct bbslist defaults;
 	char	shared_list[MAX_PATH+1];
-	char list_title[30];
-
-	glob_sbar = &sbar;
-	glob_sopt = &sopt;
-	glob_settings_menu = settings_menu;
-	glob_listcount = &listcount;
-	glob_opt = &opt;
-	glob_bar = &bar;
-	glob_list_title = list_title;
-	glob_list = &list;
 
 	if(init_uifc(connected?FALSE:TRUE, TRUE))
 		return(NULL);
@@ -1752,7 +1575,6 @@ struct bbslist *show_bbslist(char *current, int connected)
 		}
 		if (!at_settings) {
 			for(;!at_settings;) {
-				sprintf(list_title, "Directory (%d items)", listcount);
 				if (quitting) {
 					free(list);
 					return NULL;
@@ -1785,7 +1607,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 				val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 					|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
-					,0,0,0,&opt,&bar,list_title,(char **)list);
+					,0,0,0,&opt,&bar,"Directory",(char **)list);
 				if(val==listcount)
 					val=listcount|MSK_INS;
 				if(val==-7)	{ /* CTRL-E */
@@ -1793,7 +1615,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 						|WIN_SEL
-						,0,0,0,&opt,&bar,list_title,(char **)list);
+						,0,0,0,&opt,&bar,"Directory",(char **)list);
 					val=opt|MSK_EDIT;
 				}
 				if(val<0) {
@@ -1803,7 +1625,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 								|WIN_SEL
-								,0,0,0,&opt,&bar,list_title,(char **)list);
+								,0,0,0,&opt,&bar,"Directory",(char **)list);
 							edit_sorting(list,&listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
 							break;
 						case -2-0x3000:	/* ALT-B - Scrollback */
@@ -1824,7 +1646,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 								|WIN_SEL
-								,0,0,0,&opt,&bar,list_title,(char **)list);
+								,0,0,0,&opt,&bar,"Directory",(char **)list);
 							at_settings=!at_settings;
 							break;
 						case -6:		/* CTRL-D */
@@ -1844,7 +1666,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 									|WIN_SEL
-									,0,0,0,&opt,&bar,list_title,(char **)list);
+									,0,0,0,&opt,&bar,"Directory",(char **)list);
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Address",addy,LIST_ADDR_MAX,0);
 								memcpy(&retlist, &defaults, sizeof(defaults));
 								if(uifc.changes) {
@@ -1866,7 +1688,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 				}
 				else if(val&MSK_ON) {
 					char tmp[LIST_NAME_MAX+1];
-
+				
 					switch(val&MSK_ON) {
 						case MSK_INS:
 							if(listcount>=MAX_OPTS) {
@@ -2064,7 +1886,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 								|WIN_SEL|WIN_INACT
-								,0,0,0,&opt,&bar,list_title,(char **)list);
+								,0,0,0,&opt,&bar,"Directory",(char **)list);
 						}
 						break;
 					case -2-CIO_KEY_MOUSE:
@@ -2116,7 +1938,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 									|WIN_SEL|WIN_INACT
-									,0,0,0,&opt,&bar,list_title,(char **)list);
+									,0,0,0,&opt,&bar,"Directory",(char **)list);
 							}
 							else if (check_exit(FALSE)) {
 								free_list(&list[0],listcount);
@@ -2132,79 +1954,12 @@ struct bbslist *show_bbslist(char *current, int connected)
 						}
 						break;
 					case 3:			/* Program settings */
-						change_settings(connected);
+						change_settings();
 						load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, list[opt]?strdup(list[opt]->name):NULL);
 						oldopt=-1;
 						break;
 				}
 			}
 		}
-	}
-}
-
-cterm_emulation_t
-get_emulation(struct bbslist *bbs)
-{
-	if (bbs == NULL)
-		return CTERM_EMULATION_ANSI_BBS;
-
-	switch(bbs->screen_mode) {
-		case SCREEN_MODE_C64:
-		case SCREEN_MODE_C128_40:
-		case SCREEN_MODE_C128_80:
-			return CTERM_EMULATION_PETASCII;
-		case SCREEN_MODE_ATARI:
-		case SCREEN_MODE_ATARI_XEP80:
-			return CTERM_EMULATION_ATASCII;
-		default:
-			return CTERM_EMULATION_ANSI_BBS;
-	}
-}
-
-const char *
-get_emulation_str(cterm_emulation_t emu)
-{
-	switch (emu) {
-		case CTERM_EMULATION_ANSI_BBS:
-			return "syncterm";
-		case CTERM_EMULATION_PETASCII:
-			return "PETSCII";
-		case CTERM_EMULATION_ATASCII:
-			return "ATASCII";
-	}
-	return "none";
-}
-
-void
-get_term_size(struct bbslist *bbs, int *cols, int *rows)
-{
-	int cmode = find_vmode(screen_to_ciolib(bbs->screen_mode));
-
-	if (cmode < 0) {
-		// This shouldn't happen, but if it does, make something up.
-		*cols = 80;
-		*rows = 24;
-		return;
-	}
-	if(vparams[cmode].cols < 80) {
-		if (cols)
-			*cols=40;
-	}
-	else {
-		if(vparams[cmode].cols < 132) {
-			if (cols)
-				*cols=80;
-		}
-		else {
-			if (cols)
-				*cols=132;
-		}
-	}
-	if (rows) {
-		*rows=vparams[cmode].rows;
-		if(!bbs->nostatus)
-			(*rows)--;
-		if(*rows<24)
-			*rows=24;
 	}
 }
