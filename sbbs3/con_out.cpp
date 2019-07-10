@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.113 2019/07/11 21:41:57 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.108 2019/07/10 01:12:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,7 +310,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else {
 			if(outcom(ch)!=0)
 				break;
-			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		}
 		if(lbuflen<LINE_BUFSIZE)
@@ -382,38 +382,6 @@ long sbbs_t::term_supports(long cmp_flags)
 		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
-}
-
-/****************************************************************************/
-/* Returns description of the terminal type									*/
-/****************************************************************************/
-const char* sbbs_t::term_type(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "PETSCII";
-	if(term&RIP)
-		return "RIP";
-	if(term&ANSI)
-		return "ANSI";
-	return "DUMB";
-}
-
-/****************************************************************************/
-/* Returns description of the terminal supported character set (charset)	*/
-/****************************************************************************/
-const char* sbbs_t::term_charset(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "CBM-ASCII";
-	if(term&UTF8)
-		return "UTF-8";
-	if(term&NO_EXASCII)
-		return "US-ASCII";
-	return "CP437";
 }
 
 /****************************************************************************/
@@ -592,7 +560,7 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
-int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback)
+int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
 {
 	if(term_supports(UTF8)) {
 		char str[UTF8_MAX_LEN];
@@ -603,15 +571,9 @@ int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback
 		inc_column(unicode_width(codepoint));
 		return 0;
 	}
-	if(cp437_fallback == NULL)
+	if(cp437_fallback == 0)
 		return 0;
-	return bputs(cp437_fallback);
-}
-
-int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
-{
-	char str[2] = { cp437_fallback, '\0' };
-	return outchar(codepoint, str);
+	return outchar(cp437_fallback);
 }
 
 void sbbs_t::inc_column(int count)
@@ -640,21 +602,6 @@ void sbbs_t::center(char *instr)
 	bputs(str);
 	newline();
 }
-
-void sbbs_t::wide(const char* str)
-{
-	long term = term_supports();
-	while(*str != '\0') {
-		if((term&UTF8) && *str >= '!' && *str <= '~')
-			outchar((enum unicode_codepoint)(UNICODE_FULLWIDTH_EXCLAMATION_MARK + (*str - '!')));
-		else {
-			outchar(*str);
-			outchar(' ');
-		}
-		str++;
-	}
-}
-
 
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
 void sbbs_t::carriage_return(void)
