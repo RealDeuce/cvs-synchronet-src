@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.104 2019/07/12 02:15:45 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.102 2019/06/28 23:04:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -365,6 +365,8 @@ bool sbbs_t::answer()
 				} else if(sscanf(p, "[=67;84;101;114;109;%u;%u", &x, &y) == 2 && *lastchar(p) == 'c') {
 					lprintf(LOG_INFO,"received CTerm version report: %u.%u", x, y);
 					cterm_version = (x*1000) + y;
+					if(cterm_version >= 1061)
+						autoterm |= CTERM_FONTS;
 				}
 				p = strtok_r(NULL, "\x1b", &tokenizer);
 			}
@@ -448,6 +450,8 @@ bool sbbs_t::answer()
 		input_thread_mutex_locked = false;
 	}
 	lprintf(LOG_INFO, "terminal type: %lux%lu %s", cols, rows, terminal);
+	useron.misc&=~TERM_FLAGS;
+	useron.misc|=autoterm;
 	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
