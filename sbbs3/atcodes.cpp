@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.95 2019/07/10 01:52:47 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.96 2019/07/10 04:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -164,6 +164,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(strcmp(sp, "CHECKMARK") == 0) {
 		outchar(UNICODE_CHECK_MARK, CP437_CHECK_MARK);
 		return nulstr;
+	}
+
+	if(strncmp(sp, "WIDE:", 5) == 0) {
+		wide(sp + 5);
+		return(nulstr);
 	}
 
 	if(!strcmp(sp,"VER"))

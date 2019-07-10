@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.108 2019/07/10 01:12:43 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.109 2019/07/10 04:27:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -602,6 +602,21 @@ void sbbs_t::center(char *instr)
 	bputs(str);
 	newline();
 }
+
+void sbbs_t::wide(const char* str)
+{
+	long term = term_supports();
+	while(*str != '\0') {
+		if((term&UTF8) && *str >= '!' && *str <= '~')
+			outchar((enum unicode_codepoint)(UNICODE_FULLWIDTH_EXCLAMATION_MARK + (*str - '!')));
+		else {
+			outchar(*str);
+			outchar(' ');
+		}
+		str++;
+	}
+}
+
 
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
 void sbbs_t::carriage_return(void)
