@@ -807,11 +807,35 @@ enum {
 	,Only
 	,SPAMVisibilityIsNow
 	,VoteInThisPollNow
-	,MIMEDecodedPlainText
+	,MIMEDecodedPlainTextFmt
 	,MsgHdrBodySeparator
 	,FileHdrDescSeparator
 	,RemoveFileQ
 	,OriginFidoAddr
+	,VoteNoticeFmt
+	,TagMessageQ
+	,TagMessagePrompt
+	,MsgTags
+	,NoAccessTerminal
+	,LongLineContinuationPrefix
+	,Scanning
+	,Done
+	,Scanned
+	,HitYourBackspaceKey
+	,CharacterReceivedFmt
+	,InvalidBackspaceKeyFmt
+	,SwapDeleteKeyQ
+	,PetTerminalDetected
+	,PetTerminalQ
+	,TerminalAutoDetect
+	,TerminalColumns
+	,TerminalRows
+	,TerminalMonochrome
+	,TerminalColor
+	,TerminalIceColor
+	,IceColorTerminalQ
+	,Utf8TerminalQ
+	,MsgCarbonCopyList
 
 	,TOTAL_TEXT
 };
