@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.24 2018/07/19 04:13:47 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.31 2019/06/17 05:37:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		5
+#define SBBSECHO_VERSION_MINOR		7
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -68,7 +68,7 @@ enum pkt_type {
 	 PKT_TYPE_2_PLUS				/* Type-2+  Packet Header (FSC-48)		*/
 	,PKT_TYPE_2_EXT					/* Type-2e  Packet Header (FSC-39)		*/
 	,PKT_TYPE_2_2					/* Type-2.2 Packet Header (FSC-45)		*/
-	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/	
+	,PKT_TYPE_2	 					/* Type-2   Packet Header (FTS-1)		*/
 	,PKT_TYPES_SUPPORTED
 };
 
@@ -103,7 +103,8 @@ typedef struct {
 
 typedef struct {
 	fidoaddr_t 	addr			/* Fido address of this node */
-			   ,route;			/* Address to route FLO stuff through */
+			   ,route			/* Address to route FLO stuff through */
+			   ,local_addr;		/* Preferred local address (AKA) to use when sending packets to this node */
 	char		domain[FIDO_DOMAIN_LEN+1];
 	enum pkt_type pkt_type;		/* Packet type to use for outgoing PKTs */
 	char		password[FIDO_SUBJ_LEN];	/* Areafix password for this node */
@@ -124,6 +125,7 @@ typedef struct {
 	arcdef_t*	archive;
 	str_list_t	grphub;			/* This link is hub of these groups (short names */
 	/* BinkP settings */
+	bool		binkp_plainAuthOnly;
 	bool		binkp_allowPlainAuth;
 	bool		binkp_allowPlainText;
 	bool		binkp_poll;
@@ -192,6 +194,7 @@ typedef struct {
 	bool		secure_echomail;
 	bool		strict_packet_passwords;	/* Packet passwords must always match the configured linked-node */
 	bool		strip_lf;
+	bool		strip_soft_cr;
 	bool		convert_tear;
 	bool		fuzzy_zone;
 	bool		flo_mailer;				/* Binkley-Style-Outbound / FLO mailer */
@@ -218,6 +221,8 @@ typedef struct {
 	unsigned	domain_count;
 	char		binkp_caps[64];
 	char		binkp_sysop[64];
+	bool		binkp_plainAuthOnly;
+	bool		binkp_plainTextOnly;
 } sbbsecho_cfg_t;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
