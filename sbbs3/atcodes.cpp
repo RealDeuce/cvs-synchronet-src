@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.100 2019/07/10 20:38:34 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.101 2019/07/10 21:41:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,11 +83,11 @@ int sbbs_t::show_atcode(const char *instr)
 		padded_right=true;
 	else if((p=strstr(sp,"-C"))!=NULL)
 		centered=true;
-	else if((p=strstr(sp,"-D"))!=NULL)
+	else if((p=strstr(sp,"-W"))!=NULL)	/* wide */
 		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
-	else if((p=strstr(sp,"-W"))!=NULL)	/* wrap */
+	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
 		truncated = false;
 	if(p!=NULL) {
 		char* lp = p + 2;
