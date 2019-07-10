@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.105 2019/07/11 21:44:33 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.99 2019/07/10 06:51:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,11 +83,11 @@ int sbbs_t::show_atcode(const char *instr)
 		padded_right=true;
 	else if((p=strstr(sp,"-C"))!=NULL)
 		centered=true;
-	else if((p=strstr(sp,"-W"))!=NULL)	/* wide */
+	else if((p=strstr(sp,"-D"))!=NULL)
 		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
-	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
+	else if((p=strstr(sp,"-W"))!=NULL)	/* wrap */
 		truncated = false;
 	if(p!=NULL) {
 		char* lp = p + 2;
@@ -151,13 +151,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(strncmp(sp, "U+", 2) == 0) {	// UNICODE
 		enum unicode_codepoint codepoint = (enum unicode_codepoint)strtoul(sp + 2, &tp, 16);
-		if(tp == NULL || *tp == 0)
+		if(tp == NULL || *tp ==0)
 			outchar(codepoint, unicode_to_cp437(codepoint));
-		else if(*tp == ':')
-			outchar(codepoint, tp + 1);
 		else {
 			char fallback = (char)strtoul(tp + 1, NULL, 16);
-			if(*tp == ',')
+			if(*tp == '/')
 				outchar(codepoint, fallback);
 			else if(*tp == '!') {
 				char ch = unicode_to_cp437(codepoint);
@@ -172,35 +170,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(strcmp(sp, "CHECKMARK") == 0) {
 		outchar(UNICODE_CHECK_MARK, CP437_CHECK_MARK);
-		return nulstr;
-	}
-
-	if(strcmp(sp, "ELLIPSIS") == 0) {
-		outchar(UNICODE_HORIZONTAL_ELLIPSIS, "...");
-		return nulstr;
-	}
-	if(strcmp(sp, "COPY") == 0) {
-		outchar(UNICODE_COPYRIGHT_SIGN, "(C)");
-		return nulstr;
-	}
-	if(strcmp(sp, "SOUNDCOPY") == 0) {
-		outchar(UNICODE_SOUND_RECORDING_COPYRIGHT, "(P)");
-		return nulstr;
-	}
-	if(strcmp(sp, "REGISTERED") == 0) {
-		outchar(UNICODE_REGISTERED_SIGN, "(R)");
-		return nulstr;
-	}
-	if(strcmp(sp, "TRADEMARK") == 0) {
-		outchar(UNICODE_TRADE_MARK_SIGN, "(TM)");
-		return nulstr;
-	}
-	if(strcmp(sp, "DEGREE_C") == 0) {
-		outchar(UNICODE_DEGREE_CELSIUS, "\xF8""C");
-		return nulstr;
-	}
-	if(strcmp(sp, "DEGREE_F") == 0) {
-		outchar(UNICODE_DEGREE_FAHRENHEIT, "\xF8""F");
 		return nulstr;
 	}
 
@@ -299,11 +268,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%lu",rows);
 		return(str);
 	}
-	if(strcmp(sp,"TERM") == 0)
-		return term_type();
-
-	if(strcmp(sp,"CHARSET") == 0)
-		return term_charset();
+	if(!strcmp(sp,"TERM"))
+		return(terminal);
 
 	if(!strcmp(sp,"CONN"))
 		return(connection);

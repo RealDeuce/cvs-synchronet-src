@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.222 2019/07/11 18:31:45 deuce Exp $ */
+/* $Id: syncterm.c,v 1.221 2019/07/09 22:35:11 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1569,11 +1569,7 @@ int main(int argc, char **argv)
 	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
-		if(conn_connect(bbs)) {
-			load_font_files();
-			textmode(txtinfo.currmode);
-			settitle("SyncTERM");
-		} else {
+		if(!conn_connect(bbs)) {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			bbs->connected=time(NULL);
