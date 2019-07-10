@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.750 2019/06/03 20:55:17 deuce Exp $ */
+/* $Id: main.cpp,v 1.753 2019/07/09 05:38:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -38,6 +38,7 @@
 #include "ident.h"
 #include "telnet.h"
 #include "netwrap.h"
+#include "petdefs.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "ssl.h"
@@ -2285,9 +2286,13 @@ void passthru_input_thread(void* arg)
 			break;
 		}
 
-    	if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
-			lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
-			break;
+		if(sbbs->xtrn_mode & EX_BIN) {
+    		if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
+				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
+				break;
+			}
+		} else {
+			sbbs->rputs((char*)&ch, sizeof(ch));
 		}
 	}
 	if(sbbs->passthru_socket!=INVALID_SOCKET) {
@@ -5694,7 +5699,7 @@ NO_SSH:
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", client_socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", client_socket, client.protocol, host_name, host_ip);
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
