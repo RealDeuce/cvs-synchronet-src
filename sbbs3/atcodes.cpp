@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.92 2019/05/02 03:40:56 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.94 2019/07/10 01:14:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,9 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+#include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 #if defined(_WINSOCKAPI_)
 	extern WSADATA WSAData;
@@ -128,7 +131,7 @@ int sbbs_t::show_atcode(const char *instr)
 
 const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 {
-	char*	tp;
+	char*	tp = NULL;
 	uint	i;
 	uint	ugrp;
 	uint	usub;
@@ -138,6 +141,30 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	struct	tm tm;
 
 	str[0]=0;
+
+	if(strncmp(sp, "U+", 2) == 0) {	// UNICODE
+		enum unicode_codepoint codepoint = (enum unicode_codepoint)strtoul(sp + 2, &tp, 16);
+		if(tp == NULL || *tp ==0)
+			outchar(codepoint, unicode_to_cp437(codepoint));
+		else {
+			char fallback = (char)strtoul(tp + 1, NULL, 16);
+			if(*tp == '|')
+				outchar(codepoint, fallback);
+			else if(*tp == '!') {
+				char ch = unicode_to_cp437(codepoint);
+				if(ch != 0)
+					fallback = ch;
+				outchar(codepoint, fallback);
+			}
+			else return NULL; // Invalid @-code
+		}
+		return nulstr;
+	}
+
+	if(strcmp(sp, "CHECKMARK") == 0) {
+		outchar(UNICODE_CHECK_MARK, CP437_CHECK_MARK);
+		return nulstr;
+	}
 
 	if(!strcmp(sp,"VER"))
 		return(VERSION);
