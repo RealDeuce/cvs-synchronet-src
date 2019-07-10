@@ -2,7 +2,7 @@
 
 /* Execute a BBS JavaScript module from the command-line */
 
-/* $Id: jsdoor.c,v 1.8 2019/08/20 23:14:30 deuce Exp $ */
+/* $Id: jsdoor.c,v 1.6 2018/02/23 08:24:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,26 +53,12 @@
 
 scfg_t		scfg;
 
-void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
-{
-	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
-
-	if(ret == NULL)
-		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
-			, cls == NULL ? "???" : cls->name);
-	return ret;
-}
-
-void call_socket_open_callback(BOOL open)
-{
-}
-
-SOCKET open_socket(int domain, int type, const char* protocol)
+SOCKET open_socket(int type, const char* protocol)
 {
 	SOCKET	sock;
 	char	error[256];
 
-	sock=socket(domain, type, IPPROTO_IP);
+	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
 		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
