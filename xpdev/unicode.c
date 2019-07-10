@@ -1,6 +1,6 @@
 /* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: unicode.c,v 1.7 2019/07/10 01:11:50 rswindell Exp $ */
+/* $Id: unicode.c,v 1.8 2019/07/10 03:38:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -333,8 +333,17 @@ size_t unicode_width(enum unicode_codepoint u)
 		case UNICODE_VARIATION_SELECTOR_16:
 		case UNICODE_ZERO_WIDTH_NO_BREAK_SPACE:
 			return 0;
-		/* TODO: return 2 for "fullwdith" chars */
 		default:
+			if(    (u >= UNICODE_BLOCK_CJK_RADICALS_SUPPLEMENT_BEGIN		&& u <= UNICIDE_BLOCK_YI_RADICALS_END)
+				|| (u >= UNICIDE_BLOCK_HANGUL_SYLLABLES_BEGIN				&& u <= UNICIDE_BLOCK_HANGUL_SYLLABLES_END)
+				|| (u >= UNICODE_BLOCK_CJK_COMPATIBILITY_IDEOGRAPHS_BEGIN	&& u <= UNICODE_BLOCK_CJK_COMPATIBILITY_IDEOGRAPHS_END)
+				|| (u >= UNICODE_BLOCK_VERTICAL_FORMS_BEGIN					&& u <= UNICODE_BLOCK_VERTICAL_FORMS_END)
+				|| (u >= UNICODE_BLOCK_CJK_COMPATIBILITY_FORMS_BEGIN		&& u <= UNICODE_BLOCK_CJK_COMPATIBILITY_FORMS_END)
+				|| (u >= UNICODE_BLOCK_SMALL_FORM_VARIANTS_BEGIN			&& u <= UNICODE_BLOCK_SMALL_FORM_VARIANTS_END)
+				|| (u >= UNICODE_SUBBLOCK_FULLWIDTH_CHARS_BEGIN				&& u <= UNICODE_SUBBLOCK_FULLWIDTH_CHARS_END)
+				|| (u >= UNICODE_SUBBLOCK_FULLWIDTH_SYMBOLS_BEGIN			&& u <= UNICODE_SUBBLOCK_FULLWIDTH_SYMBOLS_END)
+				)
+				return 2;
 			return 1;
 	}
 }
@@ -359,6 +368,10 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case UNICODE_INVERTED_QUESTION_MARK:					return CP437_INVERTED_QUESTION_MARK;
 		case UNICODE_INVERTED_EXCLAMATION_MARK:					return CP437_INVERTED_EXCLAMATION_MARK;
 		case UNICODE_DOUBLE_EXCLAMATION_MARK:					return CP437_DOUBLE_EXCLAMATION_MARK;
+		case UNICODE_LEFT_POINTING_ANGLE_BRACKET:				return '<';
+		case UNICODE_RIGHT_POINTING_ANGLE_BRACKET:				return '>';
+		case UNICODE_COUNTERSINK:								return 'v';
+		case UNICODE_APL_FUNCTIONAL_SYMBOL_I_BEAM:				return 'I';
 
 		// Perform Upper -> Lower case mapping where an upper case equivalent doesn't exist in CP437:
 		case UNICODE_LATIN_CAPITAL_LETTER_A_WITH_GRAVE:			return CP437_LATIN_SMALL_LETTER_A_WITH_GRAVE;
