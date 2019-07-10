@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.85 2020/04/11 04:01:35 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.83 2019/04/10 00:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 	if(prepack) {
 		ex|=EX_OFFLINE;
 		if(is_user_online(&cfg, useron.number)) { /* Don't pre-pack with user online */
-			lprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
+			eprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
 			return(false); 
 		}
 	}
@@ -105,7 +105,8 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		mode|=QM_VIA;
 	if(useron.qwk&QWK_MSGID)
 		mode|=QM_MSGID;
-	mode |= useron.qwk&(QWK_EXT | QWK_UTF8);
+	if(useron.qwk&QWK_EXT)
+		mode|=QM_EXT;
 
 	(*msgcnt)=0L;
 	if(/* !prepack && */ !(useron.qwk&QWK_NOCTRL)) {
@@ -721,7 +722,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 
 	if(prepack) {
 		if(is_user_online(&cfg, useron.number)) { /* Don't pre-pack with user online */
-			lprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
+			eprintf(LOG_NOTICE, "User #%u is concurrently logged-in, QWK packet creation aborted", useron.number);
 			return(false); 
 		}
 	}
