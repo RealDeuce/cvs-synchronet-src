@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.62 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.61 2018/08/03 06:18:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -340,7 +340,7 @@ bool sbbs_t::upload(uint dirnum)
 		p=strchr(str+i,',');
 		if(p!=NULL)
 			*p=0;
-		ch=(char)strlen(str+i);
+		ch=strlen(str+i);
 		if(!stricmp(tmp+9,str+i))
 			break; 
 	}
