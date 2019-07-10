@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.51 2019/07/10 21:41:38 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.50 2019/07/08 07:08:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,8 +69,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		mode |= P_UTF8;
 		str += 3;
 	}
-	size_t len = strlen(str);
-
 	long term = term_supports();
 	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
 		mode &= ~P_WORDWRAP;
@@ -99,6 +97,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		}
 	}
 
+	size_t len = strlen(str);
 	while(l < len && (mode&P_NOABORT || !msgabort()) && online) {
 		switch(str[l]) {
 			case '\r':
