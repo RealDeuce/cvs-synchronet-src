@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.48 2018/04/07 07:18:02 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.49 2019/04/10 00:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,7 +152,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
 			/* For an unclear reason, kludge lines (including @VIA and @TZ) were not included in NetMail previously */
 			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
-			msgtoqwk(&msg, rep, mode, INVALID_SUB, 0, hdrs);
+			msgtoqwk(&msg, rep, mode, &smb, /* confnum: */0, hdrs);
 			packedmail++;
 			smb_unlockmsghdr(&smb,&msg);
 			smb_freemsgmem(&msg); 
@@ -228,7 +228,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			if(msg.from_net.type!=NET_QWK)
 				mode|=QM_TAGLINE;
 
-			msgtoqwk(&msg,rep,mode,j,cfg.qhub[hubnum]->conf[i],hdrs,voting);
+			msgtoqwk(&msg, rep, mode, &smb, cfg.qhub[hubnum]->conf[i], hdrs, voting);
 
 			smb_freemsgmem(&msg);
 			smb_unlockmsghdr(&smb,&msg);
