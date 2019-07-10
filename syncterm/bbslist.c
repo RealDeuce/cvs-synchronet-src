@@ -1518,8 +1518,7 @@ void load_bbslist(struct bbslist **list, size_t listsize, struct bbslist *defaul
  */
 struct bbslist *show_bbslist(char *current, int connected)
 {
-#define BBSLIST_ENTRIES	(MAX_OPTS+1)
-#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist))
+#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist *))
 	struct	bbslist	**list;
 	int		i,j;
 	static int		opt=0,bar=0;
@@ -1562,6 +1561,8 @@ struct bbslist *show_bbslist(char *current, int connected)
 
 	get_syncterm_filename(shared_list, sizeof(shared_list), SYNCTERM_PATH_LIST, TRUE);
 	list = malloc(BBSLIST_SIZE);
+	if (list == NULL)
+		return (NULL);
 	load_bbslist(list, BBSLIST_SIZE, &defaults, settings.list_path, sizeof(settings.list_path), shared_list, sizeof(shared_list), &listcount, &opt, &bar, current?strdup(current):NULL);
 
 	uifc.helpbuf="Help Button Hack";
