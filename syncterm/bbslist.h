@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.50 2019/07/10 22:28:52 deuce Exp $ */
+/* $Id: bbslist.h,v 1.51 2019/07/10 22:48:07 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -106,5 +106,6 @@ void add_bbs(char *listpath, struct bbslist *bbs);
 int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault);
 int  get_rate_num(int rate);
 cterm_emulation_t get_emulation(struct bbslist *bbs);
+const char *get_emulation_str(cterm_emulation_t emu);
 
 #endif
