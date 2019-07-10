@@ -1,12 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.33 2018/10/26 06:19:48 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.34 2019/07/10 22:28:52 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
 
 #include "term.h"
-#include "cterm.h"
 
 #include "genwrap.h"
 #include "sockwrap.h"
@@ -91,7 +90,7 @@ void request_telnet_opt(uchar cmd, uchar opt)
 	send_telnet_cmd(cmd,opt);
 }
 
-BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
+BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, cterm_emulation_t emu)
 {
 	BYTE	command;
 	BYTE	option;
@@ -160,7 +159,7 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen)
 					if(option==TELNET_TERM_TYPE && telnet_cmd[3]==TELNET_TERM_SEND) {
 						char buf[32];
 						const char *termtype;
-						switch(cterm->emulation) {
+						switch(emu) {
 							case CTERM_EMULATION_PETASCII:
 								termtype = "PETSCII";
 								break;
