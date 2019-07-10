@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.205 2019/08/06 03:22:24 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.204 2019/05/29 16:44:27 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1155,7 +1155,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.205 $", "%*s %s", revision);
+	sscanf("$Revision: 1.204 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1350,8 +1350,6 @@ int main(int argc, char **argv, char** env)
 	SAFECOPY(scfg.temp_dir,"../temp");
 #endif
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
-
-	make_data_dirs(&scfg);
 
 	if(host_name==NULL)
 		host_name=scfg.sys_inetaddr;
