@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.36 2019/05/27 02:42:46 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.38 2019/06/17 05:37:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,6 +312,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	SAFECOPY(cfg->binkp_caps, iniGetString(ini, "BinkP", "Capabilities", "", value));
 	SAFECOPY(cfg->binkp_sysop, iniGetString(ini, "BinkP", "Sysop", "", value));
 	cfg->binkp_plainAuthOnly = iniGetBool(ini, "BinkP", "PlainAuthOnly", FALSE);
+	cfg->binkp_plainTextOnly = iniGetBool(ini, "BinkP", "PlainTextOnly", FALSE);
 
 	/******************/
 	/* Archive Types: */
@@ -548,6 +549,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetString(&ini,		"BinkP"	,	"Capabilities"				,cfg->binkp_caps				,&style);
 	iniSetString(&ini,		"BinkP"	,	"Sysop"						,cfg->binkp_sysop				,&style);
 	iniSetBool(&ini,		"BinkP"	,	"PlainAuthOnly"				,cfg->binkp_plainAuthOnly		,&style);
+	iniSetBool(&ini,		"BinkP"	,	"PlainTextOnly"				,cfg->binkp_plainTextOnly		,&style);
 
 	/******************/
 	/* Archive Types: */
