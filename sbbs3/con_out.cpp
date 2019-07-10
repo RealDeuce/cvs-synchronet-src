@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.128 2020/03/20 02:41:58 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.107 2019/07/10 00:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,54 +40,19 @@
 #include "petdefs.h"
 #include "cp437defs.h"
 
-char* sbbs_t::auto_utf8(const char* str, long* mode)
-{
-	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
-		*mode |= P_UTF8;
-		return (char*)(str + 3);
-	}
-	if((*mode)&P_AUTO_UTF8) {
-		if(!str_is_ascii(str) && utf8_str_is_valid(str))
-			*mode |= P_UTF8;
-	}
-	return (char*)str;
-}
-
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
 /* Handles ctrl-a codes, Telnet-escaping, column & line count, auto-pausing */
-/* Supported P_* mode flags:
-   P_PETSCII
-   P_UTF8
-   P_AUTO_UTF8
-   P_NOATCODES
-   P_TRUNCATE
- ****************************************************************************/
-int sbbs_t::bputs(const char *str, long mode)
+/****************************************************************************/
+int sbbs_t::bputs(const char *str)
 {
 	int i;
     ulong l=0;
-	long term = term_supports();
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
 		return(lputs(LOG_INFO, str));
 
-	str = auto_utf8(str, &mode);
-	size_t len = strlen(str);
-	while(l < len && online) {
-		switch(str[l]) {
-			case '\b':
-			case '\r':
-			case '\n':
-			case FF:
-			case CTRL_A:
-				break;
-			default: // printing char
-				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
-					l++;
-					continue;
-				}
-		}
+	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
 			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
@@ -95,7 +60,7 @@ int sbbs_t::bputs(const char *str, long mode)
 			ctrl_a(str[l++]);
 			continue;
 		}
-		if(!(mode&P_NOATCODES) && str[l]=='@') {
+		if(str[l]=='@') {           /* '@' */
 			if(str==mnestr			/* Mnemonic string or */
 				|| (str>=text[0]	/* Straight out of TEXT.DAT */
 					&& str<=text[TOTAL_TEXT-1])) {
@@ -114,53 +79,10 @@ int sbbs_t::bputs(const char *str, long mode)
 					continue;
 			}
 		}
-		if(mode&P_PETSCII) {
-			if(term&PETSCII)
-				outcom(str[l++]);
-			else
-				petscii_to_ansibbs(str[l++]);
-		} else if((str[l]&0x80) && (mode&P_UTF8)) {
-			if(term&UTF8)
-				outcom(str[l++]);
-			else
-				l += print_utf8_as_cp437(str + l, len - l);
-		} else
-			outchar(str[l++]);
+		outchar(str[l++]);
 	}
 	return(l);
 }
-
-/****************************************************************************/
-/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
-/****************************************************************************/
-size_t sbbs_t::bstrlen(const char *str, long mode)
-{
-	str = auto_utf8(str, &mode);
-	size_t count = 0;
-	const char* end = str + strlen(str);
-	while (str < end) {
-		int len = 1;
-		if(*str == CTRL_A) {
-			str++;
-			if(*str == 0 || *str == 'Z')	// EOF
-				break;
-			if(*str == '[') // CR
-				count = 0;
-			else if(*str == '<' && count) // ND-Backspace
-				count--;
-		} else if(((*str) & 0x80) && (mode&P_UTF8)) {
-			enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
-			len = utf8_getc(str, end - str, &codepoint);
-			if(len < 1)
-				break;
-			count += unicode_width(codepoint);;
-		} else
-			count++;
-		str += len;
-	}
-	return count;
-}
-
 
 /* Perform PETSCII terminal output translation (from ASCII/CP437) */
 unsigned char cp437_to_petscii(unsigned char ch)
@@ -322,7 +244,7 @@ int sbbs_t::petscii_to_ansibbs(unsigned char ch)
 }
 
 // Return length of sequence
-size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
+size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 {
 	if(((*str)&0x80) == 0) {
 		outchar(*str);
@@ -331,8 +253,7 @@ size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
 	enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
 	len = utf8_getc(str, len, &codepoint);
 	if((int)len < 2) {
-		outchar(*str);	// Assume it's a CP437 character
-		lprintf(LOG_DEBUG, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
+		lprintf(LOG_NOTICE, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
 		return 1;
 	}
 	for(int i = 1; i < 0x100; i++) {
@@ -346,7 +267,7 @@ size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
 	if(ch)
 		outchar(ch);
 	else if(unicode_width(codepoint) > 0) {
-		outchar(CP437_INVERTED_QUESTION_MARK);
+		outchar(CP437_CHAR_INVERTED_QUESTION_MARK);
 		char seq[32] = "";
 		for(size_t i = 0; i < len; i++)
 			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
@@ -375,11 +296,8 @@ int sbbs_t::rputs(const char *str, size_t len)
 	for(l=0;l<len && online;l++) {
 		uchar ch = str[l];
 		utf8[0] = 0;
-		if(term&PETSCII) {
+		if(term&PETSCII)
 			ch = cp437_to_petscii(ch);
-			if(ch == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_ON);
-		}
 		else if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
 		else if(term&UTF8) {
@@ -392,18 +310,11 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else {
 			if(outcom(ch)!=0)
 				break;
-			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			if((term&PETSCII) && ch == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_OFF);
 		}
-		if(ch == '\n')
-			lbuflen=0;
-		else if(lbuflen<LINE_BUFSIZE) {
-			if(lbuflen == 0)
-				latr = curatr;
+		if(lbuflen<LINE_BUFSIZE)
 			lbuf[lbuflen++] = ch;
-		}
 	}
 	return(l);
 }
@@ -426,23 +337,6 @@ int sbbs_t::bprintf(const char *fmt, ...)
 }
 
 /****************************************************************************/
-/* Performs printf() using bbs bputs function (with mode)					*/
-/****************************************************************************/
-int sbbs_t::bprintf(long mode, const char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[4096];
-
-	if(strchr(fmt,'%')==NULL)
-		return(bputs(fmt, mode));
-	va_start(argptr,fmt);
-	vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
-	va_end(argptr);
-	return(bputs(sbuf, mode));
-}
-
-/****************************************************************************/
 /* Performs printf() using bbs rputs function								*/
 /****************************************************************************/
 int sbbs_t::rprintf(const char *fmt, ...)
@@ -458,39 +352,20 @@ int sbbs_t::rprintf(const char *fmt, ...)
 }
 
 /****************************************************************************/
-/* Performs printf() using bbs putcom/outcom functions						*/
-/****************************************************************************/
-int sbbs_t::comprintf(const char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[4096];
-
-	va_start(argptr,fmt);
-	vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
-	va_end(argptr);
-	return(putcom(sbuf));
-}
-
-/****************************************************************************/
 /* Outputs destructive backspace 											*/
 /****************************************************************************/
-void sbbs_t::backspace(int count)
+void sbbs_t::backspace(void)
 {
-	if(count < 1)
-		return;
 	if(!(console&CON_ECHO_OFF)) {
-		for(int i = 0; i < count; i++) {
-			if(term_supports(PETSCII))
-				outcom(PETSCII_DELETE);
-			else {
-				outcom('\b');
-				outcom(' ');
-				outcom('\b');
-			}
-			if(column)
-				column--;
+		if(term_supports(PETSCII))
+			outcom(PETSCII_DELETE);
+		else {
+			outcom('\b');
+			outcom(' ');
+			outcom('\b');
 		}
+		if(column)
+			column--;
 	}
 }
 
@@ -507,38 +382,6 @@ long sbbs_t::term_supports(long cmp_flags)
 		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
-}
-
-/****************************************************************************/
-/* Returns description of the terminal type									*/
-/****************************************************************************/
-const char* sbbs_t::term_type(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "PETSCII";
-	if(term&RIP)
-		return "RIP";
-	if(term&ANSI)
-		return "ANSI";
-	return "DUMB";
-}
-
-/****************************************************************************/
-/* Returns description of the terminal supported character set (charset)	*/
-/****************************************************************************/
-const char* sbbs_t::term_charset(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "CBM-ASCII";
-	if(term&UTF8)
-		return "UTF-8";
-	if(term&NO_EXASCII)
-		return "US-ASCII";
-	return "CP437";
 }
 
 /****************************************************************************/
@@ -717,7 +560,7 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
-int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback)
+int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
 {
 	if(term_supports(UTF8)) {
 		char str[UTF8_MAX_LEN];
@@ -728,15 +571,9 @@ int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback
 		inc_column(unicode_width(codepoint));
 		return 0;
 	}
-	if(cp437_fallback == NULL)
+	if(cp437_fallback == 0)
 		return 0;
-	return bputs(cp437_fallback);
-}
-
-int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
-{
-	char str[2] = { cp437_fallback, '\0' };
-	return outchar(codepoint, str);
+	return outchar(cp437_fallback);
 }
 
 void sbbs_t::inc_column(int count)
@@ -751,73 +588,44 @@ void sbbs_t::inc_column(int count)
 	}
 }
 
-void sbbs_t::center(char *instr, unsigned int columns)
+void sbbs_t::center(char *instr)
 {
 	char str[256];
-	size_t len;
-
-	if(columns < 1)
-		columns = cols;
+	int i,j;
 
 	SAFECOPY(str,instr);
 	truncsp(str);
-	len = bstrlen(str);
-	if(len < columns)
-		cursor_right((columns - len) / 2);
+	j=bstrlen(str);
+	if(j < cols)
+		for(i=0;i<(cols-j)/2;i++)
+			outchar(' ');
 	bputs(str);
 	newline();
 }
 
-void sbbs_t::wide(const char* str)
-{
-	long term = term_supports();
-	while(*str != '\0') {
-		if((term&UTF8) && *str >= '!' && *str <= '~')
-			outchar((enum unicode_codepoint)(UNICODE_FULLWIDTH_EXCLAMATION_MARK + (*str - '!')));
-		else {
-			outchar(*str);
-			outchar(' ');
-		}
-		str++;
-	}
-}
-
-
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
-void sbbs_t::carriage_return(int count)
+void sbbs_t::carriage_return(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) {
-		if(term_supports(PETSCII))
-			cursor_left(column);
-		else
-			outcom('\r');
-		column = 0;
-	}
+	if(term_supports(PETSCII))
+		cursor_left(column);
+	else
+		outcom('\r');
+	column = 0;
 }
 
 // Send a bare line_feed, hopefully moving the cursor down one row, current column
-void sbbs_t::line_feed(int count)
+void sbbs_t::line_feed(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) {
-		if(term_supports(PETSCII))
-			outcom(PETSCII_DOWN);
-		else 
-			outcom('\n');
-	}
+	if(term_supports(PETSCII))
+		outcom(PETSCII_DOWN);
+	else 
+		outcom('\n');
 }
 
-void sbbs_t::newline(int count)
+void sbbs_t::newline(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) { 
-		outchar('\r');
-		outchar('\n');
-	}
+	outchar('\r');
+	outchar('\n');
 }
 
 void sbbs_t::clearline(void)
@@ -830,7 +638,7 @@ void sbbs_t::cursor_home(void)
 {
 	long term = term_supports();
 	if(term&ANSI)
-		putcom("\x1b[H");
+		rputs("\x1b[H");
 	else if(term&PETSCII)
 		outcom(PETSCII_HOME);
 	else
@@ -846,9 +654,9 @@ void sbbs_t::cursor_up(int count)
 	long term = term_supports();
 	if(term&ANSI) {
 		if(count>1)
-			comprintf("\x1b[%dA",count);
+			rprintf("\x1b[%dA",count);
 		else
-			putcom("\x1b[A");
+			rputs("\x1b[A");
 	} else {
 		if(term&PETSCII) {
 			for(int i=0;i<count;i++)
@@ -863,9 +671,9 @@ void sbbs_t::cursor_down(int count)
 		return;
 	if(term_supports(ANSI)) {
 		if(count>1)
-			comprintf("\x1b[%dB",count);
+			rprintf("\x1b[%dB",count);
 		else
-			putcom("\x1b[B");
+			rputs("\x1b[B");
 	} else {
 		for(int i=0;i<count;i++)
 			line_feed();
@@ -879,9 +687,9 @@ void sbbs_t::cursor_right(int count)
 	long term = term_supports();
 	if(term&ANSI) {
 		if(count>1)
-			comprintf("\x1b[%dC",count);
+			rprintf("\x1b[%dC",count);
 		else
-			putcom("\x1b[C");
+			rputs("\x1b[C");
 	} else {
 		for(int i=0;i<count;i++) {
 			if(term&PETSCII)
@@ -900,9 +708,9 @@ void sbbs_t::cursor_left(int count)
 	long term = term_supports();
 	if(term&ANSI) {
 		if(count>1)
-			comprintf("\x1b[%dD",count);
+			rprintf("\x1b[%dD",count);
 		else
-			putcom("\x1b[D");
+			rputs("\x1b[D");
 	} else {
 		for(int i=0;i<count;i++) {
 			if(term&PETSCII)
@@ -917,27 +725,13 @@ void sbbs_t::cursor_left(int count)
 		column=0;
 }
 
-bool sbbs_t::cursor_xy(int x, int y)
-{
-	long term = term_supports();
-	if(term&ANSI)
-		return ansi_gotoxy(x, y);
-	if(term&PETSCII) {
-		outcom(PETSCII_HOME);
-		cursor_down(y - 1);
-		cursor_right(x - 1);
-		return true;
-	}
-	return false;
-}
-
 void sbbs_t::cleartoeol(void)
 {
 	int i,j;
 
 	long term = term_supports();
 	if(term&ANSI)
-		putcom("\x1b[K");
+		rputs("\x1b[K");
 	else {
 		i=j=column;
 		while(++i<cols)
@@ -954,34 +748,7 @@ void sbbs_t::cleartoeol(void)
 void sbbs_t::cleartoeos(void)
 {
 	if(term_supports(ANSI))
-		putcom("\x1b[J");
-}
-
-void sbbs_t::set_output_rate(enum output_rate speed)
-{
-	if(term_supports(ANSI)) {
-		unsigned int val = speed;
-		switch(val) {
-			case 0:		val = 0; break;
-			case 600:	val = 2; break;
-			case 1200:	val = 3; break;
-			case 2400:	val = 4; break;
-			case 4800:	val = 5; break;
-			case 9600:	val = 6; break;
-			case 19200:	val = 7; break;
-			case 38400: val = 8; break;
-			case 57600: val = 9; break;
-			case 76800: val = 10; break;
-			default:
-				if(val <= 300)
-					val = 1;
-				else if(val > 76800)
-					val = 11;
-				break;
-		}
-		comprintf("\x1b[;%u*r", val);
-		cur_output_rate = speed;
-	}
+		rputs("\x1b[J");
 }
 
 /****************************************************************************/
@@ -1325,7 +1092,7 @@ int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr
 	char* str = strip_ctrl(instr, NULL);
 
 	len = strlen(str);
-	if(!(term_supports()&(ANSI|PETSCII)))
+	if(!term_supports(ANSI))
 		bputs(str);
 	else {
 		for(int i=0; i<len; i++) {
