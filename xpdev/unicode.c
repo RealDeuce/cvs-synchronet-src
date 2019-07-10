@@ -1,6 +1,6 @@
 /* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: unicode.c,v 1.8 2019/07/10 03:38:16 rswindell Exp $ */
+/* $Id: unicode.c,v 1.9 2019/07/10 12:21:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -653,11 +653,14 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 			return '\xDF';
 
 		default:	// Look for a 1:1 match in the CP437 -> Unicode table
-			for(int i = 1; i < 0x100; i++) {
+		{
+			int i;
+			for(i = 1; i < 0x100; i++) {
 				if(cp437_unicode_tbl[i] == codepoint)
 					return i;
 			}
 			break;
+		}
 	}
 
 	return '\0'; // Not-mapped
