@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.109 2019/07/10 04:27:01 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.110 2019/07/10 20:38:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,6 +382,38 @@ long sbbs_t::term_supports(long cmp_flags)
 		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
+}
+
+/****************************************************************************/
+/* Returns description of the terminal type									*/
+/****************************************************************************/
+const char* sbbs_t::term_type(long term)
+{
+	if(term == -1)
+		term = term_supports();
+	if(term&PETSCII)
+		return "PETSCII";
+	if(term&RIP)
+		return "RIP";
+	if(term&ANSI)
+		return "ANSI";
+	return "DUMB";
+}
+
+/****************************************************************************/
+/* Returns description of the terminal supported character set (charset)	*/
+/****************************************************************************/
+const char* sbbs_t::term_charset(long term)
+{
+	if(term == -1)
+		term = term_supports();
+	if(term&PETSCII)
+		return "CBM-ASCII";
+	if(term&UTF8)
+		return "UTF-8";
+	if(term&NO_EXASCII)
+		return "US-ASCII";
+	return "CP437";
 }
 
 /****************************************************************************/
