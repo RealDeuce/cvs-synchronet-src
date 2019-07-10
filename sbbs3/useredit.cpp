@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.50 2018/03/10 06:20:23 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.62 2019/07/10 20:38:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,25 +810,30 @@ void sbbs_t::maindflts(user_t* user)
 		if(user->rows)
 			rows=user->rows;
 		bprintf(text[UserDefaultsHdr],user->alias,user->number);
-		safe_snprintf(str,sizeof(str),"%s%s%s%s%s"
-							,user->misc&AUTOTERM ? "Auto Detect ":nulstr
-							,user->misc&ANSI ? "ANSI ":"TTY "
-							,user->misc&COLOR ? "(Color) ":"(Mono) "
-							,user->misc&WIP	? "WIP" : user->misc&RIP ? "RIP "
-								: user->misc&HTML ? "HTML " : nulstr
-							,user->misc&NO_EXASCII ? "ASCII Only":nulstr);
-		bprintf(text[UserDefaultsTerminal],str);
-		if(cfg.total_xedits)
-			bprintf(text[UserDefaultsXeditor]
-				,user->xedit ? cfg.xedit[user->xedit-1]->name : "None");
+		long term = (user == &useron) ? term_supports() : user->misc;
+		if(term&PETSCII)
+			safe_snprintf(str,sizeof(str),"%sPETSCII %lu %s"
+							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
+							,cols, text[TerminalColumns]);
+		else
+			safe_snprintf(str,sizeof(str),"%s%s / %s %s%s"
+							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
+							,term_charset(term)
+							,term_type(term)
+							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
+							,term&SWAP_DELETE ? "DEL=BS" : nulstr);
+		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(user->rows)
 			ultoa(user->rows,tmp,10);
 		else
-			SAFEPRINTF(tmp,"Auto Detect (%ld)",rows);
-		bprintf(text[UserDefaultsRows],tmp);
+			SAFEPRINTF2(tmp,"%s%ld", text[TerminalAutoDetect], rows);
+		bprintf(text[UserDefaultsRows], tmp, text[TerminalRows]);
 		if(cfg.total_shells>1)
 			bprintf(text[UserDefaultsCommandSet]
 				,cfg.shell[user->shell]->name);
+		if(cfg.total_xedits)
+			bprintf(text[UserDefaultsXeditor]
+				,user->xedit ? cfg.xedit[user->xedit-1]->name : "None");
 		bprintf(text[UserDefaultsArcType]
 			,user->tmpext);
 		bprintf(text[UserDefaultsMenuMode]
@@ -858,7 +863,7 @@ void sbbs_t::maindflts(user_t* user)
 		if(startup->options&BBS_OPT_AUTO_LOGON && user->exempt&FLAG('V'))
 			bprintf(text[UserDefaultsAutoLogon]
 			,user->misc&AUTOLOGON ? text[On] : text[Off]);
-		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
+		if(user->exempt&FLAG('Q') || user->misc&QUIET)
 			bprintf(text[UserDefaultsQuiet]
 				,user->misc&QUIET ? text[On] : text[Off]);
 		SAFECOPY(str,"None");
@@ -878,7 +883,7 @@ void sbbs_t::maindflts(user_t* user)
 		SAFECOPY(str,"HTBALPRSYFNCQXZ\r");
 		if(cfg.sys_misc&SM_PWEDIT && !(user->rest&FLAG('G')))
 			strcat(str,"W");
-		if(useron.exempt&FLAG('Q') || user->misc&QUIET)
+		if(user->exempt&FLAG('Q') || user->misc&QUIET)
 			strcat(str,"D");
 		if(cfg.total_xedits)
 			strcat(str,"E");
@@ -893,34 +898,73 @@ void sbbs_t::maindflts(user_t* user)
 		switch(ch) {
 			case 'T':
 				if(yesno(text[AutoTerminalQ])) {
-					user->misc|=AUTOTERM;
-					user->misc&=~(ANSI|RIP|WIP|HTML);
-					user->misc|=autoterm; 
+					user->misc |= AUTOTERM;
+					user->misc &= ~(ANSI|RIP|WIP|HTML|PETSCII|UTF8);
 				}
 				else
-					user->misc&=~AUTOTERM;
+					user->misc &= ~AUTOTERM;
+				if(sys_status&SS_ABORT)
+					break;
 				if(!(user->misc&AUTOTERM)) {
-					if(yesno(text[AnsiTerminalQ]))
-						user->misc|=ANSI;
+					if(!noyes(text[Utf8TerminalQ]))
+						user->misc |= UTF8;
 					else
-						user->misc&=~(ANSI|COLOR); 
+						user->misc &= ~UTF8;
+					if(yesno(text[AnsiTerminalQ])) {
+						user->misc |= ANSI;
+						user->misc &= ~PETSCII;
+					} else if(!(user->misc&UTF8)) {
+						user->misc &= ~(ANSI|COLOR|ICE_COLOR);
+						if(!noyes(text[PetTerminalQ]))
+							user->misc |= PETSCII|COLOR;
+						else
+							user->misc &= ~PETSCII;
+					}
 				}
-				if(user->misc&ANSI) {
-					if(yesno(text[ColorTerminalQ]))
-						user->misc|=COLOR;
+				if(sys_status&SS_ABORT)
+					break;
+				term = (user == &useron) ? term_supports() : user->misc;
+				if(term&(AUTOTERM|ANSI) && !(term&PETSCII)) {
+					user->misc |= COLOR;
+					user->misc &= ~ICE_COLOR;
+					if(yesno(text[ColorTerminalQ])) {
+						if(!noyes(text[IceColorTerminalQ]))
+							user->misc |= ICE_COLOR;
+					} else
+						user->misc &= ~COLOR;
+				}
+				if(sys_status&SS_ABORT)
+					break;
+				if(!(term&PETSCII)) {
+					if(!(user->misc&UTF8) && !yesno(text[ExAsciiTerminalQ]))
+						user->misc|=NO_EXASCII;
 					else
-						user->misc&=~COLOR; 
+						user->misc&=~NO_EXASCII;
+					user->misc &= ~SWAP_DELETE;
+					while(text[HitYourBackspaceKey][0] && !(user->misc&SWAP_DELETE) && online) {
+						bputs(text[HitYourBackspaceKey]);
+						uchar key = getkey(K_NONE);
+						bprintf(text[CharacterReceivedFmt], key, key);
+						if(key == '\b')
+							break;
+						if(key == DEL) {
+							if(text[SwapDeleteKeyQ][0] == 0 || yesno(text[SwapDeleteKeyQ]))
+								user->misc |= SWAP_DELETE;
+						}
+						else
+							bprintf(text[InvalidBackspaceKeyFmt], key, key);
+					}
 				}
-				if(!yesno(text[ExAsciiTerminalQ]))
-					user->misc|=NO_EXASCII;
-				else
-					user->misc&=~NO_EXASCII;
-				if(!(user->misc&AUTOTERM) && (user->misc&(ANSI|NO_EXASCII)) == ANSI) {
+				if(sys_status&SS_ABORT)
+					break;
+				if(!(user->misc&AUTOTERM) && (term&(ANSI|NO_EXASCII)) == ANSI) {
 					if(!noyes(text[RipTerminalQ]))
 						user->misc|=RIP;
 					else
 						user->misc&=~RIP; 
 				}
+				if(sys_status&SS_ABORT)
+					break;
 				putuserrec(&cfg,user->number,U_MISC,8,ultoa(user->misc,str,16));
 				break;
 			case 'B':
@@ -1063,8 +1107,7 @@ void sbbs_t::maindflts(user_t* user)
 					now=time(NULL);
 					putuserrec(&cfg,user->number,U_PWMOD,8,ultoa((ulong)now,tmp,16));
 					bputs(text[PasswordChanged]);
-					SAFEPRINTF(str,"%s changed password",useron.alias);
-					logline(LOG_NOTICE,nulstr,str);
+					logline(LOG_NOTICE,nulstr,"changed password");
 				}
 				SAFEPRINTF2(str,"%suser/%04u.sig",cfg.data_dir,user->number);
 				if(fexist(str) && yesno(text[ViewSignatureQ]))
