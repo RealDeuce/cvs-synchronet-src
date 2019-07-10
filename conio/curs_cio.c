@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.41 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: curs_cio.c,v 1.43 2019/05/31 00:24:33 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,8 @@ static unsigned char curs_nextgetch=0;
 static int lastattr=0;
 static long mode;
 static int vflags=0;
+static int suspended = 0;
+void curs_resume(void);
 
 static short curses_color(short color)
 {
@@ -255,6 +257,7 @@ static int _putch(unsigned char ch, BOOL refresh_now)
 
 	if(!cha)
 		cha=' ';
+	curs_resume();
 	if(cha == ' ')
 		ret=addch(A_BOLD|' ');
 	else if (cha<' ') {
@@ -298,6 +301,7 @@ int curs_puttext(int sx, int sy, int ex, int ey, void *fillbuf)
 			|| fill==NULL)
 		return(0);
 
+	curs_resume();
 	getyx(stdscr,oldy,oldx);
 	orig_attr=lastattr;
 	for(y=sy-1;y<ey;y++)
@@ -332,6 +336,7 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 	unsigned char *fill;
 
 	fill=fillbuf;
+	curs_resume();
 	gettextinfo(&ti);
 
 	if(		   sx < 1
@@ -621,6 +626,7 @@ void curs_textattr(int attr)
 		}
 		colour = COLOR_PAIR( ((fg&7)|((bg&0x70)>>1))+1 );
 	}
+	curs_resume();
 #ifdef NCURSES_VERSION_MAJOR
 	attrset(attrs);
 	color_set(colour,NULL);
@@ -656,6 +662,7 @@ void curs_gotoxy(int x, int y)
 	absx=x+cio_textinfo.winleft-1;
 	absy=y+cio_textinfo.wintop-1;
 
+	curs_resume();
 	move(absy-1,absx-1);
 	if(!hold_update)
 		refresh();
@@ -666,16 +673,22 @@ void curs_gotoxy(int x, int y)
 
 void curs_suspend(void)
 {
-	noraw();
-	endwin();
+	if (!suspended) {
+		noraw();
+		endwin();
+	}
+	suspended = 1;
 }
 
 void curs_resume(void)
 {
-	raw();
-	timeout(10);
-	refresh();
-	getch();
+	if (suspended) {
+		raw();
+		timeout(10);
+		refresh();
+		getch();
+	}
+	suspended = 0;
 }
 
 int curs_initciolib(long inmode)
@@ -711,6 +724,7 @@ int curs_initciolib(long inmode)
 	raw();
 	timeout(10);
 	atexit(curs_suspend);
+	suspended = 0;
 
 	/* Set up color pairs */
 	if (COLORS >= 16) {
@@ -744,6 +758,7 @@ int curs_initciolib(long inmode)
 }
 
 void curs_setcursortype(int type) {
+	curs_resume();
 	switch(type) {
 		case _NOCURSOR:
 			curs_set(0);
@@ -774,6 +789,7 @@ int curs_getch(void)
 		curs_nextgetch=0;
 	}
 	else {
+		curs_resume();
 		while((ch=getch())==ERR) {
 			if(mouse_trywait()) {
 				curs_nextgetch=CIO_KEY_MOUSE>>8;
@@ -990,6 +1006,7 @@ int curs_getch(void)
 
 void curs_textmode(int mode)
 {
+	curs_resume();
 	getmaxyx(stdscr, cio_textinfo.screenheight, cio_textinfo.screenwidth);
 	if(has_colors())
 		cio_textinfo.currmode=COLOR_MODE;
@@ -1035,6 +1052,7 @@ int curs_showmouse(void)
 
 void curs_beep(void)
 {
+	curs_resume();
 	beep();
 }
 
