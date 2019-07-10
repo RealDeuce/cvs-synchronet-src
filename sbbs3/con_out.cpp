@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.118 2019/08/05 06:49:58 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.107 2019/07/10 00:08:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -40,54 +40,19 @@
 #include "petdefs.h"
 #include "cp437defs.h"
 
-char* sbbs_t::auto_utf8(const char* str, long* mode)
-{
-	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
-		*mode |= P_UTF8;
-		return (char*)(str + 3);
-	}
-	if((*mode)&P_AUTO_UTF8) {
-		if(!str_is_ascii(str) && utf8_str_is_valid(str))
-			*mode |= P_UTF8;
-	}
-	return (char*)str;
-}
-
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
 /* Handles ctrl-a codes, Telnet-escaping, column & line count, auto-pausing */
-/* Supported P_* mode flags:
-   P_PETSCII
-   P_UTF8
-   P_AUTO_UTF8
-   P_NOATCODES
-   P_TRUNCATE
- ****************************************************************************/
-int sbbs_t::bputs(const char *str, long mode)
+/****************************************************************************/
+int sbbs_t::bputs(const char *str)
 {
 	int i;
     ulong l=0;
-	long term = term_supports();
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
 		return(lputs(LOG_INFO, str));
 
-	str = auto_utf8(str, &mode);
-	size_t len = strlen(str);
-	while(l < len && online) {
-		switch(str[l]) {
-			case '\b':
-			case '\r':
-			case '\n':
-			case FF:
-			case CTRL_A:
-				break;
-			default: // printing char
-				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
-					l++;
-					continue;
-				}
-		}
+	while(str[l] && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
 			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
@@ -95,7 +60,7 @@ int sbbs_t::bputs(const char *str, long mode)
 			ctrl_a(str[l++]);
 			continue;
 		}
-		if(!(mode&P_NOATCODES) && str[l]=='@') {
+		if(str[l]=='@') {           /* '@' */
 			if(str==mnestr			/* Mnemonic string or */
 				|| (str>=text[0]	/* Straight out of TEXT.DAT */
 					&& str<=text[TOTAL_TEXT-1])) {
@@ -114,53 +79,10 @@ int sbbs_t::bputs(const char *str, long mode)
 					continue;
 			}
 		}
-		if(mode&P_PETSCII) {
-			if(term&PETSCII)
-				outcom(str[l++]);
-			else
-				petscii_to_ansibbs(str[l++]);
-		} else if((str[l]&0x80) && (mode&P_UTF8)) {
-			if(term&UTF8)
-				outcom(str[l++]);
-			else
-				l += print_utf8_as_cp437(str + l, len - l);
-		} else
-			outchar(str[l++]);
+		outchar(str[l++]);
 	}
 	return(l);
 }
-
-/****************************************************************************/
-/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
-/****************************************************************************/
-size_t sbbs_t::bstrlen(const char *str, long mode)
-{
-	str = auto_utf8(str, &mode);
-	size_t count = 0;
-	const char* end = str + strlen(str);
-	while (str < end) {
-		int len = 1;
-		if(*str == CTRL_A) {
-			str++;
-			if(*str == 0 || *str == 'Z')	// EOF
-				break;
-			if(*str == '[') // CR
-				count = 0;
-			else if(*str == '<' && count) // ND-Backspace
-				count--;
-		} else if(((*str) & 0x80) && (mode&P_UTF8)) {
-			enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
-			len = utf8_getc(str, end - str, &codepoint);
-			if(len < 1)
-				break;
-			count += unicode_width(codepoint);;
-		} else
-			count++;
-		str += len;
-	}
-	return count;
-}
-
 
 /* Perform PETSCII terminal output translation (from ASCII/CP437) */
 unsigned char cp437_to_petscii(unsigned char ch)
@@ -322,7 +244,7 @@ int sbbs_t::petscii_to_ansibbs(unsigned char ch)
 }
 
 // Return length of sequence
-size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
+size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 {
 	if(((*str)&0x80) == 0) {
 		outchar(*str);
@@ -345,7 +267,7 @@ size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
 	if(ch)
 		outchar(ch);
 	else if(unicode_width(codepoint) > 0) {
-		outchar(CP437_INVERTED_QUESTION_MARK);
+		outchar(CP437_CHAR_INVERTED_QUESTION_MARK);
 		char seq[32] = "";
 		for(size_t i = 0; i < len; i++)
 			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
@@ -388,7 +310,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else {
 			if(outcom(ch)!=0)
 				break;
-			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		}
 		if(lbuflen<LINE_BUFSIZE)
@@ -415,23 +337,6 @@ int sbbs_t::bprintf(const char *fmt, ...)
 }
 
 /****************************************************************************/
-/* Performs printf() using bbs bputs function (with mode)					*/
-/****************************************************************************/
-int sbbs_t::bprintf(long mode, const char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[4096];
-
-	if(strchr(fmt,'%')==NULL)
-		return(bputs(fmt, mode));
-	va_start(argptr,fmt);
-	vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
-	va_end(argptr);
-	return(bputs(sbuf, mode));
-}
-
-/****************************************************************************/
 /* Performs printf() using bbs rputs function								*/
 /****************************************************************************/
 int sbbs_t::rprintf(const char *fmt, ...)
@@ -449,22 +354,18 @@ int sbbs_t::rprintf(const char *fmt, ...)
 /****************************************************************************/
 /* Outputs destructive backspace 											*/
 /****************************************************************************/
-void sbbs_t::backspace(int count)
+void sbbs_t::backspace(void)
 {
-	if(count < 1)
-		return;
 	if(!(console&CON_ECHO_OFF)) {
-		for(int i = 0; i < count; i++) {
-			if(term_supports(PETSCII))
-				outcom(PETSCII_DELETE);
-			else {
-				outcom('\b');
-				outcom(' ');
-				outcom('\b');
-			}
-			if(column)
-				column--;
+		if(term_supports(PETSCII))
+			outcom(PETSCII_DELETE);
+		else {
+			outcom('\b');
+			outcom(' ');
+			outcom('\b');
 		}
+		if(column)
+			column--;
 	}
 }
 
@@ -481,38 +382,6 @@ long sbbs_t::term_supports(long cmp_flags)
 		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
-}
-
-/****************************************************************************/
-/* Returns description of the terminal type									*/
-/****************************************************************************/
-const char* sbbs_t::term_type(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "PETSCII";
-	if(term&RIP)
-		return "RIP";
-	if(term&ANSI)
-		return "ANSI";
-	return "DUMB";
-}
-
-/****************************************************************************/
-/* Returns description of the terminal supported character set (charset)	*/
-/****************************************************************************/
-const char* sbbs_t::term_charset(long term)
-{
-	if(term == -1)
-		term = term_supports();
-	if(term&PETSCII)
-		return "CBM-ASCII";
-	if(term&UTF8)
-		return "UTF-8";
-	if(term&NO_EXASCII)
-		return "US-ASCII";
-	return "CP437";
 }
 
 /****************************************************************************/
@@ -691,7 +560,7 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
-int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback)
+int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
 {
 	if(term_supports(UTF8)) {
 		char str[UTF8_MAX_LEN];
@@ -702,15 +571,9 @@ int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback
 		inc_column(unicode_width(codepoint));
 		return 0;
 	}
-	if(cp437_fallback == NULL)
+	if(cp437_fallback == 0)
 		return 0;
-	return bputs(cp437_fallback);
-}
-
-int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
-{
-	char str[2] = { cp437_fallback, '\0' };
-	return outchar(codepoint, str);
+	return outchar(cp437_fallback);
 }
 
 void sbbs_t::inc_column(int count)
@@ -740,56 +603,29 @@ void sbbs_t::center(char *instr)
 	newline();
 }
 
-void sbbs_t::wide(const char* str)
-{
-	long term = term_supports();
-	while(*str != '\0') {
-		if((term&UTF8) && *str >= '!' && *str <= '~')
-			outchar((enum unicode_codepoint)(UNICODE_FULLWIDTH_EXCLAMATION_MARK + (*str - '!')));
-		else {
-			outchar(*str);
-			outchar(' ');
-		}
-		str++;
-	}
-}
-
-
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
-void sbbs_t::carriage_return(int count)
+void sbbs_t::carriage_return(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) {
-		if(term_supports(PETSCII))
-			cursor_left(column);
-		else
-			outcom('\r');
-		column = 0;
-	}
+	if(term_supports(PETSCII))
+		cursor_left(column);
+	else
+		outcom('\r');
+	column = 0;
 }
 
 // Send a bare line_feed, hopefully moving the cursor down one row, current column
-void sbbs_t::line_feed(int count)
+void sbbs_t::line_feed(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) {
-		if(term_supports(PETSCII))
-			outcom(PETSCII_DOWN);
-		else 
-			outcom('\n');
-	}
+	if(term_supports(PETSCII))
+		outcom(PETSCII_DOWN);
+	else 
+		outcom('\n');
 }
 
-void sbbs_t::newline(int count)
+void sbbs_t::newline(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) { 
-		outchar('\r');
-		outchar('\n');
-	}
+	outchar('\r');
+	outchar('\n');
 }
 
 void sbbs_t::clearline(void)
