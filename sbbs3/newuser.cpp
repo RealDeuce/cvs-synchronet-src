@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.82 2019/07/08 21:18:06 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.83 2019/07/09 05:38:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "petdefs.h"
 #include "cmdshell.h"
 
 /****************************************************************************/
