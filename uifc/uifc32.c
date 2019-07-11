@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.242 2019/07/11 18:42:21 deuce Exp $ */
+/* $Id: uifc32.c,v 1.243 2019/07/11 18:54:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -530,7 +530,7 @@ static void scroll_text(int x1, int y1, int x2, int y2, int down)
 	if(down)
 		vmem_puttext(x1,y1+1,x2,y2,tmp_buffer2);
 	else
-		vmem_puttext(x1,y1,x2,y2-1,tmp_buffer2+(((x2-x1)+1)*2));
+		vmem_puttext(x1,y1,x2,y2-1,tmp_buffer2+(((x2-x1)+1)));
 }
 
 /****************************************************************************/
