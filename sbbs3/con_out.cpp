@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.110 2019/07/10 20:38:34 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.111 2019/07/11 04:49:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -310,7 +310,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else {
 			if(outcom(ch)!=0)
 				break;
-			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		}
 		if(lbuflen<LINE_BUFSIZE)
