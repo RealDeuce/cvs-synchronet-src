@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.97 2018/08/03 05:47:21 rswindell Exp $ */
+/* $Id: scfg.c,v 1.103 2019/06/22 22:51:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
         			uifc.mode|=UIFC_COLOR;
                     break;
                 case 'D':
-					printf("NOTICE: The -d option is depreciated, use -id instead\r\n");
+					printf("NOTICE: The -d option is deprecated, use -id instead\r\n");
 					SLEEP(2000);
                     door_mode=TRUE;
                     break;
@@ -252,18 +252,17 @@ int main(int argc, char **argv)
 						case 'A':
 							ciolib_mode=CIOLIB_MODE_ANSI;
 							break;
+#if defined __unix__
 						case 'C':
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
-						case 0:
-							printf("NOTICE: The -i option is depreciated, use -if instead\r\n");
-							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
 							break;
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
 							break;
+#endif
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
 							break;
@@ -491,106 +490,80 @@ int main(int argc, char **argv)
 		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ESC|WIN_ACT,0,0,30,&main_dflt,0
 			,"Configure",mopt)) {
 			case 0:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				node_menu();
 				free_main_cfg(&cfg);
 				break;
 			case 1:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading xtrn.cnf ...");
-				if(!read_xtrn_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_xtrn_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				sys_cfg();
 				free_xtrn_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 2:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading msgs.cnf ...");
-				if(!read_msgs_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_msgs_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				net_cfg();
 				free_msgs_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 3:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading file.cnf ...");
-				if(!read_file_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_file_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}	
-				uifc.pop(0);
 				xfer_cfg();
 				free_file_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 4:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading file.cnf ...");
-				if(!read_file_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_file_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				xfer_opts();
 				free_file_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 5:
-				uifc.pop("Reading chat.cnf ...");
-				if(!read_chat_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_chat_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}	
-				uifc.pop(0);
 				while(1) {
 					i=0;
 					strcpy(opt[i++],"Artificial Gurus");
@@ -609,7 +582,7 @@ int main(int argc, char **argv)
 						if(j==-1)
 							continue;
 						if(!j) {
-							write_chat_cfg(&cfg,backup_level);
+							save_chat_cfg(&cfg,backup_level);
 							refresh_cfg(&cfg);
 						}
 						break;
@@ -632,93 +605,70 @@ int main(int argc, char **argv)
 				free_chat_cfg(&cfg);
 				break;
 			case 6:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading msgs.cnf ...");
-				if(!read_msgs_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_msgs_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				msgs_cfg();
 				free_msgs_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 7:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading msgs.cnf ...");
-				if(!read_msgs_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_msgs_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				msg_opts();
 				free_msgs_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 8:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				shell_cfg();
 				free_main_cfg(&cfg);
 				break;
 			case 9:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading xtrn.cnf ...");
-				if(!read_xtrn_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_xtrn_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				xprogs_cfg();
 				free_xtrn_cfg(&cfg);
 				free_main_cfg(&cfg);
 				break;
 			case 10:
-				uifc.pop("Reading main.cnf ...");
-				if(!read_main_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_main_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop("Reading file.cnf ...");
-				if(!read_file_cfg(&cfg,error)) {
-					uifc.pop(0);
+				if(!load_file_cfg(&cfg,error)) {
 					sprintf(errormsg,"ERROR: %s",error);
 					uifc.msg(errormsg);
 					break;
 				}
-				uifc.pop(0);
 				txt_cfg();
 				free_file_cfg(&cfg);
 				free_main_cfg(&cfg);
@@ -742,9 +692,106 @@ int main(int argc, char **argv)
 	}
 }
 
+BOOL load_main_cfg(scfg_t* cfg, char *error)
+{
+	uifc.pop("Reading main.cnf ...");
+	BOOL result = read_main_cfg(cfg, error);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL load_node_cfg(scfg_t* cfg, char *error)
+{
+	uifc.pop("Reading node.cnf ...");
+	BOOL result = read_node_cfg(cfg, error);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL load_msgs_cfg(scfg_t* cfg, char *error)
+{
+	uifc.pop("Reading msgs.cnf ...");
+	BOOL result = read_msgs_cfg(cfg, error);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL load_file_cfg(scfg_t* cfg, char *error)
+{
+	uifc.pop("Reading file.cnf ...");
+	BOOL result = read_file_cfg(cfg, error);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL load_chat_cfg(scfg_t* cfg, char *error)
+{
+	uifc.pop("Reading chat.cnf ...");
+	BOOL result = read_chat_cfg(cfg, error);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL load_xtrn_cfg(scfg_t* cfg, char *error)
+{
+	uifc.pop("Reading xtrn.cnf ...");
+	BOOL result = read_xtrn_cfg(cfg, error);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL save_main_cfg(scfg_t* cfg, int backup_level)
+{
+	uifc.pop("Writing main.cnf ...");
+	BOOL result = write_main_cfg(cfg, backup_level);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL save_node_cfg(scfg_t* cfg, int backup_level)
+{
+	uifc.pop("Writing node.cnf ...");
+	BOOL result = write_node_cfg(cfg, backup_level);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL save_msgs_cfg(scfg_t* cfg, int backup_level)
+{
+	uifc.pop("Writing msgs.cnf ...");
+	BOOL result = write_msgs_cfg(cfg, backup_level);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL save_file_cfg(scfg_t* cfg, int backup_level)
+{
+	uifc.pop("Writing file.cnf ...");
+	BOOL result = write_file_cfg(cfg, backup_level);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL save_chat_cfg(scfg_t* cfg, int backup_level)
+{
+	uifc.pop("Writing chat.cnf ...");
+	BOOL result = write_chat_cfg(cfg, backup_level);
+	uifc.pop(NULL);
+	return result;
+}
+
+BOOL save_xtrn_cfg(scfg_t* cfg, int backup_level)
+{
+	uifc.pop("Writing xtrn.cnf ...");
+	BOOL result = write_xtrn_cfg(cfg, backup_level);
+	uifc.pop(NULL);
+	return result;
+}
+
+
 /****************************************************************************/
-/* Checks the uifc.changes variable. If there have been no uifc.changes, returns 2.	*/
-/* If there have been uifc.changes, it prompts the user to change or not. If the */
+/* Checks the uifc.changes variable. If there have been no changes, returns 2.	*/
+/* If there have been changes, it prompts the user to change or not. If the */
 /* user escapes the menu, returns -1, selects Yes, 0, and selects no, 1 	*/
 /****************************************************************************/
 int save_changes(int mode)
@@ -761,14 +808,14 @@ int save_changes(int mode)
 	strcpy(opt[1],"No");
 	opt[2][0]=0;
 	uifc.helpbuf=
-		"`Save uifc.changes:`\n"
+		"`Save Changes:`\n"
 		"\n"
-		"You have made some uifc.changes to the configuration. If you want to save\n"
-		"these uifc.changes, select `Yes`. If you are positive you DO NOT want to save\n"
-		"these uifc.changes, select `No`. If you are not sure and want to review the\n"
+		"You have made some changes to the configuration. If you want to save\n"
+		"these changes, select `Yes`. If you are positive you DO NOT want to save\n"
+		"these changes, select `No`. If you are not sure and want to review the\n"
 		"configuration before deciding, hit ~ ESC ~.\n"
 	;
-	i=uifc.list(mode|WIN_ACT,0,0,0,&i,0,"Save Changes",opt);
+	i=uifc.list(mode|WIN_SAV,0,0,0,&i,0,"Save Changes",opt);
 	if(i!=-1)
 		uifc.changes=0;
 	return(i);
@@ -815,7 +862,7 @@ void txt_cfg()
 			if(j==-1)
 				continue;
 			if(!j) {
-				write_file_cfg(&cfg,backup_level);
+				save_file_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -987,7 +1034,7 @@ void shell_cfg()
 				continue;
 			if(!j) {
 				cfg.new_install=new_install;
-				write_main_cfg(&cfg,backup_level);
+				save_main_cfg(&cfg,backup_level);
 				refresh_cfg(&cfg);
 			}
 			return;
@@ -1072,6 +1119,7 @@ void shell_cfg()
 		j=0;
 		done=0;
 		while(!done) {
+			static int bar;
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.shell[i]->name);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
@@ -1091,7 +1139,7 @@ void shell_cfg()
 				"Synchronet to interpret. See the example `.src` files in the `exec`\n"
 				"directory and the documentation for the Baja compiler for more details.\n"
 			;
-			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,0,cfg.shell[i]->name
+			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,&bar,cfg.shell[i]->name
 				,opt)) {
 				case -1:
 					done=1;
@@ -2157,21 +2205,17 @@ void bail(int code)
 		getchar();
 	}
     else if(forcesave) {
-        uifc.pop("Loading Configs...");
-        read_main_cfg(&cfg,error);
-        read_msgs_cfg(&cfg,error);
-        read_file_cfg(&cfg,error);
-        read_chat_cfg(&cfg,error);
-        read_xtrn_cfg(&cfg,error);
-		uifc.pop(NULL);
-        uifc.pop("Writing Configs...");
+        load_main_cfg(&cfg,error);
+        load_msgs_cfg(&cfg,error);
+        load_file_cfg(&cfg,error);
+        load_chat_cfg(&cfg,error);
+        load_xtrn_cfg(&cfg,error);
 		cfg.new_install=new_install;
-        write_main_cfg(&cfg,backup_level);
-        write_msgs_cfg(&cfg,backup_level);
-        write_file_cfg(&cfg,backup_level);
-        write_chat_cfg(&cfg,backup_level);
-        write_xtrn_cfg(&cfg,backup_level); 
-		uifc.pop(NULL);
+        save_main_cfg(&cfg,backup_level);
+        save_msgs_cfg(&cfg,backup_level);
+        save_file_cfg(&cfg,backup_level);
+        save_chat_cfg(&cfg,backup_level);
+        save_xtrn_cfg(&cfg,backup_level); 
 	}
 
 	uifc.pop("Exiting");
