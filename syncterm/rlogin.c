@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: rlogin.c,v 1.34 2018/02/03 01:38:47 deuce Exp $ */
+/* $Id: rlogin.c,v 1.35 2019/07/10 22:48:07 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -156,12 +156,16 @@ int rlogin_connect(struct bbslist *bbs)
 		conn_send(ruser,strlen(ruser)+1,1000);
 		if(bbs->bpsrate) {
 			char	sbuf[30];
-			sprintf(sbuf, "ansi-bbs/%d", bbs->bpsrate);
+			sprintf(sbuf, "%s/%d", get_emulation_str(get_emulation(bbs)), bbs->bpsrate);
 
 			conn_send(sbuf, strlen(sbuf)+1,1000);
 		}
-		else
-			conn_send("ansi-bbs/115200",16,1000);
+		else {
+			char	sbuf[30];
+			sprintf(sbuf, "%s/115200", get_emulation_str(get_emulation(bbs)));
+
+			conn_send(sbuf, strlen(sbuf)+1,1000);
+		}
 	}
 
 	_beginthread(rlogin_output_thread, 0, NULL);
