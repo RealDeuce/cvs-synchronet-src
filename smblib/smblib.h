@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.98 2020/03/19 05:33:27 rswindell Exp $ */
+/* $Id: smblib.h,v 1.95 2019/07/06 04:27:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -65,7 +65,6 @@
 #endif
 
 #include "smbdefs.h"
-#include "str_list.h"
 
 #define SMB_SUCCESS			0			/* Successful result/return code */
 #define SMB_FAILURE			-1			/* Generic error (discouraged) */
@@ -168,7 +167,7 @@ SMBEXPORT int		SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, cons
 #define smb_hfield_netaddr(msg, type, str, nettype) smb_hfield_add_netaddr(msg, type, str, nettype, /* insert: */FALSE)
 
 SMBEXPORT int 		SMBCALL smb_dfield(smbmsg_t* msg, uint16_t type, ulong length);
-SMBEXPORT void*		SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t** hfield);
+SMBEXPORT void*		SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t* hfield);
 SMBEXPORT int 		SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage);
 SMBEXPORT int 		SMBCALL smb_putmsg(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg);
@@ -189,7 +188,7 @@ SMBEXPORT uint32_t	SMBCALL smb_first_in_thread(smb_t*, smbmsg_t*, msghdr_t*);
 SMBEXPORT uint32_t	SMBCALL smb_next_in_thread(smb_t*, smbmsg_t*, msghdr_t*);
 SMBEXPORT uint32_t	SMBCALL smb_last_in_branch(smb_t*, smbmsg_t*);
 SMBEXPORT uint32_t	SMBCALL smb_last_in_thread(smb_t*, smbmsg_t*);
-SMBEXPORT BOOL		SMBCALL smb_msg_is_utf8(const smbmsg_t*);
+SMBEXPORT BOOL		SMBCALL smb_msg_is_utf8(smbmsg_t*);
 
 /* smbadd.c */
 SMBEXPORT int		SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hashes
@@ -266,8 +265,7 @@ SMBEXPORT fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char
 SMBEXPORT enum smb_net_type SMBCALL smb_netaddr_type(const char* addr);
 SMBEXPORT enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr);
 /* smbdump.c */
-SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE*, smbmsg_t*);
-SMBEXPORT str_list_t SMBCALL smb_msghdr_str_list(smbmsg_t*);
+SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
 
 /* smbtxt.c */
 SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t*, smbmsg_t*, ulong mode);
