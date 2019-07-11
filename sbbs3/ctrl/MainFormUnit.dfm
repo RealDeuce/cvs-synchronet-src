@@ -1,11 +1,12 @@
 object MainForm: TMainForm
-  Left = 633
-  Top = 318
+  Left = 724
+  Top = 315
   Width = 793
   Height = 400
   Caption = 'Synchronet Control Panel'
   Color = clBtnFace
   UseDockManager = True
+  DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16073,10 +16074,6 @@ object MainForm: TMainForm
     object LogPopupCopyAll: TMenuItem
       Caption = 'Copy &All'
       OnClick = LogPopupCopyAllClick
-    end
-    object LogRefresh: TMenuItem
-      Caption = 'Refresh'
-      OnClick = RefreshLogClick
     end
   end
 end
