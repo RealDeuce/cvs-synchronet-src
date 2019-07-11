@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.80 2019/07/16 20:43:08 deuce Exp $ */
+/* $Id: gen_defs.h,v 1.79 2019/07/09 20:05:32 deuce Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -393,11 +393,7 @@ typedef struct {
 #define SAFECOPY(dst,src)                   (strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
 #endif
 
-#define SAFECAT(dst, src) do { \
-	if(strlen(dst) + strlen(src) < sizeof(dst)) { \
-		strcat(dst, src); \
-	} \
-} while(0)
+#define SAFECAT(dst, src)					if(strlen(dst) + strlen(src) < sizeof(dst)) { strcat(dst, src); }
 
 /* Bound-safe version of sprintf() - only works with fixed-length arrays */
 #if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))

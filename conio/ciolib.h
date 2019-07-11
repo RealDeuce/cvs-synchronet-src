@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.104 2019/07/11 08:10:52 deuce Exp $ */
+/* $Id: ciolib.h,v 1.103 2019/07/11 07:45:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -274,7 +274,6 @@ struct ciolib_screen {
 	struct ciolib_pixels	*pixels;
 	struct vmem_cell	*vmem;
 	struct text_info	text_info;
-	uint32_t		palette[16];
 };
 
 #define CONIO_FIRST_FREE_FONT	43

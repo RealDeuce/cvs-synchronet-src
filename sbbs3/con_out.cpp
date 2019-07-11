@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.113 2019/07/11 21:41:57 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.111 2019/07/11 04:49:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -592,7 +592,7 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
-int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback)
+int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
 {
 	if(term_supports(UTF8)) {
 		char str[UTF8_MAX_LEN];
@@ -603,15 +603,9 @@ int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback
 		inc_column(unicode_width(codepoint));
 		return 0;
 	}
-	if(cp437_fallback == NULL)
+	if(cp437_fallback == 0)
 		return 0;
-	return bputs(cp437_fallback);
-}
-
-int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
-{
-	char str[2] = { cp437_fallback, '\0' };
-	return outchar(codepoint, str);
+	return outchar(cp437_fallback);
 }
 
 void sbbs_t::inc_column(int count)
