@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.532 2019/07/16 07:07:17 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.531 2019/07/11 21:41:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -800,7 +800,6 @@ public:
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
-	char*	parse_login(char*);
 
 	/* answer.cpp */
 	bool	answer();
@@ -956,6 +955,7 @@ public:
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
+	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	uint	total_qwknodes;
