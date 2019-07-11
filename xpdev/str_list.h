@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.26 2017/06/09 02:02:57 rswindell Exp $ */
+/* $Id: str_list.h,v 1.27 2019/02/08 02:13:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,16 @@ DLLEXPORT BOOL DLLCALL		strListDelete(str_list_t*, size_t index);
 
 /* Replace a string at a specific index */
 DLLEXPORT char* DLLCALL		strListReplace(const str_list_t, size_t index, const char* str);
+
+/* Call a modification callback function for each string in a list */
+/* and replace each string with the result of the modification callback. */
+/* If the modification callback function returns NULL, the string is not modified. */
+/* If the modification callback function returns the same string item pointer it was passed, the string is not realloc'd. */
+/* If the modification callback function needs to expand the string item (make it bigger), it must return a new valid pointer */
+/* (possibly, the cbdata, a global array or a static automatic variable). Since the new pointer is not free'd here, it should */
+/* not be dynamically allocated by the callback function. */
+/* Returns the number of modified strings (normally, the list count unless there was a failure) */
+DLLEXPORT size_t DLLCALL	strListModifyEach(const str_list_t list, char*(modify(size_t index, char* str, void*)), void* cbdata);
 
 /* Swap the strings at index1 and index2 */
 DLLEXPORT BOOL DLLCALL		strListSwap(const str_list_t, size_t index1, size_t index2);
