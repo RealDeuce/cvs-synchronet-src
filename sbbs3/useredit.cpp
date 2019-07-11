@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.65 2019/07/26 19:55:46 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.62 2019/07/10 20:38:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,13 +171,11 @@ void sbbs_t::useredit(int usernumber)
 			SAFECOPY(str,"QG[]?/{},");
 		else
 			SAFECOPY(str,"ABCDEFGHIJKLMNOPQRSTUVWXYZ+[]?/{}~*$#");
-		l=getkeys(str, l, K_UPPER|K_NOCRLF);
+		l=getkeys(str,l);
 		if(l&0x80000000L) {
 			user.number=(ushort)(l&~0x80000000L);
 			continue; 
 		}
-		if(l != '[' && l != ']' && l != '{' && l != '}')
-			newline();
 		switch(l) {
 			case 'A':
 				bputs(text[EnterYourAlias]);
@@ -930,8 +928,7 @@ void sbbs_t::maindflts(user_t* user)
 					user->misc |= COLOR;
 					user->misc &= ~ICE_COLOR;
 					if(yesno(text[ColorTerminalQ])) {
-						if(!(console&(CON_BLINK_FONT|CON_HBLINK_FONT))
-							&& !noyes(text[IceColorTerminalQ]))
+						if(!noyes(text[IceColorTerminalQ]))
 							user->misc |= ICE_COLOR;
 					} else
 						user->misc &= ~COLOR;
@@ -1075,7 +1072,7 @@ void sbbs_t::maindflts(user_t* user)
 				if(!noyes(text[NewPasswordQ])) {
 					bputs(text[CurrentPassword]);
 					console|=CON_R_ECHOX;
-					ch=(char)getstr(str,LEN_PASS,K_UPPER);
+					ch=getstr(str,LEN_PASS,K_UPPER);
 					if(sys_status&SS_ABORT)
 						break;
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
