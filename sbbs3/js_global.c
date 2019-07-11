@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.380 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_global.c,v 1.384 2019/07/08 07:08:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -723,11 +723,13 @@ js_require(JSContext *cx, uintN argc, jsval *arglist)
 
 	ret = js_load(cx, argc-1, arglist);
 
-	if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
-		JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
-		JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
-		free(filename);
-		return(JS_FALSE);
+	if (!JS_IsExceptionPending(cx)) {
+		if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
+			JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
+			JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
+			free(filename);
+			return(JS_FALSE);
+		}
 	}
 	free(property);
 	return ret;
@@ -1177,6 +1179,7 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=79;
 	int32		oldlen=79;
 	JSBool		handle_quotes=JS_TRUE;
+	JSBool		is_utf8=JS_FALSE;
 	char*		inbuf = NULL;
 	char*		outbuf;
 	JSString*	js_str;
@@ -1208,10 +1211,12 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes = JSVAL_TO_BOOLEAN(argv[3]);
+	if(argc>4 && JSVAL_IS_BOOLEAN(argv[4]))
+		is_utf8 = JSVAL_TO_BOOLEAN(argv[4]);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
-	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes);
+	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes, is_utf8);
 	free(inbuf);
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -2427,8 +2432,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			continue;
 		}
 
-		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
-			outbuf[j++]='\'';	/* single quotation mark */
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0
+			|| strcmp(token,"lsaquo")==0 || strcmp(token,"rsaquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark: should lsaquo be converted to backtick (`)? */
 			continue;
 		}
 
@@ -2441,6 +2447,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]='-';	/* dash */
 			continue;
 		}
+
+		if(strcmp(token, "zwj") == 0 || strcmp(token, "zwnj") == 0)	/* zero-width joiner / non-joiner */
+			continue;
 
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
@@ -4275,10 +4284,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("return a decoded HTML-encoded text string")
 	,311
 	},
-	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
+	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt> [, is_utf8=<tt>false</tt>]]]]")
 	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
 		"<i>line_length</i> defaults to <i>79</i>, <i>orig_line_length</i> defaults to <i>79</i>, "
-		"and <i>handle_quotes</i> defaults to <i>true</i>")
+		"<i>handle_quotes</i> defaults to <i>true</i>, and <i>is_utf8</i> defaults to <i>false</i>")
 	,311
 	},
 	{"quote_msg",		js_quote_msg,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt>] [,prefix=<tt>\" > \"</tt>]")
