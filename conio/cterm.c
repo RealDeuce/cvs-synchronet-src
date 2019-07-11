@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.252 2019/07/11 19:03:21 deuce Exp $ */
+/* $Id: cterm.c,v 1.253 2019/07/11 21:13:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2156,8 +2156,50 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				break;
 			}
 			else if (seq->ctrl_func[1]) {	// Control Function with Intermediate Character
+				// Shift left TODO: Does this interact with scrolling regions?
+				if (strcmp(seq->ctrl_func, " @") == 0) {
+					seq_default(seq, 0, 1);
+					i = seq->param_int[0];
+					if(i > cterm->width)
+						i = cterm->width;
+					MOVETEXT(cterm->x + i, cterm->y, cterm->x + cterm->width - 1, cterm->y + cterm->height - 1, cterm->x, cterm->y);
+					j = i * cterm->height;
+					vc = malloc(j * sizeof(*vc));
+					if (vc != NULL) {
+						for(k=0; k < j; k++) {
+							vc[k].ch=' ';
+							vc[k].legacy_attr=cterm->attr;
+							vc[k].fg=cterm->fg_color;
+							vc[k].bg=cterm->bg_color;
+							vc[k].font = ciolib_attrfont(cterm->attr);
+						}
+						vmem_puttext(cterm->x + cterm->width - i, cterm->y, cterm->x + cterm->width - 1, cterm->y + cterm->height - 1, vc);
+						free(vc);
+					}
+				}
+				// Shift right TODO: Does this interact with scrolling regions?
+				else if (strcmp(seq->ctrl_func, " A") == 0) {
+					seq_default(seq, 0, 1);
+					i = seq->param_int[0];
+					if(i > cterm->width)
+						i = cterm->width;
+					MOVETEXT(cterm->x, cterm->y, cterm->x + cterm->width - 1 - i, cterm->y + cterm->height - 1, cterm->x + i, cterm->y);
+					j = i * cterm->height;
+					vc = malloc(j * sizeof(*vc));
+					if (vc != NULL) {
+						for(k=0; k < j; k++) {
+							vc[k].ch=' ';
+							vc[k].legacy_attr=cterm->attr;
+							vc[k].fg=cterm->fg_color;
+							vc[k].bg=cterm->bg_color;
+							vc[k].font = ciolib_attrfont(cterm->attr);
+						}
+						vmem_puttext(cterm->x, cterm->y, cterm->x + i - 1, cterm->y + cterm->height - 1, vc);
+						free(vc);
+					}
+				}
 				// Font Select
-				if (strcmp(seq->ctrl_func, " D") == 0) {
+				else if (strcmp(seq->ctrl_func, " D") == 0) {
 					seq_default(seq, 0, 0);
 					seq_default(seq, 1, 0);
 					switch(seq->param_int[0]) {
@@ -3095,7 +3137,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.252 $";
+	char	*revision="$Revision: 1.253 $";
 	char *in;
 	char	*out;
 	int		i;
