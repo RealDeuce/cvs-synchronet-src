@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.126 2020/03/01 19:10:50 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.122 2019/05/03 00:16:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,12 +60,12 @@ uchar sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
 	return ' ';
 }
 
-long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long start, long posts, bool reading)
+long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts, bool reading)
 {
 	smbmsg_t msg;
 	long listed=0;
-	
-	for(long i = start; i<posts && !msgabort(); i++) {
+
+	for(;i<posts && !msgabort();i++) {
 		if(mode&SCAN_NEW && post[i].idx.number<=subscan[subnum].ptr)
 			continue;
 		msg.idx.offset=post[i].idx.offset;
@@ -74,8 +74,7 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long start, long pos
 		smb_unlockmsghdr(&smb,&msg);
 		if(listed==0)
 			bputs(text[MailOnSystemLstHdr]);
-		bprintf(P_TRUNCATE|(msg.hdr.auxattr&MSG_HFIELDS_UTF8)
-			,msghdr_text(&msg, SubMsgLstFmt), reading ? (i+1) : post[i].num
+		bprintf(text[SubMsgLstFmt], reading ? (i+1) : post[i].num
 			,msg.hdr.attr&MSG_ANONYMOUS && !sub_op(subnum)
 			? text[Anonymous] : msg.from
 			,msg.to
@@ -465,7 +464,7 @@ void sbbs_t::show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thr
 		,(int)(cols-column-12)
 		,(int)(cols-column-12)
 		,msg.hdr.attr&MSG_ANONYMOUS && !sub_op(smb.subnum)
-			? text[Anonymous] : msghdr_field(&msg, msg.from)
+			? text[Anonymous] : msg.from
 		,(unsigned)i == curmsg ? '<' : ' '
 		,msg_listing_flag(smb.subnum, &msg, &post[i])
 		,unixtodstr(&cfg, msg.hdr.when_written.time, date));
@@ -728,7 +727,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			}
 			bprintf("\1n\1l\1h\1bThread\1n\1b: \1h\1c");
-			bprintf("%-.*s\r\n", (int)(cols-(column+1)), msghdr_field(&msg, msg.subj));
+			bprintf("%-.*s\r\n", (int)(cols-(column+1)), msg.subj);
 			show_thread(first, post, smb.curmsg);
 			subscan[subnum].last = post[smb.curmsg].idx.number;
 		}
@@ -809,11 +808,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 			if(sub_op(subnum) && (msg.hdr.attr&(MSG_MODERATED|MSG_VALIDATED)) == MSG_MODERATED) {
 				uint16_t msg_attr = msg.hdr.attr;
-				SAFEPRINTF2(str,text[ValidatePostQ],smb.curmsg+1,msghdr_field(&msg, msg.subj));
+				SAFEPRINTF2(str,text[ValidatePostQ],smb.curmsg+1,msg.subj);
 				if(!noyes(str))
 					msg_attr|=MSG_VALIDATED;
 				else {
-					SAFEPRINTF2(str,text[DeletePostQ],smb.curmsg+1,msghdr_field(&msg, msg.subj));
+					SAFEPRINTF2(str,text[DeletePostQ],smb.curmsg+1,msg.subj);
 					if(yesno(str))
 						msg_attr|=MSG_DELETE;
 				}
@@ -976,8 +975,8 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				if(msg.hdr.type == SMB_MSG_TYPE_POLL)
 					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
 				else
-					SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msghdr_field(&msg, msg.subj));
-				if(!(msg.hdr.attr&MSG_DELETE) && str[0] && noyes(str)) {
+					SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msg.subj);
+				if(!(msg.hdr.attr&MSG_DELETE) && noyes(str)) {
 					domsg = false;
 					break;
 				}
@@ -1077,13 +1076,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'L':   /* List messages */
 				domsg=0;
-				if(cfg.listmsgs_mod[0]) {
-					char cmdline[256];
-
-					safe_snprintf(cmdline, sizeof(cmdline), "%s %s %ld", cfg.listmsgs_mod, cfg.sub[subnum]->code, mode);
-					exec_bin(cmdline, &main_csi);
-					break;
-				}
 				if((i64=get_start_msgnum(&smb, 1))<0)
 					break;
 				i=(int)i64;
@@ -1107,7 +1099,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					&& stricmp(msg.to,useron.alias))
 					break;
 				SAFEPRINTF2(str2,text[Regarding]
-					,msghdr_field(&msg, msg.subj)
+					,msg.subj
 					,timestr(msg.hdr.when_written.time));
 				if(msg.from_net.addr==NULL)
 					SAFECOPY(str,msg.from);
@@ -1221,7 +1213,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 						if(msg.hfield[i].type == SMB_POLL_ANSWER)
 							strListPush(&answers, (char*)msg.hfield_dat[i]);
 					}
-					SAFEPRINTF(str, text[BallotHdr], msghdr_field(&msg, msg.subj));
+					SAFEPRINTF(str, text[BallotHdr], msg.subj);
 					i = mselect(str, answers, msg.hdr.votes ? msg.hdr.votes : 1, text[BallotAnswerFmt]
 						,text[PollAnswerChecked], nulstr, text[BallotVoteWhich]);
 					strListFree(&answers);
@@ -1351,7 +1343,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 									errormsg(WHERE,ERR_READ,smb.file,msg.idx.number);
 									break; 
 								}
-								SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msghdr_field(&msg, msg.subj));
+								SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msg.subj);
 								if(movemsg(&msg,subnum) && yesno(str)) {
 									msg.idx.attr|=MSG_DELETE;
 									msg.hdr.attr=msg.idx.attr;
@@ -1772,8 +1764,7 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			|| (msg.tags != NULL && strcasestr(msg.tags, search) != NULL)) {
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
-			bprintf(P_TRUNCATE|(msg.hdr.auxattr&MSG_HFIELDS_UTF8)
-				,msghdr_text(&msg, SubMsgLstFmt),l+1
+			bprintf(text[SubMsgLstFmt],l+1
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !sub_op(subnum) ? text[Anonymous]
 				: msg.from
 				,msg.to
@@ -1828,8 +1819,7 @@ long sbbs_t::showposts_toyou(uint subnum, post_t *post, ulong start, long posts,
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
 			found++;
-			bprintf(P_TRUNCATE|(msg.hdr.auxattr&MSG_HFIELDS_UTF8)
-				,msghdr_text(&msg, SubMsgLstFmt),l+1
+			bprintf(text[SubMsgLstFmt],l+1
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 				? text[Anonymous] : msg.from
 				,msg.to
