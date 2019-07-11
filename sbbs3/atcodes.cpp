@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.104 2019/07/11 21:37:46 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.105 2019/07/11 21:44:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -196,11 +196,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return nulstr;
 	}
 	if(strcmp(sp, "DEGREE_C") == 0) {
-		outchar(UNICODE_DEGREE_CELSIUS, "\xF8C");
+		outchar(UNICODE_DEGREE_CELSIUS, "\xF8""C");
 		return nulstr;
 	}
 	if(strcmp(sp, "DEGREE_F") == 0) {
-		outchar(UNICODE_DEGREE_FAHRENHEIT, "\xF8F");
+		outchar(UNICODE_DEGREE_FAHRENHEIT, "\xF8""F");
 		return nulstr;
 	}
 
