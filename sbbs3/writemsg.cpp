@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.160 2019/07/17 00:34:44 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.159 2019/07/10 01:12:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -787,7 +787,7 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 {
 	char*	buf;
-    size_t  slen;
+    char    slen;
     int     i,file;
 	long	l=0,flen;
     FILE    *stream;
