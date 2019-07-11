@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.102 2019/07/11 20:33:48 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.103 2019/07/11 21:25:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,7 +179,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		outchar(UNICODE_HORIZONTAL_ELLIPSIS, "...");
 		return nulstr;
 	}
-	if(strcmp(sp, "COPYRIGHT") == 0) {
+	if(strcmp(sp, "COPY") == 0) {
 		outchar(UNICODE_COPYRIGHT_SIGN, "(C)");
 		return nulstr;
 	}
