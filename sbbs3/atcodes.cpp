@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.103 2019/07/11 21:25:21 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.104 2019/07/11 21:37:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,6 +185,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 	if(strcmp(sp, "SOUNDCOPY") == 0) {
 		outchar(UNICODE_SOUND_RECORDING_COPYRIGHT, "(P)");
+		return nulstr;
+	}
+	if(strcmp(sp, "REGISTERED") == 0) {
+		outchar(UNICODE_REGISTERED_SIGN, "(R)");
 		return nulstr;
 	}
 	if(strcmp(sp, "TRADEMARK") == 0) {
