@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.173 2019/02/01 10:29:53 rswindell Exp $ */
+/* $Id: ciolib.c,v 1.177 2019/07/11 08:10:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_modepalette(uint32_t p[16]);
 CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t p[16]);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -1842,19 +1844,6 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 		free(ret);
 		return NULL;
 	}
-	ret->foreground = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->foreground[0]));
-	if (ret->foreground == NULL) {
-		free(ret->vmem);
-		free(ret);
-		return NULL;
-	}
-	ret->background = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->background[0]));
-	if (ret->background == NULL) {
-		free(ret->foreground);
-		free(ret->vmem);
-		free(ret);
-		return NULL;
-	}
 
 	if (vmode != -1) {
 		ret->pixels = ciolib_getpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1);
@@ -1865,6 +1854,7 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 	for (i=0; i<5; i++)
 		ret->fonts[i] = ciolib_getfont(i);
 	ret->flags = ciolib_getvideoflags();
+	ciolib_get_modepalette(ret->palette);
 
 	return ret;
 }
@@ -1875,8 +1865,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *scrn)
 		return;
 
 	ciolib_freepixels(scrn->pixels);
-	FREE_AND_NULL(scrn->background);
-	FREE_AND_NULL(scrn->foreground);
 	FREE_AND_NULL(scrn->vmem);
 	free(scrn);
 }
@@ -1894,11 +1882,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 
 	if (ti.currmode != scrn->text_info.currmode)
 		ciolib_textmode(scrn->text_info.currmode);
+	ciolib_set_modepalette(ret->palette);
 	ciolib_vmem_puttext(1, 1, scrn->text_info.screenwidth, scrn->text_info.screenheight, scrn->vmem);
 	ciolib_textcolor(scrn->text_info.attribute);
 	ciolib_window(scrn->text_info.winleft, scrn->text_info.wintop, scrn->text_info.winright, scrn->text_info.winbottom);
 	vmode = find_vmode(scrn->text_info.currmode);
-	if (vmode != -1)
+	if (vmode != -1 && scrn->pixels != NULL)
 		ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
 	for (i=0; i<5; i++)
 		ciolib_setfont(scrn->fonts[i], FALSE, i);
@@ -2013,4 +2002,27 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int fontnum)
 	}
 	return 0;
 
+}
+
+CIOLIBEXPORT void CIOLIBCALL
+ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font)
+{
+	CIOLIB_INIT();
+
+	if (cell == NULL)
+		return;
+	cell->ch = ch;
+	cell->font = font;
+	ciolib_set_vmem_attr(cell, attr);
+}
+
+CIOLIBEXPORT void CIOLIBCALL
+ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr)
+{
+	CIOLIB_INIT();
+
+	if (cell == NULL)
+		return;
+	cell->legacy_attr = attr;
+	ciolib_attr2palette(attr, &cell->fg, &cell->bg);
 }

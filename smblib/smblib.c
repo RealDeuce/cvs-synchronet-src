@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.197 2019/05/04 22:56:55 rswindell Exp $ */
+/* $Id: smblib.c,v 1.200 2019/07/08 07:16:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,7 +52,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.60"      /* SMB library version */
+#define SMBLIB_VERSION		"2.61"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
@@ -873,7 +873,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 				p += 13;
 				SKIP_WHITESPACE(p);
 				msg->content_type = p;
-				smb_parse_content_type(p, &msg->text_subtype, &msg->text_charset);
+				smb_parse_content_type(p, &(msg->text_subtype), &(msg->text_charset));
 				break;
 			}
 			break;
@@ -914,6 +914,8 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->newsgroups=NULL;
 	msg->mime_version=NULL;
 	msg->content_type=NULL;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 
 	msg->ftn_msgid=NULL;
 	msg->ftn_reply=NULL;
@@ -1691,6 +1693,17 @@ BOOL SMBCALL smb_msg_is_from(smbmsg_t* msg, const char* name, enum smb_net_type 
 	}
 }
 
+BOOL SMBCALL smb_msg_is_utf8(smbmsg_t* msg)
+{
+	for(int i=0; i < msg->total_hfields; i++) {
+		switch(msg->hfield[i].type) {
+		case FIDOCTRL:
+			if(strncmp(msg->hfield_dat[i], "CHRS: UTF-8", 11) == 0)
+				return TRUE;
+		}
+	}
+	return msg->text_charset != NULL && stricmp(msg->text_charset, "utf-8") == 0;
+}
 
 uint16_t SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name, enum smb_net_type net_type, void* net_addr)
 {
