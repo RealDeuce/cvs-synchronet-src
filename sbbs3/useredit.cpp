@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.60 2019/07/07 21:18:43 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.62 2019/07/10 20:38:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -816,13 +816,12 @@ void sbbs_t::maindflts(user_t* user)
 							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
 							,cols, text[TerminalColumns]);
 		else
-			safe_snprintf(str,sizeof(str),"%s%s%s%s%s%s"
+			safe_snprintf(str,sizeof(str),"%s%s / %s %s%s"
 							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
-							,term&ANSI ? "ANSI ":"TTY "
+							,term_charset(term)
+							,term_type(term)
 							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
-							,term&RIP ? "RIP " : nulstr
-							,term&UTF8 ? "UTF-8 " : (term&NO_EXASCII ? "ASCII ":"CP437 ")
-							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
+							,term&SWAP_DELETE ? "DEL=BS" : nulstr);
 		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(user->rows)
 			ultoa(user->rows,tmp,10);
@@ -941,10 +940,20 @@ void sbbs_t::maindflts(user_t* user)
 						user->misc|=NO_EXASCII;
 					else
 						user->misc&=~NO_EXASCII;
-					if(!noyes(text[SwapDeleteKeyQ]))
-						user->misc|=SWAP_DELETE;
-					else
-						user->misc&=~SWAP_DELETE;
+					user->misc &= ~SWAP_DELETE;
+					while(text[HitYourBackspaceKey][0] && !(user->misc&SWAP_DELETE) && online) {
+						bputs(text[HitYourBackspaceKey]);
+						uchar key = getkey(K_NONE);
+						bprintf(text[CharacterReceivedFmt], key, key);
+						if(key == '\b')
+							break;
+						if(key == DEL) {
+							if(text[SwapDeleteKeyQ][0] == 0 || yesno(text[SwapDeleteKeyQ]))
+								user->misc |= SWAP_DELETE;
+						}
+						else
+							bprintf(text[InvalidBackspaceKeyFmt], key, key);
+					}
 				}
 				if(sys_status&SS_ABORT)
 					break;

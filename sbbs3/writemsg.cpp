@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.156 2019/07/08 04:26:01 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.159 2019/07/10 01:12:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,7 @@
 #include "wordwrap.h"
 #include "utf8.h"
 #include "unicode.h"
+#include "cp437defs.h"
 
 #define MAX_LINES		10000
 #define MAX_LINE_LEN	(cols - 1)
@@ -105,12 +106,17 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 	if((buf=smb_getmsgtxt(smb, msg, mode)) != NULL) {
 		strip_invalid_attr(buf);
 		truncsp(buf);
-		if(smb_msg_is_utf8(msg) && !term_supports(UTF8)) {
-			utf8_normalize_str(buf);
-			utf8_replace_chars(buf, unicode_to_cp437
-				,/* unsupported char: */'\xA8' /* Inverted question mark */
-				,/* unsupported zero-width ch: */0
-				,/* decode error char: */ '\xAD' /* inverted exclamation mark */);
+		BOOL is_utf8 = FALSE;
+		if(smb_msg_is_utf8(msg)) {
+			if(term_supports(UTF8))
+				is_utf8 = TRUE;
+			else {
+				utf8_normalize_str(buf);
+				utf8_replace_chars(buf, unicode_to_cp437
+					,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+					,/* unsupported zero-width ch: */0
+					,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
+			}
 		}
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {
 			int wrap_cols = 0;
@@ -118,7 +124,7 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 				wrap_cols = cfg.xedit[useron_xedit-1]->quotewrap_cols;
 			if(wrap_cols == 0)
 				wrap_cols = cols - 1;
-			wrapped=::wordwrap(buf, wrap_cols, org_cols - 1, /* handle_quotes: */TRUE);
+			wrapped=::wordwrap(buf, wrap_cols, org_cols - 1, /* handle_quotes: */TRUE, is_utf8);
 		}
 		if(wrapped!=NULL) {
 			fputs(wrapped,fp);
