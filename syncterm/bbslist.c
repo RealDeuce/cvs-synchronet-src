@@ -976,26 +976,26 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 					default:
 						iniSetEnum(&inifile,itemname,"ScreenMode",screen_modes_enum,item->screen_mode,&ini_style);
 						if(item->screen_mode == SCREEN_MODE_C64) {
-							strcpy(item->font,font_names[33]);
+							SAFECOPY(item->font,font_names[33]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						if(item->screen_mode == SCREEN_MODE_C128_40
 								|| item->screen_mode == SCREEN_MODE_C128_80) {
-							strcpy(item->font,font_names[35]);
+							SAFECOPY(item->font,font_names[35]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						if(item->screen_mode == SCREEN_MODE_ATARI) {
-							strcpy(item->font,font_names[36]);
+							SAFECOPY(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
-							strcpy(item->font,font_names[36]);
+							SAFECOPY(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
@@ -1128,7 +1128,7 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 						break;
 					default:
 					if(i!=find_font_id(item->font)) {
-						strcpy(item->font,font_names[i]);
+						SAFECOPY(item->font,font_names[i]);
 						iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 						changed=1;
 					}
@@ -1600,7 +1600,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 							*p=')';
 					}
 					else
-						strncpy(title, syncterm_version, sizeof(title));
+						SAFECOPY(title, syncterm_version);
 					settitle(title);
 				}
 				oldopt=opt;
@@ -1963,3 +1963,36 @@ struct bbslist *show_bbslist(char *current, int connected)
 		}
 	}
 }
+
+cterm_emulation_t
+get_emulation(struct bbslist *bbs)
+{
+	if (bbs == NULL)
+		return CTERM_EMULATION_ANSI_BBS;
+
+	switch(bbs->screen_mode) {
+		case SCREEN_MODE_C64:
+		case SCREEN_MODE_C128_40:
+		case SCREEN_MODE_C128_80:
+			return CTERM_EMULATION_PETASCII;
+		case SCREEN_MODE_ATARI:
+		case SCREEN_MODE_ATARI_XEP80:
+			return CTERM_EMULATION_ATASCII;
+		default:
+			return CTERM_EMULATION_ANSI_BBS;
+	}
+}
+
+const char *
+get_emulation_str(cterm_emulation_t emu)
+{
+	switch (emu) {
+		case CTERM_EMULATION_ANSI_BBS:
+			return "syncterm";
+		case CTERM_EMULATION_PETASCII:
+			return "PETSCII";
+		case CTERM_EMULATION_ATASCII:
+			return "ATASCII";
+	}
+}
+
