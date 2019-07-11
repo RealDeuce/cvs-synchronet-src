@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.249 2019/07/09 23:35:24 deuce Exp $ */
+/* $Id: cterm.c,v 1.253 2019/07/11 21:13:43 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1560,13 +1560,13 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 	uint32_t nc;
 	uint32_t *co;
 
+	if (seq == NULL || cterm == NULL || i == NULL)
+		return;
 	if (fg)
 		FREE_AND_NULL(cterm->fg_tc_str);
 	else
 		FREE_AND_NULL(cterm->bg_tc_str);
 	co = fg ? (&cterm->fg_color) : (&cterm->bg_color);
-	if (seq == NULL || cterm == NULL || i == NULL)
-		return;
 	if (*i>=seq->param_count)
 		return;
 
@@ -1600,15 +1600,15 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		if (parse_sub_parameters(&sub, seq, (*i)+1)) {
 			if (sub.param_count == 2)
 				*co = sub.param_int[1];
-			(*i)++;
 			save_extended_colour_seq(cterm, fg, seq, *i, 2);
+			(*i)++;
 		}
 	}
 	else if ((*i)+2 < seq->param_count && seq->param_int[(*i)+1] == 5) {
 		// CSI 38 ; 5 ; X m variant
 		*co = seq->param_int[(*i)+2] + 16;
-		*i+=2;
 		save_extended_colour_seq(cterm, fg, seq, *i, 3);
+		*i+=2;
 	}
 	else if ((*i)+1 < seq->param_count && seq->param_int[(*i)+1] == 2 && seq->param[(*i)+1][1] == ':') {
 		// CSI 38 ; 2 : Z? : R : G : B m variant
@@ -1621,6 +1621,7 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 			if (nc != UINT32_MAX)
 				*co = nc;
 			save_extended_colour_seq(cterm, fg, seq, *i, 2);
+			*i += 1;
 		}
 	}
 	else if ((*i)+4 < seq->param_count && seq->param_int[(*i)+1] == 2) {
@@ -1628,8 +1629,8 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		nc = map_rgb(seq->param_int[(*i)+2]<<8, seq->param_int[(*i)+3]<<8, seq->param_int[(*i)+4]<<8);
 		if (nc != UINT32_MAX)
 			*co = nc;
-		*i += 4;
 		save_extended_colour_seq(cterm, fg, seq, *i, 5);
+		*i += 4;
 	}
 	free_sub_parameters(&sub);
 }
@@ -2155,8 +2156,50 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				break;
 			}
 			else if (seq->ctrl_func[1]) {	// Control Function with Intermediate Character
+				// Shift left TODO: Does this interact with scrolling regions?
+				if (strcmp(seq->ctrl_func, " @") == 0) {
+					seq_default(seq, 0, 1);
+					i = seq->param_int[0];
+					if(i > cterm->width)
+						i = cterm->width;
+					MOVETEXT(cterm->x + i, cterm->y, cterm->x + cterm->width - 1, cterm->y + cterm->height - 1, cterm->x, cterm->y);
+					j = i * cterm->height;
+					vc = malloc(j * sizeof(*vc));
+					if (vc != NULL) {
+						for(k=0; k < j; k++) {
+							vc[k].ch=' ';
+							vc[k].legacy_attr=cterm->attr;
+							vc[k].fg=cterm->fg_color;
+							vc[k].bg=cterm->bg_color;
+							vc[k].font = ciolib_attrfont(cterm->attr);
+						}
+						vmem_puttext(cterm->x + cterm->width - i, cterm->y, cterm->x + cterm->width - 1, cterm->y + cterm->height - 1, vc);
+						free(vc);
+					}
+				}
+				// Shift right TODO: Does this interact with scrolling regions?
+				else if (strcmp(seq->ctrl_func, " A") == 0) {
+					seq_default(seq, 0, 1);
+					i = seq->param_int[0];
+					if(i > cterm->width)
+						i = cterm->width;
+					MOVETEXT(cterm->x, cterm->y, cterm->x + cterm->width - 1 - i, cterm->y + cterm->height - 1, cterm->x + i, cterm->y);
+					j = i * cterm->height;
+					vc = malloc(j * sizeof(*vc));
+					if (vc != NULL) {
+						for(k=0; k < j; k++) {
+							vc[k].ch=' ';
+							vc[k].legacy_attr=cterm->attr;
+							vc[k].fg=cterm->fg_color;
+							vc[k].bg=cterm->bg_color;
+							vc[k].font = ciolib_attrfont(cterm->attr);
+						}
+						vmem_puttext(cterm->x, cterm->y, cterm->x + i - 1, cterm->y + cterm->height - 1, vc);
+						free(vc);
+					}
+				}
 				// Font Select
-				if (strcmp(seq->ctrl_func, " D") == 0) {
+				else if (strcmp(seq->ctrl_func, " D") == 0) {
 					seq_default(seq, 0, 0);
 					seq_default(seq, 1, 0);
 					switch(seq->param_int[0]) {
@@ -2892,7 +2935,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								switch (cterm->strbuf[2]) {
 									case 'm':
 										if (cterm->strbuf[3] == 0) {
-											strcpy(tmp, "\x1b" "1$r0");
+											strcpy(tmp, "\x1bP1$r0");
 											if (cterm->attr & 8)
 												strcat(tmp, ";1");
 											if (cterm->attr & 128)
@@ -2955,7 +2998,35 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 												strcat(tmp, ";");
 												strcat(tmp, cterm->bg_tc_str);
 											}
-											strcat(tmp, "m");
+											strcat(tmp, "m\x1b\\");
+											if(strlen(retbuf)+strlen(tmp) < retsize)
+												strcat(retbuf, tmp);
+										}
+										break;
+									case 'r':
+										if (cterm->strbuf[3] == 0) {
+											sprintf(tmp, "\x1bP1$r%d;%dr\x1b\\", cterm->top_margin, cterm->bottom_margin);
+											if(strlen(retbuf)+strlen(tmp) < retsize)
+												strcat(retbuf, tmp);
+										}
+										break;
+									case 't':
+										if (cterm->strbuf[3] == 0) {
+											sprintf(tmp, "\x1bP1$r%dt\x1b\\", cterm->height);
+											if(strlen(retbuf)+strlen(tmp) < retsize)
+												strcat(retbuf, tmp);
+										}
+										break;
+									case '$':
+										if (cterm->strbuf[3] == '|' && cterm->strbuf[4] == 0) {
+											sprintf(tmp, "\x1bP1$r%d$|\x1b\\", cterm->width);
+											if(strlen(retbuf)+strlen(tmp) < retsize)
+												strcat(retbuf, tmp);
+										}
+										break;
+									case '*':
+										if (cterm->strbuf[3] == '|' && cterm->strbuf[4] == 0) {
+											sprintf(tmp, "\x1bP1$r%d$|\x1b\\", cterm->height);
 											if(strlen(retbuf)+strlen(tmp) < retsize)
 												strcat(retbuf, tmp);
 										}
@@ -3066,7 +3137,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.249 $";
+	char	*revision="$Revision: 1.253 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3964,6 +4035,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 							/* Movement */
 							case 13:	/* "\r\n" and disabled reverse. */
 								cterm->c64reversemode = 0;
+								/* Fall-through */
 							case 141:
 								GOTOXY(1, WHEREY());
 								/* Fall-through */
