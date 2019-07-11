@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.112 2019/07/11 20:14:14 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.113 2019/07/11 21:41:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -592,7 +592,7 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
-int sbbs_t::outchar(enum unicode_codepoint codepoint, char* cp437_fallback)
+int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback)
 {
 	if(term_supports(UTF8)) {
 		char str[UTF8_MAX_LEN];
