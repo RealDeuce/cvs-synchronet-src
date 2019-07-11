@@ -1,6 +1,6 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.11 2018/03/31 09:40:59 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.12 2018/10/08 00:01:10 rswindell Exp $ */
 
 #include "fidodefs.h"
 #include "xpendian.h"	/* swap */
@@ -120,7 +120,7 @@ int pktdump(FILE* fp, const char* fname)
 	printf(" to %s\n"	,faddrtoa(&dest,NULL));
 
 	if(pkthdr.type2.password[0])
-		fprintf(stdout,"Password: '%.*s'\n",sizeof(pkthdr.type2.password),pkthdr.type2.password);
+		fprintf(stdout,"Password: '%.*s'\n",(int)sizeof(pkthdr.type2.password),pkthdr.type2.password);
 
 	fseek(fp,sizeof(pkthdr),SEEK_SET);
 
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision: 1.12 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
