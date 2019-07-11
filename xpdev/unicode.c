@@ -1,6 +1,6 @@
 /* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: unicode.c,v 1.15 2019/08/30 11:04:53 rswindell Exp $ */
+/* $Id: unicode.c,v 1.10 2019/07/11 19:52:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -177,7 +177,7 @@ enum unicode_codepoint cp437_unicode_tbl[] =
 	0,
 	0,
 	0,
-	/* 0x7F (DEL) */ UNICODE_TERM_CTRL_CHAR_CODE(UNICODE_HOUSE),
+	/* 0x7F (DEL) */ UNICODE_TERM_CTRL_CHAR_CODE(0x2302),
 	/* 0x80 */ UNICODE_LATIN_CAPITAL_LETTER_C_WITH_CEDILLA,
 	/* 0x81 */ UNICODE_LATIN_SMALL_LETTER_U_WITH_DIAERESIS,
 	/* 0x82 */ UNICODE_LATIN_SMALL_LETTER_E_WITH_ACUTE,
@@ -270,10 +270,10 @@ enum unicode_codepoint cp437_unicode_tbl[] =
 	/* 0xD9 */ 0x2518,
 	/* 0xDA */ 0x250C,
 	/* 0xDB */ 0x2588,
-	/* 0xDC */ UNICODE_LOWER_HALF_BLOCK,
+	/* 0xDC */ 0x2584,
 	/* 0xDD */ 0x258C,
 	/* 0xDE */ 0x2590,
-	/* 0xDF */ UNICODE_UPPER_HALF_BLOCK,
+	/* 0xDF */ 0x2580,
 	/* 0xE0 */ UNICODE_GREEK_SMALL_LETTER_ALPHA,
 	/* 0xE1 */ UNICODE_GREEK_SMALL_LETTER_BETA, // or UNICODE_LATIN_SMALL_LETTER_SHARP_S
 	/* 0xE2 */ UNICODE_GREEK_SMALL_LETTER_GAMMA,
@@ -351,6 +351,8 @@ size_t unicode_width(enum unicode_codepoint u)
 char unicode_to_cp437(enum unicode_codepoint codepoint)
 {
 	switch(codepoint) {
+		case 0:													return '\0';
+
 		case UNICODE_ACUTE_ACCENT:								return '\'';
 
 		case UNICODE_BROKEN_BAR:								return '|';
@@ -359,8 +361,6 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case UNICODE_POUND_SIGN:								return CP437_POUND_SIGN;
 		case UNICODE_YEN_SIGN:									return CP437_YEN_SIGN;
 		case UNICODE_SECTION_SIGN:								return CP437_SECTION_SIGN;
-		case UNICODE_DEGREE_CELSIUS:
-		case UNICODE_DEGREE_FAHRENHEIT:
 		case UNICODE_DEGREE_SIGN:								return CP437_DEGREE_SIGN;
 		case UNICODE_PLUS_MINUS_SIGN:							return CP437_PLUS_MINUS_SIGN;
 		case UNICODE_SUPERSCRIPT_TWO:							return CP437_SUPERSCRIPT_TWO;
@@ -462,14 +462,15 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case UNICODE_EM_DASH:
 			return '\xC4';
 
-		case UNICODE_BULLET:
-		case UNICODE_BULLET_OPERATOR:							return CP437_BULLET_OPERATOR;
+		case UNICODE_BULLET: // BULLET
+			return '\xF9';
 
 		case UNICODE_NO_BREAK_SPACE:
 		case UNICODE_EN_QUAD:
 		case UNICODE_EM_QUAD:
 		case UNICODE_EN_SPACE:
-		case UNICODE_EM_SPACE:									return ' ';
+		case UNICODE_EM_SPACE:
+			return ' ';
 
 		case UNICODE_SQUARE_ROOT:								return CP437_SQUARE_ROOT;
 		case UNICODE_CHECK_MARK:
@@ -480,34 +481,6 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case UNICODE_BALLOT_X:
 		case UNICODE_HEAVY_BALLOT_X:							return 'x';
 
-		case UNICODE_DIVISION_SLASH:							return '/';
-		case UNICODE_SET_MINUS:									return '\\';
-		case UNICODE_ASTERISK_OPERATOR:							return '*';
-
-		case UNICODE_DOUBLE_VERTICAL_LINE:						return CP437_BOX_DRAWINGS_DOUBLE_VERTICAL;
-
-		case UNICODE_DOUBLE_LOW_LINE:							return '=';
-		case UNICODE_LEFT_SINGLE_QUOTATION_MARK:
-		case UNICODE_RIGHT_SINGLE_QUOTATION_MARK:
-		case UNICODE_SINGLE_HIGH_REVERSED_9_QUOTATION_MARK:		return '\'';
-		case UNICODE_SINGLE_LOW_9_QUOTATION_MARK:				return ',';
-		case UNICODE_LEFT_DOUBLE_QUOTATION_MARK:
-		case UNICODE_RIGHT_DOUBLE_QUOTATION_MARK:				
-		case UNICODE_DOUBLE_LOW_9_QUOTATION_MARK:
-		case UNICODE_DOUBLE_HIGH_REVERSED_9_QUOTATION_MARK:		return '"';
-		case UNICODE_DAGGER:									return CP437_BOX_DRAWINGS_VERTICAL_AND_HORIZONTAL;
-		
-		case UNICODE_BLACK_SQUARE:
-		case UNICODE_BLACK_SQUARE_CENTERED:
-		case UNICODE_BLACK_SQUARE_FOR_STOP:
-		case UNICODE_BLACK_SMALL_SQUARE:
-		case UNICODE_BLACK_MEDIUM_SQUARE:
-		case UNICODE_BLACK_LARGE_SQUARE:
-		case UNICODE_BLACK_MEDIUM_SMALL_SQUARE:
-		case UNICODE_BLACK_VERY_SMALL_SQUARE:	
-		case UNICODE_HALFWIDTH_BLACK_SQUARE:					return CP437_HALFWIDTH_BLACK_SQUARE;
-
-		case UNICODE_HORIZONTAL_BAR:
 		case UNICODE_OVERLINE:
 		case 0x2500: // Box Drawings Light Horizontal
 		case 0x2501: // Box Drawings Heavy Horizontal
@@ -648,17 +621,6 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case 0x257F: // Box Drawings Heavy Up and Light Down
 			return '\xB3';
 
-		case UNICODE_FULL_BLOCK:
-			return CP437_FULL_BLOCK;
-		case UNICODE_LOWER_HALF_BLOCK:
-			return CP437_LOWER_HALF_BLOCK;
-		case UNICODE_LEFT_HALF_BLOCK:
-			return CP437_LEFT_HALF_BLOCK;
-		case UNICODE_RIGHT_HALF_BLOCK:
-			return CP437_RIGHT_HALF_BLOCK;
-		case UNICODE_UPPER_HALF_BLOCK:
-			return CP437_UPPER_HALF_BLOCK;
-
 		case 0x2581: // Lower One Eighth Block
 			return '_';
 
@@ -671,57 +633,28 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case 0x2587: // Lower Seven Eighths Block
 			return '\xDC';
 
+		case 0x2588: // Full Block
 		case 0x2589: // Left Seven Eighths Block
 			return '\xDB';
 
 		case 0x258A: // Left Three Quarters Block
 		case 0x258B: // Left Five Eighths Block
+		case 0x258C: // Left Half Block
 		case 0x258D: // Left Three Eighths Block
 		case 0x258E: // Left One Quarter Block
 		case 0x258F: // Left One Eighth Block
 			return '\xDD';
 
+		case 0x2590: // Right Half Block
 		case 0x2595: // Right One Eighth Block
 			return '\xDE';
 
 		case 0x2594: // Upper One Eighth Block
 			return '\xDF';
 
-		case UNICODE_SMALL_COMMA:				
-		case UNICODE_SMALL_IDEOGRAPHIC_COMMA:				return ',';
-		case UNICODE_SMALL_FULL_STOP:						return '.';
-		case UNICODE_SMALL_SEMICOLON:						return ';';
-		case UNICODE_SMALL_COLON:							return ':';
-		case UNICODE_SMALL_QUESTION_MARK:					return '?';
-		case UNICODE_SMALL_EXCLAMATION_MARK:				return '!';
-		case UNICODE_SMALL_EM_DASH:							return '-';
-		case UNICODE_SMALL_LEFT_PARENTHESIS:				return '(';
-		case UNICODE_SMALL_RIGHT_PARENTHESIS:				return ')';
-		case UNICODE_SMALL_LEFT_CURLY_BRACKET:				return '{';
-		case UNICODE_SMALL_RIGHT_CURLY_BRACKET:				return '}';
-		case UNICODE_SMALL_LEFT_TORTOISE_SHELL_BRACKET:		return '[';
-		case UNICODE_SMALL_RIGHT_TORTOISE_SHELL_BRACKET:	return ']';
-		case UNICODE_SMALL_NUMBER_SIGN:						return '#';
-		case UNICODE_SMALL_AMPERSAND:						return '&';
-		case UNICODE_SMALL_ASTERISK:						return '*';
-		case UNICODE_SMALL_PLUS_SIGN:						return '+';
-		case UNICODE_SMALL_HYPHEN_MINUS:					return '-';
-		case UNICODE_SMALL_LESS_THAN_SIGN:					return '<';
-		case UNICODE_SMALL_GREATER_THAN_SIGN:				return '>';
-		case UNICODE_SMALL_EQUALS_SIGN:						return '=';
-		case UNICODE_SMALL_REVERSE_SOLIDUS:					return '\\';
-		case UNICODE_SMALL_DOLLAR_SIGN:						return '$';
-		case UNICODE_SMALL_PERCENT_SIGN:					return '%';
-		case UNICODE_SMALL_COMMERCIAL_AT:					return '@';
-
-		default:	
+		default:	// Look for a 1:1 match in the CP437 -> Unicode table
 		{
 			int i;
-
-			if(codepoint >= UNICODE_FULLWIDTH_EXCLAMATION_MARK && codepoint <= UNICODE_FULLWIDTH_TILDE)
-				return '!' + (codepoint - UNICODE_FULLWIDTH_EXCLAMATION_MARK);
-
-			// Look for a 1:1 match in the CP437 -> Unicode table
 			for(i = 1; i < 0x100; i++) {
 				if(cp437_unicode_tbl[i] == codepoint)
 					return i;
@@ -730,5 +663,5 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		}
 	}
 
-	return UNICODE_UNDEFINED; // Not-mapped
+	return '\0'; // Not-mapped
 }
