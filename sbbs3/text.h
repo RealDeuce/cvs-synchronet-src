@@ -836,8 +836,6 @@ enum {
 	,IceColorTerminalQ
 	,Utf8TerminalQ
 	,MsgCarbonCopyList
-	,LoggingOn
-	,QWKSettingsUtf8
 
 	,TOTAL_TEXT
 };
