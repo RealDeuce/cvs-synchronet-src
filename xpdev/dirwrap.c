@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.101 2018/07/25 04:20:05 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.105 2019/04/11 00:47:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,10 @@
 #include "genwrap.h"	/* strupr/strlwr */
 #include "dirwrap.h"	/* DLLCALL */
 
+#if !defined(S_ISDIR)
+	#define S_ISDIR(x)	((x)&S_IFDIR)
+#endif
+
 /****************************************************************************/
 /* Return the filename portion of a full pathname							*/
 /****************************************************************************/
@@ -104,7 +108,26 @@ char* DLLCALL getfname(const char* path)
 }
 
 /****************************************************************************/
-/* Return a pointer to a file's extesion (beginning with '.')				*/
+/* Return the filename or last directory portion of a full pathname			*/
+/* A directory pathname is expected to end in a '/'							*/
+/****************************************************************************/
+char* DLLCALL getdirname(const char* path)
+{
+	char* last = lastchar(path);
+	if(*last == '/') {
+		if(last == path)
+			return last;
+		for(last--; last >= path; last--) {
+			if(IS_PATH_DELIM(*last))
+				return last + 1;
+		}
+		return (char*)path;
+	}
+	return getfname(path);
+}
+
+/****************************************************************************/
+/* Return a pointer to a file's extension/suffix (beginning with '.')		*/
 /****************************************************************************/
 char* DLLCALL getfext(const char* path)
 {
@@ -396,9 +419,6 @@ time_t DLLCALL fcdate(const char* filename)
 {
 	struct stat st;
 
-	if(access(filename, 0) < 0)
-		return -1;
-
 	if(stat(filename, &st) != 0)
 		return -1;
 
@@ -411,9 +431,6 @@ time_t DLLCALL fcdate(const char* filename)
 time_t DLLCALL fdate(const char* filename)
 {
 	struct stat st;
-
-	if(access(filename,0)==-1)
-		return(-1);
 
 	if(stat(filename, &st)!=0)
 		return(-1);
@@ -447,9 +464,6 @@ off_t DLLCALL flength(const char *filename)
 	long	handle;
 	struct _finddata_t f;
 
-	if(access((char*)filename,0)==-1)
-		return(-1);
-
 	if((handle=_findfirst((char*)filename,&f))==-1)
 		return(-1);
 
@@ -461,9 +475,6 @@ off_t DLLCALL flength(const char *filename)
 
 	struct stat st;
 
-	if(access(filename,0)==-1)
-		return(-1);
-
 	if(stat(filename, &st)!=0)
 		return(-1);
 
@@ -474,17 +485,21 @@ off_t DLLCALL flength(const char *filename)
 
 
 /****************************************************************************/
-/* Checks the file system for the existence of one or more files.			*/
+/* Checks the file system for the existence of a file.						*/
 /* Returns TRUE if it exists, FALSE if it doesn't.                          */
-/* 'filespec' may *NOT* contain wildcards!									*/
+/* 'filename' may *NOT* contain wildcards!									*/
 /****************************************************************************/
 static BOOL fnameexist(const char *filename)
 {
-	if(access(filename,0)==-1)
-		return(FALSE);
-	if(!isdir(filename))
-		return(TRUE);
-	return(FALSE);
+	struct stat st;
+
+	if(stat(filename, &st) != 0)
+		return FALSE;
+
+	if(S_ISDIR(st.st_mode))
+		return FALSE;
+
+	return TRUE;
 }
 
 /****************************************************************************/
@@ -561,7 +576,7 @@ BOOL DLLCALL fexistcase(char *path)
 	long	handle;
 	struct _finddata_t f;
 
-	if(access(path,0)==-1 && !strchr(path,'*') && !strchr(path,'?'))
+	if(access(path, F_OK)==-1 && !strchr(path,'*') && !strchr(path,'?'))
 		return(FALSE);
 
 	if((handle=_findfirst((char*)path,&f))==-1)
@@ -630,10 +645,6 @@ BOOL DLLCALL fexistcase(char *path)
 
 #endif
 }
-
-#if !defined(S_ISDIR)
-	#define S_ISDIR(x)	((x)&S_IFDIR)
-#endif
 
 /****************************************************************************/
 /* Returns TRUE if the filename specified is a directory					*/
@@ -1147,7 +1158,7 @@ int DLLCALL mkpath(const char* path)
 			break;
 		tp=p;
 		FIND_CHARSET(tp,sep);
-		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
+		safe_snprintf(dir,sizeof(dir),"%.*s", (int)(tp-path), path);
 		if(!isdir(dir)) {
 			if((result=MKDIR(dir))!=0)
 				break;
