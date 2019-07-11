@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.67 2020/04/14 16:31:22 deuce Exp $
+$Id: cterm.txt,v 1.55 2019/07/10 18:34:19 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -9,17 +9,6 @@ as soon as a character is written to the last column of the
 current line, not on the next character.  A tab will wrap
 to the next line only if the current cursor position is the
 last character on the line.
-
-I'm often asked why I don't use VT semantics for wrapping.
-The primary reason is that the person asking almost certainly
-doesn't know what the VT semantics are, they just want
-SyncTERM to behave the same as some other terminal they like.
-
-Not only have the VT semantics never been properly
-implemented in any terminal, they even varied between
-different actual hardware VT terminals.  Luckily, everything
-is on the internet now, so you can see the details and results
-here: https://github.com/mattiase/wraptest
 
 Control characters:
 
@@ -58,18 +47,21 @@ Control Codes:
 --------------
 
 Control codes are in the following format:
-ESC {'0' (ZERO) to '~'}
+ESC {SPACE to '/'}{'0' (ZERO) to '~'}
+	There may be multiple characters from the {SPACE to '/'} set
+	before the terminating '0' to '~'
+
 	Legal combinations which are not handled are silently dropped.
 
-ESC H	Set Tab
-	Sets a tab stop at the current column
+ESC D	(Disabled in current code)
+	Scrolls window up one line filling the bottom line with the
+	current attribute.
+	SOURCE: BANSI.TXT
 
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-ESC M	Reverse Line Feed
-	Move up one line
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
+ESC M	(Disabled in current code)
+	Scrolls window down one line filling the top line with the
+	current attribute
+	SOURCE: BANSI.TXT
 
 ESC _	Application Program String
 	Begins a string consisting of the characters 0x08 - 0x0d and
@@ -88,7 +80,6 @@ ESC P	Device Control String
 		fonts). <b64> is the base64 encoded font data.  Font size is
 		deduced from the size of the data.  This replaces the now
 		deprecated CSI = Ps1 ; Ps2 {
-
 
 		[ p1 [ ; p2 ] ] q
 		Defaults:  p1 = 0  p2 = 0
@@ -154,7 +145,6 @@ ESC P	Device Control String
 			Moves the active position to the left border of the
 			next sixel row.
 
-
 		$ q pt
 		Request Status String (DECRQSS)
 
@@ -174,34 +164,9 @@ ESC P	Device Control String
 
 		m	Request SGR parameters
 		r	Request top and bottom margins
-		s	Request left and right margins
 		t	Request height in lines
 		$|	Request width in columns
 		*|	Request height in lines
-
-
-		p1 [ ; p2 [ ; p3 ] ! z
-		Define Macro (DECDMAC)
-		Defaults: p2 = 0  p3 = 0
-		
-		Sets a macro to be replayed using CSI Pn * z
-
-		p1 is the macro number to set, and make be between 0 and
-		63 inclusive.
-
-		If p2 is zero, the macro numbered p1 will be deleted. If
-		p2 is one, all macros are deleted.
-		
-		If p3 is zero, the macro is defined using ASCII characters
-		(0x20 - 0x7e and 0xa0 - 0xff only) if p3 is one, the macro
-		is defined using hex pairs.
-		
-		When the macro is defined using hex pairs, a repeat
-		sequence may be included in the format of ! Pn ; D..D ;
-		Pn specifies the number of repeats (default of one instance)
-		D..D is the sequence of pairs to send Pn times.  The 
-		terminating ; may be left out if the sequence to be
-		repeated ends at the end of the string.
 
 ESC ^	Privacy Message
 	Begins a string consisting of the characters 0x08 - 0x0d and
@@ -236,10 +201,6 @@ ESC X	Start Of String
 	The string is currently ignored.
 
 ESC \	String Terminator
-
-ESC c	Reset Terminal
-	Resets all the terminal settings, clears the screen, and homes
-	the cursor.
 
 Control Sequences:
 ------------------
@@ -280,30 +241,12 @@ CSI Pn @
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn SP @
-	Shift Left
-	Defaults: Pn = 1
-	Shifts the contents of the screen left Pn columns(s) with
-	leftmost columns going off-screen and the resulting hole being
-	filled with the current attribute.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
 CSI Pn A
 	Cursor Up
 	Defaults: Pn = 1
 	Moves the cursor position up Pn lines from the current position.
 	Attempting to move past the screen boundaries stops the cursor
 	at the screen boundary.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn SP A
-	Shift Right
-	Defaults: Pn = 1
-	Shifts the contents of the screen right Pn columns(s) with
-	rightmost columns going off-screen and the resulting hole being
-	filled with the current attribute.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -343,12 +286,12 @@ CSI Ps1 ; Ps2 sp D
 	font selection.  Only X11 and SDL currently do.
 	Supported Ps1 values:
 		0  - Default font
-		1  - Font selected by the high intensity bit when CSI ? 31 h
+		1  - Font selected by the high intensity bit when CSI [ ? 31 h
 		     is enabled
-		2  - Font selected by the blink intensity bit when CSI ? 34 h
+		2  - Font selected by the blink intensity bit when CSI [ ? 34 h
 		     is enabled
 		3  - Font selected by both the high intensity and blink bits
-		     when both CSI ? 31 h and CSI ? 34 h are enabled
+		     when both CSI [ ? 31 h and CSI [ ? 34 h are enabled
 	Currently included fonts are:
 		0  - Codepage 437 English
 		1  - Codepage 1251 Cyrillic, (swiss)
@@ -427,6 +370,7 @@ CSI Pn G
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI Pn1 ; Pn2 H
+CSI Pn1 ; Pn2 f
 	Cursor Position
 	Defaults: Pn1 = 1  Pn2 = 1
 	Moves the cursor to the Pn2th column of the Pn1th line.
@@ -444,7 +388,6 @@ CSI Ps J
 	    this behaviour.
 	Erased characters are set to the current attribute.
 
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE BANSI.TXT
 
 CSI Ps K
@@ -550,44 +493,11 @@ CSI Pn X
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn Y
-	Cursor Line Tabulation
-	Defaults: Pn = 1
-	Move the cursor to the Pn-th next tab stop.
-	Basically the same as sending TAB Pn times.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
 CSI Pn Z
 	Cursor Backward Tabulation
 	Defaults: Pn = 1
 	Move the cursor to the p1th preceding tab stop.  Will not go past the
 	start of the line.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn `
-	Character Position Absolute
-	Defaults: Pn = 1
-	Move the cursor to the specified position on the current row.
-	Will not go past the end of the line.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn a
-	Cursor Position Forward
-	Defaults: Pn = 1
-	Moves the cursor position forward Pn columns from the current position.
-	Attempting to move past the screen boundaries stops the cursor
-	at the screen boundary.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn b
-	Repeat
-	Defaults: Pn = 1
-	Repeats the previous graphic character Pn times.  Will not repeat
-	escape sequences.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -602,13 +512,6 @@ CSI Ps c
 	is available.  If you are adding features to a forked version of cterm,
 	please do so by	adding an extra parameter to the end, not by
 	incrementing any existing one!
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn SP c
-	Tab Stop Remove
-	Defaults: None
-	Removes a tab stop at postion Pn.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
@@ -627,39 +530,6 @@ CSI < Ps c
 	4 - The current font may be selected via CSI Ps1 ; Ps2 sp D
 	5 - More than the standard 16 colours may by configured via
 	    Operating System Command strings
-	6 - Extended palette is available
-	7 - Mouse is available
-
-CSI Ps d
-	Line Position Absolute
-	Defaults: Ps = 1
-	Moves to row specified by Ps.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Ps e
-	Line Position Relative
-	Defaults: Ps = 1
-	Moves forward Ps rows.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn1 ; Pn2 f
-	Cursor Position
-	Defaults: Pn1 = 1  Pn2 = 1
-	Moves the cursor to the Pn2th column of the Pn1th line.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn g
-	Clear Tab(s)
-	Defaults: Pn = 0
-	Deletes tab stpos according to the values of P1:
-	0 - Deletes tab stop at current position.
-	3 - Deletes all tab stops.
-	5 - Deletes all tab stops.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI = 255 h
 	NON-STANDARD EXTENSION
@@ -681,11 +551,6 @@ CSI ? Ps... h
 	     row will move the cursor to the start of the next line triggering
 	     a scroll if required to create a new line.  Defaults to set.
 	     SOURCE: Digital VT102 User Guide
-	9 -  X10 compatible mouse reporting
-	     Mouse button presses will send a CSI M <button> <x> <y>
-	     Where <button> is ' ' + button number (0-based)
-	     <x> and <y> are '!' + position (0-based)
-	     SOURCE: xterm
 	25 - Display the cursor.  Defaults to set.
 	     SOURCE: "Installing and Using the VT320 Video Terminal"
 	31 - Enable bright alt character set
@@ -706,9 +571,6 @@ CSI ? Ps... h
 	     This makes the blink (5, 6) graphic renditions not cause the
 	     character to blink.  Mostly for use with CSI ? 34 h to permit
 	     fonts to be used without blinking.  Defaults to reset.
-	69 - DEC Left Right Margin Mode enabled
-	     Enables CSI s to set the left/right margins, and disables CSI s
-	     from saving the current cursor position.
 	80 - Sixel Scrolling Enabled
 	     When this is set, the sixel active position begins in the
 	     upper-left corner of the currently active text position.
@@ -718,71 +580,6 @@ CSI ? Ps... h
 	     position is the one in which the bottom sixel is in.
 	     Defaults to set.
 	     SOURCE: VT330/VT340 Programmer Reference Manual
-	1000 -  Normal tracking mode mouse reporting
-	     Mouse button presses will send a CSI M <button> <x> <y>
-	     Where <button> is ' ' + button number (0-based)
-	     Mouse button releases will use a button number of 4
-	     <x> and <y> are '!' + position (0-based)
-	     SOURCE: xterm
-	1001 -  Highlight tracking mode mouse reporting
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1002 -  Button-event tracking mode mouse reporting
-	     Mouse button presses and movement when a button is pressed
-	     will send a CSI M <button> <x> <y>
-	     Where <button> is ' ' + button number (0-based)
-	     32 is added to the button number for movement events.
-	     Mouse button releases will use a button number of 4
-	     <x> and <y> are '!' + position (0-based)
-	     SOURCE: xterm
-	1003 -  Any-event tracking mode mouse reporting
-	     Mouse button presses and movement
-	     will send a CSI M <button> <x> <y>
-	     Where <button> is ' ' + button number (0-based)
-	     32 is added to the button number for movement events.
-	     Mouse button releases will use a button number of 4
-	     <x> and <y> are '!' + position (0-based)
-	     If no button is pressed, it acts as though button 0 is.
-	     SOURCE: xterm
-	1004 -  Focus-event tracking mode mouse reporting
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1005 -  UTF-8 encoded extended coordinates
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1006 -  SGR encoded extended coordinates
-	     Instead of the CSI M method, the format of mouse reporting
-	     is change to CSI < Pb ; Px ; Py M for presses and
-	     CSI < Pb ; Px ; Py m for releases.
-	     Instead of CSI M
-	     Px and Py are one-based.
-	     Pb remains the same (32 added for movement)
-	     Button 3 is not used for release (separate code)
-	     SOURCE: xterm
-	1007 -  Alternate scroll mode
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1015 -  URXVT encoded extended coordinates
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-
-CSI Pn j
-	Character Position Backward
-	Defaults: Pn = 1
-	Moves the cursor position left Pn columns from the current position.
-	Attempting to move past the screen boundaries stops the cursor
-	at the screen boundary.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn k
-	Line Position Backward
-	Defaults: Pn = 1
-	Moves the cursor position up Pn lines from the current position.
-	Attempting to move past the screen boundaries stops the cursor
-	at the screen boundary.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI = 255 l
 	NON-STANDARD EXTENSION
@@ -806,7 +603,6 @@ CSI ? Ps... l
 	     overwriting anything which was previously written to the same
 	     position.
 	     SOURCE: Digital VT102 User Guide
-	9 -  Disable X10 compatible mouse reporting
 	25 - Hide the cursor.  Defaults to set.
 	     SOURCE: "Installing and Using the VT320 Video Terminal"
 	31 - Disable bright alt character set
@@ -825,10 +621,6 @@ CSI ? Ps... l
 	35 - Blink Enable
 	     With this mode reset, the blink (5,6) graphic renditions behave
 	     normally (cause the characters to blink).  Defaults to reset.
-	69 - DEC Left Right Margin Mode disabled
-	     Disables CSI s from setting the left/right margins, and changes
-	     it back to saving the current cursor position.  The current
-	     left/right margins are maintained.
 	80 - Sixel Scrolling Disabled
 	     When this is reset, the sixel active position begins in the
 	     upper-left corner of the page.  Any commands that attempt to
@@ -837,29 +629,6 @@ CSI ? Ps... l
 	     position is unchanged from where it was when the sixel string
 	     started.  Defaults to set.
 	     SOURCE: VT330/VT340 Programmer Reference Manual
-	1000 -  Disable Normal tracking mode mouse reporting
-	     SOURCE: xterm
-	1001 -  Disable Highlight tracking mode mouse reporting
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1002 -  Disable Button-event tracking mode mouse reporting
-	     SOURCE: xterm
-	1003 -  Disable Any-event tracking mode mouse reporting
-	     SOURCE: xterm
-	1004 -  Disable Focus-event tracking mode mouse reporting
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1005 -  Disable UTF-8 encoded extended coordinates
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1006 -  Disable SGR encoded extended coordinates
-	     SOURCE: xterm
-	1007 -  Disable Alternate scroll mode
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
-	1015 -  Disable URXVT encoded extended coordinates
-	     (Not supported by SyncTERM)
-	     SOURCE: xterm
 
 CSI Ps... m
 	Select Graphic Rendition
@@ -953,7 +722,7 @@ CSI Ps n
 		  and x is
 		  the current row.
 	255	- NON-STANDARD EXTENSION
-		  Replies as though a CSI 6 n was received with the cursor in
+		  Replies as though a CSI [ 6 n was received with the cursor in
 		  the bottom right corner.  i.e.: Returns the terminal size as
 		  a position report.
 
@@ -967,7 +736,7 @@ CSI = Ps n
 	Defaults: Ps = 1
 
 	When Ps is 1, CTerm will respond with a Font State Report of the form
-	CSI = 1 ;pF ;pR ;pS0 ;pS1 ;pS2 ;pS3 n
+        CSI = 1 ;pF ;pR ;pS0 ;pS1 ;pS2 ;pS3 n
 	pF is the first available loadable-font slot number
 	pR is the result of the previous "Font Selection" request:
 		0 = successful font selection
@@ -989,18 +758,6 @@ CSI = Ps n
 	Report.  If no modes are currently set, an empty parameter will be
 	included as the first and only pN.
 
-	When Ps is 3, CTerm will respond with a Mode Report of the form
-	CSI = 3 ; pH ; pW n
-	Where pH is the height of a character cell in pixels, and pW is
-	the width of a character cell in pixels.
-
-	When Ps is 62, CTerm will respond with a Mode Report of the form
-	CSI 32767 * {
-	This indicates that 524,272 bytes are available for macro storage.
-	This is not actually true, SyncTERM will use all available memory
-	for macro storage, but some software checks this value, and some
-	parsers don't allow more than INT16_MAX parameter values.
-
 	SOURCE: CTerm only.
 
 CSI Pn1 ; Pn2 r
@@ -1011,8 +768,6 @@ CSI Pn1 ; Pn2 r
 	Selects top and bottom margins, defining the scrolling region. Pn1 is
 	the line number of the first line in the scrolling region. Pn2 is the
 	line number of the bottom line.
-	
-	SOURCE: xterm
 
 CSI Ps1 ; Ps2 * r
 	NON-STANDARD EXTENSION.
@@ -1048,21 +803,7 @@ CSI ? Ps... s
 
 	SOURCE: SyncTERM only
 
-CSI Pn1 ; Pn2 s
-        (Only when DEC Left Right Margin Mode  - 69 - is enabled)
-	NON-STANDARD EXTENSION.
-	Set Left and Right Margins
-	Defaults: Pn1 = 1
-	          Pn2 = last column on screen
-	If either Pn1 or Pn2 is zero, the current setting is retained.
-	Selects left and right margins, defining the scrolling region. Pn1 is
-	the column number of the first column in the scrolling region. Pn2 is
-	the column number of the right column.
-
-	SOURCE: xterm
-
 CSI s
-        (Only when DEC Left Right Margin Mode  - 69 - is disabled)
 	NON-STANDARD EXTENSION
 	Save Current Position
 	Saves the current cursor position for later restoring with CSI u
@@ -1099,23 +840,6 @@ CSI u
 	has been saved, the cursor is not moved.
 
 	SOURCE: ANSI.SYS
-
-CSI 2 $ w
-	Request Tab Stop Report
-	Requests a list of tab stops.
-	The list is in the form:
-	
-	DCS 2 $ u Pt ST
-	
-	The string Pt is a list of tab stops separated by /s.
-	
-	SOURCE: VT320
-
-CSI Pn * z
-	Invoke Macro (DECINVM)
-	Invokes a macro.
-	Pn specifies the macro number.  If Pn is not 0..63, no action is
-	taken.
 
 CSI = Ps1 ; Ps2 {
 	NON-STANDARD EXTENSION (Deprecated)
