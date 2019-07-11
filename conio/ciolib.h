@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.106 2019/07/25 18:44:32 deuce Exp $ */
+/* $Id: ciolib.h,v 1.103 2019/07/11 07:45:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -202,9 +202,6 @@ enum text_modes
 	VESA_132X43	= 213,
 	VESA_132X50	= 206,
 	VESA_132X60	= 196,
-
-	/* Custom Mode */
-	CIOLIB_MODE_CUSTOM = 255,	// Last mode... if it's over 255, text_info can't hold it.
 };
 
 #define COLOR_MODE	C80
@@ -277,7 +274,6 @@ struct ciolib_screen {
 	struct ciolib_pixels	*pixels;
 	struct vmem_cell	*vmem;
 	struct text_info	text_info;
-	uint32_t		palette[16];
 };
 
 #define CONIO_FIRST_FREE_FONT	43
