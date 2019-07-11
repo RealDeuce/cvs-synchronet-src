@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.17 2019/12/22 21:17:30 rswindell Exp $ */
+/* $Id: conn_telnet.c,v 1.14 2019/07/11 18:31:44 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -34,6 +34,7 @@ void telnet_input_thread(void *args)
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
+	free(args);
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
@@ -91,8 +92,7 @@ void telnet_output_thread(void *args)
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-			wr = telnet_expand(conn_api.wr_buf, wr, (BYTE *)ebuf, sizeof(ebuf)
-				,telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO, (uchar**)&buf);
+			buf=(char *)telnet_expand(conn_api.wr_buf, wr, (BYTE *)ebuf, &wr);
 			sent=0;
 			while(sent < wr) {
 				FD_ZERO(&wds);
