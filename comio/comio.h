@@ -2,7 +2,7 @@
 
 /* Synchronet Serial Communications (COM) I/O Library */
 
-/* $Id: comio.h,v 1.9 2018/07/24 01:10:49 rswindell Exp $ */
+/* $Id: comio.h,v 1.10 2019/03/22 21:27:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,7 +44,7 @@
 
 #ifdef _WIN32
 	#ifdef __BORLANDC__
-		#define COMIOCALL __stdcall
+		#define COMIOCALL
 	#else
 		#define COMIOCALL
 	#endif
