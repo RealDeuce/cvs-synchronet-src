@@ -1,7 +1,7 @@
 /* Synchronet string input routines */
 // vi: tabstop=4
 
-/* $Id: getstr.cpp,v 1.38 2020/03/31 00:47:08 rswindell Exp $ */
+/* $Id: getstr.cpp,v 1.36 2019/05/09 21:14:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
 
 /****************************************************************************/
 /* Waits for remote or local user to input a CR terminated string. 'length' */
@@ -53,14 +52,13 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
     uchar	ch;
 	uint	atr;
 	int		hidx = -1;
-	long	org_column = column;
 
 	long term = term_supports();
 	console&=~(CON_UPARROW|CON_DOWNARROW|CON_LEFTARROW|CON_BACKSPACE|CON_DELETELINE);
 	if(!(mode&K_WRAP))
 		console&=~CON_INSERT;
 	sys_status&=~SS_ABORT;
-	if(cols >= TERM_COLS_MIN && !(mode&K_NOECHO) && !(console&CON_R_ECHOX)
+	if(cols >= TERM_COLS_MIN
 		&& column + (long)maxlen >= cols)	/* Don't allow the terminal to auto line-wrap */
 		maxlen = cols-column-1;
 	if(mode&K_LINE && (term&(ANSI|PETSCII)) && !(mode&K_NOECHO)) {
@@ -87,7 +85,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 			i|=(cfg.color[clr_inputline]&0x77)>>4;
 			attr(i); 
 		}
-		bputs(str1, P_AUTO_UTF8);
+		column+=rputs(str1);
 		if(mode&K_EDIT && !(mode&(K_LINE|K_AUTODEL)))
 			cleartoeol();  /* destroy to eol */ 
 	}
@@ -260,10 +258,8 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 					console|=CON_BACKSPACE;
 					break;
 				}
-				do {
-					i--;
-					l--;
-				} while((term&UTF8) && (i > 0) && (str1[i]&0x80) && (str1[i - 1]&0x80));
+				i--;
+				l--;
 				if(i!=l) {              /* Deleting char in middle of line */
 					outchar(BS);
 					z=i;
@@ -366,7 +362,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 				break;
 			case CTRL_R:    /* Ctrl-R Redraw Line */
 				if(!(mode&K_NOECHO))
-					redrwstr(str1,i,l,K_GETSTR);
+					redrwstr(str1,i,l,0);
 				break;
 			case TERM_KEY_INSERT:	/* Ctrl-V			Toggles Insert/Overwrite */
 				if(mode&K_NOECHO)
@@ -515,12 +511,10 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 			case TERM_KEY_DELETE:  /* Ctrl-BkSpc (DEL) Delete current char */
 				if(i==l) {	/* Backspace if end of line */
 					if(i) {
-						do {
-							i--;
-							l--;
-							if(!(mode&K_NOECHO))
-								backspace();
-						} while((term&UTF8) && (i > 0) && (str1[i]&0x80) && (str1[i - 1]&0x80));
+						i--;
+						l--;
+						if(!(mode&K_NOECHO))
+							backspace();
 					}
 					break;
 				}
@@ -576,7 +570,7 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 				if(i<maxlen && ch>=' ') {
 					if(ch==' ' && (mode&K_TRIM) && i && str1[i-1] == ' ')
 						continue;
-					if((mode&K_UPRLWR) && !(ch&0x80)) {
+					if(mode&K_UPRLWR) {
 						if(!i || (i && (str1[i-1]==' ' || str1[i-1]=='-'
 							|| str1[i-1]=='.' || str1[i-1]=='_')))
 							ch=toupper(ch);
@@ -598,17 +592,8 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 #endif
 					}
 					str1[i++]=ch;
-					if(!(mode&K_NOECHO)) {
-						if((term&UTF8) && (ch&0x80)) {
-							if(i>l)
-								l=i;
-							str1[l]=0;
-							if(utf8_str_is_valid(str1))
-								redrwstr(str1, column - org_column, l, P_UTF8);
-						} else {
-							outchar(ch);
-						}
-					}
+					if(!(mode&K_NOECHO))
+						outchar(ch); 
 				} else
 					outchar(BEL);	/* Added at Angus McLeod's request */
 		}
@@ -627,8 +612,8 @@ size_t sbbs_t::getstr(char *strout, size_t maxlen, long mode, const str_list_t h
 		strcpy(strout,str1);
 		if(mode&K_TRIM)
 			truncsp(strout);
-		if((strip_invalid_attr(strout) || (console&CON_INSERT)) && !(mode&K_NOECHO))
-			redrwstr(strout,i,l, P_AUTO_UTF8); 
+		if((strip_invalid_attr(strout) || console&CON_INSERT) && !(mode&K_NOECHO))
+			redrwstr(strout,i,l,K_MSG); 
 	}
 	else
 		l=0;
