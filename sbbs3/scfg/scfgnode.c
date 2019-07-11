@@ -1,4 +1,4 @@
-/* $Id: scfgnode.c,v 1.36 2019/11/30 23:28:18 rswindell Exp $ */
+/* $Id: scfgnode.c,v 1.35 2019/01/12 12:09:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -143,6 +143,7 @@ void node_menu()
 			cfg.node_num=i+1;
 			save_node_cfg(&cfg,backup_level);
 			refresh_cfg(&cfg);
+			uifc.changes=1;
 			continue;
 		}
 
