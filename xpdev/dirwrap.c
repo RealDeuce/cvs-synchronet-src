@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.102 2019/01/12 08:01:43 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.105 2019/04/11 00:47:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -108,7 +108,26 @@ char* DLLCALL getfname(const char* path)
 }
 
 /****************************************************************************/
-/* Return a pointer to a file's extesion (beginning with '.')				*/
+/* Return the filename or last directory portion of a full pathname			*/
+/* A directory pathname is expected to end in a '/'							*/
+/****************************************************************************/
+char* DLLCALL getdirname(const char* path)
+{
+	char* last = lastchar(path);
+	if(*last == '/') {
+		if(last == path)
+			return last;
+		for(last--; last >= path; last--) {
+			if(IS_PATH_DELIM(*last))
+				return last + 1;
+		}
+		return (char*)path;
+	}
+	return getfname(path);
+}
+
+/****************************************************************************/
+/* Return a pointer to a file's extension/suffix (beginning with '.')		*/
 /****************************************************************************/
 char* DLLCALL getfext(const char* path)
 {
@@ -1139,7 +1158,7 @@ int DLLCALL mkpath(const char* path)
 			break;
 		tp=p;
 		FIND_CHARSET(tp,sep);
-		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
+		safe_snprintf(dir,sizeof(dir),"%.*s", (int)(tp-path), path);
 		if(!isdir(dir)) {
 			if((result=MKDIR(dir))!=0)
 				break;
