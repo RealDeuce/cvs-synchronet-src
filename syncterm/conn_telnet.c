@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.14 2019/07/11 18:31:44 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.15 2019/07/11 18:46:55 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -34,7 +34,6 @@ void telnet_input_thread(void *args)
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
-	free(args);
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
