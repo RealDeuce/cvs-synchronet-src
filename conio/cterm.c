@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.256 2019/07/12 22:35:24 deuce Exp $ */
+/* $Id: cterm.c,v 1.254 2019/07/12 04:49:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2255,12 +2255,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							break;
 					}
 				}
-				// Font Select
-				else if (strcmp(seq->ctrl_func, " c") == 0) {
-					if (seq->param_count > 0) {
-						delete_tabstop(cterm, seq->param_int[0]);
-					}
-				}
 				/* 
 				 * END OF STANDARD CONTROL FUNCTIONS
 				 * AFTER THIS IS ALL PRIVATE EXTENSIONS
@@ -2363,7 +2357,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							PUTCH(' ');
 						GOTOXY(i,j);
 						break;
-					case 'k':	/* Line Position Backward */
 					case 'A':	/* Cursor Up */
 						seq_default(seq, 0, 1);
 						i=WHEREY()-seq->param_int[0];
@@ -2580,24 +2573,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						vmem_puttext(cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1+i-1,cterm->y+WHEREY()-1,vc);
 						free(vc);
 						break;
-					case 'Y':	/* Cursor Line Tabulation */
-						seq_default(seq, 0, 1);
-						if (seq->param_int[0] < 1)
-							break;
-						col = WHEREX();
-						for(i = 0; i < cterm->tab_count; i++) {
-							if(cterm->tabs[i] > col)
-								break;
-						}
-						if (i == cterm->tab_count)
-							break;
-						for (k = 1; k < seq->param_int[0]; k++) {
-							if (cterm->tabs[k] <= cterm->width)
-								col = cterm->tabs[k];
-							else
-								break;
-						}
-						GOTOXY(col,WHEREY());
+					case 'Y':	/* TODO? Cursor Line Tabulation */
 						break;
 					case 'Z':	/* Cursor Backward Tabulation */
 						seq_default(seq, 0, 1);
@@ -2681,7 +2657,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						break;
 					case 'j':	/* TODO? Character Position Backward */
 						break;
-					// for case 'k': see case 'A':
+					case 'k':	/* TODO? Line Position Backward */
+						break;
 					case 'l':	/* TODO? Reset Mode */
 						break;
 					case 'm':	/* Select Graphic Rendition */
@@ -3254,7 +3231,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.256 $";
+	char	*revision="$Revision: 1.254 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3297,7 +3274,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->bg_color = UINT32_MAX;
 	cterm->tabs = malloc(sizeof(cterm_tabs));
 	if (cterm->tabs == NULL) {
-		free(cterm);
+		free(cterm->tabs);
 		return NULL;
 	}
 	memcpy(cterm->tabs, cterm_tabs, sizeof(cterm_tabs));
@@ -3432,7 +3409,7 @@ ctputs(struct cterminal *cterm, char *buf)
 				*p=0;
 				CPUTS(outp);
 				outp=p+1;
-				for(i=0;i<cterm->tab_count;i++) {
+				for(i=0;cterm->tab_count;i++) {
 					if(cterm->tabs[i]>cx) {
 						cx=cterm->tabs[i];
 						break;
