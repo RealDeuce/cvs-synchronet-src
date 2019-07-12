@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.69 2019/05/05 10:54:22 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.70 2019/07/11 20:37:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -207,7 +207,7 @@ bool sbbs_t::logon()
 		rioctl(IOCS|ABORT); 
 	}
 
-	CLS;
+	bputs(text[LoggingOn]);
 	if(useron.rows)
 		rows=useron.rows;
 	unixtodstr(&cfg,(time32_t)logontime,str);

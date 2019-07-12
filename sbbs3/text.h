@@ -834,7 +834,9 @@ enum {
 	,TerminalColor
 	,TerminalIceColor
 	,IceColorTerminalQ
+	,Utf8TerminalQ
 	,MsgCarbonCopyList
+	,LoggingOn
 
 	,TOTAL_TEXT
 };
