@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.235 2018/02/20 21:20:05 deuce Exp $ */
+/* $Id: uifc32.c,v 1.243 2019/07/11 18:54:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,9 +58,9 @@ static int   cursor;
 static char* helpfile=0;
 static uint  helpline=0;
 static size_t blk_scrn_len;
-static char* blk_scrn;
-static uchar* tmp_buffer;
-static uchar* tmp_buffer2;
+static struct vmem_cell *blk_scrn;
+static struct vmem_cell *tmp_buffer;
+static struct vmem_cell *tmp_buffer2;
 static win_t sav[MAX_BUFS];
 static uifcapi_t* api;
 
@@ -156,60 +156,6 @@ static uifc_graphics_t cp437_chars = {
 	.help_hitanykey_right=0xc3,
 };
 
-static uifc_graphics_t ascii_chars = {
-	.background='#',
-	.help_char='?',
-	.close_char='X',
-	.up_arrow='^',
-	.down_arrow='v',
-	.button_left='[',
-	.button_right=']',
-
-	.list_top_left=',',
-	.list_top='-',
-	.list_top_right='.',
-	.list_separator_left='+',
-	.list_separator_right='+',
-	.list_horizontal_separator='-',
-	.list_left='|',
-	.list_right='|',
-	.list_bottom_left='`',
-	.list_bottom_right='\'',
-	.list_bottom='-',
-	.list_scrollbar_separator='|',
-
-	.input_top_left=',',
-	.input_top='-',
-	.input_top_right='.',
-	.input_left='|',
-	.input_right='|',
-	.input_bottom_left='`',
-	.input_bottom_right='\'',
-	.input_bottom='-',
-
-	.popup_top_left=',',
-	.popup_top='-',
-	.popup_top_right='.',
-	.popup_left='|',
-	.popup_right='|',
-	.popup_bottom_left='`',
-	.popup_bottom_right='\'',
-	.popup_bottom='-',
-
-	.help_top_left=',',
-	.help_top='-',
-	.help_top_right='.',
-	.help_left='|',
-	.help_right='|',
-	.help_bottom_left='`',
-	.help_bottom_right='\'',
-	.help_bottom='-',
-	.help_titlebreak_left='|',
-	.help_titlebreak_right='|',
-	.help_hitanykey_left='|',
-	.help_hitanykey_right='|',
-};
-
 /****************************************************************************/
 /* Initialization function, see uifc.h for details.							*/
 /* Returns 0 on success.													*/
@@ -262,26 +208,8 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
         return(-1);
 
     api=uifcapi;
-    if (api->chars == NULL) {
-		switch(getfont(1)) {
-			case -1:
-			case 0:
-			case 17:
-			case 18:
-			case 19:
-			case 25:
-			case 26:
-			case 27:
-			case 28:
-			case 29:
-			case 31:
-				api->chars = &cp437_chars;
-				break;
-			default:
-				api->chars = &ascii_chars;
-				break;
-		}
-	}
+    if (api->chars == NULL)
+	api->chars = &cp437_chars;
 
     /* install function handlers */
     api->bail=uifcbail;
@@ -382,26 +310,28 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
 		api->lbclr=BLUE|(LIGHTGRAY<<4);	/* lightbar color */
     }
 
-	blk_scrn_len=api->scrn_width*api->scrn_len*2;
-	if((blk_scrn=(char *)malloc(blk_scrn_len))==NULL)  {
+	blk_scrn_len=api->scrn_width*api->scrn_len;
+	if((blk_scrn=(struct vmem_cell *)malloc(blk_scrn_len * sizeof(*blk_scrn)))==NULL)  {
 				cprintf("UIFC line %d: error allocating %u bytes."
-					,__LINE__,blk_scrn_len);
+					,__LINE__,blk_scrn_len * sizeof(*blk_scrn));
 				return(-1);
 	}
-	if((tmp_buffer=(uchar *)malloc(blk_scrn_len))==NULL)  {
+	if((tmp_buffer=(struct vmem_cell *)malloc(blk_scrn_len * sizeof(*blk_scrn)))==NULL)  {
 				cprintf("UIFC line %d: error allocating %u bytes."
-					,__LINE__,blk_scrn_len);
+					,__LINE__,blk_scrn_len * sizeof(*blk_scrn));
 				return(-1);
 	}
-	if((tmp_buffer2=(uchar *)malloc(blk_scrn_len))==NULL)  {
+	if((tmp_buffer2=(struct vmem_cell *)malloc(blk_scrn_len * sizeof(*blk_scrn)))==NULL)  {
 				cprintf("UIFC line %d: error allocating %u bytes."
-					,__LINE__,blk_scrn_len);
+					,__LINE__,blk_scrn_len * sizeof(*blk_scrn));
 				return(-1);
 	}
-    for(i=0;i<blk_scrn_len;i+=2) {
-        blk_scrn[i]=api->chars->background;
-        blk_scrn[i+1]=api->cclr|(api->bclr<<4);
-    }
+    for(i=0;i<blk_scrn_len;i++) {
+		blk_scrn[i].legacy_attr = api->cclr|(api->bclr<<4);
+		blk_scrn[i].ch = api->chars->background;
+		blk_scrn[i].font = 0;
+		attr2palette(blk_scrn[i].legacy_attr, &blk_scrn[i].fg, &blk_scrn[i].bg);
+	}
 
     cursor=_NOCURSOR;
     _setcursortype(cursor);
@@ -431,17 +361,24 @@ void docopy(void)
 {
 	int	key;
 	struct mouse_event mevent;
-	unsigned char *screen;
-	unsigned char *sbuffer;
-	int sbufsize=0;
+	struct ciolib_screen *screen;
+	struct ciolib_screen *sbuffer;
+	int sbufsize;
 	int x,y,startx,starty,endx,endy,lines;
 	int outpos;
 	char *copybuf;
+	uint32_t bg0;
+	uint32_t bg1;
+	uint32_t bg6;
+	uint32_t fg8;
 
-	sbufsize=api->scrn_width*2*(api->scrn_len+1);
-	screen=(unsigned char*)alloca(sbufsize);
-	sbuffer=(unsigned char*)alloca(sbufsize);
-	gettext(1,1,api->scrn_width,api->scrn_len+1,screen);
+	attr2palette(0x08, &fg8, &bg0);
+	attr2palette(0x10, NULL, &bg1);
+	attr2palette(0x60, NULL, &bg6);
+	screen=ciolib_savescreen();
+	sbuffer=ciolib_savescreen();
+	FREE_AND_NULL(sbuffer->pixels);
+	sbufsize=screen->text_info.screenwidth * screen->text_info.screenheight * sizeof(screen->vmem[0]);
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xe0)
@@ -467,20 +404,26 @@ void docopy(void)
 				}
 				switch(mevent.event) {
 					case CIOLIB_BUTTON_1_DRAG_MOVE:
-						memcpy(sbuffer,screen,sbufsize);
+						memcpy(sbuffer->vmem,screen->vmem,sbufsize);
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
 								int pos=y*api->scrn_width+x;
-								if((sbuffer[pos*2+1]&0x70)!=0x10)
-									sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x10;
+
+								if (sbuffer->vmem[pos].bg != bg1)
+									sbuffer->vmem[pos].bg = bg1;
 								else
-									sbuffer[pos*2+1]=(sbuffer[pos*2+1]&0x8F)|0x60;
-								if(((sbuffer[pos*2+1]&0x70)>>4) == (sbuffer[pos*2+1]&0x0F)) {
-									sbuffer[pos*2+1]|=0x08;
-								}
+									sbuffer->vmem[pos].bg = bg6;
+								if (sbuffer->vmem[pos].bg == sbuffer->vmem[pos].fg)
+									attr2palette(sbuffer->vmem[pos].legacy_attr | 0x08, &sbuffer->vmem[pos].fg, &sbuffer->vmem[pos].bg);
+								if ((sbuffer->vmem[pos].legacy_attr & 0x70) != 0x10)
+									sbuffer->vmem[pos].legacy_attr = (sbuffer->vmem[pos].legacy_attr & 0x8f) | 0x10;
+								else
+									sbuffer->vmem[pos].legacy_attr = (sbuffer->vmem[pos].legacy_attr & 0x8f) | 0x60;
+								if (((sbuffer->vmem[pos].legacy_attr & 0x70) >> 4) == (sbuffer->vmem[pos].legacy_attr & 0x08))
+									sbuffer->vmem[pos].legacy_attr |= 0x08;
 							}
 						}
-						puttext(1,1,api->scrn_width,api->scrn_len+1,sbuffer);
+						restorescreen(sbuffer);
 						break;
 					case CIOLIB_BUTTON_1_DRAG_END:
 						lines=abs(mevent.endy-mevent.starty)+1;
@@ -488,7 +431,7 @@ void docopy(void)
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
-								copybuf[outpos++]=screen[(y*api->scrn_width+x)*2]?screen[(y*api->scrn_width+x)*2]:' ';
+								copybuf[outpos++]=screen->vmem[(y*api->scrn_width+x)].ch ? screen->vmem[(y*api->scrn_width+x)].ch : ' ';
 							}
 							#ifdef _WIN32
 								copybuf[outpos++]='\r';
@@ -497,12 +440,16 @@ void docopy(void)
 						}
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
-						puttext(1,1,api->scrn_width,api->scrn_len+1,screen);
+						restorescreen(screen);
+						freescreen(screen);
+						freescreen(sbuffer);
 						return;
 				}
 				break;
 			default:
-				puttext(1,1,api->scrn_width,api->scrn_len+1,screen);
+				restorescreen(screen);
+				freescreen(screen);
+				freescreen(sbuffer);
 				ungetch(key);
 				return;
 		}
@@ -566,7 +513,7 @@ int uscrn(char *str)
     clreol();
     gotoxy(3,1);
 	cputs(str);
-    if(!puttext(1,2,api->scrn_width,api->scrn_len,blk_scrn))
+    if(!vmem_puttext(1,2,api->scrn_width,api->scrn_len,blk_scrn))
         return(-1);
     gotoxy(1,api->scrn_len+1);
     clreol();
@@ -579,11 +526,11 @@ int uscrn(char *str)
 /****************************************************************************/
 static void scroll_text(int x1, int y1, int x2, int y2, int down)
 {
-	gettext(x1,y1,x2,y2,tmp_buffer2);
+	vmem_gettext(x1,y1,x2,y2,tmp_buffer2);
 	if(down)
-		puttext(x1,y1+1,x2,y2,tmp_buffer2);
+		vmem_puttext(x1,y1+1,x2,y2,tmp_buffer2);
 	else
-		puttext(x1,y1,x2,y2-1,tmp_buffer2+(((x2-x1)+1)*2));
+		vmem_puttext(x1,y1,x2,y2-1,tmp_buffer2+(((x2-x1)+1)));
 }
 
 /****************************************************************************/
@@ -598,7 +545,7 @@ static void timedisplay(BOOL force)
 	now=time(NULL);
 	if(force || difftime(now,savetime)>=60) {
 		uprintf(api->scrn_width-25,1,api->bclr|(api->cclr<<4),utimestr(&now));
-		savetime=now; 
+		savetime=now;
 	}
 }
 
@@ -615,13 +562,31 @@ static void truncspctrl(char *str)
 		str[c]=0;
 }
 
+static void
+inactive_win(struct vmem_cell *buf, int left, int top, int right, int bottom, int y, int hbrdrsize, uchar cclr, uchar lclr, uchar hclr, int btop)
+{
+	int width = right - left + 1;
+	int height = bottom - top + 1;
+	int i, j;
+
+	vmem_gettext(left, top, right, bottom, buf);
+	for (i=0; i < (width * height); i++)
+		set_vmem_attr(&buf[i], lclr | (cclr<<4));
+	j=(((y-btop)*width))+3+((width-hbrdrsize-2));
+	for(i=(((y-btop)*width))+3;i<j;i++)
+		set_vmem_attr(&buf[i], hclr|(cclr<<4));
+
+	vmem_puttext(left, top, right, bottom, buf);
+}
+
 /****************************************************************************/
 /* General menu function, see uifc.h for details.							*/
 /****************************************************************************/
 int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
-	uchar line[MAX_COLS*2],shade[MAX_LINES*4],*ptr,*win;
+	uchar line[MAX_COLS*2],shade[MAX_LINES*4];
+	struct vmem_cell *ptr, *win;
     char search[MAX_OPLN];
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
@@ -850,37 +815,30 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	if(!is_redraw) {
 		if(mode&WIN_ORG) { /* Clear around menu */
 			if(top)
-				puttext(1,2,api->scrn_width,s_top+top-1,blk_scrn);
+				vmem_puttext(1,2,api->scrn_width,s_top+top-1,blk_scrn);
 			if((unsigned)(s_top+height+top)<=api->scrn_len)
-				puttext(1,s_top+height+top,api->scrn_width,api->scrn_len,blk_scrn);
+				vmem_puttext(1,s_top+height+top,api->scrn_width,api->scrn_len,blk_scrn);
 			if(left)
-				puttext(1,s_top+top,s_left+left-1,s_top+height+top
+				vmem_puttext(1,s_top+top,s_left+left-1,s_top+height+top
 					,blk_scrn);
 			if(s_left+left+width<=s_right)
-				puttext(s_left+left+width,s_top+top,/* s_right+2 */api->scrn_width
+				vmem_puttext(s_left+left+width,s_top+top,/* s_right+2 */api->scrn_width
 					,s_top+height+top,blk_scrn);
 		}
 		ptr=tmp_buffer;
 		if(!(mode&WIN_NOBRDR)) {
-			*(ptr++)=api->chars->list_top_left;
-			*(ptr++)=hclr|(bclr<<4);
+			set_vmem(ptr++, api->chars->list_top_left, hclr|(bclr<<4), 0);
 
 			if(api->mode&UIFC_MOUSE) {
-				*(ptr++)=api->chars->button_left;
-				*(ptr++)=hclr|(bclr<<4);
+				set_vmem(ptr++, api->chars->button_left, hclr|(bclr<<4), 0);
 				/* *(ptr++)='þ'; */
-				*(ptr++)=api->chars->close_char;
-				*(ptr++)=lclr|(bclr<<4);
-				*(ptr++)=api->chars->button_right;
-				*(ptr++)=hclr|(bclr<<4);
+				set_vmem(ptr++, api->chars->close_char, lclr|(bclr<<4), 0);
+				set_vmem(ptr++, api->chars->button_right, hclr|(bclr<<4), 0);
 				i=3;
 				if(api->help_available) {
-					*(ptr++)=api->chars->button_left;
-					*(ptr++)=hclr|(bclr<<4);
-					*(ptr++)=api->chars->help_char;
-					*(ptr++)=lclr|(bclr<<4);
-					*(ptr++)=api->chars->button_right;
-					*(ptr++)=hclr|(bclr<<4);
+					set_vmem(ptr++, api->chars->button_left, hclr|(bclr<<4), 0);
+					set_vmem(ptr++, api->chars->help_char, lclr|(bclr<<4), 0);
+					set_vmem(ptr++, api->chars->button_right, hclr|(bclr<<4), 0);
 					i+=3;
 				}
 				api->buttony=s_top+top;
@@ -892,38 +850,24 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			else
 				i=0;
 
-			for(;i<width-2;i++) {
-				*(ptr++)=api->chars->list_top;
-				*(ptr++)=hclr|(bclr<<4);
-			}
-			*(ptr++)=api->chars->list_top_right;
-			*(ptr++)=hclr|(bclr<<4);
-			*(ptr++)=api->chars->list_left;
-			*(ptr++)=hclr|(bclr<<4);
+			for(;i<width-2;i++)
+				set_vmem(ptr++, api->chars->list_top, hclr|(bclr<<4), 0);
+			set_vmem(ptr++, api->chars->list_top_right, hclr|(bclr<<4), 0);
+			set_vmem(ptr++, api->chars->list_left, hclr|(bclr<<4), 0);
 			a=title_len;
 			b=(width-a-1)/2;
 			for(i=0;i<b;i++) {
-				*(ptr++)=' ';
-				*(ptr++)=hclr|(bclr<<4);
+				set_vmem(ptr++, ' ', hclr|(bclr<<4), 0);
 			}
-			for(i=0;i<a;i++) {
-				*(ptr++)=title[i];
-				*(ptr++)=hclr|(bclr<<4);
-			}
-			for(i=0;i<width-(a+b)-2;i++) {
-				*(ptr++)=' ';
-				*(ptr++)=hclr|(bclr<<4);
-			}
-			*(ptr++)=api->chars->list_right;
-			*(ptr++)=hclr|(bclr<<4);
-			*(ptr++)=api->chars->list_separator_left;
-			*(ptr++)=hclr|(bclr<<4);
-			for(i=0;i<width-2;i++) {
-				*(ptr++)=api->chars->list_horizontal_separator;
-				*(ptr++)=hclr|(bclr<<4);
-			}
-			*(ptr++)=api->chars->list_separator_right;
-			*(ptr++)=hclr|(bclr<<4);
+			for(i=0;i<a;i++)
+				set_vmem(ptr++, title[i], hclr|(bclr<<4), 0);
+			for(i=0;i<width-(a+b)-2;i++)
+				set_vmem(ptr++, ' ', hclr|(bclr<<4), 0);
+			set_vmem(ptr++, api->chars->list_right, hclr|(bclr<<4), 0);
+			set_vmem(ptr++, api->chars->list_separator_left, hclr|(bclr<<4), 0);
+			for(i=0;i<width-2;i++)
+				set_vmem(ptr++, api->chars->list_horizontal_separator, hclr|(bclr<<4), 0);
+			set_vmem(ptr++, api->chars->list_separator_right, hclr|(bclr<<4), 0);
 		}
 
 		if((*cur)>=opts)
@@ -964,14 +908,10 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		if(i<0) i=0;
 		longopt=0;
 		while(j<height-vbrdrsize) {
-			if(!(mode&WIN_NOBRDR)) {
-				*(ptr++)=api->chars->list_left;
-				*(ptr++)=hclr|(bclr<<4);
-			}
-			*(ptr++)=' ';
-			*(ptr++)=hclr|(bclr<<4);
-			*(ptr++)=api->chars->list_scrollbar_separator;
-			*(ptr++)=lclr|(bclr<<4);
+			if(!(mode&WIN_NOBRDR))
+				set_vmem(ptr++, api->chars->list_left, hclr|(bclr<<4), 0);
+			set_vmem(ptr++, ' ', hclr|(bclr<<4), 0);
+			set_vmem(ptr++, api->chars->list_scrollbar_separator, lclr|(bclr<<4), 0);
 			if(i==(*cur))
 				a=lbclr;
 			else
@@ -982,36 +922,27 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					longopt=b;
 				if(b+hbrdrsize+2>width)
 					b=width-hbrdrsize-2;
-				for(c=0;c<b;c++) {
-					*(ptr++)=option[i][c];
-					*(ptr++)=a; 
-				}
+				for(c=0;c<b;c++)
+					set_vmem(ptr++, option[i][c], a, 0);
 			}
 			else
 				c=0;
 			while(c<width-hbrdrsize-2) {
-				*(ptr++)=' ';
-				*(ptr++)=a;
+				set_vmem(ptr++, ' ', a, 0);
 				c++;
 			}
-			if(!(mode&WIN_NOBRDR)) {
-				*(ptr++)=api->chars->list_right;
-				*(ptr++)=hclr|(bclr<<4);
-			}
+			if(!(mode&WIN_NOBRDR))
+				set_vmem(ptr++, api->chars->list_right, hclr|(bclr<<4), 0);
 			i++;
-			j++; 
+			j++;
 		}
 		if(!(mode&WIN_NOBRDR)) {
-			*(ptr++)=api->chars->list_bottom_left;
-			*(ptr++)=hclr|(bclr<<4);
-			for(i=0;i<width-2;i++) {
-				*(ptr++)=api->chars->list_bottom;
-				*(ptr++)=hclr|(bclr<<4); 
-			}
-			*(ptr++)=api->chars->list_bottom_right;
-			*(ptr)=hclr|(bclr<<4);	/* Not incremented to shut up BCC */
+			set_vmem(ptr++, api->chars->list_bottom_left, hclr|(bclr<<4), 0);
+			for(i=0;i<width-2;i++)
+				set_vmem(ptr++, api->chars->list_bottom, hclr|(bclr<<4), 0);
+			set_vmem(ptr, api->chars->list_bottom_right, hclr|(bclr<<4), 0);	/* Not incremented to shut up BCC */
 		}
-		puttext(s_left+left,s_top+top,s_left+left+width-1
+		vmem_puttext(s_left+left,s_top+top,s_left+left+width-1
 			,s_top+top+height-1,tmp_buffer);
 		if(bar)
 			y=top+tbrdrwidth+(*bar);
@@ -1022,14 +953,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 			gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
 			textattr(lclr|(bclr<<4));
 			putch(api->chars->down_arrow);	   /* put down arrow */
-			textattr(hclr|(bclr<<4)); 
+			textattr(hclr|(bclr<<4));
 		}
 
 		if(bar && (*bar)!=(*cur)) {
 			gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
 			textattr(lclr|(bclr<<4));
 			putch(api->chars->up_arrow);	   /* put the up arrow */
-			textattr(hclr|(bclr<<4)); 
+			textattr(hclr|(bclr<<4));
 		}
 
 		if(!(mode&WIN_NOBRDR)) {
@@ -1071,21 +1002,18 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					longopt=b;
 				if(b+hbrdrsize+2>width)
 					b=width-hbrdrsize-2;
-				for(c=0;c<b;c++) {
-					*(ptr++)=option[i][c];
-					*(ptr++)=a; 
-				}
+				for(c=0;c<b;c++)
+					set_vmem(ptr++, option[i][c], a, 0);
 			}
 			else
 				c=0;
 			while(c<width-hbrdrsize-2) {
-				*(ptr++)=' ';
-				*(ptr++)=a;
-				c++; 
+				set_vmem(ptr++, ' ', a, 0);
+				c++;
 			}
 			i++;
-			j++; 
-			puttext(s_left+left+lbrdrwidth+2,s_top+top+j,s_left+left+width-rbrdrwidth-1
+			j++;
+			vmem_puttext(s_left+left+lbrdrwidth+2,s_top+top+j,s_left+left+width-rbrdrwidth-1
 				,s_top+top+j,tmp_buffer);
 		}
 	}
@@ -1149,21 +1077,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=alloca((width+3)*(height+2)*2))==NULL) {
+							if((win=alloca((width+3)*(height+2)*sizeof(*win)))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
 							}
-							gettext(s_left+left,s_top+top,s_left
-								+left+width-1,s_top+top+height-1,win);
-							for(i=1;i<(width*height*2);i+=2)
-								win[i]=lclr|(cclr<<4);
-							j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-							for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-								win[i]=hclr|(cclr<<4);
-
-							puttext(s_left+left,s_top+top,s_left
-								+left+width-1,s_top+top+height-1,win);
+							inactive_win(win, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 						}
@@ -1288,7 +1207,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if(bar)
 								(*bar)=0;
 							y=top+tbrdrwidth;
-							break; 
+							break;
 						}
 						gettext(s_left+left+lbrdrwidth+2,s_top+y
 							,s_left+left+width-rbrdrwidth-1,s_top+y,line);
@@ -1325,7 +1244,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if(bar)
 								(*bar)=optheight-vbrdrsize-1;
 							y=top+optheight-bbrdrwidth-1;
-							break; 
+							break;
 						}
 						gettext(s_left+lbrdrwidth+2+left,s_top+y
 							,s_left+left+width-rbrdrwidth-1,s_top+y,line);
@@ -1337,13 +1256,13 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							y=top+optheight-bbrdrwidth-1;
 							(*cur)=opts-1;
 							if(bar)
-								(*bar)=optheight-vbrdrsize-1; 
+								(*bar)=optheight-vbrdrsize-1;
 						}
 						else {
 							(*cur)--;
 							y--;
 							if(bar && *bar)
-								(*bar)--; 
+								(*bar)--;
 						}
 						if(y<top+tbrdrwidth) {	/* scroll */
 							if(!(*cur)) {
@@ -1442,7 +1361,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							y=top+optheight-bbrdrwidth-1;
 							if(bar)
 								(*bar)=optheight-vbrdrsize-1;
-							break; 
+							break;
 						}
 						gettext(s_left+lbrdrwidth+2+left,s_top+y
 							,s_left+left+width-rbrdrwidth-1,s_top+y,line);
@@ -1481,7 +1400,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							y=top+tbrdrwidth;
 							if(bar)
 								(*bar)=0;
-							break; 
+							break;
 						}
 						gettext(s_left+lbrdrwidth+2+left,s_top+y
 							,s_left+left+width-rbrdrwidth-1,s_top+y,line);
@@ -1494,7 +1413,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							y=top+tbrdrwidth;
 							if(bar) {
 								/* gotoxy(1,1); cprintf("bar=%08lX ",bar); */
-								(*bar)=0; 
+								(*bar)=0;
 							}
 						}
 						else {
@@ -1502,7 +1421,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							y++;
 							if(bar && (*bar)<height-vbrdrsize-1) {
 								/* gotoxy(1,1); cprintf("bar=%08lX ",bar); */
-								(*bar)++; 
+								(*bar)++;
 							}
 						}
 						if(y==top+height-bbrdrwidth) {	/* scroll */
@@ -1538,26 +1457,19 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						break;
 					case CIO_KEY_F(1):	/* F1 - Help */
 					{
-						uint8_t* save = malloc(width*height*2);
+						struct vmem_cell *save = malloc(width*height*sizeof(*save));
 						if(save != NULL) {
-							gettext(s_left+left,s_top+top,s_left
+							vmem_gettext(s_left+left,s_top+top,s_left
 								+left+width-1,s_top+top+height-1,save);
-							uint8_t* copy = malloc(width*height*2);
+							struct vmem_cell *copy = malloc(width*height*sizeof(*copy));
 							if(copy != NULL) {
-								memcpy(copy, save, width*height*2);
-								for(i=1;i<(width*height*2);i+=2)
-									copy[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									copy[i]=hclr|(cclr<<4);
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,copy);
+								inactive_win(copy, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
 								free(copy);
 							}
 						}
 						api->showhelp();
 						if(save != NULL) {
-							puttext(s_left+left,s_top+top,s_left
+							vmem_puttext(s_left+left,s_top+top,s_left
 								+left+width-1,s_top+top+height-1,save);
 							free(save);
 						}
@@ -1569,18 +1481,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_EDIT) {
 							if(mode&WIN_SAV)
 								api->savnum++;
-							if(mode&WIN_ACT) {
-								gettext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-								for(i=1;i<(width*height*2);i+=2)
-									tmp_buffer[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=hclr|(cclr<<4);
-
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
+							if(mode&WIN_ACT)
+								inactive_win(tmp_buffer, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
 							else if(mode&WIN_SAV) {
 								api->savnum--;
 								if(sav[api->savnum].buf != NULL)
@@ -1589,7 +1491,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 										,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
-							return((*cur)|MSK_EDIT); 
+							return((*cur)|MSK_EDIT);
 						}
 						break;
 					case CIO_KEY_F(5):		/* F5 - Copy */
@@ -1610,18 +1512,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_INS) {
 							if(mode&WIN_SAV)
 								api->savnum++;
-							if(mode&WIN_INSACT) {
-								gettext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-								for(i=1;i<(width*height*2);i+=2)
-									tmp_buffer[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=hclr|(cclr<<4);
-
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
+							if(mode&WIN_INSACT)
+								inactive_win(tmp_buffer, s_left+left,s_top+top,s_left+left+width-1,s_top+top+height-1,y, hbrdrsize, cclr, lclr, hclr, top);
 							else if(mode&WIN_SAV) {
 								api->savnum--;
 								if(sav[api->savnum].buf != NULL)
@@ -1631,9 +1523,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							if(!opts) {
-								return(MSK_INS); 
+								return(MSK_INS);
 							}
-							return((*cur)|MSK_INS); 
+							return((*cur)|MSK_INS);
 						}
 						break;
 					case CIO_KEY_DC:	/* delete */
@@ -1642,18 +1534,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_DEL) {
 							if(mode&WIN_SAV)
 								api->savnum++;
-							if(mode&WIN_DELACT) {
-								gettext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-								for(i=1;i<(width*height*2);i+=2)
-									tmp_buffer[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=hclr|(cclr<<4);
-
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
+							if(mode&WIN_DELACT)
+								inactive_win(tmp_buffer, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
 							else if(mode&WIN_SAV) {
 								api->savnum--;
 								if (sav[api->savnum].buf != NULL)
@@ -1662,14 +1544,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 										,sav[api->savnum].buf);
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
-							return((*cur)|MSK_DEL); 
+							return((*cur)|MSK_DEL);
 						}
 						break;
 					default:
 						if(mode&WIN_EXTKEYS)
 							return(-2-gotkey);
 						break;
-				} 
+				}
 			}
 			else {
 				gotkey&=0xff;
@@ -1679,15 +1561,15 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					for(j=(*cur)+1,a=b=0;a<2;j++) {   /* a = search count */
 						if(j==opts) {					/* j = option count */
 							j=-1;						/* b = letter count */
-							continue; 
+							continue;
 						}
 						if(j==(*cur)) {
 							b++;
-							continue; 
+							continue;
 						}
 						if(b>=longopt) {
 							b=0;
-							a++; 
+							a++;
 						}
 						if(a==1 && !s)
 							break;
@@ -1714,7 +1596,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								y=top+height-bbrdrwidth-1;
 								if(bar)
 									(*bar)=optheight-vbrdrsize-1;
-								break; 
+								break;
 							}
 							if(y-((*cur)-j)<top+tbrdrwidth) {
 								(*cur)=j;
@@ -1735,7 +1617,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								y=top+tbrdrwidth;
 								if(bar)
 									(*bar)=0;
-								break; 
+								break;
 							}
 							gettext(s_left+lbrdrwidth+2+left,s_top+y
 								,s_left+left+width-rbrdrwidth-1,s_top+y,line);
@@ -1751,7 +1633,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								if((*cur)>j)
 									(*bar)-=(*cur)-j;
 								else
-									(*bar)+=j-(*cur); 
+									(*bar)+=j-(*cur);
 							}
 							(*cur)=j;
 							gettext(s_left+lbrdrwidth+2+left,s_top+y
@@ -1760,8 +1642,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								line[i]=lbclr;
 							puttext(s_left+lbrdrwidth+2+left,s_top+y
 								,s_left+left+width-rbrdrwidth-1,s_top+y,line);
-							break; 
-						} 
+							break;
+						}
 					}
 					if(a==2)
 						s=0;
@@ -1773,18 +1655,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								break;
 							if(mode&WIN_SAV)
 								api->savnum++;
-							if(mode&WIN_ACT) {
-								gettext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-								for(i=1;i<(width*height*2);i+=2)
-									tmp_buffer[i]=lclr|(cclr<<4);
-								j=(((y-top)*width)*2)+7+((width-hbrdrsize-2)*2);
-								for(i=(((y-top)*width)*2)+7;i<j;i+=2)
-									tmp_buffer[i]=hclr|(cclr<<4);
-
-								puttext(s_left+left,s_top+top,s_left
-									+left+width-1,s_top+top+height-1,tmp_buffer);
-							}
+							if(mode&WIN_ACT)
+								inactive_win(tmp_buffer, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
 							else if(mode&WIN_SAV) {
 								api->savnum--;
 								if (sav[api->savnum].buf != NULL)
@@ -1801,11 +1673,11 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if(mode&WIN_SAV)
 								api->savnum++;
 							if(mode&WIN_ESC || (mode&WIN_CHE && api->changes)) {
-								gettext(s_left+left,s_top+top,s_left
+								vmem_gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 								for(i=1;i<(width*height*2);i+=2)
-									tmp_buffer[i]=lclr|(cclr<<4);
-								puttext(s_left+left,s_top+top,s_left
+									set_vmem_attr(&tmp_buffer[i], lclr|(cclr<<4));
+								vmem_puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
 							}
 							else if(mode&WIN_SAV) {
@@ -1949,12 +1821,12 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 
 	if(plen) {
 		in_win[i++]=' ';
-		in_win[i++]=api->lclr|(api->bclr<<4); 
+		in_win[i++]=api->lclr|(api->bclr<<4);
 	}
 
 	for(j=0;prompt[j];j++) {
 		in_win[i++]=prompt[j];
-		in_win[i++]=api->lclr|(api->bclr<<4); 
+		in_win[i++]=api->lclr|(api->bclr<<4);
 	}
 
 	if(plen) {
@@ -1964,7 +1836,7 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 
 	for(j=0;j<iwidth+2;j++) {
 		in_win[i++]=' ';
-		in_win[i++]=api->lclr|(api->bclr<<4); 
+		in_win[i++]=api->lclr|(api->bclr<<4);
 	}
 
 	if(!(mode&WIN_NOBRDR)) {
@@ -1974,7 +1846,7 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 		in_win[i++]=api->hclr|(api->bclr<<4);
 		for(j=1;j<width-1;j++) {
 			in_win[i++]=api->chars->input_bottom;
-			in_win[i++]=api->hclr|(api->bclr<<4); 
+			in_win[i++]=api->hclr|(api->bclr<<4);
 		}
 		in_win[i++]=api->chars->input_bottom_right;
 		in_win[i]=api->hclr|(api->bclr<<4);	/* I is not incremented to shut up BCC */
@@ -1996,7 +1868,7 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 			for(j=1;j<width*2;j+=2)
 				shade[j]=DARKGRAY;
 			puttext(s_left+left+2,s_top+top+3,s_left+left+width+1
-				,s_top+top+height,shade); 
+				,s_top+top+height,shade);
 		}
 	}
 
@@ -2071,7 +1943,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(max+1));
 		_setcursortype(cursor);
-		return(-1); 
+		return(-1);
 	}
 	gotoxy(left,top);
 	_setcursortype(cursor = api->insert_mode ? _SOLIDCURSOR : _NORMALCURSOR);
@@ -2138,9 +2010,9 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			}
 		}
 
-		if(f == CR 
-				|| (f >= 0xff && f != CIO_KEY_DC) 
-				|| (f == '\t' && mode&K_TABEXIT) 
+		if(f == CR
+				|| (f >= 0xff && f != CIO_KEY_DC)
+				|| (f == '\t' && mode&K_TABEXIT)
 				|| (f == '%' && mode&K_SCANNING)
 				|| f==CTRL_B
 				|| f==CTRL_E
@@ -2183,7 +2055,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 			if(ch==CIO_KEY_MOUSE) {
 				ch=uifc_getmouse(&mevnt);
 				if(ch==0 || (ch==ESC && mevnt.event==CIOLIB_BUTTON_3_CLICK)) {
-					if(mode & K_MOUSEEXIT 
+					if(mode & K_MOUSEEXIT
 							&& (mevnt.starty != top
 								|| mevnt.startx > left+width
 						    	|| mevnt.startx < left)
@@ -2275,7 +2147,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 							if(str[i]=='.')
 								gotdecimal=FALSE;
 							for(k=i;k<=j;k++)
-								str[k]=str[k+1]; 
+								str[k]=str[k+1];
 						}
 						continue;
 					}
@@ -2361,7 +2233,7 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 					for(k=++j;k>i;k--)
 						str[k]=str[k-1];
 				}
-				str[i++]=ch; 
+				str[i++]=ch;
 			}
 		}
 	}
@@ -2401,7 +2273,7 @@ static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
     va_end(argptr);
     for(i=j=0;str[i];i++) {
         buf[j++]=str[i];
-        buf[j++]=attr; 
+        buf[j++]=attr;
 	}
     puttext(x,y,x+(i-1),y,buf);
     return(i);
@@ -2443,15 +2315,21 @@ void bottomline(int mode)
 	if(mode&WIN_PASTE) {
 		if(api->mode&UIFC_NOCTRL)
 			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"F6 ");
-		else 
+		else
 			i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"^V ");
 		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Paste  ");
 	}
 	if(mode&WIN_INS) {
+#ifdef __DARWIN__
+		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"+/");
+#endif
 		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"INS");
 		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"ert Item  ");
 	}
 	if(mode&WIN_DEL) {
+#ifdef __DARWIN__
+		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"fn-");
+#endif
 		i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"DEL");
 		i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"ete Item  ");
 	}
@@ -2461,7 +2339,6 @@ void bottomline(int mode)
 	textattr(BLACK|(api->cclr<<4));
 	clreol();
 }
-
 
 /*****************************************************************************/
 /* Generates a 24 character ASCII string that represents the time_t pointer  */
@@ -2495,7 +2372,7 @@ char *utimestr(time_t *intime)
 			break;
 		case 6:
 			strcpy(wday,"Sat");
-			break; 
+			break;
 	}
 	switch(gm->tm_mon) {
 		case 0:
@@ -2533,18 +2410,18 @@ char *utimestr(time_t *intime)
 			break;
 		case 11:
 			strcpy(mon,"Dec");
-			break; 
+			break;
 	}
-	if(gm->tm_hour>12) {
+	if(gm->tm_hour>=12) {
 		strcpy(mer,"pm");
-		hour=gm->tm_hour-12; 
+		hour=gm->tm_hour-12;
 	}
 	else {
 		if(!gm->tm_hour)
 			hour=12;
 		else
 			hour=gm->tm_hour;
-		strcpy(mer,"am"); 
+		strcpy(mer,"am");
 	}
 	sprintf(str,"%s %s %02d %4d %02d:%02d %s",wday,mon,gm->tm_mday,1900+gm->tm_year
 		,hour,gm->tm_min,mer);
@@ -2626,7 +2503,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 
 	api->exit_flags = 0;
 	_setcursortype(_NOCURSOR);
-	
+
 	title_len=strlen(title);
 	if(api->mode&UIFC_MOUSE)
 		title_len+=6;
@@ -2667,92 +2544,93 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	if(mode&WIN_DYN && mode&WIN_NODRAW)
 		is_redraw=0;
 
-	gettext(1,1,api->scrn_width,api->scrn_len,tmp_buffer);
+	vmem_gettext(1,1,api->scrn_width,api->scrn_len,tmp_buffer);
 
 	if(!is_redraw) {
-		memset(tmp_buffer2,' ',width*height*2);
-		for(i=1;i<width*height*2;i+=2)
-			tmp_buffer2[i]=(api->hclr|(api->bclr<<4));
-	    tmp_buffer2[0]=api->chars->help_top_left;
+		for(i=0; i<width*height; i++)
+			set_vmem(&tmp_buffer2[i], ' ', api->hclr|(api->bclr<<4), 0);
+	    tmp_buffer2[0].ch=api->chars->help_top_left;
 		j=title_len;
 		if(j>width-6) {
 			*(title+width-6)=0;
 			j=width-6;
 		}
-		for(i=2;i<(width-j);i+=2)
-   		      tmp_buffer2[i]=api->chars->help_top;
+		for(i=1;i<(width-j)/2;i++)
+   		      tmp_buffer2[i].ch=api->chars->help_top;
 		if((api->mode&UIFC_MOUSE) && (!(mode&WIN_DYN))) {
-			tmp_buffer2[2]=api->chars->button_left;
-			tmp_buffer2[3]=api->hclr|(api->bclr<<4);
+			set_vmem(&tmp_buffer2[1], api->chars->button_left, api->hclr|(api->bclr<<4), 0);
 			/* tmp_buffer2[4]='þ'; */
-			tmp_buffer2[4]=api->chars->close_char;
-			tmp_buffer2[5]=api->lclr|(api->bclr<<4);
-			tmp_buffer2[6]=api->chars->button_right;
-			tmp_buffer2[7]=api->hclr|(api->bclr<<4);
+			set_vmem(&tmp_buffer2[2], api->chars->close_char, api->lclr|(api->bclr<<4), 0);
+			set_vmem(&tmp_buffer2[3], api->chars->button_right, api->hclr|(api->bclr<<4), 0);
 			/* Buttons are ignored - leave it this way to not confuse stuff from help() */
 		}
-	    tmp_buffer2[i]=api->chars->help_titlebreak_left; i+=4;
+	    tmp_buffer2[i].ch = api->chars->help_titlebreak_left;
+	    i+=2;
 		for(p=title;*p;p++) {
-			tmp_buffer2[i]=*p;
-			i+=2;
+			tmp_buffer2[i].ch=*p;
+			i++;
 		}
-		i+=2;
-   		tmp_buffer2[i]=api->chars->help_titlebreak_right; i+=2;
-		for(j=i;j<((width-1)*2);j+=2)
-   		    tmp_buffer2[j]=api->chars->help_top;
-		i=j;
-    	tmp_buffer2[i]=api->chars->help_top_right; i+=2;
+		i++;
+   		tmp_buffer2[i].ch=api->chars->help_titlebreak_right;
+   		i++;
+		for(;i<((width-1));i++)
+   		    tmp_buffer2[i].ch=api->chars->help_top;
+    	tmp_buffer2[i].ch=api->chars->help_top_right;
+    	i++;
 		j=i;	/* leave i alone */
 		for(k=0;k<(height-2);k++) { 		/* the sides of the box */
-	        tmp_buffer2[j]=api->chars->help_left; j+=2;
-			j+=((width-2)*2);
-        	tmp_buffer2[j]=api->chars->help_right; j+=2; 
+	        tmp_buffer2[j].ch=api->chars->help_left;
+	        j++;
+			j+=((width-2));
+        	tmp_buffer2[j].ch=api->chars->help_right;
+        	j++;
 		}
-	    tmp_buffer2[j]=api->chars->help_bottom_left; j+=2;
+	    tmp_buffer2[j].ch = api->chars->help_bottom_left;
+	    j++;
 		if(!(mode&WIN_DYN) && (width>31)) {
-			for(k=j;k<j+(((width-4)/2-13)*2);k+=2)
-				tmp_buffer2[k]=api->chars->help_bottom;
-			tmp_buffer2[k]=api->chars->help_hitanykey_left; k+=4;
-			tmp_buffer2[k]='H'; k+=2;
-			tmp_buffer2[k]='i'; k+=2;
-			tmp_buffer2[k]='t'; k+=4;
-			tmp_buffer2[k]='a'; k+=2;
-			tmp_buffer2[k]='n'; k+=2;
-			tmp_buffer2[k]='y'; k+=4;
-			tmp_buffer2[k]='k'; k+=2;
-			tmp_buffer2[k]='e'; k+=2;
-			tmp_buffer2[k]='y'; k+=4;
-			tmp_buffer2[k]='t'; k+=2;
-			tmp_buffer2[k]='o'; k+=4;
-			tmp_buffer2[k]='c'; k+=2;
-			tmp_buffer2[k]='o'; k+=2;
-			tmp_buffer2[k]='n'; k+=2;
-			tmp_buffer2[k]='t'; k+=2;
-			tmp_buffer2[k]='i'; k+=2;
-			tmp_buffer2[k]='n'; k+=2;
-			tmp_buffer2[k]='u'; k+=2;
-			tmp_buffer2[k]='e'; k+=4;
-	    	tmp_buffer2[k]=api->chars->help_hitanykey_right; k+=2;
-			for(j=k;j<k+(((width-4)/2-12)*2);j+=2)
-		        tmp_buffer2[j]=api->chars->help_bottom;
+			for(k=j;k<j+(((width-4)/2-13));k++)
+				tmp_buffer2[k].ch=api->chars->help_bottom;
+			tmp_buffer2[k].ch = api->chars->help_hitanykey_left; k+=2;
+			tmp_buffer2[k].ch='H'; k++;
+			tmp_buffer2[k].ch='i'; k++;
+			tmp_buffer2[k].ch='t'; k+=2;
+			tmp_buffer2[k].ch='a'; k++;
+			tmp_buffer2[k].ch='n'; k++;
+			tmp_buffer2[k].ch='y'; k+=2;
+			tmp_buffer2[k].ch='k'; k++;
+			tmp_buffer2[k].ch='e'; k++;
+			tmp_buffer2[k].ch='y'; k+=2;
+			tmp_buffer2[k].ch='t'; k++;
+			tmp_buffer2[k].ch='o'; k+=2;
+			tmp_buffer2[k].ch='c'; k++;
+			tmp_buffer2[k].ch='o'; k++;
+			tmp_buffer2[k].ch='n'; k++;
+			tmp_buffer2[k].ch='t'; k++;
+			tmp_buffer2[k].ch='i'; k++;
+			tmp_buffer2[k].ch='n'; k++;
+			tmp_buffer2[k].ch='u'; k++;
+			tmp_buffer2[k].ch='e'; k+=2;
+	    	tmp_buffer2[k].ch=api->chars->help_hitanykey_right; k++;
+			for(j=k;j<k+(((width-4)/2-12));j++)
+		        tmp_buffer2[j].ch=api->chars->help_bottom;
 		}
 		else {
-			for(k=j;k<j+((width-2)*2);k+=2)
-				tmp_buffer2[k]=api->chars->help_bottom;
+			for(k=j;k<j+((width-2));k++)
+				tmp_buffer2[k].ch=api->chars->help_bottom;
 			j=k;
 		}
-	    tmp_buffer2[j]=api->chars->help_bottom_right;
+	    tmp_buffer2[j].ch=api->chars->help_bottom_right;
 		if(!(mode&WIN_DYN)) {
-			tmp_buffer2[j-2]=api->chars->button_right;
-			tmp_buffer2[j-4]=' ';
-			tmp_buffer2[j-6]=' ';
-			tmp_buffer2[j-8]=api->chars->button_left;
+			tmp_buffer2[j-1].ch=api->chars->button_right;
+			tmp_buffer2[j-2].ch=' ';
+			tmp_buffer2[j-3].ch=' ';
+			tmp_buffer2[j-4].ch=api->chars->button_left;
 #define SCROLL_UP_BUTTON_X	left + (width - 4)
 #define SCROLL_UP_BUTTON_Y	top + height
 #define SCROLL_DN_BUTTON_X	left + (width - 3)
 #define SCROLL_DN_BUTTON_Y	top + height
 		}
-		puttext(left,top+1,left+width-1,top+height,tmp_buffer2);
+		vmem_puttext(left,top+1,left+width-1,top+height,tmp_buffer2);
 	}
 	len=strlen(hbuf);
 
@@ -2778,7 +2656,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
 			,__LINE__,(width-2-pad-pad)*lines*2);
 		_setcursortype(cursor);
-		return; 
+		return;
 	}
 	memset(textbuf,' ',(width-2-pad-pad)*lines*2);
 	for(i=1;i<(width-2-pad-pad)*lines*2;i+=2)
@@ -2789,17 +2667,17 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 	for(j=i;j<len;j++,i+=2) {
 		if(hbuf[j]==LF) {
 			i+=2;
-			while(i%((width-2-pad-pad)*2))	
+			while(i%((width-2-pad-pad)*2))
 				i++;
 			i-=2;
 		}
 		else if(mode&WIN_HLP && (hbuf[j]==2 || hbuf[j]=='~')) {		 /* Ctrl-b toggles inverse */
 			inverse=!inverse;
-			i-=2; 
+			i-=2;
 		}
 		else if(mode&WIN_HLP && (hbuf[j]==1 || hbuf[j]=='`')) {		 /* Ctrl-a toggles high intensity */
 			high=!high;
-			i-=2; 
+			i-=2;
 		}
 		else if(hbuf[j]!=CR) {
 			textbuf[i]=hbuf[j];
@@ -2881,7 +2759,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 					case CIO_KEY_UP:	/* up arrow */
 						p = p-((width-2-pad-pad)*2);
 						break;
-					
+
 					case CIO_KEY_PPAGE:	/* PgUp */
 						p = p-((width-2-pad-pad)*2*(height-5));
 						break;
@@ -2935,7 +2813,7 @@ static void help(void)
 
     if(!api->helpbuf) {
         if((fp=fopen(api->helpixbfile,"rb"))==NULL)
-            sprintf(hbuf,"ERROR: Cannot open help index: %s"
+            SAFEPRINTF(hbuf,"ERROR: Cannot open help index: %s"
                 ,api->helpixbfile);
         else {
             p=strrchr(helpfile,'/');
@@ -2963,24 +2841,24 @@ static void help(void)
             }
             fclose(fp);
             if(l==-1L)
-                sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
+                SAFEPRINTF3(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
                     ,p,helpline,api->helpixbfile);
             else {
                 if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-                    sprintf(hbuf,"ERROR: Cannot open help file: %s"
+                    SAFEPRINTF(hbuf,"ERROR: Cannot open help file: %s"
                         ,api->helpdatfile);
                 else {
                     if(fseek(fp,l,SEEK_SET)!=0) {
-						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
+						SAFEPRINTF4(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
 							,p,helpline,l,api->helpixbfile);
 					}
 					else {
 						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
-							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
+							SAFEPRINTF4(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
 								,p,helpline,l,api->helpixbfile);
 						}
 					}
-					fclose(fp); 
+					fclose(fp);
 				}
 			}
 		}

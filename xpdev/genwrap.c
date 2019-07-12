@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.109 2018/07/23 22:52:54 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.110 2019/05/06 00:31:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -80,13 +80,16 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 
 #ifdef _MSC_VER
 /****************************************************************************/
-/* Case insensitive version of strstr()										*/
+/* Case insensitive version of strstr()	- currently heavy-handed			*/
 /****************************************************************************/
 char* DLLCALL strcasestr(const char* haystack, const char* needle)
 {
+	char* p = NULL;
+	/* temporary performance hack begin (warning: different behavior from traditional strcasestr): */
+	if((p = strstr(haystack, needle)) != NULL)
+		return p;
 	char* h = strdup(haystack);
 	char* n = strdup(needle);
-	char* p = NULL;
 	if(h != NULL && n != NULL)
 		p = strstr(strupr(h), strupr(n));
 	int offset = p - h;
