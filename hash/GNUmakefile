@@ -1,9 +1,9 @@
-# $Id: GNUmakefile,v 1.1 2019/06/29 01:14:55 rswindell Exp $
+# $Id: GNUmakefile,v 1.2 2019/07/10 22:24:28 deuce Exp $
 
 # Macros
 #DEBUG	=	1				# Comment out for release (non-debug) version
 
-SRC_ROOT = ..
+SRC_ROOT ?= ..
 # Cross platform/compiler definitions
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
