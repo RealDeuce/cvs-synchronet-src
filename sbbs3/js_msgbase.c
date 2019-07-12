@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.249 2019/07/16 08:04:30 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.248 2019/05/04 23:02:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,6 +57,16 @@ typedef struct
 	post_t		post;
 
 } privatemsg_t;
+
+JSBool JS_ValueToUint32(JSContext *cx, jsval v, uint32 *ip)
+{
+	jsdouble d;
+
+	if(!JS_ValueToNumber(cx, v, &d))
+		return JS_FALSE;
+	*ip = (uint32)d;
+	return JS_TRUE;
+}
 
 /* Destructor */
 
@@ -832,7 +842,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 	prop_name = "columns";
 	hfield_type = SMB_COLUMNS;
 	if(JS_GetProperty(cx, hdr, prop_name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToECMAUint32(cx, val, &u32)) {
+		if(!JS_ValueToUint32(cx, val, &u32)) {
 			JS_ReportError(cx, "Invalid \"%s\" number in header object", prop_name);
 			goto err;
 		}
@@ -858,7 +868,7 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 			msg->idx.votes=msg->hdr.votes;
 	}
 	if(JS_GetProperty(cx, hdr, "auxattr", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToECMAUint32(cx,val,&u32))
+		if(!JS_ValueToUint32(cx,val,&u32))
 			goto err;
 		msg->hdr.auxattr=u32;
 	}

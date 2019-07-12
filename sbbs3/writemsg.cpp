@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.161 2019/07/19 00:47:46 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.159 2019/07/10 01:12:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -579,20 +579,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			&& !(cfg.xedit[useron_xedit-1]->misc&QUICKBBS) 
 			&& fexistcase(str)) {
 			if((fp=fopen(str,"r")) != NULL) {
-				if (fgets(str, sizeof(str), fp) != NULL) {
-					str[0] = 0;
-					if (fgets(str, sizeof(str), fp) != NULL) {
-						truncsp(str);
-						if(str[0])
-							safe_snprintf(subj, LEN_TITLE, "%s", str);
-						editor_details[0] = 0;
-                        if (fgets(editor_details, sizeof(editor_details), fp) != NULL) {
-                            truncsp(editor_details);
-                            if (editor_details[0] && editor != NULL)
-                                *editor = editor_details;
-                        }
-					}
-				}
+				fgets(str,sizeof(str),fp);
+				fgets(str,sizeof(str),fp);
+				truncsp(str);
+				safe_snprintf(subj,LEN_TITLE,"%s",str);
 				fclose(fp);
 			}
 		}
@@ -797,7 +787,7 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 {
 	char*	buf;
-    size_t  slen;
+    char    slen;
     int     i,file;
 	long	l=0,flen;
     FILE    *stream;
