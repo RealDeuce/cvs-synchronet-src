@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.256 2019/07/12 22:35:24 deuce Exp $ */
+/* $Id: cterm.c,v 1.255 2019/07/12 22:12:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3254,7 +3254,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.256 $";
+	char	*revision="$Revision: 1.255 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3297,7 +3297,7 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->bg_color = UINT32_MAX;
 	cterm->tabs = malloc(sizeof(cterm_tabs));
 	if (cterm->tabs == NULL) {
-		free(cterm);
+		free(cterm->tabs);
 		return NULL;
 	}
 	memcpy(cterm->tabs, cterm_tabs, sizeof(cterm_tabs));
