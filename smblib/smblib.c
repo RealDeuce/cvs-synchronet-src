@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.202 2019/07/20 19:10:27 rswindell Exp $ */
+/* $Id: smblib.c,v 1.200 2019/07/08 07:16:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -934,7 +934,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 {
 	void	*vp,**vpp;
-	size_t	i;
+	uint16_t	i;
 	long	l,offset;
 	idxrec_t idx;
 
@@ -997,7 +997,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%s insufficient data fields read (%d instead of %d)", __FUNCTION__
-			,(int)i,msg->hdr.total_dfields);
+			,i,msg->hdr.total_dfields);
 		return(SMB_ERR_READ); 
 	}
 	l += msg->hdr.total_dfields * sizeof(*msg->dfield);
@@ -1007,7 +1007,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			smb_freemsgmem(msg);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s realloc failure of %d bytes for header field data", __FUNCTION__
-				,(int)(sizeof(void*)*(i+1)));
+				,(int)sizeof(void*)*(i+1));
 			return(SMB_ERR_MEM); 
 		}
 		msg->hfield_dat=vpp;
@@ -1015,7 +1015,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			smb_freemsgmem(msg);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s realloc failure of %d bytes for header fields", __FUNCTION__
-				,(int)(sizeof(hfield_t)*(i+1)));
+				,(int)sizeof(hfield_t)*(i+1));
 			return(SMB_ERR_MEM); 
 		}
 		msg->hfield=vp;
@@ -1030,7 +1030,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			==NULL) {			/* Allocate 1 extra for ASCIIZ terminator */
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s malloc failure of %d bytes for header field %d", __FUNCTION__
-				,msg->hfield[i].length+1, (int)i);
+				,msg->hfield[i].length+1, i);
 			smb_freemsgmem(msg);  /* or 0 length field */
 			return(SMB_ERR_MEM); 
 		}
@@ -1206,7 +1206,7 @@ int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* da
 	}
 	msg->total_hfields++;
 	msg->hfield[i].type=type;
-	msg->hfield[i].length=(uint16_t)length;
+	msg->hfield[i].length=length;
 	if(length) {
 		if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
 			return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
@@ -1323,7 +1323,7 @@ int SMBCALL smb_hfield_append(smbmsg_t* msg, uint16_t type, size_t length, void*
 	p+=msg->hfield[i].length;	/* skip existing data */
 	memset(p,0,length+1);
 	memcpy(p,data,length);		/* append */
-	msg->hfield[i].length+=(uint16_t)length;
+	msg->hfield[i].length+=length;
 	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return(SMB_SUCCESS);
@@ -1361,7 +1361,7 @@ int SMBCALL smb_hfield_replace(smbmsg_t* msg, uint16_t type, size_t length, void
 	msg->hfield_dat[i]=p;
 	memset(p,0,length+1);
 	memcpy(p,data,length);
-	msg->hfield[i].length=(uint16_t)length;
+	msg->hfield[i].length=length;
 	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return SMB_SUCCESS;
