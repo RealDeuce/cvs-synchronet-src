@@ -39,7 +39,7 @@ make it less likely I'll work on it in the future.
 
                              History
 
-I started writing SyncTERM in June of 2004.  There weren't any good BBS
+I started writing SyncTERM in June of 2004.  There wern't any good BBS
 clients available for FreeBSD at the time, so I started writing one.
 Initially, it was RLogin only and no file transfer support existed or
 was planned. since RLogin supports auto-login with user ID and password
@@ -141,6 +141,10 @@ options are supported (options are not case sensitive):
         default mode.  Additionally, a 'W' or 'F' can be specified to force
         windowed or full-screen mode respectively.
 
+    O[WF] - SDL Overlay output mode.  Uses the SDL library for output, and
+        supports hardware scaling if available.  Additionally, a 'W' or 'F'
+        can be specified to force windowed or full-screen mode respectively.
+
 -L##
     Specifies the number of lines on the "screen".  Supported values are:
     14, 21, 25 (default), 28, 43, 50, and 60.
@@ -166,7 +170,7 @@ be loaded from the BBS list, then modified per the command-line arguments.
 
                           The User InterFaCe
 
-Menus in SyncTERM use a common user interface library named UIFC.  This
+Menus in SyncTERM use a commin user interface library named UIFC.  This
 library was originally developed for Synchronet.
 
 The following is the general behaviour of UIFC menus.
@@ -193,6 +197,10 @@ Left-click: Select an item in a menu.
 	If there are more options than fit in the window, is a scrollbar
 	on the left side.
 
+	In help windows, the top half of the window is a "scroll up"
+	button, and the bottom half is a "scroll down" button.  There
+	are also small up/down buttons in the bottom-right.
+
 Left-Drag: Select and copy a region (the copy is made when the button is released).
 
 Middle-click: Paste from PRIMARY selection or clipboard.
@@ -206,6 +214,8 @@ Return: Select the currently highlighted option.  If there is a blank
 Escape: Exit the current menu.
 Backspace: An alias for Escape.
 CTRL-C: An alias for Escape.
+
+Delete: Delete item at current location
 
 Home: Jump to the beginning of the menu
 CTRL-B: An alias for Home
@@ -242,7 +252,7 @@ CTRL-V: An alias for F6
 Insert: Inserts a new item.
 +: An alias for Insert
 
-Delete: Delete item at current location
+Delete: Deletes an item.
 -: An alias for Delete
 
 Any letter or number: Jumps to the next item that has that character
