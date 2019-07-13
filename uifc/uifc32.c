@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.244 2019/07/13 02:50:59 deuce Exp $ */
+/* $Id: uifc32.c,v 1.245 2019/07/13 22:02:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1674,7 +1674,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if(mode&WIN_ESC || (mode&WIN_CHE && api->changes)) {
 								vmem_gettext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
-								for(i=1;i<(width*height*2);i+=2)
+								for(i=0; i < (width * height);i++)
 									set_vmem_attr(&tmp_buffer[i], lclr|(cclr<<4));
 								vmem_puttext(s_left+left,s_top+top,s_left
 									+left+width-1,s_top+top+height-1,tmp_buffer);
