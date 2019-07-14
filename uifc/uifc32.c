@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.249 2019/07/25 18:28:34 deuce Exp $ */
+/* $Id: uifc32.c,v 1.245 2019/07/13 22:02:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,7 +427,7 @@ void docopy(void)
 						break;
 					case CIOLIB_BUTTON_1_DRAG_END:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=malloc((endy-starty+1)*(endx-startx+1)+1+lines*2);
+						copybuf=alloca((endy-starty+1)*(endx-startx+1)+1+lines*2);
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
@@ -440,7 +440,6 @@ void docopy(void)
 						}
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
-						free(copybuf);
 						restorescreen(screen);
 						freescreen(screen);
 						freescreen(sbuffer);
@@ -587,7 +586,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
 	struct vmem_cell *ptr, *win, shade[MAX_LINES*2], line[MAX_COLS];
-	char search[MAX_OPLN];
+    char search[MAX_OPLN];
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
@@ -770,7 +769,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					FREE_AND_NULL(sav[api->savnum].buf);
 					if ((sav[api->savnum].buf = malloc((width + 3) * (height + 2) * sizeof(struct vmem_cell)))==NULL) {
 						cprintf("UIFC line %d: error allocating %u bytes."
-							,__LINE__,(width+3)*(height+2)*sizeof(struct vmem_cell));
+							,__LINE__,(width+3)*(height+2)*2);
 						free(title);
 						if(!(api->mode&UIFC_NHM))
 							uifc_mouse_enable();
@@ -795,7 +794,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else {
 			if((sav[api->savnum].buf=malloc((width+3)*(height+2)*sizeof(struct vmem_cell)))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
-					,__LINE__,(width+3)*(height+2)*sizeof(struct vmem_cell));
+					,__LINE__,(width+3)*(height+2)*2);
 				free(title);
 				if(!(api->mode&UIFC_NHM))
 					uifc_mouse_enable();
@@ -1077,13 +1076,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=malloc((width+3)*(height+2)*sizeof(*win)))==NULL) {
+							if((win=alloca((width+3)*(height+2)*sizeof(*win)))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
-									,__LINE__,(width+3)*(height+2)*sizeof(*win));
+									,__LINE__,(width+3)*(height+2)*2);
 								return(-1);
 							}
 							inactive_win(win, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
-							free(win);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 						}
@@ -2312,10 +2310,8 @@ void bottomline(int mode)
 	i += uprintf(i,api->scrn_len+1,api->bclr|(api->cclr<<4),"ESC ");	/* Backspace is no good no way to abort editing */
 	i += uprintf(i,api->scrn_len+1,BLACK|(api->cclr<<4),"Exit");
 	gotoxy(i,api->scrn_len+1);
-	if (wherex() == i && wherey() == api->scrn_len+1) {
-		textattr(BLACK|(api->cclr<<4));
-		clreol();
-	}
+	textattr(BLACK|(api->cclr<<4));
+	clreol();
 }
 
 /*****************************************************************************/
@@ -2628,7 +2624,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 
 	if((textbuf=(struct vmem_cell *)malloc((width-2-pad-pad)*lines*sizeof(*textbuf)))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
-			,__LINE__,(width-2-pad-pad)*lines*sizeof(*textbuf));
+			,__LINE__,(width-2-pad-pad)*lines*2);
 		_setcursortype(cursor);
 		return;
 	}
@@ -2651,7 +2647,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		}
 		else if(hbuf[j]!=CR) {
 			set_vmem(&textbuf[i], hbuf[j], inverse ? (api->bclr|(api->cclr<<4)) : high ? (api->hclr|(api->bclr<<4)) : (api->lclr|(api->bclr<<4)), 0);
-			if(((i+1)%((width-2-pad-pad))==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
+			if((i%((width-2-pad-pad))==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
 				i--;
 		}
 		else
@@ -2690,12 +2686,12 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty>=top+pad+1
 								&& mevnt.starty<=top+pad+(height/2)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p -= ((width-2-pad-pad)*(height-5));
+							p -= ((width-2-pad-pad)*2*(height-5));
 							continue;
 						}
 						if(mevnt.startx == SCROLL_UP_BUTTON_X && mevnt.starty == SCROLL_UP_BUTTON_Y
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p -= ((width-2-pad-pad));
+							p -= ((width-2-pad-pad)*2);
 							continue;
 						}
 						/* Clicked Scroll Down */
@@ -2704,12 +2700,12 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty<=top+pad+height-2
 								&& mevnt.starty>=top+pad+height-(height/2+1)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p += (width-2-pad-pad)*(height-5);
+							p += (width-2-pad-pad)*2*(height-5);
 							continue;
 						}
 						if(mevnt.startx == SCROLL_DN_BUTTON_X && mevnt.starty == SCROLL_DN_BUTTON_Y
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p += ((width-2-pad-pad));
+							p += ((width-2-pad-pad)*2);
 							continue;
 						}
 						/* Non-click events (drag, move, multiclick, etc) */
@@ -2725,15 +2721,15 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						break;
 
 					case CIO_KEY_UP:	/* up arrow */
-						p = p-((width-2-pad-pad));
+						p = p-((width-2-pad-pad)*2);
 						break;
 
 					case CIO_KEY_PPAGE:	/* PgUp */
-						p = p-((width-2-pad-pad)*(height-5));
+						p = p-((width-2-pad-pad)*2*(height-5));
 						break;
 
 					case CIO_KEY_NPAGE:	/* PgDn */
-						p += (width-2-pad-pad)*(height-5);
+						p += (width-2-pad-pad)*2*(height-5);
 						break;
 
 					case CIO_KEY_END:	/* end */
@@ -2741,7 +2737,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						break;
 
 					case CIO_KEY_DOWN:	/* dn arrow */
-						p += ((width-2-pad-pad));
+						p += ((width-2-pad-pad)*2);
 						break;
 
 					case CIO_KEY_QUIT:
