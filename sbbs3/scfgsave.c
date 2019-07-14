@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.85 2019/07/15 02:13:35 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.84 2019/07/14 10:10:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -810,12 +810,12 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->lname, stream);
 				put_str(cfg->dir[i]->sname, stream);
 				put_str(cfg->dir[i]->code_suffix, stream);
-
+#if 1
 				if (cfg->dir[i]->data_dir[0]) {
 					backslash(cfg->dir[i]->data_dir);
 					md(cfg->dir[i]->data_dir);
 				}
-
+#endif
 				put_str(cfg->dir[i]->data_dir, stream);
 				put_str(cfg->dir[i]->arstr, stream);
 				put_str(cfg->dir[i]->ul_arstr, stream);
@@ -830,8 +830,9 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 						if(cfg->dir[i]->data_dir[0])
 							SAFECOPY(path, cfg->dir[i]->data_dir);
 						else
-							SAFEPRINTF(path, "%sdirs", cfg->data_dir);
-						SAFEPRINTF2(str, "%s%s"
+							SAFECOPY(path, cfg->data_dir);
+						backslash(path);
+						SAFEPRINTF2(str, "dirs/%s%s"
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
