@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.105 2019/07/16 07:07:17 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.104 2019/07/12 02:15:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,7 @@ bool sbbs_t::answer()
 				,LEN_ALIAS*2,str2
 				,terminal);
 			SAFECOPY(rlogin_term, terminal);
-			SAFECOPY(rlogin_name, parse_login(str2));
+			SAFECOPY(rlogin_name, str2);
 			SAFECOPY(rlogin_pass, str);
 			/* Truncate terminal speed (e.g. "/57600") from terminal-type string 
 			   (but keep full terminal type/speed string in rlogin_term): */
@@ -192,7 +192,7 @@ bool sbbs_t::answer()
 		pthread_mutex_lock(&ssh_mutex);
 		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
 		if (ctmp) {
-			SAFECOPY(rlogin_name, parse_login(ctmp));
+			SAFECOPY(rlogin_name, ctmp);
 			free_crypt_attrstr(ctmp);
 			ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_PASSWORD);
 			if (ctmp) {
