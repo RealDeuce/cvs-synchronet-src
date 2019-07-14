@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.218 2018/03/09 06:59:56 deuce Exp $ */
+/* $Id: syncterm.c,v 1.222 2019/07/11 18:31:45 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -38,6 +38,12 @@ static const KNOWNFOLDERID FOLDERID_ProgramData =		{0x62AB5D82,0xFDC1,0x4DC3,{0x
 #include <filewrap.h>	// STDOUT_FILENO
 
 #include <cterm.h>
+#if !(defined __BORLANDC__ || defined _MSC_VER)
+ #include <stdbool.h>
+#else
+ #define bool int
+ enum { false, true };
+#endif
 
 #include "st_crypt.h"
 #include "fonts.h"
@@ -54,7 +60,7 @@ char* syncterm_version = "SyncTERM 1.1b"
 #endif
 	;
 
-char	*usage = 
+char	*usage =
 		"\nusage: syncterm [options] [URL]"
         "\n\noptions:\n\n"
         "-e# =  set escape delay to #msec\n"
@@ -135,7 +141,7 @@ static BOOL winsock_startup(void)
 static const struct {
   unsigned int 	 width;
   unsigned int 	 height;
-  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */ 
+  unsigned int 	 bytes_per_pixel; /* 3:RGB, 4:RGBA */
   unsigned char	 pixel_data[64 * 64 * 4 + 1];
 } syncterm_icon = {
   64, 64, 4,
@@ -788,7 +794,8 @@ BOOL check_exit(BOOL force)
 void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_defaults)
 {
 	char *p1, *p2, *p3;
-	struct	bbslist	*list[MAX_OPTS+1]={NULL};
+#define BBSLIST_SIZE ((MAX_OPTS+1)*sizeof(struct bbslist *))
+	struct	bbslist	**list;
 	int		listcount=0, i;
 
 	bbs->id=-1;
@@ -870,6 +877,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 	SAFECOPY(bbs->addr,p1);
 
 	/* Find BBS listing in users phone book */
+	list = calloc(1, BBSLIST_SIZE);
 	read_list(settings.list_path, &list[0], NULL, &listcount, USER_BBSLIST);
 	for(i=0;i<listcount;i++) {
 		if((stricmp(bbs->addr,list[i]->addr)==0)
@@ -890,6 +898,7 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 		}
 	}
 	free_list(&list[0],listcount);
+	free(list);
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -1199,7 +1208,7 @@ char *get_syncterm_filename(char *fn, int fnlen, int type, int shared)
 						rmdir(oldlst);
 					}
 				}
-				
+
 			}
 		}
 	}
@@ -1503,8 +1512,8 @@ int main(int argc, char **argv)
 		return(1);
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	textmode(text_mode);
 	setscaling(settings.scaling_factor);
+	textmode(text_mode);
 
     gettextinfo(&txtinfo);
 	if((txtinfo.screenwidth<40) || txtinfo.screenheight<24) {
@@ -1560,7 +1569,11 @@ int main(int argc, char **argv)
 	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
-		if(!conn_connect(bbs)) {
+		if(conn_connect(bbs)) {
+			load_font_files();
+			textmode(txtinfo.currmode);
+			settitle("SyncTERM");
+		} else {
 			/* ToDo: Update the entry with new lastconnected */
 			/* ToDo: Disallow duplicate entries */
 			bbs->connected=time(NULL);
@@ -1681,7 +1694,7 @@ int main(int argc, char **argv)
 	}
 	uifcbail();
 #ifdef _WINSOCKAPI_
-	if(WSAInitialized && WSACleanup()!=0) 
+	if(WSAInitialized && WSACleanup()!=0)
 		fprintf(stderr,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 	return(0);

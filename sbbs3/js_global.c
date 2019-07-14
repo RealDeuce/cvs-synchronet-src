@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.374 2018/04/06 02:47:06 rswindell Exp $ */
+/* $Id: js_global.c,v 1.385 2019/07/14 08:18:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,7 +52,9 @@
 
 #ifdef JAVASCRIPT
 
-/* Global Object Properites */
+extern JSClass js_global_class;
+
+/* Global Object Properties */
 enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
@@ -268,7 +270,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
 		return(JS_FALSE);
 
 	exec_obj=JS_GetScopeChain(cx);
@@ -398,11 +400,11 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		if (JS_HasProperty(cx, obj, "console", &success) && success)
 			js_CreateConsoleObject(bg->cx, bg->obj);
 		if (JS_HasProperty(cx, obj, "stdin", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdin", stdin);
+			js_CreateFileObject(bg->cx, bg->obj, "stdin", STDIN_FILENO, "r");
 		if (JS_HasProperty(cx, obj, "stdout", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stdout", stdout);
+			js_CreateFileObject(bg->cx, bg->obj, "stdout", STDOUT_FILENO, "w");
 		if (JS_HasProperty(cx, obj, "stderr", &success) && success)
-			js_CreateFileObject(bg->cx, bg->obj, "stderr", stderr);
+			js_CreateFileObject(bg->cx, bg->obj, "stderr", STDERR_FILENO, "w");
 		JS_SetContextPrivate(bg->cx, bg);
 
 		exec_cx = bg->cx;
@@ -721,11 +723,13 @@ js_require(JSContext *cx, uintN argc, jsval *arglist)
 
 	ret = js_load(cx, argc-1, arglist);
 
-	if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
-		JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
-		JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
-		free(filename);
-		return(JS_FALSE);
+	if (!JS_IsExceptionPending(cx)) {
+		if (!JS_HasProperty(cx, exec_obj, property, &found) || !found) {
+			JSVALUE_TO_MSTRING(cx, argv[fnarg], filename, NULL);
+			JS_ReportError(cx,"symbol '%s' not defined by script '%s'", property, filename);
+			free(filename);
+			return(JS_FALSE);
+		}
 	}
 	free(property);
 	return ret;
@@ -1175,6 +1179,7 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=79;
 	int32		oldlen=79;
 	JSBool		handle_quotes=JS_TRUE;
+	JSBool		is_utf8=JS_FALSE;
 	char*		inbuf = NULL;
 	char*		outbuf;
 	JSString*	js_str;
@@ -1206,10 +1211,12 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes = JSVAL_TO_BOOLEAN(argv[3]);
+	if(argc>4 && JSVAL_IS_BOOLEAN(argv[4]))
+		is_utf8 = JSVAL_TO_BOOLEAN(argv[4]);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
-	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes);
+	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes, is_utf8);
 	free(inbuf);
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -1602,7 +1609,7 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==0 || JSVAL_IS_VOID(argv[0]))
 		return(JS_TRUE);
 
-	if((p=(global_private_t*)JS_GetPrivate(cx,obj))==NULL)		/* Will this work?  Ask DM */
+	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], inbuf, NULL);
@@ -2187,8 +2194,8 @@ js_html_encode(JSContext *cx, uintN argc, jsval *arglist)
 						outbuf[j++]='\r';
 						hpos=0;
 						break;
-					case 'Z':
-						outbuf[j++]=0;
+					case 'Z':	/* EOF */
+						outbuf[j++] = 0;
 						break;
 					case 'A':
 					default:
@@ -2425,8 +2432,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			continue;
 		}
 
-		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0) {
-			outbuf[j++]='\'';	/* single quotation mark */
+		if(strcmp(token,"lsquo")==0 || strcmp(token,"rsquo")==0
+			|| strcmp(token,"lsaquo")==0 || strcmp(token,"rsaquo")==0) {
+			outbuf[j++]='\'';	/* single quotation mark: should lsaquo be converted to backtick (`)? */
 			continue;
 		}
 
@@ -2439,6 +2447,9 @@ js_html_decode(JSContext *cx, uintN argc, jsval *arglist)
 			outbuf[j++]='-';	/* dash */
 			continue;
 		}
+
+		if(strcmp(token, "zwj") == 0 || strcmp(token, "zwnj") == 0)	/* zero-width joiner / non-joiner */
+			continue;
 
 		/* Unknown character entity, leave intact */
 		j+=sprintf(outbuf+j,"&%s;",token);
@@ -3157,6 +3168,37 @@ js_fattr(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	JS_SET_RVAL(cx, arglist,INT_TO_JSVAL(attr));
 	return(JS_TRUE);
+}
+
+static JSBool
+js_chmod(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		fname = NULL;
+	jsrefcount	rc;
+	int32		mode;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc < 2 || JSVAL_IS_VOID(argv[0]))
+		return JS_TRUE;
+
+	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL)
+	HANDLE_PENDING(cx, fname);
+	if(fname == NULL) 
+		return JS_TRUE;
+
+	if(!JS_ValueToInt32(cx, argv[1], &mode)) {
+		free(fname);
+		return JS_FALSE;
+	}
+
+	rc=JS_SUSPENDREQUEST(cx);
+	int result = chmod(fname, mode);
+	free(fname);
+	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(result == 0));
+	return JS_TRUE;
 }
 
 static JSBool
@@ -4182,19 +4224,24 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"file_attrib",		js_fattr,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's permissions/attributes")
+	,JSDOCSTR("get a file's permissions/attributes. Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},		
+	{"file_chmod",		js_chmod,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename, number mode")
+	,JSDOCSTR("set a file's mode (read/write/execute permissions). The supported <i>mode</i> bit values are system-dependent "
+		"(e.g. Windows only supports setting or clearing the user-write/0x80 mode flag).")
+	,31702
+	},		
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's last modified date/time (in time_t format)")
+	,JSDOCSTR("get a file's last modified date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},
 	{"file_cdate",		js_fcdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's creation date/time (in time_t format)")
+	,JSDOCSTR("get a file's creation date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,317
 	},
 	{"file_size",		js_flength,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's length (in bytes)")
+	,JSDOCSTR("get a file's length (in bytes). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},
 	{"file_utime",		js_utime,			3,	JSTYPE_BOOLEAN,	JSDOCSTR("path/filename [,access_time=<i>current</i>] [,mod_time=<i>current</i>]")
@@ -4273,10 +4320,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("return a decoded HTML-encoded text string")
 	,311
 	},
-	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
+	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt> [, is_utf8=<tt>false</tt>]]]]")
 	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
-		"<i>line_length</i> defaults to <i>79</i> <i>orig_line_length</i> defaults to <i>79</i> "
-		"and <i>handle_quotes</i> defaults to <i>true</i>")
+		"<i>line_length</i> defaults to <i>79</i>, <i>orig_line_length</i> defaults to <i>79</i>, "
+		"<i>handle_quotes</i> defaults to <i>true</i>, and <i>is_utf8</i> defaults to <i>false</i>")
 	,311
 	},
 	{"quote_msg",		js_quote_msg,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt>] [,prefix=<tt>\" > \"</tt>]")
@@ -4485,7 +4532,7 @@ static JSBool js_global_enumerate(JSContext *cx, JSObject *obj)
 	return(js_global_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_global_class = {
+JSClass js_global_class = {
      "Global"				/* name			*/
     ,JSCLASS_HAS_PRIVATE|JSCLASS_GLOBAL_FLAGS	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
