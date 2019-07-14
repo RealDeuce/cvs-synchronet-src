@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.76 2018/07/28 22:27:27 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.84 2019/07/14 10:10:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -398,12 +398,19 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of sub-boards that will be written */
 	n = 0;
 	for(i=0; i<cfg->total_subs; i++)
-		if(cfg->sub[i]->grp < cfg->total_grps)	/* total VALID sub-boards */
+		if(cfg->sub[i]->grp < cfg->total_grps	/* total VALID sub-boards */
+			&& cfg->sub[i]->lname[0]
+			&& cfg->sub[i]->sname[0]
+			&& cfg->sub[i]->code_suffix[0])
 			n++;
 	put_int(n,stream);
 	unsigned int subnum = 0;	/* New sub-board numbering (as saved) */
 	for(unsigned grp = 0; grp < cfg->total_grps; grp++) {
 		for(i=0;i<cfg->total_subs;i++) {
+			if(cfg->sub[i]->lname[0] == 0
+				|| cfg->sub[i]->sname[0] == 0
+				|| cfg->sub[i]->code_suffix[0] == 0)
+				continue;
 			if(cfg->sub[i]->grp != grp)
 				continue;
 			cfg->sub[i]->subnum = subnum++;
@@ -784,12 +791,19 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of dirs that will be written */
 	n = 0;
 	for (i = 0; i < cfg->total_dirs; i++)
-		if (cfg->dir[i]->lib < cfg->total_libs)	/* total VALID file dirs */
+		if (cfg->dir[i]->lib < cfg->total_libs	/* total VALID file dirs */
+			&& cfg->dir[i]->lname[0]
+			&& cfg->dir[i]->sname[0]
+			&& cfg->dir[i]->code_suffix[0])
 			n++;
 	put_int(n,stream);
 	unsigned int dirnum = 0;	/* New directory numbering (as saved) */
 	for (j = 0; j < cfg->total_libs; j++) {
 		for (i = 0; i < cfg->total_dirs; i++) {
+			if (cfg->dir[i]->lname[0] == 0
+				|| cfg->dir[i]->sname[0] == 0
+				|| cfg->dir[i]->code_suffix[0] == 0)
+				continue;
 			if (cfg->dir[i]->lib == j) {
 				cfg->dir[i]->dirnum = dirnum++;
 				put_int(cfg->dir[i]->lib, stream);
@@ -809,30 +823,29 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->op_arstr, stream);
 				backslash(cfg->dir[i]->path);
 				put_str(cfg->dir[i]->path, stream);
-#if 1
+
 				if (cfg->dir[i]->misc&DIR_FCHK) {
 					SAFECOPY(path, cfg->dir[i]->path);
 					if (!path[0]) {		/* no file storage path specified */
-						SAFEPRINTF2(str, "%s%s"
+						if(cfg->dir[i]->data_dir[0])
+							SAFECOPY(path, cfg->dir[i]->data_dir);
+						else
+							SAFECOPY(path, cfg->data_dir);
+						backslash(path);
+						SAFEPRINTF2(str, "dirs/%s%s"
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
 						strlwr(str);
-						safe_snprintf(path, sizeof(path), "%s%s/"
-							, cfg->dir[i]->data_dir
-							, str);
+						SAFECAT(path,str);
 					}
 					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
 						SAFECOPY(path, cfg->lib[cfg->dir[i]->lib]->parent_path);
-						prep_dir(cfg->ctrl_dir, path, sizeof(path));
-						md(path);
 						backslash(path);
-						strcat(path, cfg->dir[i]->path);
+						SAFECAT(path, cfg->dir[i]->path);
 					}
-					else
-						prep_dir(cfg->ctrl_dir, path, sizeof(path));
-					md(path);
+					prep_dir(cfg->ctrl_dir, path, sizeof(path));
+					mkpath(path);
 				}
-#endif
 
 				put_str(cfg->dir[i]->upload_sem, stream);
 				put_int(cfg->dir[i]->maxfiles, stream);
@@ -991,10 +1004,11 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_int(cfg->xedit[i]->misc,stream);
 		put_str(cfg->xedit[i]->arstr,stream);
 		put_int(cfg->xedit[i]->type,stream);
-		c=0;
+		c = cfg->xedit[i]->soft_cr;
 		put_int(c,stream);
 		n=0;
-		for(j=0;j<7;j++)
+		put_int(cfg->xedit[i]->quotewrap_cols, stream);
+		for(j=0;j<6;j++)
 			put_int(n,stream);
 		}
 
@@ -1011,11 +1025,16 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 	/* Calculate and save the actual number (total) of xtrn programs that will be written */
 	n = 0;
 	for (i = 0; i < cfg->total_xtrns; i++)
-		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs)	/* Total VALID xtrn progs */
+		if (cfg->xtrn[i]->sec < cfg->total_xtrnsecs	/* Total VALID xtrn progs */
+			&& cfg->xtrn[i]->name[0]
+			&& cfg->xtrn[i]->code[0])
 			n++;
 	put_int(n,stream);
 	for(sec=0;sec<cfg->total_xtrnsecs;sec++)
 		for(i=0;i<cfg->total_xtrns;i++) {
+			if(cfg->xtrn[i]->name[0] == 0
+				|| cfg->xtrn[i]->code[0] == 0)
+				continue;
 			if(cfg->xtrn[i]->sec!=sec)
 				continue;
 			put_int(cfg->xtrn[i]->sec,stream);
