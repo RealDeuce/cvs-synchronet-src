@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.383 2019/05/20 06:59:56 rswindell Exp $ */
+/* $Id: js_global.c,v 1.385 2019/07/14 08:18:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1179,6 +1179,7 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 	int32		len=79;
 	int32		oldlen=79;
 	JSBool		handle_quotes=JS_TRUE;
+	JSBool		is_utf8=JS_FALSE;
 	char*		inbuf = NULL;
 	char*		outbuf;
 	JSString*	js_str;
@@ -1210,10 +1211,12 @@ js_word_wrap(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>3 && JSVAL_IS_BOOLEAN(argv[3]))
 		handle_quotes = JSVAL_TO_BOOLEAN(argv[3]);
+	if(argc>4 && JSVAL_IS_BOOLEAN(argv[4]))
+		is_utf8 = JSVAL_TO_BOOLEAN(argv[4]);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
-	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes);
+	outbuf=wordwrap(inbuf, len, oldlen, handle_quotes, is_utf8);
 	free(inbuf);
 
 	JS_RESUMEREQUEST(cx, rc);
@@ -3168,6 +3171,37 @@ js_fattr(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_chmod(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		fname = NULL;
+	jsrefcount	rc;
+	int32		mode;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc < 2 || JSVAL_IS_VOID(argv[0]))
+		return JS_TRUE;
+
+	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL)
+	HANDLE_PENDING(cx, fname);
+	if(fname == NULL) 
+		return JS_TRUE;
+
+	if(!JS_ValueToInt32(cx, argv[1], &mode)) {
+		free(fname);
+		return JS_FALSE;
+	}
+
+	rc=JS_SUSPENDREQUEST(cx);
+	int result = chmod(fname, mode);
+	free(fname);
+	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(result == 0));
+	return JS_TRUE;
+}
+
+static JSBool
 js_fdate(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
@@ -4193,6 +4227,11 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("get a file's permissions/attributes. Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
 	},		
+	{"file_chmod",		js_chmod,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename, number mode")
+	,JSDOCSTR("set a file's mode (read/write/execute permissions). The supported <i>mode</i> bit values are system-dependent "
+		"(e.g. Windows only supports setting or clearing the user-write/0x80 mode flag).")
+	,31702
+	},		
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
 	,JSDOCSTR("get a file's last modified date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
@@ -4281,10 +4320,10 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,JSDOCSTR("return a decoded HTML-encoded text string")
 	,311
 	},
-	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt>]]]]")
+	{"word_wrap",		js_word_wrap,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt> [, orig_line_length=<tt>79</tt> [, handle_quotes=<tt>true</tt> [, is_utf8=<tt>false</tt>]]]]")
 	,JSDOCSTR("returns a word-wrapped version of the text string argument optionally handing quotes magically, "
 		"<i>line_length</i> defaults to <i>79</i>, <i>orig_line_length</i> defaults to <i>79</i>, "
-		"and <i>handle_quotes</i> defaults to <i>true</i>")
+		"<i>handle_quotes</i> defaults to <i>true</i>, and <i>is_utf8</i> defaults to <i>false</i>")
 	,311
 	},
 	{"quote_msg",		js_quote_msg,		1,	JSTYPE_STRING,	JSDOCSTR("text [,line_length=<tt>79</tt>] [,prefix=<tt>\" > \"</tt>]")
