@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.180 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_file.c,v 1.181 2019/07/15 03:35:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2417,7 +2417,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
-			in=getfattr(p->name);
+			in=getfmode(p->name);
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=INT_TO_JSVAL(in);
 			break;
@@ -2616,7 +2616,7 @@ static const char* file_prop_desc[] = {
 	,"the current file position (offset in bytes), change value to seek within file"
 	,"last modified date/time (in time_t format)"
 	,"the current length of the file (in bytes)"
-	,"file mode/attributes"
+	,"file type/mode flags (i.e. <tt>struct stat.st_mode</tt> value, compatible with <tt>file_chmod()</tt>)"
 	,"set to <i>true</i> if binary data is to be written and read in Network Byte Order (big end first)"
 	,"set to <i>true</i> to enable automatic ROT13 translation of text"
 	,"set to <i>true</i> to enable automatic Unix-to-Unix encode and decode on <tt>read</tt> and <tt>write</tt> calls"
