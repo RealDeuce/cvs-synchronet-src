@@ -1,6 +1,6 @@
 /* Synchronet IBM Code Page 437 (CP437) definitions */
 
-/* $Id: cp437defs.h,v 1.4 2019/07/30 08:13:05 rswindell Exp $ */
+/* $Id: cp437defs.h,v 1.3 2019/07/11 19:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -127,8 +127,6 @@ enum cp437_char {
 	CP437_BOX_DRAWINGS_LIGHT_VERTICAL_AND_LEFT = '\xB4',
 	CP437_BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE = '\xB5',
 	CP437_BOX_DRAWINGS_VERTICAL_DOUBLE_AND_LEFT_SINGLE = '\xB6',
-	CP437_BOX_DRAWINGS_DOUBLE_VERTICAL = '\xBA',
-	CP437_BOX_DRAWINGS_VERTICAL_AND_HORIZONTAL = '\xC5',
 	// TODO...
 	CP437_GREEK_SMALL_LETTER_ALPHA = '\xE0',
 	CP437_GREEK_SMALL_LETTER_BETA = '\xE1',
