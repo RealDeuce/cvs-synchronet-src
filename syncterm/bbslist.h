@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.53 2019/07/25 18:28:59 deuce Exp $ */
+/* $Id: bbslist.h,v 1.52 2019/07/11 18:31:44 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -55,7 +55,6 @@ enum {
 	,SCREEN_MODE_C128_80
 	,SCREEN_MODE_ATARI
 	,SCREEN_MODE_ATARI_XEP80
-	,SCREEN_MODE_CUSTOM
 	,SCREEN_MODE_TERMINATOR
 };
 
