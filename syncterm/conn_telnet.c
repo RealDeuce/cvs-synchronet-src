@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.12 2018/10/25 09:08:29 rswindell Exp $ */
+/* $Id: conn_telnet.c,v 1.15 2019/07/11 18:46:55 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -30,11 +30,10 @@ void telnet_input_thread(void *args)
 	size_t	buffer;
 	char	rbuf[BUFFER_SIZE];
 	char	*buf;
+	struct bbslist *bbs = args;
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
-	while(cterm == NULL)	// telnet_interpret needs to dereference cterm (to get emulation type)
-		SLEEP(1);
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
@@ -59,7 +58,7 @@ void telnet_input_thread(void *args)
 				break;
 		}
 		if(rd>0)
-			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd);
+			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd, bbs);
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -164,7 +163,7 @@ int telnet_connect(struct bbslist *bbs)
 	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 
 	_beginthread(telnet_output_thread, 0, NULL);
-	_beginthread(telnet_input_thread, 0, NULL);
+	_beginthread(telnet_input_thread, 0, bbs);
 
 	uifc.pop(NULL);
 
