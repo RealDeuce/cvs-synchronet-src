@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.56 2020/03/25 04:45:41 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.51 2019/01/12 12:09:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -284,12 +284,15 @@ void sys_cfg(void)
 						break;
 					case 9:
 						cfg.sys_timezone=WET;
+						configure_dst();
 						break;
 					case 10:
 						cfg.sys_timezone=CET;
+						configure_dst();
 						break;
 					case 11:
 						cfg.sys_timezone=EET;
+						configure_dst();
 						break;
 					case 12:
 						cfg.sys_timezone=MOS;
@@ -332,6 +335,7 @@ void sys_cfg(void)
 						break;
 					case 25:
 						cfg.sys_timezone=NZST;
+						configure_dst();
 						break;
 					default:
 						if(cfg.sys_timezone>720 || cfg.sys_timezone<-720)
@@ -362,8 +366,6 @@ void sys_cfg(void)
 						}
 						break;
 				}
-				if(SMB_TZ_HAS_DST(cfg.sys_timezone))
-					configure_dst();
 				break;
 			case 3:
 				uifc.helpbuf=
@@ -553,14 +555,14 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Time Banking:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to deposit\n"
+								"If you want the users of your system to be allowed to be deposit\n"
 								"any extra time they may have left during a call into their minute bank,\n"
 								"set this option to `Yes`. If this option is set to `No`, then the only\n"
 								"way a user may get minutes in their minute bank is to purchase them\n"
 								"with credits.\n"
 							;
 							i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-								,"Allow Users to Deposit Time in Minute Bank",opt);
+								,"Allow Users to Depost Time in Minute Bank",opt);
 							if(!i && !(cfg.sys_misc&SM_TIMEBANK)) {
 								cfg.sys_misc|=SM_TIMEBANK;
 								uifc.changes=1; 
@@ -578,7 +580,7 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Credits to be Converted into Minutes:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to convert\n"
+								"If you want the users of your system to be allowed to be convert\n"
 								"any credits they may have into minutes for their minute bank,\n"
 								"set this option to `Yes`.\n"
 							;
@@ -1631,11 +1633,9 @@ void sys_cfg(void)
 					sprintf(opt[i++],"%-16.16s%s","Logout",cfg.logout_mod);
 					sprintf(opt[i++],"%-16.16s%s","New User",cfg.newuser_mod);
 					sprintf(opt[i++],"%-16.16s%s","Expired User",cfg.expire_mod);
-					sprintf(opt[i++],"%-16.16s%s","Text Section",cfg.textsec_mod);
 					sprintf(opt[i++],"%-16.16s%s","Read Mail",cfg.readmail_mod);
 					sprintf(opt[i++],"%-16.16s%s","Scan Msgs",cfg.scanposts_mod);
 					sprintf(opt[i++],"%-16.16s%s","Scan Subs",cfg.scansubs_mod);
-					sprintf(opt[i++],"%-16.16s%s","List Msgs",cfg.listmsgs_mod);
 					opt[i][0]=0;
 					uifc.helpbuf=
 						"`Loadable Modules:`\n"
@@ -1652,14 +1652,12 @@ void sys_cfg(void)
 						"`Logout`       Executed during terminal logout procedure (offline)\n"
 						"`New User`     Executed at end of new terminal user creation process\n"
 						"`Expired User` Executed during daily event when user expires (offline)\n"
-						"`Text Section` Executed to handle general text file (viewing) section\n"
 						"\n"
 						"Full module command-lines may be used for the operations listed below:\n"
 						"\n"
 						"`Read Mail`    Executed when a user reads email/netmail\n"
 						"`Scan Msgs`    Executed when a user reads or scans a message sub-board\n"
 						"`Scan Subs`    Executed when a user scans one or more sub-boards for msgs\n"
-						"`List Msgs`    Executed when a user list msgs from the msg read prompt\n"
 						"\n"
 						"`Note:` JavaScript modules take precedence over Baja modules if both exist\n"
 						"in your `exec` or `mods` directories.\n"
@@ -1700,24 +1698,16 @@ void sys_cfg(void)
 								,cfg.expire_mod,sizeof(cfg.expire_mod)-1,K_EDIT);
 							break;
 						case 7:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Text File Section Module"
-								,cfg.textsec_mod,sizeof(cfg.textsec_mod)-1,K_EDIT);
-							break;
-						case 8:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Read Mail Command"
 								,cfg.readmail_mod,sizeof(cfg.readmail_mod)-1,K_EDIT);
 							break;
-						case 9:
+						case 8:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Msgs Command"
 								,cfg.scanposts_mod,sizeof(cfg.scanposts_mod)-1,K_EDIT);
 							break;
-						case 10:
+						case 9:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Subs Command"
 								,cfg.scansubs_mod,sizeof(cfg.scansubs_mod)-1,K_EDIT);
-							break;
-						case 11:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"List Msgs Command"
-								,cfg.listmsgs_mod,sizeof(cfg.listmsgs_mod)-1,K_EDIT);
 							break;
 					} 
 				}
