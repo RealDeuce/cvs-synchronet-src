@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.120 2019/07/25 10:54:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.117 2019/06/29 00:44:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1223,18 +1223,6 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
 				fprintf(fp,"\1%.512s\r",(char*)msg->hfield_dat[i]);
-		const char* charset = msg->ftn_charset;
-		if(charset == NULL) {
-			if(smb_msg_is_utf8(msg))
-				charset = FIDO_CHARSET_UTF8;
-			else if(str_is_ascii(body))
-				charset = FIDO_CHARSET_ASCII;
-			else
-				charset = FIDO_CHARSET_CP437;
-		}
-		fprintf(fp, "\1CHRS: %s\r", charset);
-		if(msg->editor != NULL)
-			fprintf(fp, "\1NOTE: %s\r", msg->editor);
 		/* comment headers are part of text */
 		for(i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == SMB_COMMENT)
@@ -2082,7 +2070,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 	}
 
 	if(strnicmp(instr, "TICPWD ", 7) == 0) {
-		char ticpwd[SBBSECHO_MAX_TICPWD_LEN + 1]; /* TIC File password for this node */
+		char ticpwd[FIDO_PASS_LEN + 1];	/* TIC File password for this node */
 		char* p = instr;
 		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
@@ -2425,7 +2413,7 @@ int attachment(const char *bundlename, fidoaddr_t dest, enum attachment_mode mod
 	if(cfg.flo_mailer) {
 		switch(mode) {
 			case ATTACHMENT_ADD:
-				return write_flofile(bundlename,dest,/* bundle: */true, cfg.use_outboxes,/* attr: */0);
+				return write_flofile(bundlename,dest,/* bundle: */true,/* use_outbox: */true,/* attr: */0);
 			case ATTACHMENT_NETMAIL:
 				return 0; /* Do nothing */
 		}
@@ -2583,7 +2571,7 @@ bool pack_bundle(const char *tmp_pkt, fidoaddr_t orig, fidoaddr_t dest)
 			lprintf(LOG_NOTICE,"Routing packet (%s) to %s",tmp_pkt, smb_faddrtoa(&dest,NULL));
 		}
 	}
-	outbound = get_current_outbound(dest, cfg.use_outboxes);
+	outbound = get_current_outbound(dest, /* fileboxes: */true);
 	if(outbound == NULL)
 		return false;
 
@@ -2605,7 +2593,7 @@ bool pack_bundle(const char *tmp_pkt, fidoaddr_t orig, fidoaddr_t dest)
 	if(nodecfg != NULL)
 		if(nodecfg->archive==SBBSECHO_ARCHIVE_NONE) {    /* Uncompressed! */
 			if(cfg.flo_mailer)
-				i=write_flofile(packet,dest,/* bundle: */true, cfg.use_outboxes, /* attr: */0);
+				i=write_flofile(packet,dest,/* bundle: */true,/* use_outbox: */true,/* attr: */0);
 			else
 				i=create_netmail(/* To: */NULL,/* msg: */NULL,packet
 					,(cfg.trunc_bundles) ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
@@ -3477,36 +3465,6 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l)
 					smb_hfield(&msg,FIDOTID,(ushort)(m-l),fbuf+l);
-			}
-
-			else if(!strncmp((char *)fbuf+l+1, "NOTE:", 5)) {
-				l+=6;
-				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
-				m=l;
-				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
-				if(m>l)
-					smb_hfield(&msg, SMB_EDITOR, (ushort)(m-l), fbuf+l);
-			}
-
-			else if(!strncmp((char *)fbuf+l+1, "CHRS:", 5)) {
-				l+=6;
-				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
-				m=l;
-				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
-				if(m>l)
-					smb_hfield(&msg, FIDOCHARSET, (ushort)(m-l), fbuf+l);
-			}
-
-			else if(!strncmp((char *)fbuf+l+1, "CHARSET:", 8)) {
-				l+=9;
-				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
-				m=l;
-				while(m<length && fbuf[m]!='\r') m++;
-				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
-				if(m>l)
-					smb_hfield(&msg, FIDOCHARSET, (ushort)(m-l), fbuf+l);
 			}
 
 			else if(!strncmp((char *)fbuf+l+1,"TZUTC:",6)) {		/* FSP-1001 */
@@ -4892,21 +4850,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				if(msg.hfield[l].type == FIDOCTRL)
 					f+=sprintf(fmsgbuf+f,"\1%.512s\r",(char*)msg.hfield_dat[l]);
 
-			const char* charset = msg.ftn_charset;
-			if(scfg.sub[subnum]->misc&SUB_ASCII)
-				charset = FIDO_CHARSET_ASCII;
-			if(charset == NULL) {
-				if(smb_msg_is_utf8(&msg))
-					charset = FIDO_CHARSET_UTF8;
-				else if(str_is_ascii(buf))
-					charset = FIDO_CHARSET_ASCII;
-				else
-					charset = FIDO_CHARSET_CP437;
-			}
-			f += sprintf(fmsgbuf + f, "\1CHRS: %s\r", charset);
-			if(msg.editor != NULL)
-				f += sprintf(fmsgbuf + f, "\1NOTE: %s\r", msg.editor);
-
 			for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
 				if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
 					char ch;
@@ -5414,7 +5357,7 @@ void pack_netmail(void)
 				,hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr, NULL), hdr.subj);
 			if(!bso_lock_node(addr))
 				continue;
-			outbound = get_current_outbound(addr, cfg.use_outboxes);
+			outbound = get_current_outbound(addr, /* fileboxes: */true);
 			if(outbound == NULL)
 				continue;
 			if(addr.point)
@@ -5426,7 +5369,7 @@ void pack_netmail(void)
 			else {
 				fprintf(fp,"%s\n",getfname(hdr.subj));
 				fclose(fp);
-				if(write_flofile(req, addr,/* bundle: */false, cfg.use_outboxes, hdr.attr))
+				if(write_flofile(req, addr,/* bundle: */false,/* use_outbox: */true, hdr.attr))
 					bail(1);
 				netmail_sent(path);
 			}
@@ -5459,10 +5402,10 @@ void pack_netmail(void)
 			continue;
 
 		if(cfg.flo_mailer) {
-			outbound = get_current_outbound(addr, cfg.use_outboxes);
+			outbound = get_current_outbound(addr, /* fileboxes: */true);
 			if(outbound == NULL)
 				continue;
-			if(cfg.use_outboxes && nodecfg!=NULL && nodecfg->outbox[0])
+			if(nodecfg!=NULL && nodecfg->outbox[0])
 				SAFECOPY(packet, pktname(outbound));
 			else {
 				ch='o';
@@ -6067,7 +6010,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.120 $", "%*s %s", revision);
+	sscanf("$Revision: 3.117 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6276,7 +6219,7 @@ int main(int argc, char **argv)
 	for(uint u=0; u<cfg.nodecfgs; u++) {
 		if(cfg.nodecfg[u].inbox[0])
 			backslash(cfg.nodecfg[u].inbox);
-		if(cfg.use_outboxes && cfg.nodecfg[u].outbox[0])
+		if(cfg.nodecfg[u].outbox[0])
 			check_free_diskspace(cfg.nodecfg[u].outbox);
 	}
 

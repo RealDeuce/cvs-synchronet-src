@@ -2,7 +2,7 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.31 2019/07/23 06:14:44 rswindell Exp $ */
+/* $Id: chk_ar.cpp,v 1.30 2019/07/07 01:56:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -679,7 +679,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_COLS:
-				if((equal && cols != (long)n) || (!equal && cols < (long)n))
+				if((equal && cols != n) || (!equal && cols < (long)n))
 					result=_not;
 				else
 					result=!_not;
@@ -689,7 +689,7 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ROWS:
-				if((equal && rows != (long)n) || (!equal && rows < (long)n))
+				if((equal && rows != n) || (!equal && rows < (long)n))
 					result=_not;
 				else
 					result=!_not;
