@@ -18,6 +18,7 @@
 #include "window.h"
 #include "term.h"
 #include "menu.h"
+#include "vidmodes.h"
 
 struct sort_order_info {
 	char		*name;
@@ -981,23 +982,31 @@ int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isd
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						if(item->screen_mode == SCREEN_MODE_C128_40
+						else if(item->screen_mode == SCREEN_MODE_C128_40
 								|| item->screen_mode == SCREEN_MODE_C128_80) {
 							SAFECOPY(item->font,font_names[35]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						if(item->screen_mode == SCREEN_MODE_ATARI) {
+						else if(item->screen_mode == SCREEN_MODE_ATARI) {
 							SAFECOPY(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
-						if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
+						else if(item->screen_mode == SCREEN_MODE_ATARI_XEP80) {
 							SAFECOPY(item->font,font_names[36]);
 							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
 							item->nostatus = 1;
+							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
+						}
+						else if (i == SCREEN_MODE_C64 || i == SCREEN_MODE_C128_40 ||
+						    i == SCREEN_MODE_C128_80 || i == SCREEN_MODE_ATARI ||
+						    i == SCREEN_MODE_ATARI_XEP80) {
+							SAFECOPY(item->font,font_names[0]);
+							iniSetString(&inifile,itemname,"Font",item->font,&ini_style);
+							item->nostatus = 0;
 							iniSetBool(&inifile,itemname,"NoStatus",item->nostatus,&ini_style);
 						}
 						changed=1;
@@ -1555,6 +1564,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 	struct mouse_event mevent;
 	struct bbslist defaults;
 	char	shared_list[MAX_PATH+1];
+	char list_title[30];
 
 	if(init_uifc(connected?FALSE:TRUE, TRUE))
 		return(NULL);
@@ -1569,6 +1579,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 	uifc.list(WIN_T2B|WIN_RHT|WIN_EXTKEYS|WIN_DYN|WIN_ACT|WIN_INACT
 		,0,0,0,&sopt,&sbar,"SyncTERM Settings",connected?connected_settings_menu:settings_menu);
 	for(;;) {
+		sprintf(list_title, "Directory (%d items)", listcount);
 		if (quitting) {
 			free(list);
 			return NULL;
@@ -1607,7 +1618,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 				val=uifc.list((listcount<MAX_OPTS?WIN_XTR:0)
 					|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_UNGETMOUSE|WIN_SAV|WIN_ESC
 					|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
-					,0,0,0,&opt,&bar,"Directory",(char **)list);
+					,0,0,0,&opt,&bar,list_title,(char **)list);
 				if(val==listcount)
 					val=listcount|MSK_INS;
 				if(val==-7)	{ /* CTRL-E */
@@ -1615,7 +1626,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 						|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 						|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 						|WIN_SEL
-						,0,0,0,&opt,&bar,"Directory",(char **)list);
+						,0,0,0,&opt,&bar,list_title,(char **)list);
 					val=opt|MSK_EDIT;
 				}
 				if(val<0) {
@@ -1625,7 +1636,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 								|WIN_SEL
-								,0,0,0,&opt,&bar,"Directory",(char **)list);
+								,0,0,0,&opt,&bar,list_title,(char **)list);
 							edit_sorting(list,&listcount, &opt, &bar, list[opt]?list[opt]->name:NULL);
 							break;
 						case -2-0x3000:	/* ALT-B - Scrollback */
@@ -1646,7 +1657,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 								|WIN_SEL
-								,0,0,0,&opt,&bar,"Directory",(char **)list);
+								,0,0,0,&opt,&bar,list_title,(char **)list);
 							at_settings=!at_settings;
 							break;
 						case -6:		/* CTRL-D */
@@ -1666,7 +1677,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 									|WIN_SEL
-									,0,0,0,&opt,&bar,"Directory",(char **)list);
+									,0,0,0,&opt,&bar,list_title,(char **)list);
 								uifc.input(WIN_MID|WIN_SAV,0,0,"Address",addy,LIST_ADDR_MAX,0);
 								memcpy(&retlist, &defaults, sizeof(defaults));
 								if(uifc.changes) {
@@ -1886,7 +1897,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 								|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 								|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 								|WIN_SEL|WIN_INACT
-								,0,0,0,&opt,&bar,"Directory",(char **)list);
+								,0,0,0,&opt,&bar,list_title,(char **)list);
 						}
 						break;
 					case -2-CIO_KEY_MOUSE:
@@ -1938,7 +1949,7 @@ struct bbslist *show_bbslist(char *current, int connected)
 									|WIN_ACT|WIN_INSACT|WIN_DELACT|WIN_SAV|WIN_ESC
 									|WIN_T2B|WIN_INS|WIN_DEL|WIN_EDIT|WIN_EXTKEYS|WIN_DYN
 									|WIN_SEL|WIN_INACT
-									,0,0,0,&opt,&bar,"Directory",(char **)list);
+									,0,0,0,&opt,&bar,list_title,(char **)list);
 							}
 							else if (check_exit(FALSE)) {
 								free_list(&list[0],listcount);
@@ -1961,5 +1972,71 @@ struct bbslist *show_bbslist(char *current, int connected)
 				}
 			}
 		}
+	}
+}
+
+cterm_emulation_t
+get_emulation(struct bbslist *bbs)
+{
+	if (bbs == NULL)
+		return CTERM_EMULATION_ANSI_BBS;
+
+	switch(bbs->screen_mode) {
+		case SCREEN_MODE_C64:
+		case SCREEN_MODE_C128_40:
+		case SCREEN_MODE_C128_80:
+			return CTERM_EMULATION_PETASCII;
+		case SCREEN_MODE_ATARI:
+		case SCREEN_MODE_ATARI_XEP80:
+			return CTERM_EMULATION_ATASCII;
+		default:
+			return CTERM_EMULATION_ANSI_BBS;
+	}
+}
+
+const char *
+get_emulation_str(cterm_emulation_t emu)
+{
+	switch (emu) {
+		case CTERM_EMULATION_ANSI_BBS:
+			return "syncterm";
+		case CTERM_EMULATION_PETASCII:
+			return "PETSCII";
+		case CTERM_EMULATION_ATASCII:
+			return "ATASCII";
+	}
+}
+
+void
+get_term_size(struct bbslist *bbs, int *cols, int *rows)
+{
+	int cmode = find_vmode(screen_to_ciolib(bbs->screen_mode));
+
+	if (cmode < 0) {
+		// This shouldn't happen, but if it does, make something up.
+		*cols = 80;
+		*rows = 24;
+		return;
+	}
+	if(vparams[cmode].cols < 80) {
+		if (cols)
+			*cols=40;
+	}
+	else {
+		if(vparams[cmode].cols < 132) {
+			if (cols)
+				*cols=80;
+		}
+		else {
+			if (cols)
+				*cols=132;
+		}
+	}
+	if (rows) {
+		*rows=vparams[cmode].rows;
+		if(!bbs->nostatus)
+			(*rows)--;
+		if(*rows<24)
+			*rows=24;
 	}
 }

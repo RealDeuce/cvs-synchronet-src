@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.529 2019/07/10 20:38:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.531 2019/07/11 21:41:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -716,7 +716,8 @@ public:
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
-	int		outchar(enum unicode_codepoint, char cp437_fallback = 0);
+	int		outchar(enum unicode_codepoint, char cp437_fallback);
+	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
 	void	center(char *str);
 	void	wide(const char*);

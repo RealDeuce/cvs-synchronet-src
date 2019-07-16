@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.137 2018/04/18 06:33:39 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.138 2019/07/15 19:24:37 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1534,8 +1534,12 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 	if(!bitmap_initialized)
 		return(-1);
 
-	if(load_vmode(&vstat, mode))
+	pthread_mutex_lock(&blinker_lock);
+	if(load_vmode(&vstat, mode)) {
+		pthread_mutex_unlock(&blinker_lock);
 		return(-1);
+	}
+	pthread_mutex_unlock(&blinker_lock);
 
 	/* Initialize video memory with black background, white foreground */
 	for (i = 0; i < vstat.cols*vstat.rows; ++i) {
