@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.52 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.51 2019/07/10 21:41:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 
 #include "sbbs.h"
 #include "wordwrap.h"
-#include "utf8.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string with @-code parsing,                    */
@@ -66,7 +65,10 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
-	str = auto_utf8(str, &mode);
+	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
+		mode |= P_UTF8;
+		str += 3;
+	}
 	size_t len = strlen(str);
 
 	long term = term_supports();

@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.139 2019/07/16 15:09:47 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.138 2019/07/15 19:24:37 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -94,6 +94,7 @@ static unsigned char *font[4];
 static unsigned char space=' ';
 static int force_redraws=0;
 static int update_pixels = 0;
+static pthread_mutex_t blinker_lock;
 struct rectlist *free_rects;
 
 /* The read lock must be held here. */
@@ -102,7 +103,6 @@ struct rectlist *free_rects;
 /* Exported globals */
 
 pthread_mutex_t		vstatlock;
-pthread_mutex_t blinker_lock;
 
 /* Forward declarations */
 
@@ -1534,10 +1534,12 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 	if(!bitmap_initialized)
 		return(-1);
 
+	pthread_mutex_lock(&blinker_lock);
 	if(load_vmode(&vstat, mode)) {
 		pthread_mutex_unlock(&blinker_lock);
 		return(-1);
 	}
+	pthread_mutex_unlock(&blinker_lock);
 
 	/* Initialize video memory with black background, white foreground */
 	for (i = 0; i < vstat.cols*vstat.rows; ++i) {
