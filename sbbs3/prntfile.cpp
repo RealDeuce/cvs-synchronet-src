@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.34 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.35 2019/07/06 07:52:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "utf8.h"
 
 /****************************************************************************/
 /* Prints a file remotely and locally, interpreting ^A sequences, checks    */
@@ -62,6 +63,8 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 			mode|=P_NOPAUSE;
 		} else if(stricmp(p, ".seq") == 0) {
 			mode |= P_PETSCII;
+		} else if(stricmp(p, ".utf8") == 0) {
+			mode |= P_UTF8;
 		}
 	}
 
@@ -105,6 +108,8 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 		errormsg(WHERE,ERR_READ,fpath,length);
 	else {
 		buf[l]=0;
+		if((mode&P_UTF8) && !term_supports(UTF8))
+			utf8_normalize_str(buf);
 		putmsg(buf,mode,org_cols);
 	}
 	free(buf); 

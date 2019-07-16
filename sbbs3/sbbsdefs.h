@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.240 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.244 2019/07/16 07:07:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -652,12 +652,12 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
 #define HTML		(1L<<23)		/* Using Zuul/HTML terminal				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
-#define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
 #define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
 #define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
+#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -714,6 +714,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 #define SS_SSH		(1L<<28) /* Current login via SSH						*/
 #define SS_MOFF		(1L<<29) /* Disable automatic messages					*/
+#define SS_QWKLOGON	(1L<<30) /* QWK logon									*/
+#define SS_FASTLOGON (1<<31) /* Fast logon									*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -757,6 +759,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 #define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
+#define P_UTF8		(1<<13)		/* Message is UTF-8							*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
