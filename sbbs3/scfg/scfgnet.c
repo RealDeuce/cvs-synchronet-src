@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.44 2020/03/24 06:05:18 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.42 2019/02/21 23:37:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -823,7 +823,6 @@ void qhub_edit(int num)
 		sprintf(opt[i++],"%-27.27s%s","Include Kludge Lines", cfg.qhub[num]->misc&QHUB_NOKLUDGES ? "No":"Yes");
 		sprintf(opt[i++],"%-27.27s%s","Include VOTING.DAT File", cfg.qhub[num]->misc&QHUB_NOVOTING ? "No":"Yes");
 		sprintf(opt[i++],"%-27.27s%s","Include HEADERS.DAT File", cfg.qhub[num]->misc&QHUB_NOHEADERS ? "No":"Yes");
-		sprintf(opt[i++],"%-27.27s%s","Include UTF-8 Characters", cfg.qhub[num]->misc&QHUB_UTF8 ? "Yes":"No");
 		sprintf(opt[i++],"%-27.27s%s","Extended (QWKE) Packets", cfg.qhub[num]->misc&QHUB_EXT ? "Yes":"No");
 		sprintf(opt[i++],"%-27.27s%s","Exported Ctrl-A Codes"
 			,cfg.qhub[num]->misc&QHUB_EXPCTLA ? "Expand" : cfg.qhub[num]->misc&QHUB_RETCTLA ? "Leave in" : "Strip");
@@ -1027,14 +1026,10 @@ void qhub_edit(int num)
 				uifc.changes=1;
 				break;
 			case 10:
-				cfg.qhub[num]->misc^=QHUB_UTF8;
-				uifc.changes=1;
-				break;
-			case 11:
 				cfg.qhub[num]->misc^=QHUB_EXT;
 				uifc.changes=1;
 				break;
-			case 12:
+			case 11:
 				i = cfg.qhub[num]->misc&QHUB_CTRL_A;
 				i++;
 				if(i == QHUB_CTRL_A) i = 0;
@@ -1042,10 +1037,10 @@ void qhub_edit(int num)
 				cfg.qhub[num]->misc |= i;
 				uifc.changes=1;
 				break;
-			case 13:
+			case 12:
 				import_qwk_conferences(num);
 				break;
-			case 14:
+			case 13:
 				qhub_sub_edit(num);
 				break; 
 		} 
@@ -1261,7 +1256,7 @@ BOOL import_qwk_conferences(uint qhubnum)
 	}
 	uifc.pop("Importing Areas...");
 	long added = 0;
-	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], /* pkt_orig */NULL, &added);
+	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], &added);
 	fclose(fp);
 	uifc.pop(NULL);
 	if(ported < 0)
