@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.66 2019/02/16 10:26:40 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.68 2019/07/17 00:34:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,9 +55,9 @@
 char *ultoac(ulong l, char *string)
 {
 	char str[256];
-	signed char i,j,k;
+	size_t i,j,k;
 
-	sprintf(str,"%lu",l);
+	SAFEPRINTF(str,"%lu",l);
 	i=strlen(str)-1;
 	j=i/3+1+i;
 	string[j--]=0;
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.66 $", "%*s %s", revision);
+	sscanf("$Revision: 1.68 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
 		for(n = 0; n < smb.status.total_msgs; n++) {
 			if(idxrec[n].number == msg.hdr.number)
 				continue;
-			if(idxrec[n].offset >= l && idxrec[n].offset < l + (smb_hdrblocks(msg.hdr.length) * SHD_BLOCK_LEN)) {
+			if(idxrec[n].offset > l && idxrec[n].offset < l + (smb_hdrblocks(msg.hdr.length) * SHD_BLOCK_LEN)) {
 				fprintf(stderr,"%sMessage header overlap\n", beep);
 				msgerr=TRUE;
 				if(extinfo)

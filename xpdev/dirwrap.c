@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.104 2019/01/15 03:05:14 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.106 2019/07/15 03:25:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -676,7 +676,8 @@ BOOL DLLCALL isdir(const char *filename)
 }
 
 /****************************************************************************/
-/* Returns the attributes (mode) for specified 'filename'					*/
+/* Returns the attributes (mode) for specified 'filename' or -1 on failure.	*/
+/* The return value on Windows is *not* compatible with chmod().			*/
 /****************************************************************************/
 int DLLCALL getfattr(const char* filename)
 {
@@ -701,6 +702,21 @@ int DLLCALL getfattr(const char* filename)
 	return(st.st_mode);
 #endif
 }
+
+/****************************************************************************/
+/* Returns the mode / type flags for specified 'filename'					*/
+/* The return value *is* compatible with chmod(), or -1 upon failure.		*/
+/****************************************************************************/
+int DLLCALL getfmode(const char* filename)
+{
+	struct stat st;
+
+	if(stat(filename, &st) != 0)
+		return -1;
+
+	return st.st_mode;
+}
+
 
 #ifdef __unix__
 int removecase(const char *path)
@@ -1158,7 +1174,7 @@ int DLLCALL mkpath(const char* path)
 			break;
 		tp=p;
 		FIND_CHARSET(tp,sep);
-		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
+		safe_snprintf(dir,sizeof(dir),"%.*s", (int)(tp-path), path);
 		if(!isdir(dir)) {
 			if((result=MKDIR(dir))!=0)
 				break;

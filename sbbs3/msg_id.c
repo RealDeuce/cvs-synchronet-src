@@ -1,6 +1,6 @@
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.11 2019/02/17 03:08:34 rswindell Exp $ */
+/* $Id: msg_id.c,v 1.14 2019/04/11 01:18:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
 
 #include "sbbs.h"
 
-static uint32_t msg_number(smbmsg_t* msg)
+static ulong msg_number(smbmsg_t* msg)
 {
 	if(msg->idx.number)
 		return(msg->idx.number);
@@ -56,7 +56,7 @@ uint32_t get_new_msg_number(smb_t* smb)
 	return smb->status.last_msg + 1;
 }
 
-static uint32_t msg_time(smbmsg_t* msg)
+static ulong msg_time(smbmsg_t* msg)
 {
 	if(msg->idx.time)
 		return(msg->idx.time);
@@ -166,11 +166,14 @@ char* DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, s
 
 /****************************************************************************/
 /* Add auto-generated message-IDs to a message, if doesn't already have		*/
-/* When remsg != NULL, the message base (smb) must be already opened		*/
+/* The message base (smb) must be already opened							*/
 /****************************************************************************/
 BOOL DLLCALL add_msg_ids(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, smbmsg_t* remsg)
 {
 	char msg_id[256];
+
+	if(msg->hdr.number == 0)
+		msg->hdr.number = get_new_msg_number(smb);
 
  	/* Generate FidoNet (FTS-9) MSGID (for messages posted to FTN sub-boards only) */
  	if(msg->ftn_msgid == NULL && smb->subnum != INVALID_SUB && (cfg->sub[smb->subnum]->misc&SUB_FIDO)) {
@@ -240,13 +243,8 @@ char* DLLCALL msg_program_id(char* pid, size_t maxlen)
 	char compiler[64];
 
 	DESCRIBE_COMPILER(compiler);
-	snprintf(pid, maxlen, "%.10s %s%c-%s%s %s %s"
+	snprintf(pid, maxlen, "%.10s %s%c-%s  %s %s"
 		,VERSION_NOTICE,VERSION,REVISION,PLATFORM_DESC
-#ifdef _DEBUG
-		," Debug"
-#else
-		,""
-#endif
 		,__DATE__,compiler);
 	return pid;
 }
