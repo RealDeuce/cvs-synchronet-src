@@ -379,7 +379,7 @@ static int init_mode(int mode)
 
 	x_cvstat = vstat;
 	pthread_mutex_unlock(&vstatlock);
-	pthread_mutex_unlock(&blinker_lock);
+	pthread_mutex_unlock(&vstatlock);
 
     map_window();
     /* Resize window if necessary. */
@@ -430,7 +430,7 @@ static void local_draw_rect(struct rectlist *rect)
 	for(y=0;y<rect->rect.height;y++) {
 		idx = y*rect->rect.width;
 		for(x=0; x<rect->rect.width; x++) {
-			if (last && last->width == rect->width && last->height == rect->height) {
+			if (last) {
 				if (last->data[idx] != rect->data[idx]) {
 					if (x < cleft)
 						cleft = x;
