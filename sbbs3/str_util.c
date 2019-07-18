@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.62 2019/08/04 22:48:38 rswindell Exp $ */
+/* $Id: str_util.c,v 1.61 2019/07/08 00:11:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -350,6 +350,30 @@ str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 	char	fname[MAX_PATH+1];
 
 	return findstr_list(trashcan_fname(cfg, name, fname, sizeof(fname)));
+}
+
+/****************************************************************************/
+/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
+/****************************************************************************/
+size_t bstrlen(const char *str)
+{
+	size_t i=0;
+
+	while(*str) {
+		if(*str==CTRL_A) {
+			str++;
+			if(*str==0 || *str=='Z')	/* EOF */
+				break;
+			if(*str=='[')
+				i=0;
+			else if(*str=='<' && i)
+				i--;
+		} else
+			i++;
+		if(!(*str)) break;
+		str++; 
+	}
+	return(i);
 }
 
 /****************************************************************************/
