@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.51 2020/03/23 00:02:04 rswindell Exp $
+# $Id: targets.mk,v 1.49 2018/10/20 20:31:21 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -101,17 +101,11 @@ symlinks: all
 	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
 endif
 
-ifeq ($(os),linux)
-.PHONY: setcap
-setcap: all
-	sudo setcap 'cap_net_bind_service=+ep' $(EXEODIR)/sbbs
-endif
-
 .PHONY: sexyz
 sexyz:	$(SEXYZ)
 
 .PHONY: jsdoor
-jsdoor: $(JS_DEPS) $(CRYPT_DEPS) $(XPDEV-MT_LIB) $(SMBLIB) $(UIFCLIB-MT) $(CIOLIB-MT) $(JSDOOR)
+jsdoor: $(JSDOOR)
 
 # Library dependencies
 $(SBBS): 
