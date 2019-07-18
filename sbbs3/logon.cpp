@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.66 2018/04/16 01:32:23 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.71 2019/07/16 07:07:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ bool sbbs_t::logon()
 #endif
 
 	if(useron.rest&FLAG('Q'))
-		qwklogon=1;
+		sys_status |= SS_QWKLOGON;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
 		hangup();
 		return(false);
@@ -79,14 +79,14 @@ bool sbbs_t::logon()
 	if(useron.rest&FLAG('G')) {     /* Guest account */
 		useron.misc=(cfg.new_misc&(~ASK_NSCAN));
 		useron.rows=0;
-		useron.misc&=~(ANSI|RIP|WIP|NO_EXASCII|COLOR|HTML);
+		useron.misc&=~(ANSI|RIP|NO_EXASCII|COLOR|PETSCII);
 		useron.misc|=autoterm;
-		if(!(useron.misc&ANSI) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
+		if(!(useron.misc&(ANSI|PETSCII)) && text[AnsiTerminalQ][0] && yesno(text[AnsiTerminalQ]))
 			useron.misc|=ANSI;
-		if(useron.misc&(RIP|WIP|HTML)
-			|| (useron.misc&ANSI && text[ColorTerminalQ][0] && yesno(text[ColorTerminalQ])))
+		if((useron.misc&RIP) || !(cfg.uq&UQ_COLORTERM)
+			|| (useron.misc&(ANSI|PETSCII) && yesno(text[ColorTerminalQ])))
 			useron.misc|=COLOR;
-		if(text[ExAsciiTerminalQ][0] && !yesno(text[ExAsciiTerminalQ]))
+		if(!(useron.misc&(NO_EXASCII|PETSCII)) && !yesno(text[ExAsciiTerminalQ]))
 			useron.misc|=NO_EXASCII;
 		for(i=0;i<cfg.total_xedits;i++)
 			if(!stricmp(cfg.xedit[i]->code,cfg.new_xedit)
@@ -175,8 +175,8 @@ bool sbbs_t::logon()
 
 
 	if(useron.misc&AUTOTERM) {
-		useron.misc&=~(ANSI|RIP|WIP|HTML);
-		useron.misc|=autoterm; 
+		useron.misc&=~(ANSI|RIP|PETSCII);
+		useron.misc|=autoterm;
 	}
 
 	if(!chk_ar(cfg.shell[useron.shell]->ar,&useron,&client)) {
@@ -202,12 +202,12 @@ bool sbbs_t::logon()
 	sprintf(str,"%smsgs/n%3.3u.ixb",cfg.data_dir,cfg.node_num);
 	remove(str);			/* remove any pending node message indices */
 
-	if(!SYSOP && online==ON_REMOTE && !qwklogon) {
+	if(!SYSOP && online==ON_REMOTE && !(sys_status&SS_QWKLOGON)) {
 		rioctl(IOCM|ABORT);	/* users can't abort anything */
 		rioctl(IOCS|ABORT); 
 	}
 
-	CLS;
+	bputs(text[LoggingOn]);
 	if(useron.rows)
 		rows=useron.rows;
 	unixtodstr(&cfg,(time32_t)logontime,str);
@@ -224,7 +224,7 @@ bool sbbs_t::logon()
 	gettimeleft();
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
 	batch_add_list(str);
-	if(!qwklogon) { 	 /* QWK Nodes don't go through this */
+	if(!(sys_status&SS_QWKLOGON)) { 	 /* QWK Nodes don't go through this */
 
 		if(cfg.sys_pwdays
 			&& (ulong)logontime>(useron.pwmod+((ulong)cfg.sys_pwdays*24UL*60UL*60UL))) {
@@ -417,7 +417,7 @@ bool sbbs_t::logon()
 		,useron.number,useron.alias,totallogons,useron.ltoday);
 	logline("++",str);
 
-	if(!qwklogon && cfg.logon_mod[0])
+	if(!(sys_status&SS_QWKLOGON) && cfg.logon_mod[0])
 		exec_bin(cfg.logon_mod,&main_csi);
 
 	if(thisnode.status!=NODE_QUIET && (!REALSYSOP || cfg.sys_misc&SM_SYSSTAT)) {
@@ -437,10 +437,12 @@ bool sbbs_t::logon()
 		close(file); 
 	}
 
-	if(cfg.sys_logon[0])				/* execute system logon event */
+	if(cfg.sys_logon[0]) {				/* execute system logon event */
+		lprintf(LOG_DEBUG, "executing logon event: %s", cfg.sys_logon);
 		external(cmdstr(cfg.sys_logon,nulstr,nulstr,NULL),EX_STDOUT); /* EX_SH */
+	}
 
-	if(qwklogon)
+	if(sys_status&SS_QWKLOGON)
 		return(true);
 
 	sys_status|=SS_PAUSEON;	/* always force pause on during this section */
