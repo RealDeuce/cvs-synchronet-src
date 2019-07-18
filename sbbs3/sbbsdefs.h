@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.245 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.244 2019/07/16 07:07:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -760,7 +760,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 #define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
 #define P_UTF8		(1<<13)		/* Message is UTF-8							*/
-#define P_AUTO_UTF8	(1<<14)		/* Message may be UTF-8, auto-detect		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
