@@ -1,4 +1,4 @@
-/* $Id: vidmodes.c,v 1.27 2018/02/15 20:23:20 deuce Exp $ */
+/* $Id: vidmodes.c,v 1.29 2018/10/20 17:22:07 deuce Exp $ */
 
 #include <stdlib.h>
 #include <stdbool.h>
