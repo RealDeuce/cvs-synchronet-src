@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.529 2019/07/10 20:38:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.532 2019/07/16 07:07:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -716,7 +716,8 @@ public:
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
-	int		outchar(enum unicode_codepoint, char cp437_fallback = 0);
+	int		outchar(enum unicode_codepoint, char cp437_fallback);
+	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
 	void	center(char *str);
 	void	wide(const char*);
@@ -799,6 +800,7 @@ public:
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	char*	parse_login(char*);
 
 	/* answer.cpp */
 	bool	answer();
@@ -954,7 +956,6 @@ public:
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
-	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	uint	total_qwknodes;
