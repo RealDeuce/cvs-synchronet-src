@@ -1,6 +1,6 @@
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.21 2019/04/29 06:13:29 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.22 2019/07/08 00:08:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -44,6 +44,7 @@
 #define FIDO_PING_NAME		"PING"		/* 'To' username for PING netmail (FTS-5001) */
 #define FIDO_AREAMGR_NAME	"AreaFix"	/* De-facto pseudo-standard */
 #define FIDO_CONFMGR_NAME	"ConfMgr"	/* FSC-0057 */
+#define FIDO_CHARSET_UTF8	"CHRS: UTF-8 4"	/* FTS-5003 */
 
 #define FIDO_NAME_LEN			36	/* Includes '\0' terminator				*/
 #define FIDO_SUBJ_LEN			72	/* Includes '\0' terminator				*/

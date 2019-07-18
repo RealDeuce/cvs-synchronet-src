@@ -18,13 +18,13 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -41,6 +41,7 @@
     <Import Project="..\build\target_ia32.props" />
     <Import Project="..\xpdev\xpdev_mt.props" />
     <Import Project="..\encode\encode.props" />
+    <Import Project="..\hash\hash.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -54,6 +55,7 @@
     <Import Project="..\build\target_ia32.props" />
     <Import Project="..\xpdev\xpdev_mt.props" />
     <Import Project="..\encode\encode.props" />
+    <Import Project="..\hash\hash.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -79,7 +81,6 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;SBBS;SBBS_EXPORTS;SMB_EXPORTS;RINGBUF_SEM;RINGBUF_MUTEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeaderOutputFile>.\msvc.win32.debug\sbbs/sbbs.pch</PrecompiledHeaderOutputFile>
@@ -166,7 +167,7 @@
   <ItemGroup>
     <ClCompile Include="..\comio\comio.c" />
     <ClCompile Include="..\comio\comio_win32.c" />
-    <ClCompile Include="..\encode\cp437_utf8_tbl.c" />
+    <ClCompile Include="..\encode\utf8.c" />
     <ClCompile Include="..\encode\uucode.c" />
     <ClCompile Include="..\encode\yenc.c" />
     <ClCompile Include="ansiterm.cpp">
