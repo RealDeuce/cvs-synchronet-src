@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.53 2018/04/06 02:42:38 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.57 2019/07/03 20:27:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,16 @@
 
 #include "sbbs.h"
 #include "qwk.h"
+
+static void log_qwk_import_stats(ulong msgs, time_t start)
+{
+	if(msgs) {
+		time_t t = time(NULL) - start;
+		if(t < 1)
+			t = 1;
+		eprintf(LOG_INFO,"Imported %lu QWK messages in %lu seconds (%lu msgs/sec)", msgs, (ulong)t, (ulong)(msgs/t));
+	}
+}
 
 /****************************************************************************/
 /* Unpacks .QWK packet, hubnum is the number of the QWK net hub 			*/
@@ -125,10 +135,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	subject_can=trashcan_list(&cfg,"subject");
 
 	SAFEPRINTF(fname,"%stwitlist.cfg",cfg.ctrl_dir);
-	if((fp=fopen(fname,"r"))!=NULL) {
-		twit_list=strListReadFile(fp,NULL,128);
-		fclose(fp);
-	}
+	twit_list = findstr_list(fname);
 
 	for(l=QWK_BLOCK_LEN;l<size;l+=blocks*QWK_BLOCK_LEN) {
 		if(terminated) {
@@ -254,7 +261,8 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);
-			if(qwk_import_msg(qwk,(char *)block,blocks,hubnum+1,INVALID_SUB,usernum,&msg)) {
+			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg)) {
+				eprintf(LOG_INFO,"Imported QWK mail message from %s to %s #%u", msg.from, msg.to, usernum);
 				SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 				putsmsg(&cfg,usernum,str);
 				tmsgs++;
@@ -281,12 +289,8 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 
 		if(j!=lastsub) {
 
-			if(msgs) {
-				t=(ulong)(time(NULL)-startsub);
-				if(t<1)
-					t=1;
-				eprintf(LOG_INFO,"Imported %lu QWK msgs in %lu seconds (%lu msgs/sec)", msgs,t,msgs/t);
-			}
+			if(lastsub != INVALID_SUB)
+				log_qwk_import_stats(msgs, startsub);
 			msgs=0;
 			startsub=time(NULL);
 
@@ -328,11 +332,15 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			lastsub=j; 
 		}
 
-		if(qwk_import_msg(qwk,(char *)block,blocks,hubnum+1,/*subnum: */j,/*touser: */0,&msg)) {
+		if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, /*touser: */0, &msg)) {
 			signal_sub_sem(&cfg,j);
 			msgs++;
 			tmsgs++;
 		}
+	}
+	if(lastsub != INVALID_SUB) {
+		log_qwk_import_stats(msgs, startsub);
+		smb_close(&smb);
 	}
 
 	qwk_handle_remaining_votes(&voting, NET_QWK, cfg.qhub[hubnum]->id, hubnum);
@@ -349,9 +357,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	strListFree(&host_can);
 	strListFree(&subject_can);
 	strListFree(&twit_list);
-
-	if(lastsub!=INVALID_SUB)
-		smb_close(&smb);
 
 	delfiles(cfg.temp_dir,"*.NDX");
 	SAFEPRINTF(str,"%sMESSAGES.DAT",cfg.temp_dir);
@@ -371,6 +376,11 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		if(isdir(str))	/* sub-dir */
 			continue;
 
+		if(::trashcan(&cfg, dirent->d_name, "file")) {
+			eprintf(LOG_NOTICE,"Ignored blocked filename from %s: %s", cfg.qhub[hubnum]->id, dirent->d_name);
+			continue;
+		}
+
 		// Create directory if necessary
 		sprintf(inbox,"%sqnet/%s.in",cfg.data_dir,cfg.qhub[hubnum]->id);
 		MKDIR(inbox);
@@ -380,7 +390,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		mv(str,fname,1 /* overwrite */);
 		sprintf(str,text[ReceivedFileViaQWK],dirent->d_name,cfg.qhub[hubnum]->id);
 		putsmsg(&cfg,1,str);
-		eprintf(LOG_INFO,"Received %s from %s", dirent->d_name, cfg.qhub[hubnum]->id);
+		eprintf(LOG_INFO,"Received file from %s: %s", cfg.qhub[hubnum]->id, dirent->d_name);
 	}
 	if(dir!=NULL)
 		closedir(dir);
