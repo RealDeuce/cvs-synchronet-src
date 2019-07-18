@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.72 2019/08/15 01:16:43 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.71 2019/07/16 07:07:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,8 +413,8 @@ bool sbbs_t::logon()
 	/* SUCCESSFUL LOGON */
 	/********************/
 	totallogons=logonstats();
-	sprintf(str,"(%04u)  %-25s  %sLogon %lu - %u"
-		,useron.number,useron.alias, (sys_status&SS_FASTLOGON) ? "Fast-":"", totallogons,useron.ltoday);
+	sprintf(str,"(%04u)  %-25s  Logon %lu - %u"
+		,useron.number,useron.alias,totallogons,useron.ltoday);
 	logline("++",str);
 
 	if(!(sys_status&SS_QWKLOGON) && cfg.logon_mod[0])
