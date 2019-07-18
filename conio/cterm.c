@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.251 2019/07/10 19:46:42 deuce Exp $ */
+/* $Id: cterm.c,v 1.256 2019/07/12 22:35:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -208,6 +208,8 @@ struct note_params {
 	#define CPUTS(a)				cterm->ciolib_cputs(a)
 	#define SETFONT(a,b,c)			cterm->ciolib_setfont(a,b,c)
 #endif
+
+static void ctputs(struct cterminal *cterm, char *buf);
 
 #ifdef CTERM_WITHOUT_CONIO
 /***************************************************************/
@@ -468,10 +470,10 @@ static int ciolib_putch(struct cterminal *cterm,int a)
 		case 7:		/* Bell */
 			break;
 		case '\t':
-			for(i=0;i<(sizeof(cterm_tabs)/sizeof(int));i++) {
-				if(cterm_tabs[i]>BD->x) {
+			for(i = 0; i < cterm->tab_count;i++) {
+				if(cterm->tabs[i] > BD->x) {
 					buf[0]=' ';
-					while(BD->x<cterm_tabs[i]) {
+					while(BD->x < cterm->tabs[i]) {
 						PUTTEXT(BD->x+BD->winleft-1
 								,BD->y+BD->wintop-1
 								,BD->x+BD->winleft-1
@@ -603,6 +605,41 @@ static int ciolib_setfont(struct cterminal *,int font, int force, int font_num)
 	return -1;
 }
 #endif
+
+static void
+insert_tabstop(struct cterminal *cterm, int pos)
+{
+	int i;
+	int *new_stops;
+
+	for (i = 0; i < cterm->tab_count && cterm->tabs[i] < pos; i++);
+	if (cterm->tabs[i] == pos)
+		return;
+
+	new_stops = realloc(cterm->tabs, (cterm->tab_count + 1) * sizeof(cterm->tabs[0]));
+	if (new_stops == NULL)
+		return;
+	cterm->tabs = new_stops;
+	if (i < cterm->tab_count)
+		memcpy(&cterm->tabs[i + 1], &cterm->tabs[i], (cterm->tab_count - i) * sizeof(cterm->tabs[0]));
+	cterm->tabs[i] = pos;
+	cterm->tab_count++;
+}
+
+static void
+delete_tabstop(struct cterminal *cterm, int pos)
+{
+	int i;
+
+	for (i = 0; i < cterm->tab_count && cterm->tabs[i] < pos; i++) {
+		if (cterm->tabs[i] == pos) {
+			memcpy(&cterm->tabs[i], &cterm->tabs[i+1], (cterm->tab_count - i - 1) * sizeof(cterm->tabs[0]));
+			cterm->tab_count--;
+			return;
+		}
+	}
+	return;
+}
 
 static void tone_or_beep(double freq, int duration, int device_open)
 {
@@ -1600,15 +1637,15 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		if (parse_sub_parameters(&sub, seq, (*i)+1)) {
 			if (sub.param_count == 2)
 				*co = sub.param_int[1];
-			(*i)++;
 			save_extended_colour_seq(cterm, fg, seq, *i, 2);
+			(*i)++;
 		}
 	}
 	else if ((*i)+2 < seq->param_count && seq->param_int[(*i)+1] == 5) {
 		// CSI 38 ; 5 ; X m variant
 		*co = seq->param_int[(*i)+2] + 16;
-		*i+=2;
 		save_extended_colour_seq(cterm, fg, seq, *i, 3);
+		*i+=2;
 	}
 	else if ((*i)+1 < seq->param_count && seq->param_int[(*i)+1] == 2 && seq->param[(*i)+1][1] == ':') {
 		// CSI 38 ; 2 : Z? : R : G : B m variant
@@ -1621,6 +1658,7 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 			if (nc != UINT32_MAX)
 				*co = nc;
 			save_extended_colour_seq(cterm, fg, seq, *i, 2);
+			*i += 1;
 		}
 	}
 	else if ((*i)+4 < seq->param_count && seq->param_int[(*i)+1] == 2) {
@@ -1628,14 +1666,14 @@ static void parse_extended_colour(struct esc_seq *seq, int *i, struct cterminal 
 		nc = map_rgb(seq->param_int[(*i)+2]<<8, seq->param_int[(*i)+3]<<8, seq->param_int[(*i)+4]<<8);
 		if (nc != UINT32_MAX)
 			*co = nc;
-		*i += 4;
 		save_extended_colour_seq(cterm, fg, seq, *i, 5);
+		*i += 4;
 	}
 	free_sub_parameters(&sub);
 }
 
 
-static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *speed)
+static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *speed, char last)
 {
 	char	*p;
 	char	*p2;
@@ -2155,8 +2193,50 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				break;
 			}
 			else if (seq->ctrl_func[1]) {	// Control Function with Intermediate Character
+				// Shift left TODO: Does this interact with scrolling regions?
+				if (strcmp(seq->ctrl_func, " @") == 0) {
+					seq_default(seq, 0, 1);
+					i = seq->param_int[0];
+					if(i > cterm->width)
+						i = cterm->width;
+					MOVETEXT(cterm->x + i, cterm->y, cterm->x + cterm->width - 1, cterm->y + cterm->height - 1, cterm->x, cterm->y);
+					j = i * cterm->height;
+					vc = malloc(j * sizeof(*vc));
+					if (vc != NULL) {
+						for(k=0; k < j; k++) {
+							vc[k].ch=' ';
+							vc[k].legacy_attr=cterm->attr;
+							vc[k].fg=cterm->fg_color;
+							vc[k].bg=cterm->bg_color;
+							vc[k].font = ciolib_attrfont(cterm->attr);
+						}
+						vmem_puttext(cterm->x + cterm->width - i, cterm->y, cterm->x + cterm->width - 1, cterm->y + cterm->height - 1, vc);
+						free(vc);
+					}
+				}
+				// Shift right TODO: Does this interact with scrolling regions?
+				else if (strcmp(seq->ctrl_func, " A") == 0) {
+					seq_default(seq, 0, 1);
+					i = seq->param_int[0];
+					if(i > cterm->width)
+						i = cterm->width;
+					MOVETEXT(cterm->x, cterm->y, cterm->x + cterm->width - 1 - i, cterm->y + cterm->height - 1, cterm->x + i, cterm->y);
+					j = i * cterm->height;
+					vc = malloc(j * sizeof(*vc));
+					if (vc != NULL) {
+						for(k=0; k < j; k++) {
+							vc[k].ch=' ';
+							vc[k].legacy_attr=cterm->attr;
+							vc[k].fg=cterm->fg_color;
+							vc[k].bg=cterm->bg_color;
+							vc[k].font = ciolib_attrfont(cterm->attr);
+						}
+						vmem_puttext(cterm->x, cterm->y, cterm->x + i - 1, cterm->y + cterm->height - 1, vc);
+						free(vc);
+					}
+				}
 				// Font Select
-				if (strcmp(seq->ctrl_func, " D") == 0) {
+				else if (strcmp(seq->ctrl_func, " D") == 0) {
 					seq_default(seq, 0, 0);
 					seq_default(seq, 1, 0);
 					switch(seq->param_int[0]) {
@@ -2175,10 +2255,32 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							break;
 					}
 				}
+				// Font Select
+				else if (strcmp(seq->ctrl_func, " c") == 0) {
+					if (seq->param_count > 0) {
+						delete_tabstop(cterm, seq->param_int[0]);
+					}
+				}
 				/* 
 				 * END OF STANDARD CONTROL FUNCTIONS
 				 * AFTER THIS IS ALL PRIVATE EXTENSIONS
 				 */
+				// Tab report
+				else if (strcmp(seq->ctrl_func, "$w") == 0) {
+					seq_default(seq, 0, 0);
+					if (seq->param_int[0] == 2) {
+						strcpy(tmp, "\x1bP2$u");
+						p2 = strchr(tmp, 0);
+						for (i = 0; i < cterm->tab_count && cterm->tabs[i] <= cterm->width; i++) {
+							if (i != 0)
+								*(p2++) = '/';
+							p2 += sprintf(p2, "%d", cterm->tabs[i]);
+						}
+						strcat(p2, "\x1b\\");
+						if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
+							strcat(retbuf, tmp);
+					}
+				}
 				// Communication speed
 				else if (strcmp(seq->ctrl_func, "*r") == 0) {
 					/*
@@ -2261,6 +2363,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							PUTCH(' ');
 						GOTOXY(i,j);
 						break;
+					case 'k':	/* Line Position Backward */
 					case 'A':	/* Cursor Up */
 						seq_default(seq, 0, 1);
 						i=WHEREY()-seq->param_int[0];
@@ -2268,6 +2371,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							i=cterm->top_margin;
 						GOTOXY(WHEREX(),i);
 						break;
+					case 'e':	/* Line Position Forward */
 					case 'B':	/* Cursor Down */
 						seq_default(seq, 0, 1);
 						i=WHEREY()+seq->param_int[0];
@@ -2275,6 +2379,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							i=cterm->bottom_margin;
 						GOTOXY(WHEREX(),i);
 						break;
+					case 'a':	/* Character Position Forward */
 					case 'C':	/* Cursor Right */
 						seq_default(seq, 0, 1);
 						i=WHEREX()+seq->param_int[0];
@@ -2303,6 +2408,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							i=cterm->top_margin;
 						GOTOXY(1,i);
 						break;
+					case '`':
 					case 'G':	/* Cursor Position Absolute */
 						seq_default(seq, 0, 1);
 						col=seq->param_int[0];
@@ -2474,17 +2580,34 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						vmem_puttext(cterm->x+WHEREX()-1,cterm->y+WHEREY()-1,cterm->x+WHEREX()-1+i-1,cterm->y+WHEREY()-1,vc);
 						free(vc);
 						break;
-					case 'Y':	/* TODO? Cursor Line Tabulation */
+					case 'Y':	/* Cursor Line Tabulation */
+						seq_default(seq, 0, 1);
+						if (seq->param_int[0] < 1)
+							break;
+						col = WHEREX();
+						for(i = 0; i < cterm->tab_count; i++) {
+							if(cterm->tabs[i] > col)
+								break;
+						}
+						if (i == cterm->tab_count)
+							break;
+						for (k = 1; k < seq->param_int[0]; k++) {
+							if (cterm->tabs[k] <= cterm->width)
+								col = cterm->tabs[k];
+							else
+								break;
+						}
+						GOTOXY(col,WHEREY());
 						break;
 					case 'Z':	/* Cursor Backward Tabulation */
 						seq_default(seq, 0, 1);
 						i=strtoul(cterm->escbuf+1,NULL,10);
-						for(j=(sizeof(cterm_tabs)/sizeof(cterm_tabs[0]))-1;j>=0;j--) {
-							if(cterm_tabs[j]<WHEREX()) {
+						for(j=cterm->tab_count-1;j>=0;j--) {
+							if(cterm->tabs[j]<WHEREX()) {
 								k=j-seq->param_int[0]+1;
 								if(k<0)
 									k=0;
-								GOTOXY(cterm_tabs[k],WHEREY());
+								GOTOXY(cterm->tabs[k],WHEREY());
 								break;
 							}
 						}
@@ -2499,11 +2622,22 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						break;
 					case '_':	/* NOT DEFIFINED IN STANDARD */
 						break;
-					case '`':	/* TODO? Character Position Absolute */
-						break;
-					case 'a':	/* TODO? Character Position Forward */
-						break;
-					case 'b':	/* ToDo? Repeat */
+					// for case '`': see case 'G':
+					// for case 'a': see case 'C':
+					case 'b':	/* Repeat */
+						if (last != 0) {
+							seq_default(seq, 0, 1);
+							i = seq->param_int[0];
+							if (i > 0) {
+								p2 = malloc(i+1);
+								if (p2) {
+									memset(p2, last, i);
+									p2[i] = 0;
+									ctputs(cterm, p2);
+									free(p2);
+								}
+							}
+						}
 						break;
 					case 'c':	/* Device Attributes */
 						seq_default(seq, 0, 0);
@@ -2514,12 +2648,32 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							}
 						}
 						break;
-					case 'd':	/* TODO? Line Position Absolute */
+					case 'd':	/* Line Position Absolute */
+						seq_default(seq, 0, 1);
+						max_row = cterm->height;
+						if (cterm->extattr & CTERM_EXTATTR_ORIGINMODE)
+							max_row = cterm->bottom_margin - cterm->top_margin + 1;
+						row = seq->param_int[0];
+						if (row < 1)
+							row = 1;
+						if (row > max_row)
+							row = max_row;
+						if (cterm->extattr & CTERM_EXTATTR_ORIGINMODE)
+							row += cterm->top_margin - 1;
+						GOTOXY(WHEREX(), row);
 						break;
-					case 'e':	/* TODO? Line Position Forward */
-						break;
+					// for case 'e': see case 'B':
 					// for case 'f': see case 'H':
-					case 'g':	/* ToDo?  Tabulation Clear */
+					case 'g':	/* Tabulation Clear */
+						seq_default(seq, 0, 0);
+						switch(seq->param_int[0]) {
+							case 0:
+								delete_tabstop(cterm, WHEREX());
+								break;
+							case 3:
+								cterm->tab_count = 0;
+								break;
+						}
 						break;
 					case 'h':	/* TODO? Set Mode */
 						break;
@@ -2527,8 +2681,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						break;
 					case 'j':	/* TODO? Character Position Backward */
 						break;
-					case 'k':	/* TODO? Line Position Backward */
-						break;
+					// for case 'k': see case 'A':
 					case 'l':	/* TODO? Reset Mode */
 						break;
 					case 'm':	/* Select Graphic Rendition */
@@ -2752,11 +2905,11 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					 * END OF STANDARD CONTROL FUNCTIONS
 					 * AFTER THIS IS ALL PRIVATE EXTENSIONS
 					 */
-					case 'p': /* ToDo?  ANSI keyboard reassignment */
+					case 'p': /* ToDo?  ANSI keyboard reassignment, pointer mode, soft reset */
 						break;
-					case 'q': /* ToDo?  VT100 keyboard lights */
+					case 'q': /* ToDo?  VT100 keyboard lights, cursor style, protection */
 						break;
-					case 'r': /* ToDo?  Scrolling reigon */
+					case 'r': /* Scrolling reigon */
 						seq_default(seq, 0, 1);
 						seq_default(seq, 1, cterm->height);
 						row = seq->param_int[0];
@@ -2766,7 +2919,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							cterm->bottom_margin = max_row;
 						}
 						break;
-					case 's':
+					case 's': /* ToDo?  Also set left/right margins! */
 						cterm->save_xpos=WHEREX();
 						cterm->save_ypos=WHEREY();
 						break;
@@ -2804,38 +2957,24 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				}
 			}
 			break;
-#if 0
-		case 'D':
-			scrollup(cterm);
+		case 'E':	// Next Line
+			i=WHEREY()+1;
+			if(i > cterm->bottom_margin)
+				i = cterm->bottom_margin;
+			GOTOXY(1,i);
+			break;
+		case 'H':
+			insert_tabstop(cterm, WHEREX());
 			break;
 		case 'M':
-			scrolldown(cterm);
-			break;
-#endif
-		case '_':	// Application Program Command - APC
-			cterm->string = CTERM_STRING_APC;
-			FREE_AND_NULL(cterm->strbuf);
-			cterm->strbuf = malloc(1024);
-			cterm->strbufsize = 1024;
-			cterm->strbuflen = 0;
+			i=WHEREY()-1;
+			if(i < cterm->top_margin)
+				i = cterm->top_margin;
+			GOTOXY(WHEREX(),i);
 			break;
 		case 'P':	// Device Control String - DCS
 			cterm->string = CTERM_STRING_DCS;
 			cterm->sixel = SIXEL_POSSIBLE;
-			FREE_AND_NULL(cterm->strbuf);
-			cterm->strbuf = malloc(1024);
-			cterm->strbufsize = 1024;
-			cterm->strbuflen = 0;
-			break;
-		case ']':	// Operating System Command - OSC
-			cterm->string = CTERM_STRING_OSC;
-			FREE_AND_NULL(cterm->strbuf);
-			cterm->strbuf = malloc(1024);
-			cterm->strbufsize = 1024;
-			cterm->strbuflen = 0;
-			break;
-		case '^':	// Privacy Message - PM
-			cterm->string = CTERM_STRING_PM;
 			FREE_AND_NULL(cterm->strbuf);
 			cterm->strbuf = malloc(1024);
 			cterm->strbufsize = 1024;
@@ -3083,6 +3222,27 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 			cterm->strbufsize = cterm->strbuflen = 0;
 			cterm->string = 0;
 			break;
+		case ']':	// Operating System Command - OSC
+			cterm->string = CTERM_STRING_OSC;
+			FREE_AND_NULL(cterm->strbuf);
+			cterm->strbuf = malloc(1024);
+			cterm->strbufsize = 1024;
+			cterm->strbuflen = 0;
+			break;
+		case '^':	// Privacy Message - PM
+			cterm->string = CTERM_STRING_PM;
+			FREE_AND_NULL(cterm->strbuf);
+			cterm->strbuf = malloc(1024);
+			cterm->strbufsize = 1024;
+			cterm->strbuflen = 0;
+			break;
+		case '_':	// Application Program Command - APC
+			cterm->string = CTERM_STRING_APC;
+			FREE_AND_NULL(cterm->strbuf);
+			cterm->strbuf = malloc(1024);
+			cterm->strbufsize = 1024;
+			cterm->strbuflen = 0;
+			break;
 		case 'c':
 			/* ToDo: Reset Terminal */
 			break;
@@ -3094,7 +3254,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.251 $";
+	char	*revision="$Revision: 1.256 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3135,6 +3295,13 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 	cterm->extattr = CTERM_EXTATTR_AUTOWRAP | CTERM_EXTATTR_SXSCROLL;
 	cterm->fg_color = UINT32_MAX;
 	cterm->bg_color = UINT32_MAX;
+	cterm->tabs = malloc(sizeof(cterm_tabs));
+	if (cterm->tabs == NULL) {
+		free(cterm);
+		return NULL;
+	}
+	memcpy(cterm->tabs, cterm_tabs, sizeof(cterm_tabs));
+	cterm->tab_count = sizeof(cterm_tabs) / sizeof(cterm_tabs[0]);
 	if(cterm->scrollback!=NULL)
 		memset(cterm->scrollback,0,cterm->width*2*cterm->backlines);
 	strcpy(cterm->DA,"\x1b[=67;84;101;114;109;");
@@ -3160,8 +3327,8 @@ struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypo
 
 	/* Set up tabs for ATASCII */
 	if(cterm->emulation == CTERM_EMULATION_ATASCII) {
-		for(i=0; i<(sizeof(cterm_tabs)/sizeof(cterm_tabs[0])); i++)
-			cterm->escbuf[cterm_tabs[i]]=1;
+		for(i=0; i<cterm->tab_count; i++)
+			cterm->escbuf[cterm->tabs[i]]=1;
 	}
 
 	/* Set up a shadow palette */
@@ -3219,7 +3386,8 @@ void CIOLIBCALL cterm_start(struct cterminal *cterm)
 	}
 }
 
-static void ctputs(struct cterminal *cterm, char *buf)
+static void
+ctputs(struct cterminal *cterm, char *buf)
 {
 	char *outp;
 	char *p;
@@ -3264,9 +3432,9 @@ static void ctputs(struct cterminal *cterm, char *buf)
 				*p=0;
 				CPUTS(outp);
 				outp=p+1;
-				for(i=0;i<sizeof(cterm_tabs)/sizeof(cterm_tabs[0]);i++) {
-					if(cterm_tabs[i]>cx) {
-						cx=cterm_tabs[i];
+				for(i=0;i<cterm->tab_count;i++) {
+					if(cterm->tabs[i]>cx) {
+						cx=cterm->tabs[i];
 						break;
 					}
 				}
@@ -3428,6 +3596,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	int mpalette;
 	struct vmem_cell tmpvc[1];
 	int orig_fonts[4];
+	char lastch = 0;
 
 	if(!cterm->started)
 		cterm_start(cterm);
@@ -3620,7 +3789,8 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 						case SEQ_INCOMPLETE:
 							break;
 						case SEQ_COMPLETE:
-							do_ansi(cterm, retbuf, retsize, speed);
+							do_ansi(cterm, retbuf, retsize, speed, lastch);
+							lastch = 0;
 							break;
 					}
 				}
@@ -4171,10 +4341,12 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 						else {
 							switch(buf[j]) {
 								case 0:
+									lastch = 0;
 									if(cterm->doorway_mode)
 										cterm->doorway_char=1;
 									break;
 								case 7:			/* Beep */
+									lastch = 0;
 									uctputs(cterm, prn);
 									prn[0]=0;
 									if(cterm->log==CTERM_LOG_ASCII && cterm->logfile != NULL)
@@ -4188,6 +4360,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 									}
 									break;
 								case 12:		/* ^L - Clear screen */
+									lastch = 0;
 									uctputs(cterm, prn);
 									prn[0]=0;
 									if(cterm->log==CTERM_LOG_ASCII && cterm->logfile != NULL)
@@ -4204,6 +4377,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 									cterm->sequence=1;
 									break;
 								default:
+									lastch = ch[0];
 									ustrcat(prn,ch);
 							}
 						}
