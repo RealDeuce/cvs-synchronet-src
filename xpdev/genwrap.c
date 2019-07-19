@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.112 2019/07/24 04:09:51 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.111 2019/07/16 21:49:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -629,11 +629,11 @@ char* DLLCALL os_version(char *str)
 		}
 	}
 
-	sprintf(str,"Windows %sVersion %lu.%lu"
+	sprintf(str,"Windows %sVersion %u.%u"
 			,winflavor
 			,winver.dwMajorVersion, winver.dwMinorVersion);
 	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %lu)", winver.dwBuildNumber);
+		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
 	if(winver.szCSDVersion[0])
 		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
 
