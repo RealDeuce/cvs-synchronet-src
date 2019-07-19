@@ -1,6 +1,6 @@
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id: pack_rep.cpp,v 1.50 2019/08/17 02:21:00 rswindell Exp $ */
+/* $Id: pack_rep.cpp,v 1.49 2019/04/10 00:18:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -149,7 +149,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			}
 
 			mode = QM_TO_QNET|QM_REP;
-			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT | QHUB_CTRL_A | QHUB_UTF8));
+			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
 			/* For an unclear reason, kludge lines (including @VIA and @TZ) were not included in NetMail previously */
 			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
 			msgtoqwk(&msg, rep, mode, &smb, /* confnum: */0, hdrs);
@@ -223,7 +223,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			}
 
 			mode = cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
-			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT | QHUB_CTRL_A | QHUB_UTF8));
+			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT|QHUB_CTRL_A));
 			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
 			if(msg.from_net.type!=NET_QWK)
 				mode|=QM_TAGLINE;
