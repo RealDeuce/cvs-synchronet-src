@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.60 2019/07/30 00:38:36 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.59 2019/07/14 06:51:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1159,8 +1159,8 @@ void dir_cfg(uint libnum)
 				SAFEPRINTF3(str, "[%s%s%s/]"
 					,data_dir 
 					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
-				strlwr(str);
 			}
+			strlwr(str);
 			sprintf(opt[n++],"%-27.27s%.40s","Transfer File Path"
 				,str);
 			sprintf(opt[n++],"%-27.27s%u","Maximum Number of Files"

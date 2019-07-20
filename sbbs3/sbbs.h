@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.534 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.533 2019/07/19 00:47:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -703,16 +703,11 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str, long mode = 0);	/* BBS puts function */
+	int		bputs(const char *str);					/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
 	int		bprintf(const char *fmt, ...)			/* BBS printf function */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
-	int		bprintf(long mode, const char *fmt, ...)
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this', 2 is 'mode'
 #endif
 	;
 	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
@@ -749,7 +744,6 @@ public:
 	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
-	char*	auto_utf8(const char*, long* mode);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
