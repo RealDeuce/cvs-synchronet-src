@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.249 2019/07/25 18:28:34 deuce Exp $ */
+/* $Id: uifc32.c,v 1.247 2019/07/22 22:55:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,7 +427,7 @@ void docopy(void)
 						break;
 					case CIOLIB_BUTTON_1_DRAG_END:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=malloc((endy-starty+1)*(endx-startx+1)+1+lines*2);
+						copybuf=alloca((endy-starty+1)*(endx-startx+1)+1+lines*2);
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
@@ -440,7 +440,6 @@ void docopy(void)
 						}
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
-						free(copybuf);
 						restorescreen(screen);
 						freescreen(screen);
 						freescreen(sbuffer);
@@ -1077,13 +1076,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=malloc((width+3)*(height+2)*sizeof(*win)))==NULL) {
+							if((win=alloca((width+3)*(height+2)*sizeof(*win)))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*sizeof(*win));
 								return(-1);
 							}
 							inactive_win(win, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
-							free(win);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 						}
@@ -2651,7 +2649,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		}
 		else if(hbuf[j]!=CR) {
 			set_vmem(&textbuf[i], hbuf[j], inverse ? (api->bclr|(api->cclr<<4)) : high ? (api->hclr|(api->bclr<<4)) : (api->lclr|(api->bclr<<4)), 0);
-			if(((i+1)%((width-2-pad-pad))==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
+			if((i%((width-2-pad-pad))==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
 				i--;
 		}
 		else
