@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.113 2019/09/10 19:57:37 deuce Exp $ */
+/* $Id: genwrap.c,v 1.111 2019/07/16 21:49:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -78,7 +78,7 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	return(numchars);
 }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 /****************************************************************************/
 /* Case insensitive version of strstr()	- currently heavy-handed			*/
 /****************************************************************************/
@@ -629,11 +629,11 @@ char* DLLCALL os_version(char *str)
 		}
 	}
 
-	sprintf(str,"Windows %sVersion %lu.%lu"
+	sprintf(str,"Windows %sVersion %u.%u"
 			,winflavor
 			,winver.dwMajorVersion, winver.dwMinorVersion);
 	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %lu)", winver.dwBuildNumber);
+		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
 	if(winver.szCSDVersion[0])
 		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
 
