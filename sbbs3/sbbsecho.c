@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.117 2019/06/29 00:44:03 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.118 2019/07/22 22:34:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2070,7 +2070,7 @@ bool areafix_command(char* instr, nodecfg_t* nodecfg, const char* to)
 	}
 
 	if(strnicmp(instr, "TICPWD ", 7) == 0) {
-		char ticpwd[FIDO_PASS_LEN + 1];	/* TIC File password for this node */
+		char ticpwd[SBBSECHO_MAX_TICPWD_LEN + 1]; /* TIC File password for this node */
 		char* p = instr;
 		FIND_WHITESPACE(p);
 		SKIP_WHITESPACE(p);
@@ -6010,7 +6010,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.117 $", "%*s %s", revision);
+	sscanf("$Revision: 3.118 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

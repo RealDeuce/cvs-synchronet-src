@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.159 2019/07/10 01:12:43 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.162 2019/07/20 19:06:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -575,14 +575,23 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			return(false); 
 		}
 		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		if(!(mode&(WM_EXTDESC|WM_FILE|WM_SUBJ_RO))
-			&& !(cfg.xedit[useron_xedit-1]->misc&QUICKBBS) 
+		if(!(mode&(WM_EXTDESC|WM_FILE))
 			&& fexistcase(str)) {
 			if((fp=fopen(str,"r")) != NULL) {
-				fgets(str,sizeof(str),fp);
-				fgets(str,sizeof(str),fp);
-				truncsp(str);
-				safe_snprintf(subj,LEN_TITLE,"%s",str);
+				if (fgets(str, sizeof(str), fp) != NULL) {
+					str[0] = 0;
+					if (fgets(str, sizeof(str), fp) != NULL) {
+						truncsp(str);
+						if(str[0] && !(mode&WM_SUBJ_RO))
+							safe_snprintf(subj, LEN_TITLE, "%s", str);
+						editor_details[0] = 0;
+                        if (fgets(editor_details, sizeof(editor_details), fp) != NULL) {
+                            truncsp(editor_details);
+                            if (editor_details[0] && editor != NULL)
+                                *editor = editor_details;
+                        }
+					}
+				}
 				fclose(fp);
 			}
 		}
@@ -738,6 +747,8 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 
 	xeditnum--;
 
+	SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
+	removecase(path);
 	if(cfg.xedit[xeditnum]->misc&QUICKBBS) {
 		SAFEPRINTF2(path,"%s%s",cfg.node_dir, cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "msginf":"MSGINF");
 		removecase(path);
@@ -759,8 +770,6 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 		fclose(fp);
 	}
 	else {
-		SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
-		removecase(path);
 		SAFEPRINTF2(path,"%s%s",cfg.node_dir,cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "editor.inf" : "EDITOR.INF");
 		removecase(path);
 		if((fp=fopen(path,"wb"))==NULL) {
@@ -787,7 +796,7 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 {
 	char*	buf;
-    char    slen;
+    size_t  slen;
     int     i,file;
 	long	l=0,flen;
     FILE    *stream;
