@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.59 2019/07/07 01:55:23 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.63 2019/07/17 00:34:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -816,13 +816,12 @@ void sbbs_t::maindflts(user_t* user)
 							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
 							,cols, text[TerminalColumns]);
 		else
-			safe_snprintf(str,sizeof(str),"%s%s%s%s%s%s"
+			safe_snprintf(str,sizeof(str),"%s%s / %s %s%s"
 							,user->misc&AUTOTERM ? text[TerminalAutoDetect]:nulstr
-							,term&ANSI ? "ANSI ":"TTY "
+							,term_charset(term)
+							,term_type(term)
 							,term&COLOR ? (term&ICE_COLOR ? text[TerminalIceColor] : text[TerminalColor]) : text[TerminalMonochrome]
-							,term&RIP ? "RIP " : nulstr
-							,term&UTF8 ? "UTF-8 " : (term&NO_EXASCII ? "ASCII ":"CP437 ")
-							,term&SWAP_DELETE ? "DEL=BS " : nulstr);
+							,term&SWAP_DELETE ? "DEL=BS" : nulstr);
 		bprintf(text[UserDefaultsTerminal], truncsp(str));
 		if(user->rows)
 			ultoa(user->rows,tmp,10);
@@ -907,10 +906,14 @@ void sbbs_t::maindflts(user_t* user)
 				if(sys_status&SS_ABORT)
 					break;
 				if(!(user->misc&AUTOTERM)) {
+					if(!noyes(text[Utf8TerminalQ]))
+						user->misc |= UTF8;
+					else
+						user->misc &= ~UTF8;
 					if(yesno(text[AnsiTerminalQ])) {
 						user->misc |= ANSI;
 						user->misc &= ~PETSCII;
-					} else {
+					} else if(!(user->misc&UTF8)) {
 						user->misc &= ~(ANSI|COLOR|ICE_COLOR);
 						if(!noyes(text[PetTerminalQ]))
 							user->misc |= PETSCII|COLOR;
@@ -937,10 +940,20 @@ void sbbs_t::maindflts(user_t* user)
 						user->misc|=NO_EXASCII;
 					else
 						user->misc&=~NO_EXASCII;
-					if(!noyes(text[SwapDeleteKeyQ]))
-						user->misc|=SWAP_DELETE;
-					else
-						user->misc&=~SWAP_DELETE;
+					user->misc &= ~SWAP_DELETE;
+					while(text[HitYourBackspaceKey][0] && !(user->misc&SWAP_DELETE) && online) {
+						bputs(text[HitYourBackspaceKey]);
+						uchar key = getkey(K_NONE);
+						bprintf(text[CharacterReceivedFmt], key, key);
+						if(key == '\b')
+							break;
+						if(key == DEL) {
+							if(text[SwapDeleteKeyQ][0] == 0 || yesno(text[SwapDeleteKeyQ]))
+								user->misc |= SWAP_DELETE;
+						}
+						else
+							bprintf(text[InvalidBackspaceKeyFmt], key, key);
+					}
 				}
 				if(sys_status&SS_ABORT)
 					break;
@@ -1059,7 +1072,7 @@ void sbbs_t::maindflts(user_t* user)
 				if(!noyes(text[NewPasswordQ])) {
 					bputs(text[CurrentPassword]);
 					console|=CON_R_ECHOX;
-					ch=getstr(str,LEN_PASS,K_UPPER);
+					ch=(char)getstr(str,LEN_PASS,K_UPPER);
 					if(sys_status&SS_ABORT)
 						break;
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
