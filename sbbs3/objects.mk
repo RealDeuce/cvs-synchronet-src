@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.73 2019/08/20 23:14:30 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.72 2019/06/29 00:06:14 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -255,8 +255,6 @@ JSDOOR_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)js_client$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_com$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_cryptcon$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_cryptcert$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)js_cryptkeyset$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_global$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_rtpool$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)js_sprintf$(OFILE) \
@@ -276,7 +274,8 @@ JSDOOR_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)scfglib2$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)wordwrap$(OFILE)\
 			$(MTOBJODIR)$(DIRSEP)userdat$(OFILE)\
-			$(MTOBJODIR)$(DIRSEP)msgdate$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)uucode$(OFILE)\
+			$(MTOBJODIR)$(DIRSEP)yenc$(OFILE)\
 
 SEXYZ_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)sexyz$(OFILE) \

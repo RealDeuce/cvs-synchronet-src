@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.347 2019/08/24 09:58:54 rswindell Exp $ */
+/* $Id: term.c,v 1.343 2019/07/10 22:28:52 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1162,7 +1162,7 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 {
 	uint64_t	total_blocks;
 	unsigned	cps;
-	int			l;
+	time_t		l;
 	time_t		t;
 	time_t		now;
 	static time_t last_progress;
@@ -1199,11 +1199,12 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 			clreol();
 			cputs("\r\n");
 			cprintf("Time: %lu:%02lu/%lu:%02lu  %u cps"
-				,(ulong)(t/60L)
-				,(ulong)(t%60L)
-				,(ulong)(l/60L)
-				,(ulong)(l%60L)
+				,t/60L
+				,t%60L
+				,l/60L
+				,l%60L
 				,cps
+				,fsize?(long)(((float)offset/(float)fsize)*100.0):100
 				);
 			clreol();
 			cputs("\r\n");
@@ -1227,10 +1228,10 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 			clreol();
 			cputs("\r\n");
 			cprintf("Time: %lu:%02lu/%lu:%02lu  %u cps"
-				,(ulong)(t/60L)
-				,(ulong)(t%60L)
-				,(ulong)(l/60L)
-				,(ulong)(l%60L)
+				,t/60L
+				,t%60L
+				,l/60L
+				,l%60L
 				,cps);
 			clreol();
 			cputs("\r\n");
@@ -1254,8 +1255,8 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 			clreol();
 			cputs("\r\n");
 			cprintf("Time: %lu:%02lu  %u cps"
-				,(ulong)(t/60L)
-				,(ulong)(t%60L)
+				,t/60L
+				,t%60L
 				,cps);
 			clreol();
 		}
@@ -1294,7 +1295,7 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 {
 	BOOL		success;
 	xmodem_t	xm;
-	int64_t		fsize;
+	ulong		fsize;
 
 	conn_binary_mode_on();
 
@@ -1510,10 +1511,8 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, /* expected_block: */ 0);
 				i=xmodem_get_block(&xm, block, /* expected_block: */ 0);
 				if(i==SUCCESS) {
-					if(!(mode&GMODE)) {
-						send_byte(&xm,ACK,10);
-						flush_send(&xm);
-					}
+					send_byte(&xm,ACK,10);
+					flush_send(&xm);
 					break;
 				}
 				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
@@ -1595,10 +1594,9 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 
 		while(fexistcase(str) && !(mode&OVERWRITE)) {
 			lprintf(LOG_WARNING,"%s already exists",str);
-			if(!xmodem_duplicate(&xm, bbs, str, sizeof(str), getfname(fname))) {
-				xmodem_cancel(&xm);
-				goto end;
-			}
+			xmodem_duplicate(&xm, bbs, str, sizeof(str), getfname(fname));
+			xmodem_cancel(&xm);
+			goto end; 
 		}
 		if((fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
@@ -1705,7 +1703,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		if(!t) t=1;
 		if(success)
 			lprintf(LOG_INFO,"Successful - Time: %lu:%02lu  CPS: %lu"
-				,(ulong)(t/60),(ulong)(t%60),(ulong)(file_bytes/t));
+				,t/60,t%60,file_bytes/t);
 		else
 			lprintf(LOG_ERR,"File Transfer %s", xm.cancelled ? "Cancelled":"Failure");
 
