@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.6 2019/08/24 09:40:28 rswindell Exp $ */
+/* $Id: sexyz.c,v 2.5 2018/02/20 05:31:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1123,8 +1123,7 @@ static int receive_files(char** fname_list, int fnames)
 				for(errors=0;errors<=xm.max_errors && !xm.cancelled;errors++) {
 					xmodem_put_nak(&xm, /* expected_block: */ 0);
 					if(xmodem_get_block(&xm, block, /* expected_block: */ 0) == SUCCESS) {
-						if(!(mode&GMODE))
-							send_byte(NULL,ACK,10);
+						send_byte(NULL,ACK,10);
 						break; 
 					} 
 					if(errors+1>xm.max_errors/3 && mode&CRC && !(mode&GMODE)) {
@@ -1539,7 +1538,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.6 $", "%*s %s", revision);
+	sscanf("$Revision: 2.5 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
