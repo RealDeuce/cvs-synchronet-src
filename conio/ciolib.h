@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.109 2020/04/01 07:39:07 deuce Exp $ */
+/* $Id: ciolib.h,v 1.104 2019/07/11 08:10:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,8 @@ enum {
 	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
+	,CIOLIB_MODE_SDL_YUV
+	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -200,9 +202,6 @@ enum text_modes
 	VESA_132X43	= 213,
 	VESA_132X50	= 206,
 	VESA_132X60	= 196,
-
-	/* Custom Mode */
-	CIOLIB_MODE_CUSTOM = 255,	// Last mode... if it's over 255, text_info can't hold it.
 };
 
 #define COLOR_MODE	C80
@@ -543,12 +542,10 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#include <gen_defs.h>
 	#include <SDL.h>
 
-#ifdef _WIN32
 	#ifdef main
 		#undef main
 	#endif
-	#define main	CIOLIB_main
-#endif
+	#define	main	CIOLIB_main
 #endif
 
 #define CIOLIB_BUTTON_1	1

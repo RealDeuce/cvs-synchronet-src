@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.61 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.58 2019/07/18 23:08:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -45,7 +45,6 @@ int cur_altpath=0;
 long files=0,removed=0,mode=0;
 
 char lib[LEN_GSNAME+1];
-const char* datefmt = NULL;
 
 #define DEL_LIST	(1L<<0)
 #define NO_EXTEND	(1L<<1)
@@ -121,49 +120,49 @@ char *mycmdstr(const char *instr, const char *fpath, const char *fspec, char *ou
 			cmd[j]=0;
 			switch(toupper(instr[i])) {
 				case 'F':   /* File path */
-					SAFECAT(cmd,fpath);
+					strcat(cmd,fpath);
 					break;
 				case '~':	/* DOS-compatible (8.3) filename */
 #ifdef _WIN32
 					SAFECOPY(sfpath,fpath);
 					GetShortPathName(fpath,sfpath,sizeof(sfpath));
-					SAFECAT(cmd,sfpath);
+					strcat(cmd,sfpath);
 #else
-                    SAFECAT(cmd,fpath);
+                    strcat(cmd,fpath);
 #endif
 					break;
 				case 'G':   /* Temp directory */
-					SAFECAT(cmd,scfg.temp_dir);
+					strcat(cmd,scfg.temp_dir);
 					break;
                 case 'J':
-                    SAFECAT(cmd,scfg.data_dir);
+                    strcat(cmd,scfg.data_dir);
                     break;
                 case 'K':
-                    SAFECAT(cmd,scfg.ctrl_dir);
+                    strcat(cmd,scfg.ctrl_dir);
                     break;
 				case 'N':   /* Node Directory (same as SBBSNODE environment var) */
-					SAFECAT(cmd,scfg.node_dir);
+					strcat(cmd,scfg.node_dir);
 					break;
 				case 'S':   /* File Spec */
-					SAFECAT(cmd,fspec);
+					strcat(cmd,fspec);
 					break;
                 case 'Z':
-                    SAFECAT(cmd,scfg.text_dir);
+                    strcat(cmd,scfg.text_dir);
                     break;
 				case '!':   /* EXEC Directory */
-					SAFECAT(cmd,scfg.exec_dir);
+					strcat(cmd,scfg.exec_dir);
 					break;
                 case '@':   /* EXEC Directory for DOS/OS2/Win32, blank for Unix */
 #ifndef __unix__
-                    SAFECAT(cmd,scfg.exec_dir);
+                    strcat(cmd,scfg.exec_dir);
 #endif
                     break;
 				case '#':   /* Node number (same as SBBSNNUM environment var) */
 					sprintf(str,"%d",scfg.node_num);
-					SAFECAT(cmd,str);
+					strcat(cmd,str);
 					break;
 				case '%':   /* %% for percent sign */
-					SAFECAT(cmd,"%");
+					strcat(cmd,"%");
 					break;
 				default:    /* unknown specification */
 					break;
@@ -319,24 +318,14 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					getextdesc(&scfg, f.dir, f.datoffset, ext);
 			}
 
-			if(mode&TODAYS_DATE) {		/* put today's date in desc */
-				time_t now = time(NULL);
-				if(datefmt) {
-					struct tm tm = {0};
-					localtime_r(&now, &tm);
-					strftime(f.desc, sizeof(f.desc), datefmt, &tm);
-				} else
-					unixtodstr(&scfg, (time32_t)now, f.desc);
-				SAFECAT(f.desc,"  ");
+			if(mode&FILE_DATE) {		/* get the file date and put into desc */
+				unixtodstr(&scfg,(time32_t)file_timestamp,f.desc);
+				strcat(f.desc,"  ");
 			}
-			else if(mode&FILE_DATE) {		/* get the file date and put into desc */
-				if(datefmt) {
-					struct tm tm = {0};
-					localtime_r(&file_timestamp, &tm);
-					strftime(f.desc, sizeof(f.desc), datefmt, &tm);
-				} else
-					unixtodstr(&scfg,(time32_t)file_timestamp,f.desc);
-				SAFECAT(f.desc,"  ");
+
+			if(mode&TODAYS_DATE) {		/* put today's date in desc */
+				unixtodstr(&scfg,time32(NULL),f.desc);
+				strcat(f.desc,"  ");
 			}
 
 			if(mode&FILE_ID)
@@ -413,7 +402,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(!isalnum(*fname)) {	// filename doesn't begin with an alpha-numeric char?
 			continue;
 		}
-		SAFEPRINTF2(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
+		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 			: scfg.dir[f.dir]->path,fname);
 
 #ifdef _WIN32
@@ -422,9 +411,6 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			GetShortPathName(filepath, shortpath, sizeof(shortpath));
 			SAFECOPY(fname, getfname(shortpath));
 		}
-#else
-		fexistcase(filepath);
-		SAFECOPY(fname, getfname(filepath));
 #endif
 
 		padfname(fname,f.name);
@@ -457,24 +443,15 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 				getextdesc(&scfg, f.dir, f.datoffset, ext);
 		}
 
-		if(mode&TODAYS_DATE) {		/* put today's date in desc */
-			time_t now = time(NULL);
-			if(datefmt) {
-				struct tm tm = {0};
-				localtime_r(&now, &tm);
-				strftime(f.desc, sizeof(f.desc), datefmt, &tm);
-			} else
-				unixtodstr(&scfg, (time32_t)now, f.desc);
-			SAFECAT(f.desc,"  ");
+		if(mode&FILE_DATE) {		/* get the file date and put into desc */
+			unixtodstr(&scfg,(time32_t)file_timestamp,f.desc);
+			strcat(f.desc,"  ");
 		}
-		else if(mode&FILE_DATE) {		/* get the file date and put into desc */
-			if(datefmt) {
-				struct tm tm = {0};
-				localtime_r(&file_timestamp, &tm);
-				strftime(f.desc, sizeof(f.desc), datefmt, &tm);
-			} else
-				unixtodstr(&scfg,(time32_t)file_timestamp,f.desc);
-			SAFECAT(f.desc,"  ");
+
+		if(mode&TODAYS_DATE) {		/* put today's date in desc */
+			l=time32(NULL);
+			unixtodstr(&scfg,l,f.desc);
+			strcat(f.desc,"  ");
 		}
 
 		if(dskip && strlen(curline)>=dskip) p=curline+dskip;
@@ -503,8 +480,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					p[i-1]=0;
 					truncsp(p);
 					if(p[0]) {
-						SAFECAT(f.desc," ");
-						SAFECAT(f.desc,p);
+						strcat(f.desc," ");
+						strcat(f.desc,p);
 					}
 				}
 			}
@@ -518,8 +495,8 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 					f.misc|=FM_EXTDESC;
 					p=nextline+dskip;
 					while(*p==' ') p++;
-					SAFECAT(ext,p);
-					SAFECAT(ext,"\r\n");
+					strcat(ext,p);
+					strcat(ext,"\r\n");
 				}
 				nextline[0]=0;
 				fgets(nextline,255,stream);
@@ -679,7 +656,6 @@ char *usage="\nusage: addfiles code [.alt_path] [-opts] +list "
 	"\n      -d         delete list after import"
 	"\n      -e         do not import extended descriptions"
 	"\n      -f         include file date in descriptions"
-	"\n      -F <fmt>   include file date in descriptions, using strftime format"
 	"\n      -t         include today's date in descriptions"
 	"\n      -i         include added files in upload statistics"
 	"\n      -n         do not update information for existing files"
@@ -714,7 +690,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.61 $", "%*s %s", revision);
+	sscanf("$Revision: 1.58 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
@@ -728,7 +704,12 @@ int main(int argc, char **argv)
 		return(1);
 	}
 
-	p = get_ctrl_dir();
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\nSBBSCTRL environment variable not set.\n");
+		printf("\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+		exit(1);
+	}
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
@@ -839,16 +820,6 @@ int main(int argc, char **argv)
 						break;
 					case 'F':
 						mode|=FILE_DATE;
-						if(argv[j][i] == 'F') {
-							j++;
-							if(argv[j]==NULL) {
-								puts(usage);
-								return(-1);
-							}
-							datefmt = argv[j];
-							i=strlen(argv[j]) - 1;
-							break;
-						}
 						break;
 					case 'T':
 						mode|=TODAYS_DATE;
@@ -908,28 +879,12 @@ int main(int argc, char **argv)
 			}
 			sprintf(str,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 				: scfg.dir[f.dir]->path,argv[j]);
-			if(mode&TODAYS_DATE) {
-				time_t now = time(NULL);
-				if(datefmt) {
-					struct tm tm = {0};
-					localtime_r(&now, &tm);
-					strftime(f.desc, sizeof(f.desc), datefmt, &tm);
-				} else
-					SAFECOPY(f.desc, unixtodstr(&scfg, (time32_t)now, tmp));
-				SAFECAT(f.desc, "  ");
-			}
-			else if(mode&FILE_DATE) {
-				time_t file_timestamp = fdate(str);
-				if(datefmt) {
-					struct tm tm = {0};
-					localtime_r(&file_timestamp, &tm);
-					strftime(f.desc, sizeof(f.desc), datefmt, &tm);
-				} else
-					SAFECOPY(f.desc, unixtodstr(&scfg,(time32_t)file_timestamp,tmp));
-				SAFECAT(f.desc, "  ");
-			}
-			j++;
-			SAFECAT(f.desc, argv[j]);
+			if(mode&FILE_DATE)
+				sprintf(f.desc,"%s  ",unixtodstr(&scfg,(time32_t)fdate(str),tmp));
+			if(mode&TODAYS_DATE)
+				sprintf(f.desc,"%s  ",unixtodstr(&scfg,time32(NULL),tmp));
+			sprintf(tmp,"%.*s",(int)(LEN_FDESC-strlen(f.desc)),argv[++j]);
+			SAFECOPY(f.desc,tmp);
 			l=flength(str);
 			if(l==-1) {
 				printf("%s not found.\n",str);
