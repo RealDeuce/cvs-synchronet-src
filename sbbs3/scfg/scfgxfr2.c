@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.58 2019/07/13 23:13:58 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.59 2019/07/14 06:51:13 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1151,10 +1151,10 @@ void dir_cfg(uint libnum)
 				else 
 					prep_dir(cfg.ctrl_dir, str, sizeof(str));
 			} else {
-				if (!cfg.dir[dirnum[i]]->data_dir[0])
+				if (!cfg.dir[i]->data_dir[0])
 					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
 				else
-					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
+					SAFECOPY(data_dir, cfg.dir[i]->data_dir);
 				backslash(data_dir);
 				SAFEPRINTF3(str, "[%s%s%s/]"
 					,data_dir 
