@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.60 2019/07/07 21:42:39 rswindell Exp $ */
+/* $Id: str_util.c,v 1.61 2019/07/08 00:11:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -614,6 +614,15 @@ char DLLCALL exascii_to_ascii_char(uchar ch)
 	if(ch&0x80)
 		return sbtbl[ch^0x80];
 	return ch;
+}
+
+BOOL DLLCALL str_is_ascii(const char* str)
+{
+	for(const char* p = str; *p != 0; p++) {
+		if(*p < 0)
+			return FALSE;
+	}
+	return TRUE;
 }
 
 /****************************************************************************/
