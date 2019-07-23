@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.46 2020/04/12 06:09:33 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.42 2019/06/29 00:44:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,7 +79,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	/* try */
 	do {
 
-		if((retval = smb_getstatus(smb)) != SMB_SUCCESS)
+		if((retval=smb_getstatus(smb))!=SMB_SUCCESS)
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
@@ -199,7 +199,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
 						,"%s writing body (%ld bytes)"
 						,__FUNCTION__
-						,(long)bodylen);
+						,bodylen);
 					retval=SMB_ERR_WRITE;
 					break;
 				}
@@ -222,7 +222,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
 						,"%s writing tail (%ld bytes)"
 						,__FUNCTION__
-						,(long)(taillen-sizeof(xlat)));
+						,taillen-sizeof(xlat));
 					retval=SMB_ERR_WRITE;
 					break;
 				}

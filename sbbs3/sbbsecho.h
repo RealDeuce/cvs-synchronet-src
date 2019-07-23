@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.39 2020/04/03 22:20:24 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.32 2019/07/22 22:34:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		10
+#define SBBSECHO_VERSION_MINOR		7
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -129,7 +129,6 @@ typedef struct {
 	bool		binkp_plainAuthOnly;
 	bool		binkp_allowPlainAuth;
 	bool		binkp_allowPlainText;
-	bool		binkp_tls;
 	bool		binkp_poll;
 	uint16_t	binkp_port;
 	char		binkp_host[64];
@@ -213,9 +212,6 @@ typedef struct {
 	bool		ignore_netmail_local_attr;
 	bool		relay_filtered_msgs;
 	bool		auto_add_subs;
-	bool		auto_add_to_areafile;
-	bool		auto_utf8;
-	bool		use_outboxes;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
 	ulong		bso_lock_delay;			/* in seconds */
@@ -228,10 +224,7 @@ typedef struct {
 	char		binkp_sysop[64];
 	bool		binkp_plainAuthOnly;
 	bool		binkp_plainTextOnly;
-	bool		used_include;
 } sbbsecho_cfg_t;
-
-extern ini_style_t sbbsecho_ini_style;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
 char* mailStatusStringList[4];
