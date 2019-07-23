@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.76 2020/03/31 01:41:51 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.71 2019/07/16 07:07:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,15 +63,14 @@ bool sbbs_t::logon()
 		return(false);
 
 	client.user=useron.alias;
-	client.usernum = useron.number;
 	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
-	js_create_user_objects(js_cx, js_glob);
+	js_create_user_objects();
 #endif
 
 	if(useron.rest&FLAG('Q'))
-		sys_status ^= SS_QWKLOGON;
+		sys_status |= SS_QWKLOGON;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
 		hangup();
 		return(false);
@@ -242,7 +241,7 @@ bool sbbs_t::logon()
 
 			if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
 				while(online) {
-					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
+					bputs(text[NewPassword]);
 					getstr(str,LEN_PASS,K_UPPER|K_LINE);
 					truncsp(str);
 					if(chkpass(str,&useron,true))
@@ -414,8 +413,8 @@ bool sbbs_t::logon()
 	/* SUCCESSFUL LOGON */
 	/********************/
 	totallogons=logonstats();
-	sprintf(str,"(%04u)  %-25s  %sLogon %lu - %u"
-		,useron.number,useron.alias, (sys_status&SS_FASTLOGON) ? "Fast-":"", totallogons,useron.ltoday);
+	sprintf(str,"(%04u)  %-25s  Logon %lu - %u"
+		,useron.number,useron.alias,totallogons,useron.ltoday);
 	logline("++",str);
 
 	if(!(sys_status&SS_QWKLOGON) && cfg.logon_mod[0])
