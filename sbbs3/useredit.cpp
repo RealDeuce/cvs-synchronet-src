@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.62 2019/07/10 20:38:35 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.63 2019/07/17 00:34:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1072,7 +1072,7 @@ void sbbs_t::maindflts(user_t* user)
 				if(!noyes(text[NewPasswordQ])) {
 					bputs(text[CurrentPassword]);
 					console|=CON_R_ECHOX;
-					ch=getstr(str,LEN_PASS,K_UPPER);
+					ch=(char)getstr(str,LEN_PASS,K_UPPER);
 					if(sys_status&SS_ABORT)
 						break;
 					console&=~(CON_R_ECHOX|CON_L_ECHOX);
