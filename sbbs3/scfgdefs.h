@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.51 2019/08/31 22:23:55 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.48 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,8 +68,6 @@ typedef struct {							/* Message sub board info */
 	uint32_t	misc,						/* Miscellaneous flags */
 				maxmsgs,					/* Max number of messages allowed */
 				maxcrcs;					/* Max number of CRCs to keep */
-	int32_t		pmode;						/* printfile()/putmsg() mode flags */
-	int32_t		n_pmode;					/* set of negated pmode flags */
 	faddr_t		faddr;						/* FidoNet address */
 
 } sub_t;
@@ -613,9 +611,7 @@ typedef struct
 	uint16_t		user_backup_level;
 	uint16_t		mail_backup_level;
 
-	// Run-time state information (not configuration)
 	int				tls_certificate;
-	int				nodefile;
 
 } scfg_t;
 
