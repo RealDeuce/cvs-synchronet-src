@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.200 2019/07/08 07:16:10 rswindell Exp $ */
+/* $Id: smblib.c,v 1.203 2019/07/23 06:13:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -934,7 +934,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 {
 	void	*vp,**vpp;
-	uint16_t	i;
+	size_t	i;
 	long	l,offset;
 	idxrec_t idx;
 
@@ -988,8 +988,8 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 		&& (msg->dfield = malloc(sizeof(*msg->dfield)*msg->hdr.total_dfields)) == NULL) {
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s malloc failure of %lu bytes for %u data fields", __FUNCTION__
-			,sizeof(*msg->dfield ) * msg->hdr.total_dfields, msg->hdr.total_dfields);
+			,"%s malloc failure of %ld bytes for %u data fields", __FUNCTION__
+			,(long)(sizeof(*msg->dfield) * msg->hdr.total_dfields), msg->hdr.total_dfields);
 		return(SMB_ERR_MEM); 
 	}
 	i = fread(msg->dfield, sizeof(*msg->dfield), msg->hdr.total_dfields, smb->shd_fp);
@@ -997,7 +997,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%s insufficient data fields read (%d instead of %d)", __FUNCTION__
-			,i,msg->hdr.total_dfields);
+			,(int)i,msg->hdr.total_dfields);
 		return(SMB_ERR_READ); 
 	}
 	l += msg->hdr.total_dfields * sizeof(*msg->dfield);
@@ -1007,7 +1007,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			smb_freemsgmem(msg);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s realloc failure of %d bytes for header field data", __FUNCTION__
-				,(int)sizeof(void*)*(i+1));
+				,(int)(sizeof(void*)*(i+1)));
 			return(SMB_ERR_MEM); 
 		}
 		msg->hfield_dat=vpp;
@@ -1015,7 +1015,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			smb_freemsgmem(msg);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s realloc failure of %d bytes for header fields", __FUNCTION__
-				,(int)sizeof(hfield_t)*(i+1));
+				,(int)(sizeof(hfield_t)*(i+1)));
 			return(SMB_ERR_MEM); 
 		}
 		msg->hfield=vp;
@@ -1030,7 +1030,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			==NULL) {			/* Allocate 1 extra for ASCIIZ terminator */
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s malloc failure of %d bytes for header field %d", __FUNCTION__
-				,msg->hfield[i].length+1, i);
+				,msg->hfield[i].length+1, (int)i);
 			smb_freemsgmem(msg);  /* or 0 length field */
 			return(SMB_ERR_MEM); 
 		}
@@ -1119,8 +1119,8 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 		if((msg->dfield=(dfield_t *)malloc(msg->hdr.total_dfields*sizeof(dfield_t)))==NULL) {
 			if(smb!=NULL)
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s malloc failure of %lu bytes for %d data fields", __FUNCTION__
-					,msg->hdr.total_dfields*sizeof(dfield_t), msg->hdr.total_dfields);
+					,"%s malloc failure of %ld bytes for %d data fields", __FUNCTION__
+					,(long)(msg->hdr.total_dfields*sizeof(dfield_t)), msg->hdr.total_dfields);
 			return(SMB_ERR_MEM);
 		}
 		memcpy(msg->dfield,srcmsg->dfield,msg->hdr.total_dfields*sizeof(dfield_t));
@@ -1131,8 +1131,8 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 		if((msg->hfield=(hfield_t *)malloc(msg->total_hfields*sizeof(hfield_t)))==NULL) {
 			if(smb!=NULL)
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s malloc failure of %lu bytes for %d header fields", __FUNCTION__
-					,msg->total_hfields*sizeof(hfield_t), msg->total_hfields);
+					,"%s malloc failure of %ld bytes for %d header fields", __FUNCTION__
+					,(long)(msg->total_hfields*sizeof(hfield_t)), msg->total_hfields);
 			return(SMB_ERR_MEM);
 		}
 		memcpy(msg->hfield,srcmsg->hfield,msg->total_hfields*sizeof(hfield_t));
@@ -1141,8 +1141,8 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 		if((msg->hfield_dat=(void**)malloc(msg->total_hfields*sizeof(void*)))==NULL) {
 			if(smb!=NULL)
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s malloc failure of %lu bytes for %d header fields", __FUNCTION__
-					,msg->total_hfields*sizeof(void*), msg->total_hfields);
+					,"%s malloc failure of %ld bytes for %d header fields", __FUNCTION__
+					,(long)(msg->total_hfields*sizeof(void*)), msg->total_hfields);
 			return(SMB_ERR_MEM);
 		}
 
@@ -1206,7 +1206,7 @@ int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* da
 	}
 	msg->total_hfields++;
 	msg->hfield[i].type=type;
-	msg->hfield[i].length=length;
+	msg->hfield[i].length=(uint16_t)length;
 	if(length) {
 		if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
 			return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
@@ -1323,7 +1323,7 @@ int SMBCALL smb_hfield_append(smbmsg_t* msg, uint16_t type, size_t length, void*
 	p+=msg->hfield[i].length;	/* skip existing data */
 	memset(p,0,length+1);
 	memcpy(p,data,length);		/* append */
-	msg->hfield[i].length+=length;
+	msg->hfield[i].length+=(uint16_t)length;
 	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return(SMB_SUCCESS);
@@ -1361,7 +1361,7 @@ int SMBCALL smb_hfield_replace(smbmsg_t* msg, uint16_t type, size_t length, void
 	msg->hfield_dat[i]=p;
 	memset(p,0,length+1);
 	memcpy(p,data,length);
-	msg->hfield[i].length=length;
+	msg->hfield[i].length=(uint16_t)length;
 	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return SMB_SUCCESS;
@@ -1505,8 +1505,8 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 
 	if(wr!=sizeof(crc)) {	
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s %d '%s' writing %lu bytes", __FUNCTION__
-			,get_errno(),STRERROR(get_errno()),sizeof(crc));
+			,"%s %d '%s' writing %ld bytes", __FUNCTION__
+			,get_errno(),STRERROR(get_errno()),(long)sizeof(crc));
 		return(SMB_ERR_WRITE);
 	}
 
@@ -1553,7 +1553,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	if(idxlen != (smb->status.total_msgs * sizeof(idxrec_t))) {
 		safe_snprintf(smb->last_error, sizeof(smb->last_error)
 			,"%s index file length (%ld) unexpected (%ld)", __FUNCTION__
-			,idxlen, smb->status.total_msgs * sizeof(idxrec_t));
+			,idxlen, (long)(smb->status.total_msgs * sizeof(idxrec_t)));
 		smb_unlocksmbhdr(smb);
 		return SMB_ERR_FILE_LEN;
 	}
@@ -1764,8 +1764,8 @@ int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 	length = filelength(fileno(smb->sid_fp));
 	if(length < (long)(msg->offset*sizeof(idxrec_t))) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s invalid index offset: %ld, byte offset: %lu, length: %lu", __FUNCTION__
-			,(long)msg->offset, msg->offset*sizeof(idxrec_t), length);
+			,"%s invalid index offset: %ld, byte offset: %ld, length: %lu", __FUNCTION__
+			,(long)msg->offset, (long)(msg->offset*sizeof(idxrec_t)), length);
 		return(SMB_ERR_HDR_OFFSET);
 	}
 	if(fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET)) {
