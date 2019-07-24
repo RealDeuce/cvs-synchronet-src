@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.163 2019/07/24 05:00:09 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.164 2019/07/24 05:05:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -389,7 +389,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 						if(!fgets(str,sizeof(str),stream))
 							break;
 						quotestr(str);
-						bprintf(P_AUTO_UTF8, "%4d: %.*s\r\n", i, cols-7, str);
+						bprintf(P_AUTO_UTF8, "%4d: %.*s\r\n", i, (int)cols-7, str);
 						i++; 
 					}
 					continue; 
