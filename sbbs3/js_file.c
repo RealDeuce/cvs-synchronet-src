@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.186 2019/08/27 16:47:58 deuce Exp $ */
+/* $Id: js_file.c,v 1.182 2019/07/18 03:14:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "xpendian.h"
 #include "md5.h"
 #include "base64.h"
 #include "uucode.h"
@@ -184,9 +183,8 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 				/* Remove (C11 standard) 'x'clusive mode char to avoid MSVC assertion: */
 				for(e=strchr(fdomode, 'x'); e ; e=strchr(e, 'x'))
 					memmove(e, e+1, strlen(e));
-				if((p->fp=fdopen(file,fdomode)) == NULL) {
-					JS_ReportWarning(cx, "fdopen(%s, %s) ERROR %d: %s", p->name, fdomode, errno, strerror(errno));
-				}
+				if((p->fp=fdopen(file,fdomode))==NULL)
+					close(file);
 			}
 			free(fdomode);
 		}
@@ -535,11 +533,11 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_FALSE);
 	}
 
-	if((buf=malloc(len + 1))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(fgets(buf,len + 1,p->fp)!=NULL) {
+	if(fgets(buf,len,p->fp)!=NULL) {
 		len=strlen(buf);
 		while(len>0 && (buf[len-1]=='\r' || buf[len-1]=='\n'))
 			len--;
@@ -622,17 +620,9 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 					JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(*b));
 					break;
 				case sizeof(WORD):
-					if (p->network_byte_order)
-						*w = BE_SHORT(*w);
-					else
-						*w = LE_SHORT(*w);
 					JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(*w));
 					break;
 				case sizeof(DWORD):
-					if (p->network_byte_order)
-						*l = BE_LONG(*l);
-					else
-						*l = LE_LONG(*l);
 					JS_SET_RVAL(cx, arglist, UINT_TO_JSVAL(*l));
 					break;
 			}
@@ -648,17 +638,9 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 					v = INT_TO_JSVAL(*(b++));
 					break;
 				case sizeof(WORD):
-					if (p->network_byte_order)
-						*w = BE_SHORT(*w);
-					else
-						*w = LE_SHORT(*w);
 					v = INT_TO_JSVAL(*(w++));
 					break;
 				case sizeof(DWORD):
-					if (p->network_byte_order)
-						*l = BE_LONG(*l);
-					else
-						*l = LE_LONG(*l);
 					v=UINT_TO_JSVAL(*(l++));
 					break;
 			}
@@ -1848,17 +1830,9 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 				break;
 			case sizeof(WORD):
 				*w=(WORD)val;
-				if (p->network_byte_order)
-					*w = BE_SHORT(*w);
-				else
-					*w = LE_SHORT(*w);
 				break;
 			case sizeof(DWORD):
 				*l=(DWORD)val;
-				if (p->network_byte_order)
-					*l = BE_LONG(*l);
-				else
-					*l = LE_LONG(*l);
 				break;
 		}
 	}
@@ -1873,20 +1847,10 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 					*(b++)=(BYTE)val;
 					break;
 				case sizeof(WORD):
-					*(w)=(WORD)val;
-					if (p->network_byte_order)
-						*w = BE_SHORT(*w);
-					else
-						*w = LE_SHORT(*w);
-					w++;
+					*(w++)=(WORD)val;
 					break;
 				case sizeof(DWORD):
-					*(l)=(DWORD)val;
-					if (p->network_byte_order)
-						*l = BE_LONG(*l);
-					else
-						*l = LE_LONG(*l);
-					l++;
+					*(l++)=(DWORD)val;
 					break;
 			}
 		}
