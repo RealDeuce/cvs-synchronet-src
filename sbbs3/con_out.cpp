@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.114 2019/07/24 05:00:09 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.115 2019/07/24 05:24:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,12 @@ char* sbbs_t::auto_utf8(const char* str, long* mode)
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
 /* Handles ctrl-a codes, Telnet-escaping, column & line count, auto-pausing */
-/****************************************************************************/
+/* Supported P_* mode flags:
+   P_PETSCII
+   P_UTF8
+   P_AUTO_UTF8
+   P_NOATCODES
+ ****************************************************************************/
 int sbbs_t::bputs(const char *str, long mode)
 {
 	int i;
@@ -76,7 +81,7 @@ int sbbs_t::bputs(const char *str, long mode)
 			ctrl_a(str[l++]);
 			continue;
 		}
-		if(str[l]=='@') {           /* '@' */
+		if(!(mode&P_NOATCODES) && str[l]=='@') {
 			if(str==mnestr			/* Mnemonic string or */
 				|| (str>=text[0]	/* Straight out of TEXT.DAT */
 					&& str<=text[TOTAL_TEXT-1])) {
