@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.531 2019/07/11 21:41:57 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.534 2019/07/24 05:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -672,6 +672,7 @@ public:
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
 	void	editor_info_to_msg(smbmsg_t*, const char* editor, const char* charset);
+	char	editor_details[128];
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
@@ -702,11 +703,16 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str);					/* BBS puts function */
+	int		bputs(const char *str, long mode = 0);	/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
 	int		bprintf(const char *fmt, ...)			/* BBS printf function */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		bprintf(long mode, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this', 2 is 'mode'
 #endif
 	;
 	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
@@ -743,6 +749,7 @@ public:
 	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
+	char*	auto_utf8(const char*, long* mode);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -800,6 +807,7 @@ public:
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	char*	parse_login(char*);
 
 	/* answer.cpp */
 	bool	answer();
@@ -955,7 +963,6 @@ public:
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
-	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	uint	total_qwknodes;

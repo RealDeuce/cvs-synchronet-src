@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.243 2019/07/12 02:15:45 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.245 2019/07/24 05:00:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -714,6 +714,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 #define SS_SSH		(1L<<28) /* Current login via SSH						*/
 #define SS_MOFF		(1L<<29) /* Disable automatic messages					*/
+#define SS_QWKLOGON	(1L<<30) /* QWK logon									*/
+#define SS_FASTLOGON (1<<31) /* Fast logon									*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -758,6 +760,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 #define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
 #define P_UTF8		(1<<13)		/* Message is UTF-8							*/
+#define P_AUTO_UTF8	(1<<14)		/* Message may be UTF-8, auto-detect		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
