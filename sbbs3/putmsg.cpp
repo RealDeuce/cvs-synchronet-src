@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.49 2019/07/06 07:52:22 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.52 2019/07/24 05:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
 
 #include "sbbs.h"
 #include "wordwrap.h"
+#include "utf8.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string with @-code parsing,                    */
@@ -65,10 +66,9 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		attr(LIGHTGRAY);
 	if(mode&P_NOPAUSE)
 		sys_status|=SS_PAUSEOFF;
-	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
-		mode |= P_UTF8;
-		str += 3;
-	}
+	str = auto_utf8(str, &mode);
+	size_t len = strlen(str);
+
 	long term = term_supports();
 	if(!(mode&P_NOATCODES) && memcmp(str, "@WRAPOFF@", 9) == 0) {
 		mode &= ~P_WORDWRAP;
@@ -84,7 +84,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		char *wrapped;
 		if(org_cols < TERM_COLS_MIN)
 			org_cols = TERM_COLS_DEFAULT;
-		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE)) == NULL)
+		if((wrapped=::wordwrap((char*)str+l, cols - 1, org_cols - 1, /* handle_quotes: */TRUE
+			,/* is_utf8: */INT_TO_BOOL(mode&P_UTF8))) == NULL)
 			errormsg(WHERE,ERR_ALLOC,"wordwrap buffer",0);
 		else {
 			truncsp_lines(wrapped);
@@ -96,7 +97,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		}
 	}
 
-	size_t len = strlen(str);
 	while(l < len && (mode&P_NOABORT || !msgabort()) && online) {
 		switch(str[l]) {
 			case '\r':
