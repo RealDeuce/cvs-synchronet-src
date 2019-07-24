@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.252 2020/03/31 07:19:46 deuce Exp $ */
+/* $Id: uifc32.c,v 1.248 2019/07/23 00:29:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@
 	#define mswait(x) Sleep(x)
 #endif
 #include <genwrap.h>	// for alloca()
-#include <datewrap.h>	// localtime_r()
 
 #include "ciolib.h"
 #include "uifc.h"
@@ -428,7 +427,7 @@ void docopy(void)
 						break;
 					case CIOLIB_BUTTON_1_DRAG_END:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=malloc((endy-starty+1)*(endx-startx+1)+1+lines*2);
+						copybuf=alloca((endy-starty+1)*(endx-startx+1)+1+lines*2);
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
@@ -441,7 +440,6 @@ void docopy(void)
 						}
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
-						free(copybuf);
 						restorescreen(screen);
 						freescreen(screen);
 						freescreen(sbuffer);
@@ -542,20 +540,12 @@ static void scroll_text(int x1, int y1, int x2, int y2, int down)
 static void timedisplay(BOOL force)
 {
 	static time_t savetime;
-	static int savemin;
 	time_t now;
-	struct tm gm;
-	int old_hold;
 
 	now=time(NULL);
-	localtime_r(&now, &gm);
-	if(force || savemin != gm.tm_min || difftime(now,savetime)>=60) {
-		old_hold=hold_update;
-		hold_update=FALSE;
+	if(force || difftime(now,savetime)>=60) {
 		uprintf(api->scrn_width-25,1,api->bclr|(api->cclr<<4),utimestr(&now));
-		hold_update=old_hold;
 		savetime=now;
-		savemin = gm.tm_min;
 	}
 }
 
@@ -1086,13 +1076,12 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=malloc((width+3)*(height+2)*sizeof(*win)))==NULL) {
+							if((win=alloca((width+3)*(height+2)*sizeof(*win)))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*sizeof(*win));
 								return(-1);
 							}
 							inactive_win(win, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
-							free(win);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 						}
