@@ -2,7 +2,7 @@
 
 #include <gtk/gtk.h>
 
-#include "sbbs.h"
+#include "dirwrap.h"
 
 #include "chatfuncs.h"
 #include "interface.h"
@@ -27,7 +27,9 @@ main (int argc, char *argv[])
 
 /*  add_pixmap_directory (PACKAGE_DATA_DIR "/" PACKAGE "/pixmaps"); */
 
-  ctrl_dir = get_ctrl_dir();
+  ctrl_dir=getenv("SBBSCTRL");
+  if(ctrl_dir==NULL)
+  	return(1);
 
   if(argc<2)
     return(1);
