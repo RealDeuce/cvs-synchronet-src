@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.87 2019/08/01 08:16:25 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.85 2019/07/15 02:13:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -444,11 +444,9 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			put_str(cfg->sub[i]->mod_arstr,stream);
 			put_int(cfg->sub[i]->qwkconf,stream);
 			c=0;
-			put_int(c,stream); // unused
-			put_int(cfg->sub[i]->pmode,stream);
-			put_int(cfg->sub[i]->n_pmode,stream);
+			put_int(c,stream);
 			n=0;
-			for(k=0;k<22;k++)
+			for(k=0;k<26;k++)
 				put_int(n,stream);
 
 			if(all_msghdr || (cfg->sub[i]->misc&SUB_HDRMOD && !no_msghdr)) {
