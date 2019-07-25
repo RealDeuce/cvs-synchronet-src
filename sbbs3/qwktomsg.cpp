@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.72 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.73 2019/07/25 10:56:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,6 +131,8 @@ static void qwk_parse_header_list(ulong confnum, smbmsg_t* msg, str_list_t* head
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOFLAGS),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOTID),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
+	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOCHARSET),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOCTRL),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);

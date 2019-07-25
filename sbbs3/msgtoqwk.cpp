@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.57 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.58 2019/07/25 10:56:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -200,6 +200,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOFLAGS,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOTID,NULL))!=NULL)	
+			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
+		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOCHARSET,NULL))!=NULL)
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 		/* Misc. FTN-Kludge header fields: */
 		for(i = 0; i < msg->total_hfields; i++)
