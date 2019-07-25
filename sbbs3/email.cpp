@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.79 2020/04/15 02:27:10 rswindell Exp $ */
+/* $Id: email.cpp,v 1.76 2019/07/08 00:59:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -91,7 +91,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 		bputs(text[UnknownUser]);
 		return(false); 
 	}
-	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET) && !(mode & WM_NOFWD)) {
+	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET)) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
 		if((mode & WM_FORCEFWD) || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
@@ -198,6 +198,15 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 		return(false); 
 	}
 
+	if(smb_fgetlength(smb.shd_fp)<1) {	 /* Create it if it doesn't exist */
+		if((i=smb_create(&smb))!=0) {
+			smb_close(&smb);
+			smb_stack(&smb,SMB_STACK_POP);
+			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
+			return(false); 
+		} 
+	}
+
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -264,7 +273,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
 	if(mode&WM_FILE)
-		msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
+		msg.hdr.auxattr|=MSG_FILEATTACH;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
