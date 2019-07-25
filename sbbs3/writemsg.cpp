@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.164 2019/07/24 05:05:44 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.165 2019/07/25 10:55:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -716,7 +716,7 @@ void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor, const char* c
 		smb_hfield_str(msg, SMB_EDITOR, editor);
 
 	if(charset != NULL)
-		smb_hfield_str(msg, FIDOCTRL, charset);
+		smb_hfield_str(msg, FIDOCHARSET, charset);
 
 	ushort useron_xedit = useron.xedit;
 
