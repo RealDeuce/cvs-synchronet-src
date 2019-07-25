@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.687 2019/07/03 05:17:48 deuce Exp $ */
+/* $Id: websrvr.c,v 1.691 2019/07/24 08:52:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -120,7 +120,6 @@ static struct xpms_set	*ws_set=NULL;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
-static char		temp_dir[MAX_PATH+1];
 static char		cgi_dir[MAX_PATH+1];
 static char		cgi_env_ini[MAX_PATH+1];
 static char		default_auth_list[MAX_PATH+1];
@@ -239,6 +238,7 @@ typedef struct  {
 	char		*cleanup_file[MAX_CLEANUPS];
 	BOOL	sent_headers;
 	BOOL	prev_write;
+	BOOL	manual_length;
 
 	/* webctrl.ini overrides */
 	char	*error_dir;
@@ -1352,7 +1352,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 
 		/* DO NOT send a content-length for chunked */
 		if(send_entity) {
-			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked)) {
+			if(session->req.dynamic!=IS_CGI && session->req.dynamic!=IS_FASTCGI && (!chunked) && (!session->req.manual_length)) {
 				if(ret)  {
 					safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LENGTH),"0");
 					safecat(headers,header,MAX_HEADERS_SIZE);
@@ -3852,7 +3852,7 @@ static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t 
 		*end += 4;
 	}
 	else {
-		(*msg)->body[(*end)++] = namelen;
+		(*msg)->body[(*end)++] = (char)namelen;
 	}
 	if (vallen > 127) {
 		l = htonl(vallen | 0x80000000);
@@ -3860,7 +3860,7 @@ static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t 
 		*end += 4;
 	}
 	else {
-		(*msg)->body[(*end)++] = vallen;
+		(*msg)->body[(*end)++] = (char)vallen;
 	}
 	memcpy((*msg)->body + *end, env, namelen);
 	*end += namelen;
@@ -3888,7 +3888,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 			return FALSE;
 		}
 		if (end > 32000) {
-			msg->head.len = htons(end);
+			msg->head.len = htons((uint16_t)end);
 			if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 				lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 				free(msg);
@@ -3900,7 +3900,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 	}
 	strListFree(&env);
 	if (end) {
-		msg->head.len = htons(end);
+		msg->head.len = htons((uint16_t)end);
 		if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 			lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 			free(msg);
@@ -3908,7 +3908,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 		}
 		end = 0;
 	}
-	msg->head.len = htons(end);
+	msg->head.len = htons((uint16_t)end);
 	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 		lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 		free(msg);
@@ -4110,7 +4110,7 @@ static int fastcgi_write_in(void *arg, char *buf, size_t bufsz)
 		chunk_size = bufsz - pos;
 		if (chunk_size > UINT16_MAX)
 			chunk_size = UINT16_MAX;
-		head.len = htons(chunk_size);
+		head.len = htons((uint16_t)chunk_size);
 		if (sendsocket(cd->sock, (void *)&head, sizeof(head)) != sizeof(head))
 			return -1;
 		if (sendsocket(cd->sock, buf+pos, chunk_size) != chunk_size)
@@ -5695,7 +5695,7 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 	JSObject*	reply;
 	JSIdArray*	heads;
 	JSObject*	headers;
-	int			i;
+	int			i, h;
 	char		str[MAX_REQUEST_LINE+1];
 	char		*p=NULL,*p2=NULL;
 	size_t		p_sz=0, p2_sz=0;
@@ -5728,8 +5728,37 @@ static BOOL ssjs_send_headers(http_session_t* session,int chunked)
 					free(p2);
 				return FALSE;
 			}
-			safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
-			strListPush(&session->req.dynamic_heads,str);
+			if (!session->req.sent_headers) {
+				h = get_header_type(p);
+				switch(h) {
+				case HEAD_LOCATION:
+					if (*p2 == '/') {
+						unescape(p2);
+						SAFECOPY(session->req.virtual_path,p2);
+						session->req.send_location=MOVED_STAT;
+					}
+					else {
+						SAFECOPY(session->req.virtual_path,p2);
+						session->req.send_location=MOVED_TEMP;
+					}
+					if (atoi(session->req.status) == 200)
+						SAFECOPY(session->req.status, error_302);
+					break;
+				case HEAD_LENGTH:
+				case HEAD_TRANSFER_ENCODING:
+					/* If either of these are manually set, point
+					 * the gun at the script writers foot for them */
+					chunked = false;
+					session->req.manual_length = TRUE;
+				default:
+					safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
+					strListPush(&session->req.dynamic_heads,str);
+				}
+			}
+			else {
+				safe_snprintf(str,sizeof(str),"%s: %s",p,p2);
+				strListPush(&session->req.dynamic_heads,str);
+			}
 		}
 		if(p)
 			free(p);
@@ -5752,7 +5781,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	if(script == session->req.physical_path && session->req.xjs_handler[0])
 		script = session->req.xjs_handler;
 
-	sprintf(path,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
+	sprintf(path,"%sSBBS_SSJS.%u.%u.html",scfg.temp_dir,getpid(),session->socket);
 	if((session->req.fp=fopen(path,"wb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 		return(FALSE);
@@ -5861,7 +5890,7 @@ static void respond(http_session_t * session)
 				return;
 			}
 			sprintf(session->req.physical_path
-				,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
+				,"%sSBBS_SSJS.%u.%u.html",scfg.temp_dir,getpid(),session->socket);
 		}
 		else {
 			session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
@@ -5915,7 +5944,7 @@ FILE *open_post_file(http_session_t *session)
 	FILE	*fp;
 
 	// Create temporary file for post data.
-	SAFEPRINTF3(path,"%sSBBS_POST.%u.%u.data",temp_dir,getpid(),session->socket);
+	SAFEPRINTF3(path,"%sSBBS_POST.%u.%u.data",scfg.temp_dir,getpid(),session->socket);
 	if((fp=fopen(path,"wb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 		return fp;
@@ -6551,7 +6580,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.687 $", "%*s %s", revision);
+	sscanf("$Revision: 1.691 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6756,14 +6785,9 @@ void DLLCALL web_server(void* arg)
 		SAFECOPY(error_dir,startup->error_dir);
 		SAFECOPY(default_auth_list,startup->default_auth_list);
 		SAFECOPY(cgi_dir,startup->cgi_dir);
-		if(startup->temp_dir[0])
-			SAFECOPY(temp_dir,startup->temp_dir);
-		else
-			SAFECOPY(temp_dir,"../temp");
 
 		/* Change to absolute path */
 		prep_dir(startup->ctrl_dir, root_dir, sizeof(root_dir));
-		prep_dir(startup->ctrl_dir, temp_dir, sizeof(temp_dir));
 		prep_dir(root_dir, error_dir, sizeof(error_dir));
 		prep_dir(root_dir, cgi_dir, sizeof(cgi_dir));
 
@@ -6810,10 +6834,15 @@ void DLLCALL web_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"Temporary file directory: %s", temp_dir);
-		MKDIR(temp_dir);
-		if(!isdir(temp_dir)) {
-			lprintf(LOG_CRIT,"!Invalid temp directory: %s", temp_dir);
+		if(startup->temp_dir[0])
+			SAFECOPY(scfg.temp_dir,startup->temp_dir);
+		else
+			SAFECOPY(scfg.temp_dir,"../temp");
+		prep_dir(startup->ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
+		MKDIR(scfg.temp_dir);
+		if(!isdir(scfg.temp_dir)) {
+			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1);
 			return;
 		}
