@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.69 2018/10/30 03:16:07 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.72 2019/07/24 05:00:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -215,7 +215,7 @@ void sbbs_t::qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset
 /* Does *not* free the msgmem												*/
 /****************************************************************************/
 bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
-							,char fromhub, uint subnum
+							,char fromhub, smb_t* smb
 							,uint touser, smbmsg_t* msg)
 {
 	char*		body;
@@ -230,6 +230,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	ushort		xlat=XLAT_NONE;
 	long		dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	str_list_t	kludges;
+	uint		subnum = smb->subnum;
 
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
@@ -304,6 +305,10 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 
 	kludges=strListInit();
 
+	char qwk_newline = QWK_NEWLINE;
+	if(smb_msg_is_utf8(msg))
+		qwk_newline = '\n';
+
 	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
 		if(qwkbuf[k]==0)
 			continue;
@@ -313,7 +318,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 					&& (strnicmp(qwkbuf+k,"To:",3)==0 
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
-			if((p=strchr(qwkbuf+k, QWK_NEWLINE))==NULL) {
+			if((p=strchr(qwkbuf+k, qwk_newline))==NULL) {
 				body[bodylen++]=qwkbuf[k];
 				continue;
 			}
@@ -331,7 +336,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			col++;
 			continue; 
 		}
-		if(qwkbuf[k]==QWK_NEWLINE) {		/* expand QWK_NEWLINE to crlf */
+		if(qwkbuf[k]==qwk_newline) {		/* expand QWK_NEWLINE to crlf */
 			if(!bodylen && !taillen)		/* Ignore blank lines at top of message */
 				continue;
 			if(!taillen && col==3 && bodylen>=3 && body[bodylen-3]=='-'
@@ -364,7 +369,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			if(taillen) taillen--;
 			else		bodylen--;
 			lastch=0;
-			continue; 
+			continue;
 		}
 		lastch=qwkbuf[k];
 		if(taillen)
@@ -459,28 +464,29 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	if(online==ON_REMOTE)
 		bputs(text[WritingIndx]);
 
-	if(smb.status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
+	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 
-	if((i=smb_addmsg(&smb,msg,smb_storage_mode(&cfg, &smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
+	add_msg_ids(&cfg, smb, msg, /* remsg: */NULL);
+	if((i=smb_addmsg(smb,msg,smb_storage_mode(&cfg, smb),dupechk_hashes,xlat,(uchar*)body,(uchar*)tail))==SMB_SUCCESS)
 		success=true;
 	else if(i==SMB_DUPE_MSG) {
-		bprintf("\r\n!%s\r\n",smb.last_error);
+		bprintf("\r\n!%s\r\n",smb->last_error);
 		if(!fromhub) {
 			if(subnum==INVALID_SUB) {
-				SAFEPRINTF(str,"duplicate e-mail attempt (%s)", smb.last_error);
+				SAFEPRINTF(str,"duplicate e-mail attempt (%s)", smb->last_error);
 				logline(LOG_NOTICE,"E!",str); 
 			} else {
 				SAFEPRINTF3(str,"duplicate message attempt in %s %s (%s)"
 					,cfg.grp[cfg.sub[subnum]->grp]->sname
 					,cfg.sub[subnum]->lname
-					,smb.last_error);
+					,smb->last_error);
 				logline(LOG_NOTICE,"P!",str); 
 			}
 		}
 	}
 	else 
-		errormsg(WHERE,ERR_WRITE,smb.file,i,smb.last_error);
+		errormsg(WHERE,ERR_WRITE,smb->file,i,smb->last_error);
 
 	free(body);
 	free(tail);
