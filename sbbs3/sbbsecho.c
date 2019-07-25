@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.119 2019/07/23 04:55:55 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.120 2019/07/25 10:54:04 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1223,6 +1223,18 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		for(int i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
 				fprintf(fp,"\1%.512s\r",(char*)msg->hfield_dat[i]);
+		const char* charset = msg->ftn_charset;
+		if(charset == NULL) {
+			if(smb_msg_is_utf8(msg))
+				charset = FIDO_CHARSET_UTF8;
+			else if(str_is_ascii(body))
+				charset = FIDO_CHARSET_ASCII;
+			else
+				charset = FIDO_CHARSET_CP437;
+		}
+		fprintf(fp, "\1CHRS: %s\r", charset);
+		if(msg->editor != NULL)
+			fprintf(fp, "\1NOTE: %s\r", msg->editor);
 		/* comment headers are part of text */
 		for(i=0; i<msg->total_hfields; i++)
 			if(msg->hfield[i].type == SMB_COMMENT)
@@ -3467,6 +3479,36 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 					smb_hfield(&msg,FIDOTID,(ushort)(m-l),fbuf+l);
 			}
 
+			else if(!strncmp((char *)fbuf+l+1, "NOTE:", 5)) {
+				l+=6;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
+				m=l;
+				while(m<length && fbuf[m]!='\r') m++;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l)
+					smb_hfield(&msg, SMB_EDITOR, (ushort)(m-l), fbuf+l);
+			}
+
+			else if(!strncmp((char *)fbuf+l+1, "CHRS:", 5)) {
+				l+=6;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
+				m=l;
+				while(m<length && fbuf[m]!='\r') m++;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l)
+					smb_hfield(&msg, FIDOCHARSET, (ushort)(m-l), fbuf+l);
+			}
+
+			else if(!strncmp((char *)fbuf+l+1, "CHARSET:", 8)) {
+				l+=9;
+				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
+				m=l;
+				while(m<length && fbuf[m]!='\r') m++;
+				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
+				if(m>l)
+					smb_hfield(&msg, FIDOCHARSET, (ushort)(m-l), fbuf+l);
+			}
+
 			else if(!strncmp((char *)fbuf+l+1,"TZUTC:",6)) {		/* FSP-1001 */
 				l+=7;
 				while(l<length && fbuf[l]<=' ' && fbuf[l]>=0) l++;
@@ -4850,6 +4892,21 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 				if(msg.hfield[l].type == FIDOCTRL)
 					f+=sprintf(fmsgbuf+f,"\1%.512s\r",(char*)msg.hfield_dat[l]);
 
+			const char* charset = msg.ftn_charset;
+			if(scfg.sub[subnum]->misc&SUB_ASCII)
+				charset = FIDO_CHARSET_ASCII;
+			if(charset == NULL) {
+				if(smb_msg_is_utf8(&msg))
+					charset = FIDO_CHARSET_UTF8;
+				else if(str_is_ascii(buf))
+					charset = FIDO_CHARSET_ASCII;
+				else
+					charset = FIDO_CHARSET_CP437;
+			}
+			f += sprintf(fmsgbuf + f, "\1CHRS: %s\r", charset);
+			if(msg.editor != NULL)
+				f += sprintf(fmsgbuf + f, "\1NOTE: %s\r", msg.editor);
+
 			for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
 				if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
 					char ch;
@@ -6010,7 +6067,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.119 $", "%*s %s", revision);
+	sscanf("$Revision: 3.120 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
