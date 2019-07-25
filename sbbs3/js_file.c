@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.180 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_file.c,v 1.182 2019/07/18 03:14:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2417,7 +2417,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
-			in=getfattr(p->name);
+			in=getfmode(p->name);
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=INT_TO_JSVAL(in);
 			break;
@@ -2616,7 +2616,7 @@ static const char* file_prop_desc[] = {
 	,"the current file position (offset in bytes), change value to seek within file"
 	,"last modified date/time (in time_t format)"
 	,"the current length of the file (in bytes)"
-	,"file mode/attributes"
+	,"file type/mode flags (i.e. <tt>struct stat.st_mode</tt> value, compatible with <tt>file_chmod()</tt>)"
 	,"set to <i>true</i> if binary data is to be written and read in Network Byte Order (big end first)"
 	,"set to <i>true</i> to enable automatic ROT13 translation of text"
 	,"set to <i>true</i> to enable automatic Unix-to-Unix encode and decode on <tt>read</tt> and <tt>write</tt> calls"
@@ -2826,7 +2826,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
 	},
-	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
+	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_BOOLEAN,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,312
