@@ -1,6 +1,6 @@
 /* Functions to create and parse .ini files */
 
-/* $Id: ini_file.c,v 1.168 2019/07/16 18:26:00 deuce Exp $ */
+/* $Id: ini_file.c,v 1.171 2019/07/24 04:21:42 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -34,6 +34,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include "ini_file.h"
 #include <stdlib.h>		/* strtol */
 #include <string.h>		/* strlen */
 #include <ctype.h>		/* isdigit */
@@ -42,10 +43,6 @@
 #include "datewrap.h"	/* ctime_r */
 #include "dirwrap.h"	/* fexist */
 #include "filewrap.h"	/* chsize */
-#include "ini_file.h"
-#if !defined(NO_SOCKET_SUPPORT)
-#include "sockwrap.h"
-#endif
 
 /* Maximum length of entire line, includes '\0' */
 #define INI_MAX_LINE_LEN		(INI_MAX_VALUE_LEN*2)
@@ -744,9 +741,9 @@ char* DLLCALL iniSetEnumList(str_list_t* list, const char* section, const char* 
 		name_count = strListCount(names);
 		for(i=0; i < count; i++) {
 			if(value[0])
-				strcat(value,sep);
+				SAFECAT(value,sep);
 			if(val_list[i] < name_count)
-				strcat(value, names[val_list[i]]);
+				SAFECAT(value, names[val_list[i]]);
 			else
 				sprintf(value + strlen(value), "%u", val_list[i]);
 		}
@@ -819,13 +816,13 @@ char* DLLCALL iniSetBitField(str_list_t* list, const char* section, const char* 
 		if((value&bitdesc[i].bit)==0)
 			continue;
 		if(str[0])
-			strcat(str, bit_separator);
-		strcat(str,bitdesc[i].name);
+			SAFECAT(str, bit_separator);
+		SAFECAT(str,bitdesc[i].name);
 		value&=~bitdesc[i].bit;
 	}
 	if(value) {	/* left over bits? */
 		if(str[0])
-			strcat(str, bit_separator);
+			SAFECAT(str, bit_separator);
 		sprintf(str+strlen(str), "0x%lX", value);
 	}
 	return iniSetString(list, section, key, str, style);
