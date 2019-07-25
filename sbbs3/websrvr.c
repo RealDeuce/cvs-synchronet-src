@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.698 2019/08/23 21:08:22 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.691 2019/07/24 08:52:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -602,9 +602,9 @@ static BOOL session_check(http_session_t *session, BOOL *rd, BOOL *wr, unsigned 
 	if (session->is_tls) {
 		if(wr)
 			*wr=1;
-		if(rd || wr == NULL) {
+		if(rd) {
 			if(session->tls_pending) {
-				*rd_ptr = TRUE;
+				*rd = TRUE;
 				return TRUE;
 			}
 		}
@@ -2212,9 +2212,8 @@ static int recvbufsocket(http_session_t *session, char *buf, long count)
 		i=sess_recv(session,buf+rd,count-rd,0);
 		switch(i) {
 			case -1:
-				if (ERROR_VALUE == EAGAIN && !session->is_tls)
-					break;
-				// Fall-through...
+				if(session->is_tls || ERROR_VALUE!=EAGAIN)
+					close_session_socket(session);
 			case 0:
 				close_session_socket(session);
 				*buf=0;
@@ -5274,8 +5273,7 @@ static JSBool
 js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		username;
-	char*		password;
+	char*		p;
 	JSBool		inc_logons=JS_FALSE;
 	user_t		user;
 	http_session_t*	session;
@@ -5287,29 +5285,29 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name */
-	JSVALUE_TO_ASTRING(cx, argv[0], username, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
-	if(username==NULL)
+	JSVALUE_TO_ASTRING(cx, argv[0], p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	if(p==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit((uchar)*username))
-		user.number=atoi(username);
-	else if(*username)
-		user.number=matchuser(&scfg,username,FALSE);
+	if(isdigit((uchar)*p))
+		user.number=atoi(p);
+	else if(*p)
+		user.number=matchuser(&scfg,p,FALSE);
 
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d !USER NOT FOUND: '%s'"
-			,session->socket, username);
+			,session->socket,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d !DELETED OR INACTIVE USER #%d: %s"
-			,session->socket,user.number, username);
+			,session->socket,user.number,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -5317,15 +5315,14 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	/* Password */
 	if(user.pass[0]) {
-		JSVALUE_TO_ASTRING(cx, argv[1], password, LEN_PASS+2, NULL);
-		if(password==NULL)
+		JSVALUE_TO_ASTRING(cx, argv[1], p, LEN_PASS+2, NULL);
+		if(p==NULL)
 			return(JS_FALSE);
 
-		if(stricmp(user.pass, password)) { /* Wrong password */
+		if(stricmp(user.pass,p)) { /* Wrong password */
 			rc=JS_SUSPENDREQUEST(cx);
 			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: '%s'"
 				,session->socket,user.alias);
-			badlogin(session->socket,session->client.protocol, username, password, session->host_name, &session->addr);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
@@ -6583,7 +6580,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.698 $", "%*s %s", revision);
+	sscanf("$Revision: 1.691 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
