@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.131 2019/08/04 20:16:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.122 2019/07/26 08:13:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -818,8 +818,7 @@ const char* bso_flo_filename(fidoaddr_t dest, uint16_t attr)
  attach file.
  Returns 0 on success.
 ******************************************************************************/
-int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_outbox
-									, bool del_file, uint16_t attr)
+int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_outbox, uint16_t attr)
 {
 	const char* flo_filename;
 	char attachment[MAX_PATH+1];
@@ -853,14 +852,7 @@ int write_flofile(const char *infile, fidoaddr_t dest, bool bundle, bool use_out
 		lprintf(LOG_ERR, "ERROR line %u, attachment file not found: %s", __LINE__, attachment);
 		return -1;
 	}
-	char* prefix = "";
-	if(bundle) {
-		prefix = (cfg.trunc_bundles) ? "#" : "^";
-	} else {
-		if(del_file)
-			prefix = "^";
-	}
-	SAFEPRINTF2(searchstr, "%s%s", prefix, attachment);
+	SAFEPRINTF2(searchstr,"%c%s",bundle && (cfg.trunc_bundles) ? '#':'^', attachment);
 	if(findstr(searchstr,flo_filename))	/* file already in FLO file */
 		return 0;
 	if((fp=fopen(flo_filename,"a"))==NULL) {
@@ -1205,25 +1197,18 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 		}
 		fprintf(fp,"\1TZUTC: %s%02d%02u\r", minus, tzone/60, tzone%60);
 	}
-	if(msg == NULL) {
-		if(!cfg.flo_mailer) {
-			/* Add FSC-53 FLAGS kludge */
-			fprintf(fp,"\1FLAGS");
-			if(direct)
-				fprintf(fp," DIR");
-			if(hdr.attr&FIDO_FILE) {
-				if(cfg.trunc_bundles)
-					fprintf(fp," TFS");
-				else
-					fprintf(fp," KFS");
-			}
-			fprintf(fp,"\r");
+	if(!cfg.flo_mailer) {
+		/* Add FSC-53 FLAGS kludge */
+		fprintf(fp,"\1FLAGS");
+		if(direct)
+			fprintf(fp," DIR");
+		if(hdr.attr&FIDO_FILE) {
+			if(cfg.trunc_bundles)
+				fprintf(fp," TFS");
+			else
+				fprintf(fp," KFS");
 		}
-	} else {
-		if(msg->ftn_flags != NULL)
-			fprintf(fp, "\1FLAGS %s\r", msg->ftn_flags);
-		else if(msg->hdr.auxattr&MSG_KILLFILE)
-			fprintf(fp, "\1FLAGS %s\r", "KFS");
+		fprintf(fp,"\r");
 	}
 
 	if(hdr.destpoint)
@@ -1240,7 +1225,7 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 				fprintf(fp,"\1%.512s\r",(char*)msg->hfield_dat[i]);
 		const char* charset = msg->ftn_charset;
 		if(charset == NULL) {
-			if(smb_msg_is_utf8(msg) || (msg->hdr.auxattr & MSG_HFIELDS_UTF8))
+			if(smb_msg_is_utf8(msg))
 				charset = FIDO_CHARSET_UTF8;
 			else if(str_is_ascii(body))
 				charset = FIDO_CHARSET_ASCII;
@@ -2440,8 +2425,7 @@ int attachment(const char *bundlename, fidoaddr_t dest, enum attachment_mode mod
 	if(cfg.flo_mailer) {
 		switch(mode) {
 			case ATTACHMENT_ADD:
-				return write_flofile(bundlename,dest,/* bundle: */true, cfg.use_outboxes
-					,/* del_file: */true, /* attr: */0);
+				return write_flofile(bundlename,dest,/* bundle: */true, cfg.use_outboxes,/* attr: */0);
 			case ATTACHMENT_NETMAIL:
 				return 0; /* Do nothing */
 		}
@@ -2621,7 +2605,7 @@ bool pack_bundle(const char *tmp_pkt, fidoaddr_t orig, fidoaddr_t dest)
 	if(nodecfg != NULL)
 		if(nodecfg->archive==SBBSECHO_ARCHIVE_NONE) {    /* Uncompressed! */
 			if(cfg.flo_mailer)
-				i=write_flofile(packet,dest,/* bundle: */true, cfg.use_outboxes, /* del_file: */true, /* attr: */0);
+				i=write_flofile(packet,dest,/* bundle: */true, cfg.use_outboxes, /* attr: */0);
 			else
 				i=create_netmail(/* To: */NULL,/* msg: */NULL,packet
 					,(cfg.trunc_bundles) ? "\1FLAGS TFS\r" : "\1FLAGS KFS\r"
@@ -2743,29 +2727,26 @@ bool unpack_bundle(const char* inbound)
 		if(gi<g.gl_pathc) {
 			SAFECOPY(fname,g.gl_pathv[gi]);
 			gi++;
-			off_t length = flength(fname);
-			if(length < 1) {
-				if(fdate(fname) < time(NULL) + (24*60*60))
-					lprintf(LOG_DEBUG, "Ignoring %ld-byte file (less than 24-hours old): %s", (long)length, fname);
-				else {
-					lprintf(LOG_INFO, "Deleting %ld-byte file (more than 24-hours old): %s", (long)length, fname);
-					delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
-				}
-				continue;
-			}
-			lprintf(LOG_INFO,"Unpacking bundle: %s (%1.1fKB)", fname, length/1024.0);
-			if(unpack(fname, inbound) != 0) {	/* failure */
+			lprintf(LOG_INFO,"Unpacking bundle: %s (%1.1fKB)", fname, flength(fname)/1024.0);
+			if(unpack(fname, inbound)) {	/* failure */
 				lprintf(LOG_ERR, "!Unpack failure: %s", fname);
-				/* rename to "*.?_?" or (if it exists) "*.?-?" */
-				SAFECOPY(str,fname);
-				str[strlen(str)-2]='_';
-				if(fexistcase(str))
-					str[strlen(str)-2]='-';
-				if(fexistcase(str))
-					delfile(str, __LINE__);
-				if(rename(fname,str))
-					lprintf(LOG_ERR,"ERROR line %d renaming %s to %s"
-						,__LINE__,fname,str);
+				if(fdate(fname)+(48L*60L*60L)<time(NULL)) {
+					/* If bundle file older than 48 hours, give up */
+					if(flength(fname) < 1) {
+						delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
+						continue;
+					}
+					/* rename to "*.?_?" or (if it exists) "*.?-?" */
+					SAFECOPY(str,fname);
+					str[strlen(str)-2]='_';
+					if(fexistcase(str))
+						str[strlen(str)-2]='-';
+					if(fexistcase(str))
+						delfile(str, __LINE__);
+					if(rename(fname,str))
+						lprintf(LOG_ERR,"ERROR line %d renaming %s to %s"
+							,__LINE__,fname,str);
+				}
 				continue;
 			}
 			delfile(fname, __LINE__);	/* successful, so delete bundle */
@@ -3517,11 +3498,8 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				m=l;
 				while(m<length && fbuf[m]!='\r') m++;
 				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
-				if(m>l) {
+				if(m>l)
 					smb_hfield(&msg, FIDOCHARSET, (ushort)(m-l), fbuf+l);
-					if(smb_msg_is_utf8(&msg))
-						msg.hdr.auxattr |= MSG_HFIELDS_UTF8;
-				}
 			}
 
 			else if(!strncmp((char *)fbuf+l+1, "CHARSET:", 8)) {
@@ -4921,7 +4899,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			if(scfg.sub[subnum]->misc&SUB_ASCII)
 				charset = FIDO_CHARSET_ASCII;
 			if(charset == NULL) {
-				if(smb_msg_is_utf8(&msg) || (msg.hdr.auxattr & MSG_HFIELDS_UTF8))
+				if(smb_msg_is_utf8(&msg))
 					charset = FIDO_CHARSET_UTF8;
 				else if(str_is_ascii(buf))
 					charset = FIDO_CHARSET_ASCII;
@@ -4934,6 +4912,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			for(l=0,cr=1;buf[l] && f<fmsgbuflen;l++) {
 				if(buf[l]==CTRL_A) { /* Ctrl-A, so skip it and the next char */
+					char ch;
 					l++;
 					if(buf[l]==0 || buf[l]=='Z')	/* EOF */
 						break;
@@ -5272,7 +5251,7 @@ int export_netmail(void)
 						lprintf(LOG_ERR, "!ERROR %d (%s) writing %u bytes to %s", errno, strerror(errno), filelen, fpath);
 					else {
 						lprintf(LOG_DEBUG, "Decoded MIME attachment stored as: %s", fpath);
-						msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
+						msg.hdr.auxattr |= MSG_FILEATTACH;
 						msg_subj = fpath;
 					}
 				}
@@ -5448,8 +5427,8 @@ void pack_netmail(void)
 			else {
 				fprintf(fp,"%s\n",getfname(hdr.subj));
 				fclose(fp);
-				if(write_flofile(req, addr,/* bundle: */false, cfg.use_outboxes, /* del_file: */true, hdr.attr))
-					continue;
+				if(write_flofile(req, addr,/* bundle: */false, cfg.use_outboxes, hdr.attr))
+					bail(1);
 				netmail_sent(path);
 			}
 			continue;
@@ -5508,18 +5487,7 @@ void pack_netmail(void)
 					SAFEPRINTF4(packet,"%s%04x%04x.%cut",outbound,addr.net,addr.node,ch);
 			}
 			if(hdr.attr&FIDO_FILE) {
-				// Parse Kill-File-Sent (KFS) from FLAGS from control paragraph (kludge line) within msg body
-				const char* flags = strstr(fmsgbuf, "\1FLAGS ");
-				if(flags != fmsgbuf && *(flags-1) != '\r' && *(flags-1) != '\n') flags = NULL;
-				const char* kfs = NULL;
-				if(flags != NULL) {
-					flags += 7;
-					char* cr = strchr(flags, '\r');
-					kfs = strstr(flags, "KFS");
-					if(kfs > cr)
-						kfs = NULL;
-				}
-				if(write_flofile(hdr.subj,addr,/* bundle: */false,/* use_outbox: */false, /* del_file: */kfs != NULL, hdr.attr))
+				if(write_flofile(hdr.subj,addr,/* bundle: */false,/* use_outbox: */false, hdr.attr))
 					bail(1);
 				SAFECOPY(hdr.subj, getfname(hdr.subj));	/* Don't include the file path in the subject */
 			}
@@ -6100,7 +6068,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.131 $", "%*s %s", revision);
+	sscanf("$Revision: 3.122 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

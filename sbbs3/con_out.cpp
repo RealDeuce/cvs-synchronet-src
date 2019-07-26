@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.118 2019/08/05 06:49:58 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.115 2019/07/24 05:24:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,7 +61,6 @@ char* sbbs_t::auto_utf8(const char* str, long* mode)
    P_UTF8
    P_AUTO_UTF8
    P_NOATCODES
-   P_TRUNCATE
  ****************************************************************************/
 int sbbs_t::bputs(const char *str, long mode)
 {
@@ -75,19 +74,6 @@ int sbbs_t::bputs(const char *str, long mode)
 	str = auto_utf8(str, &mode);
 	size_t len = strlen(str);
 	while(l < len && online) {
-		switch(str[l]) {
-			case '\b':
-			case '\r':
-			case '\n':
-			case FF:
-			case CTRL_A:
-				break;
-			default: // printing char
-				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
-					l++;
-					continue;
-				}
-		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
 			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
@@ -123,44 +109,12 @@ int sbbs_t::bputs(const char *str, long mode)
 			if(term&UTF8)
 				outcom(str[l++]);
 			else
-				l += print_utf8_as_cp437(str + l, len - l);
+				l += utf8_to_cp437(str + l, len - l);
 		} else
 			outchar(str[l++]);
 	}
 	return(l);
 }
-
-/****************************************************************************/
-/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
-/****************************************************************************/
-size_t sbbs_t::bstrlen(const char *str, long mode)
-{
-	str = auto_utf8(str, &mode);
-	size_t count = 0;
-	const char* end = str + strlen(str);
-	while (str < end) {
-		int len = 1;
-		if(*str == CTRL_A) {
-			str++;
-			if(*str == 0 || *str == 'Z')	// EOF
-				break;
-			if(*str == '[') // CR
-				count = 0;
-			else if(*str == '<' && count) // ND-Backspace
-				count--;
-		} else if(((*str) & 0x80) && (mode&P_UTF8)) {
-			enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
-			len = utf8_getc(str, end - str, &codepoint);
-			if(len < 1)
-				break;
-			count += unicode_width(codepoint);;
-		} else
-			count++;
-		str += len;
-	}
-	return count;
-}
-
 
 /* Perform PETSCII terminal output translation (from ASCII/CP437) */
 unsigned char cp437_to_petscii(unsigned char ch)
@@ -322,7 +276,7 @@ int sbbs_t::petscii_to_ansibbs(unsigned char ch)
 }
 
 // Return length of sequence
-size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
+size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 {
 	if(((*str)&0x80) == 0) {
 		outchar(*str);
@@ -449,22 +403,18 @@ int sbbs_t::rprintf(const char *fmt, ...)
 /****************************************************************************/
 /* Outputs destructive backspace 											*/
 /****************************************************************************/
-void sbbs_t::backspace(int count)
+void sbbs_t::backspace(void)
 {
-	if(count < 1)
-		return;
 	if(!(console&CON_ECHO_OFF)) {
-		for(int i = 0; i < count; i++) {
-			if(term_supports(PETSCII))
-				outcom(PETSCII_DELETE);
-			else {
-				outcom('\b');
-				outcom(' ');
-				outcom('\b');
-			}
-			if(column)
-				column--;
+		if(term_supports(PETSCII))
+			outcom(PETSCII_DELETE);
+		else {
+			outcom('\b');
+			outcom(' ');
+			outcom('\b');
 		}
+		if(column)
+			column--;
 	}
 }
 
@@ -756,40 +706,28 @@ void sbbs_t::wide(const char* str)
 
 
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
-void sbbs_t::carriage_return(int count)
+void sbbs_t::carriage_return(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) {
-		if(term_supports(PETSCII))
-			cursor_left(column);
-		else
-			outcom('\r');
-		column = 0;
-	}
+	if(term_supports(PETSCII))
+		cursor_left(column);
+	else
+		outcom('\r');
+	column = 0;
 }
 
 // Send a bare line_feed, hopefully moving the cursor down one row, current column
-void sbbs_t::line_feed(int count)
+void sbbs_t::line_feed(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) {
-		if(term_supports(PETSCII))
-			outcom(PETSCII_DOWN);
-		else 
-			outcom('\n');
-	}
+	if(term_supports(PETSCII))
+		outcom(PETSCII_DOWN);
+	else 
+		outcom('\n');
 }
 
-void sbbs_t::newline(int count)
+void sbbs_t::newline(void)
 {
-	if(count < 1)
-		return;
-	for(int i = 0; i < count; i++) { 
-		outchar('\r');
-		outchar('\n');
-	}
+	outchar('\r');
+	outchar('\n');
 }
 
 void sbbs_t::clearline(void)
