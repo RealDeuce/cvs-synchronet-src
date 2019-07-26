@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.165 2019/07/25 10:55:01 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.166 2019/07/26 05:18:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -172,15 +172,21 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 			i++;
 			continue; 
 		}
-		/* Strip FidoNet Kludge Lines? */
-		if(buf[l]==CTRL_A && useron_xedit
-			&& cfg.xedit[useron_xedit-1]->misc&STRIPKLUDGE) {
-			while(buf[l] && buf[l]!=LF) 
-				l++;
-			if(buf[l]==0)
-				break;
-			continue;
+		if(buf[l] == CTRL_A) {
+			/* Strip FidoNet Kludge Lines? */
+			if(useron_xedit
+				&& cfg.xedit[useron_xedit-1]->misc&STRIPKLUDGE) {
+				while(buf[l] && buf[l]!=LF) 
+					l++;
+				if(buf[l]==0)
+					break;
+				continue;
+			}
+			/* Convert invalid or dangerous Ctrl-A codes */
+			if(!valid_ctrl_a_attr(buf[l + 1]))
+				buf[l] = '@';
 		}
+
 		if(!(mode&(WM_EMAIL|WM_NETMAIL|WM_EDIT))
 			&& (!l || buf[l-1]==LF)
 			&& buf[l]=='-' && buf[l+1]=='-' && buf[l+2]=='-'
