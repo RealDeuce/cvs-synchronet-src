@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.59 2020/04/06 02:49:34 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.53 2019/07/26 05:23:57 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,7 +37,6 @@
 #include "sbbs.h"
 #include "wordwrap.h"
 #include "utf8.h"
-#include "zmodem.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string with @-code parsing,                    */
@@ -60,7 +59,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 	ulong	l=0,sys_status_sav=sys_status;
 	int		defered_pause=FALSE;
 	uint	lines_printed = 0;
-	enum output_rate output_rate = cur_output_rate;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -106,12 +104,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			case FF:
 			case CTRL_A:
 				break;
-			case ZHEX:
-				if(l && str[l - 1] == ZDLE) {
-					l++;
-					continue;
-				}
-				// fallthrough
 			default: // printing char
 				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
 					l++;
@@ -146,9 +138,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			else if(str[l+1] == 'Z')	/* Ctrl-AZ==EOF (uppercase 'Z' only) */
 				break;
 			else {
-				bool was_tos = tos;
 				ctrl_a(str[l+1]);
-				if(tos && !was_tos && (sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
+				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
 					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				l+=2;
 			}
@@ -157,8 +148,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			outchar(ESC); /* Convert `[ and ú[ to ESC[ */
 			l++;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_PCBOARD) && str[l]=='@' && str[l+1]=='X'
+		else if(cfg.sys_misc&SM_PCBOARD && str[l]=='@' && str[l+1]=='X'
 			&& isxdigit((unsigned char)str[l+2]) && isxdigit((unsigned char)str[l+3])) {
 			sprintf(tmp2,"%.2s",str+l+2);
 			ulong val = ahtoul(tmp2);
@@ -178,16 +168,14 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=4;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_WILDCAT) && str[l]=='@' && str[l+3]=='@'
+		else if(cfg.sys_misc&SM_WILDCAT && str[l]=='@' && str[l+3]=='@'
 			&& isxdigit((unsigned char)str[l+1]) && isxdigit((unsigned char)str[l+2])) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			attr(ahtoul(tmp2));
 			// exatr=1;
 			l+=4;
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_RENEGADE) && str[l]=='|' && isdigit((unsigned char)str[l+1])
+		else if(cfg.sys_misc&SM_RENEGADE && str[l]=='|' && isdigit((unsigned char)str[l+1])
 			&& isdigit((unsigned char)str[l+2]) && !(useron.misc&RIP)) {
 			sprintf(tmp2,"%.2s",str+l+1);
 			i=atoi(tmp2);
@@ -202,8 +190,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=3;	/* Skip |xx */
 		}
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_CELERITY) && str[l]=='|' && isalpha((unsigned char)str[l+1])
+		else if(cfg.sys_misc&SM_CELERITY && str[l]=='|' && isalpha((unsigned char)str[l+1])
 			&& !(useron.misc&RIP)) {
 			switch(str[l+1]) {
 				case 'k':
@@ -261,8 +248,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			exatr=1;
 			l+=2;	/* Skip |x */
 		}  /* Skip second digit if it exists */
-		else if(!(mode&P_NOXATTRS)
-			&& (cfg.sys_misc&SM_WWIV) && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
+		else if(cfg.sys_misc&SM_WWIV && str[l]==CTRL_C && isdigit((unsigned char)str[l+1])) {
 			exatr=1;
 			switch(str[l+1]) {
 				default:
@@ -324,7 +310,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					break;
 				if(memcmp(str+l, "@CLEAR@", 7) == 0) {
 					CLS;
-					sys_status &= ~SS_ABORT;
 					l += 7;
 					while(str[l] != 0 && (str[l] == '\r' || str[l] == '\n'))
 						l++;
@@ -365,10 +350,10 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 					mode |= P_NOABORT;
 					continue;
 				}
-				bool was_tos = tos;
- 				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
+
+				i=show_atcode((char *)str+l);	/* returns 0 if not valid @ code */
 				l+=i;					/* i is length of code string */
-				if(tos && !was_tos && (sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
+				if((sys_status&SS_ABORT) && !lines_printed)	/* Aborted at (auto) pause prompt (e.g. due to CLS)? */
 					sys_status &= ~SS_ABORT;				/* Clear the abort flag (keep displaying the msg/file) */
 				if(i)					/* if valid string, go to top */
 					continue;
@@ -385,7 +370,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if(term&UTF8)
 					outcom(str[l]);
 				else
-					skip = print_utf8_as_cp437(str + l, len - l);
+					skip = utf8_to_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
 			l += skip;
@@ -395,8 +380,6 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		console=orgcon;
 		attr(tmpatr);
 	}
-	if(!(mode&P_NOATCODES) && cur_output_rate != output_rate)
-		set_output_rate(output_rate);
 
 	attr_sp=0;	/* clear any saved attributes */
 

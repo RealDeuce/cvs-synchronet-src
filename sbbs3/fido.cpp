@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.77 2020/04/19 07:20:38 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.74 2019/07/26 08:13:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return qnetmail(to, subj, mode, resmb, remsg);
+		return qnetmail(to, title, mode, resmb, remsg);
 	}
 	if(net_type == NET_INTERNET) {
 		if(!(cfg.inetmail_misc&NMAIL_ALLOW)) {
@@ -169,12 +169,11 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return inetmail(to, subj, mode, resmb, remsg);
+		return inetmail(to, title, mode, resmb, remsg);
 	}
 	p=strrchr(to,'@');      /* Find '@' in name@addr */
 	if(p==NULL || net_type != NET_FIDO) {
-		if(!(sys_status&SS_ABORT))
-			bputs(text[InvalidNetMailAddr]);
+		bputs(text[InvalidNetMailAddr]);
 		return false; 
 	}
 	if(!cfg.total_faddrs || (!SYSOP && !(cfg.netmail_misc&NMAIL_ALLOW))) {
@@ -234,7 +233,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	if(cfg.netmail_misc&NMAIL_CRASH) msg.hdr.netattr |= MSG_CRASH;
 	if(cfg.netmail_misc&NMAIL_HOLD)  msg.hdr.netattr |= MSG_HOLD;
 	if(cfg.netmail_misc&NMAIL_KILL)  msg.hdr.netattr |= MSG_KILLSENT;
-	if(mode&WM_FILE) msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE); 
+	if(mode&WM_FILE) msg.hdr.auxattr |= MSG_FILEATTACH; 
 
 	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
 		if(quotemsg(resmb, remsg, /* include tails: */true))
@@ -281,7 +280,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			if(x<cfg.total_prots)	/* This should be always */
 				protocol(cfg.prot[x],XFER_UPLOAD,subj,nulstr,true); 
 		}
-		sprintf(tmp,"%s%s",cfg.temp_dir,subj);
+		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(subj) && fexistcase(tmp))
 			mv(tmp,subj,0);
 		l=(long)flength(subj);
