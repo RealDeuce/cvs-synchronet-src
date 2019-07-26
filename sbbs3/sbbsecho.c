@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.121 2019/07/26 04:55:19 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.122 2019/07/26 08:13:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4916,8 +4916,6 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 					l++;
 					if(buf[l]==0 || buf[l]=='Z')	/* EOF */
 						break;
-					if((ch=ctrl_a_to_ascii_char(buf[l])) != 0)
-						fmsgbuf[f++]=ch;
 					continue;
 				}
 
@@ -6070,7 +6068,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.121 $", "%*s %s", revision);
+	sscanf("$Revision: 3.122 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
