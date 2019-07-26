@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.135 2019/08/04 22:48:38 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.132 2019/07/10 20:38:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1084,24 +1084,13 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr=NULL;
 	size_t		cstr_sz=0;
 	jsrefcount	rc;
-	int32		pmode = 0;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc == 2 && JSVAL_IS_STRING(argv[0]) && JSVAL_IS_NUMBER(argv[1])) {
-		JSVALUE_TO_RASTRING(cx, argv[0], cstr, &cstr_sz, NULL);
-		if(cstr==NULL)
-		    return(JS_FALSE);
-		if(!JS_ValueToInt32(cx, argv[1], &pmode))
-			return JS_FALSE;
-		rc=JS_SUSPENDREQUEST(cx);
-		sbbs->bputs(cstr, pmode);
-		JS_RESUMEREQUEST(cx, rc);
-	}
-    else for (i=0; i < argc; i++) {
+    for (i = 0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
 		if(cstr==NULL)
 		    return(JS_FALSE);
@@ -1119,28 +1108,20 @@ static JSBool
 js_strlen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	sbbs_t*		sbbs;
     JSString*	str;
 	char*		cstr;
 	jsrefcount	rc;
-	int32		pmode = 0;
-
-	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
-		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
-	if(argc > 1)
-		JS_ValueToInt32(cx, argv[1], &pmode);
-
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->bstrlen(cstr, pmode)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(bstrlen(cstr)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1994,10 +1975,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("beep for <i>count</i> number of times (default count is 1)")
 	,311
 	},
-	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("[value [,value][...]] or [string [,mode=<tt>P_NONE</tt>]]")
-	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.).<br>"
-		"Supports a limited set of <tt>P_*</tt> flags, e.g. <tt>P_PETSCII</tt> and <tt>P_UTF8</tt>."
-	)
+	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
+	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.)")
 	,310
 	},
 	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
@@ -2022,8 +2001,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a string double-wide on the screen (sending \"fullwidth\" Unicode characters when possible)")
 	,31702
 	},
-	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
-	,JSDOCSTR("returns the printed-length (number of columns) of the specified <i>text</i>, accounting for Ctrl-A codes")
+	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
+	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
 	,310
 	},
 	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>] [,orig_columns=0")
