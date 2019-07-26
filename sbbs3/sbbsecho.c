@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.120 2019/07/25 10:54:04 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.121 2019/07/26 04:55:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3399,7 +3399,10 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 		}
 
 		ch=fbuf[l];
-		if(ch==CTRL_A && cr) {	/* kludge line */
+		if(ch==CTRL_A && !cr)
+			ch = '@';
+
+		if(ch==CTRL_A) {	/* kludge line */
 
 			if(!strncmp((char *)fbuf+l+1,"TOPT ",5))
 				destaddr.point=atoi((char *)fbuf+l+6);
@@ -6067,7 +6070,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.120 $", "%*s %s", revision);
+	sscanf("$Revision: 3.121 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
