@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.79 2018/10/22 02:27:16 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.80 2018/10/26 03:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -368,9 +368,7 @@ void sbbs_t::multinodechat(int channel)
 						done=1;
 						break;
 					case '*':
-						if(menu_exists("chan"))
-							menu("chan");
-						else {
+						if(!menu("chan", P_NOERROR)) {
 							bputs(text[ChatChanLstHdr]);
 							bputs(text[ChatChanLstTitles]);
 							if(cfg.total_chans>=10) {
