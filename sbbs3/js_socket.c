@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.230 2019/08/04 17:49:51 deuce Exp $ */
+/* $Id: js_socket.c,v 1.229 2019/06/21 19:53:29 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2319,7 +2319,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	memset(p,0,sizeof(js_socket_private_t));
 
-	if((p->sock=open_socket(PF_INET,type,protocol))==INVALID_SOCKET) {
+	if((p->sock=open_socket(type,protocol))==INVALID_SOCKET) {
 		JS_ReportError(cx,"open_socket failed with error %d",ERROR_VALUE);
 		if(protocol)
 			free(protocol);
