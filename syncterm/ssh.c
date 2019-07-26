@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.22 2018/02/01 08:28:22 deuce Exp $ */
+/* $Id: ssh.c,v 1.24 2019/07/11 18:31:45 deuce Exp $ */
 
 #include <stdlib.h>
 
@@ -146,7 +146,7 @@ int ssh_connect(struct bbslist *bbs)
 	char password[MAX_PASSWD_LEN+1];
 	char username[MAX_USER_LEN+1];
 	int	rows,cols;
-	struct text_info ti;
+	const char *term;
 
 	init_uifc(TRUE, TRUE);
 	pthread_mutex_init(&ssh_mutex, NULL);
@@ -236,25 +236,10 @@ int ssh_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Type");
-	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_SSH_TERMINAL, "syncterm", 8);
+	term = get_emulation_str(get_emulation(bbs));
+	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_SSH_TERMINAL, term, strlen(term));
 
-	/* Horrible way to determine the screen size */
-	textmode(screen_to_ciolib(bbs->screen_mode));
-
-	gettextinfo(&ti);
-	if(ti.screenwidth < 80)
-		cols=40;
-	else {
-		if(ti.screenwidth < 132)
-			cols=80;
-		else
-			cols=132;
-	}
-	rows=ti.screenheight;
-	if(!bbs->nostatus)
-		rows--;
-	if(rows<24)
-		rows=24;
+	get_term_size(bbs, &cols, &rows);
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Width");

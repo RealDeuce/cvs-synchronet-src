@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.701 2019/06/28 23:05:39 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.706 2019/07/25 02:19:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -48,6 +48,7 @@
 #undef SBBS	/* this shouldn't be defined unless building sbbs.dll/libsbbs.so */
 #include "sbbs.h"
 #include "mailsrvr.h"
+#include "utf8.h"
 #include "mime.h"
 #include "md5.h"
 #include "crc32.h"
@@ -719,7 +720,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
 	}
-	if(p!=NULL) {
+	if(p!=NULL && strchr((char*)p, '@') != NULL) {
 		if(np!=NULL)
 			s=sockprintf(socket,prot,sess,"Reply-To: \"%s\" <%s>",np,p);
 		else 
@@ -765,9 +766,10 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
         }
     }
 	/* Default MIME Content-Type for non-Internet messages */
-	if(msg->from_net.type!=NET_INTERNET && content_type==NULL && startup->default_charset[0]) {
-		/* No content-type specified, so assume IBM code-page 437 (full ex-ASCII) */
-		sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", startup->default_charset);
+	if(msg->from_net.type!=NET_INTERNET && content_type==NULL) {
+		const char* charset =  smb_msg_is_utf8(msg) ? "UTF-8" : startup->default_charset;
+		if(*charset)
+			sockprintf(socket,prot,sess,"Content-Type: text/plain; charset=%s", charset);
 		sockprintf(socket,prot,sess,"Content-Transfer-Encoding: 8bit");
 	}
 
@@ -2338,15 +2340,6 @@ void js_cleanup(JSRuntime* js_runtime, JSContext* js_cx, JSObject** js_glob)
 }
 #endif
 
-bool strIsPlainAscii(const char* str)
-{
-	for(const char* p = str; *p != 0; p++) {
-		if(*p < 0)
-			return false;
-	}
-	return true;
-}
-
 static size_t strStartsWith_i(const char* buf, const char* match)
 {
 	size_t len = strlen(match);
@@ -2402,78 +2395,6 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 	return MIMEHDR_CHARSET_OTHER;
 }
 
-static uchar* normalize_utf8(uchar* str)
-{
-	uchar* dest = str;
-
-	for(uchar* src = str; *src != 0; src++) {
-		// UNICODE NO-BREAK SPACE -> ASCII space
-		if(*src == 0xc2 && *src == 0xa0) {
-			src++;
-			*dest++ = ' ';
-			continue;
-		}
-		if(*src == 0xe2) {
-			// UNICODE HORIZONTAL ELLIPSIS -> ASCII periods (3)
-			if(*(src + 1) == 0x80 && *(src + 2) == 0xa6) {
-				src += 2;
-				for(int i = 0; i < 3; i++)
-					*dest++ =  '.';
-				continue;
-			}
-			// UNICODE EN SPACE -> ASCII space
-			// UNICODE EM SPACE -> ASCII space
-			if(*(src + 1) == 0x80 && (*(src + 2) == 0x82 || *(src + 2) == 0x83)) {
-				src += 2;
-				*dest++ = ' ';
-				continue;
-			}
-			// UNICODE HYPEN -> ASCII hyphen
-			// UNICODE HYPEN BULLET -> ASCII hyphen
-			// UNICODE NON-BREAKING HYPEN -> ASCII hyphen
-			// UNICODE MINUS SIGN -> ASCII hyphen
-			if((*(src + 1) == 0x80 && *(src + 2) == 0x90)
-				|| (*(src + 1) == 0x80 && *(src + 2) == 0x91)
-				|| (*(src + 1) == 0x81 && *(src + 2) == 0x83)
-				|| (*(src + 1) == 0x88 && *(src + 2) == 0x92)) {
-				src += 2;
-				*dest++ = '-';
-				continue;
-			}
-			// UNICODE EN DASH -> ASCII hyphen
-			// UNICODE EM DASH -> ASCII hyphen
-			if(*(src + 1) == 0x80 && (*(src + 2) == 0x93 || *(src + 2) == 0x94)) {
-				src += 2;
-				*dest++ = '-';
-				continue;
-			}
-			// UNICODE LEFT SINGLE QUOTATION MARK -> ASCII backtick
-			if(*(src + 1) == 0x80 && *(src + 2) == 0x98) {
-				src += 2;
-				*dest++ = '`';
-				continue;
-			}
-			// UNICODE PRIME -> ASCII apostrophe
-			// UNICODE RIGHT SINGLE QUOTATION MARK -> ASCII apostrophe
-			if(*(src + 1) == 0x80 && (*(src + 2) == 0xB2 || *(src + 2) == 0x99)) {
-				src += 2;
-				*dest++ = '\'';
-				continue;
-			}
-			// UNICODE LEFT DOUBLE QUOTATION MARK -> ASCII double-quote
-			// UNICODE RIGHT DOUBLE QUOTATION MARK -> ASCII double-quote
-			if(*(src + 1) == 0x80 && (*(src + 2) == 0x9c || *(src + 2) == 0x9d)) {
-				src += 2;
-				*dest++ = '"';
-				continue;
-			}
-		}
-		*dest++ = *src;
-	}
-	*dest = 0;
-	return str;
-}
-
 // Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
 // Returns true if the last 'atom' in 'str' was an 'encoded-word' that was normalized
 bool normalize_hfield_value(char* str)
@@ -2505,15 +2426,15 @@ bool normalize_hfield_value(char* str)
 				if(encoding == 'Q') {
 					mimehdr_q_decode(tmp);
 					if(charset == MIMEHDR_CHARSET_UTF8)
-						normalize_utf8((uchar*)tmp);
-					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+						utf8_normalize_str(tmp);
+					if(charset == MIMEHDR_CHARSET_CP437 || str_is_ascii(tmp))
 						p = tmp;
 				}
 				else if(encoding == 'B' 
 					&& b64_decode(tmp, sizeof(tmp), tmp, strlen(tmp)) > 0) { // base64
 					if(charset == MIMEHDR_CHARSET_UTF8)
-						normalize_utf8((uchar*)tmp);
-					if(charset == MIMEHDR_CHARSET_CP437 || strIsPlainAscii(tmp))
+						utf8_normalize_str(tmp);
+					if(charset == MIMEHDR_CHARSET_CP437 || str_is_ascii(tmp))
 						p = tmp;
 				}
 			}
@@ -2724,7 +2645,7 @@ static void parse_mail_address(char* p
 							   ,char* addr, size_t addr_len)
 {
 	char*	tp;
-	char	tmp[128];
+	char	tmp[256];
 
 	SKIP_WHITESPACE(p);
 
@@ -5939,7 +5860,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.701 $", "%*s %s", revision);
+	sscanf("$Revision: 1.706 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
