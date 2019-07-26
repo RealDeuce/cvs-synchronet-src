@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.59 2019/08/23 21:45:55 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.54 2019/07/26 19:59:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
 
 static sub_t** cut_qhub_sub;
 
-bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long misc)
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub)
 {
 	sub_t* new_subboard;
 	if ((new_subboard = (sub_t *)malloc(sizeof(*new_subboard))) == NULL) {
@@ -47,7 +47,6 @@ bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long mi
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
 	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_FAST);
-	new_subboard->misc |= misc;
 	new_subboard->maxmsgs = 500;
 
 	/* Use last sub in group (if exists) as a template for new subs */
@@ -122,7 +121,7 @@ void remove_sub(scfg_t* cfg, unsigned subnum, bool cut)
 
 void sub_cfg(uint grpnum)
 {
-	static int dflt,tog_dflt,tog_bar,opt_dflt,net_dflt,adv_dflt,bar;
+	static int dflt,tog_dflt,opt_dflt,net_dflt,adv_dflt,bar;
 	char str[128],str2[128],done=0,code[128];
 	char path[MAX_PATH+1];
 	char data_dir[MAX_PATH+1];
@@ -274,7 +273,7 @@ void sub_cfg(uint grpnum)
 				continue; 
 			}
 
-			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL))
 				continue;
 
 			SAFECOPY(cfg.sub[subnum[i]]->code_suffix,code);
@@ -311,7 +310,7 @@ void sub_cfg(uint grpnum)
 					if(j==-1)
 						continue;
 					if(j==0)
-						delfiles(data_dir,str, /* keep: */0);
+						delfiles(data_dir,str);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -326,7 +325,7 @@ void sub_cfg(uint grpnum)
 			continue; 
 		}
 		if(msk == MSK_PASTE) {
-			if (!new_sub(subnum[i], grpnum, &savsub, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, &savsub))
 				continue;
 			uifc.changes = TRUE;
 			continue; 
@@ -560,10 +559,6 @@ void sub_cfg(uint grpnum)
 							,cfg.sub[i]->misc&SUB_LZH ? "Yes" : "No");
 						sprintf(opt[n++],"%-27.27s%s","Extra Attribute Codes"
 							,cfg.sub[i]->pmode&P_NOXATTRS ? "No" : "Yes");
-						sprintf(opt[n++],"%-27.27s%s","Word-wrap Messages"
-							,cfg.sub[i]->n_pmode&P_WORDWRAP ? "No" : "Yes");
-						sprintf(opt[n++],"%-27.27s%s","Auto-detect UTF-8 Msgs"
-							,cfg.sub[i]->pmode&P_AUTO_UTF8 ? "Yes" : "No");
 						sprintf(opt[n++],"%-27.27s%s","Template for New Subs"
 							,cfg.sub[i]->misc&SUB_TEMPLATE ? "Yes" : "No");
 
@@ -574,7 +569,7 @@ void sub_cfg(uint grpnum)
 							"This menu allows you to toggle certain options for the selected\n"
 							"sub-board between two or more settings, such as `Yes` and `No`.\n"
 						;
-						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,1,36,&tog_dflt, &tog_bar
+						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,1,36,&tog_dflt,0
 							,"Toggle Options",opt);
 						if(n==-1)
 							break;
@@ -1058,52 +1053,6 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 16:
-								n=(cfg.sub[i]->n_pmode&P_WORDWRAP) ? 1:0;
-								uifc.helpbuf=
-									"`Word-wrap Message Text:`\n"
-									"\n"
-									"Set this option to `No` to disable the automatic reflowing (word-wrapping)\n"
-									"of the lines of text of messages in this sub-board when viewed from the\n"
-									"Terminal Server."
-								;
-								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-									,"Word-wrap Message Text",uifcYesNoOpts);
-								if(n==-1)
-									break;
-								if(n == 0 && (cfg.sub[i]->n_pmode&P_WORDWRAP)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->n_pmode ^= P_WORDWRAP;
-								}
-								else if(n == 1 && !(cfg.sub[i]->n_pmode&P_WORDWRAP)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->n_pmode ^= P_WORDWRAP;
-								}
-								break;
-							case 17:
-								n=(cfg.sub[i]->pmode&P_AUTO_UTF8) ? 0:1;
-								uifc.helpbuf=
-									"`Automatically Detect UTF-8 Message Text:`\n"
-									"\n"
-									"Set this option to `Yes` to enable automatic detection of UTF-8 message\n"
-									"text during display; no \"`charset=utf-8`\" need be specified by the sender.\n"
-									"\n"
-									"Note: Setting this option to `Yes` does *not* enable automatic detection\n"
-									"of UTF-8 header field values (e.g. To, From, Subject)."
-								;
-								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-									,"Automatically Detect UTF-8 Message Text",uifcYesNoOpts);
-								if(n==-1)
-									break;
-								if(n == 0 && !(cfg.sub[i]->pmode&P_AUTO_UTF8)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->pmode ^= P_AUTO_UTF8;
-								}
-								else if(n == 1 && (cfg.sub[i]->pmode&P_AUTO_UTF8)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->pmode ^= P_AUTO_UTF8;
-								}
-								break;
-							case 18:
 								n=(cfg.sub[i]->misc&SUB_TEMPLATE) ? 0:1;
 								uifc.helpbuf=
 									"`Use this Sub-board as a Template for New Subs:`\n"
@@ -1459,7 +1408,7 @@ void sub_cfg(uint grpnum)
 										,cfg.grp[cfg.sub[i]->grp]->code_prefix
 										,cfg.sub[i]->code_suffix);
 									strlwr(str2);
-									delfiles(str,str2, /* keep: */0); 
+									delfiles(str,str2); 
 								}
 
 								if(cfg.sub[i]->misc&SUB_HYPER)
