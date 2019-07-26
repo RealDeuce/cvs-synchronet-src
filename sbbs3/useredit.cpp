@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.63 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.64 2019/07/26 02:32:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -928,7 +928,8 @@ void sbbs_t::maindflts(user_t* user)
 					user->misc |= COLOR;
 					user->misc &= ~ICE_COLOR;
 					if(yesno(text[ColorTerminalQ])) {
-						if(!noyes(text[IceColorTerminalQ]))
+						if(!(console&(CON_BLINK_FONT|CON_HBLINK_FONT))
+							&& !noyes(text[IceColorTerminalQ]))
 							user->misc |= ICE_COLOR;
 					} else
 						user->misc &= ~COLOR;
