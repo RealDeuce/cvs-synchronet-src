@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.82 2018/10/25 09:32:10 rswindell Exp $ */
+/* $Id: str.cpp,v 1.84 2019/07/17 00:34:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -694,7 +694,8 @@ bool sbbs_t::inputnstime(time_t *dt)
 /*****************************************************************************/
 bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 {
-	char c,d,first[128],last[128],sysop[41],sysname[41],*p;
+	char first[128],last[128],sysop[41],sysname[41],*p;
+	int  c, d;
 	char alias[LEN_ALIAS+1], name[LEN_NAME+1], handle[LEN_HANDLE+1];
 	char pass[LEN_PASS+1];
 
@@ -941,15 +942,13 @@ void sbbs_t::user_info()
 void sbbs_t::xfer_policy()
 {
 	if(!usrlibs) return;
-	if(menu_exists("tpolicy"))
-		menu("tpolicy");
-	else {
+	if(!menu("tpolicy", P_NOERROR)) {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
 		bprintf(text[TpUpload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->up_pct);
 		bprintf(text[TpDownload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->dn_pct);
-		}
+	}
 }
 
 const char* prot_menu_file[] = {
@@ -962,8 +961,7 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	if(menu_exists(prot_menu_file[type])) {
-		menu(prot_menu_file[type]);
+	if(menu(prot_menu_file[type], P_NOERROR)) {
 		return;
 	}
 
