@@ -1,4 +1,6 @@
-/* $Id: vidmodes.h,v 1.30 2019/07/25 18:20:45 deuce Exp $ */
+/* Synchronet Unicode encode/decode/translate functions */
+
+/* $Id: unicode.h,v 1.3 2019/07/10 00:02:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,99 +33,22 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifndef _VIDMODES_H_
-#define _VIDMODES_H_
+#ifndef UNICODE_H_
+#define UNICODE_H_
 
-#if (defined CIOLIB_IMPORTS)
- #undef CIOLIB_IMPORTS
-#endif
-#if (defined CIOLIB_EXPORTS)
- #undef CIOLIB_EXPORTS
-#endif
+#include <stdlib.h>
+#include "unicode_defs.h"
 
-#include "ciolib.h"
-
-#define TOTAL_DAC_SIZE	274
-
-/* Entry type for the DAC table. */
-struct dac_colors {
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-};
-
-struct  video_params {
-	int	mode;
-	int palette;
-	int	cols;
-	int rows;
-	int	curs_start;
-	int curs_end;
-	int charheight;
-	int charwidth;
-	int	vmultiplier;
-};
-
-struct vstat_vmem {
-	unsigned refcount;
-	struct vmem_cell *vmem;
-};
-
-struct video_stats {
-	int rows;
-	int cols;
-	int curs_row;
-	int curs_col;
-	int curs_start;
-	int curs_end;
-	int curs_blinks;
-	int curs_visible;
-	int default_curs_start;
-	int default_curs_end;
-	int mode;
-	int charheight;
-	int charwidth;
-	int bright_background;
-	int blink;
-	int curs_blink;
-	int no_bright;
-	int no_blink;
-	int bright_altcharset;
-	int blink_altcharset;
-	int currattr;
-	int scaling;
-	int	vmultiplier;
-	uint32_t flags;
-#define VIDMODES_FLAG_PALETTE_VMEM	1
-	uint32_t palette[16];
-	struct vstat_vmem *vmem;
-};
-
-enum {
-	 MONO_PALETTE
-	,GREYSCALE_PALETTE
-	,COLOUR_PALETTE
-	,C64_PALETTE
-	,ATARI_PALETTE
-};
-
-extern struct video_params vparams[53];
-#define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
-extern uint32_t palettes[5][16];
-extern struct dac_colors dac_default[TOTAL_DAC_SIZE];
-extern char vga_font_bitmap[4096];
-extern char vga_font_bitmap14[3584];
-extern char vga_font_bitmap8[2048];
-
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
-int find_vmode(int mode);
-struct vstat_vmem *get_vmem(struct video_stats *vs);
-void release_vmem(struct vstat_vmem *vm);
-int load_vmode(struct video_stats *vs, int mode);
-#ifdef __cplusplus
+
+extern enum unicode_codepoint cp437_unicode_tbl[];
+size_t unicode_width(enum unicode_codepoint);
+char unicode_to_cp437(enum unicode_codepoint);
+
+#if defined(__cplusplus)
 }
 #endif
 
-#endif
+#endif // Don't add anything after this line
