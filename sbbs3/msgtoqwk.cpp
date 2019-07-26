@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.60 2019/07/26 08:26:30 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.61 2019/07/26 19:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 	, int conf, FILE* hdrs, FILE* voting)
 {
 	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
-	char	asc;
 	char	msgid[256];
 	char	reply_id[256];
 	char 	tmp[512];
