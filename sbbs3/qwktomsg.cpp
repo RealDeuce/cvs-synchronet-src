@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.71 2019/04/10 00:18:09 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.74 2019/07/26 08:26:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -131,6 +131,8 @@ static void qwk_parse_header_list(ulong confnum, smbmsg_t* msg, str_list_t* head
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOFLAGS),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOTID),value))!=NULL)
+		smb_hfield_str(msg,hfield_type,p);
+	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOCHARSET),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
 	while((p=iniPopKey(headers,ROOT_SECTION,smb_hfieldtype(hfield_type=FIDOCTRL),value))!=NULL)
 		smb_hfield_str(msg,hfield_type,p);
@@ -305,6 +307,10 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 
 	kludges=strListInit();
 
+	char qwk_newline = QWK_NEWLINE;
+	if(smb_msg_is_utf8(msg))
+		qwk_newline = '\n';
+
 	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
 		if(qwkbuf[k]==0)
 			continue;
@@ -314,7 +320,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 					&& (strnicmp(qwkbuf+k,"To:",3)==0 
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
-			if((p=strchr(qwkbuf+k, QWK_NEWLINE))==NULL) {
+			if((p=strchr(qwkbuf+k, qwk_newline))==NULL) {
 				body[bodylen++]=qwkbuf[k];
 				continue;
 			}
@@ -332,7 +338,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			col++;
 			continue; 
 		}
-		if(qwkbuf[k]==QWK_NEWLINE) {		/* expand QWK_NEWLINE to crlf */
+		if(qwkbuf[k]==qwk_newline) {		/* expand QWK_NEWLINE to crlf */
 			if(!bodylen && !taillen)		/* Ignore blank lines at top of message */
 				continue;
 			if(!taillen && col==3 && bodylen>=3 && body[bodylen-3]=='-'
@@ -361,11 +367,11 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 			continue;
 		if(qwkbuf[k]!=CTRL_A && lastch!=CTRL_A)
 			col++;
-		if(lastch==CTRL_A && !valid_ctrl_a_code(qwkbuf[k])) {
+		if(lastch==CTRL_A && !valid_ctrl_a_attr(qwkbuf[k])) {
 			if(taillen) taillen--;
 			else		bodylen--;
 			lastch=0;
-			continue; 
+			continue;
 		}
 		lastch=qwkbuf[k];
 		if(taillen)
