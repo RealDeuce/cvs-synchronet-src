@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.48 2019/08/22 00:15:06 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.46 2019/07/23 04:55:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -560,7 +560,7 @@ void binkp_settings(nodecfg_t* node)
 int main(int argc, char **argv)
 {
 	char str[256],*p;
-	int i,j,k,x,dflt,nodeop=0,nodeopbar=0,packop=0,listop=0;
+	int i,j,k,x,dflt,nodeop=0,packop=0,listop=0;
 	echolist_t savlistcfg;
 	nodecfg_t savnodecfg;
 	arcdef_t savarcdef;
@@ -727,11 +727,8 @@ int main(int argc, char **argv)
 	int node_opt = 0;
 	int node_bar = 0;
 	int archive_opt = 0;
-	int archive_bar = 0;
 	int echolist_opt = 0;
-	int echolist_bar = 0;
 	int domain_opt = 0;
-	int domain_bar = 0;
 	dflt=0;
 	while(1) {
 		if(memcmp(&cfg, &orig_cfg, sizeof(cfg)) != 0)
@@ -829,7 +826,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if (savnodecfg.addr.zone)
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&node_opt,&node_bar,"Linked Nodes",opt);
+					i=uifc.list(mode,0,0,0,&node_opt,NULL,"Linked Nodes",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -1025,7 +1022,7 @@ int main(int argc, char **argv)
 						opt[j][0]=0;
 						SAFEPRINTF(str, "Linked Node - %s"
 							,cfg.nodecfg[i].name[0] ? cfg.nodecfg[i].name : faddrtoa(&cfg.nodecfg[i].addr));
-						k=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&nodeop,&nodeopbar,str,opt);
+						k=uifc.list(WIN_MID|WIN_ACT|WIN_SAV,0,0,0,&nodeop,&node_bar,str,opt);
 						if(k==-1)
 							break;
 						switch(k) {
@@ -1754,10 +1751,10 @@ int main(int argc, char **argv)
 	"    (`---`) existing in outgoing EchoMail message text to `===`.\n"
 	"    This setting defaults to `No`.\n"
 	"\n"
-	"`Automatically Add New Subs to Area List`, when enabled, instructs\n"
+	"`Automatically Add New Subs to Area File`, when set to `Yes`, enables\n"
 	"    SBBSecho to detect newly added Sub-boards in any Message Groups that\n"
-	"    are listed with a `Linked Node` as their hub/uplink and add those new\n"
-	"    Sub-boards as new areas to your Area List and optionally, Area File.\n"
+	"    are listed with a `Linked Node` as their hub/uplink and add those\n"
+	"    Sub-boards as new areas in your Area File.\n"
 	"\n"
 	"`Allow Nodes to Add Areas from Area File` when set to `Yes` allows linked\n"
 	"    nodes to add areas listed in your Area File (e.g. `areas.bbs`).\n"
@@ -1805,8 +1802,8 @@ int main(int argc, char **argv)
 						,cfg.echomail_notify ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Convert Existing Tear Lines"
 						,cfg.convert_tear ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Automatically Add New Subs "
-						"to Area List", cfg.auto_add_subs ? (cfg.auto_add_to_areafile ? "List/File":"List Only"):"No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Automatically Add New Subs "
+						"to Area File",cfg.auto_add_subs ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Allow Nodes to Add Areas "
 						"from Area File",cfg.add_from_echolists_only ? "No":"Yes");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%u","Maximum Backups to Maintain of Area File"
@@ -1887,22 +1884,11 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 6:
-							i=0;
-							strncpy(opt[i++], "Area List (memory) Only", MAX_OPLN-1);
-							strncpy(opt[i++], "Area List and Area File", MAX_OPLN-1);
-							strncpy(opt[i++], "No", MAX_OPLN-1);
-							opt[i][0] = 0;
-							if(!cfg.auto_add_subs)
-								k = 2;
-							else if(cfg.auto_add_to_areafile)
-								k = 1;
-							else
-								k = 0;
+							k = !cfg.auto_add_subs;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Automatically Add New Sub-boards to Area List",opt)) {
-								case 0:	cfg.auto_add_subs = true;	cfg.auto_add_to_areafile = false; break;
-								case 1:	cfg.auto_add_subs = true;	cfg.auto_add_to_areafile = true; break;
-								case 2:	cfg.auto_add_subs = false;	break;
+								,"Automatically Add New Sub-boards to Area File",uifcYesNoOpts)) {
+								case 0:	cfg.auto_add_subs = true;	break;
+								case 1:	cfg.auto_add_subs = false;	break;
 							}
 							break;
 						case 7:
@@ -2005,7 +1991,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if(savarcdef.name[0])
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&archive_opt,&archive_bar,"Archive Types",opt);
+					i=uifc.list(mode,0,0,0,&archive_opt,0,"Archive Types",opt);
 					if(i==-1)
 						break;
 					int msk = i & MSK_ON;
@@ -2182,7 +2168,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if(savedomain.name[0])
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&domain_opt,&domain_bar,"Domains",opt);
+					i=uifc.list(mode,0,0,0,&domain_opt,0,"Domains",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
@@ -2298,7 +2284,7 @@ int main(int argc, char **argv)
 						mode |= WIN_COPY | WIN_CUT;
 					if(savlistcfg.listpath[0])
 						mode |= WIN_PASTE | WIN_PASTEXTR;
-					i=uifc.list(mode,0,0,0,&echolist_opt,&echolist_bar,"EchoLists",opt);
+					i=uifc.list(mode,0,0,0,&echolist_opt,0,"EchoLists",opt);
 					if(i==-1)
 						break;
 					int msk = i&MSK_ON;
