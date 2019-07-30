@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.158 2019/07/09 05:27:31 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.167 2019/07/26 07:20:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,9 +113,9 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 			else {
 				utf8_normalize_str(buf);
 				utf8_replace_chars(buf, unicode_to_cp437
-					,/* unsupported char: */CP437_CHAR_INVERTED_QUESTION_MARK
+					,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
 					,/* unsupported zero-width ch: */0
-					,/* decode error char: */CP437_CHAR_INVERTED_EXCLAMATION_MARK);
+					,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 			}
 		}
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {
@@ -172,15 +172,31 @@ int sbbs_t::process_edited_text(char* buf, FILE* stream, long mode, unsigned* li
 			i++;
 			continue; 
 		}
-		/* Strip FidoNet Kludge Lines? */
-		if(buf[l]==CTRL_A && useron_xedit
-			&& cfg.xedit[useron_xedit-1]->misc&STRIPKLUDGE) {
-			while(buf[l] && buf[l]!=LF) 
+		if(buf[l] == CTRL_A) {
+			/* Strip FidoNet Kludge Lines? */
+			if(useron_xedit
+				&& cfg.xedit[useron_xedit-1]->misc&STRIPKLUDGE) {
 				l++;
-			if(buf[l]==0)
-				break;
-			continue;
+				char* kludge = buf + l;
+				if(editor_details[0] == 0 && strncmp(kludge, "NOTE:", 5) == 0) {
+					kludge += 5;
+					SKIP_WHITESPACE(kludge);
+					SAFECOPY(editor_details, kludge);
+					truncstr(editor_details, "\r\n");
+				}
+				while(buf[l] != 0 && buf[l] != '\r' && buf[l] != '\n')
+					l++;
+				if(buf[l] == 0)
+					break;
+				if(buf[l] == '\r' && buf[l + 1] == '\n')
+					l++;
+				continue;
+			}
+			/* Convert invalid or dangerous Ctrl-A codes */
+			if(!valid_ctrl_a_attr(buf[l + 1]))
+				buf[l] = '@';
 		}
+
 		if(!(mode&(WM_EMAIL|WM_NETMAIL|WM_EDIT))
 			&& (!l || buf[l-1]==LF)
 			&& buf[l]=='-' && buf[l+1]=='-' && buf[l+2]=='-'
@@ -389,7 +405,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 						if(!fgets(str,sizeof(str),stream))
 							break;
 						quotestr(str);
-						bprintf("%3d: %.74s\r\n",i,str);
+						bprintf(P_AUTO_UTF8, "%4d: %.*s\r\n", i, (int)cols-7, str);
 						i++; 
 					}
 					continue; 
@@ -489,9 +505,14 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		return(false); 
 	}
 
+	editor_details[0] = 0;
 	smb.subnum = subnum;	/* Allow JS msgeditors to use bbs.smb_sub* */
 
 	if(console&CON_RAW_IN) {
+
+		if(editor != NULL)
+			*editor = "Synchronet writemsg $Revision: 1.167 $";
+
 		bprintf(text[EnterMsgNowRaw]
 			,(ulong)cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
 		if(top[0] && !(mode&WM_NOTOP)) {
@@ -575,14 +596,20 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 			return(false); 
 		}
 		SAFEPRINTF(str,"%sRESULT.ED",cfg.node_dir);
-		if(!(mode&(WM_EXTDESC|WM_FILE|WM_SUBJ_RO))
-			&& !(cfg.xedit[useron_xedit-1]->misc&QUICKBBS) 
+		if(!(mode&(WM_EXTDESC|WM_FILE))
 			&& fexistcase(str)) {
 			if((fp=fopen(str,"r")) != NULL) {
-				fgets(str,sizeof(str),fp);
-				fgets(str,sizeof(str),fp);
-				truncsp(str);
-				safe_snprintf(subj,LEN_TITLE,"%s",str);
+				if (fgets(str, sizeof(str), fp) != NULL) {
+					str[0] = 0;
+					if (fgets(str, sizeof(str), fp) != NULL) {
+						truncsp(str);
+						if(str[0] && !(mode&WM_SUBJ_RO))
+							safe_snprintf(subj, LEN_TITLE, "%s", str);
+                        if (fgets(editor_details, sizeof(editor_details), fp) != NULL) {
+                            truncsp(editor_details);
+                        }
+					}
+				}
 				fclose(fp);
 			}
 		}
@@ -608,6 +635,10 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		buf[l+length]=0; 
 	}
 	else {
+
+		if(editor != NULL)
+			*editor = "Synchronet msgeditor $Revision: 1.167 $";
+
 		buf[0]=0;
 		if(linesquoted || draft_restored) {
 			if((file=nopen(msgtmp,O_RDONLY))!=-1) {
@@ -645,6 +676,8 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		return(false); 
 	}
 	l=process_edited_text(buf,stream,mode,&lines,cfg.level_linespermsg[useron_level]);
+	if(editor_details[0] && editor != NULL)
+		*editor = editor_details;
 	bool utf8 = !str_is_ascii(buf) && utf8_str_is_valid(buf);
 	if(charset != NULL) {
 		if(utf8)
@@ -707,7 +740,7 @@ void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor, const char* c
 		smb_hfield_str(msg, SMB_EDITOR, editor);
 
 	if(charset != NULL)
-		smb_hfield_str(msg, FIDOCTRL, charset);
+		smb_hfield_str(msg, FIDOCHARSET, charset);
 
 	ushort useron_xedit = useron.xedit;
 
@@ -738,6 +771,8 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 
 	xeditnum--;
 
+	SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
+	removecase(path);
 	if(cfg.xedit[xeditnum]->misc&QUICKBBS) {
 		SAFEPRINTF2(path,"%s%s",cfg.node_dir, cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "msginf":"MSGINF");
 		removecase(path);
@@ -759,8 +794,6 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 		fclose(fp);
 	}
 	else {
-		SAFEPRINTF(path,"%sresult.ed",cfg.node_dir);
-		removecase(path);
 		SAFEPRINTF2(path,"%s%s",cfg.node_dir,cfg.xedit[xeditnum]->misc&XTRN_LWRCASE ? "editor.inf" : "EDITOR.INF");
 		removecase(path);
 		if((fp=fopen(path,"wb"))==NULL) {
@@ -787,7 +820,7 @@ void sbbs_t::editor_inf(int xeditnum, const char *to, const char* from, const ch
 void sbbs_t::removeline(char *str, char *str2, char num, char skip)
 {
 	char*	buf;
-    char    slen;
+    size_t  slen;
     int     i,file;
 	long	l=0,flen;
     FILE    *stream;
@@ -849,6 +882,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 	char	strin[TERM_COLS_MAX + 1];
 	char 	tmp[512];
 	str_list_t str;
+	long	pmode = P_SAVEATR | P_NOATCODES | P_AUTO_UTF8;
 
 	if(cols < 2) {
 		errormsg(WHERE, ERR_CHK, "columns", cols);
@@ -881,9 +915,9 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 		}
 		CRLF;
 	}
-	putmsg(top,P_SAVEATR|P_NOATCODES);
+	putmsg(top, pmode);
 	for(line=0;line<lines && !msgabort();line++) { /* display lines in buf */
-		putmsg(str[line],P_SAVEATR|P_NOATCODES);
+		putmsg(str[line], pmode);
 		cleartoeol();  /* delete to end of line */
 		CRLF; 
 	}
@@ -915,7 +949,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			if(console&CON_BACKSPACE && strin[0] == 0) {
 				strListRemove(&str, line);
 				for(i = line; str[i]; i++) {
-					putmsg(str[i], P_SAVEATR|P_NOATCODES);
+					putmsg(str[i], pmode);
 					cleartoeol();
 					newline();
 				}
@@ -1014,7 +1048,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				strListFreeStrings(str);
 				line=0;
 				lines=0;
-				putmsg(top,P_SAVEATR|P_NOATCODES);
+				putmsg(top, pmode);
 				continue; 
 			}
 			else if(toupper(strin[1])=='L') {   /* list message */
@@ -1023,7 +1057,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 					linenums = !noyes(text[WithLineNumbersQ]);
 				CRLF;
 				attr(LIGHTGRAY);
-				putmsg(top,P_SAVEATR|P_NOATCODES);
+				putmsg(top, pmode);
 				if(str[0] == NULL) {
 					continue; 
 				}
@@ -1032,10 +1066,10 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 				while(str[j] != NULL && !msgabort()) {
 					if(linenums) { /* line numbers */
 						SAFEPRINTF3(tmp,"%3d: %-.*s", j+1, (int)(cols-6), str[j]);
-						putmsg(tmp,P_SAVEATR|P_NOATCODES); 
+						putmsg(tmp, pmode); 
 					}
 					else
-						putmsg(str[j],P_SAVEATR|P_NOATCODES);
+						putmsg(str[j], pmode);
 					cleartoeol();  /* delete to end of line */
 					CRLF;
 					j++; 
@@ -1072,7 +1106,7 @@ ulong sbbs_t::msgeditor(char *buf, const char *top, char *title)
 			line++;
 			strListInsert(&str, "", line);
 			for(i = line; str[i]; i++) {
-				putmsg(str[i], P_SAVEATR|P_NOATCODES);
+				putmsg(str[i], pmode);
 				cleartoeol();
 				newline();
 			}
