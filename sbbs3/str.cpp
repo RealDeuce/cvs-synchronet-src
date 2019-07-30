@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.88 2020/04/23 02:40:19 rswindell Exp $ */
+/* $Id: str.cpp,v 1.84 2019/07/17 00:34:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,14 +98,14 @@ void sbbs_t::userlist(long mode)
 			}
 			sprintf(name,"%s #%d",user.alias,i);
 			sprintf(line[j],text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		else {
 			sprintf(name,"%s #%u",user.alias,i);
 			bprintf(text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
@@ -702,7 +702,7 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 	SAFECOPY(pass,passwd);
 	strupr(pass);
 
-	if(strlen(pass) < MIN_PASS_LEN) {
+	if(strlen(pass)<4) {
 		bputs(text[PasswordTooShort]);
 		return(false); 
 	}
@@ -1033,16 +1033,11 @@ void sbbs_t::sys_stats(void)
 	bprintf(text[StatsFeedbacksToday],ultoac(stats.ftoday,tmp));
 }
 
-void sbbs_t::logonlist(const char* args)
+void sbbs_t::logonlist(void)
 {
 	char	str[MAX_PATH+1];
 
-	if(cfg.logonlist_mod[0] != '\0') {
-		SAFEPRINTF2(str, "%s %s", cfg.logonlist_mod, args);
-		exec_bin(str, &main_csi);
-		return;
-	}
-	SAFEPRINTF(str,"%slogon.lst", cfg.data_dir);
+	sprintf(str,"%slogon.lst", cfg.data_dir);
 	if(flength(str)<1) {
 		bputs("\r\n\r\n");
 		bputs(text[NoOneHasLoggedOnToday]); 
@@ -1212,7 +1207,7 @@ void sbbs_t::change_user(void)
 	if(online==ON_REMOTE) {
 		getuserrec(&cfg,i,U_LEVEL,2,str);
 		if(atoi(str)>logon_ml) {
-			getuserrec(&cfg,i,U_PASS,LEN_PASS,tmp);
+			getuserrec(&cfg,i,U_PASS,8,tmp);
 			bputs(text[ChUserPwPrompt]);
 			console|=CON_R_ECHOX;
 			getstr(str,8,K_UPPER);
