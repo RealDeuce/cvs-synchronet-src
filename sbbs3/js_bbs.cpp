@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.187 2019/08/02 10:36:45 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.186 2019/07/16 08:03:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2150,8 +2150,6 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	char		prot=0;
-	char*		desc=NULL;
-	bool		autohang = true;
 	char*		p;
 	jsrefcount	rc;
 	char*		cstr;
@@ -2168,24 +2166,14 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_ASTRING(cx, argv[1], p, 2, NULL);
 		if(p!=NULL)
 			prot=*p;
-		uintN argn = 2;
-		if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-			JSVALUE_TO_MSTRING(cx, argv[argn], desc, NULL);
-			argn++;
-		}
-		if(argc > argn && JSVAL_IS_BOOLEAN(argv[argn])) {
-			autohang = JSVAL_TO_BOOLEAN(argv[argn]);
-			argn++;
-		}
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->sendfile(cstr, prot, desc, autohang)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->sendfile(cstr,prot)));
 	free(cstr);
-	FREE_AND_NULL(desc);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2197,7 +2185,6 @@ js_recvfile(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	char		prot=0;
-	bool		autohang = true;
 	char*		p;
 	char*		cstr;
 	jsrefcount	rc;
@@ -2214,15 +2201,13 @@ js_recvfile(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_ASTRING(cx, argv[1], p, 2, NULL);
  		if(p!=NULL)
 			prot=*p;
-		if(argc > 2)
-			autohang = JSVAL_TO_BOOLEAN(argv[2]);
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->recvfile(cstr, prot, autohang)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->recvfile(cstr,prot)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -4167,19 +4152,14 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("add file list to batch download queue")
 	,310
 	},
-	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol] [,description] [,autohang=true]")
+	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol]")
 	,JSDOCSTR("send specified filename (complete path) to user via user-prompted "
-		"(or optionally specified) protocol.<br>"
-		"The optional <i>description</i> string is used for logging purposes.<br>"
-		"When <i>autohang=true</i>, disconnect after transfer based on user's default setting."
-	)
+		"(or optionally specified) protocol")
 	,314
 	},
-	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol] [,autohang=true]")
-	,JSDOCSTR("received specified filename (complete path) from user via user-prompted "
-		"(or optionally specified) protocol.<br>"
-		"When <i>autohang=true</i>, disconnect after transfer based on user's default setting."
-	)
+	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol]")
+	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted "
+		"(or optionally specified) protocol")
 	,314
 	},
 	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
