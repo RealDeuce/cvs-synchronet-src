@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.90 2019/07/26 19:58:35 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.91 2019/07/30 04:20:12 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -276,7 +276,8 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 		return false;
 	char* p = txt;
 	if(!(console&CON_RAW_IN)) {
-		p_mode|=P_WORDWRAP;
+		if(strstr(txt, "\x1b[") == NULL)	// Don't word-wrap raw ANSI text
+			p_mode|=P_WORDWRAP;
 		p = smb_getplaintext(msg, txt);
 		if(p == NULL)
 			p = txt;
