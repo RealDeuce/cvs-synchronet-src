@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.50 2018/10/22 04:18:05 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.56 2019/07/24 05:00:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@ char sbbs_t::getkey(long mode)
 {
 	uchar	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
+	long	term = term_supports();
 
 	if(online==ON_REMOTE && !input_thread_running)
 		online=FALSE;
@@ -69,7 +70,7 @@ char sbbs_t::getkey(long mode)
 		}
 
 		if(mode&K_SPIN) {
-			if(useron.misc&NO_EXASCII) {
+			if(term&NO_EXASCII) {
 				switch(c++) {
 					case 0:
 						outchar(BS);
@@ -297,7 +298,7 @@ char sbbs_t::getkey(long mode)
 
 
 /****************************************************************************/
-/* Outputs a string highlighting characters preceeded by a tilde            */
+/* Outputs a string highlighting characters preceded by a tilde             */
 /****************************************************************************/
 void sbbs_t::mnemonics(const char *str)
 {
@@ -337,6 +338,8 @@ void sbbs_t::mnemonics(const char *str)
 		else {
 			if(str[l]==CTRL_A && str[l+1]!=0) {
 				l++;
+				if(str[l] == 'Z')	/* EOF (uppercase 'Z') */
+					break;
 				ctrl_a(str[l++]);
 			} else {
 				if(str[l] == '@') {
@@ -398,7 +401,7 @@ bool sbbs_t::noyes(const char *str)
     char ch;
 
 	if(*str == 0)
-		return false;
+		return true;
 	SAFECOPY(question,str);
 	SYNC;
 	bprintf(text[NoYesQuestion],str);
@@ -424,62 +427,76 @@ bool sbbs_t::noyes(const char *str)
 }
 
 /****************************************************************************/
-/* Waits for remote or local user to hit a key that is contained inside str.*/
-/* 'str' should contain uppercase characters only. When a valid key is hit, */
-/* it is echoed (upper case) and is the return value.                       */
-/* Called from quite a few functions                                        */
+/* Waits for remote or local user to hit a key among 'keys'.				*/
+/* If 'keys' is NULL, *any* non-numeric key is valid input.					*/
+/* 'max' is non-zero, allow that a decimal number input up to that size		*/
+/* and return the value OR'd with 0x80000000.								*/
+/* default mode value is K_UPPER											*/
 /****************************************************************************/
-long sbbs_t::getkeys(const char *keys, ulong max)
+long sbbs_t::getkeys(const char *keys, ulong max, long mode)
 {
 	char	str[81];
 	uchar	ch,n=0,c=0;
 	ulong	i=0;
 
-	SAFECOPY(str,keys);
-	strupr(str);
+	if(keys != NULL) {
+		SAFECOPY(str,keys);
+	}
 	while(online) {
-		ch=getkey(K_UPPER);
+		ch=getkey(mode);
 		if(max && ch>0x7f)  /* extended ascii chars are digits to isdigit() */
 			continue;
 		if(sys_status&SS_ABORT) {   /* return -1 if Ctrl-C hit */
-			attr(LIGHTGRAY);
-			CRLF;
+			if(!(mode&(K_NOECHO|K_NOCRLF))) {
+				attr(LIGHTGRAY);
+				CRLF;
+			}
 			lncntr=0;
 			return(-1); 
 		}
-		if(ch && !n && (strchr(str,ch))) {  /* return character if in string */
-			if(ch > ' ')
-				outchar(ch);
-			if(useron.misc&COLDKEYS && ch>' ') {
-				while(online && !(sys_status&SS_ABORT)) {
-					c=getkey(0);
-					if(c==CR || c==BS || c==DEL)
-						break; 
+		if(ch && !n && ((keys == NULL && !isdigit(ch)) || (strchr(str,ch)))) {  /* return character if in string */
+			if(ch > ' ') {
+				if(!(mode&K_NOECHO))
+					outchar(ch);
+				if(useron.misc&COLDKEYS) {
+					while(online && !(sys_status&SS_ABORT)) {
+						c=getkey(0);
+						if(c==CR || c==BS || c==DEL)
+							break; 
+					}
+					if(sys_status&SS_ABORT) {
+						if(!(mode&(K_NOECHO|K_NOCRLF))) {
+							CRLF;
+						}
+						return(-1); 
+					}
+					if(c==BS || c==DEL) {
+						if(!(mode&K_NOECHO))
+							backspace();
+						continue; 
+					} 
 				}
-				if(sys_status&SS_ABORT) {
+				if(!(mode&(K_NOECHO|K_NOCRLF))) {
+					attr(LIGHTGRAY);
 					CRLF;
-					return(-1); 
 				}
-				if(c==BS || c==DEL) {
-					backspace();
-					continue; 
-				} 
+				lncntr=0;
 			}
-			attr(LIGHTGRAY);
-			CRLF;
-			lncntr=0;
 			return(ch); 
 		}
 		if(ch==CR && max) {             /* return 0 if no number */
-			attr(LIGHTGRAY);
-			CRLF;
+			if(!(mode&(K_NOECHO|K_NOCRLF))) {
+				attr(LIGHTGRAY);
+				CRLF;
+			}
 			lncntr=0;
 			if(n)
 				return(i|0x80000000L);		 /* return number plus high bit */
 			return(0); 
 		}
 		if((ch==BS || ch==DEL) && n) {
-			backspace();
+			if(!(mode&K_NOECHO))
+				backspace();
 			i/=10;
 			n--; 
 		}
@@ -487,10 +504,13 @@ long sbbs_t::getkeys(const char *keys, ulong max)
 			i*=10;
 			n++;
 			i+=ch&0xf;
-			outchar(ch);
+			if(!(mode&K_NOECHO))	
+				outchar(ch);
 			if(i*10>max && !(useron.misc&COLDKEYS)) {
-				attr(LIGHTGRAY);
-				CRLF;
+				if(!(mode&(K_NOECHO|K_NOCRLF))) {
+					attr(LIGHTGRAY);
+					CRLF;
+				}
 				lncntr=0;
 				return(i|0x80000000L); 
 			} 
@@ -505,7 +525,7 @@ long sbbs_t::getkeys(const char *keys, ulong max)
 void sbbs_t::pause()
 {
 	char	ch;
-	uchar	tempattrs=curatr; /* was lclatr(-1) */
+	uint	tempattrs=curatr; /* was lclatr(-1) */
     int		i,j;
 	long	l=K_UPPER;
 

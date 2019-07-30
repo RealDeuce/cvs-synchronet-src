@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.50 2018/10/03 06:07:11 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.56 2019/07/30 08:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -33,7 +33,9 @@
 
 #include "scfg.h"
 
-bool new_sub(unsigned new_subnum, unsigned group_num)
+static sub_t** cut_qhub_sub;
+
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub)
 {
 	sub_t* new_subboard;
 	if ((new_subboard = (sub_t *)malloc(sizeof(*new_subboard))) == NULL) {
@@ -41,7 +43,6 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 		return false;
 	}
 	memset(new_subboard, 0, sizeof(*new_subboard));
-	new_subboard->grp = group_num;
 	if (cfg.total_faddrs)
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
@@ -58,6 +59,14 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 		}
 	}
 	new_subboard->misc |= SUB_HDRMOD;
+	if (pasted_sub != NULL) {
+		*new_subboard = *pasted_sub;
+		if (cut_qhub_sub != NULL && (*cut_qhub_sub) == NULL) {
+			*cut_qhub_sub = new_subboard;
+			cut_qhub_sub = NULL;
+		}
+	}
+	new_subboard->grp = group_num;
 
 	/* Allocate a new (unused) pointer index (deprecated!) */
 	for (; new_subboard->ptridx < USHRT_MAX; new_subboard->ptridx++) {
@@ -81,27 +90,42 @@ bool new_sub(unsigned new_subnum, unsigned group_num)
 	for (unsigned u = cfg.total_subs; u > new_subnum; u--)
 		cfg.sub[u] = cfg.sub[u - 1];
 
-#if 0 /* no longer necessary */
-	/* Subs are re-numbered, so adjust QWKnet hub sub lists */
-	for (unsigned q = 0; q < cfg.total_qhubs; q++)
-		for (unsigned s = 0; s < cfg.qhub[q]->subs; s++)
-			if (cfg.qhub[q]->sub[s] >= new_subnum)
-				cfg.qhub[q]->sub[s]++;
-#endif
 
 	new_subboard->subnum = new_subnum;
 	cfg.sub[new_subnum] = new_subboard;
 	cfg.total_subs++;
+
 	return true;
+}
+
+void remove_sub(scfg_t* cfg, unsigned subnum, bool cut)
+{
+	sub_t* sub = cfg->sub[subnum];
+	if(cut)
+		cut_qhub_sub = NULL;
+	// Remove the sub-board from any QWKnet hub sub-boards
+	for (unsigned q = 0; q < cfg->total_qhubs; q++) {
+		for (unsigned s = 0; s < cfg->qhub[q]->subs; s++) {
+			if (cfg->qhub[q]->sub[s] == sub) {
+				if(cut && cut_qhub_sub == NULL)
+					cut_qhub_sub = &cfg->qhub[q]->sub[s];
+				cfg->qhub[q]->sub[s] = NULL;
+			}
+		}
+	}
+	FREE_AND_NULL(cfg->sub[subnum]);
+	--cfg->total_subs;
+	for (unsigned i = subnum; i < cfg->total_subs; i++)
+		cfg->sub[i] = cfg->sub[i + 1];
 }
 
 void sub_cfg(uint grpnum)
 {
-	static int dflt,tog_dflt,opt_dflt,net_dflt,adv_dflt,bar;
+	static int dflt,tog_dflt,tog_bar,opt_dflt,net_dflt,adv_dflt,bar;
 	char str[128],str2[128],done=0,code[128];
 	char path[MAX_PATH+1];
 	char data_dir[MAX_PATH+1];
-	int j,m,n,ptridx,q,s;
+	int j,m,n;
 	uint i,subnum[MAX_OPTS+1];
 	static sub_t savsub;
 
@@ -249,7 +273,7 @@ void sub_cfg(uint grpnum)
 				continue; 
 			}
 
-			if (!new_sub(subnum[i], grpnum))
+			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL))
 				continue;
 
 			SAFECOPY(cfg.sub[subnum[i]]->code_suffix,code);
@@ -291,45 +315,21 @@ void sub_cfg(uint grpnum)
 			}
 			if(msk == MSK_CUT)
 				savsub = *cfg.sub[subnum[i]];
-			free(cfg.sub[subnum[i]]);
-			cfg.total_subs--;
-			for(j=subnum[i];j<cfg.total_subs;j++)
-				cfg.sub[j]=cfg.sub[j+1];
-			for(q=0;q<cfg.total_qhubs;q++)
-				for(s=0;s<cfg.qhub[q]->subs;s++) {
-					if(cfg.qhub[q]->sub[s] == cfg.sub[subnum[i]])
-						cfg.qhub[q]->sub[s] = NULL;
-				}
+			remove_sub(&cfg, subnum[i], msk == MSK_CUT);
 			uifc.changes = TRUE;
 			continue; 
 		}
 		if(msk==MSK_COPY) {
 			savsub=*cfg.sub[subnum[i]];
+			cut_qhub_sub = NULL;
 			continue; 
 		}
 		if(msk == MSK_PASTE) {
-			if (!new_sub(subnum[i], grpnum))
+			if (!new_sub(subnum[i], grpnum, &savsub))
 				continue;
-			ptridx=cfg.sub[subnum[i]]->ptridx;
-			*cfg.sub[subnum[i]]=savsub;
-			cfg.sub[subnum[i]]->ptridx=ptridx;
-			cfg.sub[subnum[i]]->grp=grpnum;
 			uifc.changes = TRUE;
 			continue; 
 		}
-	#if 0
-		if(msk == MSK_SORT) {
-			sort_min = subnum[i];
-			sort_group = grpnum;
-			qsort(cfg.sub, cfg.total_subs, sizeof(sub_t*), sub_compare);
-			last_sort_field = sort_field;
-			sort_field++;
-			if(sort_field >= SORT_NONE)
-				sort_field = 0;
-			uifc.changes = TRUE;
-			continue;
-		}
-	#endif
 		i=subnum[i];
 		j=0;
 		done=0;
@@ -385,15 +385,17 @@ void sub_cfg(uint grpnum)
 					break;
 				case 0:
 					uifc.helpbuf=sub_long_name_help;
-					SAFECOPY(str,cfg.sub[i]->lname);	/* save */
+					SAFECOPY(str, cfg.sub[i]->lname);
 					if(uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Listings"
-						,cfg.sub[i]->lname,LEN_SLNAME,K_EDIT) == 0)
-						SAFECOPY(cfg.sub[i]->lname,str);	/* restore */
+						,str,LEN_SLNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.sub[i]->lname, str);
 					break;
 				case 1:
 					uifc.helpbuf=sub_short_name_help;
-					uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Prompts"
-						,cfg.sub[i]->sname,LEN_SSNAME,K_EDIT);
+					SAFECOPY(str, cfg.sub[i]->sname);
+					if(uifc.input(WIN_MID|WIN_SAV,0,17,"Name to use for Prompts"
+						,str,LEN_SSNAME,K_EDIT) > 0)
+						SAFECOPY(cfg.sub[i]->sname, str);
 					break;
 				case 2:
 					uifc.helpbuf=
@@ -555,6 +557,10 @@ void sub_cfg(uint grpnum)
 	#endif
 						sprintf(opt[n++],"%-27.27s%s","Compress Messages (LZH)"
 							,cfg.sub[i]->misc&SUB_LZH ? "Yes" : "No");
+						sprintf(opt[n++],"%-27.27s%s","Extra Attribute Codes"
+							,cfg.sub[i]->pmode&P_NOXATTRS ? "No" : "Yes");
+						sprintf(opt[n++],"%-27.27s%s","Auto-detect UTF-8 Msgs"
+							,cfg.sub[i]->pmode&P_AUTO_UTF8 ? "Yes" : "No");
 						sprintf(opt[n++],"%-27.27s%s","Template for New Subs"
 							,cfg.sub[i]->misc&SUB_TEMPLATE ? "Yes" : "No");
 
@@ -565,7 +571,7 @@ void sub_cfg(uint grpnum)
 							"This menu allows you to toggle certain options for the selected\n"
 							"sub-board between two or more settings, such as `Yes` and `No`.\n"
 						;
-						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,1,36,&tog_dflt,0
+						n=uifc.list(WIN_ACT|WIN_SAV|WIN_RHT|WIN_BOT,3,1,36,&tog_dflt, &tog_bar
 							,"Toggle Options",opt);
 						if(n==-1)
 							break;
@@ -1027,6 +1033,52 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 15:
+								n=(cfg.sub[i]->pmode&P_NOXATTRS) ? 1:0;
+								uifc.helpbuf=
+									"`Extra Attribute Codes:`\n"
+									"\n"
+									"Set this option to `No` to disable the interpretation of so-called\n"
+									"Extra Attribute Codes (printable color codes for other BBS software\n"
+									"e.g. pipe codes).\n"
+								;
+								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
+									,"Interpret/Display Extra Attribute Codes in Messages",uifcYesNoOpts);
+								if(n==-1)
+									break;
+								if(n == 0 && (cfg.sub[i]->pmode&P_NOXATTRS)) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->pmode ^= P_NOXATTRS;
+								}
+								else if(n == 1 && !(cfg.sub[i]->pmode&P_NOXATTRS)) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->pmode ^= P_NOXATTRS;
+								}
+								break;
+							case 16:
+								n=(cfg.sub[i]->pmode&P_AUTO_UTF8) ? 0:1;
+								uifc.helpbuf=
+									"`Automatically Detect UTF-8 Message Text:`\n"
+									"\n"
+									"Set this option to `Yes` to enable automatic detection of UTF-8 message\n"
+									"text during display; no \"`charset=utf-8`\" need be specified by the sender.\n"
+									"\n"
+									"Note: Setting this option to `Yes` does *not* enable automatic detection\n"
+									"of UTF-8 header field values (e.g. To, From, Subject)."
+								;
+								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
+									,"Automatically Detect UTF-8 Message Text",uifcYesNoOpts);
+								if(n==-1)
+									break;
+								if(n == 0 && !(cfg.sub[i]->pmode&P_AUTO_UTF8)) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->pmode ^= P_AUTO_UTF8;
+								}
+								else if(n == 1 && (cfg.sub[i]->pmode&P_AUTO_UTF8)) {
+									uifc.changes = TRUE;
+									cfg.sub[i]->pmode ^= P_AUTO_UTF8;
+								}
+								break;
+							case 17:
 								n=(cfg.sub[i]->misc&SUB_TEMPLATE) ? 0:1;
 								uifc.helpbuf=
 									"`Use this Sub-board as a Template for New Subs:`\n"
