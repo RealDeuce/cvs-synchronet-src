@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.213 2019/04/09 22:07:31 rswindell Exp $ */
+/* $Id: userdat.c,v 1.214 2019/04/11 08:47:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2087,7 +2087,7 @@ int DLLCALL putuserrec(scfg_t* cfg, int usernumber,int start, uint length, const
 		return(-3);
 	}
 
-	ssize_t wr = write(file, str2, length);
+	int wr = write(file, str2, length);
 	unlock(file,(long)((long)(usernumber-1)*U_LEN)+start,length);
 	close(file);
 	if(wr != length)
