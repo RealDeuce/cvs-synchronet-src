@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.78 2019/08/06 03:19:30 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.76 2019/07/26 19:58:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -565,8 +565,7 @@ BOOL read_msgs_cfg(scfg_t* cfg, char* error)
 		get_int(cfg->sub[i]->qwkconf,instream);
 		get_int(c,instream); // unused
 		get_int(cfg->sub[i]->pmode,instream);
-		get_int(cfg->sub[i]->n_pmode,instream);
-		for(j=0;j<22;j++)
+		for(j=0;j<24;j++)
 			get_int(n,instream);
 		}
 	cfg->total_subs=i;
@@ -804,35 +803,29 @@ void make_data_dirs(scfg_t* cfg)
 	char	str[MAX_PATH+1];
 
 	md(cfg->data_dir);
-	SAFEPRINTF(str,"%ssubs",cfg->data_dir);
+	sprintf(str,"%ssubs",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%sdirs",cfg->data_dir);
+	sprintf(str,"%sdirs",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%stext",cfg->data_dir);
+	sprintf(str,"%stext",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%smsgs",cfg->data_dir);
+	sprintf(str,"%smsgs",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%suser",cfg->data_dir);
+	sprintf(str,"%suser",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%suser/ptrs",cfg->data_dir);
+	sprintf(str,"%suser/ptrs",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%sqnet",cfg->data_dir);
+	sprintf(str,"%sqnet",cfg->data_dir);
 	md(str);
-	SAFEPRINTF(str,"%sfile",cfg->data_dir);
+	sprintf(str,"%sfile",cfg->data_dir);
 	md(str);
 
 	md(cfg->logs_dir);
-	SAFEPRINTF(str,"%slogs",cfg->logs_dir);
+	sprintf(str,"%slogs",cfg->logs_dir);
 	md(str);
 
 	if(cfg->mods_dir[0])
 		md(cfg->mods_dir);
-
-	for(int i = 0; i < cfg->total_dirs; i++) {
-		md(cfg->dir[i]->data_dir);
-		if(cfg->dir[i]->misc & DIR_FCHK) 
-			md(cfg->dir[i]->path);
-	}
 
 #if 0
 	int		i;
