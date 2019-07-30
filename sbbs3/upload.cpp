@@ -2,7 +2,7 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.63 2019/08/02 10:36:45 rswindell Exp $ */
+/* $Id: upload.cpp,v 1.62 2019/07/17 00:34:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -605,7 +605,7 @@ bool sbbs_t::bulkupload(uint dirnum)
 	return(false);
 }
 
-bool sbbs_t::recvfile(char *fname, char prot, bool autohang)
+bool sbbs_t::recvfile(char *fname, char prot)
 {
 	char	keys[32];
 	char	ch;
@@ -631,7 +631,7 @@ bool sbbs_t::recvfile(char *fname, char prot, bool autohang)
 		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
 			break;
 	if(i<cfg.total_prots) {
-		if(protocol(cfg.prot[i], XFER_UPLOAD, fname, fname, true, autohang)==0)
+		if(protocol(cfg.prot[i],XFER_UPLOAD,fname,fname,true)==0)
 			result=true;
 		autohangup(); 
 	}
