@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.91 2019/07/30 04:20:12 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.92 2019/08/01 08:16:25 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -293,8 +293,10 @@ bool sbbs_t::show_msg(smb_t* smb, smbmsg_t* msg, long p_mode, post_t* post)
 			utf8_normalize_str(txt);
 		p_mode |= P_UTF8;
 	}
-	if(smb->subnum < cfg.total_subs)
+	if(smb->subnum < cfg.total_subs) {
 		p_mode |= cfg.sub[smb->subnum]->pmode;
+		p_mode &= ~cfg.sub[smb->subnum]->n_pmode;
+	}
 	putmsg(p, p_mode, msg->columns);
 	smb_freemsgtxt(txt);
 	if(column)
