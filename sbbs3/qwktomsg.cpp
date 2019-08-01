@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.74 2019/07/26 08:26:30 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.75 2019/08/01 07:25:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 
 #include "sbbs.h"
 #include "qwk.h"
+#include "utf8.h"
 
 static void qwk_parse_header_list(ulong confnum, smbmsg_t* msg, str_list_t* headers, bool parse_sender_hfields, bool parse_recipient_hfields)
 {
@@ -279,7 +280,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	/* Convert the QWK message text */
 	/********************************/
 
-	if((qwkbuf=(char *)malloc((blocks-1)*QWK_BLOCK_LEN))==NULL) {
+	if((qwkbuf=(char *)calloc(blocks, QWK_BLOCK_LEN))==NULL) { // over-allocate for NULL termination
 		errormsg(WHERE,ERR_ALLOC,"QWK msg buf",(blocks-1)*QWK_BLOCK_LEN);
 		return(false); 
 	}
@@ -308,7 +309,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	kludges=strListInit();
 
 	char qwk_newline = QWK_NEWLINE;
-	if(smb_msg_is_utf8(msg))
+	if(smb_msg_is_utf8(msg) && utf8_str_is_valid(qwkbuf))
 		qwk_newline = '\n';
 
 	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
