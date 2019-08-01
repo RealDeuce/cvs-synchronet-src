@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.75 2019/08/02 09:27:48 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.74 2019/07/26 08:13:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -233,7 +233,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	if(cfg.netmail_misc&NMAIL_CRASH) msg.hdr.netattr |= MSG_CRASH;
 	if(cfg.netmail_misc&NMAIL_HOLD)  msg.hdr.netattr |= MSG_HOLD;
 	if(cfg.netmail_misc&NMAIL_KILL)  msg.hdr.netattr |= MSG_KILLSENT;
-	if(mode&WM_FILE) msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE); 
+	if(mode&WM_FILE) msg.hdr.auxattr |= MSG_FILEATTACH; 
 
 	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
 		if(quotemsg(resmb, remsg, /* include tails: */true))
