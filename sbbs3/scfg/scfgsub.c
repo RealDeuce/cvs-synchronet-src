@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.61 2020/04/11 23:41:27 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.56 2019/07/30 08:21:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
 
 static sub_t** cut_qhub_sub;
 
-bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long misc)
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub)
 {
 	sub_t* new_subboard;
 	if ((new_subboard = (sub_t *)malloc(sizeof(*new_subboard))) == NULL) {
@@ -47,7 +47,6 @@ bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long mi
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
 	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_FAST);
-	new_subboard->misc |= misc;
 	new_subboard->maxmsgs = 500;
 
 	/* Use last sub in group (if exists) as a template for new subs */
@@ -274,7 +273,7 @@ void sub_cfg(uint grpnum)
 				continue; 
 			}
 
-			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL))
 				continue;
 
 			SAFECOPY(cfg.sub[subnum[i]]->code_suffix,code);
@@ -311,7 +310,7 @@ void sub_cfg(uint grpnum)
 					if(j==-1)
 						continue;
 					if(j==0)
-						delfiles(data_dir,str, /* keep: */0);
+						delfiles(data_dir,str);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -326,7 +325,7 @@ void sub_cfg(uint grpnum)
 			continue; 
 		}
 		if(msk == MSK_PASTE) {
-			if (!new_sub(subnum[i], grpnum, &savsub, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, &savsub))
 				continue;
 			uifc.changes = TRUE;
 			continue; 
@@ -560,8 +559,6 @@ void sub_cfg(uint grpnum)
 							,cfg.sub[i]->misc&SUB_LZH ? "Yes" : "No");
 						sprintf(opt[n++],"%-27.27s%s","Extra Attribute Codes"
 							,cfg.sub[i]->pmode&P_NOXATTRS ? "No" : "Yes");
-						sprintf(opt[n++],"%-27.27s%s","Word-wrap Messages"
-							,cfg.sub[i]->n_pmode&P_WORDWRAP ? "No" : "Yes");
 						sprintf(opt[n++],"%-27.27s%s","Auto-detect UTF-8 Msgs"
 							,cfg.sub[i]->pmode&P_AUTO_UTF8 ? "Yes" : "No");
 						sprintf(opt[n++],"%-27.27s%s","Template for New Subs"
@@ -1058,28 +1055,6 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 16:
-								n=(cfg.sub[i]->n_pmode&P_WORDWRAP) ? 1:0;
-								uifc.helpbuf=
-									"`Word-wrap Message Text:`\n"
-									"\n"
-									"Set this option to `No` to disable the automatic reflowing (word-wrapping)\n"
-									"of the lines of text of messages in this sub-board when viewed from the\n"
-									"Terminal Server."
-								;
-								n=uifc.list(WIN_SAV|WIN_MID,0,0,0,&n,0
-									,"Word-wrap Message Text",uifcYesNoOpts);
-								if(n==-1)
-									break;
-								if(n == 0 && (cfg.sub[i]->n_pmode&P_WORDWRAP)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->n_pmode ^= P_WORDWRAP;
-								}
-								else if(n == 1 && !(cfg.sub[i]->n_pmode&P_WORDWRAP)) {
-									uifc.changes = TRUE;
-									cfg.sub[i]->n_pmode ^= P_WORDWRAP;
-								}
-								break;
-							case 17:
 								n=(cfg.sub[i]->pmode&P_AUTO_UTF8) ? 0:1;
 								uifc.helpbuf=
 									"`Automatically Detect UTF-8 Message Text:`\n"
@@ -1103,7 +1078,7 @@ void sub_cfg(uint grpnum)
 									cfg.sub[i]->pmode ^= P_AUTO_UTF8;
 								}
 								break;
-							case 18:
+							case 17:
 								n=(cfg.sub[i]->misc&SUB_TEMPLATE) ? 0:1;
 								uifc.helpbuf=
 									"`Use this Sub-board as a Template for New Subs:`\n"
@@ -1324,29 +1299,17 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 7:
-							{
-								int k = 0;
-								if(!cfg.total_faddrs) {
-									uifc.msg("You must configure a FidoNet address in SCFG->Networks->FidoNet");
-									break;
-								}
+								smb_faddrtoa(&cfg.sub[i]->faddr,str);
 								uifc.helpbuf=
 									"`Sub-board FidoNet Address:`\n"
 									"\n"
 									"If this sub-board is part of a FidoNet EchoMail conference, this is\n"
-									"the address used for this sub-board.\n"
+									"the address used for this sub-board. Format: `Zone:Net/Node[.Point]`\n"
 								;
-								for(n=0; n<cfg.total_faddrs && n<MAX_OPTS; n++) {
-									if(memcmp(&cfg.sub[i]->faddr, &cfg.faddr[n], sizeof(cfg.faddr[n])) == 0)
-										k = i;
-									strcpy(opt[n], smb_faddrtoa(&cfg.faddr[n],NULL)); 
-								}
-								opt[n][0]=0;
-								n = uifc.list(WIN_RHT|WIN_SAV|WIN_ACT|WIN_INSACT, 0, 0, 0, &k, NULL, "FidoNet Address", opt);
-								if(n >= 0 && n < cfg.total_faddrs)
-									cfg.sub[i]->faddr = cfg.faddr[n];
+								uifc.input(WIN_MID|WIN_SAV,0,0,"FidoNet Address"
+									,str,25,K_EDIT);
+								cfg.sub[i]->faddr=atofaddr(str);
 								break;
-							}
 							case 8:
 								uifc.helpbuf=
 									"`Sub-board FidoNet Origin Line:`\n"
@@ -1471,7 +1434,7 @@ void sub_cfg(uint grpnum)
 										,cfg.grp[cfg.sub[i]->grp]->code_prefix
 										,cfg.sub[i]->code_suffix);
 									strlwr(str2);
-									delfiles(str,str2, /* keep: */0); 
+									delfiles(str,str2); 
 								}
 
 								if(cfg.sub[i]->misc&SUB_HYPER)
