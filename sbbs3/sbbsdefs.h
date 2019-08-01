@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.246 2019/07/26 19:58:35 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.247 2019/08/01 07:46:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -785,6 +785,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
 #define WM_EDIT		(1<<10)		/* Editing existing message					*/
 #define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
+#define WM_NOFWD	(1<<12)		/* Don't forward email to netmail			*/
 
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
