@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.63 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.65 2019/07/26 19:55:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,11 +171,13 @@ void sbbs_t::useredit(int usernumber)
 			SAFECOPY(str,"QG[]?/{},");
 		else
 			SAFECOPY(str,"ABCDEFGHIJKLMNOPQRSTUVWXYZ+[]?/{}~*$#");
-		l=getkeys(str,l);
+		l=getkeys(str, l, K_UPPER|K_NOCRLF);
 		if(l&0x80000000L) {
 			user.number=(ushort)(l&~0x80000000L);
 			continue; 
 		}
+		if(l != '[' && l != ']' && l != '{' && l != '}')
+			newline();
 		switch(l) {
 			case 'A':
 				bputs(text[EnterYourAlias]);
@@ -928,7 +930,8 @@ void sbbs_t::maindflts(user_t* user)
 					user->misc |= COLOR;
 					user->misc &= ~ICE_COLOR;
 					if(yesno(text[ColorTerminalQ])) {
-						if(!noyes(text[IceColorTerminalQ]))
+						if(!(console&(CON_BLINK_FONT|CON_HBLINK_FONT))
+							&& !noyes(text[IceColorTerminalQ]))
 							user->misc |= ICE_COLOR;
 					} else
 						user->misc &= ~COLOR;
