@@ -2,7 +2,7 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id: email.cpp,v 1.79 2020/04/15 02:27:10 rswindell Exp $ */
+/* $Id: email.cpp,v 1.77 2019/08/01 08:16:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,6 +198,15 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 		return(false); 
 	}
 
+	if(smb_fgetlength(smb.shd_fp)<1) {	 /* Create it if it doesn't exist */
+		if((i=smb_create(&smb))!=0) {
+			smb_close(&smb);
+			smb_stack(&smb,SMB_STACK_POP);
+			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
+			return(false); 
+		} 
+	}
+
 	if((i=smb_locksmbhdr(&smb))!=0) {
 		smb_close(&smb);
 		smb_stack(&smb,SMB_STACK_POP);
@@ -264,7 +273,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode,
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
 	if(mode&WM_FILE)
-		msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
+		msg.hdr.auxattr|=MSG_FILEATTACH;
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
