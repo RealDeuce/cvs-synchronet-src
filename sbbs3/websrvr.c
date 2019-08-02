@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.692 2019/08/02 17:10:08 deuce Exp $ */
+/* $Id: websrvr.c,v 1.693 2019/08/02 17:26:09 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -598,12 +598,14 @@ static BOOL session_check(http_session_t *session, BOOL *rd, BOOL *wr, unsigned 
 	BOOL	ret = FALSE;
 	BOOL	lcl_rd;
 	BOOL	*rd_ptr = rd?rd:&lcl_rd;
+	char	buf;
 
 	if (session->is_tls) {
 		if(wr)
 			*wr=1;
 		if(rd) {
-			if(session->tls_pending) {
+			// This MSG_PEEK is a terrible hack. :(
+			if(session->tls_pending || sess_recv(session, &buf, 1, MSG_PEEK) == 1) {
 				*rd = TRUE;
 				return TRUE;
 			}
@@ -6581,7 +6583,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.692 $", "%*s %s", revision);
+	sscanf("$Revision: 1.693 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
