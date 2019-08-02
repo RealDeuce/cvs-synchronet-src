@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.707 2019/08/02 08:17:28 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.708 2019/08/02 14:02:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -630,7 +630,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 	char		fromhost[256];
 	char		msgid[256];
 	char		date[64];
-	uchar*		p;
+	char*		p;
 	char*		np;
 	char*		content_type=NULL;
 	int			i;
@@ -5906,7 +5906,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.707 $", "%*s %s", revision);
+	sscanf("$Revision: 1.708 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
