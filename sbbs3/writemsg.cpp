@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.172 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.169 2019/08/02 13:53:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 #include "sbbs.h"
 #include "wordwrap.h"
 #include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 #define MAX_LINES		10000
 #define MAX_LINE_LEN	(cols - 1)
@@ -105,28 +107,15 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 		strip_invalid_attr(buf);
 		truncsp(buf);
 		BOOL is_utf8 = FALSE;
-		if(!str_is_ascii(buf)) {
-			if(smb_msg_is_utf8(msg)) {
-				if(term_supports(UTF8)
-					&& (!useron_xedit || (cfg.xedit[useron_xedit-1]->misc&XTRN_UTF8)))
-					is_utf8 = TRUE;
-				else {
-					utf8_to_cp437_str(buf);
-				}
-			} else { // CP437
-				char* orgtxt;
-				if(term_supports(UTF8)
-					&& (!useron_xedit || (cfg.xedit[useron_xedit-1]->misc&XTRN_UTF8))
-					&& (orgtxt = strdup(buf)) != NULL) {
-					is_utf8 = TRUE;
-					size_t max = strlen(buf) * 4;
-					char* newbuf = (char*)realloc(buf, max + 1);
-					if(newbuf != NULL) {
-						buf = newbuf;
-						cp437_to_utf8_str(orgtxt, buf, max, /* minval: */'\x80');
-					}
-					free(orgtxt);
-				}
+		if(smb_msg_is_utf8(msg)) {
+			if(term_supports(UTF8))
+				is_utf8 = TRUE;
+			else {
+				utf8_normalize_str(buf);
+				utf8_replace_chars(buf, unicode_to_cp437
+					,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+					,/* unsupported zero-width ch: */0
+					,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 			}
 		}
 		if(!useron_xedit || (useron_xedit && (cfg.xedit[useron_xedit-1]->misc&QUOTEWRAP))) {
@@ -522,7 +511,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(console&CON_RAW_IN) {
 
 		if(editor != NULL)
-			*editor = "Synchronet writemsg $Revision: 1.172 $";
+			*editor = "Synchronet writemsg $Revision: 1.169 $";
 
 		bprintf(text[EnterMsgNowRaw]
 			,(ulong)cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
@@ -557,18 +546,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 
 		if(editor!=NULL)
 			*editor=cfg.xedit[useron_xedit-1]->name;
-		if(!str_is_ascii(subj)) {
-			if(utf8_str_is_valid(subj)) {
-				if(!term_supports(UTF8) || !(cfg.xedit[useron_xedit-1]->misc & XTRN_UTF8)) {
-					utf8_to_cp437_str(subj);
-				}
-			} else { // CP437
-				if(term_supports(UTF8) && (cfg.xedit[useron_xedit-1]->misc & XTRN_UTF8)) {
-					cp437_to_utf8_str(subj, str, sizeof(str) - 1, /* minval: */'\x80');
-					safe_snprintf(subj, LEN_TITLE, "%s", str);
-				}
-			}
-		}
+
 		editor_inf(useron_xedit,to,from,subj,mode,subnum,tagfile);
 		if(cfg.xedit[useron_xedit-1]->type) {
 			gettimeleft();
@@ -659,7 +637,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	else {
 
 		if(editor != NULL)
-			*editor = "Synchronet msgeditor $Revision: 1.172 $";
+			*editor = "Synchronet msgeditor $Revision: 1.169 $";
 
 		buf[0]=0;
 		if(linesquoted || draft_restored) {
@@ -771,10 +749,7 @@ void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor, const char* c
 
 	if(editor == NULL || useron_xedit == 0 || (cfg.xedit[useron_xedit - 1]->misc&SAVECOLUMNS))
 		smb_hfield_bin(msg, SMB_COLUMNS, cols);
-
-	if(!str_is_ascii(msg->subj) && utf8_str_is_valid(msg->subj))
-		msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
-}  
+}
 
 /****************************************************************************/
 /****************************************************************************/
