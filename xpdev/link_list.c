@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.64 2019/08/04 19:38:53 rswindell Exp $ */
+/* $Id: link_list.c,v 1.62 2019/08/02 02:36:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -855,13 +855,11 @@ BOOL DLLCALL listSwapNodes(list_node_t* node1, list_node_t* node2)
 
 static void list_update_prev(link_list_t* list)
 {
-	list_node_t* node;
-	list_node_t* prev = NULL;
-
 	if(list == NULL)
 		return;
 
-	node = list->first;
+	list_node_t* node = list->first;
+	list_node_t* prev = NULL;
 	while(node != NULL) {
 		node->prev = prev;
 		prev = node;
@@ -871,13 +869,10 @@ static void list_update_prev(link_list_t* list)
 
 void DLLCALL listReverse(link_list_t* list)
 {
-	list_node_t* node;
-	list_node_t* prev;
-
 	if(list == NULL)
 		return;
 
-	node = list->first;
+	list_node_t* node = list->first;
 
 	if(node == NULL)
 		return;
@@ -886,7 +881,7 @@ void DLLCALL listReverse(link_list_t* list)
 
 	list->last = list->first;
 
-	prev = NULL;
+	list_node_t* prev = NULL;
 	while(node != NULL) {
 		list_node_t* next = node->next;
 		node->next = prev;
@@ -903,23 +898,22 @@ void DLLCALL listReverse(link_list_t* list)
 
 long DLLCALL listVerify(link_list_t* list)
 {
-	list_node_t* node;
-	list_node_t* prev = NULL;
-	long result = 0;
+	long result = __COUNTER__;
 
 	if(list == NULL)
-		return -1;
+		return -__COUNTER__;
 
 	listLock(list);
 
-	node = list->first;
+	list_node_t* node = list->first;
+	list_node_t* prev = NULL;
 	while(node != NULL) {
 		if(node->list != list) {
-			result = -2;
+			result = -__COUNTER__;
 			break;
 		}
 		if(node->prev != prev) {
-			result = -3;
+			result = -__COUNTER__;
 			break;
 		}
 		prev = node;
@@ -927,10 +921,10 @@ long DLLCALL listVerify(link_list_t* list)
 		result++;
 	}
 	if(result >= 0 && list->last != prev)
-		result = -4;
+		result = -__COUNTER__;
 
 	if(result >= 0 && result != list->count)
-		result = -5;
+		result = -__COUNTER__;
 
 	listUnlock(list);
 

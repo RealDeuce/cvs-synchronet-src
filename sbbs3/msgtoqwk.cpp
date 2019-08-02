@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.62 2019/08/02 22:17:15 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.61 2019/07/26 19:53:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -227,8 +227,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		for(i=0;i<msg->total_hfields;i++)
 			if(msg->hfield[i].type==RFC822HEADER)
 				fprintf(hdrs,"%s\n",truncsp_lines((char*)msg->hfield_dat[i]));
-
-		fprintf(hdrs, "Conference: %u\n", conf);
 
 		/* Blank line: */
 		fprintf(hdrs,"\n");
