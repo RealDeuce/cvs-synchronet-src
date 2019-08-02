@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.215 2019/08/12 06:22:33 rswindell Exp $ */
+/* $Id: userdat.c,v 1.214 2019/04/11 08:47:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2489,15 +2489,15 @@ int DLLCALL newuserdat(scfg_t* cfg, user_t* user)
 		return(err);
 
 	SAFEPRINTF2(str,"%sfile/%04u.in",cfg->data_dir,user->number);  /* delete any files */
-	delfiles(str, ALLFILES, /* keep: */0);                         /* waiting for user */
+	delfiles(str,ALLFILES);                                    /* waiting for user */
 	rmdir(str);
 	SAFEPRINTF(tmp,"%04u.*",user->number);
 	SAFEPRINTF(str,"%sfile",cfg->data_dir);
-	delfiles(str,tmp, /* keep: */0);
+	delfiles(str,tmp);
 	SAFEPRINTF(str,"%suser",cfg->data_dir);
-	delfiles(str,tmp, /* keep: */0);
+	delfiles(str,tmp);
 	SAFEPRINTF2(str,"%suser/%04u",cfg->data_dir,user->number);
-	delfiles(str,ALLFILES, /* keep: */0);
+	delfiles(str,ALLFILES);
 	rmdir(str);
 
 	SAFEPRINTF2(str,"%suser/ptrs/%04u.ixb",cfg->data_dir,user->number); /* msg ptrs */
