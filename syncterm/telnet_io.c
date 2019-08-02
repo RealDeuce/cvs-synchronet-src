@@ -1,11 +1,9 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.34 2019/07/10 22:28:52 deuce Exp $ */
+/* $Id: telnet_io.c,v 1.37 2019/07/11 18:31:45 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
-
-#include "term.h"
 
 #include "genwrap.h"
 #include "sockwrap.h"
@@ -90,7 +88,7 @@ void request_telnet_opt(uchar cmd, uchar opt)
 	send_telnet_cmd(cmd,opt);
 }
 
-BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, cterm_emulation_t emu)
+BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, struct bbslist *bbs)
 {
 	BYTE	command;
 	BYTE	option;
@@ -158,24 +156,13 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, cterm_
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE && telnet_cmd[3]==TELNET_TERM_SEND) {
 						char buf[32];
-						const char *termtype;
-						switch(emu) {
-							case CTERM_EMULATION_PETASCII:
-								termtype = "PETSCII";
-								break;
-							case CTERM_EMULATION_ATASCII:
-								termtype = "ATASCII";
-								break;
-							default:
-								termtype = "ANSI";
-								break;
-						}
+						const char *emu = get_emulation_str(get_emulation(bbs));
 						int len=sprintf(buf,"%c%c%c%c%s%c%c"
 							,TELNET_IAC,TELNET_SB
 							,TELNET_TERM_TYPE,TELNET_TERM_IS
-							,termtype
+							,emu
 							,TELNET_IAC,TELNET_SE);
-						lprintf(LOG_INFO,"TX: Terminal Type is %s", termtype);
+						lprintf(LOG_INFO,"TX: Terminal Type is %s", emu);
 						putcom(buf,len);
 						request_telnet_opt(TELNET_WILL, TELNET_NEGOTIATE_WINDOW_SIZE);
 					}
@@ -209,18 +196,21 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, cterm_
 					}
 
 					if(command==TELNET_DO && option==TELNET_NEGOTIATE_WINDOW_SIZE) {
+						int rows, cols;
 						BYTE buf[32];
+
+						get_term_size(bbs, &cols, &rows);
 						buf[0]=TELNET_IAC;
 						buf[1]=TELNET_SB;
 						buf[2]=TELNET_NEGOTIATE_WINDOW_SIZE;
-						buf[3]=(term.width>>8)&0xff;
-						buf[4]=term.width&0xff;
-						buf[5]=(term.height>>8)&0xff;
-						buf[6]=term.height&0xff;
+						buf[3]=(cols>>8)&0xff;
+						buf[4]=cols&0xff;
+						buf[5]=(rows>>8)&0xff;
+						buf[6]=rows&0xff;
 						buf[7]=TELNET_IAC;
 						buf[8]=TELNET_SE;
 						lprintf(LOG_INFO,"TX: Window Size is %u x %u"
-							,term.width, term.height);
+							,cols, rows);
 						putcom((char *)buf,9);
 					}
 
@@ -280,7 +270,7 @@ BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
 		outbuf[outlen++]=inbuf[i];
 		if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO) {
 			if(inbuf[i]=='\r')
-				outbuf[outlen++]=0;	// Some Telnet servers when receiving CRLF as an "Enter" character
+				outbuf[outlen++]='\n'; // See RFC5198
 		}
 	}
     *newlen=outlen;
