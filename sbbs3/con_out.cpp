@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.104 2019/07/08 00:11:49 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.115 2019/07/24 05:24:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,20 +37,43 @@
 #include "sbbs.h"
 #include "utf8.h"
 #include "unicode.h"
+#include "petdefs.h"
+#include "cp437defs.h"
+
+char* sbbs_t::auto_utf8(const char* str, long* mode)
+{
+	if(strncmp(str, "\xEF\xBB\xBF", 3) == 0) {
+		*mode |= P_UTF8;
+		return (char*)(str + 3);
+	}
+	if((*mode)&P_AUTO_UTF8) {
+		if(!str_is_ascii(str) && utf8_str_is_valid(str))
+			*mode |= P_UTF8;
+	}
+	return (char*)str;
+}
 
 /****************************************************************************/
 /* Outputs a NULL terminated string locally and remotely (if applicable)    */
 /* Handles ctrl-a codes, Telnet-escaping, column & line count, auto-pausing */
-/****************************************************************************/
-int sbbs_t::bputs(const char *str)
+/* Supported P_* mode flags:
+   P_PETSCII
+   P_UTF8
+   P_AUTO_UTF8
+   P_NOATCODES
+ ****************************************************************************/
+int sbbs_t::bputs(const char *str, long mode)
 {
 	int i;
     ulong l=0;
+	long term = term_supports();
 
 	if(online==ON_LOCAL && console&CON_L_ECHO) 	/* script running as event */
 		return(lputs(LOG_INFO, str));
 
-	while(str[l] && online) {
+	str = auto_utf8(str, &mode);
+	size_t len = strlen(str);
+	while(l < len && online) {
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
 			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
@@ -58,7 +81,7 @@ int sbbs_t::bputs(const char *str)
 			ctrl_a(str[l++]);
 			continue;
 		}
-		if(str[l]=='@') {           /* '@' */
+		if(!(mode&P_NOATCODES) && str[l]=='@') {
 			if(str==mnestr			/* Mnemonic string or */
 				|| (str>=text[0]	/* Straight out of TEXT.DAT */
 					&& str<=text[TOTAL_TEXT-1])) {
@@ -77,7 +100,18 @@ int sbbs_t::bputs(const char *str)
 					continue;
 			}
 		}
-		outchar(str[l++]);
+		if(mode&P_PETSCII) {
+			if(term&PETSCII)
+				outcom(str[l++]);
+			else
+				petscii_to_ansibbs(str[l++]);
+		} else if((str[l]&0x80) && (mode&P_UTF8)) {
+			if(term&UTF8)
+				outcom(str[l++]);
+			else
+				l += utf8_to_cp437(str + l, len - l);
+		} else
+			outchar(str[l++]);
 	}
 	return(l);
 }
@@ -248,7 +282,7 @@ size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 		outchar(*str);
 		return sizeof(char);
 	}
-	uint32_t codepoint = 0;
+	enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
 	len = utf8_getc(str, len, &codepoint);
 	if((int)len < 2) {
 		lprintf(LOG_NOTICE, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
@@ -264,8 +298,8 @@ size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
 	char ch = unicode_to_cp437(codepoint);
 	if(ch)
 		outchar(ch);
-	else if(!unicode_is_zerowidth(codepoint)) {
-		outchar('\xA8');	// Inverted question mark
+	else if(unicode_width(codepoint) > 0) {
+		outchar(CP437_INVERTED_QUESTION_MARK);
 		char seq[32] = "";
 		for(size_t i = 0; i < len; i++)
 			sprintf(seq + strlen(seq), "%02X ", (uchar)*(str + i));
@@ -299,7 +333,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
 		else if(term&UTF8) {
-			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
+			enum unicode_codepoint codepoint = cp437_unicode_tbl[(uchar)ch];
 			if(codepoint != 0)
 				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
 		}
@@ -308,7 +342,7 @@ int sbbs_t::rputs(const char *str, size_t len)
 		else {
 			if(outcom(ch)!=0)
 				break;
-			if(ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
+			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		}
 		if(lbuflen<LINE_BUFSIZE)
@@ -332,6 +366,23 @@ int sbbs_t::bprintf(const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
 	va_end(argptr);
 	return(bputs(sbuf));
+}
+
+/****************************************************************************/
+/* Performs printf() using bbs bputs function (with mode)					*/
+/****************************************************************************/
+int sbbs_t::bprintf(long mode, const char *fmt, ...)
+{
+	va_list argptr;
+	char sbuf[4096];
+
+	if(strchr(fmt,'%')==NULL)
+		return(bputs(fmt, mode));
+	va_start(argptr,fmt);
+	vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
+	va_end(argptr);
+	return(bputs(sbuf, mode));
 }
 
 /****************************************************************************/
@@ -380,6 +431,38 @@ long sbbs_t::term_supports(long cmp_flags)
 		flags |= useron.misc & (NO_EXASCII | SWAP_DELETE | COLOR | ICE_COLOR);
 
 	return(cmp_flags ? ((flags&cmp_flags)==cmp_flags) : (flags&TERM_FLAGS));
+}
+
+/****************************************************************************/
+/* Returns description of the terminal type									*/
+/****************************************************************************/
+const char* sbbs_t::term_type(long term)
+{
+	if(term == -1)
+		term = term_supports();
+	if(term&PETSCII)
+		return "PETSCII";
+	if(term&RIP)
+		return "RIP";
+	if(term&ANSI)
+		return "ANSI";
+	return "DUMB";
+}
+
+/****************************************************************************/
+/* Returns description of the terminal supported character set (charset)	*/
+/****************************************************************************/
+const char* sbbs_t::term_charset(long term)
+{
+	if(term == -1)
+		term = term_supports();
+	if(term&PETSCII)
+		return "CBM-ASCII";
+	if(term&UTF8)
+		return "UTF-8";
+	if(term&NO_EXASCII)
+		return "US-ASCII";
+	return "CP437";
 }
 
 /****************************************************************************/
@@ -449,7 +532,7 @@ int sbbs_t::outchar(char ch)
 		if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
 		else if(term&UTF8) {
-			uint32_t codepoint = cp437_unicode_tbl[(uchar)ch];
+			enum unicode_codepoint codepoint = cp437_unicode_tbl[(uchar)ch];
 			if(codepoint != 0)
 				utf8_putc(utf8, sizeof(utf8) - 1, codepoint);
 		}
@@ -539,14 +622,7 @@ int sbbs_t::outchar(char ch)
 				column=0;
 				break;
 			default:
-				column++;
-				if(column >= cols) {	// assume terminal has/will auto-line-wrap
-					lncntr++;
-					lbuflen = 0;
-					tos = 0;
-					lastlinelen = column;
-					column = 0;
-				}
+				inc_column(1);
 				if(!lbuflen)
 					latr=curatr;
 				if(lbuflen<LINE_BUFSIZE)
@@ -565,6 +641,40 @@ int sbbs_t::outchar(char ch)
 	return 0;
 }
 
+int sbbs_t::outchar(enum unicode_codepoint codepoint, const char* cp437_fallback)
+{
+	if(term_supports(UTF8)) {
+		char str[UTF8_MAX_LEN];
+		int len = utf8_putc(str, sizeof(str), codepoint);
+		if(len < 1)
+			return len;
+		putcom(str, len);
+		inc_column(unicode_width(codepoint));
+		return 0;
+	}
+	if(cp437_fallback == NULL)
+		return 0;
+	return bputs(cp437_fallback);
+}
+
+int sbbs_t::outchar(enum unicode_codepoint codepoint, char cp437_fallback)
+{
+	char str[2] = { cp437_fallback, '\0' };
+	return outchar(codepoint, str);
+}
+
+void sbbs_t::inc_column(int count)
+{
+	column += count;
+	if(column >= cols) {	// assume terminal has/will auto-line-wrap
+		lncntr++;
+		lbuflen = 0;
+		tos = 0;
+		lastlinelen = column;
+		column = 0;
+	}
+}
+
 void sbbs_t::center(char *instr)
 {
 	char str[256];
@@ -579,6 +689,21 @@ void sbbs_t::center(char *instr)
 	bputs(str);
 	newline();
 }
+
+void sbbs_t::wide(const char* str)
+{
+	long term = term_supports();
+	while(*str != '\0') {
+		if((term&UTF8) && *str >= '!' && *str <= '~')
+			outchar((enum unicode_codepoint)(UNICODE_FULLWIDTH_EXCLAMATION_MARK + (*str - '!')));
+		else {
+			outchar(*str);
+			outchar(' ');
+		}
+		str++;
+	}
+}
+
 
 // Send a bare carriage return, hopefully moving the cursor to the far left, current row
 void sbbs_t::carriage_return(void)
