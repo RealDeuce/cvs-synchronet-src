@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.101 2019/07/10 21:41:27 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.106 2019/07/16 04:31:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -151,11 +151,13 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(strncmp(sp, "U+", 2) == 0) {	// UNICODE
 		enum unicode_codepoint codepoint = (enum unicode_codepoint)strtoul(sp + 2, &tp, 16);
-		if(tp == NULL || *tp ==0)
+		if(tp == NULL || *tp == 0)
 			outchar(codepoint, unicode_to_cp437(codepoint));
+		else if(*tp == ':')
+			outchar(codepoint, tp + 1);
 		else {
 			char fallback = (char)strtoul(tp + 1, NULL, 16);
-			if(*tp == '/')
+			if(*tp == ',')
 				outchar(codepoint, fallback);
 			else if(*tp == '!') {
 				char ch = unicode_to_cp437(codepoint);
@@ -170,6 +172,35 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(strcmp(sp, "CHECKMARK") == 0) {
 		outchar(UNICODE_CHECK_MARK, CP437_CHECK_MARK);
+		return nulstr;
+	}
+
+	if(strcmp(sp, "ELLIPSIS") == 0) {
+		outchar(UNICODE_HORIZONTAL_ELLIPSIS, "...");
+		return nulstr;
+	}
+	if(strcmp(sp, "COPY") == 0) {
+		outchar(UNICODE_COPYRIGHT_SIGN, "(C)");
+		return nulstr;
+	}
+	if(strcmp(sp, "SOUNDCOPY") == 0) {
+		outchar(UNICODE_SOUND_RECORDING_COPYRIGHT, "(P)");
+		return nulstr;
+	}
+	if(strcmp(sp, "REGISTERED") == 0) {
+		outchar(UNICODE_REGISTERED_SIGN, "(R)");
+		return nulstr;
+	}
+	if(strcmp(sp, "TRADEMARK") == 0) {
+		outchar(UNICODE_TRADE_MARK_SIGN, "(TM)");
+		return nulstr;
+	}
+	if(strcmp(sp, "DEGREE_C") == 0) {
+		outchar(UNICODE_DEGREE_CELSIUS, "\xF8""C");
+		return nulstr;
+	}
+	if(strcmp(sp, "DEGREE_F") == 0) {
+		outchar(UNICODE_DEGREE_FAHRENHEIT, "\xF8""F");
 		return nulstr;
 	}
 
@@ -1024,17 +1055,17 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 
-	if(!strncmp(sp,"MAILW:",6)) {
+	if(!strncmp(sp,"MAILW:",6) || !strncmp(sp,"MAILW#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */0));
 		return(str);
 	}
 
-	if(!strncmp(sp,"MAILP:",6)) {
+	if(!strncmp(sp,"MAILP:",6) || !strncmp(sp,"MAILP#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */TRUE, /* attr: */0));
 		return(str);
 	}
 
-	if(!strncmp(sp,"SPAMW:",6)) {
+	if(!strncmp(sp,"SPAMW:",6) || !strncmp(sp,"SPAMW#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */MSG_SPAM));
 		return(str);
 	}
