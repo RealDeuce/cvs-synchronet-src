@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.84 2020/04/02 19:28:40 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.76 2019/08/02 22:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,10 +53,6 @@ static bool qwk_parse_header_list(sbbs_t* sbbs, ulong confnum, smbmsg_t* msg, st
 			sbbs->errormsg(WHERE, ERR_CHK, "Conference number", confnum, value);
 			return false;
 		}
-	}
-	if((p=iniPopKey(headers,ROOT_SECTION,"utf8",value))!=NULL) {
-		if(stricmp(value,"true") == 0)
-			msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
 	}
 
 	if((p=iniPopKey(headers,ROOT_SECTION,"WhenWritten",value))!=NULL) {
@@ -215,22 +211,21 @@ bool sbbs_t::qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset
 	}
 
 	if(msg->to==NULL)
-		smb_hfield_str(msg,RECIPIENT,strip_ctrl(to, to));
+		smb_hfield_str(msg,RECIPIENT,to);
 
 	if(parse_sender_hfields && msg->from==NULL) {
 		sprintf(str,"%25.25s",hdrblk+46);  
 		truncsp(str);
-		smb_hfield_str(msg,SENDER,strip_ctrl(str, str));
+		smb_hfield_str(msg,SENDER,str);
 	}
 
 	if(msg->subj==NULL) {
 		sprintf(str,"%25.25s",hdrblk+71);   /* Subject */
 		truncsp(str);
-		smb_hfield_str(msg,SUBJECT,strip_ctrl(str, str));
+		smb_hfield_str(msg,SUBJECT,str);
 	}
 
 	iniFreeStringList(msg_headers);
-	return true;
 }
 
 /****************************************************************************/
@@ -239,7 +234,7 @@ bool sbbs_t::qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset
 /****************************************************************************/
 bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 							,char fromhub, smb_t* smb
-							,uint touser, smbmsg_t* msg, bool* dupe)
+							,uint touser, smbmsg_t* msg)
 {
 	char*		body;
 	char*		tail;
@@ -255,7 +250,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	str_list_t	kludges;
 	uint		subnum = smb->subnum;
 
-	*dupe = false;
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
 		msg->hdr.attr|=MSG_PRIVATE;
@@ -330,7 +324,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	kludges=strListInit();
 
 	char qwk_newline = QWK_NEWLINE;
-	if(msg->hdr.auxattr & MSG_HFIELDS_UTF8)
+	if(smb_msg_is_utf8(msg) && utf8_str_is_valid(qwkbuf))
 		qwk_newline = '\n';
 
 	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
@@ -342,8 +336,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 					&& (strnicmp(qwkbuf+k,"To:",3)==0 
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
-			if((p=strchr(qwkbuf+k, '\r'))==NULL
-				&& (p=strchr(qwkbuf+k, qwk_newline))==NULL) {
+			if((p=strchr(qwkbuf+k, qwk_newline))==NULL) {
 				body[bodylen++]=qwkbuf[k];
 				continue;
 			}
@@ -509,7 +502,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 				logline(LOG_NOTICE,"P!",str); 
 			}
 		}
-		*dupe=true;
 	}
 	else 
 		errormsg(WHERE,ERR_WRITE,smb->file,i,smb->last_error);
