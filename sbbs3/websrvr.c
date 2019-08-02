@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.694 2019/08/02 17:47:07 deuce Exp $ */
+/* $Id: websrvr.c,v 1.695 2019/08/02 17:50:36 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -605,7 +605,8 @@ static BOOL session_check(http_session_t *session, BOOL *rd, BOOL *wr, unsigned 
 			*wr=1;
 		if(rd || wr == NULL) {
 			if(session->tls_pending) {
-				*rd = TRUE;
+				if (rd)
+					*rd = TRUE;
 				return TRUE;
 			}
 		}
@@ -6582,7 +6583,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.694 $", "%*s %s", revision);
+	sscanf("$Revision: 1.695 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
