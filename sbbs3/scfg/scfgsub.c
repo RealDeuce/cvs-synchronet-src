@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.60 2020/04/07 05:30:03 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.57 2019/08/01 08:17:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
 
 static sub_t** cut_qhub_sub;
 
-bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long misc)
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub)
 {
 	sub_t* new_subboard;
 	if ((new_subboard = (sub_t *)malloc(sizeof(*new_subboard))) == NULL) {
@@ -47,7 +47,6 @@ bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long mi
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
 	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_FAST);
-	new_subboard->misc |= misc;
 	new_subboard->maxmsgs = 500;
 
 	/* Use last sub in group (if exists) as a template for new subs */
@@ -274,7 +273,7 @@ void sub_cfg(uint grpnum)
 				continue; 
 			}
 
-			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL))
 				continue;
 
 			SAFECOPY(cfg.sub[subnum[i]]->code_suffix,code);
@@ -311,7 +310,7 @@ void sub_cfg(uint grpnum)
 					if(j==-1)
 						continue;
 					if(j==0)
-						delfiles(data_dir,str, /* keep: */0);
+						delfiles(data_dir,str);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -326,7 +325,7 @@ void sub_cfg(uint grpnum)
 			continue; 
 		}
 		if(msk == MSK_PASTE) {
-			if (!new_sub(subnum[i], grpnum, &savsub, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, &savsub))
 				continue;
 			uifc.changes = TRUE;
 			continue; 
@@ -1333,8 +1332,7 @@ void sub_cfg(uint grpnum)
 								;
 								uifc.input(WIN_MID|WIN_SAV,0,0,"FidoNet Address"
 									,str,25,K_EDIT);
-								if(str[0])
-									cfg.sub[i]->faddr=atofaddr(str);
+								cfg.sub[i]->faddr=atofaddr(str);
 								break;
 							case 8:
 								uifc.helpbuf=
@@ -1460,7 +1458,7 @@ void sub_cfg(uint grpnum)
 										,cfg.grp[cfg.sub[i]->grp]->code_prefix
 										,cfg.sub[i]->code_suffix);
 									strlwr(str2);
-									delfiles(str,str2, /* keep: */0); 
+									delfiles(str,str2); 
 								}
 
 								if(cfg.sub[i]->misc&SUB_HYPER)
