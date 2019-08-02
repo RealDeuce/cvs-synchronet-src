@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.63 2019/03/31 21:19:58 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.68 2019/04/30 02:48:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1652,8 +1652,17 @@ void xedit_cfg()
 				,cfg.xedit[i]->misc&XTRN_NATIVE ? "Yes" : "No");
 			sprintf(opt[k++],"%-32.32s%s","Use Shell to Execute"
 				,cfg.xedit[i]->misc&XTRN_SH ? "Yes" : "No");
-			sprintf(opt[k++],"%-32.32s%s","Word-wrap Quoted Text"
-				,cfg.xedit[i]->misc&QUOTEWRAP ? "Yes":"No");
+			sprintf(opt[k++],"%-32.32s%s","Record Terminal Width"
+				,cfg.xedit[i]->misc&SAVECOLUMNS ? "Yes" : "No");
+			str[0]=0;
+			if(cfg.xedit[i]->misc&QUOTEWRAP) {
+				if(cfg.xedit[i]->quotewrap_cols == 0)
+					SAFECOPY(str, ", for terminal width");
+				else
+					SAFEPRINTF(str, ", for %u columns", (uint)cfg.xedit[i]->quotewrap_cols);
+			}
+			sprintf(opt[k++],"%-32.32s%s%s","Word-wrap Quoted Text"
+				,cfg.xedit[i]->misc&QUOTEWRAP ? "Yes":"No", str);
 			sprintf(opt[k++],"%-32.32s%s","Automatically Quoted Text"
 				,cfg.xedit[i]->misc&QUOTEALL ? "All":cfg.xedit[i]->misc&QUOTENONE
 					? "None" : "Prompt User");
@@ -1661,6 +1670,23 @@ void xedit_cfg()
 				,cfg.xedit[i]->misc&QUICKBBS ? "QuickBBS MSGINF/MSGTMP":"WWIV EDITOR.INF/RESULT.ED");
 			sprintf(opt[k++],"%-32.32s%s","Expand Line Feeds to CRLF"
 				,cfg.xedit[i]->misc&EXPANDLF ? "Yes":"No");
+			const char* p;
+			switch(cfg.xedit[i]->soft_cr) {
+				case XEDIT_SOFT_CR_EXPAND:
+					p = "Convert to CRLF";
+					break;
+				case XEDIT_SOFT_CR_STRIP:
+					p = "Strip";
+					break;
+				case XEDIT_SOFT_CR_RETAIN:
+					p = "Retain";
+					break;
+				default:
+				case XEDIT_SOFT_CR_UNDEFINED:
+					p = "Unspecified";
+					break;
+			}
+			sprintf(opt[k++],"%-32.32s%s","Handle Soft Carriage Returns", p);
 			sprintf(opt[k++],"%-32.32s%s","Strip FidoNet Kludge Lines"
 				,cfg.xedit[i]->misc&STRIPKLUDGE ? "Yes":"No");
 			sprintf(opt[k++],"%-32.32s%s","BBS Drop File Type"
@@ -1675,7 +1701,7 @@ void xedit_cfg()
 				"`GEdit`, `IceEdit`, and many others.\n"
 			;
 
-			sprintf(str,"%s Editor",cfg.xedit[i]->name);
+			SAFEPRINTF(str,"%s Editor",cfg.xedit[i]->name);
 			switch(uifc.list(WIN_SAV|WIN_ACT|WIN_L2R|WIN_BOT,0,0,70,&dfltopt,0
 				,str,opt)) {
 				case -1:
@@ -1824,6 +1850,35 @@ void xedit_cfg()
 					}
 					break;
 				case 7:
+					k=(cfg.xedit[i]->misc&SAVECOLUMNS) ? 0:1;
+					uifc.helpbuf=
+						"`Record Terminal Width:`\n"
+						"\n"
+						"When set to `Yes`, Synchronet will store the current terminal width\n"
+						"(in columns) in the header of messages created with this editor and use\n"
+						"the saved value to nicely re-word-wrap the message text when displaying\n"
+						"or quoting the message for other users with different terminal sizes.\n"
+						"\n"
+						"If this editor correctly detects and supports terminal widths `other`\n"
+						"`than 80 columns`, set this option to `Yes`."
+					;
+					switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+						,"Record Terminal Width",uifcYesNoOpts)) {
+						case 0:
+							if(!(cfg.xedit[i]->misc&SAVECOLUMNS)) {
+								cfg.xedit[i]->misc |= SAVECOLUMNS;
+								uifc.changes = TRUE;
+							}
+							break;
+						case 1:
+							if(cfg.xedit[i]->misc&SAVECOLUMNS) {
+								cfg.xedit[i]->misc &= ~SAVECOLUMNS;
+								uifc.changes = TRUE; 
+							}
+							break;
+					}
+					break;
+				case 8:
 					k=(cfg.xedit[i]->misc&QUOTEWRAP) ? 0:1;
 					uifc.helpbuf=
 						"`Word-wrap Quoted Text:`\n"
@@ -1842,6 +1897,20 @@ void xedit_cfg()
 								cfg.xedit[i]->misc|=QUOTEWRAP;
 								uifc.changes=TRUE;
 							}
+							SAFEPRINTF(str, "%u", (uint)cfg.xedit[i]->quotewrap_cols);
+							uifc.helpbuf=
+								"`Screen width to wrap to:`\n"
+								"\n"
+								"Set to `0` to wrap the quoted text suiting the user's terminal width.\n"
+								"Set to `79` to wrap the quoted text suiting an 80 column terminal.\n"
+								"Set to `9999` to unwrap quoted text to long-line paragraphs.\n"
+								;
+							if(uifc.input(WIN_MID|WIN_SAV,0,0
+								,"Screen width to wrap to (0 = current terminal width)"
+								,str, 4, K_NUMBER|K_EDIT) > 0) {
+								cfg.xedit[i]->quotewrap_cols = atoi(str);
+								uifc.changes=TRUE;
+							}
 							break;
 						case 1:
 							if(cfg.xedit[i]->misc&QUOTEWRAP) {
@@ -1851,7 +1920,7 @@ void xedit_cfg()
 							break;
 					}
 					break;
-				case 8:
+				case 9:
 					switch(cfg.xedit[i]->misc&(QUOTEALL|QUOTENONE)) {
 						case 0:		/* prompt user */
 							k=2;
@@ -1897,7 +1966,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 9:
+				case 10:
 					k=cfg.xedit[i]->misc&QUICKBBS ? 0:1;
 					strcpy(opt[0],"QuickBBS MSGINF/MSGTMP");
 					strcpy(opt[1],"WWIV EDITOR.INF/RESULT.ED");
@@ -1919,7 +1988,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 10:
+				case 11:
 					k=(cfg.xedit[i]->misc&EXPANDLF) ? 0:1;
 					uifc.helpbuf=
 						"`Expand Line Feeds to Carriage Return/Line Feed Pairs:`\n"
@@ -1938,7 +2007,37 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 11:
+				case 12:
+					k = cfg.xedit[i]->soft_cr;
+					strcpy(opt[0],"Unspecified");
+					strcpy(opt[1],"Convert to CRLF");
+					strcpy(opt[2],"Strip (Remove)");
+					strcpy(opt[3],"Retain (Leave in)");
+					opt[4][0]=0;
+					uifc.helpbuf=
+						"`Handle Soft Carriage Returns:`\n"
+						"\n"
+						"This setting determines what is to be done with so-called \"Soft\" CR\n"
+						"(Carriage Return) characters that are added to the message text by\n"
+						"this message editor.\n"
+						"\n"
+						"Soft-CRs are defined in FidoNet specifications as 8Dh or ASCII 141 and\n"
+						"were used historically to indicate an automatic line-wrap performed by\n"
+						"the message editor.\n"
+						"\n"
+						"The supported settings for this option are:\n"
+						"\n"
+						"    `Convert` - to change Soft-CRs to the more universal CRLF (Hard-CR)\n"
+						"    `Strip`   - to store long line paragraphs in the message bases\n"
+						"    `Retain`  - to treat 8Dh characters like any other printable char\n"
+					;
+					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0,"Handle Soft Carriage Returns", opt);
+					if(k >= 0 &&  k != cfg.xedit[i]->soft_cr) {
+						cfg.xedit[i]->soft_cr = k;
+						uifc.changes=TRUE;
+					}
+					break;
+				case 13:
 					k=(cfg.xedit[i]->misc&STRIPKLUDGE) ? 0:1;
 					uifc.helpbuf=
 						"`Strip FidoNet Kludge Lines From Messages:`\n"
@@ -1958,7 +2057,7 @@ void xedit_cfg()
 						uifc.changes=TRUE; 
 					}
 					break;
-				case 12:
+				case 14:
 					k=0;
 					strcpy(opt[k++],"None");
 					sprintf(opt[k++],"%-15s %s","Synchronet","XTRN.DAT");
