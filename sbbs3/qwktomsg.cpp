@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.76 2019/08/02 22:17:15 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.77 2019/08/02 22:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -226,6 +226,7 @@ bool sbbs_t::qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset
 	}
 
 	iniFreeStringList(msg_headers);
+	return true;
 }
 
 /****************************************************************************/
