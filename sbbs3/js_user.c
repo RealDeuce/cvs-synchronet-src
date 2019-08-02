@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.116 2020/04/03 08:42:57 deuce Exp $ */
+/* $Id: js_user.c,v 1.111 2019/07/15 06:53:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1212,7 +1212,6 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	int32	start_time=0;
 	jsrefcount	rc;
 	scfg_t*		scfg;
-	time_t		tl;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
@@ -1229,8 +1228,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(scfg,p);
 
-	tl = gettimeleft(scfg, p->user, start_time);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(tl > INT32_MAX ? INT32_MAX : (int32) tl));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL((int32_t)gettimeleft(scfg, p->user, start_time)));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
@@ -1239,8 +1237,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 
 static jsSyncMethodSpec js_user_functions[] = {
 	{"compare_ars",		js_chk_ar,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string ars")
-	,JSDOCSTR("Verify user meets access requirements string<br>"
-		"Note: For the current user of the terminal server, use <tt>bbs.compare_ars()</tt> instead.")
+	,JSDOCSTR("Verify user meets access requirements string")
 	,310
 	},		
 	{"adjust_credits",	js_adjust_credits,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("count")
@@ -1270,8 +1267,7 @@ static jsSyncMethodSpec js_user_functions[] = {
 	{"get_time_left",	js_get_time_left,	1,	JSTYPE_NUMBER,	JSDOCSTR("start_time")
 	,JSDOCSTR("Returns the user's available remaining time online, in seconds,<br>"
 	"based on the passed <i>start_time</i> value (in time_t format)<br>"
-	"Note: this method does not account for pending forced timed events"
-	"Note: for the pre-defined user object on the BBS, you almost certainly want bbs.get_time_left() instead.")
+	"Note: this method does not account for pending forced timed events")
 	,31401
 	},
 	{0}

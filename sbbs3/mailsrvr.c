@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.721 2020/04/09 05:48:48 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.708 2019/08/02 14:02:33 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -149,7 +149,7 @@ typedef struct {
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s %s", sock, server, GCES_estr);                     \
+		lprintf(GCES_level, "%04d %s/TLS %s", sock, server, GCES_estr);                     \
 		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
@@ -159,7 +159,7 @@ typedef struct {
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s [%s] %s", sock, server, host, GCES_estr);         \
+		lprintf(GCES_level, "%04d %s/TLS [%s] %s", sock, server, host, GCES_estr);         \
 		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
@@ -699,8 +699,6 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		return(0);
 
 	if((p = smb_get_hfield(msg, RFC822TO, NULL)) != NULL)
-		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field (MIME-Encoded) */
-	else if((p = msg->to_list) != NULL)
 		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field */
 	else {
 		if(strchr(msg->to,'@')!=NULL || msg->to_net.addr==NULL)
@@ -1107,7 +1105,6 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF2(str,"%s: %s", client.protocol, host_ip);
@@ -1131,7 +1128,7 @@ static void pop3_thread(void* arg)
 		srand((unsigned int)(time(NULL) ^ (time_t)GetCurrentThreadId()));	/* seed random number generator */
 		rand();	/* throw-away first result */
 		safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%.128s>"
-			,rand(),socket,(ulong)time(NULL),(ulong)clock(),startup->host_name);
+			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 
 		sockprintf(socket,client.protocol,session,"+OK Synchronet %s Server %s-%s Ready %s"
 			,client.protocol, revision,PLATFORM_DESC,challenge);
@@ -1294,7 +1291,6 @@ static void pop3_thread(void* arg)
 
 		/* Update client display */
 		client.user=user.alias;
-		client.usernum = user.number;
 		client_on(socket,&client,TRUE /* update */);
 		activity=FALSE;
 
@@ -2405,12 +2401,11 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 	return MIMEHDR_CHARSET_OTHER;
 }
 
-// Replace MIME (RFC 2047) "encoded-words" with their decoded-values
+// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
 // Returns true if the value was MIME-encoded
 bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 {
 	bool encoded = false;
-	bool encoded_word = false;
 	if (str == NULL)
 		return false;
 	char* buf = strdup(str);
@@ -2420,12 +2415,11 @@ bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 	*str = 0;
 	char tmp[256]; // "An 'encoded-word' may not be more than 75 characters long"
 	for(char* p = strtok_r(buf, " \t", &state); p != NULL; p = strtok_r(NULL, " \t", &state)) {
+		if(*str)
+			strcat(str, " ");
 		char* end = lastchar(p);
 		if(*p == '=' && *(p+1) == '?' && *(end - 1) == '?' && *end == '=' && end - p < sizeof(tmp)) {
-			if(*str && !encoded_word)
-				strcat(str, " ");
 			encoded = true;
-			encoded_word = true;
 			char* cp = p + 2;
 			enum mimehdr_charset charset = mimehdr_charset_decode(cp);
 			FIND_CHAR(cp, '?');
@@ -2450,10 +2444,6 @@ bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 					p = tmp;
 				}
 			}
-		} else {
-			if(*str)
-				strcat(str, " ");
-			encoded_word = false;
 		}
 		strcat(str, p);
 	}
@@ -2635,6 +2625,24 @@ static int chk_received_hdr(SOCKET socket,const char* prot,const char *buf,IN_AD
 	return(dnsbl_result->s_addr);
 }
 
+static void strip_char(char* str, char ch)
+{
+	char* src;
+	char* p;
+	char* tmp = strdup(str);
+
+	if(tmp == NULL)
+		return;
+	p=tmp;
+	for(src = str; *src; src++) {
+		if(*src != ch)
+			*(p++) = *src;
+	}
+	*p=0;
+	strcpy(str, tmp);
+	free(tmp);
+}
+
 static void parse_mail_address(char* p
 							   ,char* name, size_t name_len
 							   ,char* addr, size_t addr_len)
@@ -2670,7 +2678,7 @@ static void parse_mail_address(char* p
 	if(tp) *tp=0;
 	sprintf(name,"%.*s",(int)name_len,p);
 	truncsp(name);
-	strip_char(name, name, '\\');
+	strip_char(name, '\\');
 }
 
 /* Decode quoted-printable content-transfer-encoded text */
@@ -3153,7 +3161,6 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -3552,11 +3559,14 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if((p=smb_get_hfield(&msg, RFC822FROM, NULL))!=NULL) {
-					parse_mail_address(p 
-						,sender		,sizeof(sender)-1
-						,sender_addr,sizeof(sender_addr)-1);
-					// We only support MIME-encoded name portion of 'name <user@addr>'
-					mimehdr_value_decode(sender, &msg);
+					char* np = strdup(p);
+					if(np != NULL) {
+						mimehdr_value_decode(np, &msg);
+						parse_mail_address(p 
+							,sender		,sizeof(sender)-1
+							,sender_addr,sizeof(sender_addr)-1);
+						free(np);
+					}
 				}
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
@@ -3917,7 +3927,7 @@ static void smtp_thread(void* arg)
 					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum) {
 						if(newmsg.idx.to)
 							for(i=1;i<=scfg.sys_nodes;i++) {
-								getnodedat(&scfg, i, &node, FALSE, NULL);
+								getnodedat(&scfg, i, &node, 0);
 								if(node.useron==usernum
 									&& (node.status==NODE_INUSE || node.status==NODE_QUIET))
 									break;
@@ -3934,8 +3944,6 @@ static void smtp_thread(void* arg)
 								,startup->newmail_notice
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
-							if(newmsg.hdr.auxattr&MSG_HFIELDS_UTF8)
-								utf8_to_cp437_str(str);
 							if(!newmsg.idx.to) 	/* Forwarding */
 								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
@@ -4002,7 +4010,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			/* RFC822 Header parsing */
-			strip_char(buf, buf, '\r');	/* There should be no bare carriage returns in header fields */
+			strip_char(buf, '\r');	/* There should be no bare carriage returns in header fields */
 			if(startup->options&MAIL_OPT_DEBUG_RX_HEADER)
 				lprintf(LOG_DEBUG,"%04d %s %s",socket, client.protocol, buf);
 
@@ -4061,7 +4069,7 @@ static void smtp_thread(void* arg)
 			sockprintf(socket,client.protocol,session,"250-SOML");
 			sockprintf(socket,client.protocol,session,"250-SAML");
 			sockprintf(socket,client.protocol,session,"250-8BITMIME");
-			if (session == -1)
+			if (session != -1)
 				sockprintf(socket,client.protocol,session,"250-STARTTLS");
 			if (startup->max_msg_size)
 				sockprintf(socket,client.protocol,session,"250-SIZE %u", startup->max_msg_size);
@@ -4174,7 +4182,6 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
-			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using %s authentication"
@@ -4184,7 +4191,7 @@ static void smtp_thread(void* arg)
 		}
 		if(!stricmp(buf,"AUTH CRAM-MD5")) {
 			safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%s>"
-				,rand(),socket,(ulong)time(NULL),(ulong)clock(),startup->host_name);
+				,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 #if 0
 			lprintf(LOG_DEBUG,"%04d SMTP CRAM-MD5 challenge: %s"
 				,socket,challenge);
@@ -4262,7 +4269,6 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
-			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using CRAM-MD5 authentication"
@@ -4804,7 +4810,7 @@ static void smtp_thread(void* arg)
 			}
 			else if(cmd==SMTP_CMD_SEND) { /* Check if user online */
 				for(i=0;i<scfg.sys_nodes;i++) {
-					getnodedat(&scfg, i+1, &node, FALSE, NULL);
+					getnodedat(&scfg, i+1, &node, 0);
 					if(node.status==NODE_INUSE && node.useron==user.number
 						&& !(node.misc&NODE_POFF))
 						break;
@@ -4822,6 +4828,7 @@ static void smtp_thread(void* arg)
 			fprintf(rcptlst,"[%u]\n",rcpt_count++);
 			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 			fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTEXT),user.number);
+			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 
 			/* Forward to Internet */
 			tp=strrchr(user.netmail,'@');
@@ -4842,7 +4849,6 @@ static void smtp_thread(void* arg)
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
 					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),user.alias);
 				}						
-				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 				sockprintf(socket,client.protocol,session,ok_rsp);
 			}
 			state=SMTP_STATE_RCPT_TO;
@@ -5885,7 +5891,7 @@ static void cleanup(int code)
 		if(stats.errors)
 			sprintf(str+strlen(str),", %lu errors", stats.errors);
 		if(stats.crit_errors)
-			sprintf(str+strlen(str),", %lu critical", stats.crit_errors);
+			sprintf(str+strlen(str),", %lu critcal", stats.crit_errors);
 
 		lprintf(LOG_INFO,"#### Mail Server thread terminated (%s)",str);
 	}
@@ -5900,7 +5906,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.721 $", "%*s %s", revision);
+	sscanf("$Revision: 1.708 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
