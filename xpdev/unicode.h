@@ -1,6 +1,6 @@
 /* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: unicode.h,v 1.2 2019/07/08 00:16:16 rswindell Exp $ */
+/* $Id: unicode.h,v 1.3 2019/07/10 00:02:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,16 +36,16 @@
 #ifndef UNICODE_H_
 #define UNICODE_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include "unicode_defs.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-extern uint32_t cp437_unicode_tbl[];
-bool unicode_is_zerowidth(uint32_t);
-char unicode_to_cp437(uint32_t);
+extern enum unicode_codepoint cp437_unicode_tbl[];
+size_t unicode_width(enum unicode_codepoint);
+char unicode_to_cp437(enum unicode_codepoint);
 
 #if defined(__cplusplus)
 }
