@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.57 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.62 2019/08/02 22:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 	, int conf, FILE* hdrs, FILE* voting)
 {
 	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
-	char	asc;
 	char	msgid[256];
 	char	reply_id[256];
 	char 	tmp[512];
@@ -201,6 +200,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOTID,NULL))!=NULL)	
 			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
+		if((p=(char*)smb_get_hfield(msg,hfield_type=FIDOCHARSET,NULL))!=NULL)
+			fprintf(hdrs,"%s: %s\n", smb_hfieldtype(hfield_type), p);
 		/* Misc. FTN-Kludge header fields: */
 		for(i = 0; i < msg->total_hfields; i++)
 			if(msg->hfield[i].type == FIDOCTRL)
@@ -226,6 +227,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		for(i=0;i<msg->total_hfields;i++)
 			if(msg->hfield[i].type==RFC822HEADER)
 				fprintf(hdrs,"%s\n",truncsp_lines((char*)msg->hfield_dat[i]));
+
+		fprintf(hdrs, "Conference: %u\n", conf);
 
 		/* Blank line: */
 		fprintf(hdrs,"\n");
@@ -397,11 +400,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 				ch=buf[++l];
 				if(ch==0 || ch=='Z')	/* EOF */
 					break;
-				if((asc=ctrl_a_to_ascii_char(ch)) != 0) {
-					fputc(asc,qwk_fp);
-					size++;
-					continue;
-				}
 				if(mode&QM_EXPCTLA) {
 					str[0]=0;
 					switch(toupper(ch)) {
@@ -469,7 +467,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 						size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 					continue; 
 				} 						/* End Expand */
-				if(mode&QM_RETCTLA && valid_ctrl_a_code(ch)) {
+				if(mode&QM_RETCTLA && valid_ctrl_a_attr(ch)) {
 					fputc(CTRL_A,qwk_fp);
 					fputc(ch,qwk_fp);
 					size+=2L; 
