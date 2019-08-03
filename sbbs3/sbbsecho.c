@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.132 2019/08/06 00:59:44 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.127 2019/08/03 10:07:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2743,29 +2743,26 @@ bool unpack_bundle(const char* inbound)
 		if(gi<g.gl_pathc) {
 			SAFECOPY(fname,g.gl_pathv[gi]);
 			gi++;
-			off_t length = flength(fname);
-			if(length < 1) {
-				if(fdate(fname) < time(NULL) + (24*60*60))
-					lprintf(LOG_DEBUG, "Ignoring %ld-byte file (less than 24-hours old): %s", (long)length, fname);
-				else {
-					lprintf(LOG_INFO, "Deleting %ld-byte file (more than 24-hours old): %s", (long)length, fname);
-					delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
-				}
-				continue;
-			}
-			lprintf(LOG_INFO,"Unpacking bundle: %s (%1.1fKB)", fname, length/1024.0);
-			if(unpack(fname, inbound) != 0) {	/* failure */
+			lprintf(LOG_INFO,"Unpacking bundle: %s (%1.1fKB)", fname, flength(fname)/1024.0);
+			if(unpack(fname, inbound)) {	/* failure */
 				lprintf(LOG_ERR, "!Unpack failure: %s", fname);
-				/* rename to "*.?_?" or (if it exists) "*.?-?" */
-				SAFECOPY(str,fname);
-				str[strlen(str)-2]='_';
-				if(fexistcase(str))
-					str[strlen(str)-2]='-';
-				if(fexistcase(str))
-					delfile(str, __LINE__);
-				if(rename(fname,str))
-					lprintf(LOG_ERR,"ERROR line %d renaming %s to %s"
-						,__LINE__,fname,str);
+				if(fdate(fname)+(48L*60L*60L)<time(NULL)) {
+					/* If bundle file older than 48 hours, give up */
+					if(flength(fname) < 1) {
+						delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
+						continue;
+					}
+					/* rename to "*.?_?" or (if it exists) "*.?-?" */
+					SAFECOPY(str,fname);
+					str[strlen(str)-2]='_';
+					if(fexistcase(str))
+						str[strlen(str)-2]='-';
+					if(fexistcase(str))
+						delfile(str, __LINE__);
+					if(rename(fname,str))
+						lprintf(LOG_ERR,"ERROR line %d renaming %s to %s"
+							,__LINE__,fname,str);
+				}
 				continue;
 			}
 			delfile(fname, __LINE__);	/* successful, so delete bundle */
@@ -3023,13 +3020,12 @@ void bail(int error_level)
 	cleanup();
 
 	if(cfg.log_level == LOG_DEBUG
-		|| error_level
 		|| netmail || exported_netmail || packed_netmail
 		|| echomail || exported_echomail
 		|| packets_imported || packets_sent
 		|| bundles_unpacked || bundles_sent) {
 		char signoff[1024];
-		sprintf(signoff, "SBBSecho (PID %u) exiting with error level %d", getpid(), error_level);
+		sprintf(signoff, "SBBSecho exiting with error level %d", error_level);
 		if(bundles_unpacked || bundles_sent)
 			sprintf(signoff+strlen(signoff), ", Bundles(%lu unpacked, %lu sent)", bundles_unpacked, bundles_sent);
 		if(packets_imported || packets_sent)
@@ -4922,7 +4918,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			if(scfg.sub[subnum]->misc&SUB_ASCII)
 				charset = FIDO_CHARSET_ASCII;
 			if(charset == NULL) {
-				if(smb_msg_is_utf8(&msg) || (msg.hdr.auxattr & MSG_HFIELDS_UTF8))
+				if(smb_msg_is_utf8(&msg))
 					charset = FIDO_CHARSET_UTF8;
 				else if(str_is_ascii(buf))
 					charset = FIDO_CHARSET_ASCII;
@@ -5450,7 +5446,7 @@ void pack_netmail(void)
 				fprintf(fp,"%s\n",getfname(hdr.subj));
 				fclose(fp);
 				if(write_flofile(req, addr,/* bundle: */false, cfg.use_outboxes, /* del_file: */true, hdr.attr))
-					continue;
+					bail(1);
 				netmail_sent(path);
 			}
 			continue;
@@ -6101,7 +6097,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.132 $", "%*s %s", revision);
+	sscanf("$Revision: 3.127 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6315,7 +6311,7 @@ int main(int argc, char **argv)
 	}
 
 	truncsp(cmdline);
-	lprintf(LOG_DEBUG,"%s (PID %u) invoked with options: %s", sbbsecho_pid(), getpid(), cmdline);
+	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
 	lprintf(LOG_DEBUG,"Configured: %u archivers, %u linked-nodes, %u echolists", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
 	lprintf(LOG_DEBUG,"NetMail directory: %s", scfg.netmail_dir);
 	lprintf(LOG_DEBUG,"Secure Inbound directory: %s", cfg.secure_inbound);
