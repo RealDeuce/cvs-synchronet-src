@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.534 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.536 2019/08/02 22:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -884,14 +884,14 @@ public:
 	/* download.cpp */
 	void	downloadfile(file_t* f);
 	void	notdownloaded(ulong size, time_t start, time_t end);
-	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd);
+	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd, bool autohangup=true);
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
 	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
-	bool	recvfile(char* fname, char prot=0);
+	bool	sendfile(char* fname, char prot=0, const char* description = NULL, bool autohang=true);
+	bool	recvfile(char* fname, char prot=0, bool autohang=true);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -976,9 +976,9 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
-	uint	resolve_qwkconf(uint n, int hubnum=-1);
-	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, int hubnum);
-	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, int hubnum = -1);
+	uint	resolve_qwkconf(uint confnum, int hubnum=-1);
+	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, uint confnum, int hubnum);
+	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, uint confnum, int hubnum = -1);
 	void	qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t, const char* qnet_id, int hubnum = -1);
 
 	/* pack_qwk.cpp */
@@ -997,7 +997,7 @@ public:
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t*, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
-	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
+	bool	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
 				,uint touser, smbmsg_t* msg);
 
