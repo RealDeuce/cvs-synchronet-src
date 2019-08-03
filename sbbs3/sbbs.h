@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.536 2019/08/02 22:17:15 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.537 2019/08/03 08:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -688,6 +688,8 @@ public:
 	void	show_msghdr(smb_t*, smbmsg_t*, const char *subj = NULL, const char* from = NULL, const char* to = NULL);
 	bool	show_msg(smb_t*, smbmsg_t*, long p_mode = 0, post_t* post = NULL);
 	bool	msgtotxt(smb_t*, smbmsg_t*, const char *fname, bool header = true, ulong gettxt_mode = GETMSGTXT_ALL);
+	const char* msghdr_text(const smbmsg_t*, uint index);
+	char	msghdr_utf8_text[128];
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
@@ -787,7 +789,7 @@ public:
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
-	const char*	atcode(char* sp, char* str, size_t maxlen);
+	const char*	atcode(char* sp, char* str, size_t maxlen, long* pmode = NULL);
 
 	/* getnode.cpp */
 	int		getsmsg(int usernumber, bool clearline = false);

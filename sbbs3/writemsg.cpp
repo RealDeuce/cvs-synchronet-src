@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.169 2019/08/02 13:53:31 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.170 2019/08/03 08:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -511,7 +511,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(console&CON_RAW_IN) {
 
 		if(editor != NULL)
-			*editor = "Synchronet writemsg $Revision: 1.169 $";
+			*editor = "Synchronet writemsg $Revision: 1.170 $";
 
 		bprintf(text[EnterMsgNowRaw]
 			,(ulong)cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
@@ -637,7 +637,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	else {
 
 		if(editor != NULL)
-			*editor = "Synchronet msgeditor $Revision: 1.169 $";
+			*editor = "Synchronet msgeditor $Revision: 1.170 $";
 
 		buf[0]=0;
 		if(linesquoted || draft_restored) {
@@ -749,7 +749,10 @@ void sbbs_t::editor_info_to_msg(smbmsg_t* msg, const char* editor, const char* c
 
 	if(editor == NULL || useron_xedit == 0 || (cfg.xedit[useron_xedit - 1]->misc&SAVECOLUMNS))
 		smb_hfield_bin(msg, SMB_COLUMNS, cols);
-}
+
+	if(!str_is_ascii(msg->subj) && utf8_str_is_valid(msg->subj))
+		msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
+}  
 
 /****************************************************************************/
 /****************************************************************************/
