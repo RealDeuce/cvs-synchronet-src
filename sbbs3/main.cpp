@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.757 2019/08/12 06:24:08 rswindell Exp $ */
+/* $Id: main.cpp,v 1.754 2019/07/16 07:07:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -346,12 +346,12 @@ void call_socket_open_callback(BOOL open)
 		startup->socket_open(startup->cbdata, open);
 }
 
-SOCKET open_socket(int domain, int type, const char* protocol)
+SOCKET open_socket(int type, const char* protocol)
 {
 	SOCKET	sock;
 	char	error[256];
 
-	sock=socket(domain, type, IPPROTO_IP);
+	sock=socket(AF_INET, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET)
 		call_socket_open_callback(TRUE);
 	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
@@ -2689,7 +2689,7 @@ void event_thread(void* arg)
 					sbbs->console|=CON_L_ECHO;
 					sbbs->getusrsubs();
 					bool success = sbbs->unpack_rep(g.gl_pathv[i]);
-					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					sbbs->online=FALSE;
@@ -2701,6 +2701,7 @@ void event_thread(void* arg)
 							sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
 					} else {
 						char badpkt[MAX_PATH+1];
+						SAFECOPY(badpkt, g.gl_pathv[i]);
 						SAFEPRINTF2(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
 						remove(badpkt);
 						if(rename(g.gl_pathv[i], badpkt) == 0)
@@ -2757,7 +2758,7 @@ void event_thread(void* arg)
 						remove(bat_list);
 					} else
 						sbbs->lputs(LOG_INFO, "No packet created (no new messages)");
-					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
@@ -2808,7 +2809,7 @@ void event_thread(void* arg)
 							sbbs->qwk_success(l,0,1);
 							sbbs->putmsgptrs();
 						}
-						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					}
@@ -2934,7 +2935,7 @@ void event_thread(void* arg)
 								sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 									,errno, strerror(errno), str, newname);
 						}
-						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						if(remove(str))
@@ -2993,7 +2994,7 @@ void event_thread(void* arg)
 						close(file);
 					}
 				}
-				sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+				delfiles(sbbs->cfg.temp_dir,ALLFILES);
 
 				sbbs->cfg.qhub[i]->last=time32(NULL);
 				SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
@@ -4338,7 +4339,6 @@ void sbbs_t::reset_logon_vars(void)
 	cur_cps=3000;
     cur_rate=30000;
     dte_rate=38400;
-	cur_output_rate = output_rate_unlimited;
 	main_cmds=xfer_cmds=posts_read=0;
 	lastnodemsg=0;
 	lastnodemsguser[0]=0;
@@ -5835,7 +5835,7 @@ NO_SSH:
 
     		/* open a socket and connect to yourself */
 
-    		tmp_sock = open_socket(PF_INET, SOCK_STREAM, "passthru");
+    		tmp_sock = open_socket(SOCK_STREAM, "passthru");
 
 			if(tmp_sock == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru listen socket"
@@ -5873,7 +5873,7 @@ NO_SSH:
 			lprintf(LOG_INFO,"Node %d SSH passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
-    		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
+    		new_node->passthru_socket = open_socket(SOCK_STREAM, "passthru");
 
 			if(new_node->passthru_socket == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru connecting socket"

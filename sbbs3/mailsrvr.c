@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.711 2019/08/09 09:44:22 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.709 2019/08/03 04:30:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2406,7 +2406,6 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 {
 	bool encoded = false;
-	bool encoded_word = false;
 	if (str == NULL)
 		return false;
 	char* buf = strdup(str);
@@ -2416,12 +2415,11 @@ bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 	*str = 0;
 	char tmp[256]; // "An 'encoded-word' may not be more than 75 characters long"
 	for(char* p = strtok_r(buf, " \t", &state); p != NULL; p = strtok_r(NULL, " \t", &state)) {
+		if(*str)
+			strcat(str, " ");
 		char* end = lastchar(p);
 		if(*p == '=' && *(p+1) == '?' && *(end - 1) == '?' && *end == '=' && end - p < sizeof(tmp)) {
-			if(*str && !encoded_word)
-				strcat(str, " ");
 			encoded = true;
-			encoded_word = true;
 			char* cp = p + 2;
 			enum mimehdr_charset charset = mimehdr_charset_decode(cp);
 			FIND_CHAR(cp, '?');
@@ -2446,10 +2444,6 @@ bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 					p = tmp;
 				}
 			}
-		} else {
-			if(*str)
-				strcat(str, " ");
-			encoded_word = false;
 		}
 		strcat(str, p);
 	}
@@ -4834,6 +4828,7 @@ static void smtp_thread(void* arg)
 			fprintf(rcptlst,"[%u]\n",rcpt_count++);
 			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 			fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTEXT),user.number);
+			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 
 			/* Forward to Internet */
 			tp=strrchr(user.netmail,'@');
@@ -4854,7 +4849,6 @@ static void smtp_thread(void* arg)
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
 					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),user.alias);
 				}						
-				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 				sockprintf(socket,client.protocol,session,ok_rsp);
 			}
 			state=SMTP_STATE_RCPT_TO;
@@ -5912,7 +5906,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.711 $", "%*s %s", revision);
+	sscanf("$Revision: 1.709 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
