@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.79 2019/08/12 06:27:46 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.77 2019/08/02 22:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -235,7 +235,7 @@ bool sbbs_t::qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset
 /****************************************************************************/
 bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 							,char fromhub, smb_t* smb
-							,uint touser, smbmsg_t* msg, bool* dupe)
+							,uint touser, smbmsg_t* msg)
 {
 	char*		body;
 	char*		tail;
@@ -251,7 +251,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	str_list_t	kludges;
 	uint		subnum = smb->subnum;
 
-	*dupe = false;
 	if(subnum!=INVALID_SUB
 		&& (hdrblk[0]=='*' || hdrblk[0]=='+' || cfg.sub[subnum]->misc&SUB_PONLY))
 		msg->hdr.attr|=MSG_PRIVATE;
@@ -338,8 +337,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 					&& (strnicmp(qwkbuf+k,"To:",3)==0 
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
-			if((p=strchr(qwkbuf+k, '\r'))==NULL
-				|| (p=strchr(qwkbuf+k, qwk_newline))==NULL) {
+			if((p=strchr(qwkbuf+k, qwk_newline))==NULL) {
 				body[bodylen++]=qwkbuf[k];
 				continue;
 			}
@@ -505,7 +503,6 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 				logline(LOG_NOTICE,"P!",str); 
 			}
 		}
-		*dupe=true;
 	}
 	else 
 		errormsg(WHERE,ERR_WRITE,smb->file,i,smb->last_error);
