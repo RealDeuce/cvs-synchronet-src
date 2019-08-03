@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.127 2019/08/03 10:07:40 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.128 2019/08/03 11:31:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4918,7 +4918,7 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 			if(scfg.sub[subnum]->misc&SUB_ASCII)
 				charset = FIDO_CHARSET_ASCII;
 			if(charset == NULL) {
-				if(smb_msg_is_utf8(&msg))
+				if(smb_msg_is_utf8(&msg) || (msg.hdr.auxattr & MSG_HFIELDS_UTF8))
 					charset = FIDO_CHARSET_UTF8;
 				else if(str_is_ascii(buf))
 					charset = FIDO_CHARSET_ASCII;
@@ -6097,7 +6097,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.127 $", "%*s %s", revision);
+	sscanf("$Revision: 3.128 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
