@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.513 2019/04/12 00:10:39 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.537 2019/08/03 08:15:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -278,6 +278,7 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
+#include "unicode_defs.h"
 
 /***********************/
 /* Synchronet-specific */
@@ -301,7 +302,6 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "telnet.h"
 #include "nopen.h"
 #include "text.h"
-#include "petdefs.h"
 
 /* Synchronet Node Instance class definition */
 #ifdef __cplusplus
@@ -463,8 +463,8 @@ public:
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
 	time_t 	timeout;		/* User inactivity timeout reference */
 	ulong 	timeleft_warn;	/* low timeleft warning flag */
-	uchar 	curatr; 		/* Current Text Attributes Always */
-	uchar	attr_stack[64];	/* Saved attributes (stack) */
+	uint	curatr; 		/* Current Text Attributes Always */
+	uint	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
 	bool 	tos;			/* Cursor is currently at the Top of Screen */
@@ -480,7 +480,7 @@ public:
 	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
-	char 	latr;			/* Starting attribute of line buffer */
+	uint	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
@@ -542,6 +542,9 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
+	const char*	current_msg_subj;
+	const char*	current_msg_from;
+	const char*	current_msg_to;
 	file_t*		current_file;
 
 			/* Global command shell variables */
@@ -648,7 +651,7 @@ public:
 	/* writemsg.cpp */
 	void	automsg(void);
 	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
-				,const char *to, const char* from, char** editor=NULL);
+				,const char *to, const char* from, const char** editor=NULL, const char** charset=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
 	char	putmsg(const char *str, long mode, long org_cols = 0);
@@ -668,7 +671,8 @@ public:
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
-	void	editor_info_to_msg(smbmsg_t*, const char* editor);
+	void	editor_info_to_msg(smbmsg_t*, const char* editor, const char* charset);
+	char	editor_details[128];
 
 	/* postmsg.cpp */
 	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
@@ -681,9 +685,11 @@ public:
 	/* getmsg.cpp */
 	int		loadmsg(smbmsg_t *msg, ulong number);
 	void	show_msgattr(smbmsg_t*);
-	void	show_msghdr(smb_t*, smbmsg_t*);
+	void	show_msghdr(smb_t*, smbmsg_t*, const char *subj = NULL, const char* from = NULL, const char* to = NULL);
 	bool	show_msg(smb_t*, smbmsg_t*, long p_mode = 0, post_t* post = NULL);
 	bool	msgtotxt(smb_t*, smbmsg_t*, const char *fname, bool header = true, ulong gettxt_mode = GETMSGTXT_ALL);
+	const char* msghdr_text(const smbmsg_t*, uint index);
+	char	msghdr_utf8_text[128];
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
@@ -699,11 +705,16 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str);					/* BBS puts function */
+	int		bputs(const char *str, long mode = 0);	/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
 	int		bprintf(const char *fmt, ...)			/* BBS printf function */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		bprintf(long mode, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this', 2 is 'mode'
 #endif
 	;
 	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
@@ -713,7 +724,11 @@ public:
 	;
 	void	backspace(void);				/* Output a destructive backspace via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
+	int		outchar(enum unicode_codepoint, char cp437_fallback);
+	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
+	void	inc_column(int count);
 	void	center(char *str);
+	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
 	void	cleartoeos(void);
@@ -726,13 +741,17 @@ public:
 	void	line_feed(void);
 	void	newline(void);
 	long	term_supports(long cmp_flags=0);
+	const char* term_type(long term_supports = -1);
+	const char* term_charset(long term_supports = -1);
 	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
 	void	progress(const char* str, int count, int total, int interval=1);
 	bool	saveline(void);
 	bool	restoreline(void);
 	int		petscii_to_ansibbs(unsigned char);
+	size_t	utf8_to_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
+	char*	auto_utf8(const char*, long* mode);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -742,7 +761,7 @@ public:
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
-	long	getkeys(const char *str, ulong max);
+	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
 	bool	yesno(const char *str);
@@ -756,8 +775,8 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	bool	printfile(const char* fname, long mode);
-	bool	printtail(const char* fname, int lines, long mode);
+	bool	printfile(const char* fname, long mode, long org_cols = 0);
+	bool	printtail(const char* fname, int lines, long mode, long org_cols = 0);
 	bool	menu(const char *code, long mode = 0);
 	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
@@ -770,7 +789,7 @@ public:
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
-	const char*	atcode(char* sp, char* str, size_t maxlen);
+	const char*	atcode(char* sp, char* str, size_t maxlen, long* pmode = NULL);
 
 	/* getnode.cpp */
 	int		getsmsg(int usernumber, bool clearline = false);
@@ -790,6 +809,7 @@ public:
 	/* login.ccp */
 	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
 	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	char*	parse_login(char*);
 
 	/* answer.cpp */
 	bool	answer();
@@ -866,14 +886,14 @@ public:
 	/* download.cpp */
 	void	downloadfile(file_t* f);
 	void	notdownloaded(ulong size, time_t start, time_t end);
-	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd);
+	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd, bool autohangup=true);
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
 	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0, const char* description = NULL);
-	bool	recvfile(char* fname, char prot=0);
+	bool	sendfile(char* fname, char prot=0, const char* description = NULL, bool autohang=true);
+	bool	recvfile(char* fname, char prot=0, bool autohang=true);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -921,6 +941,7 @@ public:
 
 	/* xtrn.cpp */
 	int		external(const char* cmdline, long mode, const char* startup_dir=NULL);
+	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
@@ -944,7 +965,6 @@ public:
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
-	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
 	uint	total_qwknodes;
@@ -958,9 +978,9 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
-	uint	resolve_qwkconf(uint n, int hubnum=-1);
-	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, int hubnum);
-	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, int hubnum = -1);
+	uint	resolve_qwkconf(uint confnum, int hubnum=-1);
+	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, uint confnum, int hubnum);
+	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, uint confnum, int hubnum = -1);
 	void	qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t, const char* qnet_id, int hubnum = -1);
 
 	/* pack_qwk.cpp */
@@ -979,7 +999,7 @@ public:
 	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t*, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
-	void	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
+	bool	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
 				,uint touser, smbmsg_t* msg);
 
@@ -1123,6 +1143,7 @@ extern "C" {
 	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
 	DLLEXPORT char *	DLLCALL rot13(char* str);
 	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
+	DLLEXPORT BOOL		DLLCALL str_is_ascii(const char*);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
@@ -1247,6 +1268,8 @@ extern "C" {
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
 														,const char* name, const char* str[], unsigned flags);
+	DLLEXPORT void*		DLLCALL js_GetClassPrivate(JSContext*, JSObject*, JSClass*);
+
 	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
 													,scfg_t* cfg				/* common */
 													,scfg_t* node_cfg			/* node-specific */
