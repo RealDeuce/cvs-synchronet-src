@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.120 2019/04/11 01:18:59 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.122 2019/05/03 00:16:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -168,10 +168,8 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 		bprintf("%-16.16s %d\r\n"	,"thread_first"		,msg->hdr.thread_first);
 	if(msg->hdr.delivery_attempts)
 		bprintf("%-16.16s %hu\r\n"	,"delivery_attempts"	,msg->hdr.delivery_attempts);
-	if(msg->hdr.times_downloaded)
-		bprintf("%-16.16s %u\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
-	if(msg->hdr.last_downloaded)
-		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
+	if(msg->hdr.priority)
+		bprintf("%-16.16s %u\r\n"	,"priority"			,msg->hdr.priority);
 	if(msg->hdr.votes)
 		bprintf("%-16.16s %hu\r\n"	,"votes"		,msg->hdr.votes);
 
@@ -179,8 +177,6 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	if(msg->expiration)
 		bprintf("%-16.16s %s\r\n"	,"expiration"
 			,timestr(msg->expiration));
-	if(msg->priority)
-		bprintf("%-16.16s %u\r\n"	,"priority"			,msg->priority);
 	if(msg->cost)
 		bprintf("%-16.16s %u\r\n"	,"cost"				,msg->cost);
 
@@ -504,7 +500,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	int64_t	i64;
 	int		quit=0;
 	uint 	usub,ugrp,reads=0;
-	uint	lp=0;
+	uint	lp = LP_BYSELF;
 	long	org_mode=mode;
 	ulong	msgs,l,unvalidated;
 	uint32_t last;
@@ -513,6 +509,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	smbmsg_t	msg;
 	bool	thread_mode = false;
 
+	action=NODE_RMSG;
 	cursubnum=subnum;	/* for ARS */
 	if(cfg.scanposts_mod[0] && !scanposts_inside) {
 		char cmdline[256];
@@ -568,7 +565,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 
 	if(!(mode&SCAN_TOYOU)
 		&& (!mode || mode&SCAN_FIND || !(subscan[subnum].cfg&SUB_CFG_YSCAN)))
-		lp=LP_BYSELF|LP_OTHERS;
+		lp|=LP_OTHERS;
 	if(mode&SCAN_TOYOU && mode&SCAN_UNREAD)
 		lp|=LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
@@ -648,7 +645,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	smb_unlocksmbhdr(&smb);
 	last=smb.status.last_msg;
 
-	action=NODE_RMSG;
 	if(mode&SCAN_CONST) {   /* update action */
 		getnodedat(cfg.node_num,&thisnode,1);
 		thisnode.action=NODE_RMSG;
@@ -1697,7 +1693,7 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 	uint32_t	posts;
 	uint32_t	total=0;
 	long	displayed = 0;
-	long	lp_mode = LP_BYSELF|LP_OTHERS;
+	long	lp_mode = LP_BYSELF;
 	post_t	*post;
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
@@ -1712,8 +1708,8 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 		smb_stack(&smb,SMB_STACK_POP);
 		return(0); 
 	}
-	if(mode&SCAN_TOYOU)
-		lp_mode = 0;
+	if(!(mode&SCAN_TOYOU))
+		lp_mode |= LP_OTHERS;
 	if(mode&SCAN_UNREAD)
 		lp_mode |= LP_UNREAD;
 	if(!(cfg.sub[subnum]->misc&SUB_NOVOTING))
