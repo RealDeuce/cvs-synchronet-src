@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.251 2019/08/06 05:04:30 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.250 2019/07/24 09:29:03 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -908,11 +908,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		if(!JS_ValueToInt32(cx,val,&i32))
 			goto err;
 		msg->hdr.thread_first=i32;
-	}
-	if(JS_GetProperty(cx, hdr, "delivery_attempts", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		if(!JS_ValueToInt32(cx,val,&i32))
-			goto err;
-		msg->hdr.delivery_attempts=i32;
 	}
 
 	if(JS_GetProperty(cx, hdr, "priority", &val) && !JSVAL_NULL_OR_VOID(val)) {
