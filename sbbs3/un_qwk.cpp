@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.60 2019/08/07 03:19:34 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.59 2019/08/02 22:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,7 +63,6 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 	ulong	t;
 	ulong	msgs=0;
 	ulong	tmsgs=0;
-	ulong	dupes=0;
 	ulong	errors=0;
 	time_t	start;
 	time_t	startsub;
@@ -270,18 +269,13 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				continue; 
 			}
 			smb_unlocksmbhdr(&smb);
-			bool dupe=false;
-			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg, &dupe)) {
+			if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, usernum, &msg)) {
 				eprintf(LOG_INFO,"Imported QWK mail message from %s to %s #%u", msg.from, msg.to, usernum);
 				SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 				putsmsg(&cfg,usernum,str);
 				tmsgs++;
-			} else {
-				if(dupe)
-					dupes++;
-				else
-					errors++;
-			}
+			} else
+				errors++;
 			smb_close(&smb);
 			smb_stack(&smb,SMB_STACK_POP);
 			continue;
@@ -355,17 +349,12 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 			lastsub=j; 
 		}
 
-		bool dupe = false;
-		if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, /*touser: */0, &msg, &dupe)) {
+		if(qwk_import_msg(qwk, (char *)block, blocks, hubnum+1, &smb, /*touser: */0, &msg)) {
 			signal_sub_sem(&cfg,j);
 			msgs++;
 			tmsgs++;
-		} else {
-			if(dupe)
-				dupes++;
-			else
-				errors++;
-		}
+		} else
+			errors++;
 	}
 	if(lastsub != INVALID_SUB) {
 		log_qwk_import_stats(msgs, startsub);
@@ -425,12 +414,12 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 		closedir(dir);
 
 	t=(ulong)(time(NULL)-start);
-	if(tmsgs || errors || dupes) {
+	if(tmsgs) {
 		if(t<1)
 			t=1;
 		eprintf(LOG_INFO,"Finished Importing QWK Network Packet from %s: "
-			"(%lu msgs) in %lu seconds (%lu msgs/sec), %lu errors, %lu dupes"
-			,cfg.qhub[hubnum]->id, tmsgs, t, tmsgs/t, errors, dupes);
+			"(%lu msgs) in %lu seconds (%lu msgs/sec), %lu errors"
+			,cfg.qhub[hubnum]->id, tmsgs, t, tmsgs/t, errors);
 		/* trigger timed event with internal code of 'qnet-qwk' to run */
 		sprintf(str,"%sqnet-qwk.now",cfg.data_dir);
 		ftouch(str);
