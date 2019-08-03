@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.121 2019/04/23 05:34:26 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.123 2019/08/03 09:41:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,7 +74,8 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts, 
 		smb_unlockmsghdr(&smb,&msg);
 		if(listed==0)
 			bputs(text[MailOnSystemLstHdr]);
-		bprintf(text[SubMsgLstFmt], reading ? (i+1) : post[i].num
+		bprintf(P_TRUNCATE|(msg.hdr.auxattr&MSG_HFIELDS_UTF8)
+			,msghdr_text(&msg, SubMsgLstFmt), reading ? (i+1) : post[i].num
 			,msg.hdr.attr&MSG_ANONYMOUS && !sub_op(subnum)
 			? text[Anonymous] : msg.from
 			,msg.to
@@ -168,10 +169,8 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 		bprintf("%-16.16s %d\r\n"	,"thread_first"		,msg->hdr.thread_first);
 	if(msg->hdr.delivery_attempts)
 		bprintf("%-16.16s %hu\r\n"	,"delivery_attempts"	,msg->hdr.delivery_attempts);
-	if(msg->hdr.times_downloaded)
-		bprintf("%-16.16s %u\r\n"	,"times_downloaded"	,msg->hdr.times_downloaded);
-	if(msg->hdr.last_downloaded)
-		bprintf("%-16.16s %s\r\n"	,"last_downloaded"	,timestr(msg->hdr.last_downloaded));
+	if(msg->hdr.priority)
+		bprintf("%-16.16s %u\r\n"	,"priority"			,msg->hdr.priority);
 	if(msg->hdr.votes)
 		bprintf("%-16.16s %hu\r\n"	,"votes"		,msg->hdr.votes);
 
@@ -179,8 +178,6 @@ void sbbs_t::msghdr(smbmsg_t* msg)
 	if(msg->expiration)
 		bprintf("%-16.16s %s\r\n"	,"expiration"
 			,timestr(msg->expiration));
-	if(msg->priority)
-		bprintf("%-16.16s %u\r\n"	,"priority"			,msg->priority);
 	if(msg->cost)
 		bprintf("%-16.16s %u\r\n"	,"cost"				,msg->cost);
 
@@ -513,6 +510,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	smbmsg_t	msg;
 	bool	thread_mode = false;
 
+	action=NODE_RMSG;
 	cursubnum=subnum;	/* for ARS */
 	if(cfg.scanposts_mod[0] && !scanposts_inside) {
 		char cmdline[256];
@@ -648,7 +646,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 	smb_unlocksmbhdr(&smb);
 	last=smb.status.last_msg;
 
-	action=NODE_RMSG;
 	if(mode&SCAN_CONST) {   /* update action */
 		getnodedat(cfg.node_num,&thisnode,1);
 		thisnode.action=NODE_RMSG;
@@ -1768,7 +1765,8 @@ long sbbs_t::searchposts(uint subnum, post_t *post, long start, long posts
 			|| (msg.tags != NULL && strcasestr(msg.tags, search) != NULL)) {
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
-			bprintf(text[SubMsgLstFmt],l+1
+			bprintf(P_TRUNCATE|(msg.hdr.auxattr&MSG_HFIELDS_UTF8)
+				,msghdr_text(&msg, SubMsgLstFmt),l+1
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !sub_op(subnum) ? text[Anonymous]
 				: msg.from
 				,msg.to
@@ -1823,7 +1821,8 @@ long sbbs_t::showposts_toyou(uint subnum, post_t *post, ulong start, long posts,
 			if(!found)
 				bputs(text[MailOnSystemLstHdr]);
 			found++;
-			bprintf(text[SubMsgLstFmt],l+1
+			bprintf(P_TRUNCATE|(msg.hdr.auxattr&MSG_HFIELDS_UTF8)
+				,msghdr_text(&msg, SubMsgLstFmt),l+1
 				,(msg.hdr.attr&MSG_ANONYMOUS) && !SYSOP
 				? text[Anonymous] : msg.from
 				,msg.to
