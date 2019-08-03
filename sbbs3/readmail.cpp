@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.96 2019/08/08 18:30:41 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.94 2019/08/03 09:41:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,10 +256,9 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
-			if(!show_msg(&smb, &msg
+			show_msg(&smb, &msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
-					? 0:P_NOATCODES))
-				errormsg(WHERE,"showing", "mail message", msg.hdr.number, smb.last_error);
+					? 0:P_NOATCODES);
 			download_msg_attachments(&smb, &msg, which == MAIL_YOUR);
 			if(which==MAIL_YOUR && !(msg.hdr.attr&MSG_READ)) {
 				mail[smb.curmsg].attr|=MSG_READ;
@@ -354,15 +353,15 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				smb_getmsgidx(&smb,&msg);
 
 				if(!stricmp(str2,str))		/* Reply to sender */
-					SAFEPRINTF(str2,text[Regarding], msghdr_field(&msg, msg.subj));
+					SAFEPRINTF(str2,text[Regarding],msg.subj);
 				else						/* Reply to other */
-					SAFEPRINTF3(str2,text[RegardingByOn], msghdr_field(&msg, msg.subj), msghdr_field(&msg, msg.from, tmp)
+					SAFEPRINTF3(str2,text[RegardingByOn],msg.subj,msg.from
 						,timestr(msg.hdr.when_written.time));
 
 				p=strrchr(str,'@');
 				if(p) { 							/* name @addr */
 					replied=netmail(str,msg.subj,WM_NONE, &smb, &msg);
-					SAFEPRINTF(str2,text[DeleteMailQ],msghdr_field(&msg, msg.from)); 
+					SAFEPRINTF(str2,text[DeleteMailQ],msg.from); 
 				}
 				else {
 					if(!msg.from_net.type && !stricmp(str,msg.from))
@@ -373,7 +372,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 						replied=email(i,str2,msg.subj,WM_NONE, &smb, &msg);
 					else
 						replied=false;
-					SAFEPRINTF(str2,text[DeleteMailQ],msghdr_field(&msg, msg.from)); 
+					SAFEPRINTF(str2,text[DeleteMailQ],msg.from); 
 				}
 
 				if(replied==true && !(msg.hdr.attr&MSG_REPLIED)) {
@@ -443,7 +442,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				forwardmail(&msg,i);
 				if(msg.hdr.attr&MSG_PERMANENT)
 					break;
-				SAFEPRINTF(str2,text[DeleteMailQ],msghdr_field(&msg, msg.from));
+				SAFEPRINTF(str2,text[DeleteMailQ],msg.from);
 				if(!yesno(str2))
 					break;
 				if(msg.total_hfields)
