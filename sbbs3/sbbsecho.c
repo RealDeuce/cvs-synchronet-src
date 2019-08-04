@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.133 2019/08/16 21:06:56 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.130 2019/08/04 07:01:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2746,9 +2746,9 @@ bool unpack_bundle(const char* inbound)
 			off_t length = flength(fname);
 			if(length < 1) {
 				if(fdate(fname) < time(NULL) + (24*60*60))
-					lprintf(LOG_DEBUG, "Ignoring %ld-byte file (less than 24-hours old): %s", (long)length, fname);
+					lprintf(LOG_DEBUG, "Ignoring %ld-byte file (less than 24-hours old): ", (long)length, fname);
 				else {
-					lprintf(LOG_INFO, "Deleting %ld-byte file (more than 24-hours old): %s", (long)length, fname);
+					lprintf(LOG_INFO, "Deleting %ld-byte file (more than 24-hours old): ", (long)length, fname);
 					delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
 				}
 				continue;
@@ -3023,13 +3023,12 @@ void bail(int error_level)
 	cleanup();
 
 	if(cfg.log_level == LOG_DEBUG
-		|| error_level
 		|| netmail || exported_netmail || packed_netmail
 		|| echomail || exported_echomail
 		|| packets_imported || packets_sent
 		|| bundles_unpacked || bundles_sent) {
 		char signoff[1024];
-		sprintf(signoff, "SBBSecho (PID %u) exiting with error level %d", getpid(), error_level);
+		sprintf(signoff, "SBBSecho exiting with error level %d", error_level);
 		if(bundles_unpacked || bundles_sent)
 			sprintf(signoff+strlen(signoff), ", Bundles(%lu unpacked, %lu sent)", bundles_unpacked, bundles_sent);
 		if(packets_imported || packets_sent)
@@ -3251,7 +3250,21 @@ static short fmsgzone(const char* p)
 	val+=atoi(min);
 
 	if(west)
-		return(-val);
+		switch(val|US_ZONE) {
+			case AST:
+			case EST:
+			case CST:
+			case MST:
+			case PST:
+			case YST:
+			case HST:
+			case BST:
+				/* standard US timezone */
+				return(val|US_ZONE);
+			default:
+				/* non-standard timezone */
+				return(-val);
+		}
 	return(val);
 }
 
@@ -6087,7 +6100,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.133 $", "%*s %s", revision);
+	sscanf("$Revision: 3.130 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6301,7 +6314,7 @@ int main(int argc, char **argv)
 	}
 
 	truncsp(cmdline);
-	lprintf(LOG_DEBUG,"%s (PID %u) invoked with options: %s", sbbsecho_pid(), getpid(), cmdline);
+	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
 	lprintf(LOG_DEBUG,"Configured: %u archivers, %u linked-nodes, %u echolists", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
 	lprintf(LOG_DEBUG,"NetMail directory: %s", scfg.netmail_dir);
 	lprintf(LOG_DEBUG,"Secure Inbound directory: %s", cfg.secure_inbound);
