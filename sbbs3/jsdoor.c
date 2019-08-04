@@ -2,7 +2,7 @@
 
 /* Execute a BBS JavaScript module from the command-line */
 
-/* $Id: jsdoor.c,v 1.6 2018/02/23 08:24:23 deuce Exp $ */
+/* $Id: jsdoor.c,v 1.7 2019/08/04 17:49:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,12 +53,12 @@
 
 scfg_t		scfg;
 
-SOCKET open_socket(int type, const char* protocol)
+SOCKET open_socket(int domain, int type, const char* protocol)
 {
 	SOCKET	sock;
 	char	error[256];
 
-	sock=socket(AF_INET, type, IPPROTO_IP);
+	sock=socket(domain, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
 		lprintf(LOG_ERR,"%04d !ERROR %s",sock,error);
 
