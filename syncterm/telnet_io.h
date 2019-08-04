@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.h,v 1.11 2019/08/24 08:06:10 rswindell Exp $ */
+/* $Id: telnet_io.h,v 1.10 2019/07/11 18:31:45 deuce Exp $ */
 
 #ifndef _TELNET_IO_H_
 #define _TELNET_IO_H_
@@ -16,6 +16,7 @@ extern uchar	telnet_local_option[0x100];
 extern uchar	telnet_remote_option[0x100];
 
 BYTE*	telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, struct bbslist *bbs);
+BYTE*	telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen);
 void	request_telnet_opt(uchar cmd, uchar opt);
 
 #endif
