@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.130 2019/08/04 07:01:38 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.131 2019/08/04 20:16:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2746,9 +2746,9 @@ bool unpack_bundle(const char* inbound)
 			off_t length = flength(fname);
 			if(length < 1) {
 				if(fdate(fname) < time(NULL) + (24*60*60))
-					lprintf(LOG_DEBUG, "Ignoring %ld-byte file (less than 24-hours old): ", (long)length, fname);
+					lprintf(LOG_DEBUG, "Ignoring %ld-byte file (less than 24-hours old): %s", (long)length, fname);
 				else {
-					lprintf(LOG_INFO, "Deleting %ld-byte file (more than 24-hours old): ", (long)length, fname);
+					lprintf(LOG_INFO, "Deleting %ld-byte file (more than 24-hours old): %s", (long)length, fname);
 					delfile(fname, __LINE__);	/* Delete it if it's a 0-byte file */
 				}
 				continue;
@@ -6100,7 +6100,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.130 $", "%*s %s", revision);
+	sscanf("$Revision: 3.131 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
