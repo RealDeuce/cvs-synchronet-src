@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.55 2019/07/29 22:38:01 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.56 2019/08/04 22:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -382,7 +382,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if(term&UTF8)
 					outcom(str[l]);
 				else
-					skip = utf8_to_cp437(str + l, len - l);
+					skip = print_utf8_as_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
 			l += skip;
