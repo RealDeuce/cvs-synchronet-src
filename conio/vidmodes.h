@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.32 2020/04/02 22:59:27 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.30 2019/07/25 18:20:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,6 @@ struct  video_params {
 	int charheight;
 	int charwidth;
 	int	vmultiplier;
-	int	default_attr;
-	int	flags;
 };
 
 struct vstat_vmem {
@@ -95,8 +93,6 @@ struct video_stats {
 	int currattr;
 	int scaling;
 	int	vmultiplier;
-	int winwidth;
-	int winheight;
 	uint32_t flags;
 #define VIDMODES_FLAG_PALETTE_VMEM	1
 	uint32_t palette[16];
