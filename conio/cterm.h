@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.57 2019/07/09 20:13:26 deuce Exp $ */
+/* $Id: cterm.h,v 1.58 2019/07/12 04:49:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,6 +146,8 @@ struct cterminal {
 	int					cursor;			// Current cursor mode (Normal or None)
 	char				*fg_tc_str;
 	char				*bg_tc_str;
+	int					*tabs;
+	int					tab_count;
 
 	/* Sixel state */
 	int					sixel;			// Sixel status
