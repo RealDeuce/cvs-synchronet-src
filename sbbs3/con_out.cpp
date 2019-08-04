@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.115 2019/07/24 05:24:48 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.117 2019/08/04 22:48:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,7 @@ char* sbbs_t::auto_utf8(const char* str, long* mode)
    P_UTF8
    P_AUTO_UTF8
    P_NOATCODES
+   P_TRUNCATE
  ****************************************************************************/
 int sbbs_t::bputs(const char *str, long mode)
 {
@@ -74,6 +75,19 @@ int sbbs_t::bputs(const char *str, long mode)
 	str = auto_utf8(str, &mode);
 	size_t len = strlen(str);
 	while(l < len && online) {
+		switch(str[l]) {
+			case '\b':
+			case '\r':
+			case '\n':
+			case FF:
+			case CTRL_A:
+				break;
+			default: // printing char
+				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
+					l++;
+					continue;
+				}
+		}
 		if(str[l]==CTRL_A && str[l+1]!=0) {
 			l++;
 			if(str[l] == 'Z')	/* EOF (uppercase 'Z' only) */
@@ -109,12 +123,44 @@ int sbbs_t::bputs(const char *str, long mode)
 			if(term&UTF8)
 				outcom(str[l++]);
 			else
-				l += utf8_to_cp437(str + l, len - l);
+				l += print_utf8_as_cp437(str + l, len - l);
 		} else
 			outchar(str[l++]);
 	}
 	return(l);
 }
+
+/****************************************************************************/
+/* Returns the printed columns from 'str' accounting for Ctrl-A codes		*/
+/****************************************************************************/
+size_t sbbs_t::bstrlen(const char *str, long mode)
+{
+	str = auto_utf8(str, &mode);
+	size_t count = 0;
+	const char* end = str + strlen(str);
+	while (str < end) {
+		int len = 1;
+		if(*str == CTRL_A) {
+			str++;
+			if(*str == 0 || *str == 'Z')	// EOF
+				break;
+			if(*str == '[') // CR
+				count = 0;
+			else if(*str == '<' && count) // ND-Backspace
+				count--;
+		} else if(((*str) & 0x80) && (mode&P_UTF8)) {
+			enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
+			len = utf8_getc(str, end - str, &codepoint);
+			if(len < 1)
+				break;
+			count += unicode_width(codepoint);;
+		} else
+			count++;
+		str += len;
+	}
+	return count;
+}
+
 
 /* Perform PETSCII terminal output translation (from ASCII/CP437) */
 unsigned char cp437_to_petscii(unsigned char ch)
@@ -276,7 +322,7 @@ int sbbs_t::petscii_to_ansibbs(unsigned char ch)
 }
 
 // Return length of sequence
-size_t sbbs_t::utf8_to_cp437(const char* str, size_t len)
+size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
 {
 	if(((*str)&0x80) == 0) {
 		outchar(*str);
