@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.537 2019/08/03 08:15:41 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.538 2019/08/04 17:49:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1433,7 +1433,7 @@ char*	prep_code(char *str, const char* prefix);
 #endif
 	;
 	void	call_socket_open_callback(BOOL open);
-	SOCKET	open_socket(int type, const char* protocol);
+	SOCKET	open_socket(int domain, int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
