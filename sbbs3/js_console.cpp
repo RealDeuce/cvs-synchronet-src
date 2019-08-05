@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.140 2019/09/21 09:50:44 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.136 2019/08/05 06:49:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,8 +74,6 @@ enum {
 	,CON_PROP_INBUF_SPACE
 	,CON_PROP_OUTBUF_LEVEL
 	,CON_PROP_OUTBUF_SPACE
-
-	,CON_PROP_OUTPUT_RATE
 };
 
 extern JSClass js_console_class;
@@ -191,9 +189,6 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_OUTBUF_SPACE:
 			val=RingBufFree(&sbbs->outbuf);
-			break;
-		case CON_PROP_OUTPUT_RATE:
-			val = sbbs->cur_output_rate;
 			break;
 
 		default:
@@ -327,9 +322,6 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
-		case CON_PROP_OUTPUT_RATE:
-			sbbs->set_output_rate((enum sbbs_t::output_rate)val);
-			break;
 
 		default:
 			return(JS_TRUE);
@@ -372,7 +364,6 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"input_buffer_space",CON_PROP_INBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_level",CON_PROP_OUTBUF_LEVEL		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_space",CON_PROP_OUTBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
-	{	"output_rate"		,CON_PROP_OUTPUT_RATE		,JSPROP_ENUMERATE, 31702},
 	{0}
 };
 
@@ -416,7 +407,6 @@ static const char* con_prop_desc[] = {
 	,"number of bytes available in the input buffer	- <small>READ ONLY</small>"
 	,"number of bytes currently in the output buffer (from the local server) - <small>READ ONLY</small>"
 	,"number of bytes available in the output buffer - <small>READ ONLY</small>"
-	,"emulated serial data output rate, in bits-per-second (0 = unlimited)"
 	,NULL
 };
 #endif
@@ -669,7 +659,7 @@ js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uint32_t	maxnum=~0;
-	int32		dflt=0;
+	int32_t		dflt=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1113,7 +1103,6 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	}
     else for (i=0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
-
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1445,7 +1434,6 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
-	int32		cols = 0;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -1457,16 +1445,11 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 	if (!str)
 		return(JS_FALSE);
 
-	if(argc > 1) {
-		if(!JS_ValueToInt32(cx, argv[1], &cols))
-			return JS_FALSE;
-	}
-
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->center(cstr, cols);
+	sbbs->center(cstr);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1864,8 +1847,10 @@ js_lock_input(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-	} else {
+		sbbs->input_thread_mutex_locked=true;
+	} else if(sbbs->input_thread_mutex_locked) {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
+		sbbs->input_thread_mutex_locked=false;
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2039,8 +2024,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
 	,310
 	},
-	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text [,width]")
-	,JSDOCSTR("display a string centered on the screen, with an optionally-specified screen width (in columns)")
+	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	,JSDOCSTR("display a string centered on the screen")
 	,310
 	},
 	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")

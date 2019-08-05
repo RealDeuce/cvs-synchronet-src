@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.100 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.95 2019/08/04 22:48:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -40,6 +40,8 @@
 
 #include "sbbs.h"
 #include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
@@ -137,14 +139,18 @@ const char* sbbs_t::msghdr_field(const smbmsg_t* msg, const char* str, char* buf
 	if(msg == NULL || !(msg->hdr.auxattr & MSG_HFIELDS_UTF8))
 		return str;
 
-	if(can_utf8)
+	if(can_utf8 && term_supports(UTF8))
 		return str;
 
 	if(buf == NULL)
 		buf = msgghdr_field_cp437_str;
 
 	strncpy(buf, str, sizeof(msgghdr_field_cp437_str));
-	utf8_to_cp437_str(buf);
+	utf8_normalize_str(buf);
+	utf8_replace_chars(buf, unicode_to_cp437
+		,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+		,/* unsupported zero-width ch: */0
+		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 
 	return buf;
 }
@@ -378,15 +384,16 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 	}
 
 	if(msg->hdr.auxattr&MSG_FILEATTACH) {  /* Attached file */
-		char subj[FIDO_SUBJ_LEN];
 		smb_getmsgidx(smb, msg);
-		SAFECOPY(subj, msg->subj);					/* filenames (multiple?) in title */
-		char *p,*tp,ch;
-		tp=subj;
+		SAFECOPY(str, msg->subj);					/* filenames (multiple?) in title */
+		char *p,*tp,*sp,ch;
+		tp=str;
 		while(online) {
 			p=strchr(tp,' ');
 			if(p) *p=0;
-			tp=getfname(tp);
+			sp=strrchr(tp,'/');              /* sp is slash pointer */
+			if(!sp) sp=strrchr(tp,'\\');
+			if(sp) tp=sp+1;
 			file_t	fd;
 			fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 			padfname(tp,fd.name);
@@ -405,7 +412,7 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 				char 	tmp[512];
 				int		i;
 				SAFEPRINTF2(str, text[DownloadAttachedFileQ]
-					,getfname(fpath),ultoac(length,tmp));
+					,tp,ultoac(length,tmp));
 				if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str)) {
 					{	/* Remote User */
 						xfer_prot_menu(XFER_DOWNLOAD);
