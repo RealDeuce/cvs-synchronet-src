@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.747 2019/04/23 23:07:26 rswindell Exp $ */
+/* $Id: main.cpp,v 1.756 2019/08/05 10:21:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -38,6 +38,7 @@
 #include "ident.h"
 #include "telnet.h"
 #include "netwrap.h"
+#include "petdefs.h"
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "ssl.h"
@@ -345,12 +346,12 @@ void call_socket_open_callback(BOOL open)
 		startup->socket_open(startup->cbdata, open);
 }
 
-SOCKET open_socket(int type, const char* protocol)
+SOCKET open_socket(int domain, int type, const char* protocol)
 {
 	SOCKET	sock;
 	char	error[256];
 
-	sock=socket(AF_INET, type, IPPROTO_IP);
+	sock=socket(domain, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET)
 		call_socket_open_callback(TRUE);
 	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
@@ -462,6 +463,16 @@ int DLLCALL sbbs_random(int n)
 #ifdef JAVASCRIPT
 
 static js_server_props_t js_server_props;
+
+void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
+{
+	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
+
+	if(ret == NULL)
+		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
+			, cls == NULL ? "???" : cls->name);
+	return ret;
+}
 
 JSBool
 DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent, const char* name, const char* str[],uintN flags)
@@ -2275,9 +2286,13 @@ void passthru_input_thread(void* arg)
 			break;
 		}
 
-    	if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
-			lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
-			break;
+		if(sbbs->xtrn_mode & EX_BIN) {
+    		if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
+				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
+				break;
+			}
+		} else {
+			sbbs->rputs((char*)&ch, sizeof(ch));
 		}
 	}
 	if(sbbs->passthru_socket!=INVALID_SOCKET) {
@@ -3421,6 +3436,9 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	nodefile_fp=NULL;
 	node_ext_fp=NULL;
 	current_msg=NULL;
+	current_msg_subj=NULL;
+	current_msg_from=NULL;
+	current_msg_to=NULL;
 	current_file=NULL;
 	mnestr=NULL;
 
@@ -4293,11 +4311,8 @@ void sbbs_t::reset_logon_vars(void)
 {
 	int i;
 
-    /* bools */
-    qwklogon=false;
-
     sys_status&=~(SS_USERON|SS_TMPSYSOP|SS_LCHAT|SS_ABORT
-        |SS_PAUSEON|SS_PAUSEOFF|SS_EVENT|SS_NEWUSER|SS_NEWDAY);
+        |SS_PAUSEON|SS_PAUSEOFF|SS_EVENT|SS_NEWUSER|SS_NEWDAY|SS_QWKLOGON|SS_FASTLOGON);
     cid[0]=0;
     wordwrap[0]=0;
     question[0]=0;
@@ -4324,6 +4339,7 @@ void sbbs_t::reset_logon_vars(void)
 	cur_cps=3000;
     cur_rate=30000;
     dte_rate=38400;
+	cur_output_rate = output_rate_unlimited;
 	main_cmds=xfer_cmds=posts_read=0;
 	lastnodemsg=0;
 	lastnodemsguser[0]=0;
@@ -4484,7 +4500,7 @@ void node_thread(void* arg)
 
 		login_success = true;
 		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
-		if(sbbs->qwklogon) {
+		if(sbbs->sys_status&SS_QWKLOGON) {
 			sbbs->getsmsg(sbbs->useron.number);
 			sbbs->qwk_sec();
 		} else while(sbbs->useron.number
@@ -4645,6 +4661,16 @@ void node_thread(void* arg)
  	[External Code]
 
 	node_threads_running	{value=0 mutex={DebugInfo=0x00000000 <NULL> LockCount=-6 RecursionCount=0 ...} }	protected_uint32_t
+
+	and again on July-10-2019:
+
+	ntdll.dll!RtlpWaitOnCriticalSection()	Unknown
+ 	ntdll.dll!RtlpEnterCriticalSectionContended()	Unknown
+ 	ntdll.dll!_RtlEnterCriticalSection@4()	Unknown
+ 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex) Line 171	C
+ 	sbbs.dll!protected_uint32_adjust(protected_uint32_t * i, int adjustment) Line 244	C
+ 	sbbs.dll!update_clients() Line 187	C++
+>	sbbs.dll!node_thread(void * arg) Line 4668	C++
 	*/
 	update_clients();
 	thread_down();
@@ -5192,7 +5218,7 @@ void DLLCALL bbs_thread(void* arg)
 	}
 
 #ifdef USE_CRYPTLIB
-#if CRYPTLIB_VERSION < 3300
+#if CRYPTLIB_VERSION < 3300 && CRYPTLIB_VERSION > 999
 	#warning This version of Cryptlib is known to crash Synchronet.  Upgrade to at least version 3.3 or do not build with Cryptlib support.
 #endif
 	if(startup->options&BBS_OPT_ALLOW_SSH) {
@@ -5681,7 +5707,7 @@ NO_SSH:
 			sbbs->bprintf("Resolving hostname...");
 			getnameinfo(&client_addr.addr, client_addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
 			sbbs->putcom(crlf);
-			lprintf(LOG_INFO,"%04d %s Hostname: %s", client_socket, client.protocol, host_name);
+			lprintf(LOG_INFO,"%04d %s Hostname: %s [%s]", client_socket, client.protocol, host_name, host_ip);
 		}
 
 		if(sbbs->trashcan(host_name,"host")) {
@@ -5810,7 +5836,7 @@ NO_SSH:
 
     		/* open a socket and connect to yourself */
 
-    		tmp_sock = open_socket(SOCK_STREAM, "passthru");
+    		tmp_sock = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(tmp_sock == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru listen socket"
@@ -5848,7 +5874,7 @@ NO_SSH:
 			lprintf(LOG_INFO,"Node %d SSH passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
-    		new_node->passthru_socket = open_socket(SOCK_STREAM, "passthru");
+    		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(new_node->passthru_socket == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru connecting socket"
