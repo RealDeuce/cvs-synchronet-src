@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.56 2019/08/04 22:48:38 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.57 2019/08/05 10:21:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -392,6 +392,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		console=orgcon;
 		attr(tmpatr);
 	}
+	if(cur_output_rate != output_rate_unlimited && !(mode&P_NOATCODES))
+		set_output_rate(output_rate_unlimited);
 
 	attr_sp=0;	/* clear any saved attributes */
 

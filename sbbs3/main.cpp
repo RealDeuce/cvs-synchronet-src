@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.755 2019/08/04 17:49:51 deuce Exp $ */
+/* $Id: main.cpp,v 1.756 2019/08/05 10:21:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4339,6 +4339,7 @@ void sbbs_t::reset_logon_vars(void)
 	cur_cps=3000;
     cur_rate=30000;
     dte_rate=38400;
+	cur_output_rate = output_rate_unlimited;
 	main_cmds=xfer_cmds=posts_read=0;
 	lastnodemsg=0;
 	lastnodemsguser[0]=0;

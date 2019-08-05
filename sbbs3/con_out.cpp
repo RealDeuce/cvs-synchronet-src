@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.118 2019/08/05 06:49:58 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.119 2019/08/05 10:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -913,6 +913,20 @@ void sbbs_t::cleartoeos(void)
 {
 	if(term_supports(ANSI))
 		rputs("\x1b[J");
+}
+
+void sbbs_t::set_output_rate(enum output_rate speed)
+{
+	if(term_supports(ANSI)) {
+		unsigned int num = 0;
+		unsigned int val = speed;
+		while(val >= 300) {
+			num++;
+			val >>= 1;
+		}
+		rprintf("\x1b[;%u*r", num);
+		cur_output_rate = speed;
+	}
 }
 
 /****************************************************************************/

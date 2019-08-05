@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.107 2019/08/03 08:15:40 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.108 2019/08/05 10:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -477,6 +477,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(strcmp(sp, "QUITCHAR") == 0) {
 		safe_snprintf(str, maxlen, "%c", text[YNQP][2]);
 		return str;
+	}
+
+	if(strncmp(sp, "BPS:", 4) == 0) {
+		set_output_rate((enum output_rate)atoi(sp + 4));
+		return nulstr;
 	}
 
 	/* NOSTOP */
