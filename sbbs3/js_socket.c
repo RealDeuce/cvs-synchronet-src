@@ -1,6 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
+// vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.223 2018/08/14 09:36:50 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.231 2019/08/04 20:10:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,8 +43,6 @@
 #include "ssl.h"
 
 #ifdef JAVASCRIPT
-
-static const char* getprivate_failure = "line %d %s %s JS_GetPrivate failed";
 
 static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...);
 static bool do_CryptFlush(js_socket_private_t *p);
@@ -416,6 +415,7 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 
 /* Socket Object Methods */
 
+extern JSClass js_socket_class;
 static JSBool
 js_close(JSContext *cx, uintN argc, jsval *arglist)
 {
@@ -425,8 +425,7 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -472,7 +471,7 @@ SOCKET DLLCALL js_socket(JSContext *cx, jsval val)
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE)
-			if((vp=JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)))!=NULL)
+			if((vp=JS_GetInstancePrivate(cx,JSVAL_TO_OBJECT(val), &js_socket_class,NULL))!=NULL)
 				sock=*(SOCKET*)vp;
 	} else if(val!=JSVAL_VOID) {
 		int32	i;
@@ -493,7 +492,7 @@ SOCKET DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds)
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE) {
-			if((p=(js_socket_private_t *)JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
+			if((p=(js_socket_private_t *)JS_GetInstancePrivate(cx,JSVAL_TO_OBJECT(val),&js_socket_class,NULL))!=NULL) {
 				if(p->set) {
 					for(i=0; i<p->set->sock_count; i++) {
 						if(p->set->socks[i].sock == INVALID_SOCKET)
@@ -528,7 +527,7 @@ BOOL DLLCALL  js_socket_isset(JSContext *cx, jsval val, fd_set *fds)
 
 	if(JSVAL_IS_OBJECT(val) && (cl=JS_GetClass(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
 		if(cl->flags&JSCLASS_HAS_PRIVATE) {
-			if((p=(js_socket_private_t *)JS_GetPrivate(cx,JSVAL_TO_OBJECT(val)))!=NULL) {
+			if((p=(js_socket_private_t *)JS_GetInstancePrivate(cx,JSVAL_TO_OBJECT(val),&js_socket_class,NULL))!=NULL) {
 				if(p->set) {
 					for(i=0; i<p->set->sock_count; i++) {
 						if(p->set->socks[i].sock == INVALID_SOCKET)
@@ -585,8 +584,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -608,7 +606,7 @@ js_bind(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if((ret=getaddrinfo(cstr, portstr, &hints, &res)) != 0) {
 		JS_RESUMEREQUEST(cx,rc);
-		dbprintf(TRUE, p, "getaddrinfo (%s %s) failed with error %d", cstr, portstr, ret);
+		dbprintf(TRUE, p, "getaddrinfo(%s, %s) failed with error %d", cstr, portstr, ret);
 		p->last_error=ERROR_VALUE;
 		return(JS_TRUE);
 	}
@@ -644,8 +642,7 @@ js_listen(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -680,8 +677,7 @@ js_accept(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -714,7 +710,6 @@ js_accept(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	if((new_p=(js_socket_private_t*)JS_GetPrivate(cx,sockobj))==NULL) {
 		JS_RESUMEREQUEST(cx, rc);
-		JS_ReportError(cx,getprivate_failure,WHERE);
 		return(JS_FALSE);
 	}
 
@@ -746,8 +741,7 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 	char		ip_str[256];
 	struct addrinfo	hints,*res,*cur;
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -765,7 +759,8 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 	result = getaddrinfo(p->hostname, NULL, &hints, &res);
 	if(result != 0) {
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
-		dbprintf(TRUE, p, "looking up addresses for %s", p->hostname);
+		p->last_error = ERROR_VALUE;
+		dbprintf(TRUE, p, "getaddrinfo(%s) failed with error %d", p->hostname, result);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -788,8 +783,12 @@ js_connect(JSContext *cx, uintN argc, jsval *arglist)
 				&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
 			FD_ZERO(&socket_set);
 			FD_SET(p->sock,&socket_set);
-			if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1)
-				result=0;	/* success */
+			if(select(p->sock+1,NULL,&socket_set,NULL,&tv)==1) {
+				int so_error = -1;
+				socklen_t optlen = sizeof(so_error);
+				if(getsockopt(p->sock, SOL_SOCKET, SO_ERROR, (void*)&so_error, &optlen) == 0 && so_error == 0)
+					result=0;	/* success */
+			}
 		}
 		if(result==0)
 			break;
@@ -830,8 +829,7 @@ js_send(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -869,8 +867,7 @@ js_sendline(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -914,8 +911,7 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -950,7 +946,8 @@ js_sendto(JSContext *cx, uintN argc, jsval *arglist)
 	dbprintf(FALSE, p, "resolving hostname: %s", p->hostname);
 
 	if((result=getaddrinfo(p->hostname, NULL, &hints, &res) != 0)) {
-		dbprintf(TRUE, p, "getaddrinfo failed with error %d",result);
+		p->last_error = ERROR_VALUE;
+		dbprintf(TRUE, p, "getaddrinfo(%s) failed with error %d", p->hostname, result);
 		JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 		free(cp);
 		JS_RESUMEREQUEST(cx, rc);
@@ -991,8 +988,7 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1043,8 +1039,7 @@ js_sendbin(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1103,8 +1098,7 @@ js_recv(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1172,8 +1166,7 @@ js_recvfrom(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1295,8 +1288,7 @@ js_peek(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1382,8 +1374,7 @@ js_recvline(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1469,8 +1460,7 @@ js_recvbin(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1524,8 +1514,7 @@ js_getsockopt(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1576,8 +1565,7 @@ js_setsockopt(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1621,8 +1609,7 @@ js_ioctlsocket(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1665,8 +1652,7 @@ js_poll(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx,getprivate_failure,WHERE);
+	if((p=(js_socket_private_t*)js_GetClassPrivate(cx, obj, &js_socket_class))==NULL) {
 		return(JS_FALSE);
 	}
 
@@ -1859,15 +1845,21 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 										if (scfg->tls_certificate == -1)
 											ret = CRYPT_ERROR_NOTAVAIL;
 										else {
+											lock_ssl_cert();
 											ret = cryptSetAttribute(p->session, CRYPT_SESSINFO_PRIVATEKEY, scfg->tls_certificate);
-											if (ret != CRYPT_OK)
+											if (ret != CRYPT_OK) {
+												unlock_ssl_cert();
 												GCES(ret, p, estr, "setting private key");
+											}
 										}
 									}
 								}
 								if(ret==CRYPT_OK) {
-									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK)
+									if((ret=do_cryptAttribute(p->session, CRYPT_SESSINFO_ACTIVE, 1))!=CRYPT_OK) {
 										GCES(ret, p, estr, "setting session active");
+									}
+									if (tiny == SOCK_PROP_SSL_SERVER)
+										unlock_ssl_cert();
 								}
 							}
 						}
@@ -2190,7 +2182,7 @@ static JSBool js_socket_enumerate(JSContext *cx, JSObject *obj)
 	return(js_socket_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_socket_class = {
+JSClass js_socket_class = {
      "Socket"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
@@ -2279,40 +2271,49 @@ JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock,
 static JSBool
 js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 {
-	SOCKET sock;
 	JSObject *obj;
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32	type=SOCK_STREAM;	/* default = TCP */
+	int		domain = AF_INET; /* default = IPv4 */
 	uintN	i;
 	js_socket_private_t* p;
 	char*	protocol=NULL;
 	BOOL	from_descriptor=FALSE;
 
-	for(i=0;i<argc;i++) {
-		if(JSVAL_IS_NUMBER(argv[i])) {
-			if (from_descriptor) {
-#ifdef WIN32
-				JS_ValueToECMAUint32(cx,argv[i],&sock);
-#else
-				JS_ValueToInt32(cx,argv[i],&sock);
-#endif
-				obj = js_CreateSocketObjectWithoutParent(cx, sock, -1);
-				if (obj == NULL) {
-					JS_ReportError(cx, "Failed to create external socket object");
-					return JS_FALSE;
-				}
-				JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
-				FREE_AND_NULL(protocol);
-				return JS_TRUE;
+	i = 0;
+	if(JSVAL_IS_BOOLEAN(argv[i]) && argc > 1) {
+		from_descriptor = JSVAL_TO_BOOLEAN(argv[i]);
+		i++;
+		if (from_descriptor) {
+			uint32 sock;
+			if(!JS_ValueToECMAUint32(cx,argv[i],&sock)) {
+				JS_ReportError(cx, "Failed to convert socket descriptor to uint32");
+				return JS_FALSE;
 			}
-			else
-				JS_ValueToInt32(cx,argv[i],&type);
+			obj = js_CreateSocketObjectWithoutParent(cx, sock, -1);
+			if (obj == NULL) {
+				JS_ReportError(cx, "Failed to create external socket object");
+				return JS_FALSE;
+			}
+			JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(obj));
+			FREE_AND_NULL(protocol);
+			return JS_TRUE;
 		}
-		else if(JSVAL_IS_BOOLEAN(argv[i]))
-			from_descriptor = TRUE;
-		else if(protocol==NULL) {
-			JSVALUE_TO_MSTRING(cx, argv[i], protocol, NULL);
-			HANDLE_PENDING(cx, protocol);
+	}
+
+	for(;i<argc;i++) {
+		if(JSVAL_IS_NUMBER(argv[i])) {
+			JS_ValueToInt32(cx,argv[i],&type);
+		}
+		else if(JSVAL_IS_BOOLEAN(argv[i])) {
+			if(argv[i] == JSVAL_TRUE)
+				domain = AF_INET6;
+		}
+		else if(JSVAL_IS_STRING(argv[i])) {
+			if(protocol == NULL) {
+				JSVALUE_TO_MSTRING(cx, argv[i], protocol, NULL);
+				HANDLE_PENDING(cx, protocol);
+			}
 		}
 	}
 
@@ -2327,7 +2328,7 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	memset(p,0,sizeof(js_socket_private_t));
 
-	if((p->sock=open_socket(type,protocol))==INVALID_SOCKET) {
+	if((p->sock=open_socket(domain,type,protocol))==INVALID_SOCKET) {
 		JS_ReportError(cx,"open_socket failed with error %d",ERROR_VALUE);
 		if(protocol)
 			free(protocol);
@@ -2353,10 +2354,10 @@ js_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for TCP/IP socket communications",310);
 	js_DescribeSyncConstructor(cx,obj,"To create a new Socket object: "
-		"<tt>load('sockdefs.js'); var s = new Socket(<i>type</i>, <i>protocol</i>)</tt><br>"
+		"<tt>load('sockdefs.js'); var s = new Socket(<i>type</i>, <i>protocol</i> ,<i>ipv6</i>=false)</tt><br>"
 		"where <i>type</i> = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP<br>"
 		"and <i>protocol</i> (optional) = the name of the protocol or service the socket is to be used for<br>"
-		"To create a socket from a socket descriptor: "
+		"To create a socket from an existing socket descriptor: "
 		"<tt>var s = new Socket(true, <i>descriptor</i>)</tt><br>"
 		"where <i>descriptor</i> is the numerical value of an existing valid socket descriptor"
 		);
