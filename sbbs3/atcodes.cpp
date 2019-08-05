@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.86 2018/12/04 06:23:31 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.108 2019/08/05 10:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,9 @@
 
 #include "sbbs.h"
 #include "cmdshell.h"
+#include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 #if defined(_WINSOCKAPI_)
 	extern WSADATA WSAData;
@@ -56,6 +59,9 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	padded_right=false;
 	bool	centered=false;
 	bool	zero_padded=false;
+	bool	truncated = true;
+	bool	doubled = false;
+	long	pmode = 0;
 	const char *cp;
 
 	SAFECOPY(str,instr);
@@ -70,50 +76,76 @@ int sbbs_t::show_atcode(const char *instr)
 	sp=(str+1);
 
 	disp_len=len;
-	if((p=strstr(sp,"-L"))!=NULL)
+	if(strchr(sp, ':') != NULL)
+		p = NULL;
+	else if((p=strstr(sp,"-L"))!=NULL)
 		padded_left=true;
 	else if((p=strstr(sp,"-R"))!=NULL)
 		padded_right=true;
 	else if((p=strstr(sp,"-C"))!=NULL)
 		centered=true;
+	else if((p=strstr(sp,"-W"))!=NULL)	/* wide */
+		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
+	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
+		truncated = false;
 	if(p!=NULL) {
-		if(*(p+2) && isdigit(*(p+2)))
-			disp_len=atoi(p+2);
+		char* lp = p + 2;
+		if(*lp && isdigit(*lp))
+			disp_len=atoi(lp);
 		*p=0;
 	}
 
-	cp=atcode(sp,str2,sizeof(str2));
+	cp = atcode(sp, str2, sizeof(str2), &pmode);
 	if(cp==NULL)
 		return(0);
 
+	if(p==NULL || truncated == false)
+		disp_len = strlen(cp);
+
+	if(truncated) {
+		if(column + disp_len > cols - 1) {
+			if(column >= cols - 1)
+				disp_len = 0;
+			else
+				disp_len = (cols - 1) - column;
+		}
+	}
+	if(pmode & P_UTF8) {
+		if(term_supports(UTF8))
+			disp_len += strlen(cp) - utf8_str_total_width(cp);
+		else
+			disp_len += strlen(cp) - utf8_str_count_width(cp, /* min: */1, /* max: */2);
+	}
 	if(padded_left)
-		bprintf("%-*.*s",disp_len,disp_len,cp);
+		bprintf(pmode, "%-*.*s",disp_len,disp_len,cp);
 	else if(padded_right)
-		bprintf("%*.*s",disp_len,disp_len,cp);
+		bprintf(pmode, "%*.*s",disp_len,disp_len,cp);
 	else if(centered) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len) {
 			int left = (disp_len - vlen) / 2;
-			bprintf("%*s%-*s", left, "", disp_len - left, cp);
+			bprintf(pmode, "%*s%-*s", left, "", disp_len - left, cp);
 		} else
-			bprintf("%.*s", disp_len, cp);
+			bprintf(pmode, "%.*s", disp_len, cp);
+	} else if(doubled) {
+		wide(cp);
 	} else if(zero_padded) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len)
-			bprintf("%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
+			bprintf(pmode, "%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
 		else
-			bprintf("%.*s", disp_len, cp);
+			bprintf(pmode, "%.*s", disp_len, cp);
 	} else
-		bputs(cp);
+		bprintf(pmode, "%.*s", disp_len, cp);
 
 	return(len);
 }
 
-const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
+const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 {
-	char*	tp;
+	char*	tp = NULL;
 	uint	i;
 	uint	ugrp;
 	uint	usub;
@@ -123,6 +155,66 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	struct	tm tm;
 
 	str[0]=0;
+
+	if(strncmp(sp, "U+", 2) == 0) {	// UNICODE
+		enum unicode_codepoint codepoint = (enum unicode_codepoint)strtoul(sp + 2, &tp, 16);
+		if(tp == NULL || *tp == 0)
+			outchar(codepoint, unicode_to_cp437(codepoint));
+		else if(*tp == ':')
+			outchar(codepoint, tp + 1);
+		else {
+			char fallback = (char)strtoul(tp + 1, NULL, 16);
+			if(*tp == ',')
+				outchar(codepoint, fallback);
+			else if(*tp == '!') {
+				char ch = unicode_to_cp437(codepoint);
+				if(ch != 0)
+					fallback = ch;
+				outchar(codepoint, fallback);
+			}
+			else return NULL; // Invalid @-code
+		}
+		return nulstr;
+	}
+
+	if(strcmp(sp, "CHECKMARK") == 0) {
+		outchar(UNICODE_CHECK_MARK, CP437_CHECK_MARK);
+		return nulstr;
+	}
+
+	if(strcmp(sp, "ELLIPSIS") == 0) {
+		outchar(UNICODE_HORIZONTAL_ELLIPSIS, "...");
+		return nulstr;
+	}
+	if(strcmp(sp, "COPY") == 0) {
+		outchar(UNICODE_COPYRIGHT_SIGN, "(C)");
+		return nulstr;
+	}
+	if(strcmp(sp, "SOUNDCOPY") == 0) {
+		outchar(UNICODE_SOUND_RECORDING_COPYRIGHT, "(P)");
+		return nulstr;
+	}
+	if(strcmp(sp, "REGISTERED") == 0) {
+		outchar(UNICODE_REGISTERED_SIGN, "(R)");
+		return nulstr;
+	}
+	if(strcmp(sp, "TRADEMARK") == 0) {
+		outchar(UNICODE_TRADE_MARK_SIGN, "(TM)");
+		return nulstr;
+	}
+	if(strcmp(sp, "DEGREE_C") == 0) {
+		outchar(UNICODE_DEGREE_CELSIUS, "\xF8""C");
+		return nulstr;
+	}
+	if(strcmp(sp, "DEGREE_F") == 0) {
+		outchar(UNICODE_DEGREE_FAHRENHEIT, "\xF8""F");
+		return nulstr;
+	}
+
+	if(strncmp(sp, "WIDE:", 5) == 0) {
+		wide(sp + 5);
+		return(nulstr);
+	}
 
 	if(!strcmp(sp,"VER"))
 		return(VERSION);
@@ -214,8 +306,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%lu",rows);
 		return(str);
 	}
-	if(!strcmp(sp,"TERM"))
-		return(terminal);
+	if(strcmp(sp,"TERM") == 0)
+		return term_type();
+
+	if(strcmp(sp,"CHARSET") == 0)
+		return term_charset();
 
 	if(!strcmp(sp,"CONN"))
 		return(connection);
@@ -289,6 +384,16 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"DATETIME"))
 		return(timestr(time(NULL)));
 
+	if(!strcmp(sp,"DATETIMEZONE")) {
+		char zone[32];
+		safe_snprintf(str, maxlen, "%s %s", timestr(time(NULL)), smb_zonestr(sys_timezone(&cfg),zone));
+		return str;
+	}
+	
+	if(strcmp(sp, "DATEFMT") == 0) {
+		return cfg.sys_misc&SM_EURODATE ? "DD/MM/YY" : "MM/DD/YY";
+	}
+
 	if(!strcmp(sp,"TMSG")) {
 		l=0;
 		for(i=0;i<cfg.total_subs;i++)
@@ -312,7 +417,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(!strcmp(sp,"TCALLS") || !strcmp(sp,"NUMCALLS")) {
 		getstats(&cfg,0,&stats);
-		safe_snprintf(str,maxlen,"%lu",stats.logons);
+		safe_snprintf(str,maxlen,"%lu", (ulong)stats.logons);
 		return(str);
 	}
 
@@ -343,6 +448,40 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"PON") || !strcmp(sp,"AUTOMORE")) {
 		sys_status^=SS_PAUSEON;
 		return(nulstr);
+	}
+
+	if(strncmp(sp, "POS:", 4) == 0) {	// PCBoard	(nn is 1 based)
+		i = atoi(sp + 4);
+		if(i >= 1)	// Convert to 0-based
+			i--;
+		for(l = i - column; l > 0; l--)
+			outchar(' ');
+		return nulstr;
+	}
+
+	if(strncmp(sp, "DELAY:", 6) == 0) {	// PCBoard
+		mswait(atoi(sp + 6) * 100);
+		return nulstr;
+	}
+
+	if(strcmp(sp, "YESCHAR") == 0) {	// PCBoard
+		safe_snprintf(str, maxlen, "%c", text[YNQP][0]);
+		return str;
+	}
+
+	if(strcmp(sp, "NOCHAR") == 0) {		// PCBoard
+		safe_snprintf(str, maxlen, "%c", text[YNQP][1]);
+		return str;
+	}
+
+	if(strcmp(sp, "QUITCHAR") == 0) {
+		safe_snprintf(str, maxlen, "%c", text[YNQP][2]);
+		return str;
+	}
+
+	if(strncmp(sp, "BPS:", 4) == 0) {
+		set_output_rate((enum output_rate)atoi(sp + 4));
+		return nulstr;
 	}
 
 	/* NOSTOP */
@@ -574,7 +713,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	}
 
 	if(!strcmp(sp,"BYTELIMIT")) {
-		safe_snprintf(str,maxlen,"%lu",cfg.level_freecdtperday[useron.level]);
+		safe_snprintf(str,maxlen,"%ld", (long)cfg.level_freecdtperday[useron.level]);
 		return(str);
 	}
 
@@ -707,7 +846,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(nulstr);
 	}
 
-	if(!strcmp(sp,"CLR2EOL")) {
+	if(!strcmp(sp,"CLR2EOL") || !strcmp(sp,"CLREOL")) {
 		cleartoeol();
 		return(nulstr);
 	}
@@ -928,17 +1067,17 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 
-	if(!strncmp(sp,"MAILW:",6)) {
+	if(!strncmp(sp,"MAILW:",6) || !strncmp(sp,"MAILW#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */0));
 		return(str);
 	}
 
-	if(!strncmp(sp,"MAILP:",6)) {
+	if(!strncmp(sp,"MAILP:",6) || !strncmp(sp,"MAILP#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */TRUE, /* attr: */0));
 		return(str);
 	}
 
-	if(!strncmp(sp,"SPAMW:",6)) {
+	if(!strncmp(sp,"SPAMW:",6) || !strncmp(sp,"SPAMW#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */MSG_SPAM));
 		return(str);
 	}
@@ -957,48 +1096,51 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		getstats(&cfg,0,&stats);
 		sp+=6;
 		if(!strcmp(sp,"LOGONS"))
-			safe_snprintf(str,maxlen,"%lu",stats.logons);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.logons);
 		else if(!strcmp(sp,"LTODAY"))
-			safe_snprintf(str,maxlen,"%lu",stats.ltoday);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.ltoday);
 		else if(!strcmp(sp,"TIMEON"))
-			safe_snprintf(str,maxlen,"%lu",stats.timeon);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.timeon);
 		else if(!strcmp(sp,"TTODAY"))
-			safe_snprintf(str,maxlen,"%lu",stats.ttoday);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.ttoday);
 		else if(!strcmp(sp,"ULS"))
-			safe_snprintf(str,maxlen,"%lu",stats.uls);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.uls);
 		else if(!strcmp(sp,"ULB"))
-			safe_snprintf(str,maxlen,"%lu",stats.ulb);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.ulb);
 		else if(!strcmp(sp,"DLS"))
-			safe_snprintf(str,maxlen,"%lu",stats.dls);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.dls);
 		else if(!strcmp(sp,"DLB"))
-			safe_snprintf(str,maxlen,"%lu",stats.dlb);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.dlb);
 		else if(!strcmp(sp,"PTODAY"))
-			safe_snprintf(str,maxlen,"%lu",stats.ptoday);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.ptoday);
 		else if(!strcmp(sp,"ETODAY"))
-			safe_snprintf(str,maxlen,"%lu",stats.etoday);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.etoday);
 		else if(!strcmp(sp,"FTODAY"))
-			safe_snprintf(str,maxlen,"%lu",stats.ftoday);
+			safe_snprintf(str,maxlen,"%lu", (ulong)stats.ftoday);
 		else if(!strcmp(sp,"NUSERS"))
 			safe_snprintf(str,maxlen,"%u",stats.nusers);
 		return(str);
 	}
 
 	/* Message header codes */
-	if(!strcmp(sp,"MSG_TO") && current_msg!=NULL) {
-		if(current_msg->to==NULL)
-			return(nulstr);
+	if(!strcmp(sp,"MSG_TO") && current_msg!=NULL && current_msg_to!=NULL) {
+		if(pmode != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		if(current_msg->to_ext!=NULL)
-			safe_snprintf(str,maxlen,"%s #%s",current_msg->to,current_msg->to_ext);
+			safe_snprintf(str,maxlen,"%s #%s",current_msg_to,current_msg->to_ext);
 		else if(current_msg->to_net.addr != NULL) {
 			char tmp[128];
-			safe_snprintf(str,maxlen,"%s (%s)",current_msg->to
+			safe_snprintf(str,maxlen,"%s (%s)",current_msg_to
 				,smb_netaddrstr(&current_msg->to_net,tmp));
 		} else
-			return(current_msg->to);
+			return(current_msg_to);
 		return(str);
 	}
-	if(!strcmp(sp,"MSG_TO_NAME") && current_msg!=NULL)
-		return(current_msg->to==NULL ? nulstr : current_msg->to);
+	if(!strcmp(sp,"MSG_TO_NAME") && current_msg_to!=NULL) {
+		if(pmode != NULL && current_msg != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
+		return(current_msg_to);
+	}
 	if(!strcmp(sp,"MSG_TO_EXT") && current_msg!=NULL) {
 		if(current_msg->to_ext==NULL)
 			return(nulstr);
@@ -1014,27 +1156,29 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return nulstr;
 		return(smb_nettype((enum smb_net_type)current_msg->to_net.type));
 	}
-	if(!strcmp(sp,"MSG_FROM") && current_msg!=NULL) {
-		if(current_msg->from==NULL)
-			return(nulstr);
+	if(!strcmp(sp,"MSG_CC") && current_msg!=NULL)
+		return(current_msg->cc_list == NULL ? nulstr : current_msg->cc_list);
+	if(!strcmp(sp,"MSG_FROM") && current_msg != NULL && current_msg_from != NULL) {
 		if(current_msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 			return(text[Anonymous]);
+		if(pmode != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		if(current_msg->from_ext!=NULL)
-			safe_snprintf(str,maxlen,"%s #%s",current_msg->from,current_msg->from_ext);
+			safe_snprintf(str,maxlen,"%s #%s",current_msg_from,current_msg->from_ext);
 		else if(current_msg->from_net.addr != NULL) {
 			char tmp[128];
-			safe_snprintf(str,maxlen,"%s (%s)",current_msg->from
+			safe_snprintf(str,maxlen,"%s (%s)",current_msg_from
 				,smb_netaddrstr(&current_msg->from_net,tmp));
 		} else
-			return(current_msg->from);
+			return(current_msg_from);
 		return(str);
 	}
-	if(!strcmp(sp,"MSG_FROM_NAME") && current_msg!=NULL) {
-		if(current_msg->from==NULL)
-			return(nulstr);
+	if(!strcmp(sp,"MSG_FROM_NAME") && current_msg_from!=NULL) {
 		if(current_msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 			return(text[Anonymous]);
-		return(current_msg->from);
+		if(pmode != NULL && current_msg != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
+		return(current_msg_from);
 	}
 	if(!strcmp(sp,"MSG_FROM_EXT") && current_msg!=NULL) {
 		if(!(current_msg->hdr.attr&MSG_ANONYMOUS) || SYSOP)
@@ -1053,8 +1197,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return nulstr;
 		return(smb_nettype((enum smb_net_type)current_msg->from_net.type));
 	}
-	if(!strcmp(sp,"MSG_SUBJECT") && current_msg!=NULL)
-		return(current_msg->subj==NULL ? nulstr : current_msg->subj);
+	if(!strcmp(sp,"MSG_SUBJECT") && current_msg_subj != NULL) {
+		if(pmode != NULL && current_msg != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
+		return(current_msg_subj);
+	}
 	if(!strcmp(sp,"MSG_SUMMARY") && current_msg!=NULL)
 		return(current_msg->summary==NULL ? nulstr : current_msg->summary);
 	if(!strcmp(sp,"MSG_TAGS") && current_msg!=NULL)
@@ -1093,7 +1240,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s"
 			,current_msg->hdr.auxattr&MSG_FILEREQUEST	? "FileRequest  "   :nulstr
 			,current_msg->hdr.auxattr&MSG_FILEATTACH	? "FileAttach  "    :nulstr
-			,current_msg->hdr.auxattr&MSG_TRUNCFILE		? "TruncFile  "		:nulstr
+			,current_msg->hdr.auxattr&MSG_MIMEATTACH	? "MimeAttach  "	:nulstr
 			,current_msg->hdr.auxattr&MSG_KILLFILE		? "KillFile  "      :nulstr
 			,current_msg->hdr.auxattr&MSG_RECEIPTREQ	? "ReceiptReq  "	:nulstr
 			,current_msg->hdr.auxattr&MSG_CONFIRMREQ	? "ConfirmReq  "    :nulstr
@@ -1102,22 +1249,15 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 	if(!strcmp(sp,"MSG_NETATTR") && current_msg!=NULL) {
-		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+		safe_snprintf(str,maxlen,"%s%s%s%s%s%s%s%s"
 			,current_msg->hdr.netattr&MSG_LOCAL			? "Local  "			:nulstr
 			,current_msg->hdr.netattr&MSG_INTRANSIT		? "InTransit  "     :nulstr
 			,current_msg->hdr.netattr&MSG_SENT			? "Sent  "			:nulstr
 			,current_msg->hdr.netattr&MSG_KILLSENT		? "KillSent  "      :nulstr
-			,current_msg->hdr.netattr&MSG_ARCHIVESENT	? "ArcSent  "		:nulstr
 			,current_msg->hdr.netattr&MSG_HOLD			? "Hold  "			:nulstr
 			,current_msg->hdr.netattr&MSG_CRASH			? "Crash  "			:nulstr
 			,current_msg->hdr.netattr&MSG_IMMEDIATE		? "Immediate  "		:nulstr
 			,current_msg->hdr.netattr&MSG_DIRECT		? "Direct  "		:nulstr
-			,current_msg->hdr.netattr&MSG_GATE			? "Gate  "			:nulstr
-			,current_msg->hdr.netattr&MSG_ORPHAN		? "Orphan  "		:nulstr
-			,current_msg->hdr.netattr&MSG_FPU			? "ForcePickup  "	:nulstr
-			,current_msg->hdr.netattr&MSG_TYPELOCAL		? "LocalUse  "		:nulstr
-			,current_msg->hdr.netattr&MSG_TYPEECHO		? "EchoMail  "		:nulstr
-			,current_msg->hdr.netattr&MSG_TYPENET		? "NetMail  "		:nulstr
 			);
 		return(str);
 	}
@@ -1126,23 +1266,23 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_REPLY_ID") && current_msg!=NULL)
 		return(current_msg->reply_id==NULL ? nulstr : current_msg->reply_id);
 	if(!strcmp(sp,"MSG_NUM") && current_msg!=NULL) {
-		safe_snprintf(str,maxlen,"%lu",current_msg->hdr.number);
+		safe_snprintf(str,maxlen,"%lu", (ulong)current_msg->hdr.number);
 		return(str);
 	}
 	if(!strcmp(sp,"MSG_SCORE") && current_msg!=NULL) {
-		safe_snprintf(str, maxlen, "%ld", current_msg->upvotes - current_msg->downvotes);
+		safe_snprintf(str, maxlen, "%ld", (long)(current_msg->upvotes - current_msg->downvotes));
 		return(str);
 	}
 	if(!strcmp(sp,"MSG_UPVOTES") && current_msg!=NULL) {
-		safe_snprintf(str, maxlen, "%lu", current_msg->upvotes);
+		safe_snprintf(str, maxlen, "%lu", (ulong)current_msg->upvotes);
 		return(str);
 	}
 	if(!strcmp(sp,"MSG_DOWNVOTES") && current_msg!=NULL) {
-		safe_snprintf(str, maxlen, "%lu", current_msg->downvotes);
+		safe_snprintf(str, maxlen, "%lu", (ulong)current_msg->downvotes);
 		return(str);
 	}
 	if(!strcmp(sp,"MSG_TOTAL_VOTES") && current_msg!=NULL) {
-		safe_snprintf(str, maxlen, "%lu", current_msg->total_votes);
+		safe_snprintf(str, maxlen, "%lu", (ulong)current_msg->total_votes);
 		return(str);
 	}
 	if(!strcmp(sp,"MSG_VOTED"))
@@ -1212,23 +1352,23 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_MSGS")) {
-		safe_snprintf(str,maxlen,"%ld",smb.msgs);
+		safe_snprintf(str,maxlen,"%lu", (ulong)smb.msgs);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_CURMSG")) {
-		safe_snprintf(str,maxlen,"%ld",smb.curmsg+1);
+		safe_snprintf(str,maxlen,"%lu", (ulong)(smb.curmsg+1));
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_LAST_MSG")) {
-		safe_snprintf(str,maxlen,"%lu",smb.status.last_msg);
+		safe_snprintf(str,maxlen,"%lu", (ulong)smb.status.last_msg);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_MAX_MSGS")) {
-		safe_snprintf(str,maxlen,"%lu",smb.status.max_msgs);
+		safe_snprintf(str,maxlen,"%lu", (ulong)smb.status.max_msgs);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_MAX_CRCS")) {
-		safe_snprintf(str,maxlen,"%lu",smb.status.max_crcs);
+		safe_snprintf(str,maxlen,"%lu", (ulong)smb.status.max_crcs);
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_MAX_AGE")) {
@@ -1236,7 +1376,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 	if(!strcmp(sp,"SMB_TOTAL_MSGS")) {
-		safe_snprintf(str,maxlen,"%lu",smb.status.total_msgs);
+		safe_snprintf(str,maxlen,"%lu", (ulong)smb.status.total_msgs);
 		return(str);
 	}
 
@@ -1281,11 +1421,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		if(strcmp(sp, "FILE_UPLOADER") == 0)
 			return current_file->uler;
 		if(strcmp(sp, "FILE_SIZE") == 0) {
-			safe_snprintf(str, maxlen, "%lu", current_file->size);
+			safe_snprintf(str, maxlen, "%ld", (long)current_file->size);
 			return str;
 		}
 		if(strcmp(sp, "FILE_CREDITS") == 0) {
-			safe_snprintf(str, maxlen, "%lu", current_file->cdt);
+			safe_snprintf(str, maxlen, "%lu", (ulong)current_file->cdt);
 			return str;
 		}
 		if(strcmp(sp, "FILE_TIME") == 0)
@@ -1302,7 +1442,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return datestr(current_file->datedled);
 
 		if(strcmp(sp, "FILE_TIMES_DLED") == 0) {
-			safe_snprintf(str, maxlen, "%lu", current_file->timesdled);
+			safe_snprintf(str, maxlen, "%d", current_file->timesdled);
 			return str;
 		}
 	}
