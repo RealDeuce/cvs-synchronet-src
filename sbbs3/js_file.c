@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.183 2019/08/15 18:34:03 rswindell Exp $ */
+/* $Id: js_file.c,v 1.182 2019/07/18 03:14:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -533,11 +533,11 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_FALSE);
 	}
 
-	if((buf=malloc(len + 1))==NULL)
+	if((buf=malloc(len))==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(fgets(buf,len + 1,p->fp)!=NULL) {
+	if(fgets(buf,len,p->fp)!=NULL) {
 		len=strlen(buf);
 		while(len>0 && (buf[len-1]=='\r' || buf[len-1]=='\n'))
 			len--;
