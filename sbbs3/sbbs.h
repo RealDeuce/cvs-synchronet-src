@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.544 2019/08/15 05:36:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.540 2019/08/05 06:49:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -755,21 +755,6 @@ public:
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 	char*	auto_utf8(const char*, long* mode);
-	enum output_rate {
-		output_rate_unlimited,
-		output_rate_300 = 300,
-		output_rate_600 = 600,
-		output_rate_1200 = 1200,
-		output_rate_2400 = 2400,
-		output_rate_4800 = 4800,
-		output_rate_9600 = 9600,
-		output_rate_19200 = 19200,
-		output_rate_38400 = 38400,
-		output_rate_57600 = 57600,
-		output_rate_76800 = 76800,
-		output_rate_115200 = 115200,
-	} cur_output_rate;
-	void	set_output_rate(enum output_rate);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -819,7 +804,6 @@ public:
 	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
-	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
@@ -924,7 +908,6 @@ public:
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
 	bool	addtobatdl(file_t* f);
-	long	delfiles(const char *inpath, const char *spec, size_t keep = 0);
 
 	/* listfile.cpp */
 	bool	listfile(const char *fname, const char *buf, uint dirnum
@@ -1021,7 +1004,7 @@ public:
 	/* qwktomsg.cpp */
 	bool	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
-				,uint touser, smbmsg_t* msg, bool* dupe);
+				,uint touser, smbmsg_t* msg);
 
 	/* fido.cpp */
 	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
