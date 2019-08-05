@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.99 2020/04/11 05:18:39 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.95 2019/08/04 22:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,10 +256,9 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
-			if(!show_msg(&smb, &msg
+			show_msg(&smb, &msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
-					? 0:P_NOATCODES))
-				errormsg(WHERE,"showing", "mail message", msg.hdr.number, smb.last_error);
+					? 0:P_NOATCODES);
 			download_msg_attachments(&smb, &msg, which == MAIL_YOUR);
 			if(which==MAIL_YOUR && !(msg.hdr.attr&MSG_READ)) {
 				mail[smb.curmsg].attr|=MSG_READ;
@@ -299,11 +298,7 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}()-+/!%c%c%c%c"
-			,TERM_KEY_LEFT
-			,TERM_KEY_RIGHT
-			,TERM_KEY_HOME
-			,TERM_KEY_END);
+		sprintf(str,"ADFLNQRT?<>[]{}()-+/!");
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which == MAIL_YOUR)
@@ -469,18 +464,10 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				break;
 			case 'H':
 				domsg=0;
-				dump_msghdr(&msg);
+				msghdr(&msg);
 				break;
 			case 'L':     /* List mail */
 				domsg=0;
-				if(cfg.listmsgs_mod[0]) {
-					char cmdline[256];
-
-					safe_snprintf(cmdline, sizeof(cmdline), "%s %s %d %u %lu", cfg.listmsgs_mod, "mail", which, usernumber, lm_mode);
-					exec_bin(cmdline, &main_csi);
-					break;
-				}
-
 				bprintf(text[StartWithN],(long)smb.curmsg+1);
 				if((i=getnum(smb.msgs))>0)
 					i--;
@@ -632,23 +619,11 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					}
 				}
 				break;
-			case TERM_KEY_HOME:
-				smb.curmsg = 0;
-				newline();
-				break;
-			case TERM_KEY_END:
-				smb.curmsg = smb.msgs - 1;
-				newline();
-				break;
-			case TERM_KEY_RIGHT:
-				newline();
 			case 0:
 			case '+':
 				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				else done=1;
 				break;
-			case TERM_KEY_LEFT:
-				newline();
 			case '-':
 				if(smb.curmsg>0) smb.curmsg--;
 				break;
