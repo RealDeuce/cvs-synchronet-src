@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.108 2019/08/05 10:21:20 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.109 2019/08/05 10:25:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -294,7 +294,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return(cfg.sys_name);
 
 	if(!strcmp(sp,"BAUD") || !strcmp(sp,"BPS")) {
-		safe_snprintf(str,maxlen,"%lu",cur_rate);
+		safe_snprintf(str,maxlen,"%lu",cur_output_rate ? cur_output_rate : cur_rate);
 		return(str);
 	}
 
