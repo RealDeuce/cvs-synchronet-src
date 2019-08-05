@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.76 2019/08/07 03:19:34 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.75 2019/08/02 22:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,6 @@ bool sbbs_t::unpack_rep(char* repfile)
 	ulong	n;
 	ulong	ex;
 	ulong	tmsgs = 0;
-	ulong	dupes = 0;
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
@@ -347,9 +346,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			smb_unlocksmbhdr(&smb);
 
-			bool dupe = false;
 			if(qwk_import_msg(rep, block, blocks
-				,/* fromhub: */0, &smb, /* touser: */usernum, &msg, &dupe)) {
+				,/* fromhub: */0, &smb, /* touser: */usernum, &msg)) {
 				if(usernum==1) {
 					useron.fbacks++;
 					logon_fbacks++;
@@ -388,12 +386,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 					putsmsg(&cfg,usernum,str); 
 				} 
 				tmsgs++;
-			} else {
-				if(dupe)
-					dupes++;
-				else
-					errors++;
-			}
+			} else
+				errors++;
 			smb_close(&smb);
 		}    /* end of email */
 
@@ -542,9 +536,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				lastsub=n; 
 			}
 
-			bool dupe = false;
 			if(qwk_import_msg(rep, block, blocks
-				,/* fromhub: */0, &smb, /* touser: */0, &msg, &dupe)) {
+				,/* fromhub: */0, &smb, /* touser: */0, &msg)) {
 				logon_posts++;
 				user_posted_msg(&cfg, &useron, 1);
 				if(online == ON_REMOTE)
@@ -557,12 +550,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if(!(useron.rest&FLAG('Q')))
 					user_event(EVENT_POST);
 				tmsgs++;
-			} else {
-				if(dupe)
-					dupes++;
-				else
-					errors++;
-			}
+			} else
+				errors++;
 		}   /* end of public message */
 	}
 
@@ -677,7 +666,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 		/**********************************************/
 		autohangup();
 	} else
-		lprintf(LOG_INFO, "Unpacking completed: %s (%lu msgs, %lu errors, %lu dupes)", rep_fname, tmsgs, errors, dupes);
+		lprintf(LOG_INFO, "Unpacking completed: %s (%lu msgs, %lu errors)", rep_fname, tmsgs, errors);
 
 	return errors == 0;
 }
