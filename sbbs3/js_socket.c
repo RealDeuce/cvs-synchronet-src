@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.245 2020/04/09 19:15:20 deuce Exp $ */
+/* $Id: js_socket.c,v 1.232 2019/08/05 21:08:55 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...);
 static bool do_CryptFlush(js_socket_private_t *p);
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val);
 static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, void *val, int len);
-static void do_js_close(js_socket_private_t *p, bool finalize);
+static void do_js_close(js_socket_private_t *p);
 static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type);
 static JSBool js_accept(JSContext *cx, uintN argc, jsval *arglist);
 static JSBool js_bind(JSContext *cx, uintN argc, jsval *arglist);
@@ -168,7 +168,7 @@ static bool do_CryptFlush(js_socket_private_t *p)
 	return true;
 }
 
-static void do_js_close(js_socket_private_t *p, bool finalize)
+static void do_js_close(js_socket_private_t *p)
 {
 	if(p->session != -1) {
 		cryptDestroySession(p->session);
@@ -182,10 +182,8 @@ static void do_js_close(js_socket_private_t *p, bool finalize)
 		close_socket(p->sock);
 		p->last_error = ERROR_VALUE;
 	}
-	else {
-		if (!finalize)
-			shutdown(p->sock, SHUT_RDWR);
-	}
+	else
+		shutdown(p->sock, SHUT_RDWR);
 	// This is a lie for external sockets... don't tell anyone.
 	p->sock = INVALID_SOCKET;
 	p->is_connected = FALSE;
@@ -239,15 +237,11 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 	}
 	do {
 		if(p->session==-1) {
-			if (p->sock == INVALID_SOCKET)
-				ret = -1;
-			else {
-				FD_ZERO(&socket_set);
-				FD_SET(p->sock,&socket_set);
-				tv.tv_sec = timeout;
-				if((ret = select(p->sock+1,&socket_set,NULL,NULL,&tv))==1)
-					ret = recv(p->sock, buf, len, flags);
-			}
+			FD_ZERO(&socket_set);
+			FD_SET(p->sock,&socket_set);
+			tv.tv_sec = timeout;
+			if((ret = select(p->sock+1,&socket_set,NULL,NULL,&tv))==1)
+				ret = recv(p->sock, buf, len, flags);
 		}
 		else {
 			status = cryptPopData(p->session, buf, len, &copied);
@@ -409,7 +403,7 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	do_js_close(p, true);
+	do_js_close(p);
 
 	if(p->hostname)
 		free(p->hostname);
@@ -436,7 +430,7 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	do_js_close(p, false);
+	do_js_close(p);
 	dbprintf(FALSE, p, "closed");
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1725,7 +1719,6 @@ enum {
 	,SOCK_PROP_REMOTE_IP
 	,SOCK_PROP_REMOTE_PORT
 	,SOCK_PROP_TYPE
-	,SOCK_PROP_FAMILY
 	,SOCK_PROP_NETWORK_ORDER
 	,SOCK_PROP_SSL_SESSION
 	,SOCK_PROP_SSL_SERVER
@@ -1751,7 +1744,6 @@ static char* socket_prop_desc[] = {
 	,"remote IP address (string in dotted-decimal format)"
 	,"remote TCP or UDP port number"
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
-	,"socket protocol family, <tt>PF_INET</tt> (IPv4) or <tt>PF_INET6</tt> (IPv6)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
 	,"set to <i>true</i> to enable SSL as a client on the socket"
 	,"set to <i>true</i> to enable SSL as a server on the socket"
@@ -1879,7 +1871,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 							cryptDestroySession(p->session);
 						p->session=-1;
 						ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-						do_js_close(p, false);
+						do_js_close(p);
 					}
 				}
 			}
@@ -1888,7 +1880,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 					cryptDestroySession(p->session);
 					p->session=-1;
 					ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-					do_js_close(p, false);
+					do_js_close(p);
 				}
 			}
 			JS_RESUMEREQUEST(cx, rc);
@@ -1997,9 +1989,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_LOCAL_PORT:
-			if(p->local_port != 0) {
-				*vp = INT_TO_JSVAL(p->local_port);
-			} else if(p->sock != INVALID_SOCKET) {
+			if(p->sock != INVALID_SOCKET) {
 				if(getsockname(p->sock, &addr.addr,&len)!=0)
 					return(JS_FALSE);
 				JS_RESUMEREQUEST(cx, rc);
@@ -2029,17 +2019,6 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SOCK_PROP_TYPE:
 			*vp = INT_TO_JSVAL(p->type);
-			break;
-		case SOCK_PROP_FAMILY:
-			if(p->sock != INVALID_SOCKET) {
-				if(getsockname(p->sock, &addr.addr, &len)!=0)
-					return(JS_FALSE);
-				JS_RESUMEREQUEST(cx, rc);
-				*vp = INT_TO_JSVAL(addr.addr.sa_family);
-				rc=JS_SUSPENDREQUEST(cx);
-			}
-			else
-				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_NETWORK_ORDER:
 			*vp = BOOLEAN_TO_JSVAL(p->network_byte_order);
@@ -2076,7 +2055,6 @@ static jsSyncPropertySpec js_socket_properties[] = {
 	{	"remote_ip_address"	,SOCK_PROP_REMOTE_IP	,SOCK_PROP_FLAGS,	310 },
 	{	"remote_port"		,SOCK_PROP_REMOTE_PORT	,SOCK_PROP_FLAGS,	310 },
 	{	"type"				,SOCK_PROP_TYPE			,SOCK_PROP_FLAGS,	310 },
-	{	"family"				,SOCK_PROP_FAMILY			,SOCK_PROP_FAMILY,	318 },
 	{	"network_byte_order",SOCK_PROP_NETWORK_ORDER,JSPROP_ENUMERATE,	311 },
 	{	"ssl_session"		,SOCK_PROP_SSL_SESSION	,JSPROP_ENUMERATE,	316	},
 	{	"ssl_server"		,SOCK_PROP_SSL_SERVER	,JSPROP_ENUMERATE,	316	},
@@ -2316,85 +2294,10 @@ JSObject* DLLCALL js_CreateSocketObjectWithoutParent(JSContext* cx, SOCKET sock,
 	return(obj);
 }
 
-static BOOL
-handle_addrs(char *host, struct sockaddr_in *addr4, socklen_t *addr4len, struct sockaddr_in6 *addr6, socklen_t *addr6len)
-{
-	in_addr_t ia;
-	union xp_sockaddr ia6;
-	char *p, *p2;
-	struct addrinfo	hints;
-	struct addrinfo	*res=NULL;
-	struct addrinfo	*cur;
-	int i;
-
-	// First, clean up for host:port style...
-	p = strrchr(host, ':');
-	/*
-	 * If there isn't a [, and the first and last colons aren't the same
-	 * it's assumed to be an IPv6 address
-	 */
-	if(host[0] != '[' && p != NULL && strchr(host, ':') != p)
-		p=NULL;
-	if(host[0]=='[') {
-		host++;
-		p2=strrchr(host,']');
-		if(p2)
-			*p2=0;
-		if(p2 > p)
-			p=NULL;
-	}
-	if(p!=NULL)
-		*p=0;
-
-	ia = inet_addr(host);
-	if (ia != INADDR_NONE) {
-		if (*addr4len == 0) {
-			addr4->sin_addr.s_addr = ia;
-			*addr4len = sizeof(struct sockaddr_in);
-		}
-		return TRUE;
-	}
-
-	if (inet_ptoaddr(host, &ia6, sizeof(ia6)) != NULL) {
-		if (*addr6len == 0) {
-			addr6->sin6_addr = ia6.in6.sin6_addr;
-			*addr6len = sizeof(struct sockaddr_in6);
-		}
-		return TRUE;
-	}
-
-	// So it's a hostname... resolve it into addr4 and addr6 if possible.
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = PF_UNSPEC;
-	hints.ai_flags = AI_ADDRCONFIG | AI_PASSIVE;
-	if((i = getaddrinfo(host, NULL, &hints, &res)) != 0)
-		return FALSE;
-	for(cur=res; cur && (*addr4len == 0 || *addr6len == 0); cur=cur->ai_next) {
-		switch (cur->ai_family) {
-			case AF_INET:
-				if (*addr4len == 0) {
-					addr4->sin_addr = ((struct sockaddr_in *)cur->ai_addr)->sin_addr;
-					*addr4len = sizeof(struct sockaddr_in);
-				}
-				break;
-			case AF_INET6:
-				if (*addr6len == 0) {
-					addr6->sin6_addr = ((struct sockaddr_in6 *)cur->ai_addr)->sin6_addr;
-					*addr6len = sizeof(struct sockaddr_in6);
-				}
-				break;
-		}
-	}
-	freeaddrinfo(res);
-
-	return TRUE;
-}
-
 static JSBool
 js_connected_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj;
-	JSObject *ao;
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32	type=SOCK_STREAM;	/* default = TCP */
 	int32		domain = PF_UNSPEC; /* default = IPvAny */
@@ -2416,16 +2319,6 @@ js_connected_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	fd_set			efd;
 	scfg_t *scfg;
 	char error[256];
-	uint16_t bindport = 0;
-	struct sockaddr_in addr4;
-	struct sockaddr_in6 addr6;
-	socklen_t addr4len;
-	socklen_t addr6len;
-	struct sockaddr *addr;
-	socklen_t *addrlen;
-	BOOL sockbind = FALSE;
-	jsuint count;
-	int32 timeout = 10;
 
 	scfg = JS_GetRuntimePrivate(JS_GetRuntime(cx));
 	if (scfg == NULL) {
@@ -2461,83 +2354,9 @@ js_connected_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 				return JS_FALSE;
 			}
 		}
-		if (JS_GetProperty(cx, obj, "timeout", &v) && !JSVAL_IS_VOID(v)) {
-			if (!JS_ValueToInt32(cx, v, &timeout)) {
-				JS_ReportError(cx, "Invalid timeout property");
-				return JS_FALSE;
-			}
-		}
 		if (JS_GetProperty(cx, obj, "protocol", &v) && !JSVAL_IS_VOID(v)) {
 			JSVALUE_TO_MSTRING(cx, v, protocol, NULL);
 			HANDLE_PENDING(cx, protocol);
-		}
-		if (JS_GetProperty(cx, obj, "bindport", &v) && !JSVAL_IS_VOID(v)) {
-			bindport = js_port(cx, v, type);
-			memset(&addr4, 0, sizeof(addr4));
-			addr4.sin_family = AF_INET;
-			addr4.sin_addr.s_addr = INADDR_ANY;
-			addr4len = sizeof(addr4);
-			addr4.sin_port = htons(bindport);
-			memset(&addr6, 0, sizeof(addr6));
-			addr6.sin6_family = AF_INET6;
-			addr6.sin6_addr = in6addr_any;
-			addr6len = sizeof(addr6);
-			addr6.sin6_port = htons(bindport);
-			sockbind = TRUE;
-		}
-		if (JS_GetProperty(cx, obj, "bindaddrs", &v) && !JSVAL_IS_VOID(v)) {
-			if (!sockbind) {
-				memset(&addr4, 0, sizeof(addr4));
-				addr4.sin_family = AF_INET;
-				addr4.sin_addr.s_addr = INADDR_ANY;
-				addr4.sin_port = htons(bindport);
-				memset(&addr6, 0, sizeof(addr6));
-				addr6.sin6_family = AF_INET6;
-				addr6.sin6_addr = in6addr_any;
-				addr6.sin6_port = htons(bindport);
-				sockbind = TRUE;
-			}
-			addr4len = 0;
-			addr6len = 0;
-			if (JSVAL_IS_OBJECT(v)) {
-				ao = JSVAL_TO_OBJECT(v);
-				if (ao == NULL || !JS_IsArrayObject(cx, ao)) {
-					JS_ReportError(cx, "Invalid bindaddrs list");
-					goto fail;
-				}
-				if (!JS_GetArrayLength(cx, ao, &count)) {
-					JS_ReportError(cx, "Unable to get bindaddrs length");
-					goto fail;
-				}
-				for (i = 0; i < count; i++) {
-					if (!JS_GetElement(cx, ao, i, &v)) {
-						JS_ReportError(cx, "Invalid bindaddrs entry");
-						goto fail;
-					}
-					JSVALUE_TO_MSTRING(cx, v, host, NULL);
-					HANDLE_PENDING(cx, host);
-					rc = JS_SUSPENDREQUEST(cx);
-					if (!handle_addrs(host, &addr4, &addr4len, &addr6, &addr6len)) {
-						JS_RESUMEREQUEST(cx, rc);
-						JS_ReportError(cx, "Unparsable bindaddrs entry");
-						goto fail;
-					}
-					FREE_AND_NULL(host);
-					JS_RESUMEREQUEST(cx, rc);
-				}
-			}
-			else {
-				JSVALUE_TO_MSTRING(cx, v, host, NULL);
-				HANDLE_PENDING(cx, host);
-				rc = JS_SUSPENDREQUEST(cx);
-				if (!handle_addrs(host, &addr4, &addr4len, &addr6, &addr6len)) {
-					JS_RESUMEREQUEST(cx, rc);
-					JS_ReportError(cx, "Unparsable bindaddrs entry");
-					goto fail;
-				}
-				FREE_AND_NULL(host);
-				JS_RESUMEREQUEST(cx, rc);
-			}
 		}
 	}
 	JSVALUE_TO_MSTRING(cx, argv[0], host, NULL);
@@ -2576,33 +2395,9 @@ js_connected_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			if(p->sock==INVALID_SOCKET)
 				continue;
 			if (set_socket_options(scfg, p->sock, protocol, error, sizeof(error))) {
-				freeaddrinfo(res);
 				JS_RESUMEREQUEST(cx, rc);
 				JS_ReportError(cx, error);
 				goto fail;
-			}
-			if (sockbind) {
-				addr = NULL;
-				switch(cur->ai_family) {
-					case PF_INET:
-						addr = (struct sockaddr *)&addr4;
-						addrlen = &addr4len;
-						break;
-					case PF_INET6:
-						addr = (struct sockaddr *)&addr6;
-						addrlen = &addr6len;
-						break;
-				}
-				if (addr == NULL)
-					continue;
-				if (*addrlen == 0)
-					continue;
-				if (bind(p->sock, addr, *addrlen) != 0) {
-					lprintf(LOG_WARNING, "Unable to bind to local address");
-					closesocket(p->sock);
-					p->sock = INVALID_SOCKET;
-					continue;
-				}
 			}
 			/* Set to non-blocking for the connect */
 			nonblock=-1;
@@ -2619,7 +2414,7 @@ js_connected_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 					for(;p->sock!=INVALID_SOCKET;) {
 						// TODO: Do clever timeout stuff here.
-						tv.tv_sec=timeout;
+						tv.tv_sec=1;
 						tv.tv_usec=0;
 
 						FD_ZERO(&wfd);
@@ -2628,7 +2423,8 @@ js_connected_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 						FD_SET(p->sock, &efd);
 						switch(select(p->sock+1, NULL, &wfd, &efd, &tv)) {
 							case 0:
-								// fall-through
+								// TODO: Check timeout here...
+								break;
 							case -1:
 								closesocket(p->sock);
 								p->sock=INVALID_SOCKET;
@@ -2691,14 +2487,11 @@ connected:
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for outgoing TCP/IP socket communications",317);
 	js_DescribeSyncConstructor(cx,obj,"To create a new ConnectedSocket object: "
-		"<tt>load('sockdefs.js'); var s = new ConnectedSocket(<i>hostname</i>, <i>port</i>, {domain:<i>domain</i>, proto:<i>proto</i> ,type:<i>type</i>, protocol:<i>protocol</i>, timeout:<i>timeout</i>, bindport:<i>port</i>, bindaddrs:<i>bindaddrs</i>})</tt><br>"
+		"<tt>load('sockdefs.js'); var s = new ConnectedSocket(<i>hostname</i>, <i>port</i>, {domain:<i>domain</i>, proto:<i>proto</i> ,type:<i>type</i>, protocol:<i>protocol</i>)</tt><br>"
 		"where <i>domain</i> (optional) = <tt>PF_UNSPEC</tt> (default) for IPv4 or IPv6, <tt>PF_INET</tt> for IPv4, or <tt>PF_INET6</tt> for IPv6<br>"
 		"<i>proto</i> (optional) = <tt>IPPROTO_IP</tt> (default)<br>"
 		"<i>type</i> (optional) = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP<br>"
-		"<i>protocol</i> (optional) = the name of the protocol or service the socket is to be used for<br>"
-		"<i>timeout</i> (optional) = 10 (default) the number of seconds to wait for each connect() call to complete.<br>"
-		"<i>bindport</i> (optional) = the name or number of the source port to bind to<br>"
-		"<i>bindaddrs</i> (optional) = the name or number of the source addresses to bind to.  The first of each IPv4 or IPv6 type is used for that family.<br>"
+		"and <i>protocol</i> (optional) = the name of the protocol or service the socket is to be used for<br>"
 		);
 	JS_DefineProperty(cx,obj,"_dont_document",JSVAL_TRUE,NULL,NULL,JSPROP_READONLY);
 #endif
@@ -2761,7 +2554,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	cb.scfg = scfg;
 	if (argc < 3) {
-		JS_ReportError(cx, "At least three arguments required (interfaces, port, and protocol)");
+		JS_ReportError(cx, "At least two arguments required (interfaces, port, and protocol)");
 		goto fail;
 	}
 	if (argc > 3) {
@@ -2833,7 +2626,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			free(protocol);
 			return JS_FALSE;
 		}
-		for (i = 0; (jsuint)i < count; i++) {
+		for (i = 0; i < count; i++) {
 			if (!JS_GetElement(cx, obj, i, &v)) {
 				lprintf(LOG_WARNING, "Unable to get element %d from interface array", i);
 				continue;
@@ -2869,7 +2662,6 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->network_byte_order = TRUE;
 	p->session=-1;
 	p->unflushed = 0;
-	p->local_port = port;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2883,11 +2675,11 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for incoming TCP/IP socket communications",317);
 	js_DescribeSyncConstructor(cx,obj,"To create a new ListeningSocket object: "
-		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>})</tt><br>"
+		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>)</tt><br>"
 		"where <i>interface</i> = A array or strings or a single string of hostnames or address optionally including a :port suffix<br>"
 		"<i>port</i> = a port to use when the interface doesn't specify one<br>"
 		"<i>protocol</i> = protocol name, used for socket options and logging.<br>"
-		"<i>domain</i> (optional) = <tt>PF_UNSPEC</tt> (default) for IPv4 or IPv6, <tt>AF_INET</tt> for IPv4, or <tt>AF_INET6</tt> for IPv6<br>"
+		"<i>domain</i> (optional) = <tt>PF_UNSPEC</tt> (default) for IPv4 or IPv6, <tt>PF_INET</tt> for IPv4, or <tt>PF_INET6</tt> for IPv6<br>"
 		"<i>proto</i> (optional) = <tt>IPPROTO_IP</tt> (default)<br>"
 		"<i>type</i> (optional) = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP<br>"
 		"<i>retry_count</i> (optional) = <tt>0</tt> (default) number of times to retry binding<br>"
@@ -3012,8 +2804,6 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 	JSObject*	sockproto;
 	JSObject*	csockobj;
 	JSObject*	lsockobj;
-	jsval		val;
-	JSObject*	constructor;
 
 	sockobj = JS_InitClass(cx, parent, NULL
 		,&js_socket_class
@@ -3024,17 +2814,6 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 		,NULL,NULL);
 	if (sockobj == NULL)
 		return sockobj;
-	if(JS_GetProperty(cx, parent, js_socket_class.name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JS_ValueToObject(cx,val,&constructor);
-		JS_DefineProperty(cx, constructor, "PF_INET", INT_TO_JSVAL(PF_INET), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, constructor, "PF_INET6", INT_TO_JSVAL(PF_INET6), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, constructor, "AF_INET", INT_TO_JSVAL(AF_INET), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, constructor, "AF_INET6", INT_TO_JSVAL(AF_INET6), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-	}
 	sockproto = JS_GetPrototype(cx, sockobj);
 	csockobj = JS_InitClass(cx, parent, sockproto
 		,&js_connected_socket_class
