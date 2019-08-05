@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.69 2020/03/31 08:23:49 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.65 2019/07/26 19:55:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,8 +59,16 @@ void sbbs_t::useredit(int usernumber)
 	user_t	user;
 	struct	tm tm;
 
-	if(!chksyspass())
+	if(online==ON_REMOTE && console&(CON_R_ECHO|CON_R_INPUT) && !chksyspass())
 		return;
+#if 0	/* no local logins in v3 */
+	if(online==ON_LOCAL) {
+		if(!(cfg.sys_misc&SM_L_SYSOP))
+			return;
+		if(cfg.node_misc&NM_SYSPW && !chksyspass())
+			return; 
+	}
+#endif
 	if(usernumber)
 		user.number=usernumber;
 	else
@@ -168,7 +176,7 @@ void sbbs_t::useredit(int usernumber)
 			user.number=(ushort)(l&~0x80000000L);
 			continue; 
 		}
-		if(l != '[' && l != ']' && l != '{' && l != '}' && l != '?')
+		if(l != '[' && l != ']' && l != '{' && l != '}')
 			newline();
 		switch(l) {
 			case 'A':
@@ -443,7 +451,6 @@ void sbbs_t::useredit(int usernumber)
 				putuserrec(&cfg,user.number,U_PHONE,LEN_PHONE,user.phone);
 				break;
 			case 'Q':
-				lncntr = 0;
 				CLS;
 				sys_status&=~SS_INUEDIT;
 				FREE_AR(ar);	/* assertion here */
@@ -582,7 +589,11 @@ void sbbs_t::useredit(int usernumber)
 					l*=1024;
 				else if(strstr(str,"$"))
 					l*=cfg.cdt_per_dollar;
-				adjustuserrec(&cfg, user.number, U_CDT, 10, l);
+				if(l<0L && l*-1 > (long)user.cdt)
+					user.cdt=0L;
+				else
+					user.cdt+=l;
+				putuserrec(&cfg,user.number,U_CDT,10,ultoa(user.cdt,tmp,10));
 				break;
 			case '*':
 				bputs(text[ModifyMinutes]);
@@ -1073,7 +1084,7 @@ void sbbs_t::maindflts(user_t* user)
 						pause();
 						break; 
 					}
-					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
+					bputs(text[NewPassword]);
 					if(!getstr(str,LEN_PASS,K_UPPER|K_LINE))
 						break;
 					truncsp(str);
