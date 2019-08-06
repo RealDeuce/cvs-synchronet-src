@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.236 2019/08/06 02:44:58 deuce Exp $ */
+/* $Id: js_socket.c,v 1.237 2019/08/06 03:58:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2334,7 +2334,7 @@ handle_addrs(char *host, struct sockaddr_in *addr4, socklen_t *addr4len, struct 
 	}
 
 	if (inet_ptoaddr(host, &ia6, sizeof(ia6)) != NULL) {
-		if (addr6len == 0) {
+		if (*addr6len == 0) {
 			addr6->sin6_addr = ia6.in6.sin6_addr;
 			*addr6len = sizeof(struct sockaddr_in6);
 		}
