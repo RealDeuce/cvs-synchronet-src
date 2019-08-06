@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.759 2019/08/14 00:10:20 rswindell Exp $ */
+/* $Id: main.cpp,v 1.756 2019/08/05 10:21:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1545,11 +1545,10 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
 					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s (%u bytes)"
+						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,telnet_opt_desc(option)
-							,sbbs->telnet_cmdlen);
+							,telnet_opt_desc(option));
 
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
@@ -1616,14 +1615,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
-					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
-						inet_ntop(AF_INET, sbbs->telnet_cmd + 4
-							,sbbs->telnet_location
-							,sizeof(sbbs->telnet_location));
-						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
-	                		,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,sbbs->telnet_location);
+
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
 						long rows = (sbbs->telnet_cmd[5]<<8) | sbbs->telnet_cmd[6];
@@ -1680,7 +1672,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
 								case TELNET_SEND_LOCATION:
-								case TELNET_TERM_LOCATION_NUMBER:
 #ifdef SBBS_TELNET_ENVIRON_SUPPORT
 								case TELNET_NEW_ENVIRON:
 #endif
@@ -2698,7 +2689,7 @@ void event_thread(void* arg)
 					sbbs->console|=CON_L_ECHO;
 					sbbs->getusrsubs();
 					bool success = sbbs->unpack_rep(g.gl_pathv[i]);
-					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					sbbs->online=FALSE;
@@ -2710,6 +2701,7 @@ void event_thread(void* arg)
 							sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
 					} else {
 						char badpkt[MAX_PATH+1];
+						SAFECOPY(badpkt, g.gl_pathv[i]);
 						SAFEPRINTF2(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
 						remove(badpkt);
 						if(rename(g.gl_pathv[i], badpkt) == 0)
@@ -2717,8 +2709,6 @@ void event_thread(void* arg)
 						else
 							sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 								,errno, strerror(errno), g.gl_pathv[i], badpkt);
-						SAFEPRINTF(badpkt, "%u.rep.*.bad", sbbs->useron.number);
-						sbbs->delfiles(str, badpkt, /* keep: */10);
 					}
 					if(remove(semfile))
 						sbbs->errormsg(WHERE, ERR_REMOVE, semfile, 0);
@@ -2768,7 +2758,7 @@ void event_thread(void* arg)
 						remove(bat_list);
 					} else
 						sbbs->lputs(LOG_INFO, "No packet created (no new messages)");
-					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
@@ -2819,7 +2809,7 @@ void event_thread(void* arg)
 							sbbs->qwk_success(l,0,1);
 							sbbs->putmsgptrs();
 						}
-						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					}
@@ -2944,10 +2934,8 @@ void event_thread(void* arg)
 							else
 								sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 									,errno, strerror(errno), str, newname);
-							SAFEPRINTF(newname, "%s.q??.*.bad", sbbs->cfg.qhub[i]->id);
-							sbbs->delfiles(str, newname, /* keep: */10);
 						}
-						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						if(remove(str))
@@ -3006,7 +2994,7 @@ void event_thread(void* arg)
 						close(file);
 					}
 				}
-				sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+				delfiles(sbbs->cfg.temp_dir,ALLFILES);
 
 				sbbs->cfg.qhub[i]->last=time32(NULL);
 				SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
