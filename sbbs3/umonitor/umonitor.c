@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.89 2019/09/26 03:19:08 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.87 2019/01/01 04:39:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -99,7 +99,7 @@ void allocfail(uint size)
 }
 
 void node_toggles(scfg_t *cfg,int nodenum)  {
-	int nodefile = -1;
+	int nodefile;
 	char**	opt;
 	int		i,j;
 	node_t	node;
@@ -126,7 +126,7 @@ void node_toggles(scfg_t *cfg,int nodenum)  {
 	                "                         off.\n\n"
 	                "`[Note] `These toggles take effect immediately.";
 	while(save==0) {
-		if(getnodedat(cfg,nodenum,&node,FALSE,&nodefile)) {
+		if(getnodedat(cfg,nodenum,&node,&nodefile)) {
 			uifc.msg("Error reading node data!");
 			break;
 		}
@@ -170,7 +170,7 @@ void node_toggles(scfg_t *cfg,int nodenum)  {
 				uifc.msg("Option not implemented");
 				continue;
 		}
-		putnodedat(cfg,nodenum,&node,FALSE,nodefile);
+		putnodedat(cfg,nodenum,&node,nodefile);
 	}
 }
 
@@ -221,7 +221,7 @@ int sendmessage(scfg_t *cfg, int nodenum,node_t *node)  {
 
 	uifc.input(WIN_MID|WIN_SAV,0,0,"Telegram",str2,58,K_WRAP|K_MSG);
 	sprintf(str,"\1n\1y\1hMessage From Sysop:\1w %s\r\n",str2);
-	if(getnodedat(cfg,nodenum,node,FALSE,NULL))
+	if(getnodedat(cfg,nodenum,node,NULL))
 		return(-1);
 	if(node->useron==0)
 		return(-1);
@@ -230,13 +230,13 @@ int sendmessage(scfg_t *cfg, int nodenum,node_t *node)  {
 }
 
 int clearerrors(scfg_t *cfg, int nodenum, node_t *node) {
-	int nodefile = -1;
-	if(getnodedat(cfg,nodenum,node,TRUE,&nodefile)) {
+	int nodefile;
+	if(getnodedat(cfg,nodenum,node,&nodefile)) {
 		uifc.msg("getnodedat() failed! (Nothing done)");
 		return(-1);
 	}
 	node->errors=0;
-	putnodedat(cfg,nodenum,node,TRUE,nodefile);
+	putnodedat(cfg,nodenum,node,nodefile);
 	uifc.msg("Error count cleared for this node.");
 	return(0);
 }
@@ -327,7 +327,7 @@ int drawstats(scfg_t *cfg, int nodenum, node_t *node, int *curp, int *barp) {
 	time_t	t;
 	int		shownode=1;
 
-	if(getnodedat(cfg,nodenum,node,FALSE,NULL)) {
+	if(getnodedat(cfg,nodenum,node,NULL)) {
 		shownode=0;
 	}
 	else {
@@ -790,7 +790,7 @@ int main(int argc, char** argv)  {
 	char	title[256];
 	int		i,j;
 	node_t	node;
-	int		nodefile = -1;
+	int		nodefile;
 	box_t	boxch;
 	scfg_t	cfg;
 	int		done;
@@ -805,7 +805,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.89 $", "%*s %s", revision);
+	sscanf("$Revision: 1.87 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -975,10 +975,10 @@ USAGE:
 	while(1) {
 		strcpy(mopt[0],"System Options");
 		for(i=1;i<=cfg.sys_nodes;i++) {
-			if((j=getnodedat(&cfg,i,&node,FALSE,NULL)))
+			if((j=getnodedat(&cfg,i,&node,NULL)))
 				sprintf(mopt[i],"Error reading node data (%d)!",j);
 			else {
-				nodestatus(&cfg, &node, str, 71, i);
+				nodestatus(&cfg, &node, str, 71);
 				if(i == paging_node) {
 					strupr(str);
 					strcat(str,  " <PAGING>");
@@ -1156,7 +1156,7 @@ USAGE:
 		}
 
 		if(j==-2-CIO_KEY_F(10)) {	/* Chat */
-			if(getnodedat(&cfg,main_dflt,&node,FALSE,NULL)) {
+			if(getnodedat(&cfg,main_dflt,&node,NULL)) {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
@@ -1176,27 +1176,27 @@ USAGE:
 		}
 
 		if(j==-2-CTRL('l')) {	/* Lock node */
-			if(getnodedat(&cfg,main_dflt,&node,TRUE,&nodefile)) {
+			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
 			node.misc^=NODE_LOCK;
-			putnodedat(&cfg,main_dflt,&node,FALSE,nodefile);
+			putnodedat(&cfg,main_dflt,&node,nodefile);
 			continue;
 		}
 
 		if(j==-2-CTRL('r')) {	/* Rerun node */
-			if(getnodedat(&cfg,main_dflt,&node,TRUE,&nodefile)) {
+			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
 			node.misc^=NODE_RRUN;
-			putnodedat(&cfg,main_dflt,&node,FALSE,nodefile);
+			putnodedat(&cfg,main_dflt,&node,nodefile);
 			continue;
 		}
 
 		if(j==-2-CTRL('d')) {	/* Down node */
-			if(getnodedat(&cfg,main_dflt,&node,TRUE,&nodefile)) {
+			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
@@ -1208,17 +1208,17 @@ USAGE:
 				else
 					node.status=NODE_WFC;
 			}
-			putnodedat(&cfg,main_dflt,&node,FALSE,nodefile);
+			putnodedat(&cfg,main_dflt,&node,nodefile);
 			continue;
 		}
 
 		if(j==-2-CTRL('i')) {	/* Interrupt node */
-			if(getnodedat(&cfg,main_dflt,&node,TRUE,&nodefile)) {
+			if(getnodedat(&cfg,main_dflt,&node,&nodefile)) {
 				uifc.msg("Error reading node data!");
 				continue;
 			}
 			node.misc^=NODE_INTR;
-			putnodedat(&cfg,main_dflt,&node,FALSE,nodefile);
+			putnodedat(&cfg,main_dflt,&node,nodefile);
 			continue;
 		}
 
