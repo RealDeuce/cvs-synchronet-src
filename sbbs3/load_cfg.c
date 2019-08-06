@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.80 2019/08/06 07:40:06 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.77 2019/08/06 01:51:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +199,7 @@ void prep_cfg(scfg_t* cfg)
 		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
 		if(!cfg->dir[i]->path[0])
-			SAFECOPY(cfg->dir[i]->path, cfg->dir[i]->code);
+			SAFEOCPY(cfg->dir[i]->path, cfg->dir[i]->code);
 		if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
@@ -223,26 +223,14 @@ void prep_cfg(scfg_t* cfg)
 			char* tp = lastchar(p);
 			if(*tp != '/')
 				continue;
-			*tp = 0; // Remove trailing slash
-			char* dirname = getfname(p);
-			int j;
-			for(j = 0; j < cfg->total_dirs; j++) {
-				if(cfg->dir[j]->lib != i)
-					continue;
-				if(stricmp(cfg->dir[j]->code, dirname) == 0)
-					break;
-				if(stricmp(cfg->dir[j]->code_suffix, dirname) == 0)
-					break;
-			}
-			if(j < cfg->total_dirs)	// duplicate
-				continue;
+			*tp = 0;
 			dir_t dir;
 			memset(&dir, 0, sizeof(dir));
 			dir.lib = i;
 			dir.misc = DIR_FILES;
 			SAFECOPY(dir.path, p);
 			backslash(dir.path);
-			SAFECOPY(dir.lname, dirname);
+			SAFECOPY(dir.lname, getfname(p));
 			SAFECOPY(dir.sname, dir.lname);
 			char code_suffix[LEN_EXTCODE+1];
 			SAFECOPY(code_suffix, dir.lname);
