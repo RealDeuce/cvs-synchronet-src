@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.75 2018/10/18 21:28:23 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.77 2019/08/06 01:51:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -198,12 +198,12 @@ void prep_cfg(scfg_t* cfg)
 
 		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
-		if(!cfg->dir[i]->path[0])		/* no file storage path specified */
-            sprintf(cfg->dir[i]->path,"%s%s/",cfg->dir[i]->data_dir,cfg->dir[i]->code);
-		else if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
+		if(!cfg->dir[i]->path[0])
+			SAFEOCPY(cfg->dir[i]->path, cfg->dir[i]->code);
+		if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
-			prep_dir(cfg->ctrl_dir, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
+			prep_dir(cfg->dir[i]->data_dir, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 
 		prep_path(cfg->dir[i]->upload_sem);
 	}
@@ -344,7 +344,7 @@ BOOL md(char *inpath)
 /****************************************************************************/
 BOOL read_attr_cfg(scfg_t* cfg, char* error)
 {
-	char*	p;
+	uint*	clr;
     char    str[256],fname[13];
 	long	offset=0;
     FILE    *instream;
@@ -356,7 +356,7 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 		return(FALSE); 
 	}
 	FREE_AND_NULL(cfg->color);
-	if((cfg->color=malloc(MIN_COLORS))==NULL) {
+	if((cfg->color=malloc(MIN_COLORS * sizeof(uint)))==NULL) {
 		sprintf(error,"Error allocating memory (%u bytes) for colors"
 			,MIN_COLORS);
 		fclose(instream);
@@ -370,9 +370,9 @@ BOOL read_attr_cfg(scfg_t* cfg, char* error)
 		if(readline(&offset,str,4,instream)==NULL)
 			break;
 		if(cfg->total_colors>=MIN_COLORS) {
-			if((p=realloc(cfg->color,cfg->total_colors+1))==NULL)
+			if((clr=realloc(cfg->color,(cfg->total_colors+1) * sizeof(uint)))==NULL)
 				break;
-			cfg->color=p;
+			cfg->color=clr;
 		}
 		cfg->color[cfg->total_colors]=attrstr(str); 
 	}
