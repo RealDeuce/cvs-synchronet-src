@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.80 2019/08/06 07:40:06 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.79 2019/08/06 04:38:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -223,19 +223,17 @@ void prep_cfg(scfg_t* cfg)
 			char* tp = lastchar(p);
 			if(*tp != '/')
 				continue;
-			*tp = 0; // Remove trailing slash
 			char* dirname = getfname(p);
 			int j;
 			for(j = 0; j < cfg->total_dirs; j++) {
 				if(cfg->dir[j]->lib != i)
 					continue;
-				if(stricmp(cfg->dir[j]->code, dirname) == 0)
-					break;
 				if(stricmp(cfg->dir[j]->code_suffix, dirname) == 0)
 					break;
 			}
 			if(j < cfg->total_dirs)	// duplicate
 				continue;
+			*tp = 0;
 			dir_t dir;
 			memset(&dir, 0, sizeof(dir));
 			dir.lib = i;

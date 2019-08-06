@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.704 2020/03/05 20:22:46 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.697 2019/08/02 22:20:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2728,7 +2728,7 @@ static BOOL parse_headers(http_session_t * session)
 				default:
 					break;
 			}
-			SAFEPRINTF(env_name,"HTTP_%s",head_line);
+			sprintf(env_name,"HTTP_%s",head_line);
 			add_env(session,env_name,value);
 		}
 		free(head_line);
@@ -3649,8 +3649,6 @@ static BOOL check_request(http_session_t * session)
 		return(FALSE);
 	}
 
-	if (session->req.send_location >= MOVED_TEMP && session->redir_req[0])
-		return (TRUE);
 	if(stat(path,&sb) || IS_PATH_DELIM(*(lastchar(path))) || send404) {
 		/* OPTIONS requests never return 404 errors (ala Apache) */
 		if(session->req.method!=HTTP_OPTIONS) {
@@ -4373,49 +4371,47 @@ static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_
 						directive=strtok_r(header,":",&last);
 						if(directive != NULL)  {
 							value=strtok_r(NULL,"",&last);
-							if(value != NULL) {
-								SKIP_WHITESPACE(value);
-								i=get_header_type(directive);
-								switch (i)  {
-									case HEAD_LOCATION:
+							SKIP_WHITESPACE(value);
+							i=get_header_type(directive);
+							switch (i)  {
+								case HEAD_LOCATION:
+									ret |= CGI_STUFF_VALID_HEADERS;
+									if(*value=='/')  {
+										unescape(value);
+										SAFECOPY(session->req.virtual_path,value);
+										session->req.send_location=MOVED_STAT;
+										if(cgi_status[0]==0)
+											SAFECOPY(cgi_status,error_302);
+									} else  {
+										SAFECOPY(session->req.virtual_path,value);
+										session->req.send_location=MOVED_TEMP;
+										if(cgi_status[0]==0)
+											SAFECOPY(cgi_status,error_302);
+									}
+									break;
+								case HEAD_STATUS:
+									SAFECOPY(cgi_status,value);
+									/*
+									 * 1xx, 204, and 304 responses don't have bodies, so don't
+									 * need a Location or Content-Type header to be valid.
+									 */
+									if (value[0] == '1' || ((value[0] == '2' || value[0] == '3') && value[1] == '0' && value[2] == '4'))
 										ret |= CGI_STUFF_VALID_HEADERS;
-										if(*value=='/')  {
-											unescape(value);
-											SAFECOPY(session->req.virtual_path,value);
-											session->req.send_location=MOVED_STAT;
-											if(cgi_status[0]==0)
-												SAFECOPY(cgi_status,error_302);
-										} else  {
-											SAFECOPY(session->req.virtual_path,value);
-											session->req.send_location=MOVED_TEMP;
-											if(cgi_status[0]==0)
-												SAFECOPY(cgi_status,error_302);
-										}
-										break;
-									case HEAD_STATUS:
-										SAFECOPY(cgi_status,value);
-										/*
-										 * 1xx, 204, and 304 responses don't have bodies, so don't
-										 * need a Location or Content-Type header to be valid.
-										 */
-										if (value[0] == '1' || ((value[0] == '2' || value[0] == '3') && value[1] == '0' && value[2] == '4'))
-											ret |= CGI_STUFF_VALID_HEADERS;
-										break;
-									case HEAD_LENGTH:
-										session->req.keep_alive=orig_keep;
-										strListPush(&session->req.dynamic_heads,buf);
-										no_chunked=TRUE;
-										break;
-									case HEAD_TYPE:
-										ret |= CGI_STUFF_VALID_HEADERS;
-										strListPush(&session->req.dynamic_heads,buf);
-										break;
-									case HEAD_TRANSFER_ENCODING:
-										no_chunked=TRUE;
-										break;
-									default:
-										strListPush(&session->req.dynamic_heads,buf);
-								}
+									break;
+								case HEAD_LENGTH:
+									session->req.keep_alive=orig_keep;
+									strListPush(&session->req.dynamic_heads,buf);
+									no_chunked=TRUE;
+									break;
+								case HEAD_TYPE:
+									ret |= CGI_STUFF_VALID_HEADERS;
+									strListPush(&session->req.dynamic_heads,buf);
+									break;
+								case HEAD_TRANSFER_ENCODING:
+									no_chunked=TRUE;
+									break;
+								default:
+									strListPush(&session->req.dynamic_heads,buf);
 							}
 						}
 						if(directive == NULL || value == NULL) {
@@ -5278,8 +5274,7 @@ static JSBool
 js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		username;
-	char*		password;
+	char*		p;
 	JSBool		inc_logons=JS_FALSE;
 	user_t		user;
 	http_session_t*	session;
@@ -5291,29 +5286,29 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name */
-	JSVALUE_TO_ASTRING(cx, argv[0], username, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
-	if(username==NULL)
+	JSVALUE_TO_ASTRING(cx, argv[0], p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	if(p==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit((uchar)*username))
-		user.number=atoi(username);
-	else if(*username)
-		user.number=matchuser(&scfg,username,FALSE);
+	if(isdigit((uchar)*p))
+		user.number=atoi(p);
+	else if(*p)
+		user.number=matchuser(&scfg,p,FALSE);
 
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d !USER NOT FOUND: '%s'"
-			,session->socket, username);
+			,session->socket,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d !DELETED OR INACTIVE USER #%d: %s"
-			,session->socket,user.number, username);
+			,session->socket,user.number,p);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -5321,15 +5316,14 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	/* Password */
 	if(user.pass[0]) {
-		JSVALUE_TO_ASTRING(cx, argv[1], password, LEN_PASS+2, NULL);
-		if(password==NULL)
+		JSVALUE_TO_ASTRING(cx, argv[1], p, LEN_PASS+2, NULL);
+		if(p==NULL)
 			return(JS_FALSE);
 
-		if(stricmp(user.pass, password)) { /* Wrong password */
+		if(stricmp(user.pass,p)) { /* Wrong password */
 			rc=JS_SUSPENDREQUEST(cx);
 			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: '%s'"
 				,session->socket,user.alias);
-			badlogin(session->socket,session->client.protocol, username, password, session->host_name, &session->addr);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
@@ -6300,7 +6294,6 @@ void http_session_thread(void* arg)
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
-		//HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_MINVER_TLS12), &session, "setting TLS minver to 1.2");
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
 			unlock_ssl_cert();
@@ -6538,7 +6531,6 @@ static void cleanup(int code)
 		lprintf(LOG_INFO,"0000 Waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
 		while(protected_uint32_value(thread_count) > 1) {
 			mswait(100);
-			listSemPost(&log_list);
 		}
 		lprintf(LOG_INFO,"0000 Done waiting");
 	}
@@ -6589,7 +6581,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.704 $", "%*s %s", revision);
+	sscanf("$Revision: 1.697 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6626,7 +6618,7 @@ void http_logging_thread(void* arg)
 
 	lprintf(LOG_INFO,"HTTP logging thread started");
 
-	while(!terminate_http_logging_thread) {
+	for(;;) {
 		struct log_data *ld;
 		char	timestr[128];
 		char	sizestr[100];
@@ -7092,7 +7084,6 @@ void DLLCALL web_server(void* arg)
             			"terminate");
 					break;
 				}
-				listSemPost(&log_list);
 				mswait(100);
 			}
 			lprintf(LOG_INFO, "Done waiting for HTTP logging thread to terminate");
