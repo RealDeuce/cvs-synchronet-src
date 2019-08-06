@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.239 2019/08/17 06:41:25 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.236 2019/08/06 02:44:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2334,7 +2334,7 @@ handle_addrs(char *host, struct sockaddr_in *addr4, socklen_t *addr4len, struct 
 	}
 
 	if (inet_ptoaddr(host, &ia6, sizeof(ia6)) != NULL) {
-		if (*addr6len == 0) {
+		if (addr6len == 0) {
 			addr6->sin6_addr = ia6.in6.sin6_addr;
 			*addr6len = sizeof(struct sockaddr_in6);
 		}
@@ -2811,7 +2811,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			free(protocol);
 			return JS_FALSE;
 		}
-		for (i = 0; (jsuint)i < count; i++) {
+		for (i = 0; i < count; i++) {
 			if (!JS_GetElement(cx, obj, i, &v)) {
 				lprintf(LOG_WARNING, "Unable to get element %d from interface array", i);
 				continue;
@@ -2860,7 +2860,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for incoming TCP/IP socket communications",317);
 	js_DescribeSyncConstructor(cx,obj,"To create a new ListeningSocket object: "
-		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>})</tt><br>"
+		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>)</tt><br>"
 		"where <i>interface</i> = A array or strings or a single string of hostnames or address optionally including a :port suffix<br>"
 		"<i>port</i> = a port to use when the interface doesn't specify one<br>"
 		"<i>protocol</i> = protocol name, used for socket options and logging.<br>"
