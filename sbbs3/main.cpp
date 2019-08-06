@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.776 2019/09/23 02:18:21 rswindell Exp $ */
+/* $Id: main.cpp,v 1.756 2019/08/05 10:21:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -58,6 +58,18 @@
 #define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
 #define IO_THREAD_BUF_SIZE	   	20000		// Bytes
 #define TIMEOUT_MUTEX_FILE		12*60*60
+
+// Globals
+#ifdef _WIN32
+	HANDLE		exec_mutex=NULL;
+	HINSTANCE	hK32=NULL;
+
+	#if defined(_DEBUG) && defined(_MSC_VER)
+			HANDLE	debug_log=INVALID_HANDLE_VALUE;
+		   _CrtMemState mem_chkpoint;
+	#endif // _DEBUG && _MSC_VER
+
+#endif // _WIN32
 
 #ifdef USE_CRYPTLIB
 
@@ -1469,9 +1481,8 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	BYTE*	first_cr=NULL;
 	int 	i;
 
-	outlen=0;
-
 	if(inlen<1) {
+		outlen=0;
 		return(inbuf);	// no length? No interpretation
 	}
 
@@ -1486,20 +1497,19 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			first_cr=(BYTE*)memchr(inbuf, CR, inlen);
 	}
 
-    if(!sbbs->telnet_cmdlen) {
-		if(first_iac==NULL && first_cr==NULL) {
-			outlen=inlen;
-			return(inbuf);	// no interpretation needed
-		}
+    if(!sbbs->telnet_cmdlen	&& first_iac==NULL && first_cr==NULL) {
+        outlen=inlen;
+        return(inbuf);	// no interpretation needed
+    }
 
-		if(first_iac!=NULL || first_cr!=NULL) {
-			if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
-   				outlen=first_iac-inbuf;
-			else
-				outlen=first_cr-inbuf;
-			memcpy(outbuf, inbuf, outlen);
-		}
-	}
+    if(first_iac!=NULL || first_cr!=NULL) {
+		if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
+   			outlen=first_iac-inbuf;
+		else
+			outlen=first_cr-inbuf;
+	    memcpy(outbuf, inbuf, outlen);
+    } else
+    	outlen=0;
 
     for(i=outlen;i<inlen;i++) {
 		if(!(sbbs->telnet_mode&TELNET_MODE_GATE)
@@ -1526,30 +1536,19 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 			if(sbbs->telnet_cmdlen<sizeof(sbbs->telnet_cmd))
 				sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
-			else {
-				lprintf(LOG_WARNING, "Node %d telnet command (%d, %d) buffer limit reached (%u bytes)"
-					,sbbs->cfg.node_num, sbbs->telnet_cmd[1], sbbs->telnet_cmd[2], sbbs->telnet_cmdlen);
-				sbbs->telnet_cmdlen = 0;
-			}
 
 			uchar command	= sbbs->telnet_cmd[1];
 			uchar option	= sbbs->telnet_cmd[2];
 
-			if(sbbs->telnet_cmdlen == 2 && command == TELNET_SE) {
-				lprintf(LOG_WARNING, "Node %d unexpected telnet sub-negotiation END command"
-					,sbbs->cfg.node_num);
-				sbbs->telnet_cmdlen = 0;
-			}
-			else if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
+			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
 					if(startup->options&BBS_OPT_DEBUG_TELNET)
-						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s (%u bytes)"
+						lprintf(LOG_DEBUG,"Node %d %s telnet sub-negotiation command: %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,telnet_opt_desc(option)
-							,sbbs->telnet_cmdlen);
+							,telnet_opt_desc(option));
 
 					/* sub-option terminated */
 					if(option==TELNET_TERM_TYPE
@@ -1616,17 +1615,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
-					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
-						SAFEPRINTF4(sbbs->telnet_location, "%u.%u.%u.%u"
-							,sbbs->telnet_cmd[4]
-							,sbbs->telnet_cmd[5]
-							,sbbs->telnet_cmd[6]
-							,sbbs->telnet_cmd[7]
-						);
-						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
-	                		,sbbs->cfg.node_num
-							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
-							,sbbs->telnet_location);
+
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
 						long rows = (sbbs->telnet_cmd[5]<<8) | sbbs->telnet_cmd[6];
@@ -1645,7 +1634,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_cmd[3]);
 					sbbs->telnet_cmdlen=0;
 				}
-			} // Sub-negotiation command
+			}
             else if(sbbs->telnet_cmdlen==2 && inbuf[i]<TELNET_WILL) {
 				if(startup->options&BBS_OPT_DEBUG_TELNET)
             		lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s"
@@ -1683,7 +1672,6 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
 								case TELNET_SEND_LOCATION:
-								case TELNET_TERM_LOCATION_NUMBER:
 #ifdef SBBS_TELNET_ENVIRON_SUPPORT
 								case TELNET_NEW_ENVIRON:
 #endif
@@ -1737,7 +1725,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 #endif
 					}
 				}
+
                 sbbs->telnet_cmdlen=0;
+
             }
 			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
 				outbuf[outlen++]=inbuf[i];
@@ -2061,16 +2051,6 @@ void input_thread(void *arg)
 		if(wr > (int)sizeof(telbuf))
 			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,(int)sizeof(telbuf));
 
-		if(sbbs->passthru_socket_active == true) {
-			BOOL writable = FALSE;
-			if(socket_check(sbbs->passthru_socket, NULL, &writable, 1000) && writable)
-				sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
-			else
-				lprintf(LOG_WARNING, "Node %d could not write to passthru socket (writable=%d)"
-					, sbbs->cfg.node_num, (int)writable);
-			continue;
-		}
-
 		/* First level Ctrl-C checking */
 		if(!(sbbs->cfg.ctrlkey_passthru&(1<<CTRL_C))
 			&& sbbs->rio_abortable
@@ -2112,51 +2092,145 @@ void input_thread(void *arg)
 		,sbbs->cfg.node_num, total_recv, total_pkts);
 }
 
-// Flush the duplicate client_socket when activating the passthru socket
-// to eliminate any stale data from the previous passthru session
-void sbbs_t::passthru_socket_activate(bool activate)
+#ifdef USE_CRYPTLIB
+/*
+ * This thread copies anything received from the client to the passthru_socket
+ * It can only do that when the input thread is locked.
+ * Luckily, the input thread is currently locked exactly when we want it to be.
+ * Since the passthru socket is 8-bit clean and does NOT use a protocol,
+ * we must handle telnet stuff HERE.
+ * However, for JS stuff, direct operations on client_socket should generally
+ * be done to the passthru_socket instead... THIS is the biggest problem here.
+ */
+void passthru_output_thread(void* arg)
 {
-	if(activate) {
-		BOOL rd = FALSE;
-		while(socket_check(client_socket_dup, &rd, /* wr_p */NULL, /* timeout */0) && rd) {
-			char ch;
-			if(recv(client_socket_dup, &ch, sizeof(ch), /* flags: */0) != sizeof(ch))
-				break;
-		}
-	} else {
-		/* Re-enable blocking (in case disabled by external program) */	 
-		ulong l=0;	 
-		ioctlsocket(client_socket_dup, FIONBIO, &l);	 
- 	 
-		/* Re-set socket options */
-		char err[512];
-		if(set_socket_options(&cfg, client_socket_dup, "passthru", err, sizeof(err)))	 
-			lprintf(LOG_ERR,"%04d !ERROR %s setting passthru socket options", client_socket, err);
+	fd_set	socket_set;
+	sbbs_t	*sbbs = (sbbs_t*) arg;
+	struct	timeval	tv;
+	int		i;
+	BYTE	inbuf[4000];
+   	BYTE	telbuf[sizeof(inbuf)];
+	BYTE	*wrbuf;
+	int		rd;
+	int		wr;
 
-		do { // Allow time for the passthru_thread to move any pending socket data to the outbuf
-			SLEEP(100); // Before the node_thread starts sending its own data to the outbuf
-		} while(RingBufFull(&sbbs->outbuf));
+	SetThreadName("sbbs/ptOutput");
+	thread_up(FALSE /* setuid */);
+
+	while(sbbs->client_socket!=INVALID_SOCKET && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
+		if(!sbbs->input_thread_mutex_locked) {
+			SLEEP(1);
+			continue;
+		}
+
+		FD_ZERO(&socket_set);
+		FD_SET(sbbs->client_socket,&socket_set);
+
+		tv.tv_sec=1;
+		tv.tv_usec=0;
+
+		if((i=select(sbbs->client_socket+1,&socket_set,NULL,NULL,&tv))<1) {
+			if(i==0) {
+				YIELD();	/* This kludge is necessary on some Linux distros */
+				continue;	/* to allow other threads to lock the input_thread_mutex */
+			}
+
+			if(sbbs->client_socket==INVALID_SOCKET)
+				break;
+	       	if(ERROR_VALUE == ENOTSOCK)
+    	        lprintf(LOG_NOTICE,"Node %d socket closed by peer on input->select", sbbs->cfg.node_num);
+			else if(ERROR_VALUE==ESHUTDOWN)
+				lprintf(LOG_NOTICE,"Node %d socket shutdown on input->select", sbbs->cfg.node_num);
+			else if(ERROR_VALUE==EINTR)
+				lprintf(LOG_DEBUG,"Node %d passthru output thread interrupted",sbbs->cfg.node_num);
+            else if(ERROR_VALUE==ECONNRESET)
+				lprintf(LOG_NOTICE,"Node %d connection reset by peer on input->select", sbbs->cfg.node_num);
+	        else if(ERROR_VALUE==ECONNABORTED)
+				lprintf(LOG_NOTICE,"Node %d connection aborted by peer on input->select", sbbs->cfg.node_num);
+			else
+				lprintf(LOG_WARNING,"Node %d !ERROR %d ->select socket %d"
+               		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
+			break;
+		}
+
+		if(sbbs->client_socket==INVALID_SOCKET)
+			break;
+
+    	rd=sizeof(inbuf);
+
+		if(sbbs->ssh_mode) {
+			pthread_mutex_lock(&sbbs->ssh_mutex);
+			if(!cryptStatusOK(crypt_pop_channel_data(sbbs, (char*)inbuf, rd, &i))) {
+				GCES(rd, sbbs->cfg.node_num, sbbs->ssh_session, "popping data");
+				rd=0;
+			} else {
+				if(!i) {
+					pthread_mutex_unlock(&sbbs->ssh_mutex);
+					continue;
+				}
+				rd=i;
+			}
+			pthread_mutex_unlock(&sbbs->ssh_mutex);
+		}
+		else
+    		rd = recv(sbbs->client_socket, (char*)inbuf, rd, 0);
+
+		if(rd == SOCKET_ERROR)
+		{
+	       	if(ERROR_VALUE == ENOTSOCK)
+    	        lprintf(LOG_NOTICE,"Node %d socket closed by peer on receive", sbbs->cfg.node_num);
+            else if(ERROR_VALUE==ECONNRESET)
+				lprintf(LOG_NOTICE,"Node %d connection reset by peer on receive", sbbs->cfg.node_num);
+			else if(ERROR_VALUE==ESHUTDOWN)
+				lprintf(LOG_NOTICE,"Node %d socket shutdown on receive", sbbs->cfg.node_num);
+            else if(ERROR_VALUE==ECONNABORTED)
+				lprintf(LOG_NOTICE,"Node %d connection aborted by peer on receive", sbbs->cfg.node_num);
+			else
+				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving from socket %d"
+                	,sbbs->cfg.node_num, ERROR_VALUE, sbbs->client_socket);
+			break;
+		}
+
+		if(rd == 0)
+		{
+			lprintf(LOG_DEBUG,"Node %d passthru input socket disconnected", sbbs->cfg.node_num);
+			break;
+		}
+
+        // telbuf and wr are modified to reflect telnet escaped data
+		wr=rd;
+		if(sbbs->telnet_mode&TELNET_MODE_OFF)
+			wrbuf=inbuf;
+		else
+			wrbuf=telnet_interpret(sbbs, inbuf, rd, telbuf, wr);
+		if(wr > (int)sizeof(telbuf))
+			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,(int)sizeof(telbuf));
+
+		/*
+		 * TODO: This should check for writability etc.
+		 */
+		sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
 	}
-	passthru_socket_active = activate;
+
+	sbbs->passthru_output_thread_running = false;
 }
 
 /*
  * This thread simply copies anything it manages to read from the
  * passthru_socket into the output ringbuffer.
  */
-void passthru_thread(void* arg)
+void passthru_input_thread(void* arg)
 {
 	fd_set	r_set;
 	sbbs_t	*sbbs = (sbbs_t*) arg;
 	struct	timeval	tv;
+	BYTE	ch;
 	int		i;
-	int		rd;
-	char	inbuf[IO_THREAD_BUF_SIZE / 2];
 
-	SetThreadName("sbbs/passthru");
+	SetThreadName("sbbs/ptInput");
 	thread_up(FALSE /* setuid */);
 
-	while(sbbs->online && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
+	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		tv.tv_sec=1;
 		tv.tv_usec=0;
 
@@ -2185,55 +2259,40 @@ void passthru_thread(void* arg)
                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
 			break;
 		}
-		rd = RingBufFree(&sbbs->outbuf) / 2;
-		if(rd > (int)sizeof(inbuf))
-			rd = sizeof(inbuf);
+		if(!RingBufFree(&sbbs->outbuf))
+			continue;
 
-    	rd = recv(sbbs->passthru_socket, inbuf, rd, 0);
+    	i = recv(sbbs->passthru_socket, (char*)(&ch), 1, 0);
 
-		if(rd == SOCKET_ERROR)
+		if(i == SOCKET_ERROR)
 		{
-	        if(ERROR_VALUE == ENOTSOCK)
-    	        lprintf(LOG_NOTICE,"Node %d passthru socket closed by peer on receive", sbbs->cfg.node_num);
-        	else if(ERROR_VALUE==ECONNRESET)
-				lprintf(LOG_NOTICE,"Node %d passthru connection reset by peer on receive", sbbs->cfg.node_num);
-			else if(ERROR_VALUE==ESHUTDOWN)
-				lprintf(LOG_NOTICE,"Node %d passthru socket shutdown on receive", sbbs->cfg.node_num);
-        	else if(ERROR_VALUE==ECONNABORTED)
-				lprintf(LOG_NOTICE,"Node %d passthru connection aborted by peer on receive", sbbs->cfg.node_num);
-			else
-				lprintf(LOG_WARNING,"Node %d !ERROR %d receiving from passthru socket %d"
-        	        ,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
+	        	if(ERROR_VALUE == ENOTSOCK)
+    	            lprintf(LOG_NOTICE,"Node %d passthru socket closed by peer on receive", sbbs->cfg.node_num);
+        	    else if(ERROR_VALUE==ECONNRESET)
+					lprintf(LOG_NOTICE,"Node %d passthru connection reset by peer on receive", sbbs->cfg.node_num);
+				else if(ERROR_VALUE==ESHUTDOWN)
+					lprintf(LOG_NOTICE,"Node %d passthru socket shutdown on receive", sbbs->cfg.node_num);
+        	    else if(ERROR_VALUE==ECONNABORTED)
+					lprintf(LOG_NOTICE,"Node %d passthru connection aborted by peer on receive", sbbs->cfg.node_num);
+				else
+					lprintf(LOG_WARNING,"Node %d !ERROR %d receiving from passthru socket %d"
+        	        	,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
+				break;
+		}
+
+		if(i == 0)
+		{
+			lprintf(LOG_DEBUG,"Node %d SSH passthru disconnected", sbbs->cfg.node_num);
 			break;
 		}
 
-		if(rd == 0)
-		{
-			char ch;
-			if(recv(sbbs->passthru_socket, &ch, sizeof(ch), MSG_PEEK) == 0) {
-				lprintf(sbbs->online ? LOG_WARNING : LOG_DEBUG
-					,"Node %d passthru socket disconnected", sbbs->cfg.node_num);
-				break;
-			}
-			YIELD();
-			continue;
-		}
-
 		if(sbbs->xtrn_mode & EX_BIN) {
-			BYTE	telnet_buf[sizeof(inbuf) * 2];
-			BYTE*	bp = (BYTE*)inbuf;
-
-			if(!(sbbs->telnet_mode&TELNET_MODE_OFF))
-				rd = telnet_expand((BYTE*)inbuf, rd, telnet_buf, sizeof(telnet_buf), /* expand_cr */false, &bp);
-
-			int wr = RingBufWrite(&sbbs->outbuf, bp, rd);
-    		if(wr != rd) {
-				lprintf(LOG_ERR,"Short-write (%ld of %ld bytes) from passthru socket to outbuf"
-					,(long)wr, (long)rd);
+    		if(!RingBufWrite(&sbbs->outbuf, &ch, 1)) {
+				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
 				break;
 			}
 		} else {
-			sbbs->rputs(inbuf, rd);
+			sbbs->rputs((char*)&ch, sizeof(ch));
 		}
 	}
 	if(sbbs->passthru_socket!=INVALID_SOCKET) {
@@ -2242,9 +2301,9 @@ void passthru_thread(void* arg)
 	}
 	thread_down();
 
-	sbbs->passthru_thread_running = false;
-	sbbs->passthru_socket_active = false;
+	sbbs->passthru_input_thread_running = false;
 }
+#endif
 
 void output_thread(void* arg)
 {
@@ -2630,7 +2689,7 @@ void event_thread(void* arg)
 					sbbs->console|=CON_L_ECHO;
 					sbbs->getusrsubs();
 					bool success = sbbs->unpack_rep(g.gl_pathv[i]);
-					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					sbbs->online=FALSE;
@@ -2642,6 +2701,7 @@ void event_thread(void* arg)
 							sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
 					} else {
 						char badpkt[MAX_PATH+1];
+						SAFECOPY(badpkt, g.gl_pathv[i]);
 						SAFEPRINTF2(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
 						remove(badpkt);
 						if(rename(g.gl_pathv[i], badpkt) == 0)
@@ -2649,8 +2709,6 @@ void event_thread(void* arg)
 						else
 							sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 								,errno, strerror(errno), g.gl_pathv[i], badpkt);
-						SAFEPRINTF(badpkt, "%u.rep.*.bad", sbbs->useron.number);
-						sbbs->delfiles(str, badpkt, /* keep: */10);
 					}
 					if(remove(semfile))
 						sbbs->errormsg(WHERE, ERR_REMOVE, semfile, 0);
@@ -2700,7 +2758,7 @@ void event_thread(void* arg)
 						remove(bat_list);
 					} else
 						sbbs->lputs(LOG_INFO, "No packet created (no new messages)");
-					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+					delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
@@ -2751,7 +2809,7 @@ void event_thread(void* arg)
 							sbbs->qwk_success(l,0,1);
 							sbbs->putmsgptrs();
 						}
-						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					}
@@ -2876,13 +2934,11 @@ void event_thread(void* arg)
 							else
 								sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 									,errno, strerror(errno), str, newname);
-							SAFEPRINTF(newname, "%s.q??.*.bad", sbbs->cfg.qhub[i]->id);
-							sbbs->delfiles(str, newname, /* keep: */10);
 						}
-						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
-						if(fexist(str) && remove(str))
+						if(remove(str))
 							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
 					}
 				}
@@ -2938,7 +2994,7 @@ void event_thread(void* arg)
 						close(file);
 					}
 				}
-				sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
+				delfiles(sbbs->cfg.temp_dir,ALLFILES);
 
 				sbbs->cfg.qhub[i]->last=time32(NULL);
 				SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
@@ -3222,8 +3278,7 @@ void event_thread(void* arg)
 					write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 					close(file);
 
-					if(sbbs->cfg.event[i]->node != NODE_ANY
-						&& sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
+					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 						// Check/change the status of the nodes that we're in control of
 						for(j=first_node;j<=last_node;j++) {
 							node.status=NODE_INVALID_STATUS;
@@ -3300,8 +3355,7 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 	event_thread_running = false;
     input_thread_running = false;
     output_thread_running = false;
-	passthru_socket_active = false;
-	passthru_thread_running = false;
+	input_thread_mutex_locked = false;
 
 	if(client_info==NULL)
 		memset(&client,0,sizeof(client));
@@ -3329,6 +3383,8 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 #ifdef USE_CRYPTLIB
 	ssh_mode=false;
 	ssh_mutex_created=false;
+    passthru_input_thread_running = false;
+    passthru_output_thread_running = false;
 #endif
 
 	rio_abortable=false;
@@ -3772,7 +3828,7 @@ sbbs_t::~sbbs_t()
 		node_inbuf[cfg.node_num-1]=NULL;
 	if(!input_thread_running)
 		RingBufDispose(&inbuf);
-	if(!output_thread_running && !passthru_thread_running)
+	if(!output_thread_running && !passthru_input_thread_running)
 		RingBufDispose(&outbuf);
 
 	if(telnet_ack_event!=NULL)
@@ -4533,7 +4589,9 @@ void node_thread(void* arg)
 
     // Wait for all node threads to terminate
 	if(sbbs->input_thread_running || sbbs->output_thread_running
-		|| sbbs->passthru_thread_running
+#ifdef USE_CRYPTLIB
+		|| sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running
+#endif
 		) {
 		lprintf(LOG_INFO,"Node %d Waiting for %s to terminate..."
 			,sbbs->cfg.node_num
@@ -4543,7 +4601,9 @@ void node_thread(void* arg)
 		time_t start=time(NULL);
 		while(sbbs->input_thread_running
     		|| sbbs->output_thread_running
-			|| sbbs->passthru_thread_running
+#ifdef USE_CRYPTLIB
+			|| sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running
+#endif
 			) {
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
 				lprintf(LOG_NOTICE,"Node %d !TIMEOUT waiting for %s to terminate"
@@ -4881,6 +4941,27 @@ static void cleanup(int code)
 	protected_uint32_destroy(node_threads_running);
 	protected_uint32_destroy(ssh_sessions);
 
+#ifdef _WIN32
+	if(exec_mutex!=NULL) {
+		CloseHandle(exec_mutex);
+		exec_mutex=NULL;
+	}
+
+	if(hK32!=NULL) {
+		FreeLibrary(hK32);
+		hK32=NULL;
+	}
+
+#if 0 && defined(_DEBUG) && defined(_MSC_VER)
+	_CrtMemDumpAllObjectsSince(&mem_chkpoint);
+
+	if(debug_log!=INVALID_HANDLE_VALUE) {
+		CloseHandle(debug_log);
+		debug_log=INVALID_HANDLE_VALUE;
+	}
+#endif // _DEBUG && _MSC_VER
+#endif // _WIN32
+
 	status("Down");
 	thread_down();
 	if(terminate_server || code)
@@ -5007,11 +5088,6 @@ void DLLCALL bbs_thread(void* arg)
 	lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 	lprintf(LOG_DEBUG,"SMBLIB %s (format %x.%02x)",smb_lib_ver(),smb_ver()>>8,smb_ver()&0xff);
 
-#ifdef _DEBUG
-	lprintf(LOG_DEBUG, "sizeof: int=%d, long=%d, off_t=%d, time_t=%d"
-		,(int)sizeof(int), (int)sizeof(long), (int)sizeof(off_t), (int)sizeof(time_t));
-#endif
-
     if(startup->first_node<1 || startup->first_node>startup->last_node) {
     	lprintf(LOG_CRIT,"!ILLEGAL node configuration (first: %d, last: %d)"
         	,startup->first_node, startup->last_node);
@@ -5029,6 +5105,15 @@ void DLLCALL bbs_thread(void* arg)
 		cleanup(1);
 		return;
 	}
+
+#ifdef _WIN32
+    if((exec_mutex=CreateMutex(NULL,false,NULL))==NULL) {
+    	lprintf(LOG_CRIT,"!ERROR %d creating exec_mutex", GetLastError());
+		cleanup(1);
+        return;
+    }
+	hK32 = LoadLibrary("KERNEL32");
+#endif // _WIN32
 
 	if(!winsock_startup()) {
 		cleanup(1);
@@ -5221,6 +5306,38 @@ NO_SSH:
 	}
 
 	status(STATUS_WFC);
+
+#if defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
+
+	SAFEPRINTF(str,"%sDEBUG.LOG",scfg.logs_dir);
+	if((debug_log=CreateFile(
+		str,				// pointer to name of the file
+		GENERIC_READ|GENERIC_WRITE,
+		FILE_SHARE_READ|FILE_SHARE_WRITE,
+		NULL,               // pointer to security attributes
+		OPEN_ALWAYS,		// how to create
+		FILE_ATTRIBUTE_NORMAL, // file attributes
+		NULL				// handle to file with attributes to
+		))==INVALID_HANDLE_VALUE) {
+		lprintf(LOG_CRIT,"!ERROR %ld creating %s",GetLastError(),str);
+		cleanup(1);
+		return;
+	}
+
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, debug_log);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE|_CRTDBG_MODE_WNDW);
+	_CrtSetReportFile(_CRT_ERROR, debug_log);
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE|_CRTDBG_MODE_WNDW);
+	_CrtSetReportFile(_CRT_ASSERT, debug_log);
+
+	/* Turns on memory leak checking during program termination */
+//	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+
+	/* Save this allocation point for comparison */
+	_CrtMemCheckpoint(&mem_chkpoint);
+
+#endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
 	shutdown_semfiles = semfile_list_init(scfg.ctrl_dir,"shutdown", "term");
@@ -5710,9 +5827,8 @@ NO_SSH:
 			new_node->sys_status|=SS_RLOGIN;
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
-
-		// Passthru socket creation/connection
-		if(true) {
+#ifdef USE_CRYPTLIB
+		if(ssh) {
 			/* TODO: IPv6? */
 			SOCKET	tmp_sock;
 			SOCKADDR_IN		tmp_addr={0};
@@ -5723,12 +5839,12 @@ NO_SSH:
     		tmp_sock = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(tmp_sock == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d creating passthru listen socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru listen socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				goto NO_PASSTHRU;
 			}
 
-    		lprintf(LOG_DEBUG,"Node %d passthru listen socket %d opened"
+    		lprintf(LOG_DEBUG,"Node %d SSH passthru listen socket %d opened"
 				,new_node->cfg.node_num, tmp_sock);
 
 			/*****************************/
@@ -5750,29 +5866,29 @@ NO_SSH:
 		    result = listen(tmp_sock, 1);
 
 			if(result != 0) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d (%d) listening on passthru socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d (%d) listening on passthru socket"
 					,new_node->cfg.node_num, result, ERROR_VALUE);
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
-			lprintf(LOG_INFO,"Node %d passthru socket listening on port %u"
+			lprintf(LOG_INFO,"Node %d SSH passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
     		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(new_node->passthru_socket == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d creating passthru connecting socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru connecting socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
 
-			lprintf(LOG_DEBUG,"Node %d passthru connect socket %d opened"
+			lprintf(LOG_DEBUG,"Node %d SSH passthru connect socket %d opened"
 				,new_node->cfg.node_num, new_node->passthru_socket);
 
 			tmp_addr_len=sizeof(tmp_addr);
 			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d getting passthru listener address"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				close_socket(tmp_sock);
 				close_socket(new_node->passthru_socket);
@@ -5783,7 +5899,7 @@ NO_SSH:
 			result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
 
 			if(result != 0) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d (%d) connecting to passthru socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d (%d) connecting to passthru socket"
 					,new_node->cfg.node_num, result, ERROR_VALUE);
 				close_socket(new_node->passthru_socket);
 				new_node->passthru_socket=INVALID_SOCKET;
@@ -5794,9 +5910,9 @@ NO_SSH:
 			new_node->client_socket_dup=accept(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len);
 
 			if(new_node->client_socket_dup == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d !ERROR (%d) connecting accept()ing on passthru socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR (%d) connecting accept()ing on passthru socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
-				lprintf(LOG_WARNING,"Node %d !WARNING native doors which use sockets will not function"
+				lprintf(LOG_WARNING,"Node %d SSH !WARNING native doors which use sockets will not function"
 					,new_node->cfg.node_num);
 				close_socket(new_node->passthru_socket);
 				new_node->passthru_socket=INVALID_SOCKET;
@@ -5804,17 +5920,17 @@ NO_SSH:
 				goto NO_PASSTHRU;
 			}
 			close_socket(tmp_sock);
-			new_node->passthru_thread_running = true;
-			_beginthread(passthru_thread, 0, new_node);
+			new_node->passthru_output_thread_running = true;
+			_beginthread(passthru_output_thread, 0, new_node);
+			new_node->passthru_input_thread_running = true;
+			_beginthread(passthru_input_thread, 0, new_node);
 
-	NO_PASSTHRU:
-			if(ssh) {
-				SAFECOPY(new_node->connection,"SSH");
-				new_node->node_connection=NODE_CONNECTION_SSH;
-				new_node->sys_status|=SS_SSH;
-				new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
-				new_node->ssh_session=sbbs->ssh_session;
-			}
+NO_PASSTHRU:
+			SAFECOPY(new_node->connection,"SSH");
+			new_node->node_connection=NODE_CONNECTION_SSH;
+			new_node->sys_status|=SS_SSH;
+			new_node->telnet_mode|=TELNET_MODE_OFF; // SSH does not use Telnet commands
+			new_node->ssh_session=sbbs->ssh_session;
 			/* Wait for pending data to be sent then turn off ssh_mode for uber-output */
 			while(sbbs->output_thread_running && RingBufFull(&sbbs->outbuf))
 				SLEEP(1);
@@ -5823,6 +5939,7 @@ NO_SSH:
 			sbbs->ssh_session=0; // Don't allow subsequent SSH connections to affect this one (!)
 			pthread_mutex_unlock(&sbbs->ssh_mutex);
 		}
+#endif
 
 	    protected_uint32_adjust(&node_threads_running, 1);
 	    new_node->input_thread_running = true;
@@ -5906,18 +6023,20 @@ NO_SSH:
 		lprintf(LOG_INFO, "Done waiting for system output thread to terminate");
 	}
 
-    // Wait for BBS passthru thread to terminate
-	if(sbbs->passthru_thread_running) {
-		lprintf(LOG_INFO,"Waiting for passthru thread to terminate...");
+    // Wait for BBS passthru input thread to terminate
+	if(sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running) {
+		lprintf(LOG_INFO,"Waiting for passthru I/O threads to terminate...");
 		start=time(NULL);
-		while(sbbs->passthru_thread_running) {
+		while(sbbs->passthru_input_thread_running || sbbs->passthru_output_thread_running) {
 			if(time(NULL)-start>TIMEOUT_THREAD_WAIT) {
-				lprintf(LOG_ERR,"!TIMEOUT waiting for passthru thread to terminate");
+				lprintf(LOG_ERR,"!TIMEOUT waiting for passthru %s thread to terminate"
+					,sbbs->passthru_input_thread_running && sbbs->passthru_output_thread_running ? "I/O"
+						: sbbs->passthru_input_thread_running ? "input" : "output");
 				break;
 			}
 			mswait(100);
 		}
-		lprintf(LOG_INFO, "Done waiting for passthru threads to terminate");
+		lprintf(LOG_INFO, "Done waiting for passthru I/O threads to terminate");
 	}
 
     // Set all nodes' status to OFFLINE
@@ -5934,7 +6053,7 @@ NO_SSH:
 		    delete events;
 	}
 
-    if(sbbs->passthru_thread_running || sbbs->output_thread_running)
+    if(sbbs->passthru_input_thread_running || sbbs->output_thread_running)
 		lprintf(LOG_ERR,"!System I/O thread still running, can't delete");
 	else
 	    delete sbbs;
