@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.76 2019/08/18 20:30:43 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.75 2019/08/02 09:27:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -173,8 +173,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 	}
 	p=strrchr(to,'@');      /* Find '@' in name@addr */
 	if(p==NULL || net_type != NET_FIDO) {
-		if(!(sys_status&SS_ABORT))
-			bputs(text[InvalidNetMailAddr]);
+		bputs(text[InvalidNetMailAddr]);
 		return false; 
 	}
 	if(!cfg.total_faddrs || (!SYSOP && !(cfg.netmail_misc&NMAIL_ALLOW))) {
