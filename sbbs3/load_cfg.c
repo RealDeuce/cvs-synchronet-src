@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.77 2019/08/06 01:51:39 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.78 2019/08/06 03:08:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -199,7 +199,7 @@ void prep_cfg(scfg_t* cfg)
 		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
 		if(!cfg->dir[i]->path[0])
-			SAFEOCPY(cfg->dir[i]->path, cfg->dir[i]->code);
+			SAFECOPY(cfg->dir[i]->path, cfg->dir[i]->code);
 		if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
