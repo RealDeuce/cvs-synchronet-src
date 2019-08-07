@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.61 2020/04/11 23:41:27 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.57 2019/08/01 08:17:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,7 @@
 
 static sub_t** cut_qhub_sub;
 
-bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long misc)
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub)
 {
 	sub_t* new_subboard;
 	if ((new_subboard = (sub_t *)malloc(sizeof(*new_subboard))) == NULL) {
@@ -47,7 +47,6 @@ bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long mi
 		new_subboard->faddr = cfg.faddr[0];
 	/* ToDo: Define these defaults somewhere else: */
 	new_subboard->misc = (SUB_NSDEF | SUB_SSDEF | SUB_QUOTE | SUB_TOUSER | SUB_FAST);
-	new_subboard->misc |= misc;
 	new_subboard->maxmsgs = 500;
 
 	/* Use last sub in group (if exists) as a template for new subs */
@@ -274,7 +273,7 @@ void sub_cfg(uint grpnum)
 				continue; 
 			}
 
-			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, /* pasted_sub: */NULL))
 				continue;
 
 			SAFECOPY(cfg.sub[subnum[i]]->code_suffix,code);
@@ -311,7 +310,7 @@ void sub_cfg(uint grpnum)
 					if(j==-1)
 						continue;
 					if(j==0)
-						delfiles(data_dir,str, /* keep: */0);
+						delfiles(data_dir,str);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -326,7 +325,7 @@ void sub_cfg(uint grpnum)
 			continue; 
 		}
 		if(msk == MSK_PASTE) {
-			if (!new_sub(subnum[i], grpnum, &savsub, /* misc: */0))
+			if (!new_sub(subnum[i], grpnum, &savsub))
 				continue;
 			uifc.changes = TRUE;
 			continue; 
@@ -1324,29 +1323,17 @@ void sub_cfg(uint grpnum)
 								}
 								break;
 							case 7:
-							{
-								int k = 0;
-								if(!cfg.total_faddrs) {
-									uifc.msg("You must configure a FidoNet address in SCFG->Networks->FidoNet");
-									break;
-								}
+								smb_faddrtoa(&cfg.sub[i]->faddr,str);
 								uifc.helpbuf=
 									"`Sub-board FidoNet Address:`\n"
 									"\n"
 									"If this sub-board is part of a FidoNet EchoMail conference, this is\n"
-									"the address used for this sub-board.\n"
+									"the address used for this sub-board. Format: `Zone:Net/Node[.Point]`\n"
 								;
-								for(n=0; n<cfg.total_faddrs && n<MAX_OPTS; n++) {
-									if(memcmp(&cfg.sub[i]->faddr, &cfg.faddr[n], sizeof(cfg.faddr[n])) == 0)
-										k = i;
-									strcpy(opt[n], smb_faddrtoa(&cfg.faddr[n],NULL)); 
-								}
-								opt[n][0]=0;
-								n = uifc.list(WIN_RHT|WIN_SAV|WIN_ACT|WIN_INSACT, 0, 0, 0, &k, NULL, "FidoNet Address", opt);
-								if(n >= 0 && n < cfg.total_faddrs)
-									cfg.sub[i]->faddr = cfg.faddr[n];
+								uifc.input(WIN_MID|WIN_SAV,0,0,"FidoNet Address"
+									,str,25,K_EDIT);
+								cfg.sub[i]->faddr=atofaddr(str);
 								break;
-							}
 							case 8:
 								uifc.helpbuf=
 									"`Sub-board FidoNet Origin Line:`\n"
@@ -1471,7 +1458,7 @@ void sub_cfg(uint grpnum)
 										,cfg.grp[cfg.sub[i]->grp]->code_prefix
 										,cfg.sub[i]->code_suffix);
 									strlwr(str2);
-									delfiles(str,str2, /* keep: */0); 
+									delfiles(str,str2); 
 								}
 
 								if(cfg.sub[i]->misc&SUB_HYPER)
