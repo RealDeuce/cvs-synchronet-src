@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.545 2019/08/20 03:12:28 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.542 2019/08/07 03:19:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -725,11 +725,6 @@ public:
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
 #endif
 	;
-	int		comprintf(const char *fmt, ...)			/* BBS direct-comm printf function */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
 	void	backspace(int count=1);			/* Output destructive backspace(s) via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
@@ -824,7 +819,6 @@ public:
 	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
-	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
@@ -929,7 +923,6 @@ public:
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
 	bool	addtobatdl(file_t* f);
-	long	delfiles(const char *inpath, const char *spec, size_t keep = 0);
 
 	/* listfile.cpp */
 	bool	listfile(const char *fname, const char *buf, uint dirnum
