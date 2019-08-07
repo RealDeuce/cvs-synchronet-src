@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.65 2019/10/05 20:47:48 rswindell Exp $ */
+/* $Id: str_util.c,v 1.62 2019/08/04 22:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,9 +34,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
-#include "unicode.h"
-#include "cp437defs.h"
 
 /****************************************************************************/
 /* For all the functions that take a 'dest' argument, pass NULL to have the	*/
@@ -46,7 +43,7 @@
 /****************************************************************************/
 /* Removes ctrl-a codes from the string 'str'								*/
 /****************************************************************************/
-char* remove_ctrl_a(const char *str, char *dest)
+char* DLLCALL remove_ctrl_a(const char *str, char *dest)
 {
 	int	i,j;
 
@@ -67,7 +64,7 @@ char* remove_ctrl_a(const char *str, char *dest)
 	return dest;
 }
 
-char* strip_ctrl(const char *str, char* dest)
+char* DLLCALL strip_ctrl(const char *str, char* dest)
 {
 	int	i,j;
 
@@ -89,7 +86,7 @@ char* strip_ctrl(const char *str, char* dest)
 	return dest;
 }
 
-char* strip_exascii(const char *str, char* dest)
+char* DLLCALL strip_exascii(const char *str, char* dest)
 {
 	int	i,j;
 
@@ -102,7 +99,7 @@ char* strip_exascii(const char *str, char* dest)
 	return dest;
 }
 
-char* strip_space(const char *str, char* dest)
+char* DLLCALL strip_space(const char *str, char* dest)
 {
 	int	i,j;
 
@@ -115,22 +112,7 @@ char* strip_space(const char *str, char* dest)
 	return dest;
 }
 
-char* strip_char(const char* str, char* dest, char ch)
-{
-	const char* src;
-
-	if(dest == NULL && (dest = strdup(str)) == NULL)
-		return NULL;
-	char* retval = dest;
-	for(src = str; *src != '\0'; src++) {
-		if(*src != ch)
-			*(dest++) = *src;
-	}
-	*dest = '\0';
-	return retval;
-}
-
-char* prep_file_desc(const char *str, char* dest)
+char* DLLCALL prep_file_desc(const char *str, char* dest)
 {
 	int	i,j;
 
@@ -160,7 +142,7 @@ char* prep_file_desc(const char *str, char* dest)
 /****************************************************************************/
 /* Pattern matching string search of 'insearchof' in 'string'.				*/
 /****************************************************************************/
-BOOL findstr_in_string(const char* insearchof, char* string)
+BOOL DLLCALL findstr_in_string(const char* insearchof, char* string)
 {
 	char*	p;
 	char	str[256];
@@ -263,7 +245,7 @@ static BOOL is_cidr_match(const char *p, uint32_t ip_addr, uint32_t cidr, unsign
 /****************************************************************************/
 /* Pattern matching string search of 'insearchof' in 'list'.				*/
 /****************************************************************************/
-BOOL findstr_in_list(const char* insearchof, str_list_t list)
+BOOL DLLCALL findstr_in_list(const char* insearchof, str_list_t list)
 {
 	size_t	index;
 	BOOL	found=FALSE;
@@ -290,7 +272,7 @@ BOOL findstr_in_list(const char* insearchof, str_list_t list)
 /****************************************************************************/
 /* Pattern matching string search of 'insearchof' in 'fname'.				*/
 /****************************************************************************/
-BOOL findstr(const char* insearchof, const char* fname)
+BOOL DLLCALL findstr(const char* insearchof, const char* fname)
 {
 	char		str[256];
 	BOOL		found=FALSE;
@@ -325,7 +307,7 @@ BOOL findstr(const char* insearchof, const char* fname)
 /* Searches the file <name>.can in the TEXT directory for matches			*/
 /* Returns TRUE if found in list, FALSE if not.								*/
 /****************************************************************************/
-BOOL trashcan(scfg_t* cfg, const char* insearchof, const char* name)
+BOOL DLLCALL trashcan(scfg_t* cfg, const char* insearchof, const char* name)
 {
 	char fname[MAX_PATH+1];
 
@@ -333,7 +315,7 @@ BOOL trashcan(scfg_t* cfg, const char* insearchof, const char* name)
 }
 
 /****************************************************************************/
-char* trashcan_fname(scfg_t* cfg, const char* name, char* fname, size_t maxlen)
+char* DLLCALL trashcan_fname(scfg_t* cfg, const char* name, char* fname, size_t maxlen)
 {
 	safe_snprintf(fname,maxlen,"%s%s.can",cfg->text_dir,name);
 	return fname;
@@ -346,7 +328,7 @@ static char* process_findstr_item(size_t index, char *str, void* cbdata)
 }
 
 /****************************************************************************/
-str_list_t findstr_list(const char* fname)
+str_list_t DLLCALL findstr_list(const char* fname)
 {
 	FILE*	fp;
 	str_list_t	list;
@@ -363,7 +345,7 @@ str_list_t findstr_list(const char* fname)
 }
 
 /****************************************************************************/
-str_list_t trashcan_list(scfg_t* cfg, const char* name)
+str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name)
 {
 	char	fname[MAX_PATH+1];
 
@@ -374,7 +356,7 @@ str_list_t trashcan_list(scfg_t* cfg, const char* name)
 /* Returns in 'string' a character representation of the number in l with   */
 /* commas.																	*/
 /****************************************************************************/
-char* ultoac(ulong l, char *string)
+char* DLLCALL ultoac(ulong l, char *string)
 {
 	char str[256];
 	int i,j,k;
@@ -394,7 +376,7 @@ char* ultoac(ulong l, char *string)
 /****************************************************************************/
 /* Truncate string at first occurrence of char in specified character set	*/
 /****************************************************************************/
-char* truncstr(char* str, const char* set)
+char* DLLCALL truncstr(char* str, const char* set)
 {
 	char* p;
 
@@ -408,7 +390,7 @@ char* truncstr(char* str, const char* set)
 /****************************************************************************/
 /* rot13 encoder/decoder - courtesy of Mike Acar							*/
 /****************************************************************************/
-char* rot13(char* str)
+char* DLLCALL rot13(char* str)
 {
 	char ch, cap;
 	char* p;
@@ -505,7 +487,7 @@ uint hptoi(const char *str)
 /****************************************************************************/
 /* Returns TRUE if a is a valid ctrl-a "attribute" code, FALSE if it isn't. */
 /****************************************************************************/
-BOOL valid_ctrl_a_attr(char a)
+BOOL DLLCALL valid_ctrl_a_attr(char a)
 {
 	switch(toupper(a)) {
 		case '+':	/* push attr	*/
@@ -539,7 +521,7 @@ BOOL valid_ctrl_a_attr(char a)
 /****************************************************************************/
 /* Returns TRUE if a is a valid QWKnet compatible Ctrl-A code, else FALSE	*/
 /****************************************************************************/
-BOOL valid_ctrl_a_code(char a)
+BOOL DLLCALL valid_ctrl_a_code(char a)
 {
 	switch(toupper(a)) {
 		case 'P':		/* Pause */
@@ -552,7 +534,7 @@ BOOL valid_ctrl_a_code(char a)
 
 /****************************************************************************/
 /****************************************************************************/
-char ctrl_a_to_ascii_char(char a)
+char DLLCALL ctrl_a_to_ascii_char(char a)
 {
 	switch(toupper(a)) {
 		case 'L':   /* cls          */
@@ -571,7 +553,7 @@ char ctrl_a_to_ascii_char(char a)
 /* Strips invalid Ctrl-Ax "attribute" sequences from str                    */
 /* Returns number of ^A's in line                                           */
 /****************************************************************************/
-size_t strip_invalid_attr(char *str)
+size_t DLLCALL strip_invalid_attr(char *str)
 {
     char*	dest;
     size_t	a,c,d;
@@ -598,7 +580,7 @@ size_t strip_invalid_attr(char *str)
 
 /****************************************************************************/
 /****************************************************************************/
-char exascii_to_ascii_char(uchar ch)
+char DLLCALL exascii_to_ascii_char(uchar ch)
 {
 	/* Seven bit table for EXASCII to ASCII conversion */
 	const char *sbtbl="CUeaaaaceeeiiiAAEaAooouuyOUcLYRfaiounNao?--24!<>"
@@ -610,7 +592,7 @@ char exascii_to_ascii_char(uchar ch)
 	return ch;
 }
 
-BOOL str_is_ascii(const char* str)
+BOOL DLLCALL str_is_ascii(const char* str)
 {
 	for(const char* p = str; *p != 0; p++) {
 		if(*p < 0)
@@ -619,19 +601,10 @@ BOOL str_is_ascii(const char* str)
 	return TRUE;
 }
 
-BOOL str_has_ctrl(const char* str)
-{
-	for(const char* p = str; *p != 0; p++) {
-		if((uchar)*p < ' ')
-			return TRUE;
-	}
-	return FALSE;
-}
-
 /****************************************************************************/
 /* Convert string from IBM extended ASCII to just ASCII						*/
 /****************************************************************************/
-char* ascii_str(uchar* str)
+char* DLLCALL ascii_str(uchar* str)
 {
 	uchar*	p=str;
 
@@ -643,7 +616,7 @@ char* ascii_str(uchar* str)
 	return((char*)str);
 }
 
-uint32_t str_to_bits(uint32_t val, const char *str)
+uint32_t DLLCALL str_to_bits(uint32_t val, const char *str)
 {
 	/* op can be 0 for replace, + for add, or - for remove */
 	int op=0;
@@ -675,12 +648,3 @@ uint32_t str_to_bits(uint32_t val, const char *str)
 	return val;
 }
 
-/* Convert a UTF-8 encoded string to a CP437-encoded string */
-char* utf8_to_cp437_str(char* str)
-{
-	utf8_normalize_str(str);
-	return utf8_replace_chars(str, unicode_to_cp437
-		,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
-		,/* unsupported zero-width ch: */0
-		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
-}
