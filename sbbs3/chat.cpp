@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.81 2019/08/20 03:09:28 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.80 2018/10/26 03:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1042,7 +1042,7 @@ void sbbs_t::privchat(bool local)
 							,thisnode.misc&NODE_NMSG ? 'M':' ');
 						attr(cfg.color[clr_chatlocal]);
 						for(x=13,y=0;x<rows;x++,y++) {
-							comprintf("\x1b[%d;1H\x1b[K",x+1);
+							rprintf("\x1b[%d;1H\x1b[K",x+1);
 							if(y<=localline)
 								bprintf("%s\r\n",localbuf[y]); 
 						}
