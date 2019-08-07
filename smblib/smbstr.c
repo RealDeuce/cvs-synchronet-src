@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.32 2018/11/04 23:26:45 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.36 2019/07/30 10:20:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,12 +63,14 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case REPLYTONETTYPE:	return("Reply-ToNetType");
 		case REPLYTONETADDR:	return("Reply-ToNetAddr");
 		case REPLYTOEXT:		return("Reply-ToExt");
+		case REPLYTOLIST:		return("Reply-ToList");
 								
 		case RECIPIENT:			return("To");					/* RFC-compliant */
 		case RECIPIENTAGENT:	return("ToAgent");
 		case RECIPIENTNETTYPE:	return("ToNetType");
 		case RECIPIENTNETADDR:	return("ToNetAddr");
 		case RECIPIENTEXT:		return("ToExt");
+		case RECIPIENTLIST:		return("ToList");
 
 		case SUBJECT:			return("Subject");				/* RFC-compliant */
 		case SMB_SUMMARY:		return("Summary");
@@ -93,6 +95,7 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case FIDOPID:			return("X-FTN-PID");
 		case FIDOFLAGS:			return("X-FTN-Flags");
 		case FIDOTID:			return("X-FTN-TID");
+		case FIDOCHARSET:		return("X-FTN-CHRS");
 
 		case RFC822HEADER:		return("OtherHeader");
 		case RFC822MSGID:		return("Message-ID");			/* RFC-compliant */
@@ -100,6 +103,9 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case RFC822TO:			return("RFC822To");
 		case RFC822FROM:		return("RFC822From");
 		case RFC822REPLYTO:		return("RFC822ReplyTo");
+		case RFC822CC:			return("RFC822Cc");	
+		case RFC822ORG:			return("RFC822Org");
+		case RFC822SUBJECT:		return("RFC822Subject");
 
 		case USENETPATH:		return("Path");					/* RFC-compliant */
 		case USENETNEWSGROUPS:	return("Newsgroups");			/* RFC-compliant */
@@ -338,8 +344,15 @@ enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 {
 	const char*	p;
 
-	if((p=strchr(str,'@'))==NULL)
+	if((p=strchr(str,'@')) == NULL) {
 		p = str;
+		SKIP_WHITESPACE(p);
+		if(*p == 0)
+			return NET_NONE;
+		if(smb_get_net_type_by_addr(p) == NET_FIDO)
+			return NET_FIDO;
+		return NET_NONE;
+	}
 	else
 		p++;
 	SKIP_WHITESPACE(p);
@@ -353,11 +366,15 @@ enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
 /* Returns net_type for passed network address 								*/
 /* The only addresses expected with an '@' are Internet/SMTP addresses		*/
 /* Examples:																*/
+/*  ""					= NET_NONE											*/
+/*	"@"					= NET_NONE											*/
 /*	"VERT"				= NET_QWK											*/
+/*	"VERT/NIX"			= NET_QWK											*/
 /*	"1:103/705"			= NET_FIDO											*/
 /*	"705.0"				= NET_FIDO											*/
 /*	"705"				= NET_FIDO											*/
 /*	"192.168.1.0"		= NET_INTERNET										*/
+/*  "::1"				= NET_INTERNET										*/
 /*	"some.host"			= NET_INTERNET										*/
 /*	"someone@anywhere"	= NET_INTERNET										*/
 /*	"someone@some.host"	= NET_INTERNET										*/
@@ -366,28 +383,55 @@ enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr)
 {
 	const char*	p = addr;
 	const char*	tp;
-	char*	firstdot;
-	char*	lastdot;
 
-	if(strchr(p,'@') != NULL)
-		return(NET_INTERNET);
+	char* at = strchr(p,'@');
+	if(at != NULL)
+		p = at + 1;
 
-	firstdot=strchr(p,'.');
-	lastdot=strrchr(p,'.');
+	if(*p == 0)
+		return NET_NONE;
 
-	if(isalpha(*p) && firstdot==NULL)
-		return(NET_QWK);
+	char* dot = strchr(p,'.');
+	char* colon = strchr(p,':');
+	char* slash = strchr(p,'/');
 
-	for(tp=p;*tp;tp++) {
-		if(!isdigit(*tp) && *tp!=':' && *tp!='/' && *tp!='.')
-			break;
+	if(at == NULL && isalpha(*p) && dot == NULL && colon == NULL)
+		return NET_QWK;
+
+	char last = 0;
+	for(tp = p; *tp != '\0'; tp++) {
+		last = *tp;
+		if(isdigit(*tp))
+			continue;
+		if(*tp == ':') {
+			if(tp != colon)
+				break;
+			if(dot != NULL && tp > dot)
+				break;
+			if(slash != NULL && tp > slash)
+				break;
+			continue;
+		}
+		if(*tp == '/') {
+			if(tp != slash)
+				break;
+			if(dot != NULL && tp > dot)
+				break;
+			continue;
+		}
+		if(*tp == '.') {
+			if(tp != dot)
+				break;
+			continue;
+		}
+		break;
 	}
-	if(isdigit(*p) && *tp==0 && firstdot==lastdot)
-		return(NET_FIDO);
-	if(isalnum(*p))
-		return(NET_INTERNET);
+	if(at == NULL && isdigit(*p) && *tp == '\0' && isdigit(last))
+		return NET_FIDO;
+	if(slash == NULL && (isalnum(*p) || p == colon))
+		return NET_INTERNET;
 
-	return(NET_UNKNOWN);
+	return NET_UNKNOWN;
 }
 
 char* SMBCALL smb_nettype(enum smb_net_type type)
