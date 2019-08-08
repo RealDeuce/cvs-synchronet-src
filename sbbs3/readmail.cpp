@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.97 2020/03/01 19:10:50 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.95 2019/08/04 22:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -256,10 +256,9 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 
 		if(domsg && !(sys_status&SS_ABORT)) {
 
-			if(!show_msg(&smb, &msg
+			show_msg(&smb, &msg
 				,msg.from_ext && msg.idx.from==1 && !msg.from_net.type
-					? 0:P_NOATCODES))
-				errormsg(WHERE,"showing", "mail message", msg.hdr.number, smb.last_error);
+					? 0:P_NOATCODES);
 			download_msg_attachments(&smb, &msg, which == MAIL_YOUR);
 			if(which==MAIL_YOUR && !(msg.hdr.attr&MSG_READ)) {
 				mail[smb.curmsg].attr|=MSG_READ;
@@ -469,14 +468,6 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				break;
 			case 'L':     /* List mail */
 				domsg=0;
-				if(cfg.listmsgs_mod[0]) {
-					char cmdline[256];
-
-					safe_snprintf(cmdline, sizeof(cmdline), "%s %s %d %u %lu", cfg.listmsgs_mod, "mail", which, usernumber, lm_mode);
-					exec_bin(cmdline, &main_csi);
-					break;
-				}
-
 				bprintf(text[StartWithN],(long)smb.curmsg+1);
 				if((i=getnum(smb.msgs))>0)
 					i--;
