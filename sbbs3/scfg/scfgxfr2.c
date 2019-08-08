@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.62 2019/08/12 06:21:28 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.61 2019/08/06 03:29:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -327,7 +327,7 @@ void xfer_cfg()
 								sprintf(tmp, "%sdirs/", cfg.data_dir);
 							else
 								strcpy(tmp, cfg.dir[j]->data_dir);
-							delfiles(tmp, str, /* keep: */0);
+							delfiles(tmp, str);
 						}
 					}
 				}
@@ -1105,7 +1105,7 @@ void dir_cfg(uint libnum)
 					if (j == -1)
 						continue;
 					if (j == 0)
-						delfiles(data_dir, str, /* keep: */0);
+						delfiles(data_dir, str);
 				}
 			}
 			if(msk == MSK_CUT)
