@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.99 2019/07/10 06:51:09 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.109 2019/08/05 10:25:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -61,6 +61,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	zero_padded=false;
 	bool	truncated = true;
 	bool	doubled = false;
+	long	pmode = 0;
 	const char *cp;
 
 	SAFECOPY(str,instr);
@@ -83,11 +84,11 @@ int sbbs_t::show_atcode(const char *instr)
 		padded_right=true;
 	else if((p=strstr(sp,"-C"))!=NULL)
 		centered=true;
-	else if((p=strstr(sp,"-D"))!=NULL)
+	else if((p=strstr(sp,"-W"))!=NULL)	/* wide */
 		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
-	else if((p=strstr(sp,"-W"))!=NULL)	/* wrap */
+	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
 		truncated = false;
 	if(p!=NULL) {
 		char* lp = p + 2;
@@ -96,7 +97,7 @@ int sbbs_t::show_atcode(const char *instr)
 		*p=0;
 	}
 
-	cp=atcode(sp,str2,sizeof(str2));
+	cp = atcode(sp, str2, sizeof(str2), &pmode);
 	if(cp==NULL)
 		return(0);
 
@@ -111,32 +112,38 @@ int sbbs_t::show_atcode(const char *instr)
 				disp_len = (cols - 1) - column;
 		}
 	}
+	if(pmode & P_UTF8) {
+		if(term_supports(UTF8))
+			disp_len += strlen(cp) - utf8_str_total_width(cp);
+		else
+			disp_len += strlen(cp) - utf8_str_count_width(cp, /* min: */1, /* max: */2);
+	}
 	if(padded_left)
-		bprintf("%-*.*s",disp_len,disp_len,cp);
+		bprintf(pmode, "%-*.*s",disp_len,disp_len,cp);
 	else if(padded_right)
-		bprintf("%*.*s",disp_len,disp_len,cp);
+		bprintf(pmode, "%*.*s",disp_len,disp_len,cp);
 	else if(centered) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len) {
 			int left = (disp_len - vlen) / 2;
-			bprintf("%*s%-*s", left, "", disp_len - left, cp);
+			bprintf(pmode, "%*s%-*s", left, "", disp_len - left, cp);
 		} else
-			bprintf("%.*s", disp_len, cp);
+			bprintf(pmode, "%.*s", disp_len, cp);
 	} else if(doubled) {
 		wide(cp);
 	} else if(zero_padded) {
 		int vlen = strlen(cp);
 		if(vlen < disp_len)
-			bprintf("%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
+			bprintf(pmode, "%-.*s%s", (int)(disp_len - strlen(cp)), "0000000000", cp);
 		else
-			bprintf("%.*s", disp_len, cp);
+			bprintf(pmode, "%.*s", disp_len, cp);
 	} else
-		bprintf("%.*s", disp_len, cp);
+		bprintf(pmode, "%.*s", disp_len, cp);
 
 	return(len);
 }
 
-const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
+const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 {
 	char*	tp = NULL;
 	uint	i;
@@ -151,11 +158,13 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(strncmp(sp, "U+", 2) == 0) {	// UNICODE
 		enum unicode_codepoint codepoint = (enum unicode_codepoint)strtoul(sp + 2, &tp, 16);
-		if(tp == NULL || *tp ==0)
+		if(tp == NULL || *tp == 0)
 			outchar(codepoint, unicode_to_cp437(codepoint));
+		else if(*tp == ':')
+			outchar(codepoint, tp + 1);
 		else {
 			char fallback = (char)strtoul(tp + 1, NULL, 16);
-			if(*tp == '/')
+			if(*tp == ',')
 				outchar(codepoint, fallback);
 			else if(*tp == '!') {
 				char ch = unicode_to_cp437(codepoint);
@@ -170,6 +179,35 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	if(strcmp(sp, "CHECKMARK") == 0) {
 		outchar(UNICODE_CHECK_MARK, CP437_CHECK_MARK);
+		return nulstr;
+	}
+
+	if(strcmp(sp, "ELLIPSIS") == 0) {
+		outchar(UNICODE_HORIZONTAL_ELLIPSIS, "...");
+		return nulstr;
+	}
+	if(strcmp(sp, "COPY") == 0) {
+		outchar(UNICODE_COPYRIGHT_SIGN, "(C)");
+		return nulstr;
+	}
+	if(strcmp(sp, "SOUNDCOPY") == 0) {
+		outchar(UNICODE_SOUND_RECORDING_COPYRIGHT, "(P)");
+		return nulstr;
+	}
+	if(strcmp(sp, "REGISTERED") == 0) {
+		outchar(UNICODE_REGISTERED_SIGN, "(R)");
+		return nulstr;
+	}
+	if(strcmp(sp, "TRADEMARK") == 0) {
+		outchar(UNICODE_TRADE_MARK_SIGN, "(TM)");
+		return nulstr;
+	}
+	if(strcmp(sp, "DEGREE_C") == 0) {
+		outchar(UNICODE_DEGREE_CELSIUS, "\xF8""C");
+		return nulstr;
+	}
+	if(strcmp(sp, "DEGREE_F") == 0) {
+		outchar(UNICODE_DEGREE_FAHRENHEIT, "\xF8""F");
 		return nulstr;
 	}
 
@@ -256,7 +294,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(cfg.sys_name);
 
 	if(!strcmp(sp,"BAUD") || !strcmp(sp,"BPS")) {
-		safe_snprintf(str,maxlen,"%lu",cur_rate);
+		safe_snprintf(str,maxlen,"%lu",cur_output_rate ? cur_output_rate : cur_rate);
 		return(str);
 	}
 
@@ -268,8 +306,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		safe_snprintf(str,maxlen,"%lu",rows);
 		return(str);
 	}
-	if(!strcmp(sp,"TERM"))
-		return(terminal);
+	if(strcmp(sp,"TERM") == 0)
+		return term_type();
+
+	if(strcmp(sp,"CHARSET") == 0)
+		return term_charset();
 
 	if(!strcmp(sp,"CONN"))
 		return(connection);
@@ -436,6 +477,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(strcmp(sp, "QUITCHAR") == 0) {
 		safe_snprintf(str, maxlen, "%c", text[YNQP][2]);
 		return str;
+	}
+
+	if(strncmp(sp, "BPS:", 4) == 0) {
+		set_output_rate((enum output_rate)atoi(sp + 4));
+		return nulstr;
 	}
 
 	/* NOSTOP */
@@ -1021,17 +1067,17 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 		return(str);
 	}
 
-	if(!strncmp(sp,"MAILW:",6)) {
+	if(!strncmp(sp,"MAILW:",6) || !strncmp(sp,"MAILW#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */0));
 		return(str);
 	}
 
-	if(!strncmp(sp,"MAILP:",6)) {
+	if(!strncmp(sp,"MAILP:",6) || !strncmp(sp,"MAILP#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */TRUE, /* attr: */0));
 		return(str);
 	}
 
-	if(!strncmp(sp,"SPAMW:",6)) {
+	if(!strncmp(sp,"SPAMW:",6) || !strncmp(sp,"SPAMW#",6)) {
 		safe_snprintf(str,maxlen,"%u",getmail(&cfg,atoi(sp+6), /* Sent: */FALSE, /* attr: */MSG_SPAM));
 		return(str);
 	}
@@ -1078,6 +1124,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 
 	/* Message header codes */
 	if(!strcmp(sp,"MSG_TO") && current_msg!=NULL && current_msg_to!=NULL) {
+		if(pmode != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		if(current_msg->to_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg_to,current_msg->to_ext);
 		else if(current_msg->to_net.addr != NULL) {
@@ -1088,8 +1136,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return(current_msg_to);
 		return(str);
 	}
-	if(!strcmp(sp,"MSG_TO_NAME") && current_msg_to!=NULL)
+	if(!strcmp(sp,"MSG_TO_NAME") && current_msg_to!=NULL) {
+		if(pmode != NULL && current_msg != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		return(current_msg_to);
+	}
 	if(!strcmp(sp,"MSG_TO_EXT") && current_msg!=NULL) {
 		if(current_msg->to_ext==NULL)
 			return(nulstr);
@@ -1110,6 +1161,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_FROM") && current_msg != NULL && current_msg_from != NULL) {
 		if(current_msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 			return(text[Anonymous]);
+		if(pmode != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		if(current_msg->from_ext!=NULL)
 			safe_snprintf(str,maxlen,"%s #%s",current_msg_from,current_msg->from_ext);
 		else if(current_msg->from_net.addr != NULL) {
@@ -1123,6 +1176,8 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 	if(!strcmp(sp,"MSG_FROM_NAME") && current_msg_from!=NULL) {
 		if(current_msg->hdr.attr&MSG_ANONYMOUS && !SYSOP)
 			return(text[Anonymous]);
+		if(pmode != NULL && current_msg != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		return(current_msg_from);
 	}
 	if(!strcmp(sp,"MSG_FROM_EXT") && current_msg!=NULL) {
@@ -1142,8 +1197,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen)
 			return nulstr;
 		return(smb_nettype((enum smb_net_type)current_msg->from_net.type));
 	}
-	if(!strcmp(sp,"MSG_SUBJECT") && current_msg_subj != NULL)
+	if(!strcmp(sp,"MSG_SUBJECT") && current_msg_subj != NULL) {
+		if(pmode != NULL && current_msg != NULL)
+			*pmode |= (current_msg->hdr.auxattr & MSG_HFIELDS_UTF8);
 		return(current_msg_subj);
+	}
 	if(!strcmp(sp,"MSG_SUMMARY") && current_msg!=NULL)
 		return(current_msg->summary==NULL ? nulstr : current_msg->summary);
 	if(!strcmp(sp,"MSG_TAGS") && current_msg!=NULL)
