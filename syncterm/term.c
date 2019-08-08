@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.344 2019/08/21 15:13:24 rswindell Exp $ */
+/* $Id: term.c,v 1.343 2019/07/10 22:28:52 deuce Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1295,7 +1295,7 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 {
 	BOOL		success;
 	xmodem_t	xm;
-	int64_t		fsize;
+	ulong		fsize;
 
 	conn_binary_mode_on();
 
