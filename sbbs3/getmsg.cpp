@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.97 2019/08/08 00:21:15 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.98 2019/08/08 23:59:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -384,10 +384,11 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 	}
 
 	if(msg->hdr.auxattr&MSG_FILEATTACH) {  /* Attached file */
+		char subj[FIDO_SUBJ_LEN];
 		smb_getmsgidx(smb, msg);
-		SAFECOPY(str, msg->subj);					/* filenames (multiple?) in title */
+		SAFECOPY(subj, msg->subj);					/* filenames (multiple?) in title */
 		char *p,*tp,ch;
-		tp=str;
+		tp=subj;
 		while(online) {
 			p=strchr(tp,' ');
 			if(p) *p=0;
