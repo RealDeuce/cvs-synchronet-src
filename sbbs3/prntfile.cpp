@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.36 2019/08/08 22:20:56 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.37 2019/08/09 03:39:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,9 +128,8 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 			return false; 
 		}
 		while(!feof(stream) && !msgabort()) {
-			if(fgets(buf, length-1, stream) == NULL)
+			if(fgets(buf, length + 1, stream) == NULL)
 				break;
-			buf[length] = 0;
 			if((mode&P_UTF8) && !term_supports(UTF8))
 				utf8_normalize_str(buf);
 			putmsg(buf, mode, org_cols);
