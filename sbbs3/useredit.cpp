@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.65 2019/07/26 19:55:46 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.66 2019/08/09 09:16:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -451,6 +451,7 @@ void sbbs_t::useredit(int usernumber)
 				putuserrec(&cfg,user.number,U_PHONE,LEN_PHONE,user.phone);
 				break;
 			case 'Q':
+				lncntr = 0;
 				CLS;
 				sys_status&=~SS_INUEDIT;
 				FREE_AR(ar);	/* assertion here */
