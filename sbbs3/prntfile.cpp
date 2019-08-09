@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.40 2019/09/20 08:36:48 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.36 2019/08/08 22:20:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,13 +96,10 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 	}
 
 	length=(long)filelength(file);
-	if(length < 1) {
+	if(length<0) {
 		fclose(stream);
-		if(length < 0) {
-			errormsg(WHERE,ERR_CHK,fpath,length);
-			return false;
-		}
-		return true;
+		errormsg(WHERE,ERR_CHK,fpath,length);
+		return false;
 	}
 
 	if(mode&P_OPENCLOSE) {
@@ -123,9 +120,6 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 		}
 		free(buf);
 	} else {	// Line-at-a-time mode
-		uint tmpatr = curatr;
-		if(!(mode&P_SAVEATR))
-			attr(LIGHTGRAY);
 		if(length > PRINTFILE_MAX_LINE_LEN)
 			length = PRINTFILE_MAX_LINE_LEN;
 		if((buf=(char*)malloc(length+1L))==NULL) {
@@ -134,16 +128,15 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 			return false; 
 		}
 		while(!feof(stream) && !msgabort()) {
-			if(fgets(buf, length + 1, stream) == NULL)
+			if(fgets(buf, length-1, stream) == NULL)
 				break;
+			buf[length] = 0;
 			if((mode&P_UTF8) && !term_supports(UTF8))
 				utf8_normalize_str(buf);
-			putmsg(buf, mode|P_SAVEATR, org_cols);
+			putmsg(buf, mode, org_cols);
 		}
 		free(buf);
 		fclose(stream);
-		if(!(mode&P_SAVEATR))
-			attr(tmpatr);
 	}
 
 	if((mode&P_NOABORT || rip) && online==ON_REMOTE) {

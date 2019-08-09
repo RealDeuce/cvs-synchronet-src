@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.36 2019/09/17 10:29:35 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.34 2019/07/25 10:54:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,7 @@
 #include "fidodefs.h"
 
 #define SBBSECHO_VERSION_MAJOR		3
-#define SBBSECHO_VERSION_MINOR		10
+#define SBBSECHO_VERSION_MINOR		8
 
 #define SBBSECHO_PRODUCT_CODE		0x12FF	/* from http://ftsc.org/docs/ftscprod.013 */
 
@@ -212,8 +212,6 @@ typedef struct {
 	bool		ignore_netmail_local_attr;
 	bool		relay_filtered_msgs;
 	bool		auto_add_subs;
-	bool		auto_add_to_areafile;
-	bool		auto_utf8;
 	bool		use_outboxes;
 	ulong		bsy_timeout;
 	ulong		bso_lock_attempts;
