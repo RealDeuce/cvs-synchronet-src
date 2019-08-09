@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.53 2019/08/15 05:36:40 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.52 2018/10/09 08:33:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -660,21 +660,4 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 	}
 	attr(LIGHTGRAY);
 	CRLF;
-}
-
-uint sbbs_t::count_nodes(bool self)
-{
-	uint count = 0;
-
-	for(int i=1; i<=cfg.sys_nodes && i<=cfg.sys_lastnode; i++) {
-	    node_t	node;
-		if(getnodedat(i, &node, false) != 0)
-			continue;
-		if(!self && i==cfg.node_num)
-			continue;
-		if(node.status != NODE_INUSE)
-			continue;
-		count++;
-	}
-	return count;
 }
