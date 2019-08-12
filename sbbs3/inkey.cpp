@@ -1,6 +1,6 @@
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.61 2019/07/09 05:38:46 rswindell Exp $ */
+/* $Id: inkey.cpp,v 1.62 2019/07/24 04:44:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -67,7 +67,7 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 	}
 
 	if(cfg.node_misc&NM_7BITONLY
-		&& (!(sys_status&SS_USERON) || useron.misc&NO_EXASCII))
+		&& (!(sys_status&SS_USERON) || term_supports(NO_EXASCII)))
 		ch&=0x7f; 
 
 	this->timeout=time(NULL);
