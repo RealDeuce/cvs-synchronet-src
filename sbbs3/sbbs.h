@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.546 2019/08/21 09:42:35 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.543 2019/08/12 06:24:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -327,12 +327,14 @@ public:
 	char	client_ident[128];
 	char	client_ipaddr[INET6_ADDRSTRLEN];
 	char	local_addr[INET6_ADDRSTRLEN];
+#ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
 	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
-	bool	passthru_socket_active;
-    bool	passthru_thread_running;
+    bool	passthru_output_thread_running;
+    bool	passthru_input_thread_running;
+#endif
 
 	scfg_t	cfg;
 
@@ -345,6 +347,7 @@ public:
     RingBuf	outbuf;
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
+	bool	input_thread_mutex_locked;	// by someone other than the input_thread
 	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
@@ -722,11 +725,6 @@ public:
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
 #endif
 	;
-	int		comprintf(const char *fmt, ...)			/* BBS direct-comm printf function */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
 	void	backspace(int count=1);			/* Output destructive backspace(s) via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
@@ -821,7 +819,6 @@ public:
 	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
-	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);

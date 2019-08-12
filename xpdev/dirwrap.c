@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.108 2019/08/12 06:32:28 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.107 2019/08/12 06:20:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -741,7 +741,7 @@ int removecase(const char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname,0) >=1 ? 0 : -1);
+	return(delfiles(inpath,fname) >=1 ? 0 : -1);
 }
 #endif
 
