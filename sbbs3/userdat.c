@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.217 2019/08/20 07:56:34 rswindell Exp $ */
+/* $Id: userdat.c,v 1.215 2019/08/12 06:22:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -321,12 +321,12 @@ int DLLCALL parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 	getrec(userdat,U_FBACKS,5,str); user->fbacks=atoi(str);
 	getrec(userdat,U_ETODAY,5,str); user->etoday=atoi(str);
 	getrec(userdat,U_PTODAY,5,str); user->ptoday=atoi(str);
-	getrec(userdat,U_ULB,10,str); user->ulb=strtoul(str, NULL, 10);
+	getrec(userdat,U_ULB,10,str); user->ulb=atol(str);
 	getrec(userdat,U_ULS,5,str); user->uls=atoi(str);
-	getrec(userdat,U_DLB,10,str); user->dlb=strtoul(str, NULL, 10);
+	getrec(userdat,U_DLB,10,str); user->dlb=atol(str);
 	getrec(userdat,U_DLS,5,str); user->dls=atoi(str);
-	getrec(userdat,U_CDT,10,str); user->cdt=strtoul(str, NULL, 10);
-	getrec(userdat,U_MIN,10,str); user->min=strtoul(str, NULL, 10);
+	getrec(userdat,U_CDT,10,str); user->cdt=atol(str);
+	getrec(userdat,U_MIN,10,str); user->min=atol(str);
 	getrec(userdat,U_LEVEL,2,str); user->level=atoi(str);
 	getrec(userdat,U_FLAGS1,8,str); user->flags1=ahtoul(str);
 	getrec(userdat,U_FLAGS2,8,str); user->flags2=ahtoul(str);
@@ -354,7 +354,7 @@ int DLLCALL parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 	getrec(userdat,U_CURXTRN,8,user->curxtrn);
 
 	getrec(userdat,U_FREECDT,10,str);
-	user->freecdt=strtoul(str, NULL, 10);
+	user->freecdt=atol(str);
 
 	getrec(userdat,U_XEDIT,8,str);
 	for(i=0;i<cfg->total_xedits;i++)
@@ -2105,7 +2105,7 @@ ulong DLLCALL adjustuserrec(scfg_t* cfg, int usernumber, int start, int length, 
 	char str[256],path[256];
 	char tmp[32];
 	int i,c,file;
-	ulong val;
+	long val;
 
 	if(!VALID_CFG(cfg) || usernumber<1)
 		return(0);
@@ -2145,13 +2145,10 @@ ulong DLLCALL adjustuserrec(scfg_t* cfg, int usernumber, int start, int length, 
 	for(c=0;c<length;c++)
 		if(str[c]==ETX || str[c]==CR) break;
 	str[c]=0;
-	val = strtoul(str, NULL, 10);
-	if(adj<0L && val<(ulong)-adj)		/* don't go negative */
+	val=atol(str);
+	if(adj<0L && val<-adj)		/* don't go negative */
 		val=0;
-	else if(adj > 0 && val + adj < val)
-		val = ULONG_MAX;
-	else
-		val += (ulong)adj;
+	else val+=adj;
 	lseek(file,(long)((long)(usernumber-1)*U_LEN)+start,SEEK_SET);
 	putrec(str,0,length,ultoa(val,tmp,10));
 	if(write(file,str,length)!=length) {
@@ -3355,37 +3352,3 @@ BOOL DLLCALL user_set_time_property(scfg_t* scfg, unsigned user_number, const ch
 }
 
 #endif /* !NO_SOCKET_SUPPORT */
-
-/****************************************************************************/
-/* Returns user number or 0 on failure or "user not found".					*/
-/****************************************************************************/
-int lookup_user(scfg_t* cfg, link_list_t* list, const char *inname)
-{
-	if(inname == NULL || *inname == 0)
-		return 0;
-
-	if(list->first == NULL) {
-		user_t user;
-		int userdat = openuserdat(cfg, /* modify */FALSE);
-		if(userdat < 0)
-			return 0;
-
-		for(user.number = 1; ;user.number++) {
-			if(fgetuserdat(cfg, &user, userdat) != 0)
-				break;
-			if(user.misc&DELETED)
-				continue;
-			listPushNodeData(list, &user, sizeof(user));
-		}
-		close(userdat);
-	}
-	for(list_node_t* node = listFirstNode(list); node != NULL; node = node->next) {
-		if(stricmp(((user_t*)node->data)->alias, inname) == 0)
-			return ((user_t*)node->data)->number;
-	}
-	for(list_node_t* node = listFirstNode(list); node != NULL; node = node->next) {
-		if(stricmp(((user_t*)node->data)->name, inname) == 0)
-			return ((user_t*)node->data)->number;
-	}
-	return 0;
-}
