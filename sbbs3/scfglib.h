@@ -1,6 +1,6 @@
 /* Synchronet configuration library routine prototypes */
 
-/* $Id: scfglib.h,v 1.23 2018/03/17 02:23:33 rswindell Exp $ */
+/* $Id: scfglib.h,v 1.24 2019/05/09 21:14:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -85,7 +85,7 @@ void	free_chat_cfg(scfg_t* cfg);
 
 long	aftol(char *str);              /* Converts flag string to long */
 char*	ltoaf(long l, char *str);     /* Converts long to flag string */
-uchar	attrstr(char *str);		/* Convert ATTR string into attribute int */
+uint	attrstr(char *str);		/* Convert ATTR string into attribute int */
 
 #ifdef __cplusplus
 }
