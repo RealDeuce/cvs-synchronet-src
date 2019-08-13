@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.753 2019/07/09 05:38:46 rswindell Exp $ */
+/* $Id: main.cpp,v 1.758 2019/08/12 19:03:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -346,12 +346,12 @@ void call_socket_open_callback(BOOL open)
 		startup->socket_open(startup->cbdata, open);
 }
 
-SOCKET open_socket(int type, const char* protocol)
+SOCKET open_socket(int domain, int type, const char* protocol)
 {
 	SOCKET	sock;
 	char	error[256];
 
-	sock=socket(AF_INET, type, IPPROTO_IP);
+	sock=socket(domain, type, IPPROTO_IP);
 	if(sock!=INVALID_SOCKET)
 		call_socket_open_callback(TRUE);
 	if(sock!=INVALID_SOCKET && set_socket_options(&scfg, sock, protocol, error, sizeof(error)))
@@ -1615,7 +1615,14 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
-
+					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
+						inet_ntop(AF_INET, sbbs->telnet_cmd + 4
+							,sbbs->telnet_location
+							,sizeof(sbbs->telnet_location));
+						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
+	                		,sbbs->cfg.node_num
+							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
+							,sbbs->telnet_location);
 					} else if(option==TELNET_NEGOTIATE_WINDOW_SIZE) {
 						long cols = (sbbs->telnet_cmd[3]<<8) | sbbs->telnet_cmd[4];
 						long rows = (sbbs->telnet_cmd[5]<<8) | sbbs->telnet_cmd[6];
@@ -1672,6 +1679,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 								case TELNET_SUP_GA:
 								case TELNET_NEGOTIATE_WINDOW_SIZE:
 								case TELNET_SEND_LOCATION:
+								case TELNET_TERM_LOCATION_NUMBER:
 #ifdef SBBS_TELNET_ENVIRON_SUPPORT
 								case TELNET_NEW_ENVIRON:
 #endif
@@ -2689,7 +2697,7 @@ void event_thread(void* arg)
 					sbbs->console|=CON_L_ECHO;
 					sbbs->getusrsubs();
 					bool success = sbbs->unpack_rep(g.gl_pathv[i]);
-					delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
+					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);		/* clean-up temp_dir after unpacking */
 					sbbs->batch_create_list();	/* FREQs? */
 					sbbs->batdn_total=0;
 					sbbs->online=FALSE;
@@ -2701,7 +2709,6 @@ void event_thread(void* arg)
 							sbbs->errormsg(WHERE, ERR_REMOVE, g.gl_pathv[i], 0);
 					} else {
 						char badpkt[MAX_PATH+1];
-						SAFECOPY(badpkt, g.gl_pathv[i]);
 						SAFEPRINTF2(badpkt, "%s.%lx.bad", g.gl_pathv[i], time(NULL));
 						remove(badpkt);
 						if(rename(g.gl_pathv[i], badpkt) == 0)
@@ -2758,7 +2765,7 @@ void event_thread(void* arg)
 						remove(bat_list);
 					} else
 						sbbs->lputs(LOG_INFO, "No packet created (no new messages)");
-					delfiles(sbbs->cfg.temp_dir,ALLFILES);
+					sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
@@ -2809,7 +2816,7 @@ void event_thread(void* arg)
 							sbbs->qwk_success(l,0,1);
 							sbbs->putmsgptrs();
 						}
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					}
@@ -2935,7 +2942,7 @@ void event_thread(void* arg)
 								sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 									,errno, strerror(errno), str, newname);
 						}
-						delfiles(sbbs->cfg.temp_dir,ALLFILES);
+						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 						if(remove(str))
@@ -2994,7 +3001,7 @@ void event_thread(void* arg)
 						close(file);
 					}
 				}
-				delfiles(sbbs->cfg.temp_dir,ALLFILES);
+				sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 
 				sbbs->cfg.qhub[i]->last=time32(NULL);
 				SAFEPRINTF(str,"%sqnet.dab",sbbs->cfg.ctrl_dir);
@@ -4311,11 +4318,8 @@ void sbbs_t::reset_logon_vars(void)
 {
 	int i;
 
-    /* bools */
-    qwklogon=false;
-
     sys_status&=~(SS_USERON|SS_TMPSYSOP|SS_LCHAT|SS_ABORT
-        |SS_PAUSEON|SS_PAUSEOFF|SS_EVENT|SS_NEWUSER|SS_NEWDAY);
+        |SS_PAUSEON|SS_PAUSEOFF|SS_EVENT|SS_NEWUSER|SS_NEWDAY|SS_QWKLOGON|SS_FASTLOGON);
     cid[0]=0;
     wordwrap[0]=0;
     question[0]=0;
@@ -4342,6 +4346,7 @@ void sbbs_t::reset_logon_vars(void)
 	cur_cps=3000;
     cur_rate=30000;
     dte_rate=38400;
+	cur_output_rate = output_rate_unlimited;
 	main_cmds=xfer_cmds=posts_read=0;
 	lastnodemsg=0;
 	lastnodemsguser[0]=0;
@@ -4502,7 +4507,7 @@ void node_thread(void* arg)
 
 		login_success = true;
 		listAddNodeData(&current_logins, sbbs->client.addr, strlen(sbbs->client.addr)+1, sbbs->cfg.node_num, LAST_NODE);
-		if(sbbs->qwklogon) {
+		if(sbbs->sys_status&SS_QWKLOGON) {
 			sbbs->getsmsg(sbbs->useron.number);
 			sbbs->qwk_sec();
 		} else while(sbbs->useron.number
@@ -4663,6 +4668,16 @@ void node_thread(void* arg)
  	[External Code]
 
 	node_threads_running	{value=0 mutex={DebugInfo=0x00000000 <NULL> LockCount=-6 RecursionCount=0 ...} }	protected_uint32_t
+
+	and again on July-10-2019:
+
+	ntdll.dll!RtlpWaitOnCriticalSection()	Unknown
+ 	ntdll.dll!RtlpEnterCriticalSectionContended()	Unknown
+ 	ntdll.dll!_RtlEnterCriticalSection@4()	Unknown
+ 	sbbs.dll!pthread_mutex_lock(_RTL_CRITICAL_SECTION * mutex) Line 171	C
+ 	sbbs.dll!protected_uint32_adjust(protected_uint32_t * i, int adjustment) Line 244	C
+ 	sbbs.dll!update_clients() Line 187	C++
+>	sbbs.dll!node_thread(void * arg) Line 4668	C++
 	*/
 	update_clients();
 	thread_down();
@@ -5828,7 +5843,7 @@ NO_SSH:
 
     		/* open a socket and connect to yourself */
 
-    		tmp_sock = open_socket(SOCK_STREAM, "passthru");
+    		tmp_sock = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(tmp_sock == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru listen socket"
@@ -5866,7 +5881,7 @@ NO_SSH:
 			lprintf(LOG_INFO,"Node %d SSH passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
-    		new_node->passthru_socket = open_socket(SOCK_STREAM, "passthru");
+    		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(new_node->passthru_socket == INVALID_SOCKET) {
 				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru connecting socket"
