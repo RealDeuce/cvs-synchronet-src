@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.173 2019/08/20 23:14:30 deuce Exp $ */
+/* $Id: js_system.c,v 1.172 2019/05/04 03:09:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -552,8 +552,6 @@ enum {
 	,SYSSTAT_PROP_FEEDBACK
 };
 
-extern JSClass js_system_class;
-
 #ifndef JSDOOR
 static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
@@ -738,6 +736,8 @@ static JSClass js_sysstats_class = {
 	,JS_ConvertStub			/* convert		*/
 	,JS_FinalizeStub		/* finalize		*/
 };
+
+extern JSClass js_system_class;
 
 static JSBool
 js_alias(JSContext *cx, uintN argc, jsval *arglist)
