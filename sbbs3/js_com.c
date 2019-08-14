@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "COM" Object */
 
-/* $Id: js_com.c,v 1.31 2019/05/04 01:04:21 rswindell Exp $ */
+/* $Id: js_com.c,v 1.32 2019/05/04 03:09:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -773,7 +773,7 @@ static JSBool js_com_enumerate(JSContext *cx, JSObject *obj)
 	return(js_com_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_com_class = {
+JSClass js_com_class = {
      "COM"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
