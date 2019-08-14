@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.689 2019/07/04 01:57:42 deuce Exp $ */
+/* $Id: websrvr.c,v 1.697 2019/08/02 22:20:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -120,7 +120,6 @@ static struct xpms_set	*ws_set=NULL;
 static char		revision[16];
 static char		root_dir[MAX_PATH+1];
 static char		error_dir[MAX_PATH+1];
-static char		temp_dir[MAX_PATH+1];
 static char		cgi_dir[MAX_PATH+1];
 static char		cgi_env_ini[MAX_PATH+1];
 static char		default_auth_list[MAX_PATH+1];
@@ -603,9 +602,9 @@ static BOOL session_check(http_session_t *session, BOOL *rd, BOOL *wr, unsigned 
 	if (session->is_tls) {
 		if(wr)
 			*wr=1;
-		if(rd) {
+		if(rd || wr == NULL) {
 			if(session->tls_pending) {
-				*rd = TRUE;
+				*rd_ptr = TRUE;
 				return TRUE;
 			}
 		}
@@ -2213,8 +2212,9 @@ static int recvbufsocket(http_session_t *session, char *buf, long count)
 		i=sess_recv(session,buf+rd,count-rd,0);
 		switch(i) {
 			case -1:
-				if(session->is_tls || ERROR_VALUE!=EAGAIN)
-					close_session_socket(session);
+				if (ERROR_VALUE == EAGAIN && !session->is_tls)
+					break;
+				// Fall-through...
 			case 0:
 				close_session_socket(session);
 				*buf=0;
@@ -3853,7 +3853,7 @@ static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t 
 		*end += 4;
 	}
 	else {
-		(*msg)->body[(*end)++] = namelen;
+		(*msg)->body[(*end)++] = (char)namelen;
 	}
 	if (vallen > 127) {
 		l = htonl(vallen | 0x80000000);
@@ -3861,7 +3861,7 @@ static BOOL fastcgi_add_param(struct fastcgi_message **msg, size_t *end, size_t 
 		*end += 4;
 	}
 	else {
-		(*msg)->body[(*end)++] = vallen;
+		(*msg)->body[(*end)++] = (char)vallen;
 	}
 	memcpy((*msg)->body + *end, env, namelen);
 	*end += namelen;
@@ -3889,7 +3889,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 			return FALSE;
 		}
 		if (end > 32000) {
-			msg->head.len = htons(end);
+			msg->head.len = htons((uint16_t)end);
 			if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 				lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 				free(msg);
@@ -3901,7 +3901,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 	}
 	strListFree(&env);
 	if (end) {
-		msg->head.len = htons(end);
+		msg->head.len = htons((uint16_t)end);
 		if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 			lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 			free(msg);
@@ -3909,7 +3909,7 @@ static BOOL fastcgi_send_params(SOCKET sock, http_session_t *session)
 		}
 		end = 0;
 	}
-	msg->head.len = htons(end);
+	msg->head.len = htons((uint16_t)end);
 	if (sendsocket(sock, (void *)msg, sizeof(struct fastcgi_header) + end) != (sizeof(struct fastcgi_header) + end)) {
 		lprintf(LOG_ERR, "%04d ERROR sending FastCGI params", session->socket);
 		free(msg);
@@ -4111,7 +4111,7 @@ static int fastcgi_write_in(void *arg, char *buf, size_t bufsz)
 		chunk_size = bufsz - pos;
 		if (chunk_size > UINT16_MAX)
 			chunk_size = UINT16_MAX;
-		head.len = htons(chunk_size);
+		head.len = htons((uint16_t)chunk_size);
 		if (sendsocket(cd->sock, (void *)&head, sizeof(head)) != sizeof(head))
 			return -1;
 		if (sendsocket(cd->sock, buf+pos, chunk_size) != chunk_size)
@@ -5782,7 +5782,7 @@ static BOOL exec_ssjs(http_session_t* session, char* script)  {
 	if(script == session->req.physical_path && session->req.xjs_handler[0])
 		script = session->req.xjs_handler;
 
-	sprintf(path,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
+	sprintf(path,"%sSBBS_SSJS.%u.%u.html",scfg.temp_dir,getpid(),session->socket);
 	if((session->req.fp=fopen(path,"wb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 		return(FALSE);
@@ -5891,7 +5891,7 @@ static void respond(http_session_t * session)
 				return;
 			}
 			sprintf(session->req.physical_path
-				,"%sSBBS_SSJS.%u.%u.html",temp_dir,getpid(),session->socket);
+				,"%sSBBS_SSJS.%u.%u.html",scfg.temp_dir,getpid(),session->socket);
 		}
 		else {
 			session->req.mime_type=get_mime_type(strrchr(session->req.physical_path,'.'));
@@ -5945,7 +5945,7 @@ FILE *open_post_file(http_session_t *session)
 	FILE	*fp;
 
 	// Create temporary file for post data.
-	SAFEPRINTF3(path,"%sSBBS_POST.%u.%u.data",temp_dir,getpid(),session->socket);
+	SAFEPRINTF3(path,"%sSBBS_POST.%u.%u.data",scfg.temp_dir,getpid(),session->socket);
 	if((fp=fopen(path,"wb"))==NULL) {
 		lprintf(LOG_ERR,"%04d !ERROR %d opening/creating %s", session->socket, errno, path);
 		return fp;
@@ -6581,7 +6581,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.689 $", "%*s %s", revision);
+	sscanf("$Revision: 1.697 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6786,14 +6786,9 @@ void DLLCALL web_server(void* arg)
 		SAFECOPY(error_dir,startup->error_dir);
 		SAFECOPY(default_auth_list,startup->default_auth_list);
 		SAFECOPY(cgi_dir,startup->cgi_dir);
-		if(startup->temp_dir[0])
-			SAFECOPY(temp_dir,startup->temp_dir);
-		else
-			SAFECOPY(temp_dir,"../temp");
 
 		/* Change to absolute path */
 		prep_dir(startup->ctrl_dir, root_dir, sizeof(root_dir));
-		prep_dir(startup->ctrl_dir, temp_dir, sizeof(temp_dir));
 		prep_dir(root_dir, error_dir, sizeof(error_dir));
 		prep_dir(root_dir, cgi_dir, sizeof(cgi_dir));
 
@@ -6840,10 +6835,15 @@ void DLLCALL web_server(void* arg)
 			return;
 		}
 
-		lprintf(LOG_DEBUG,"Temporary file directory: %s", temp_dir);
-		MKDIR(temp_dir);
-		if(!isdir(temp_dir)) {
-			lprintf(LOG_CRIT,"!Invalid temp directory: %s", temp_dir);
+		if(startup->temp_dir[0])
+			SAFECOPY(scfg.temp_dir,startup->temp_dir);
+		else
+			SAFECOPY(scfg.temp_dir,"../temp");
+		prep_dir(startup->ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
+		lprintf(LOG_DEBUG,"Temporary file directory: %s", scfg.temp_dir);
+		MKDIR(scfg.temp_dir);
+		if(!isdir(scfg.temp_dir)) {
+			lprintf(LOG_CRIT,"!Invalid temp directory: %s", scfg.temp_dir);
 			cleanup(1);
 			return;
 		}
