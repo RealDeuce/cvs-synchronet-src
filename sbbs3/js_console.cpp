@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.138 2019/08/21 09:42:35 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.137 2019/08/05 10:21:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1113,7 +1113,6 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	}
     else for (i=0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
-
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1858,8 +1857,10 @@ js_lock_input(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-	} else {
+		sbbs->input_thread_mutex_locked=true;
+	} else if(sbbs->input_thread_mutex_locked) {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
+		sbbs->input_thread_mutex_locked=false;
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
