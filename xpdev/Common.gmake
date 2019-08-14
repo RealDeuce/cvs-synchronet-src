@@ -29,34 +29,32 @@ ifeq ($(os),linux)	# Linux
  XPDEV-MT_LIBS	+=	-lpthread
 endif
 ifeq ($(os),win32)	# MinGW32
- XPDEV_LIBS	+=	-lws2_32 -lwinmm -lnetapi32 -liphlpapi
- XPDEV-MT_LIBS	+=	-lws2_32 -lwinmm -lnetapi32 -liphlpapi
+ XPDEV_LIBS	+=	-lws2_32 -lwinmm -lnetapi32
+ XPDEV-MT_LIBS	+=	-lws2_32 -lwinmm -lnetapi32
 endif
-ifneq ($(os),win32)
- ifeq ($(shell if [ -c /dev/urandom ] ; then echo YES ; fi),YES)
-  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
-  XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
- endif
- ifeq ($(shell if [ -L /dev/urandom ] ; then echo YES ; fi),YES)
-  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
-  XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
- endif
- ifeq ($(shell if [ -c /dev/random ] ; then echo YES ; fi),YES)
-  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_RANDOM -DRANDOM_DEV=\"/dev/random\"
-  XPDEV_CFLAGS		+=	-DHAS_DEV_RANDOM -DRANDOM_DEV=\"/dev/random\"
- endif
- ifeq ($(shell if [ -f /usr/include/dev/speaker/speaker.h ] ; then echo YES ; fi),YES)
-  XPDEV-MT_CFLAGS	+=	-DHAS_DEV_SPEAKER_SPEAKER_H
-  XPDEV_CFLAGS		+=	-DHAS_DEV_SPEAKER_SPEAKER_H
- endif
- ifeq ($(shell if [ -f /usr/include/machine/speaker.h ] ; then echo YES ; fi),YES)
-  XPDEV-MT_CFLAGS	+=	-DHAS_MACHINE_SPEAKER_H
-  XPDEV_CFLAGS		+=	-DHAS_MACHINE_SPEAKER_H
- endif
- ifeq ($(shell if [ -f /usr/include/machine/spkr.h ] ; then echo YES ; fi),YES)
-  XPDEV-MT_CFLAGS	+=	-DHAS_MACHINE_SPKR_H
-  XPDEV_CFLAGS		+=	-DHAS_MACHINE_SPKR_H
- endif
+ifeq ($(shell if [ -c /dev/urandom ] ; then echo YES ; fi),YES)
+ XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
+ XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
+endif
+ifeq ($(shell if [ -L /dev/urandom ] ; then echo YES ; fi),YES)
+ XPDEV-MT_CFLAGS	+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
+ XPDEV_CFLAGS		+=	-DHAS_DEV_URANDOM -DURANDOM_DEV=\"/dev/urandom\"
+endif
+ifeq ($(shell if [ -c /dev/random ] ; then echo YES ; fi),YES)
+ XPDEV-MT_CFLAGS	+=	-DHAS_DEV_RANDOM -DRANDOM_DEV=\"/dev/random\"
+ XPDEV_CFLAGS		+=	-DHAS_DEV_RANDOM -DRANDOM_DEV=\"/dev/random\"
+endif
+ifeq ($(shell if [ -f /usr/include/dev/speaker/speaker.h ] ; then echo YES ; fi),YES)
+ XPDEV-MT_CFLAGS	+=	-DHAS_DEV_SPEAKER_SPEAKER_H
+ XPDEV_CFLAGS		+=	-DHAS_DEV_SPEAKER_SPEAKER_H
+endif
+ifeq ($(shell if [ -f /usr/include/machine/speaker.h ] ; then echo YES ; fi),YES)
+ XPDEV-MT_CFLAGS	+=	-DHAS_MACHINE_SPEAKER_H
+ XPDEV_CFLAGS		+=	-DHAS_MACHINE_SPEAKER_H
+endif
+ifeq ($(shell if [ -f /usr/include/machine/spkr.h ] ; then echo YES ; fi),YES)
+ XPDEV-MT_CFLAGS	+=	-DHAS_MACHINE_SPKR_H
+ XPDEV_CFLAGS		+=	-DHAS_MACHINE_SPKR_H
 endif
 
 # FreeBSD, OpenBSD, NetBSD, Linux, SunOS, and Darwin all have random()/srandom()
@@ -98,26 +96,30 @@ endif
 # Find SDL headers!
 ifdef USE_SDL_AUDIO
  ifdef SDL_CONFIG
-  ifeq ($(shell command -v ${SDL_CONFIG} > /dev/null && if [ `${SDL_CONFIG} --version | sed -E 's/\..*$$//'` -ge 2 ] ; then echo 'YES' ; fi),YES)
+  ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
    WITH_SDL_AUDIO	:=	1
   endif
  else
   ifeq ($(os),darwin)
    ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
-    SDL_FRAMEWORK_PATH ?= /Library/Frameworks
+    SDL_FRAMEWORK_PATH	?=	/Library/Frameworks
    endif
    ifdef SDL_FRAMEWORK_PATH
     WITH_SDL_AUDIO	:=	1
-    CIOLIB-MT_LDFLAGS += -Wl,-rpath,@executable_path/../Frameworks
    endif
   else
-   ifeq ($(shell command -v sdl2-config > /dev/null && sdl2-config --cflags > /dev/null 2>&1 && echo YES),YES)
-    SDL_CONFIG := sdl2-config
+   ifeq ($(shell sdl12-config --cflags > /dev/null 2>&1 && echo YES),YES)
+    SDL_CONFIG := sdl12-config
     WITH_SDL_AUDIO	:=	1
    else
-    ifeq ($(shell command -v sdl-config > /dev/null && if [ `sdl-config --version | sed -E 's/\..*$$//'` -ge 2 ] ; then echo 'YES' ; fi),YES)
+    ifeq ($(shell sdl-config --cflags > /dev/null 2>&1 && echo YES),YES)
      SDL_CONFIG := sdl-config
      WITH_SDL_AUDIO	:=	1
+    else
+     ifeq ($(shell sdl11-config --cflags > /dev/null 2>&1 && echo YES),YES)
+      SDL_CONFIG := sdl11-config
+      WITH_SDL_AUDIO	:=	1
+     endif
     endif
    endif
   endif
