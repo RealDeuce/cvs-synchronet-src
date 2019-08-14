@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.83 2019/08/24 22:56:50 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.79 2019/08/12 06:27:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,10 +53,6 @@ static bool qwk_parse_header_list(sbbs_t* sbbs, ulong confnum, smbmsg_t* msg, st
 			sbbs->errormsg(WHERE, ERR_CHK, "Conference number", confnum, value);
 			return false;
 		}
-	}
-	if((p=iniPopKey(headers,ROOT_SECTION,"utf8",value))!=NULL) {
-		if(stricmp(value,"true") == 0)
-			msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
 	}
 
 	if((p=iniPopKey(headers,ROOT_SECTION,"WhenWritten",value))!=NULL) {
@@ -330,7 +326,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	kludges=strListInit();
 
 	char qwk_newline = QWK_NEWLINE;
-	if(msg->hdr.auxattr & MSG_HFIELDS_UTF8)
+	if(smb_msg_is_utf8(msg) && utf8_str_is_valid(qwkbuf))
 		qwk_newline = '\n';
 
 	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
@@ -343,7 +339,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 					||  strnicmp(qwkbuf+k,"From:",5)==0 
 					||  strnicmp(qwkbuf+k,"Subject:",8)==0)))) {
 			if((p=strchr(qwkbuf+k, '\r'))==NULL
-				&& (p=strchr(qwkbuf+k, qwk_newline))==NULL) {
+				|| (p=strchr(qwkbuf+k, qwk_newline))==NULL) {
 				body[bodylen++]=qwkbuf[k];
 				continue;
 			}
