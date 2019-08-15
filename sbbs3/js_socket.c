@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.237 2019/08/06 03:58:37 deuce Exp $ */
+/* $Id: js_socket.c,v 1.238 2019/08/15 07:42:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2860,7 +2860,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for incoming TCP/IP socket communications",317);
 	js_DescribeSyncConstructor(cx,obj,"To create a new ListeningSocket object: "
-		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>)</tt><br>"
+		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>})</tt><br>"
 		"where <i>interface</i> = A array or strings or a single string of hostnames or address optionally including a :port suffix<br>"
 		"<i>port</i> = a port to use when the interface doesn't specify one<br>"
 		"<i>protocol</i> = protocol name, used for socket options and logging.<br>"
