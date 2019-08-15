@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.543 2019/08/12 06:24:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.544 2019/08/15 05:36:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -819,6 +819,7 @@ public:
 	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
+	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
