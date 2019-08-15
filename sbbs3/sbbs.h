@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.557 2020/03/01 23:55:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.544 2019/08/15 05:36:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -329,13 +329,12 @@ public:
 	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
-#endif
 	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
-	bool	passthru_socket_active;
-	void	passthru_socket_activate(bool);
-    bool	passthru_thread_running;
+    bool	passthru_output_thread_running;
+    bool	passthru_input_thread_running;
+#endif
 
 	scfg_t	cfg;
 
@@ -348,6 +347,7 @@ public:
     RingBuf	outbuf;
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
+	bool	input_thread_mutex_locked;	// by someone other than the input_thread
 	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
@@ -394,14 +394,11 @@ public:
 	JSRuntime*		js_runtime;
 	JSContext*		js_cx;
 	JSObject*		js_glob;
-	JSRuntime*		js_hotkey_runtime;
-	JSContext*		js_hotkey_cx;
-	JSObject*		js_hotkey_glob;
 	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope = NULL, JSContext* cx = NULL);
-	JSContext*		js_init(JSRuntime**, JSObject**, const char* desc);
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
+	bool			js_init(ulong* stack_frame);
 	void			js_cleanup(void);
-	bool			js_create_user_objects(JSContext*, JSObject* glob);
+	void			js_create_user_objects(void);
 
 #endif
 
@@ -430,6 +427,7 @@ public:
 	int 	nodefile;		/* File handle for node.dab */
 	pthread_mutex_t	nodefile_mutex;
 	int		node_ext;		/* File handle for node.exb */
+	int 	inputfile;		/* File handle to use for input */
 
 							/* Batch download queue */
 	char 	**batdn_name;	/* Filenames */
@@ -727,17 +725,12 @@ public:
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
 #endif
 	;
-	int		comprintf(const char *fmt, ...)			/* BBS direct-comm printf function */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
-#endif
-	;
 	void	backspace(int count=1);			/* Output destructive backspace(s) via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
-	void	center(char *str, unsigned int columns = 0);
+	void	center(char *str);
 	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -747,7 +740,6 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	bool	cursor_xy(int x, int y);
 	void	carriage_return(int count=1);
 	void	line_feed(int count=1);
 	void	newline(int count=1);
@@ -790,8 +782,8 @@ public:
 	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str, long mode = 0);
-	bool	noyes(const char *str, long mode = 0);
+	bool	yesno(const char *str);
+	bool	noyes(const char *str);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
@@ -1148,35 +1140,30 @@ extern "C" {
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
-	DLLEXPORT char *	remove_ctrl_a(const char* instr, char* outstr);
-	DLLEXPORT char 		ctrl_a_to_ascii_char(char code);
-	DLLEXPORT char *	truncstr(char* str, const char* set);
-	DLLEXPORT char *	ascii_str(uchar* str);
-	DLLEXPORT char		exascii_to_ascii_char(uchar ch);
-	DLLEXPORT BOOL		findstr(const char *insearch, const char *fname);
-	DLLEXPORT BOOL		findstr_in_string(const char* insearchof, char* string);
-	DLLEXPORT BOOL		findstr_in_list(const char* insearchof, str_list_t list);
-	DLLEXPORT str_list_t findstr_list(const char* fname);
-	DLLEXPORT BOOL		trashcan(scfg_t* cfg, const char *insearch, const char *name);
-	DLLEXPORT char *	trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
-	DLLEXPORT str_list_t trashcan_list(scfg_t* cfg, const char* name);
-	DLLEXPORT char *	strip_exascii(const char *str, char* dest);
-	DLLEXPORT char *	strip_space(const char *str, char* dest);
-	DLLEXPORT char *	prep_file_desc(const char *str, char* dest);
-	DLLEXPORT char *	strip_ctrl(const char *str, char* dest);
-	DLLEXPORT char *	strip_char(const char* str, char* dest, char);
-	DLLEXPORT char *	net_addr(net_t* net);
-	DLLEXPORT BOOL		valid_ctrl_a_attr(char a);
-	DLLEXPORT BOOL		valid_ctrl_a_code(char a);
-	DLLEXPORT size_t	strip_invalid_attr(char *str);
-	DLLEXPORT char *	ultoac(ulong l,char *str);
-	DLLEXPORT char *	rot13(char* str);
-	DLLEXPORT uint32_t	str_to_bits(uint32_t currval, const char *str);
-	DLLEXPORT BOOL		str_has_ctrl(const char*);
-	DLLEXPORT BOOL		str_is_ascii(const char*);
-	DLLEXPORT char *	utf8_to_cp437_str(char* str);
-	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
-	DLLEXPORT char * 	get_ctrl_dir(void);
+	DLLEXPORT char *	DLLCALL remove_ctrl_a(const char* instr, char* outstr);
+	DLLEXPORT char 		DLLCALL ctrl_a_to_ascii_char(char code);
+	DLLEXPORT char *	DLLCALL truncstr(char* str, const char* set);
+	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
+	DLLEXPORT char		DLLCALL exascii_to_ascii_char(uchar ch);
+	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
+	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
+	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
+	DLLEXPORT str_list_t DLLCALL findstr_list(const char* fname);
+	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
+	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
+	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
+	DLLEXPORT char *	DLLCALL strip_exascii(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL strip_space(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL prep_file_desc(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL strip_ctrl(const char *str, char* dest);
+	DLLEXPORT char *	DLLCALL net_addr(net_t* net);
+	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_attr(char a);
+	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_code(char a);
+	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
+	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
+	DLLEXPORT char *	DLLCALL rot13(char* str);
+	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
+	DLLEXPORT BOOL		DLLCALL str_is_ascii(const char*);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
