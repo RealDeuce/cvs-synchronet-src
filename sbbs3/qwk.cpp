@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.89 2019/08/17 02:21:01 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.88 2019/08/02 22:17:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -483,12 +483,10 @@ void sbbs_t::qwk_sec()
 					,useron.qwk&QWK_VIA ? text[Yes]:text[No]);
 				bprintf(text[QWKSettingsMsgID]
 					,useron.qwk&QWK_MSGID ? text[Yes]:text[No]);
-				bprintf(text[QWKSettingsUtf8]
-					,useron.qwk&QWK_UTF8 ? text[Yes]:text[No]);
 				bprintf(text[QWKSettingsExtended]
 					,useron.qwk&QWK_EXT ? text[Yes]:text[No]);
 				bputs(text[QWKSettingsWhich]);
-				ch=(char)getkeys("AEDFHIOPQTUYMNCXZV",0);
+				ch=(char)getkeys("AEDFHIOPQTYMNCXZV",0);
 				if(sys_status&SS_ABORT || !ch || ch=='Q' || !online)
 					break;
 				switch(ch) {
@@ -556,9 +554,6 @@ void sbbs_t::qwk_sec()
 						break;
 					case 'X':	/* QWKE */
 						useron.qwk^=QWK_EXT;
-						break;
-					case 'U':
-						useron.qwk^=QWK_UTF8;
 						break;
 				}
 				putuserrec(&cfg,useron.number,U_QWK,8,ultoa(useron.qwk,str,16));
