@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.203 2019/02/15 03:54:55 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.205 2019/07/18 04:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -153,6 +153,8 @@ link_list_t ftp_log_list;
 link_list_t web_log_list;
 link_list_t services_log_list;
 link_list_t	login_attempt_list;
+
+bool clearLoginAttemptList = false;
 
 DWORD	MaxLogLen=20000;
 int     threads=1;
@@ -2954,6 +2956,11 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         sysop_available = ChatToggle->Checked;
         set_sysop_availability(&cfg, sysop_available);
     }
+	
+	if(clearLoginAttemptList) {
+		loginAttemptListClear(&login_attempt_list);
+		clearLoginAttemptList = false;
+	}
 
     if(!start)
         start=time(NULL);
@@ -2964,52 +2971,45 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         sprintf(days,"%u days ",up/(24*60*60));
         up%=(24*60*60);
     }
-    sprintf(str,"Up: %s%u:%02u"
-        ,days
-        ,up/(60*60)
-        ,(up/60)%60
-        );
-    AnsiString Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text=Str;
-
-    sprintf(str,"Threads: %u",threads);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[0]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[0]->Text=Str;
-
-    sprintf(str,"Sockets: %u",sockets);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[1]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[1]->Text=Str;
-
-    sprintf(str,"Clients: %u",clients);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[2]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[2]->Text=Str;
-
-    sprintf(str,"Served: %u",total_clients);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[3]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[3]->Text=Str;
-
-    sprintf(str,"Failed: %u",loginAttemptListCount(&login_attempt_list));
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[4]->Text=Str;
-
-    sprintf(str,"Errors: %u",errors);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[5]->Text=Str;
-
-#if 0
-    THeapStatus hp=GetHeapStatus();
-    sprintf(str,"Mem Used: %lu bytes",hp.TotalAllocated);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[5]->Text=Str;
-#endif
+		
+	for(int i = 0; i <= STATUSBAR_LAST_PANEL; i++) {
+		switch(i) {
+			case 0:
+				sprintf(str,"Threads: %u",threads);
+				break;
+			case 1:
+				sprintf(str,"Sockets: %u",sockets);
+				break;
+			case 2:
+				sprintf(str,"Clients: %u",clients);
+				break;
+			case 3:
+			    sprintf(str,"Served: %u",total_clients);
+				break;
+			case 4:
+				sprintf(str,"Failed: %u",loginAttemptListCount(&login_attempt_list));
+				break;
+			case 5:
+				sprintf(str,"Errors: %u",errors);
+				break;
+			default:
+				sprintf(str,"Up: %s%u:%02u"
+					,days
+					,up/(60*60)
+					,(up/60)%60
+					);
+		}
+		TStatusPanel* panel = MainForm->StatusBar->Panels->Items[i];	
+		
+		AnsiString Str = AnsiString(str);
+		if(panel->Text != Str) {
+			panel->Text = Str;
+//			panel->Bevel = pbRaised;
+		} else {
+//			panel->Bevel = pbLowered;
+		}
+	}
+	
     if(TrayIcon->Visible) {
         /* Animate TrayIcon when in use */
         AnsiString NumClients;
@@ -3915,7 +3915,7 @@ void __fastcall TMainForm::LogPopupCopyClick(TObject *Sender)
 void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
       TObject *Sender)
 {
-    loginAttemptListClear(&login_attempt_list);
+    clearLoginAttemptList = true;
 }
 //---------------------------------------------------------------------------
 
