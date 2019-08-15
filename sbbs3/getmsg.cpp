@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.94 2019/08/03 10:17:04 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.98 2019/08/08 23:59:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -40,6 +40,8 @@
 
 #include "sbbs.h"
 #include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
@@ -128,6 +130,29 @@ const char* sbbs_t::msghdr_text(const smbmsg_t* msg, uint index)
 		return text[index];
 
 	return msghdr_utf8_text;
+}
+
+// Returns a CP437 version of a message header field or UTF-8 if can_utf8 is true
+// Doesn't do CP437->UTF-8 conversion
+const char* sbbs_t::msghdr_field(const smbmsg_t* msg, const char* str, char* buf, bool can_utf8)
+{
+	if(msg == NULL || !(msg->hdr.auxattr & MSG_HFIELDS_UTF8))
+		return str;
+
+	if(can_utf8 && term_supports(UTF8))
+		return str;
+
+	if(buf == NULL)
+		buf = msgghdr_field_cp437_str;
+
+	strncpy(buf, str, sizeof(msgghdr_field_cp437_str));
+	utf8_normalize_str(buf);
+	utf8_replace_chars(buf, unicode_to_cp437
+		,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+		,/* unsupported zero-width ch: */0
+		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
+
+	return buf;
 }
 
 /****************************************************************************/
@@ -359,16 +384,15 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 	}
 
 	if(msg->hdr.auxattr&MSG_FILEATTACH) {  /* Attached file */
+		char subj[FIDO_SUBJ_LEN];
 		smb_getmsgidx(smb, msg);
-		SAFECOPY(str, msg->subj);					/* filenames (multiple?) in title */
-		char *p,*tp,*sp,ch;
-		tp=str;
+		SAFECOPY(subj, msg->subj);					/* filenames (multiple?) in title */
+		char *p,*tp,ch;
+		tp=subj;
 		while(online) {
 			p=strchr(tp,' ');
 			if(p) *p=0;
-			sp=strrchr(tp,'/');              /* sp is slash pointer */
-			if(!sp) sp=strrchr(tp,'\\');
-			if(sp) tp=sp+1;
+			tp=getfname(tp);
 			file_t	fd;
 			fd.dir=cfg.total_dirs+1;			/* temp dir for file attachments */
 			padfname(tp,fd.name);
@@ -387,7 +411,7 @@ void sbbs_t::download_msg_attachments(smb_t* smb, smbmsg_t* msg, bool del)
 				char 	tmp[512];
 				int		i;
 				SAFEPRINTF2(str, text[DownloadAttachedFileQ]
-					,tp,ultoac(length,tmp));
+					,getfname(fpath),ultoac(length,tmp));
 				if(length>0L && text[DownloadAttachedFileQ][0] && yesno(str)) {
 					{	/* Remote User */
 						xfer_prot_menu(XFER_DOWNLOAD);

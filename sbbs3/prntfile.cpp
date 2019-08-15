@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.35 2019/07/06 07:52:21 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.38 2019/08/15 02:15:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -38,6 +38,10 @@
 
 #include "sbbs.h"
 #include "utf8.h"
+
+#ifndef PRINTFILE_MAX_LINE_LEN
+#define PRINTFILE_MAX_LINE_LEN (1024*1024)
+#endif
 
 /****************************************************************************/
 /* Prints a file remotely and locally, interpreting ^A sequences, checks    */
@@ -97,22 +101,42 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 		errormsg(WHERE,ERR_CHK,fpath,length);
 		return false;
 	}
-	if((buf=(char*)malloc(length+1L))==NULL) {
+
+	if(mode&P_OPENCLOSE) {
+		if((buf=(char*)malloc(length+1L))==NULL) {
+			fclose(stream);
+			errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
+			return false; 
+		}
+		l=lread(file,buf,length);
 		fclose(stream);
-		errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
-		return false; 
+		if(l!=length)
+			errormsg(WHERE,ERR_READ,fpath,length);
+		else {
+			buf[l]=0;
+			if((mode&P_UTF8) && !term_supports(UTF8))
+				utf8_normalize_str(buf);
+			putmsg(buf,mode,org_cols);
+		}
+		free(buf);
+	} else {	// Line-at-a-time mode
+		if(length > PRINTFILE_MAX_LINE_LEN)
+			length = PRINTFILE_MAX_LINE_LEN;
+		if((buf=(char*)malloc(length+1L))==NULL) {
+			fclose(stream);
+			errormsg(WHERE,ERR_ALLOC,fpath,length+1L);
+			return false; 
+		}
+		while(!feof(stream) && !msgabort()) {
+			if(fgets(buf, length + 1, stream) == NULL)
+				break;
+			if((mode&P_UTF8) && !term_supports(UTF8))
+				utf8_normalize_str(buf);
+			putmsg(buf, mode|P_SAVEATR, org_cols);
+		}
+		free(buf);
+		fclose(stream);
 	}
-	l=lread(file,buf,length);
-	fclose(stream);
-	if(l!=length)
-		errormsg(WHERE,ERR_READ,fpath,length);
-	else {
-		buf[l]=0;
-		if((mode&P_UTF8) && !term_supports(UTF8))
-			utf8_normalize_str(buf);
-		putmsg(buf,mode,org_cols);
-	}
-	free(buf); 
 
 	if((mode&P_NOABORT || rip) && online==ON_REMOTE) {
 		SYNC;

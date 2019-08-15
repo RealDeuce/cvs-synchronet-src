@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.537 2019/08/03 08:15:41 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.544 2019/08/15 05:36:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -690,6 +690,8 @@ public:
 	bool	msgtotxt(smb_t*, smbmsg_t*, const char *fname, bool header = true, ulong gettxt_mode = GETMSGTXT_ALL);
 	const char* msghdr_text(const smbmsg_t*, uint index);
 	char	msghdr_utf8_text[128];
+	const char* msghdr_field(const smbmsg_t*, const char* str, char* buf = NULL, bool can_utf8 = false);
+	char	msgghdr_field_cp437_str[128];
 	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
 	time_t	getmsgtime(uint subnum, ulong ptr);
 	ulong	getmsgnum(uint subnum, time_t t);
@@ -705,6 +707,7 @@ public:
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
+	size_t	bstrlen(const char *str, long mode = 0);
 	int		bputs(const char *str, long mode = 0);	/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
 	int		bprintf(const char *fmt, ...)			/* BBS printf function */
@@ -722,7 +725,7 @@ public:
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
 #endif
 	;
-	void	backspace(void);				/* Output a destructive backspace via outchar */
+	void	backspace(int count=1);			/* Output destructive backspace(s) via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
@@ -737,9 +740,9 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	void	carriage_return(void);
-	void	line_feed(void);
-	void	newline(void);
+	void	carriage_return(int count=1);
+	void	line_feed(int count=1);
+	void	newline(int count=1);
 	long	term_supports(long cmp_flags=0);
 	const char* term_type(long term_supports = -1);
 	const char* term_charset(long term_supports = -1);
@@ -748,10 +751,25 @@ public:
 	bool	saveline(void);
 	bool	restoreline(void);
 	int		petscii_to_ansibbs(unsigned char);
-	size_t	utf8_to_cp437(const char*, size_t);
+	size_t	print_utf8_as_cp437(const char*, size_t);
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 	char*	auto_utf8(const char*, long* mode);
+	enum output_rate {
+		output_rate_unlimited,
+		output_rate_300 = 300,
+		output_rate_600 = 600,
+		output_rate_1200 = 1200,
+		output_rate_2400 = 2400,
+		output_rate_4800 = 4800,
+		output_rate_9600 = 9600,
+		output_rate_19200 = 19200,
+		output_rate_38400 = 38400,
+		output_rate_57600 = 57600,
+		output_rate_76800 = 76800,
+		output_rate_115200 = 115200,
+	} cur_output_rate;
+	void	set_output_rate(enum output_rate);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -801,6 +819,7 @@ public:
 	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
+	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
@@ -905,6 +924,7 @@ public:
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
 	bool	addtobatdl(file_t* f);
+	long	delfiles(const char *inpath, const char *spec, size_t keep = 0);
 
 	/* listfile.cpp */
 	bool	listfile(const char *fname, const char *buf, uint dirnum
@@ -1001,7 +1021,7 @@ public:
 	/* qwktomsg.cpp */
 	bool	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
-				,uint touser, smbmsg_t* msg);
+				,uint touser, smbmsg_t* msg, bool* dupe);
 
 	/* fido.cpp */
 	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
@@ -1406,7 +1426,6 @@ extern "C" {
 #endif
 
 /* str_util.c */
-size_t	bstrlen(const char *str);
 char*	backslashcolon(char *str);
 ulong	ahtoul(const char *str);	/* Converts ASCII hex to ulong */
 char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
@@ -1433,7 +1452,7 @@ char*	prep_code(char *str, const char* prefix);
 #endif
 	;
 	void	call_socket_open_callback(BOOL open);
-	SOCKET	open_socket(int type, const char* protocol);
+	SOCKET	open_socket(int domain, int type, const char* protocol);
 	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
