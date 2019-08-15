@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.175 2019/07/11 06:11:16 deuce Exp $ */
+/* $Id: ciolib.c,v 1.178 2019/07/11 08:16:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,6 +134,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_modepalette(uint32_t p[16]);
 CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t p[16]);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -1852,6 +1854,7 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 	for (i=0; i<5; i++)
 		ret->fonts[i] = ciolib_getfont(i);
 	ret->flags = ciolib_getvideoflags();
+	ciolib_get_modepalette(ret->palette);
 
 	return ret;
 }
@@ -1879,6 +1882,7 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 
 	if (ti.currmode != scrn->text_info.currmode)
 		ciolib_textmode(scrn->text_info.currmode);
+	ciolib_set_modepalette(scrn->palette);
 	ciolib_vmem_puttext(1, 1, scrn->text_info.screenwidth, scrn->text_info.screenheight, scrn->vmem);
 	ciolib_textcolor(scrn->text_info.attribute);
 	ciolib_window(scrn->text_info.winleft, scrn->text_info.wintop, scrn->text_info.winright, scrn->text_info.winbottom);
@@ -1998,4 +2002,27 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int fontnum)
 	}
 	return 0;
 
+}
+
+CIOLIBEXPORT void CIOLIBCALL
+ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font)
+{
+	CIOLIB_INIT();
+
+	if (cell == NULL)
+		return;
+	cell->ch = ch;
+	cell->font = font;
+	ciolib_set_vmem_attr(cell, attr);
+}
+
+CIOLIBEXPORT void CIOLIBCALL
+ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr)
+{
+	CIOLIB_INIT();
+
+	if (cell == NULL)
+		return;
+	cell->legacy_attr = attr;
+	ciolib_attr2palette(attr, &cell->fg, &cell->bg);
 }
