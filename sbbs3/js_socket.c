@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.241 2019/08/21 01:58:55 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.238 2019/08/15 07:42:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1989,9 +1989,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_LOCAL_PORT:
-			if(p->local_port != 0) {
-				*vp = INT_TO_JSVAL(p->local_port);
-			} else if(p->sock != INVALID_SOCKET) {
+			if(p->sock != INVALID_SOCKET) {
 				if(getsockname(p->sock, &addr.addr,&len)!=0)
 					return(JS_FALSE);
 				JS_RESUMEREQUEST(cx, rc);
@@ -2741,7 +2739,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	cb.scfg = scfg;
 	if (argc < 3) {
-		JS_ReportError(cx, "At least three arguments required (interfaces, port, and protocol)");
+		JS_ReportError(cx, "At least two arguments required (interfaces, port, and protocol)");
 		goto fail;
 	}
 	if (argc > 3) {
@@ -2813,7 +2811,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			free(protocol);
 			return JS_FALSE;
 		}
-		for (i = 0; (jsuint)i < count; i++) {
+		for (i = 0; i < count; i++) {
 			if (!JS_GetElement(cx, obj, i, &v)) {
 				lprintf(LOG_WARNING, "Unable to get element %d from interface array", i);
 				continue;
@@ -2849,7 +2847,6 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->network_byte_order = TRUE;
 	p->session=-1;
 	p->unflushed = 0;
-	p->local_port = port;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
