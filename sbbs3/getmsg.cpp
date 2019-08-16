@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.99 2019/08/17 02:21:00 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.98 2019/08/08 23:59:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -139,7 +139,7 @@ const char* sbbs_t::msghdr_field(const smbmsg_t* msg, const char* str, char* buf
 	if(msg == NULL || !(msg->hdr.auxattr & MSG_HFIELDS_UTF8))
 		return str;
 
-	if(can_utf8)
+	if(can_utf8 && term_supports(UTF8))
 		return str;
 
 	if(buf == NULL)
