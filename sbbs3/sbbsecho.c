@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.132 2019/08/06 00:59:44 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.133 2019/08/16 21:06:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3251,21 +3251,7 @@ static short fmsgzone(const char* p)
 	val+=atoi(min);
 
 	if(west)
-		switch(val|US_ZONE) {
-			case AST:
-			case EST:
-			case CST:
-			case MST:
-			case PST:
-			case YST:
-			case HST:
-			case BST:
-				/* standard US timezone */
-				return(val|US_ZONE);
-			default:
-				/* non-standard timezone */
-				return(-val);
-		}
+		return(-val);
 	return(val);
 }
 
@@ -6101,7 +6087,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.132 $", "%*s %s", revision);
+	sscanf("$Revision: 3.133 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
