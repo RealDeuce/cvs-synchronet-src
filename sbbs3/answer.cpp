@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.105 2019/07/16 07:07:17 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.106 2019/08/13 20:22:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -431,6 +431,7 @@ bool sbbs_t::answer()
 		} else {
 			if(telnet_location[0]) {			/* Telnet Location info provided */
 				lprintf(LOG_INFO, "Telnet Location: %s", telnet_location);
+				SAFECOPY(cid, telnet_location);
 			}
 		}
 		if(telnet_speed) {
