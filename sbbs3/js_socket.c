@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.238 2019/08/15 07:42:03 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.239 2019/08/17 06:41:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2811,7 +2811,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			free(protocol);
 			return JS_FALSE;
 		}
-		for (i = 0; i < count; i++) {
+		for (i = 0; (jsuint)i < count; i++) {
 			if (!JS_GetElement(cx, obj, i, &v)) {
 				lprintf(LOG_WARNING, "Unable to get element %d from interface array", i);
 				continue;
