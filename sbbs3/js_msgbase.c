@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.253 2020/03/01 07:52:14 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.251 2019/08/06 05:04:30 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -53,7 +53,6 @@ typedef struct
 {
 	private_t	*p;
 	BOOL		expand_fields;
-	BOOL		enumerated;
 	smbmsg_t	msg;
 	post_t		post;
 
@@ -775,19 +774,6 @@ static BOOL parse_header_object(JSContext* cx, private_t* p, JSObject* hdr, smbm
 		}
 	}
 
-	if(JS_GetProperty(cx, hdr, "ftn_charset", &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
-		HANDLE_PENDING(cx, cp);
-		if(cp==NULL) {
-			JS_ReportError(cx, "Invalid \"ftn_charset\" string in header object");
-			goto err;
-		}
-		if((smb_result = smb_hfield_str(msg, FIDOCHARSET, cp))!=SMB_SUCCESS) {
-			JS_ReportError(cx, "Error %d adding FIDOCHARSET field to message header", smb_result);
-			goto err;
-		}
-	}
-
 	if(JS_GetProperty(cx, hdr, "date", &val) && !JSVAL_NULL_OR_VOID(val)) {
 		JSVALUE_TO_RASTRING(cx, val, cp, &cp_sz, NULL);
 		HANDLE_PENDING(cx, cp);
@@ -1353,7 +1339,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	}
 
 	/* If we have already enumerated, we're done here... */
-	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL || p->enumerated) {
+	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL) {
 		if(name) free(name);
 		return JS_TRUE;
 	}
@@ -1498,7 +1484,6 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING_TRUNCSP_NULL("ftn_tid", p->msg.ftn_tid, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("ftn_area", p->msg.ftn_area, JSPROP_ENUMERATE);
 	LAZY_STRING_TRUNCSP_NULL("ftn_flags", p->msg.ftn_flags, JSPROP_ENUMERATE);
-	LAZY_STRING_TRUNCSP_NULL("ftn_charset", p->msg.ftn_charset, JSPROP_ENUMERATE);
 
 	if(name==NULL || strcmp(name,"field_list")==0) {
 		if(name) free(name);
@@ -1640,7 +1625,10 @@ static JSBool js_get_msg_header_enumerate(JSContext *cx, JSObject *obj)
 	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_TRUE;
 
-	p->enumerated = TRUE;
+	smb_freemsgmem(&(p->msg));
+	free(p);
+
+	JS_SetPrivate(cx, obj, NULL);
 
 	return JS_TRUE;
 }
@@ -3134,7 +3122,6 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	"<tr><td align=top><tt>ftn_flags</tt><td>FidoNet FSC-53 FLAGS"
 	"<tr><td align=top><tt>ftn_pid</tt><td>FidoNet FSC-46 Program Identifier"
 	"<tr><td align=top><tt>ftn_tid</tt><td>FidoNet FSC-46 Tosser Identifier"
-	"<tr><td align=top><tt>ftn_charset</tt><td>FidoNet FTS-5003 Character Set Identifier"
 	"<tr><td align=top><tt>date</tt><td>RFC-822 formatted date/time"
 	"<tr><td align=top><tt>attr</tt><td>Attribute bitfield"
 	"<tr><td align=top><tt>auxattr</tt><td>Auxillary attribute bitfield"
