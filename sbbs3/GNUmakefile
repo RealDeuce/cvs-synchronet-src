@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.244 2019/08/24 19:48:21 rswindell Exp $
+# $Id: GNUmakefile,v 1.240 2019/06/29 19:58:33 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -120,6 +120,7 @@ $(SBBSMONO): $(MONO_OBJS) $(OBJS)
 # Synchronet BBS library Link Rule
 $(SBBS): $(JS_DEPS) $(CRYPT_DEPS) $(OBJS) $(LIBS) $(EXTRA_SBBS_DEPENDS) $(ENCODE_LIB) $(HASH_LIB) | $(LIBODIR)
 	@echo Linking $@
+	@echo $(ENCODE_LIB)
 	$(QUIET)$(MKSHPPLIB) $(LDFLAGS) -o $@ $(OBJS) $(SBBS_LIBS) $(SMBLIB_LIBS) $(LIBS) $(SHLIBOPTS) $(JS_LIBS) $(CRYPT_LIBS) $(ENCODE_LIBS) $(HASH_LIBS) $(XPDEV-MT_LIBS)
 
 # FTP Server Link Rule
@@ -203,9 +204,9 @@ $(MAKEUSER): $(MAKEUSER_OBJS)
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(MAKEUSER_OBJS) $(XPDEV_LIBS) $(SMBLIB_LIBS) $(ENCODE_LIBS) $(HASH_LIBS)
 
 # JSDOOR
-$(JSDOOR): $(JSDOOR_OBJS) $(SBBS) $(XPDEV_LIB) $(ENCODE_LIB) $(HASH_LIB) | $(EXEODIR)
+$(JSDOOR): $(JSDOOR_OBJS) $(SBBS)
 	@echo Linking $@
-	$(QUIET)$(CXX) $(JS_CFLAGS) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSDOOR_OBJS) $(JS_LIBS) $(CRYPT_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(SMBLIB_LIBS) $(ENCODE_LIBS) $(XPDEV-MT_LIBS) $(HASH_LIBS)
+	$(QUIET)$(CXX) $(LDFLAGS) $(MT_LDFLAGS) -o $@ $(JSDOOR_OBJS) $(JS_LIBS) $(CRYPT_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(SMBLIB_LIBS) $(XPDEV-MT_LIBS)
 
 # JSEXEC
 $(JSEXEC): $(JSEXEC_OBJS) $(SBBS)
