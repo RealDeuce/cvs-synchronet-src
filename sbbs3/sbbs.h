@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.539 2019/08/04 22:48:38 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.544 2019/08/15 05:36:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -725,7 +725,7 @@ public:
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
 #endif
 	;
-	void	backspace(void);				/* Output a destructive backspace via outchar */
+	void	backspace(int count=1);			/* Output destructive backspace(s) via outchar */
 	int		outchar(char ch);				/* Output a char - check echo and emu.  */
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
@@ -740,9 +740,9 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	void	carriage_return(void);
-	void	line_feed(void);
-	void	newline(void);
+	void	carriage_return(int count=1);
+	void	line_feed(int count=1);
+	void	newline(int count=1);
 	long	term_supports(long cmp_flags=0);
 	const char* term_type(long term_supports = -1);
 	const char* term_charset(long term_supports = -1);
@@ -755,6 +755,21 @@ public:
 	int		attr(int);				/* Change text color/attributes */
 	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
 	char*	auto_utf8(const char*, long* mode);
+	enum output_rate {
+		output_rate_unlimited,
+		output_rate_300 = 300,
+		output_rate_600 = 600,
+		output_rate_1200 = 1200,
+		output_rate_2400 = 2400,
+		output_rate_4800 = 4800,
+		output_rate_9600 = 9600,
+		output_rate_19200 = 19200,
+		output_rate_38400 = 38400,
+		output_rate_57600 = 57600,
+		output_rate_76800 = 76800,
+		output_rate_115200 = 115200,
+	} cur_output_rate;
+	void	set_output_rate(enum output_rate);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
@@ -804,6 +819,7 @@ public:
 	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
+	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
@@ -908,6 +924,7 @@ public:
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
 	bool	addtobatdl(file_t* f);
+	long	delfiles(const char *inpath, const char *spec, size_t keep = 0);
 
 	/* listfile.cpp */
 	bool	listfile(const char *fname, const char *buf, uint dirnum
@@ -1004,7 +1021,7 @@ public:
 	/* qwktomsg.cpp */
 	bool	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
 	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
-				,uint touser, smbmsg_t* msg);
+				,uint touser, smbmsg_t* msg, bool* dupe);
 
 	/* fido.cpp */
 	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);

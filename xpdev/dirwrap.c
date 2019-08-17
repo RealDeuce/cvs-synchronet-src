@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.106 2019/07/15 03:25:52 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.108 2019/08/12 06:32:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -741,20 +741,21 @@ int removecase(const char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname) >=1 ? 0 : -1);
+	return(delfiles(inpath,fname,0) >=1 ? 0 : -1);
 }
 #endif
 
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
+/* Optionally, keep the last so many files (sorted by name)                 */
 /* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
-long DLLCALL delfiles(const char *inpath, const char *spec)
+long DLLCALL delfiles(const char *inpath, const char *spec, size_t keep)
 {
 	char	*path;
 	char	lastch;
 	size_t	i;
-    long	files = 0;
+    ulong	files = 0;
 	long	errors = 0;
 	glob_t	g;
 	size_t	inpath_len=strlen(inpath);
@@ -773,7 +774,9 @@ long DLLCALL delfiles(const char *inpath, const char *spec)
 	strcat(path,spec);
 	glob(path,0,NULL,&g);
 	free(path);
-	for(i=0;i<g.gl_pathc;i++) {
+	if(keep >= g.gl_pathc)
+		return 0;
+	for(i = 0; i < g.gl_pathc && files < g.gl_pathc - keep; i++) {
 		if(isdir(g.gl_pathv[i]))
 			continue;
 		CHMOD(g.gl_pathv[i],S_IWRITE);	/* In case it's been marked RDONLY */
