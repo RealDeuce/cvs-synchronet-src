@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.277 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.274 2019/03/31 04:32:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1363,7 +1363,7 @@ int main(int argc, char** argv)
 {
 	int		i;
 	int		n;
-	int		nodefile = -1;
+	int		file;
 	char	ch;
 	char*	p;
 	char*	arg;
@@ -1399,7 +1399,12 @@ int main(int argc, char** argv)
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
 
-	ctrl_dir = get_ctrl_dir();
+	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
+	if(ctrl_dir==NULL || ctrl_dir[0]==0) {
+		ctrl_dir="/sbbs/ctrl";		/* Not set? Use default */
+		printf("!SBBSCTRL environment variable not set, using default value: %s\n\n"
+			,ctrl_dir);
+	}
 
 	if(!winsock_startup())
 		return(-1);
@@ -2185,7 +2190,7 @@ int main(int argc, char** argv)
 					printf("\n");
 					count=0;
 					for(i=1;i<=scfg.sys_nodes;i++) {
-						getnodedat(&scfg,i,&node, /* lockit: */FALSE, &nodefile);
+						getnodedat(&scfg,i,&node,NULL /* file */);
 						if(ch=='w' && node.status!=NODE_INUSE && node.status!=NODE_QUIET)
 							continue;
 						printnodedat(&scfg, i,&node);
@@ -2205,7 +2210,7 @@ int main(int argc, char** argv)
 						break;
 					fflush(stdin);
 					printf("\n");
-					if((i=getnodedat(&scfg,n,&node, /* lockit: */TRUE, &nodefile))!=0) {
+					if((i=getnodedat(&scfg,n,&node,&file))!=0) {
 						printf("!Error %d getting node %d data\n",i,n);
 						break;
 					}
@@ -2220,7 +2225,7 @@ int main(int argc, char** argv)
 							node.misc^=NODE_INTR;
 							break;
 					}
-					putnodedat(&scfg,n,&node,/* closeit: */FALSE, nodefile);
+					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 #ifdef __unix__
 	                _echo_off(); /* turn off echoing - failsafe */
