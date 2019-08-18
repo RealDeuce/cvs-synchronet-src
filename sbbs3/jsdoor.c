@@ -2,7 +2,7 @@
 
 /* Execute a BBS JavaScript module from the command-line */
 
-/* $Id: jsdoor.c,v 1.8 2019/08/20 23:14:30 deuce Exp $ */
+/* $Id: jsdoor.c,v 1.7 2019/08/04 17:49:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,20 +52,6 @@
 #include "jsdebug.h"
 
 scfg_t		scfg;
-
-void* DLLCALL js_GetClassPrivate(JSContext *cx, JSObject *obj, JSClass* cls)
-{
-	void *ret = JS_GetInstancePrivate(cx, obj, cls, NULL);
-
-	if(ret == NULL)
-		JS_ReportError(cx, "'%s' instance: No Private Data or Class Mismatch"
-			, cls == NULL ? "???" : cls->name);
-	return ret;
-}
-
-void call_socket_open_callback(BOOL open)
-{
-}
 
 SOCKET open_socket(int domain, int type, const char* protocol)
 {
