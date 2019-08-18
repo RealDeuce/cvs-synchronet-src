@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.82 2019/08/24 22:55:52 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.81 2019/08/17 06:22:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,7 +330,7 @@ bool sbbs_t::qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks
 	kludges=strListInit();
 
 	char qwk_newline = QWK_NEWLINE;
-	if(msg->hdr.auxattr & MSG_HFIELDS_UTF)
+	if(smb_msg_is_utf8(msg) && utf8_str_is_valid(qwkbuf))
 		qwk_newline = '\n';
 
 	for(k=0;k<(blocks-1)*QWK_BLOCK_LEN;k++) {
