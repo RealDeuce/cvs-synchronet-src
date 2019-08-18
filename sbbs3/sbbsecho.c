@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.133 2019/08/16 21:06:56 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.134 2019/08/18 19:04:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5497,7 +5497,7 @@ void pack_netmail(void)
 			if(hdr.attr&FIDO_FILE) {
 				// Parse Kill-File-Sent (KFS) from FLAGS from control paragraph (kludge line) within msg body
 				const char* flags = strstr(fmsgbuf, "\1FLAGS ");
-				if(flags != fmsgbuf && *(flags-1) != '\r' && *(flags-1) != '\n') flags = NULL;
+				if(flags != NULL && flags != fmsgbuf && *(flags-1) != '\r' && *(flags-1) != '\n') flags = NULL;
 				const char* kfs = NULL;
 				if(flags != NULL) {
 					flags += 7;
@@ -6087,7 +6087,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.133 $", "%*s %s", revision);
+	sscanf("$Revision: 3.134 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
