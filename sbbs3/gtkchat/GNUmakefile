@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.11 2019/09/06 21:46:24 rswindell Exp $
+# $Id: GNUmakefile,v 1.10 2019/07/04 03:14:07 rswindell Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -22,7 +22,7 @@ endif
 
 vpath %.c ..
 
-CFLAGS	+=	-I.. -I../../comio $(SMBLIB_CFLAGS) $(HASH_CFLAGS) $(ENCODE_CFLAGS) $(XPDEV-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS) `pkg-config gtk+-2.0 --cflags`
+CFLAGS	+=	-I.. -I../../comio $(SMBLIB_CFLAGS) $(HASH_CFLAGS) $(XPDEV-MT_CFLAGS) $(JS_CFLAGS) $(CRYPT_CFLAGS) `pkg-config gtk+-2.0 --cflags`
 LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(ENCODE_LDFLAGS) $(HASH_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS)
 EXTRA_LIBS += `pkg-config gtk+-2.0 --libs`
 
