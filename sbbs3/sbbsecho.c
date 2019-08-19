@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.131 2019/08/04 20:16:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.134 2019/08/18 19:04:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3023,12 +3023,13 @@ void bail(int error_level)
 	cleanup();
 
 	if(cfg.log_level == LOG_DEBUG
+		|| error_level
 		|| netmail || exported_netmail || packed_netmail
 		|| echomail || exported_echomail
 		|| packets_imported || packets_sent
 		|| bundles_unpacked || bundles_sent) {
 		char signoff[1024];
-		sprintf(signoff, "SBBSecho exiting with error level %d", error_level);
+		sprintf(signoff, "SBBSecho (PID %u) exiting with error level %d", getpid(), error_level);
 		if(bundles_unpacked || bundles_sent)
 			sprintf(signoff+strlen(signoff), ", Bundles(%lu unpacked, %lu sent)", bundles_unpacked, bundles_sent);
 		if(packets_imported || packets_sent)
@@ -3250,21 +3251,7 @@ static short fmsgzone(const char* p)
 	val+=atoi(min);
 
 	if(west)
-		switch(val|US_ZONE) {
-			case AST:
-			case EST:
-			case CST:
-			case MST:
-			case PST:
-			case YST:
-			case HST:
-			case BST:
-				/* standard US timezone */
-				return(val|US_ZONE);
-			default:
-				/* non-standard timezone */
-				return(-val);
-		}
+		return(-val);
 	return(val);
 }
 
@@ -5510,7 +5497,7 @@ void pack_netmail(void)
 			if(hdr.attr&FIDO_FILE) {
 				// Parse Kill-File-Sent (KFS) from FLAGS from control paragraph (kludge line) within msg body
 				const char* flags = strstr(fmsgbuf, "\1FLAGS ");
-				if(flags != fmsgbuf && *(flags-1) != '\r' && *(flags-1) != '\n') flags = NULL;
+				if(flags != NULL && flags != fmsgbuf && *(flags-1) != '\r' && *(flags-1) != '\n') flags = NULL;
 				const char* kfs = NULL;
 				if(flags != NULL) {
 					flags += 7;
@@ -6100,7 +6087,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.131 $", "%*s %s", revision);
+	sscanf("$Revision: 3.134 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6314,7 +6301,7 @@ int main(int argc, char **argv)
 	}
 
 	truncsp(cmdline);
-	lprintf(LOG_DEBUG,"%s invoked with options: %s", sbbsecho_pid(), cmdline);
+	lprintf(LOG_DEBUG,"%s (PID %u) invoked with options: %s", sbbsecho_pid(), getpid(), cmdline);
 	lprintf(LOG_DEBUG,"Configured: %u archivers, %u linked-nodes, %u echolists", cfg.arcdefs, cfg.nodecfgs, cfg.listcfgs);
 	lprintf(LOG_DEBUG,"NetMail directory: %s", scfg.netmail_dir);
 	lprintf(LOG_DEBUG,"Secure Inbound directory: %s", cfg.secure_inbound);
