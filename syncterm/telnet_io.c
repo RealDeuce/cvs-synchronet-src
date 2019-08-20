@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.39 2019/08/24 08:06:10 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.37 2019/07/11 18:31:45 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -46,24 +46,15 @@ static int lprintf(int level, const char *fmt, ...)
 
 void putcom(char* buf, size_t len)
 {
+	char	str[128];
+	char*	p=str;
+	size_t i;
 
-	fd_set	wds;
-	FD_ZERO(&wds);
-	FD_SET(telnet_sock, &wds);
-	struct timeval tv;
-	tv.tv_sec=0;
-	tv.tv_usec=1000;
-	if(select(telnet_sock+1, NULL, &wds, NULL, &tv) == 1) {
-		char	str[128];
-		char*	p=str;
-		size_t i;
-		for(i=0;i<len;i++)
-			p+=sprintf(p,"%u ", ((BYTE)buf[i]));
+	for(i=0;i<len;i++)
+		p+=sprintf(p,"%u ", ((BYTE)buf[i]));
 
-		lprintf(LOG_DEBUG,"TX: %s", str);
-		sendsocket(telnet_sock, buf, len);
-	} else
-		lprintf(LOG_WARNING, "TX: putcom(%d) timeout", len);
+	lprintf(LOG_DEBUG,"TX: %s", str);
+	send(telnet_sock, buf, len, 0);
 }
 
 static void send_telnet_cmd(uchar cmd, uchar opt)
@@ -252,3 +243,36 @@ BYTE* telnet_interpret(BYTE* inbuf, int inlen, BYTE* outbuf, int *outlen, struct
     return(outbuf);
 }
 
+BYTE* telnet_expand(BYTE* inbuf, size_t inlen, BYTE* outbuf, size_t *newlen)
+{
+	BYTE*   first_iac;
+	BYTE*   first_cr=NULL;
+	ulong	i,outlen;
+
+    first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
+	if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO)
+	    first_cr=(BYTE*)memchr(inbuf, '\r', inlen);
+
+	if(first_iac==NULL && first_cr==NULL) {	/* Nothing to expand */
+		*newlen=inlen;
+		return(inbuf);
+	}
+
+	if(first_iac!=NULL && (first_cr==NULL || first_iac < first_cr))
+		outlen=first_iac-inbuf;
+	else
+		outlen=first_cr-inbuf;
+	memcpy(outbuf, inbuf, outlen);
+
+    for(i=outlen;i<inlen;i++) {
+		if(inbuf[i]==TELNET_IAC)
+			outbuf[outlen++]=TELNET_IAC;
+		outbuf[outlen++]=inbuf[i];
+		if(telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO) {
+			if(inbuf[i]=='\r')
+				outbuf[outlen++]='\n'; // See RFC5198
+		}
+	}
+    *newlen=outlen;
+    return(outbuf);
+}
