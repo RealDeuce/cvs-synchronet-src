@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.130 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.127 2019/08/17 02:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,7 +35,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "utf8.h"
 
 int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, long* dupechk_hashes, uint16_t* xlat)
 {
@@ -358,26 +357,20 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 	if(client==NULL)
 		return(-1);
 
-	if(client->user!=NULL && client->usernum && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
+	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
 		return(i);
-	if(client->time
-		&& (i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
+	if((i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
 		,/* separators: */"","","", /* precision: */0
 		,date,sizeof(date))))!=SMB_SUCCESS)
 		return(i);
-	if(*client->addr
-		&& (i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
+	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
 		return(i);
-	if(*client->host
-		&& (i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
+	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
 		return(i);
 	if(client->protocol!=NULL && (i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
-	if(client->port) {
-		SAFEPRINTF(port,"%u",client->port);
-		return smb_hfield_str(msg,SENDERPORT,port);
-	}
-	return SMB_SUCCESS;
+	SAFEPRINTF(port,"%u",client->port);
+	return smb_hfield_str(msg,SENDERPORT,port);
 }
 
 /* Note: support MSG_BODY only, no tails or other data fields (dfields) */
@@ -456,11 +449,6 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 		smb_hfield_str(msg,SENDERSERVER,server);
  
 	add_msg_ids(cfg, smb, msg, remsg);
-
-	if((msg->to != NULL && !str_is_ascii(msg->to) && utf8_str_is_valid(msg->to))
-		|| (msg->from != NULL && !str_is_ascii(msg->from) && utf8_str_is_valid(msg->from))
-		|| (msg->subj != NULL && !str_is_ascii(msg->subj) && utf8_str_is_valid(msg->subj)))
-		msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
 
 	if((i=smb_addmsg(smb,msg,smb_storage_mode(cfg, smb),dupechk_hashes,xlat,(uchar*)msgbuf, /* tail: */NULL))==SMB_SUCCESS
 		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
