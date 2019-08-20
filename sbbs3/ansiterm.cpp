@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.21 2015/09/01 03:19:42 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.23 2019/08/20 03:09:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,7 @@ const char *sbbs_t::ansi(int atr)
 		case ANSI_NORMAL:
 			return("\x1b[0m");
 		case BLINK:
+		case BG_BRIGHT:
 			return("\x1b[5m");
 
 		/* Foreground */
@@ -195,7 +196,16 @@ extern "C" char* ansi_attr(int atr, int curatr, char* str, BOOL color)
 
 char* sbbs_t::ansi(int atr, int curatr, char* str)
 {
-	return ::ansi_attr(atr, curatr, str, term_supports(COLOR) ? TRUE:FALSE);
+	long term = term_supports();
+	if(term&ICE_COLOR) {
+		switch(atr&(BG_BRIGHT|BLINK)) {
+			case BG_BRIGHT:
+			case BLINK:
+				atr ^= BLINK;
+				break;
+		}
+	}
+	return ::ansi_attr(atr, curatr, str, (term&COLOR) ? TRUE:FALSE);
 }
 
 void sbbs_t::ansi_getlines()
@@ -215,7 +225,7 @@ bool sbbs_t::ansi_getxy(int* x, int* y)
     *x=0;
     *y=0;
 
-	putcom("\x1b[6n");	/* Request cusor position */
+	putcom("\x1b[6n");	/* Request cursor position */
 
     time_t start=time(NULL);
     sys_status&=~SS_ABORT;
@@ -264,7 +274,7 @@ bool sbbs_t::ansi_getxy(int* x, int* y)
 bool sbbs_t::ansi_gotoxy(int x, int y)
 {
 	if(term_supports(ANSI)) {
-		rprintf("\x1b[%d;%dH",y,x);
+		comprintf("\x1b[%d;%dH",y,x);
 		if(x>0)
 			column=x-1;
 		lncntr=0;
@@ -276,7 +286,7 @@ bool sbbs_t::ansi_gotoxy(int x, int y)
 bool sbbs_t::ansi_save(void)
 {
 	if(term_supports(ANSI)) {
-		rputs("\x1b[s");
+		putcom("\x1b[s");
 		return true;
 	}
 	return false;
@@ -285,7 +295,7 @@ bool sbbs_t::ansi_save(void)
 bool sbbs_t::ansi_restore(void)
 {
 	if(term_supports(ANSI)) {
-		rputs("\x1b[u");
+		putcom("\x1b[u");
 		return true;
 	}
 	return false;
