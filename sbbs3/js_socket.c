@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.245 2020/04/09 19:15:20 deuce Exp $ */
+/* $Id: js_socket.c,v 1.239 2019/08/17 06:41:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...);
 static bool do_CryptFlush(js_socket_private_t *p);
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val);
 static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, void *val, int len);
-static void do_js_close(js_socket_private_t *p, bool finalize);
+static void do_js_close(js_socket_private_t *p);
 static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type);
 static JSBool js_accept(JSContext *cx, uintN argc, jsval *arglist);
 static JSBool js_bind(JSContext *cx, uintN argc, jsval *arglist);
@@ -168,7 +168,7 @@ static bool do_CryptFlush(js_socket_private_t *p)
 	return true;
 }
 
-static void do_js_close(js_socket_private_t *p, bool finalize)
+static void do_js_close(js_socket_private_t *p)
 {
 	if(p->session != -1) {
 		cryptDestroySession(p->session);
@@ -182,10 +182,8 @@ static void do_js_close(js_socket_private_t *p, bool finalize)
 		close_socket(p->sock);
 		p->last_error = ERROR_VALUE;
 	}
-	else {
-		if (!finalize)
-			shutdown(p->sock, SHUT_RDWR);
-	}
+	else
+		shutdown(p->sock, SHUT_RDWR);
 	// This is a lie for external sockets... don't tell anyone.
 	p->sock = INVALID_SOCKET;
 	p->is_connected = FALSE;
@@ -239,15 +237,11 @@ static ptrdiff_t js_socket_recv(js_socket_private_t *p, void *buf, size_t len, i
 	}
 	do {
 		if(p->session==-1) {
-			if (p->sock == INVALID_SOCKET)
-				ret = -1;
-			else {
-				FD_ZERO(&socket_set);
-				FD_SET(p->sock,&socket_set);
-				tv.tv_sec = timeout;
-				if((ret = select(p->sock+1,&socket_set,NULL,NULL,&tv))==1)
-					ret = recv(p->sock, buf, len, flags);
-			}
+			FD_ZERO(&socket_set);
+			FD_SET(p->sock,&socket_set);
+			tv.tv_sec = timeout;
+			if((ret = select(p->sock+1,&socket_set,NULL,NULL,&tv))==1)
+				ret = recv(p->sock, buf, len, flags);
 		}
 		else {
 			status = cryptPopData(p->session, buf, len, &copied);
@@ -409,7 +403,7 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	do_js_close(p, true);
+	do_js_close(p);
 
 	if(p->hostname)
 		free(p->hostname);
@@ -436,7 +430,7 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	do_js_close(p, false);
+	do_js_close(p);
 	dbprintf(FALSE, p, "closed");
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1725,7 +1719,6 @@ enum {
 	,SOCK_PROP_REMOTE_IP
 	,SOCK_PROP_REMOTE_PORT
 	,SOCK_PROP_TYPE
-	,SOCK_PROP_FAMILY
 	,SOCK_PROP_NETWORK_ORDER
 	,SOCK_PROP_SSL_SESSION
 	,SOCK_PROP_SSL_SERVER
@@ -1751,7 +1744,6 @@ static char* socket_prop_desc[] = {
 	,"remote IP address (string in dotted-decimal format)"
 	,"remote TCP or UDP port number"
 	,"socket type, <tt>SOCK_STREAM</tt> (TCP) or <tt>SOCK_DGRAM</tt> (UDP)"
-	,"socket protocol family, <tt>PF_INET</tt> (IPv4) or <tt>PF_INET6</tt> (IPv6)"
 	,"<i>true</i> if binary data is to be sent in Network Byte Order (big end first), default is <i>true</i>"
 	,"set to <i>true</i> to enable SSL as a client on the socket"
 	,"set to <i>true</i> to enable SSL as a server on the socket"
@@ -1879,7 +1871,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 							cryptDestroySession(p->session);
 						p->session=-1;
 						ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-						do_js_close(p, false);
+						do_js_close(p);
 					}
 				}
 			}
@@ -1888,7 +1880,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 					cryptDestroySession(p->session);
 					p->session=-1;
 					ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-					do_js_close(p, false);
+					do_js_close(p);
 				}
 			}
 			JS_RESUMEREQUEST(cx, rc);
@@ -1997,9 +1989,7 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_LOCAL_PORT:
-			if(p->local_port != 0) {
-				*vp = INT_TO_JSVAL(p->local_port);
-			} else if(p->sock != INVALID_SOCKET) {
+			if(p->sock != INVALID_SOCKET) {
 				if(getsockname(p->sock, &addr.addr,&len)!=0)
 					return(JS_FALSE);
 				JS_RESUMEREQUEST(cx, rc);
@@ -2029,17 +2019,6 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SOCK_PROP_TYPE:
 			*vp = INT_TO_JSVAL(p->type);
-			break;
-		case SOCK_PROP_FAMILY:
-			if(p->sock != INVALID_SOCKET) {
-				if(getsockname(p->sock, &addr.addr, &len)!=0)
-					return(JS_FALSE);
-				JS_RESUMEREQUEST(cx, rc);
-				*vp = INT_TO_JSVAL(addr.addr.sa_family);
-				rc=JS_SUSPENDREQUEST(cx);
-			}
-			else
-				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_NETWORK_ORDER:
 			*vp = BOOLEAN_TO_JSVAL(p->network_byte_order);
@@ -2076,7 +2055,6 @@ static jsSyncPropertySpec js_socket_properties[] = {
 	{	"remote_ip_address"	,SOCK_PROP_REMOTE_IP	,SOCK_PROP_FLAGS,	310 },
 	{	"remote_port"		,SOCK_PROP_REMOTE_PORT	,SOCK_PROP_FLAGS,	310 },
 	{	"type"				,SOCK_PROP_TYPE			,SOCK_PROP_FLAGS,	310 },
-	{	"family"				,SOCK_PROP_FAMILY			,SOCK_PROP_FAMILY,	318 },
 	{	"network_byte_order",SOCK_PROP_NETWORK_ORDER,JSPROP_ENUMERATE,	311 },
 	{	"ssl_session"		,SOCK_PROP_SSL_SESSION	,JSPROP_ENUMERATE,	316	},
 	{	"ssl_server"		,SOCK_PROP_SSL_SERVER	,JSPROP_ENUMERATE,	316	},
@@ -2761,7 +2739,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	cb.scfg = scfg;
 	if (argc < 3) {
-		JS_ReportError(cx, "At least three arguments required (interfaces, port, and protocol)");
+		JS_ReportError(cx, "At least two arguments required (interfaces, port, and protocol)");
 		goto fail;
 	}
 	if (argc > 3) {
@@ -2869,7 +2847,6 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->network_byte_order = TRUE;
 	p->session=-1;
 	p->unflushed = 0;
-	p->local_port = port;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2887,7 +2864,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 		"where <i>interface</i> = A array or strings or a single string of hostnames or address optionally including a :port suffix<br>"
 		"<i>port</i> = a port to use when the interface doesn't specify one<br>"
 		"<i>protocol</i> = protocol name, used for socket options and logging.<br>"
-		"<i>domain</i> (optional) = <tt>PF_UNSPEC</tt> (default) for IPv4 or IPv6, <tt>AF_INET</tt> for IPv4, or <tt>AF_INET6</tt> for IPv6<br>"
+		"<i>domain</i> (optional) = <tt>PF_UNSPEC</tt> (default) for IPv4 or IPv6, <tt>PF_INET</tt> for IPv4, or <tt>PF_INET6</tt> for IPv6<br>"
 		"<i>proto</i> (optional) = <tt>IPPROTO_IP</tt> (default)<br>"
 		"<i>type</i> (optional) = <tt>SOCK_STREAM</tt> for TCP (default) or <tt>SOCK_DGRAM</tt> for UDP<br>"
 		"<i>retry_count</i> (optional) = <tt>0</tt> (default) number of times to retry binding<br>"
@@ -3012,8 +2989,6 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 	JSObject*	sockproto;
 	JSObject*	csockobj;
 	JSObject*	lsockobj;
-	jsval		val;
-	JSObject*	constructor;
 
 	sockobj = JS_InitClass(cx, parent, NULL
 		,&js_socket_class
@@ -3024,17 +2999,6 @@ JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent)
 		,NULL,NULL);
 	if (sockobj == NULL)
 		return sockobj;
-	if(JS_GetProperty(cx, parent, js_socket_class.name, &val) && !JSVAL_NULL_OR_VOID(val)) {
-		JS_ValueToObject(cx,val,&constructor);
-		JS_DefineProperty(cx, constructor, "PF_INET", INT_TO_JSVAL(PF_INET), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, constructor, "PF_INET6", INT_TO_JSVAL(PF_INET6), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, constructor, "AF_INET", INT_TO_JSVAL(AF_INET), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, constructor, "AF_INET6", INT_TO_JSVAL(AF_INET6), NULL, NULL
-			, JSPROP_PERMANENT|JSPROP_ENUMERATE|JSPROP_READONLY);
-	}
 	sockproto = JS_GetPrototype(cx, sockobj);
 	csockobj = JS_InitClass(cx, parent, sockproto
 		,&js_connected_socket_class
