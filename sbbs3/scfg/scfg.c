@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.108 2020/03/24 06:05:18 rswindell Exp $ */
+/* $Id: scfg.c,v 1.104 2019/07/13 21:09:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,10 +87,6 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
 	if(stricmp(fname, "control.dat") == 0)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
-	if(stricmp(fname, "newsgroup.lst") == 0)
-		return IMPORT_LIST_TYPE_NEWSGROUPS;
-	if(stricmp(fname, "echostats.ini") == 0)
-		return IMPORT_LIST_TYPE_ECHOSTATS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
@@ -177,7 +173,11 @@ int main(int argc, char **argv)
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
-    SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
+    p=getenv("SBBSCTRL");
+    if(p!=NULL)
+        SAFECOPY(cfg.ctrl_dir,p);
+    else
+		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 	uifc.esc_delay=25;
 
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 			case msgbase:
 			{
 				enum import_list_type list_type = determine_msg_list_type(fname);
-				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, /* pkt_orig: */NULL, &added);
+				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, &added);
 				break;
 			}
 			case filebase:
@@ -2190,10 +2190,7 @@ int lprintf(int level, char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     strip_ctrl(sbuf,sbuf);
-	if(uifc.msg == NULL)
-		puts(sbuf);
-	else
-    	uifc.msg(sbuf);
+    uifc.msg(sbuf);
     return(0);
 }
 
