@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.78 2019/08/20 08:45:42 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.77 2019/08/20 07:59:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -559,8 +559,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if(destuser > 0) {
 					SAFEPRINTF4(str, text[MsgPostedToYouVia]
 						,msg.from
-						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK"
-						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname);
+						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname
+						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK");
 					putsmsg(&cfg, destuser, str);
 				}
 				if(!(useron.rest&FLAG('Q')))
