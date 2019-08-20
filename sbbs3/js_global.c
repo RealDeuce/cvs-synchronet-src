@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.389 2019/08/20 17:33:48 rswindell Exp $ */
+/* $Id: js_global.c,v 1.388 2019/08/08 03:53:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -590,10 +590,6 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		/* lastly, search exec dir */
 		if(path[0]==0)
 			SAFEPRINTF2(path,"%s%s",p->cfg->exec_dir,filename);
-
-		if(!fexistcase(path)) {
-			SAFECOPY(path, filename);
-		}
 	}
 	free(filename);
 
