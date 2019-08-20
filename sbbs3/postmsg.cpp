@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.120 2019/02/19 07:26:49 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.127 2019/08/17 02:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,36 +36,26 @@
 
 #include "sbbs.h"
 
-int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, uint16_t* xlat)
+int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, long* dupechk_hashes, uint16_t* xlat)
 {
 	int i;
 
 	*dupechk_hashes=SMB_HASH_SOURCE_DUPE;
 	*xlat=XLAT_NONE;
 
-	smb->retry_time=cfg->smb_retry_time;
+	if((i=smb_open_sub(cfg, smb, subnum)) != SMB_SUCCESS)
+		return i;
+
 	if(smb->subnum==INVALID_SUB) {
-		safe_snprintf(smb->file,sizeof(smb->file),"%smail",cfg->data_dir);
-		smb->status.max_crcs=cfg->mail_maxcrcs;
-		smb->status.max_age=cfg->mail_maxage;
-		smb->status.max_msgs=0;	/* unlimited */
-		smb->status.attr=SMB_EMAIL;
 		/* duplicate message-IDs must be allowed in mail database */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_MSG_ID);
 	} else {
-		safe_snprintf(smb->file,sizeof(smb->file),"%s%s",cfg->sub[smb->subnum]->data_dir,cfg->sub[smb->subnum]->code);
-		smb->status.max_crcs=cfg->sub[smb->subnum]->maxcrcs;
-		smb->status.max_msgs=cfg->sub[smb->subnum]->maxmsgs;
-		smb->status.max_age=cfg->sub[smb->subnum]->maxage;
-		smb->status.attr=0;
 		if(cfg->sub[smb->subnum]->misc&SUB_LZH)
 			*xlat=XLAT_LZH;
 	}
+
 	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
-
-	if((i=smb_open(smb)) != SMB_SUCCESS)
-		return i;
 
 	if(filelength(fileno(smb->shd_fp)) < 1) /* MsgBase doesn't exist yet, create it */
 		i=smb_create(smb);
@@ -80,16 +70,19 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, int* storage, long* dupechk_hashes, ui
 /* Posts a message on sub-board number 'subnum'								*/
 /* Returns true if posted, false if not.                                    */
 /****************************************************************************/
-bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
+bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 {
-	char	str[256],title[LEN_TITLE+1],top[256];
-	char	touser[64];
+	char	str[256];
+	char	title[LEN_TITLE+1] = "";
+	char	top[256] = "";
+	char	touser[64] = "";
 	char	from[64];
 	char	tags[64] = "";
-	char*	editor=NULL;
+	const char*	editor=NULL;
+	const char*	charset=NULL;
 	char*	msgbuf=NULL;
 	uint16_t xlat;
-	ushort	msgattr;
+	ushort	msgattr = 0;
 	int 	i,storage;
 	long	dupechk_hashes;
 	long	length;
@@ -98,29 +91,27 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 	uint	reason;
 
 	if(remsg) {
-		SAFECOPY(title, remsg->subj);
+		SAFECOPY(title, msghdr_field(remsg, remsg->subj, NULL, term_supports(UTF8)));
 		if(remsg->hdr.attr&MSG_ANONYMOUS)
 			SAFECOPY(from,text[Anonymous]);
 		else
-			SAFECOPY(from,remsg->from);
+			SAFECOPY(from, msghdr_field(remsg, remsg->from, NULL, term_supports(UTF8)));
 		// If user posted this message, reply to the original recipient again
 		if(remsg->to != NULL
 			&& ((remsg->from_ext != NULL && atoi(remsg->from_ext)==useron.number)
 				|| stricmp(useron.alias,remsg->from) == 0 || stricmp(useron.name,remsg->from) == 0))
-			SAFECOPY(touser,remsg->to);
+			SAFECOPY(touser, msghdr_field(remsg, remsg->to, NULL, term_supports(UTF8)));
 		else
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
-		sprintf(top,text[RegardingByToOn],title,from,remsg->to
+		sprintf(top,text[RegardingByToOn]
+			,title
+			,from
+			,msghdr_field(remsg, remsg->to, NULL, term_supports(UTF8))
 			,timestr(remsg->hdr.when_written.time)
 			,smb_zonestr(remsg->hdr.when_written.zone,NULL));
 		if(remsg->tags != NULL)
 			SAFECOPY(tags, remsg->tags);
-	} else {
-		title[0]=0;
-		touser[0]=0;
-		top[0]=0;
-		msgattr=0; 
 	}
 
 	/* Security checks */
@@ -215,21 +206,20 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 		return(false); 
 	}
 
-	smb.subnum=subnum;
-	if((i=msgbase_open(&cfg,&smb,&storage,&dupechk_hashes,&xlat))!=SMB_SUCCESS) {
+	if((i=msgbase_open(&cfg,&smb,subnum,&storage,&dupechk_hashes,&xlat))!=SMB_SUCCESS) {
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		smb_stack(&smb,SMB_STACK_POP);
 		return(false); 
 	}
 
-	if(remsg != NULL && (wm_mode&WM_QUOTE)) {
-		if(!quotemsg(&smb, remsg, /* include tails: */FALSE))
-			wm_mode &= ~WM_QUOTE;
+	if(remsg != NULL && resmb != NULL && !(wm_mode&WM_QUOTE)) {
+		if(quotemsg(resmb, remsg))
+			wm_mode |= WM_QUOTE;
 	}
 
 	if(!writemsg(str,top,title,wm_mode,subnum,touser
 		,/* from: */cfg.sub[subnum]->misc&SUB_NAME ? useron.name : useron.alias
-		,&editor)
+		,&editor, &charset)
 		|| (length=(long)flength(str))<1) {	/* Bugfix Aug-20-2003: Reject negative length */
 		bputs(text[Aborted]);
 		smb_close(&smb);
@@ -304,9 +294,7 @@ bool sbbs_t::postmsg(uint subnum, smbmsg_t *remsg, long wm_mode)
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor, charset);
 	
 	if((cfg.sub[subnum]->misc&SUB_MSGTAGS)
 		&& (tags[0] || text[TagMessageQ][0] == 0 || !noyes(text[TagMessageQ]))) {
@@ -387,8 +375,7 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 
 /* Note: support MSG_BODY only, no tails or other data fields (dfields) */
 /* Adds/generates Message-IDs when needed */
-/* Does *not* support reply-ID look-up / thread-linkage */
-extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf)
+extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t* client, const char* server, char* msgbuf, smbmsg_t* remsg)
 {
 	ushort	xlat=XLAT_NONE;
 	int 	i;
@@ -461,7 +448,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	if(server!=NULL)
 		smb_hfield_str(msg,SENDERSERVER,server);
  
-	add_msg_ids(cfg, smb, msg, /* remsg: */NULL);
+	add_msg_ids(cfg, smb, msg, remsg);
 
 	if((i=smb_addmsg(smb,msg,smb_storage_mode(cfg, smb),dupechk_hashes,xlat,(uchar*)msgbuf, /* tail: */NULL))==SMB_SUCCESS
 		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
