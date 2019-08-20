@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.387 2019/08/04 08:26:01 rswindell Exp $ */
+/* $Id: js_global.c,v 1.388 2019/08/08 03:53:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -307,7 +307,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 			}
 		}
 		else {
-			lprintf(LOG_ERR, "!ERROR unabled to locate global js object");
+			lprintf(LOG_ERR, "!ERROR unable to locate global js object");
 		}
 
 		if((bg->runtime = jsrt_GetNew(JAVASCRIPT_MAX_BYTES, 1000, __FILE__, __LINE__))==NULL) {
@@ -639,6 +639,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
+		lprintf(LOG_DEBUG, "JavaScript Background Load: %s", path);
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
