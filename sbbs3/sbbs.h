@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.544 2019/08/15 05:36:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.545 2019/08/20 03:12:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -721,6 +721,11 @@ public:
 #endif
 	;
 	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		comprintf(const char *fmt, ...)			/* BBS direct-comm printf function */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
 #endif
