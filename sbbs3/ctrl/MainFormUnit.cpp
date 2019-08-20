@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.206 2019/08/31 22:25:08 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.205 2019/07/18 04:10:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3865,10 +3865,10 @@ void __fastcall TMainForm::ClearErrorsExecute(TObject *Sender)
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
     	int file;
-       	if(NodeForm->getnodedat(i+1,&node, /*lockit: */true))
+       	if(NodeForm->getnodedat(i+1,&node,&file))
             break;
         node.errors=0;
-        if(NodeForm->putnodedat(i+1,&node))
+        if(NodeForm->putnodedat(i+1,&node,file))
             break;
     }
 }
