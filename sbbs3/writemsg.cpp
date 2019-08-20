@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.172 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.171 2019/08/04 23:48:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,8 @@
 #include "sbbs.h"
 #include "wordwrap.h"
 #include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 #define MAX_LINES		10000
 #define MAX_LINE_LEN	(cols - 1)
@@ -111,7 +113,11 @@ bool sbbs_t::quotemsg(smb_t* smb, smbmsg_t* msg, bool tails)
 					&& (!useron_xedit || (cfg.xedit[useron_xedit-1]->misc&XTRN_UTF8)))
 					is_utf8 = TRUE;
 				else {
-					utf8_to_cp437_str(buf);
+					utf8_normalize_str(buf);
+					utf8_replace_chars(buf, unicode_to_cp437
+						,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+						,/* unsupported zero-width ch: */0
+						,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 				}
 			} else { // CP437
 				char* orgtxt;
@@ -522,7 +528,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(console&CON_RAW_IN) {
 
 		if(editor != NULL)
-			*editor = "Synchronet writemsg $Revision: 1.172 $";
+			*editor = "Synchronet writemsg $Revision: 1.171 $";
 
 		bprintf(text[EnterMsgNowRaw]
 			,(ulong)cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
@@ -560,7 +566,11 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 		if(!str_is_ascii(subj)) {
 			if(utf8_str_is_valid(subj)) {
 				if(!term_supports(UTF8) || !(cfg.xedit[useron_xedit-1]->misc & XTRN_UTF8)) {
-					utf8_to_cp437_str(subj);
+					utf8_normalize_str(subj);
+					utf8_replace_chars(subj, unicode_to_cp437
+						,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+						,/* unsupported zero-width ch: */0
+						,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 				}
 			} else { // CP437
 				if(term_supports(UTF8) && (cfg.xedit[useron_xedit-1]->misc & XTRN_UTF8)) {
@@ -659,7 +669,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	else {
 
 		if(editor != NULL)
-			*editor = "Synchronet msgeditor $Revision: 1.172 $";
+			*editor = "Synchronet msgeditor $Revision: 1.171 $";
 
 		buf[0]=0;
 		if(linesquoted || draft_restored) {
