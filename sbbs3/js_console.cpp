@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.130 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.138 2019/08/21 09:42:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,8 @@ enum {
 	,CON_PROP_TABSTOP
 	,CON_PROP_AUTOTERM
 	,CON_PROP_TERMINAL
+	,CON_PROP_TERM_TYPE
+	,CON_PROP_CHARSET
 	,CON_PROP_CTERM_VERSION
 	,CON_PROP_WORDWRAP
 	,CON_PROP_QUESTION
@@ -72,6 +74,8 @@ enum {
 	,CON_PROP_INBUF_SPACE
 	,CON_PROP_OUTBUF_LEVEL
 	,CON_PROP_OUTBUF_SPACE
+
+	,CON_PROP_OUTPUT_RATE
 };
 
 extern JSClass js_console_class;
@@ -122,6 +126,16 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_TERMINAL:
 			if((js_str=JS_NewStringCopyZ(cx, sbbs->terminal))==NULL)
+				return(JS_FALSE);
+			*vp = STRING_TO_JSVAL(js_str);
+			return(JS_TRUE);
+		case CON_PROP_TERM_TYPE:
+			if((js_str=JS_NewStringCopyZ(cx, sbbs->term_type()))==NULL)
+				return(JS_FALSE);
+			*vp = STRING_TO_JSVAL(js_str);
+			return(JS_TRUE);
+		case CON_PROP_CHARSET:
+			if((js_str=JS_NewStringCopyZ(cx, sbbs->term_charset()))==NULL)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			return(JS_TRUE);
@@ -177,6 +191,9 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_OUTBUF_SPACE:
 			val=RingBufFree(&sbbs->outbuf);
+			break;
+		case CON_PROP_OUTPUT_RATE:
+			val = sbbs->cur_output_rate;
 			break;
 
 		default:
@@ -310,6 +327,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
+		case CON_PROP_OUTPUT_RATE:
+			sbbs->set_output_rate((enum sbbs_t::output_rate)val);
+			break;
 
 		default:
 			return(JS_TRUE);
@@ -334,6 +354,8 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"tabstop"			,CON_PROP_TABSTOP			,CON_PROP_FLAGS	,31700},
 	{	"autoterm"			,CON_PROP_AUTOTERM			,CON_PROP_FLAGS	,310},
 	{	"terminal"			,CON_PROP_TERMINAL			,CON_PROP_FLAGS ,311},
+	{	"type"				,CON_PROP_TERM_TYPE			,JSPROP_ENUMERATE|JSPROP_READONLY ,31702},
+	{	"charset"			,CON_PROP_CHARSET			,JSPROP_ENUMERATE|JSPROP_READONLY ,31702},
 	{	"cterm_version"		,CON_PROP_CTERM_VERSION		,CON_PROP_FLAGS ,317},
 	{	"inactivity_warning",CON_PROP_INACTIV_WARN		,CON_PROP_FLAGS, 31401},
 	{	"inactivity_hangup"	,CON_PROP_INACTIV_HANGUP	,CON_PROP_FLAGS, 31401},
@@ -350,6 +372,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"input_buffer_space",CON_PROP_INBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_level",CON_PROP_OUTBUF_LEVEL		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_space",CON_PROP_OUTBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
+	{	"output_rate"		,CON_PROP_OUTPUT_RATE		,JSPROP_ENUMERATE, 31702},
 	{0}
 };
 
@@ -366,7 +389,9 @@ static const char* con_prop_desc[] = {
 	,"current tab stop interval (tab size), in columns"
 	,"bit-field of automatically detected terminal settings "
 		"(see <tt>USER_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
-	,"terminal type description (e.g. 'ANSI')"
+	,"terminal type description, possibly supplied by client (e.g. 'ANSI')"
+	,"terminal type (i.e. 'ANSI', 'RIP', 'PETSCII', or 'DUMB')"
+	,"terminal character set (i.e. 'UTF-8', 'CP437', 'CBM-ASCII', or 'US-ASCII')"
 	,"detected CTerm (SyncTERM) version as an integer > 1000 where major version is cterm_version / 1000 and minor version is cterm_version % 1000"
 	,"number of seconds before displaying warning (Are you really there?) due to user/keyboard inactivity"
 	,"number of seconds before disconnection due to user/keyboard inactivity"
@@ -391,6 +416,7 @@ static const char* con_prop_desc[] = {
 	,"number of bytes available in the input buffer	- <small>READ ONLY</small>"
 	,"number of bytes currently in the output buffer (from the local server) - <small>READ ONLY</small>"
 	,"number of bytes available in the output buffer - <small>READ ONLY</small>"
+	,"emulated serial data output rate, in bits-per-second (0 = unlimited)"
 	,NULL
 };
 #endif
@@ -1068,14 +1094,26 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr=NULL;
 	size_t		cstr_sz=0;
 	jsrefcount	rc;
+	int32		pmode = 0;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-    for (i = 0; i < argc; i++) {
+	if(argc == 2 && JSVAL_IS_STRING(argv[0]) && JSVAL_IS_NUMBER(argv[1])) {
+		JSVALUE_TO_RASTRING(cx, argv[0], cstr, &cstr_sz, NULL);
+		if(cstr==NULL)
+		    return(JS_FALSE);
+		if(!JS_ValueToInt32(cx, argv[1], &pmode))
+			return JS_FALSE;
+		rc=JS_SUSPENDREQUEST(cx);
+		sbbs->bputs(cstr, pmode);
+		JS_RESUMEREQUEST(cx, rc);
+	}
+    else for (i=0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
+
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1092,20 +1130,28 @@ static JSBool
 js_strlen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
+	sbbs_t*		sbbs;
     JSString*	str;
 	char*		cstr;
 	jsrefcount	rc;
+	int32		pmode = 0;
+
+	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
+		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
+	if(argc > 1)
+		JS_ValueToInt32(cx, argv[1], &pmode);
+
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(bstrlen(cstr)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->bstrlen(cstr, pmode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1421,6 +1467,34 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_wide(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+    JSString*	str;
+	sbbs_t*		sbbs;
+	char*		cstr;
+	jsrefcount	rc;
+
+	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
+		return(JS_FALSE);
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	str = JS_ValueToString(cx, argv[0]);
+	if (str == NULL)
+		return(JS_FALSE);
+
+	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
+	if(cstr==NULL)
+		return JS_FALSE;
+	rc=JS_SUSPENDREQUEST(cx);
+	sbbs->wide(cstr);
+	free(cstr);
+	JS_RESUMEREQUEST(cx, rc);
+    return(JS_TRUE);
+}
+
+static JSBool
 js_saveline(JSContext *cx, uintN argc, jsval *arglist)
 {
 	sbbs_t*		sbbs;
@@ -1691,16 +1765,21 @@ js_cursor_left(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	int32		val=1;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc) {
+		if(!JS_ValueToInt32(cx, argv[0], &val))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->backspace();
+	sbbs->backspace(val);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1708,16 +1787,21 @@ js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_creturn(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	int32		val=1;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc) {
+		if(!JS_ValueToInt32(cx, argv[0], &val))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->carriage_return();
+	sbbs->carriage_return(val);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1774,10 +1858,8 @@ js_lock_input(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=true;
-	} else if(sbbs->input_thread_mutex_locked) {
+	} else {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=false;
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1931,8 +2013,10 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("beep for <i>count</i> number of times (default count is 1)")
 	,311
 	},
-	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
-	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.)")
+	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("[value [,value][...]] or [string [,mode=<tt>P_NONE</tt>]]")
+	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.).<br>"
+		"Supports a limited set of <tt>P_*</tt> flags, e.g. <tt>P_PETSCII</tt> and <tt>P_UTF8</tt>."
+	)
 	,310
 	},
 	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
@@ -1953,8 +2037,12 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a string centered on the screen")
 	,310
 	},
-	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
-	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
+	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")
+	,JSDOCSTR("display a string double-wide on the screen (sending \"fullwidth\" Unicode characters when possible)")
+	,31702
+	},
+	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
+	,JSDOCSTR("returns the printed-length (number of columns) of the specified <i>text</i>, accounting for Ctrl-A codes")
 	,310
 	},
 	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>] [,orig_columns=0")
@@ -2059,11 +2147,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"<i>terminal_flags</i> (numeric bit-field) if no <i>terminal_flags</i> were specified")
 	,314
 	},
-	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("")
+	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("send a destructive backspace sequence")
 	,315
 	},
-	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("send a carriage return sequence")
 	,31700
 	},
