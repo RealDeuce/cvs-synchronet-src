@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.61 2019/05/22 20:11:38 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.63 2019/08/12 06:21:28 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -340,16 +340,12 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			cfg.sub[j]->ptridx=sav_ptridx;	/* restore original ptridx */
 		} else {
 			cfg.sub[j]->grp=grpnum;
-			if(cfg.total_faddrs)
-				cfg.sub[j]->faddr=cfg.faddr[0];
 			SAFECOPY(cfg.sub[j]->code_suffix,tmpsub.code_suffix);
 			SAFECOPY(cfg.sub[j]->sname,tmpsub.sname);
 			SAFECOPY(cfg.sub[j]->lname,tmpsub.lname);
 			SAFECOPY(cfg.sub[j]->newsgroup,tmpsub.newsgroup);
 			SAFECOPY(cfg.sub[j]->qwkname,tmpsub.qwkname);
 			SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
-//			if(j==cfg.total_subs)
-//				cfg.sub[j]->maxmsgs=1000;
 		}
 		if(qhub != NULL)
 			new_qhub_sub(qhub, qhub->subs, cfg.sub[j], qwk_confnum);
@@ -514,7 +510,7 @@ void msgs_cfg()
 								SAFEPRINTF(tmp, "%ssubs/", cfg.data_dir);
 							else
 								SAFECOPY(tmp, cfg.sub[j]->data_dir);
-							delfiles(tmp, str);
+							delfiles(tmp, str, /* keep: */0);
 						}
 					}
 				}
