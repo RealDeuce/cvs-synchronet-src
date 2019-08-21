@@ -1,7 +1,6 @@
-/* $Id: js_rtpool.c,v 1.33 2019/09/10 19:57:27 deuce Exp $ */
+/* $Id: js_rtpool.c,v 1.32 2019/03/22 21:28:27 rswindell Exp $ */
 // vi: tabstop=4
 
-#include <gen_defs.h>		/* SLEEP() */
 #include "js_rtpool.h"
 #include <threadwrap.h>		/* Must be included after jsapi.h */
 #include <genwrap.h>		/* SLEEP() */
