@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.69 2018/11/07 03:55:00 rswindell Exp $ */
+/* $Id: userdat.h,v 1.72 2019/08/20 07:56:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -58,7 +58,7 @@
 			#define DLLEXPORT __declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
+			#define DLLCALL
 		#else
 			#define DLLCALL
 		#endif
@@ -152,6 +152,8 @@ DLLEXPORT BOOL	DLLCALL check_name(scfg_t*, const char* name);
 DLLEXPORT BOOL	DLLCALL sysop_available(scfg_t*);
 DLLEXPORT BOOL	DLLCALL set_sysop_availability(scfg_t*, BOOL available);
 
+DLLEXPORT int	DLLCALL lookup_user(scfg_t*, link_list_t*, const char* name);
+
 /* Login attempt/hack tracking */
 typedef struct {
 	union xp_sockaddr addr;	/* host with consecutive failed login attempts */
@@ -165,6 +167,7 @@ typedef struct {
 
 DLLEXPORT link_list_t*		DLLCALL	loginAttemptListInit(link_list_t*);
 DLLEXPORT BOOL				DLLCALL	loginAttemptListFree(link_list_t*);
+DLLEXPORT long				DLLCALL	loginAttemptListCount(link_list_t*);
 DLLEXPORT long				DLLCALL	loginAttemptListClear(link_list_t*);
 DLLEXPORT long				DLLCALL loginAttempts(link_list_t*, const union xp_sockaddr*);
 DLLEXPORT void				DLLCALL	loginSuccess(link_list_t*, const union xp_sockaddr*);
