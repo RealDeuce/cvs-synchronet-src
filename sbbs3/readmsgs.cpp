@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.126 2020/03/01 19:10:50 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.124 2019/08/04 22:48:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,12 +60,12 @@ uchar sbbs_t::msg_listing_flag(uint subnum, smbmsg_t* msg, post_t* post)
 	return ' ';
 }
 
-long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long start, long posts, bool reading)
+long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long i, long posts, bool reading)
 {
 	smbmsg_t msg;
 	long listed=0;
-	
-	for(long i = start; i<posts && !msgabort(); i++) {
+
+	for(;i<posts && !msgabort();i++) {
 		if(mode&SCAN_NEW && post[i].idx.number<=subscan[subnum].ptr)
 			continue;
 		msg.idx.offset=post[i].idx.offset;
@@ -977,7 +977,7 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 					SAFEPRINTF(str, text[DeleteTextFileQ], "Poll");
 				else
 					SAFEPRINTF2(str,text[DeletePostQ], smb.curmsg+1, msghdr_field(&msg, msg.subj));
-				if(!(msg.hdr.attr&MSG_DELETE) && str[0] && noyes(str)) {
+				if(!(msg.hdr.attr&MSG_DELETE) && noyes(str)) {
 					domsg = false;
 					break;
 				}
@@ -1077,13 +1077,6 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case 'L':   /* List messages */
 				domsg=0;
-				if(cfg.listmsgs_mod[0]) {
-					char cmdline[256];
-
-					safe_snprintf(cmdline, sizeof(cmdline), "%s %s %ld", cfg.listmsgs_mod, cfg.sub[subnum]->code, mode);
-					exec_bin(cmdline, &main_csi);
-					break;
-				}
 				if((i64=get_start_msgnum(&smb, 1))<0)
 					break;
 				i=(int)i64;
