@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.64 2019/08/23 21:45:55 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.63 2019/08/12 06:21:28 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -112,7 +112,6 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 	size_t		grpname_len = strlen(cfg.grp[grpnum]->sname);
 	char		duplicate_code[LEN_CODE+1]="";
 	uint		duplicate_codes = 0;	// consecutive duplicate codes
-	long		new_sub_misc = 0;
 
 	if(added != NULL)
 		*added = 0;
@@ -224,10 +223,8 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			SAFECOPY(tmpsub.lname, p);
 			SAFECOPY(tmpsub.sname, p);
 			SAFECOPY(tmpsub.qwkname, p);
-			new_sub_misc = SUB_QNET;
 		}
 		else {
-			new_sub_misc = SUB_FIDO;
 			char* p=str;
 			SKIP_WHITESPACE(p);
 			if(!*p || *p==';')
@@ -332,7 +329,7 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			return -2;
 
 		if(j==cfg.total_subs) {
-			if(!new_sub(j, grpnum, /* pasted_sub: */NULL, new_sub_misc))
+			if(!new_sub(j, grpnum, /* pasted_sub: */NULL))
 				return -3;
 			if(added != NULL)
 				(*added)++;
@@ -723,7 +720,7 @@ void msgs_cfg()
 						"  and (optional) descriptions.\n"
 
 					;
-					k = uifc.list(WIN_MID|WIN_ACT,0,0,0,&export_list_type,0
+					k = uifc.list(WIN_MID|WIN_SAV,0,0,0,&export_list_type,0
 						,"Export Area File Format",opt);
 					if(k==-1)
 						break;
@@ -854,7 +851,7 @@ void msgs_cfg()
 						"  FidoNet standard EchoList containing standardized echo `Area Tags`\n"
 						"  and (optional) descriptions.\n"
 					;
-					k=uifc.list(WIN_MID|WIN_ACT,0,0,0,&import_list_type,0
+					k=uifc.list(WIN_MID|WIN_SAV,0,0,0,&import_list_type,0
 						,"Import Area File Format",opt);
 					if(k < 0)
 						break;
