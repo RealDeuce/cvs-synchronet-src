@@ -1,6 +1,6 @@
 /* Synchronet QWK unpacking routine */
 
-/* $Id: un_qwk.cpp,v 1.63 2019/08/22 01:03:29 rswindell Exp $ */
+/* $Id: un_qwk.cpp,v 1.62 2019/08/20 08:45:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -366,7 +366,7 @@ bool sbbs_t::unpack_qwk(char *packet,uint hubnum)
 				SAFEPRINTF4(str, text[MsgPostedToYouVia]
 					,msg.from
 					,cfg.qhub[hubnum]->id
-					,cfg.grp[cfg.sub[j]->grp]->sname, cfg.sub[j]->lname);
+					,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname);
 				putsmsg(&cfg, destuser, str);
 			}
 		} else {
