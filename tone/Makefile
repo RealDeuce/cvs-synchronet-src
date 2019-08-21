@@ -1,12 +1,12 @@
 # tone/Makefile
 #
-# $Id: Makefile,v 1.5 2006/05/30 22:51:55 rswindell Exp $
+# $Id: Makefile,v 1.4 2005/01/21 03:07:04 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
 # @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)			#
 #																			#
-# Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		#
+# Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		#
 #																			#
 # This program is free software; you can redistribute it and/or				#
 # modify it under the terms of the GNU General Public License				#
@@ -38,7 +38,7 @@ SRC_ROOT	=	..
 LDFLAGS 	=	$(LDFLAGS) $(XPDEV_LDFLAGS)
 CFLAGS		=	$(CFLAGS) $(XPDEV_CFLAGS)
 
-$(TONE):	$(OBJS) $(XPDEV_LIB)
+$(TONE):	$(OBJS)
 	@echo Creating $@
-	$(QUIET)$(CC) $(CFLAGS) $(LDFLAGS) -e$@ $**
+	$(QUIET)$(CC) $(CFLAGS) $(LDFLAGS) -e$@ $** $(XPDEV_LIBS)
 
