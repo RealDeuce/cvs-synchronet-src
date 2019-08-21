@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.100 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.99 2019/08/17 02:21:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -40,6 +40,8 @@
 
 #include "sbbs.h"
 #include "utf8.h"
+#include "unicode.h"
+#include "cp437defs.h"
 
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
@@ -144,7 +146,11 @@ const char* sbbs_t::msghdr_field(const smbmsg_t* msg, const char* str, char* buf
 		buf = msgghdr_field_cp437_str;
 
 	strncpy(buf, str, sizeof(msgghdr_field_cp437_str));
-	utf8_to_cp437_str(buf);
+	utf8_normalize_str(buf);
+	utf8_replace_chars(buf, unicode_to_cp437
+		,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
+		,/* unsupported zero-width ch: */0
+		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 
 	return buf;
 }
