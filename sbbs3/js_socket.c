@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.239 2019/08/17 06:41:25 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.240 2019/08/21 01:45:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2739,7 +2739,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	cb.scfg = scfg;
 	if (argc < 3) {
-		JS_ReportError(cx, "At least two arguments required (interfaces, port, and protocol)");
+		JS_ReportError(cx, "At least three arguments required (interfaces, port, and protocol)");
 		goto fail;
 	}
 	if (argc > 3) {
