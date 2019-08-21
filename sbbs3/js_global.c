@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.384 2019/07/08 07:08:00 rswindell Exp $ */
+/* $Id: js_global.c,v 1.389 2019/08/20 17:33:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -307,7 +307,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 			}
 		}
 		else {
-			lprintf(LOG_ERR, "!ERROR unabled to locate global js object");
+			lprintf(LOG_ERR, "!ERROR unable to locate global js object");
 		}
 
 		if((bg->runtime = jsrt_GetNew(JAVASCRIPT_MAX_BYTES, 1000, __FILE__, __LINE__))==NULL) {
@@ -590,6 +590,10 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		/* lastly, search exec dir */
 		if(path[0]==0)
 			SAFEPRINTF2(path,"%s%s",p->cfg->exec_dir,filename);
+
+		if(!fexistcase(path)) {
+			SAFECOPY(path, filename);
+		}
 	}
 	free(filename);
 
@@ -639,6 +643,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
+		lprintf(LOG_DEBUG, "JavaScript Background Load: %s", path);
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
@@ -3171,6 +3176,65 @@ js_fattr(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_fmode(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		fname = NULL;
+	jsrefcount	rc;
+	int			mode = -1;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc==0 || JSVAL_IS_VOID(argv[0]))
+		return JS_TRUE;
+
+	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL)
+	HANDLE_PENDING(cx, fname);
+	if(fname == NULL) 
+		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	struct stat st = {0};
+	if(stat(fname, &st) == 0)
+		mode = st.st_mode;
+	free(fname);
+	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(mode));
+	return JS_TRUE;
+}
+
+static JSBool
+js_chmod(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		fname = NULL;
+	jsrefcount	rc;
+	int32		mode;
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc < 2 || JSVAL_IS_VOID(argv[0]))
+		return JS_TRUE;
+
+	JSVALUE_TO_MSTRING(cx, argv[0], fname, NULL)
+	HANDLE_PENDING(cx, fname);
+	if(fname == NULL) 
+		return JS_TRUE;
+
+	if(!JS_ValueToInt32(cx, argv[1], &mode)) {
+		free(fname);
+		return JS_FALSE;
+	}
+
+	rc=JS_SUSPENDREQUEST(cx);
+	int result = CHMOD(fname, mode);
+	free(fname);
+	JS_RESUMEREQUEST(cx, rc);
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(result == 0));
+	return JS_TRUE;
+}
+
+static JSBool
 js_fdate(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
@@ -4193,8 +4257,24 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"file_attrib",		js_fattr,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
-	,JSDOCSTR("get a file's permissions/attributes. Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
+	,JSDOCSTR("get a file's attributes (same as </i>file_mode()</i> on *nix). "
+		"On Windows, the return value corresponds with <tt>_finddata_t.attrib</tt> "
+		"(includes DOS/Windows file system-specific attributes, like <i>hidden</i>, and <i>archive</i>). "
+		"Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
 	,310
+	},		
+	{"file_mode",		js_fmode,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
+	,JSDOCSTR("get a file's type and mode flags (e.g. read/write/execute permissions). "
+		"The return value corresponds with <tt>struct stat.st_mode</tt>. "
+		"Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
+	,31702
+	},		
+	{"file_chmod",		js_chmod,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename, number mode")
+	,JSDOCSTR("set a file's permissions flags. "
+		"The supported <i>mode</i> bit values are system-dependent "
+		"(e.g. Windows only supports setting or clearing the user-write/0x80 mode flag). "
+		"Returns <tt>true</tt> if the requested change was successful.")
+	,31702
 	},		
 	{"file_date",		js_fdate,			1,	JSTYPE_NUMBER,	JSDOCSTR("path/filename")
 	,JSDOCSTR("get a file's last modified date/time (in time_t format). Returns <tt>-1</tt> if the <i>path/filename</i> does not exist.")
@@ -4325,8 +4405,8 @@ static jsSyncMethodSpec js_global_functions[] = {
 	},
 	{"gethostbyname",	js_resolve_ip,		1,	JSTYPE_ALIAS },
 	{"resolve_ip",		js_resolve_ip,		1,	JSTYPE_STRING,	JSDOCSTR("hostname [,array=<tt>false</tt>]")
-	,JSDOCSTR("resolve IP address of specified hostname (AKA gethostbyname).  If array is true (added in 3.17), will return "
-	"an array of all addresses rather than just the first one")
+	,JSDOCSTR("resolve IP address of specified hostname (AKA gethostbyname).  If <i>array</i> is true (added in 3.17), will return "
+	"an array of all addresses rather than just the first one (upon success).")
 	,311
 	},
 	{"gethostbyaddr",	js_resolve_host,	1,	JSTYPE_ALIAS },
