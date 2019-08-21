@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.84 2019/07/14 10:10:08 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.88 2019/08/06 20:32:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -444,9 +444,11 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			put_str(cfg->sub[i]->mod_arstr,stream);
 			put_int(cfg->sub[i]->qwkconf,stream);
 			c=0;
-			put_int(c,stream);
+			put_int(c,stream); // unused
+			put_int(cfg->sub[i]->pmode,stream);
+			put_int(cfg->sub[i]->n_pmode,stream);
 			n=0;
-			for(k=0;k<26;k++)
+			for(k=0;k<22;k++)
 				put_int(n,stream);
 
 			if(all_msghdr || (cfg->sub[i]->misc&SUB_HDRMOD && !no_msghdr)) {
@@ -810,12 +812,12 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->lname, stream);
 				put_str(cfg->dir[i]->sname, stream);
 				put_str(cfg->dir[i]->code_suffix, stream);
-#if 1
+
 				if (cfg->dir[i]->data_dir[0]) {
 					backslash(cfg->dir[i]->data_dir);
 					md(cfg->dir[i]->data_dir);
 				}
-#endif
+
 				put_str(cfg->dir[i]->data_dir, stream);
 				put_str(cfg->dir[i]->arstr, stream);
 				put_str(cfg->dir[i]->ul_arstr, stream);
@@ -827,23 +829,20 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				if (cfg->dir[i]->misc&DIR_FCHK) {
 					SAFECOPY(path, cfg->dir[i]->path);
 					if (!path[0]) {		/* no file storage path specified */
-						if(cfg->dir[i]->data_dir[0])
-							SAFECOPY(path, cfg->dir[i]->data_dir);
-						else
-							SAFECOPY(path, cfg->data_dir);
-						backslash(path);
-						SAFEPRINTF2(str, "dirs/%s%s"
+						SAFEPRINTF2(path, "%s%s"
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
-						strlwr(str);
-						SAFECAT(path,str);
+						strlwr(path);
 					}
-					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
-						SAFECOPY(path, cfg->lib[cfg->dir[i]->lib]->parent_path);
-						backslash(path);
-						SAFECAT(path, cfg->dir[i]->path);
+					if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
+						prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, path, sizeof(path));
+					else {
+						if(cfg->dir[i]->data_dir[0])
+							SAFECOPY(str, cfg->dir[i]->data_dir);
+						else
+							SAFEPRINTF(str, "%sdirs", cfg->data_dir);
+						prep_dir(str, path, sizeof(path));
 					}
-					prep_dir(cfg->ctrl_dir, path, sizeof(path));
 					mkpath(path);
 				}
 
