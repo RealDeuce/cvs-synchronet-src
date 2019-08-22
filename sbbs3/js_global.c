@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.394 2019/08/27 19:15:24 deuce Exp $ */
+/* $Id: js_global.c,v 1.389 2019/08/20 17:33:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -42,7 +42,6 @@
 #include "js_rtpool.h"
 #include "js_request.h"
 #include "wordwrap.h"
-#include "utf8.h"
 
 /* SpiderMonkey: */
 #include <jsapi.h>
@@ -268,14 +267,13 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 	jsrefcount	rc;
 	jsrefcount	brc;
 	size_t		len;
-	JSObject*	scope = JS_GetScopeChain(cx);
 
 	JS_SET_RVAL(cx, arglist,JSVAL_VOID);
 
 	if((p=(global_private_t*)js_GetClassPrivate(cx, obj, &js_global_class))==NULL)
 		return(JS_FALSE);
 
-	exec_obj=scope;
+	exec_obj=JS_GetScopeChain(cx);
 
 	if(JSVAL_IS_BOOLEAN(argv[argn]))
 		background=JSVAL_TO_BOOLEAN(argv[argn++]);
@@ -301,8 +299,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		bg->cb.bg = TRUE;
 
 		// Get the js.internal private data since it's the parents js_callback_t...
-		if((JS_GetProperty(cx, scope, "js", &val) && !JSVAL_NULL_OR_VOID(val))
-		    || (JS_GetProperty(cx, obj, "js", &val) && !JSVAL_NULL_OR_VOID(val))) {
+		if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "js", &val) && !JSVAL_NULL_OR_VOID(val)) {
 			js_internal = JSVAL_TO_OBJECT(val);
 			bg->cb.parent_cb = (js_callback_t*)JS_GetPrivate(cx,js_internal);
 			if (bg->cb.parent_cb == NULL) {
@@ -381,7 +378,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		/* Save parent's 'log' function (for later use by our log function) */
 		brc=JS_SUSPENDREQUEST(bg->cx);
 		JS_RESUMEREQUEST(cx, rc);
-		if(JS_GetProperty(cx, scope, "log", &val)) {
+		if(JS_GetProperty(cx, obj, "log", &val)) {
 			JSFunction* func;
 			if((func=JS_ValueToFunction(cx, val))!=NULL) {
 				JSObject *obj;
@@ -512,8 +509,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		path[0]=0;	/* Empty path, indicates load file not found (yet) */
 
 		JS_RESUMEREQUEST(cx, rc);
-		if((JS_GetProperty(cx, scope, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
-		    || (JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))) {
+		if(JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
 			JSObject* js_obj = JSVAL_TO_OBJECT(val);
 			
 			/* if js.exec_dir is defined (location of executed script), search there first */
@@ -862,14 +858,12 @@ js_beep(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_exit(JSContext *cx, uintN argc, jsval *arglist)
 {
-	JSObject *scope = JS_GetScopeChain(cx);
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsval val;
 
 	if(argc) {
-		if((JS_GetProperty(cx, scope, "js", &val) && JSVAL_IS_OBJECT(val)) || 
-		    (JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val))) {
+		if(JS_GetProperty(cx, obj, "js", &val) && JSVAL_IS_OBJECT(val)) {
 			obj = JSVAL_TO_OBJECT(val);
 			if(JS_GetProperty(cx, obj, "scope", &val) && JSVAL_IS_OBJECT(val))
 				obj = JSVAL_TO_OBJECT(val);
@@ -4063,134 +4057,6 @@ js_flags_str(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
 	return(JS_TRUE);
 }
-
-static JSBool
-js_utf8_encode(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	size_t		len;
-	char*		outbuf;
-	JSString*	js_str;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
-
-	if(argc==0 || JSVAL_IS_VOID(argv[0]))
-		return JS_TRUE;
-
-	if(JSVAL_IS_STRING(argv[0])) {
-		size_t		inbuf_len;
-		char*		inbuf = NULL;
-
-		JSVALUE_TO_MSTRING(cx, argv[0], inbuf, &inbuf_len);
-		HANDLE_PENDING(cx, inbuf);
-		if(inbuf == NULL)
-			return JS_TRUE;
-
-		len = (inbuf_len * UTF8_MAX_LEN) + 1;
-
-		if((outbuf = malloc(len)) == NULL) {
-			free(inbuf);
-			JS_ReportError(cx, "Error allocating %lu bytes at %s:%d"
-				, len, getfname(__FILE__), __LINE__);
-			return JS_FALSE;
-		}
-
-		rc=JS_SUSPENDREQUEST(cx);
-		cp437_to_utf8_str(inbuf, outbuf, len, /* minval: */0x80);
-		free(inbuf);
-		JS_RESUMEREQUEST(cx, rc);
-	}
-	else if(JSVAL_IS_NUMBER(argv[0])) {
-		len = UTF8_MAX_LEN + 1;
-		if((outbuf = malloc(len)) == NULL) {
-			JS_ReportError(cx, "Error allocating %lu bytes at %s:%d"
-				, len, getfname(__FILE__), __LINE__);
-			return JS_FALSE;
-		}
-		int32 codepoint = 0;
-		if(!JS_ValueToInt32(cx, argv[0], &codepoint))
-			return JS_FALSE;
-		int result = utf8_putc(outbuf, len - 1, codepoint);
-		if(result < 1) {
-			free(outbuf);
-			JS_ReportError(cx, "utf8_encode: error: %d", result);
-			return JS_FALSE;
-		}
-		outbuf[result] = 0;
-	}
-	else {
-		JS_ReportError(cx, "utf8_encode: Invalid argument type");
-		return JS_FALSE;
-	}
-
-	js_str = JS_NewStringCopyZ(cx, outbuf);
-	free(outbuf);
-	if(js_str==NULL)
-		return JS_FALSE;
-
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
-	return JS_TRUE;
-}
-
-static JSBool
-js_utf8_decode(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	char*		buf = NULL;
-	JSString*	js_str;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
-
-	if(argc==0 || JSVAL_IS_VOID(argv[0]))
-		return JS_TRUE;
-
-	JSVALUE_TO_MSTRING(cx, argv[0], buf, NULL);
-	HANDLE_PENDING(cx, buf);
-	if(buf==NULL)
-		return JS_TRUE;
-
-	rc=JS_SUSPENDREQUEST(cx);
-	utf8_to_cp437_str(buf);
-	JS_RESUMEREQUEST(cx, rc);
-
-	js_str = JS_NewStringCopyZ(cx, buf);
-	free(buf);
-	if(js_str==NULL)
-		return JS_FALSE;
-
-	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(js_str));
-	return JS_TRUE;
-}
-
-static JSBool
-js_utf8_width(JSContext *cx, uintN argc, jsval *arglist)
-{
-	jsval *argv=JS_ARGV(cx, arglist);
-	char*		str = NULL;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
-	if(argc==0 || JSVAL_IS_VOID(argv[0]))
-		return JS_TRUE;
-
-	JSVALUE_TO_MSTRING(cx, argv[0], str, NULL);
-	HANDLE_PENDING(cx, str);
-	if(str==NULL)
-		return JS_TRUE;
-
-	rc=JS_SUSPENDREQUEST(cx);
-	size_t width = utf8_str_total_width(str);
-	JS_RESUMEREQUEST(cx, rc);
-
-	free(str);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(width));
-	return JS_TRUE;
-}
-
-
 #if 0
 static JSBool
 js_qwknet_route(JSContext *cx, uintN argc, jsval *arglist)
@@ -4252,19 +4118,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 		"will be automatically written to the <i>parent_queue</i> "
 		"which may be read later by the parent script (using <i>load_result.read()</i>, for example).")
 	,312
-	},
-	{"require",         js_require,         1,	JSTYPE_UNDEF
-	,JSDOCSTR("[<i>object</i> scope,] <i>string</i> filename, propname [,args]")
-	,JSDOCSTR("load and execute a JavaScript module (<i>filename</i>), "
-		"optionally specifying a target <i>scope</i> object (default: <i>this</i>) "
-		"and a list of arguments to pass to the module (as <i>argv</i>) "
-		"IF AND ONLY IF the property named <i>propname</i> is not defined in "
-		"the target scope (a defined symbol with a value of undefined will not "
-		"cause the script to be loaded). "
-		"Returns the result (last executed statement) of the executed script "
-		"or null if the script is not executed. ")
-	,317
-	},
+	},		
 	{"sleep",			js_mswait,			0,	JSTYPE_ALIAS },
 	{"mswait",			js_mswait,			0,	JSTYPE_NUMBER,	JSDOCSTR("[milliseconds=<tt>1</tt>]")
 	,JSDOCSTR("millisecond wait/sleep routine (AKA sleep), returns number of elapsed clock ticks (in v3.13)")
@@ -4574,19 +4428,18 @@ static jsSyncMethodSpec js_global_functions[] = {
 	"(returns number OR string) - (added in v3.13)")
 	,313
 	},
-	{"utf8_encode",		js_utf8_encode,		1,	JSTYPE_STRING,	JSDOCSTR("[string CP437] or [Number codepoint]")
-	,JSDOCSTR("returns utf8-encoded version of the specified CP437 text string or a single Unicode <i>codepoint</i>")
-	,31702
-	},
-	{"utf8_decode",		js_utf8_decode,		1,	JSTYPE_STRING,	JSDOCSTR("text")
-	,JSDOCSTR("returns CP437 representation of UTF-8 encoded text string or <i>null</i> on error (invalid UTF-8)")
-	,31702
-	},
-	{"utf8_width",		js_utf8_width,		1,	JSTYPE_NUMBER,	JSDOCSTR("text")
-	,JSDOCSTR("returns the fixed printed-width of the specified UTF-8 string")
-	,31702
-	},
-
+	{"require",         js_require,         1,	JSTYPE_UNDEF
+	,JSDOCSTR("[<i>object</i> scope,] <i>string</i> filename, propname [,args]")
+	,JSDOCSTR("load and execute a JavaScript module (<i>filename</i>), "
+		"optionally specifying a target <i>scope</i> object (default: <i>this</i>) "
+		"and a list of arguments to pass to the module (as <i>argv</i>) "
+		"IF AND ONLY IF the property named <i>propname</i> is not defined in "
+		"the target scope (a defined symbol with a value of undefined will not "
+		"cause the script to be loaded). "
+		"Returns the result (last executed statement) of the executed script "
+		"or null if the script is not executed. ")
+	,317
+	},		
 	{0}
 };
 
