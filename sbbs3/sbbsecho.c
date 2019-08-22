@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.139 2019/08/27 03:47:56 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.137 2019/08/22 00:31:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5694,7 +5694,7 @@ void import_packets(const char* inbound, nodecfg_t* inbox, bool secure)
 
 			if(pkdmsg.type == 2 /* Recognized type */
 				&& pkdmsg.time[0] != 0
-//				&& pkdmsg.time[sizeof(pkdmsg.time)-1] == 0
+				&& pkdmsg.time[sizeof(pkdmsg.time)-1] == 0
 				&& freadstr(fidomsg, hdr.to, sizeof(hdr.to)) != NULL
 				&& freadstr(fidomsg, hdr.from, sizeof(hdr.from)) != NULL
 				&& freadstr(fidomsg, hdr.subj, sizeof(hdr.subj)) != NULL
@@ -6009,7 +6009,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.139 $", "%*s %s", revision);
+	sscanf("$Revision: 3.137 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6245,9 +6245,7 @@ int main(int argc, char **argv)
 	cfg.area=NULL;
 
 	fexistcase(cfg.areafile);
-	if((stream = fopen(cfg.areafile,"r")) == NULL) {
-		lprintf(LOG_NOTICE, "Could not open Area File (%s): %s", cfg.areafile, strerror(errno));
-	} else {
+	if((stream = fopen(cfg.areafile,"r")) != NULL) {
 		printf("Reading %s",cfg.areafile);
 		while(!terminated) {
 			if(!fgets(str,sizeof(str),stream))
