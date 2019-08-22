@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.137 2019/08/22 00:31:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.138 2019/08/22 00:38:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6009,7 +6009,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.137 $", "%*s %s", revision);
+	sscanf("$Revision: 3.138 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6245,7 +6245,9 @@ int main(int argc, char **argv)
 	cfg.area=NULL;
 
 	fexistcase(cfg.areafile);
-	if((stream = fopen(cfg.areafile,"r")) != NULL) {
+	if((stream = fopen(cfg.areafile,"r")) == NULL) {
+		lprintf(LOG_NOTICE, "Could not open Area File (%s): %s", cfg.areafile, strerror(errno));
+	} else {
 		printf("Reading %s",cfg.areafile);
 		while(!terminated) {
 			if(!fgets(str,sizeof(str),stream))
