@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.780 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: main.cpp,v 1.760 2019/08/21 09:42:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -58,6 +58,18 @@
 #define TIMEOUT_THREAD_WAIT		60			// Seconds (was 15)
 #define IO_THREAD_BUF_SIZE	   	20000		// Bytes
 #define TIMEOUT_MUTEX_FILE		12*60*60
+
+// Globals
+#ifdef _WIN32
+	HANDLE		exec_mutex=NULL;
+	HINSTANCE	hK32=NULL;
+
+	#if defined(_DEBUG) && defined(_MSC_VER)
+			HANDLE	debug_log=INVALID_HANDLE_VALUE;
+		   _CrtMemState mem_chkpoint;
+	#endif // _DEBUG && _MSC_VER
+
+#endif // _WIN32
 
 #ifdef USE_CRYPTLIB
 
@@ -1259,23 +1271,22 @@ js_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
 	JS_RESUMEREQUEST(cx, rc);
 }
 
-JSContext* sbbs_t::js_init(JSRuntime** runtime, JSObject** glob, const char* desc)
+bool sbbs_t::js_init(ulong* stack_frame)
 {
-	JSContext* js_cx;
-
 	if(startup->js.max_bytes==0)			startup->js.max_bytes=JAVASCRIPT_MAX_BYTES;
 	if(startup->js.cx_stack==0)				startup->js.cx_stack=JAVASCRIPT_CONTEXT_STACK;
 
-	lprintf(LOG_DEBUG,"JavaScript: Creating %s runtime: %lu bytes"
-		,desc, startup->js.max_bytes);
-	if((*runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__)) == NULL)
-		return NULL;
+	lprintf(LOG_DEBUG,"JavaScript: Creating runtime: %lu bytes"
+		,startup->js.max_bytes);
 
-	lprintf(LOG_DEBUG,"JavaScript: Initializing %s context (stack: %lu bytes)"
-		,desc, startup->js.cx_stack);
+	if((js_runtime = jsrt_GetNew(startup->js.max_bytes, 1000, __FILE__, __LINE__))==NULL)
+		return(false);
 
-    if((js_cx = JS_NewContext(*runtime, startup->js.cx_stack))==NULL)
-		return NULL;
+	lprintf(LOG_DEBUG,"JavaScript: Initializing context (stack: %lu bytes)"
+		,startup->js.cx_stack);
+
+    if((js_cx = JS_NewContext(js_runtime, startup->js.cx_stack))==NULL)
+		return(false);
 	JS_BEGINREQUEST(js_cx);
 
 	memset(&js_callback,0,sizeof(js_callback));
@@ -1301,22 +1312,22 @@ JSContext* sbbs_t::js_init(JSRuntime** runtime, JSObject** glob, const char* des
 					,&startup->js
 					,&client, client_socket, -1					/* client */
 					,&js_server_props							/* server */
-					,glob
+					,&js_glob
 			))
 			break;
 		rooted=true;
 
 #ifdef BUILD_JSDOCS
-		js_CreateUifcObject(js_cx, *glob);
-		js_CreateConioObject(js_cx, *glob);
+		js_CreateUifcObject(js_cx, js_glob);
+		js_CreateConioObject(js_cx, js_glob);
 #endif
 
 		/* BBS Object */
-		if(js_CreateBbsObject(js_cx, *glob)==NULL)
+		if(js_CreateBbsObject(js_cx, js_glob)==NULL)
 			break;
 
 		/* Console Object */
-		if(js_CreateConsoleObject(js_cx, *glob)==NULL)
+		if(js_CreateConsoleObject(js_cx, js_glob)==NULL)
 			break;
 
 		success=true;
@@ -1325,16 +1336,16 @@ JSContext* sbbs_t::js_init(JSRuntime** runtime, JSObject** glob, const char* des
 
 	if(!success) {
 		if(rooted)
-			JS_RemoveObjectRoot(js_cx, glob);
+			JS_RemoveObjectRoot(js_cx, &js_glob);
 		JS_ENDREQUEST(js_cx);
 		JS_DestroyContext(js_cx);
 		js_cx=NULL;
-		return NULL;
+		return(false);
 	}
 	else
 		JS_ENDREQUEST(js_cx);
 
-	return js_cx;
+	return(true);
 }
 
 void sbbs_t::js_cleanup(void)
@@ -1354,36 +1365,17 @@ void sbbs_t::js_cleanup(void)
 		jsrt_Release(js_runtime);
 		js_runtime=NULL;
 	}
-
-	if(js_hotkey_cx!=NULL) {
-		lprintf(LOG_DEBUG,"JavaScript: Destroying HotKey context");
-		JS_BEGINREQUEST(js_hotkey_cx);
-		JS_RemoveObjectRoot(js_hotkey_cx, &js_hotkey_glob);
-		JS_ENDREQUEST(js_hotkey_cx);
-		JS_DestroyContext(js_hotkey_cx);
-		js_hotkey_cx=NULL;
-	}
-
-	if(js_hotkey_runtime!=NULL) {
-		lprintf(LOG_DEBUG,"JavaScript: Destroying HotKey runtime");
-		jsrt_Release(js_hotkey_runtime);
-		js_hotkey_runtime=NULL;
-	}
-
 }
 
-bool sbbs_t::js_create_user_objects(JSContext* cx, JSObject* glob)
+void sbbs_t::js_create_user_objects(void)
 {
-	bool result = false;
-	if(cx != NULL) {
-		JS_BEGINREQUEST(cx);
-		if(!js_CreateUserObjects(cx, glob, &cfg, &useron, &client, NULL, subscan))
-			lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
-		else
-			result = true;
-		JS_ENDREQUEST(cx);
-	}
-	return result;
+	if(js_cx==NULL)
+		return;
+
+	JS_BEGINREQUEST(js_cx);
+	if(!js_CreateUserObjects(js_cx, js_glob, &cfg, &useron, &client, NULL, subscan))
+		lprintf(LOG_ERR,"!JavaScript ERROR creating user objects");
+	JS_ENDREQUEST(js_cx);
 }
 
 extern "C" BOOL DLLCALL js_CreateCommonObjects(JSContext* js_cx
@@ -1489,9 +1481,8 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	BYTE*	first_cr=NULL;
 	int 	i;
 
-	outlen=0;
-
 	if(inlen<1) {
+		outlen=0;
 		return(inbuf);	// no length? No interpretation
 	}
 
@@ -1506,20 +1497,19 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			first_cr=(BYTE*)memchr(inbuf, CR, inlen);
 	}
 
-    if(!sbbs->telnet_cmdlen) {
-		if(first_iac==NULL && first_cr==NULL) {
-			outlen=inlen;
-			return(inbuf);	// no interpretation needed
-		}
+    if(!sbbs->telnet_cmdlen	&& first_iac==NULL && first_cr==NULL) {
+        outlen=inlen;
+        return(inbuf);	// no interpretation needed
+    }
 
-		if(first_iac!=NULL || first_cr!=NULL) {
-			if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
-   				outlen=first_iac-inbuf;
-			else
-				outlen=first_cr-inbuf;
-			memcpy(outbuf, inbuf, outlen);
-		}
-	}
+    if(first_iac!=NULL || first_cr!=NULL) {
+		if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
+   			outlen=first_iac-inbuf;
+		else
+			outlen=first_cr-inbuf;
+	    memcpy(outbuf, inbuf, outlen);
+    } else
+    	outlen=0;
 
     for(i=outlen;i<inlen;i++) {
 		if(!(sbbs->telnet_mode&TELNET_MODE_GATE)
@@ -1546,21 +1536,11 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 			if(sbbs->telnet_cmdlen<sizeof(sbbs->telnet_cmd))
 				sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
-			else {
-				lprintf(LOG_WARNING, "Node %d telnet command (%d, %d) buffer limit reached (%u bytes)"
-					,sbbs->cfg.node_num, sbbs->telnet_cmd[1], sbbs->telnet_cmd[2], sbbs->telnet_cmdlen);
-				sbbs->telnet_cmdlen = 0;
-			}
 
 			uchar command	= sbbs->telnet_cmd[1];
 			uchar option	= sbbs->telnet_cmd[2];
 
-			if(sbbs->telnet_cmdlen == 2 && command == TELNET_SE) {
-				lprintf(LOG_WARNING, "Node %d unexpected telnet sub-negotiation END command"
-					,sbbs->cfg.node_num);
-				sbbs->telnet_cmdlen = 0;
-			}
-			else if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
+			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
@@ -1637,12 +1617,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
 					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
-						SAFEPRINTF4(sbbs->telnet_location, "%u.%u.%u.%u"
-							,sbbs->telnet_cmd[4]
-							,sbbs->telnet_cmd[5]
-							,sbbs->telnet_cmd[6]
-							,sbbs->telnet_cmd[7]
-						);
+						inet_ntop(AF_INET, sbbs->telnet_cmd + 4
+							,sbbs->telnet_location
+							,sizeof(sbbs->telnet_location));
 						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1665,7 +1642,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_cmd[3]);
 					sbbs->telnet_cmdlen=0;
 				}
-			} // Sub-negotiation command
+			}
             else if(sbbs->telnet_cmdlen==2 && inbuf[i]<TELNET_WILL) {
 				if(startup->options&BBS_OPT_DEBUG_TELNET)
             		lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s"
@@ -1757,7 +1734,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 #endif
 					}
 				}
+
                 sbbs->telnet_cmdlen=0;
+
             }
 			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
 				outbuf[outlen++]=inbuf[i];
@@ -2082,12 +2061,7 @@ void input_thread(void *arg)
 			lprintf(LOG_ERR,"!TELBUF OVERFLOW (%d>%d)",wr,(int)sizeof(telbuf));
 
 		if(sbbs->passthru_socket_active == true) {
-			BOOL writable = FALSE;
-			if(socket_check(sbbs->passthru_socket, NULL, &writable, 1000) && writable)
-				sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
-			else
-				lprintf(LOG_WARNING, "Node %d could not write to passthru socket (writable=%d)"
-					, sbbs->cfg.node_num, (int)writable);
+			sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
 			continue;
 		}
 
@@ -2132,34 +2106,6 @@ void input_thread(void *arg)
 		,sbbs->cfg.node_num, total_recv, total_pkts);
 }
 
-// Flush the duplicate client_socket when activating the passthru socket
-// to eliminate any stale data from the previous passthru session
-void sbbs_t::passthru_socket_activate(bool activate)
-{
-	if(activate) {
-		BOOL rd = FALSE;
-		while(socket_check(client_socket_dup, &rd, /* wr_p */NULL, /* timeout */0) && rd) {
-			char ch;
-			if(recv(client_socket_dup, &ch, sizeof(ch), /* flags: */0) != sizeof(ch))
-				break;
-		}
-	} else {
-		/* Re-enable blocking (in case disabled by external program) */	 
-		ulong l=0;	 
-		ioctlsocket(client_socket_dup, FIONBIO, &l);	 
- 	 
-		/* Re-set socket options */
-		char err[512];
-		if(set_socket_options(&cfg, client_socket_dup, "passthru", err, sizeof(err)))	 
-			lprintf(LOG_ERR,"%04d !ERROR %s setting passthru socket options", client_socket, err);
-
-		do { // Allow time for the passthru_thread to move any pending socket data to the outbuf
-			SLEEP(100); // Before the node_thread starts sending its own data to the outbuf
-		} while(RingBufFull(&sbbs->outbuf));
-	}
-	passthru_socket_active = activate;
-}
-
 /*
  * This thread simply copies anything it manages to read from the
  * passthru_socket into the output ringbuffer.
@@ -2171,12 +2117,12 @@ void passthru_thread(void* arg)
 	struct	timeval	tv;
 	int		i;
 	int		rd;
-	char	inbuf[IO_THREAD_BUF_SIZE / 2];
+	char	inbuf[4000];
 
 	SetThreadName("sbbs/passthru");
 	thread_up(FALSE /* setuid */);
 
-	while(sbbs->online && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
+	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		tv.tv_sec=1;
 		tv.tv_usec=0;
 
@@ -2205,11 +2151,10 @@ void passthru_thread(void* arg)
                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
 			break;
 		}
-		rd = RingBufFree(&sbbs->outbuf) / 2;
-		if(rd > (int)sizeof(inbuf))
-			rd = sizeof(inbuf);
+		if(!RingBufFree(&sbbs->outbuf))
+			continue;
 
-    	rd = recv(sbbs->passthru_socket, inbuf, rd, 0);
+    	rd = recv(sbbs->passthru_socket, inbuf, sizeof(inbuf), 0);
 
 		if(rd == SOCKET_ERROR)
 		{
@@ -2229,27 +2174,13 @@ void passthru_thread(void* arg)
 
 		if(rd == 0)
 		{
-			char ch;
-			if(recv(sbbs->passthru_socket, &ch, sizeof(ch), MSG_PEEK) == 0) {
-				lprintf(sbbs->online ? LOG_WARNING : LOG_DEBUG
-					,"Node %d passthru socket disconnected", sbbs->cfg.node_num);
-				break;
-			}
-			YIELD();
-			continue;
+			lprintf(LOG_DEBUG,"Node %d passthru disconnected", sbbs->cfg.node_num);
+			break;
 		}
 
 		if(sbbs->xtrn_mode & EX_BIN) {
-			BYTE	telnet_buf[sizeof(inbuf) * 2];
-			BYTE*	bp = (BYTE*)inbuf;
-
-			if(!(sbbs->telnet_mode&TELNET_MODE_OFF))
-				rd = telnet_expand((BYTE*)inbuf, rd, telnet_buf, sizeof(telnet_buf), /* expand_cr */false, &bp);
-
-			int wr = RingBufWrite(&sbbs->outbuf, bp, rd);
-    		if(wr != rd) {
-				lprintf(LOG_ERR,"Short-write (%ld of %ld bytes) from passthru socket to outbuf"
-					,(long)wr, (long)rd);
+    		if(!RingBufWrite(&sbbs->outbuf, (BYTE*)inbuf, rd)) {
+				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
 				break;
 			}
 		} else {
@@ -2263,7 +2194,6 @@ void passthru_thread(void* arg)
 	thread_down();
 
 	sbbs->passthru_thread_running = false;
-	sbbs->passthru_socket_active = false;
 }
 
 void output_thread(void* arg)
@@ -2510,6 +2440,7 @@ void output_thread(void* arg)
 
 void event_thread(void* arg)
 {
+	ulong		stack_frame;
 	char		str[MAX_PATH+1];
 	char		bat_list[MAX_PATH+1];
 	char		semfile[MAX_PATH+1];
@@ -2543,7 +2474,7 @@ void event_thread(void* arg)
 
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
-		if((sbbs->js_cx = sbbs->js_init(&sbbs->js_runtime, &sbbs->js_glob, "event")) == NULL) /* This must be done in the context of the events thread */
+		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the events thread */
 			lprintf(LOG_ERR,"!JavaScript Initialization FAILURE");
 	}
 #endif
@@ -2669,7 +2600,6 @@ void event_thread(void* arg)
 							sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 								,errno, strerror(errno), g.gl_pathv[i], badpkt);
 						SAFEPRINTF(badpkt, "%u.rep.*.bad", sbbs->useron.number);
-						SAFEPRINTF(str,"%sfile/", sbbs->cfg.data_dir);
 						sbbs->delfiles(str, badpkt, /* keep: */10);
 					}
 					if(remove(semfile))
@@ -2897,12 +2827,12 @@ void event_thread(void* arg)
 								sbbs->lprintf(LOG_ERR, "!ERROR %d (%s) renaming %s to %s"
 									,errno, strerror(errno), str, newname);
 							SAFEPRINTF(newname, "%s.q??.*.bad", sbbs->cfg.qhub[i]->id);
-							sbbs->delfiles(sbbs->cfg.data_dir, newname, /* keep: */10);
+							sbbs->delfiles(str, newname, /* keep: */10);
 						}
 						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
-						if(fexist(str) && remove(str))
+						if(remove(str))
 							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
 					}
 				}
@@ -3242,8 +3172,7 @@ void event_thread(void* arg)
 					write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 					close(file);
 
-					if(sbbs->cfg.event[i]->node != NODE_ANY
-						&& sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
+					if(sbbs->cfg.event[i]->misc&EVENT_EXCL) { /* exclusive event */
 						// Check/change the status of the nodes that we're in control of
 						for(j=first_node;j<=last_node;j++) {
 							node.status=NODE_INVALID_STATUS;
@@ -3409,8 +3338,6 @@ sbbs_t::sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const 
 #ifdef JAVASCRIPT
 	js_runtime=NULL;	/* runtime */
 	js_cx=NULL;			/* context */
-	js_hotkey_runtime = NULL;
-	js_hotkey_cx = NULL;
 #endif
 
 	for(i=0;i<TOTAL_TEXT;i++)
@@ -4429,6 +4356,7 @@ void sbbs_t::logoffstats()
 
 void node_thread(void* arg)
 {
+	ulong			stack_frame;
 	char			str[128];
 	int				file;
 	uint			curshell=0;
@@ -4448,7 +4376,7 @@ void node_thread(void* arg)
 
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
-		if((sbbs->js_cx = sbbs->js_init(&sbbs->js_runtime, &sbbs->js_glob, "node")) == NULL) /* This must be done in the context of the node thread */
+		if(!sbbs->js_init(&stack_frame)) /* This must be done in the context of the node thread */
 			lprintf(LOG_ERR,"Node %d !JavaScript Initialization FAILURE",sbbs->cfg.node_num);
 	}
 #endif
@@ -4902,6 +4830,27 @@ static void cleanup(int code)
 	protected_uint32_destroy(node_threads_running);
 	protected_uint32_destroy(ssh_sessions);
 
+#ifdef _WIN32
+	if(exec_mutex!=NULL) {
+		CloseHandle(exec_mutex);
+		exec_mutex=NULL;
+	}
+
+	if(hK32!=NULL) {
+		FreeLibrary(hK32);
+		hK32=NULL;
+	}
+
+#if 0 && defined(_DEBUG) && defined(_MSC_VER)
+	_CrtMemDumpAllObjectsSince(&mem_chkpoint);
+
+	if(debug_log!=INVALID_HANDLE_VALUE) {
+		CloseHandle(debug_log);
+		debug_log=INVALID_HANDLE_VALUE;
+	}
+#endif // _DEBUG && _MSC_VER
+#endif // _WIN32
+
 	status("Down");
 	thread_down();
 	if(terminate_server || code)
@@ -5028,11 +4977,6 @@ void DLLCALL bbs_thread(void* arg)
 	lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 	lprintf(LOG_DEBUG,"SMBLIB %s (format %x.%02x)",smb_lib_ver(),smb_ver()>>8,smb_ver()&0xff);
 
-#ifdef _DEBUG
-	lprintf(LOG_DEBUG, "sizeof: int=%d, long=%d, off_t=%d, time_t=%d"
-		,(int)sizeof(int), (int)sizeof(long), (int)sizeof(off_t), (int)sizeof(time_t));
-#endif
-
     if(startup->first_node<1 || startup->first_node>startup->last_node) {
     	lprintf(LOG_CRIT,"!ILLEGAL node configuration (first: %d, last: %d)"
         	,startup->first_node, startup->last_node);
@@ -5050,6 +4994,15 @@ void DLLCALL bbs_thread(void* arg)
 		cleanup(1);
 		return;
 	}
+
+#ifdef _WIN32
+    if((exec_mutex=CreateMutex(NULL,false,NULL))==NULL) {
+    	lprintf(LOG_CRIT,"!ERROR %d creating exec_mutex", GetLastError());
+		cleanup(1);
+        return;
+    }
+	hK32 = LoadLibrary("KERNEL32");
+#endif // _WIN32
 
 	if(!winsock_startup()) {
 		cleanup(1);
@@ -5242,6 +5195,38 @@ NO_SSH:
 	}
 
 	status(STATUS_WFC);
+
+#if defined(_WIN32) && defined(_DEBUG) && defined(_MSC_VER)
+
+	SAFEPRINTF(str,"%sDEBUG.LOG",scfg.logs_dir);
+	if((debug_log=CreateFile(
+		str,				// pointer to name of the file
+		GENERIC_READ|GENERIC_WRITE,
+		FILE_SHARE_READ|FILE_SHARE_WRITE,
+		NULL,               // pointer to security attributes
+		OPEN_ALWAYS,		// how to create
+		FILE_ATTRIBUTE_NORMAL, // file attributes
+		NULL				// handle to file with attributes to
+		))==INVALID_HANDLE_VALUE) {
+		lprintf(LOG_CRIT,"!ERROR %ld creating %s",GetLastError(),str);
+		cleanup(1);
+		return;
+	}
+
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, debug_log);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE|_CRTDBG_MODE_WNDW);
+	_CrtSetReportFile(_CRT_ERROR, debug_log);
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE|_CRTDBG_MODE_WNDW);
+	_CrtSetReportFile(_CRT_ASSERT, debug_log);
+
+	/* Turns on memory leak checking during program termination */
+//	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+
+	/* Save this allocation point for comparison */
+	_CrtMemCheckpoint(&mem_chkpoint);
+
+#endif // _WIN32 && _DEBUG && _MSC_VER
 
 	/* Setup recycle/shutdown semaphore file lists */
 	shutdown_semfiles = semfile_list_init(scfg.ctrl_dir,"shutdown", "term");
@@ -5645,7 +5630,6 @@ NO_SSH:
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
 		client.user=STR_UNKNOWN_USER;
-		client.usernum = 0;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
@@ -5733,8 +5717,7 @@ NO_SSH:
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
 
-		// Passthru socket creation/connection
-		if(true) {
+		{
 			/* TODO: IPv6? */
 			SOCKET	tmp_sock;
 			SOCKADDR_IN		tmp_addr={0};
@@ -5745,12 +5728,12 @@ NO_SSH:
     		tmp_sock = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(tmp_sock == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d creating passthru listen socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru listen socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				goto NO_PASSTHRU;
 			}
 
-    		lprintf(LOG_DEBUG,"Node %d passthru listen socket %d opened"
+    		lprintf(LOG_DEBUG,"Node %d SSH passthru listen socket %d opened"
 				,new_node->cfg.node_num, tmp_sock);
 
 			/*****************************/
@@ -5772,38 +5755,40 @@ NO_SSH:
 		    result = listen(tmp_sock, 1);
 
 			if(result != 0) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d (%d) listening on passthru socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d (%d) listening on passthru socket"
 					,new_node->cfg.node_num, result, ERROR_VALUE);
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
-
-			tmp_addr_len=sizeof(tmp_addr);
-			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
-					,new_node->cfg.node_num, ERROR_VALUE);
-				close_socket(tmp_sock);
-				goto NO_PASSTHRU;
-			}
-			lprintf(LOG_DEBUG,"Node %d passthru socket listening on port %u"
+			lprintf(LOG_INFO,"Node %d SSH passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
     		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(new_node->passthru_socket == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d creating passthru connecting socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru connecting socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
 
-			lprintf(LOG_DEBUG,"Node %d passthru connect socket %d opened"
+			lprintf(LOG_DEBUG,"Node %d SSH passthru connect socket %d opened"
 				,new_node->cfg.node_num, new_node->passthru_socket);
+
+			tmp_addr_len=sizeof(tmp_addr);
+			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d getting passthru listener address"
+					,new_node->cfg.node_num, ERROR_VALUE);
+				close_socket(tmp_sock);
+				close_socket(new_node->passthru_socket);
+				new_node->passthru_socket=INVALID_SOCKET;
+				goto NO_PASSTHRU;
+			}
 
 			result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
 
 			if(result != 0) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d (%d) connecting to passthru socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR %d (%d) connecting to passthru socket"
 					,new_node->cfg.node_num, result, ERROR_VALUE);
 				close_socket(new_node->passthru_socket);
 				new_node->passthru_socket=INVALID_SOCKET;
@@ -5814,9 +5799,9 @@ NO_SSH:
 			new_node->client_socket_dup=accept(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len);
 
 			if(new_node->client_socket_dup == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d !ERROR (%d) connecting accept()ing on passthru socket"
+				lprintf(LOG_ERR,"Node %d SSH !ERROR (%d) connecting accept()ing on passthru socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
-				lprintf(LOG_WARNING,"Node %d !WARNING native doors which use sockets will not function"
+				lprintf(LOG_WARNING,"Node %d SSH !WARNING native doors which use sockets will not function"
 					,new_node->cfg.node_num);
 				close_socket(new_node->passthru_socket);
 				new_node->passthru_socket=INVALID_SOCKET;
