@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.120 2019/08/05 11:14:03 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.122 2019/08/20 03:12:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -391,8 +391,13 @@ int sbbs_t::rputs(const char *str, size_t len)
 			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
 		}
-		if(lbuflen<LINE_BUFSIZE)
+		if(ch == '\n')
+			lbuflen=0;
+		else if(lbuflen<LINE_BUFSIZE) {
+			if(lbuflen == 0)
+				latr = curatr;
 			lbuf[lbuflen++] = ch;
+		}
 	}
 	return(l);
 }
@@ -444,6 +449,21 @@ int sbbs_t::rprintf(const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
 	va_end(argptr);
 	return(rputs(sbuf));
+}
+
+/****************************************************************************/
+/* Performs printf() using bbs putcom/outcom functions						*/
+/****************************************************************************/
+int sbbs_t::comprintf(const char *fmt, ...)
+{
+	va_list argptr;
+	char sbuf[4096];
+
+	va_start(argptr,fmt);
+	vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
+	sbuf[sizeof(sbuf)-1]=0;	/* force termination */
+	va_end(argptr);
+	return(putcom(sbuf));
 }
 
 /****************************************************************************/
@@ -802,7 +822,7 @@ void sbbs_t::cursor_home(void)
 {
 	long term = term_supports();
 	if(term&ANSI)
-		rputs("\x1b[H");
+		putcom("\x1b[H");
 	else if(term&PETSCII)
 		outcom(PETSCII_HOME);
 	else
@@ -818,9 +838,9 @@ void sbbs_t::cursor_up(int count)
 	long term = term_supports();
 	if(term&ANSI) {
 		if(count>1)
-			rprintf("\x1b[%dA",count);
+			comprintf("\x1b[%dA",count);
 		else
-			rputs("\x1b[A");
+			putcom("\x1b[A");
 	} else {
 		if(term&PETSCII) {
 			for(int i=0;i<count;i++)
@@ -835,9 +855,9 @@ void sbbs_t::cursor_down(int count)
 		return;
 	if(term_supports(ANSI)) {
 		if(count>1)
-			rprintf("\x1b[%dB",count);
+			comprintf("\x1b[%dB",count);
 		else
-			rputs("\x1b[B");
+			putcom("\x1b[B");
 	} else {
 		for(int i=0;i<count;i++)
 			line_feed();
@@ -851,9 +871,9 @@ void sbbs_t::cursor_right(int count)
 	long term = term_supports();
 	if(term&ANSI) {
 		if(count>1)
-			rprintf("\x1b[%dC",count);
+			comprintf("\x1b[%dC",count);
 		else
-			rputs("\x1b[C");
+			putcom("\x1b[C");
 	} else {
 		for(int i=0;i<count;i++) {
 			if(term&PETSCII)
@@ -872,9 +892,9 @@ void sbbs_t::cursor_left(int count)
 	long term = term_supports();
 	if(term&ANSI) {
 		if(count>1)
-			rprintf("\x1b[%dD",count);
+			comprintf("\x1b[%dD",count);
 		else
-			rputs("\x1b[D");
+			putcom("\x1b[D");
 	} else {
 		for(int i=0;i<count;i++) {
 			if(term&PETSCII)
@@ -895,7 +915,7 @@ void sbbs_t::cleartoeol(void)
 
 	long term = term_supports();
 	if(term&ANSI)
-		rputs("\x1b[K");
+		putcom("\x1b[K");
 	else {
 		i=j=column;
 		while(++i<cols)
@@ -912,7 +932,7 @@ void sbbs_t::cleartoeol(void)
 void sbbs_t::cleartoeos(void)
 {
 	if(term_supports(ANSI))
-		rputs("\x1b[J");
+		putcom("\x1b[J");
 }
 
 void sbbs_t::set_output_rate(enum output_rate speed)
@@ -937,7 +957,7 @@ void sbbs_t::set_output_rate(enum output_rate speed)
 					val = 11;
 				break;
 		}
-		rprintf("\x1b[;%u*r", val);
+		comprintf("\x1b[;%u*r", val);
 		cur_output_rate = speed;
 	}
 }
