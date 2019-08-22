@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.237 2019/08/06 03:58:37 deuce Exp $ */
+/* $Id: js_socket.c,v 1.241 2019/08/21 01:58:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1989,7 +1989,9 @@ static JSBool js_socket_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 				*vp=JSVAL_VOID;
 			break;
 		case SOCK_PROP_LOCAL_PORT:
-			if(p->sock != INVALID_SOCKET) {
+			if(p->local_port != 0) {
+				*vp = INT_TO_JSVAL(p->local_port);
+			} else if(p->sock != INVALID_SOCKET) {
 				if(getsockname(p->sock, &addr.addr,&len)!=0)
 					return(JS_FALSE);
 				JS_RESUMEREQUEST(cx, rc);
@@ -2739,7 +2741,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	cb.scfg = scfg;
 	if (argc < 3) {
-		JS_ReportError(cx, "At least two arguments required (interfaces, port, and protocol)");
+		JS_ReportError(cx, "At least three arguments required (interfaces, port, and protocol)");
 		goto fail;
 	}
 	if (argc > 3) {
@@ -2811,7 +2813,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 			free(protocol);
 			return JS_FALSE;
 		}
-		for (i = 0; i < count; i++) {
+		for (i = 0; (jsuint)i < count; i++) {
 			if (!JS_GetElement(cx, obj, i, &v)) {
 				lprintf(LOG_WARNING, "Unable to get element %d from interface array", i);
 				continue;
@@ -2847,6 +2849,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 	p->network_byte_order = TRUE;
 	p->session=-1;
 	p->unflushed = 0;
+	p->local_port = port;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
 		JS_ReportError(cx,"JS_SetPrivate failed");
@@ -2860,7 +2863,7 @@ js_listening_socket_constructor(JSContext *cx, uintN argc, jsval *arglist)
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Class used for incoming TCP/IP socket communications",317);
 	js_DescribeSyncConstructor(cx,obj,"To create a new ListeningSocket object: "
-		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>)</tt><br>"
+		"<tt>load('sockdefs.js'); var s = new ListeningSocket(<i>interface</i>, <i>port</i> ,<i>protocol</i>, {domain:<i>domain</i>, type:<i>type</i>, proto:<i>proto</i>, retry_count:<i>retry_count</i>, retry_delay:<i>retry_delay</i>})</tt><br>"
 		"where <i>interface</i> = A array or strings or a single string of hostnames or address optionally including a :port suffix<br>"
 		"<i>port</i> = a port to use when the interface doesn't specify one<br>"
 		"<i>protocol</i> = protocol name, used for socket options and logging.<br>"
