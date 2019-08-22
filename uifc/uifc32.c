@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.246 2019/07/14 20:42:12 deuce Exp $ */
+/* $Id: uifc32.c,v 1.249 2019/07/25 18:28:34 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,7 +427,7 @@ void docopy(void)
 						break;
 					case CIOLIB_BUTTON_1_DRAG_END:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						copybuf=alloca((endy-starty+1)*(endx-startx+1)+1+lines*2);
+						copybuf=malloc((endy-starty+1)*(endx-startx+1)+1+lines*2);
 						outpos=0;
 						for(y=starty-1;y<endy;y++) {
 							for(x=startx-1;x<endx;x++) {
@@ -440,6 +440,7 @@ void docopy(void)
 						}
 						copybuf[outpos]=0;
 						copytext(copybuf, strlen(copybuf));
+						free(copybuf);
 						restorescreen(screen);
 						freescreen(screen);
 						freescreen(sbuffer);
@@ -769,7 +770,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					FREE_AND_NULL(sav[api->savnum].buf);
 					if ((sav[api->savnum].buf = malloc((width + 3) * (height + 2) * sizeof(struct vmem_cell)))==NULL) {
 						cprintf("UIFC line %d: error allocating %u bytes."
-							,__LINE__,(width+3)*(height+2)*2);
+							,__LINE__,(width+3)*(height+2)*sizeof(struct vmem_cell));
 						free(title);
 						if(!(api->mode&UIFC_NHM))
 							uifc_mouse_enable();
@@ -794,7 +795,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 		else {
 			if((sav[api->savnum].buf=malloc((width+3)*(height+2)*sizeof(struct vmem_cell)))==NULL) {
 				cprintf("UIFC line %d: error allocating %u bytes."
-					,__LINE__,(width+3)*(height+2)*2);
+					,__LINE__,(width+3)*(height+2)*sizeof(struct vmem_cell));
 				free(title);
 				if(!(api->mode&UIFC_NHM))
 					uifc_mouse_enable();
@@ -1076,12 +1077,13 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						if(mode&WIN_ACT) {
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_disable();
-							if((win=alloca((width+3)*(height+2)*sizeof(*win)))==NULL) {
+							if((win=malloc((width+3)*(height+2)*sizeof(*win)))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
-									,__LINE__,(width+3)*(height+2)*2);
+									,__LINE__,(width+3)*(height+2)*sizeof(*win));
 								return(-1);
 							}
 							inactive_win(win, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
+							free(win);
 							if(!(api->mode&UIFC_NHM))
 								uifc_mouse_enable();
 						}
@@ -2626,7 +2628,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 
 	if((textbuf=(struct vmem_cell *)malloc((width-2-pad-pad)*lines*sizeof(*textbuf)))==NULL) {
 		cprintf("UIFC line %d: error allocating %u bytes\r\n"
-			,__LINE__,(width-2-pad-pad)*lines*2);
+			,__LINE__,(width-2-pad-pad)*lines*sizeof(*textbuf));
 		_setcursortype(cursor);
 		return;
 	}
@@ -2649,7 +2651,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 		}
 		else if(hbuf[j]!=CR) {
 			set_vmem(&textbuf[i], hbuf[j], inverse ? (api->bclr|(api->cclr<<4)) : high ? (api->hclr|(api->bclr<<4)) : (api->lclr|(api->bclr<<4)), 0);
-			if((i%((width-2-pad-pad))==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
+			if(((i+1)%((width-2-pad-pad))==0 && (hbuf[j+1]==LF)) || (hbuf[j+1]==CR && hbuf[j+2]==LF))
 				i--;
 		}
 		else
@@ -2688,12 +2690,12 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty>=top+pad+1
 								&& mevnt.starty<=top+pad+(height/2)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p -= ((width-2-pad-pad)*2*(height-5));
+							p -= ((width-2-pad-pad)*(height-5));
 							continue;
 						}
 						if(mevnt.startx == SCROLL_UP_BUTTON_X && mevnt.starty == SCROLL_UP_BUTTON_Y
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p -= ((width-2-pad-pad)*2);
+							p -= ((width-2-pad-pad));
 							continue;
 						}
 						/* Clicked Scroll Down */
@@ -2702,12 +2704,12 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 								&& mevnt.starty<=top+pad+height-2
 								&& mevnt.starty>=top+pad+height-(height/2+1)-2
 								&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p += (width-2-pad-pad)*2*(height-5);
+							p += (width-2-pad-pad)*(height-5);
 							continue;
 						}
 						if(mevnt.startx == SCROLL_DN_BUTTON_X && mevnt.starty == SCROLL_DN_BUTTON_Y
 							&& mevnt.event==CIOLIB_BUTTON_1_CLICK) {
-							p += ((width-2-pad-pad)*2);
+							p += ((width-2-pad-pad));
 							continue;
 						}
 						/* Non-click events (drag, move, multiclick, etc) */
@@ -2723,15 +2725,15 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						break;
 
 					case CIO_KEY_UP:	/* up arrow */
-						p = p-((width-2-pad-pad)*2);
+						p = p-((width-2-pad-pad));
 						break;
 
 					case CIO_KEY_PPAGE:	/* PgUp */
-						p = p-((width-2-pad-pad)*2*(height-5));
+						p = p-((width-2-pad-pad)*(height-5));
 						break;
 
 					case CIO_KEY_NPAGE:	/* PgDn */
-						p += (width-2-pad-pad)*2*(height-5);
+						p += (width-2-pad-pad)*(height-5);
 						break;
 
 					case CIO_KEY_END:	/* end */
@@ -2739,7 +2741,7 @@ void showbuf(int mode, int left, int top, int width, int height, char *title, ch
 						break;
 
 					case CIO_KEY_DOWN:	/* dn arrow */
-						p += ((width-2-pad-pad)*2);
+						p += ((width-2-pad-pad));
 						break;
 
 					case CIO_KEY_QUIT:
