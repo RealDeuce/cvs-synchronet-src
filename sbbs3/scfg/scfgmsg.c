@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.62 2019/07/07 20:43:42 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.63 2019/08/12 06:21:28 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -510,7 +510,7 @@ void msgs_cfg()
 								SAFEPRINTF(tmp, "%ssubs/", cfg.data_dir);
 							else
 								SAFECOPY(tmp, cfg.sub[j]->data_dir);
-							delfiles(tmp, str);
+							delfiles(tmp, str, /* keep: */0);
 						}
 					}
 				}
