@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.136 2019/08/22 00:15:07 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.137 2019/08/22 00:31:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1897,8 +1897,8 @@ bool add_sub_to_arealist(sub_t* sub, fidoaddr_t uplink)
 	}
 	strupr(echotag);
 
-	lprintf(LOG_INFO, "Adding sub-board (%s) to Area %s with tag %s, uplink: %s"
-		,sub->code, cfg.auto_add_to_areafile ? "File" : "List", echotag, smb_faddrtoa(&uplink, NULL));
+	lprintf(LOG_INFO, "Adding sub-board (%-*s) to Area %s with uplink %s, tag: %s"
+		,LEN_EXTCODE, sub->code, cfg.auto_add_to_areafile ? "File" : "List", smb_faddrtoa(&uplink, NULL), echotag);
 
 	if(cfg.auto_add_to_areafile) {
 		/* Back-up Area File (at most, once per invocation) */
@@ -6009,7 +6009,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.136 $", "%*s %s", revision);
+	sscanf("$Revision: 3.137 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
