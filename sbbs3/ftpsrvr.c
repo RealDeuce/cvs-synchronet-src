@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.491 2019/05/31 03:31:13 deuce Exp $ */
+/* $Id: ftpsrvr.c,v 1.493 2019/06/20 20:48:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3096,7 +3096,7 @@ static void ctrl_thread(void* arg)
 	SAFECOPY(host_name, STR_NO_HOSTNAME);
 	if(!(startup->options&FTP_OPT_NO_HOST_LOOKUP)) {
 		getnameinfo(&ftp.client_addr.addr, sizeof(ftp.client_addr), host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		lprintf(LOG_INFO,"%04d Hostname: %s", sock, host_name);
+		lprintf(LOG_INFO,"%04d Hostname: %s [%s]", sock, host_name, host_ip);
 	}
 
 	ulong banned = loginBanned(&scfg, startup->login_attempt_list, sock, host_name, startup->login_attempt, &attempted);
@@ -3152,7 +3152,7 @@ static void ctrl_thread(void* arg)
 	}
 
 	sockprintf(sock,sess,"220-%s (%s)",scfg.sys_name, startup->host_name);
-	sockprintf(sock,sess,"220-Synchronet FTP Server %s-%s Ready"
+	sockprintf(sock,sess," Synchronet FTP Server %s-%s Ready"
 		,revision,PLATFORM_DESC);
 	sprintf(str,"%sftplogin.txt",scfg.text_dir);
 	if((fp=fopen(str,"rb"))!=NULL) {
@@ -5991,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.491 $", "%*s %s", revision);
+	sscanf("$Revision: 1.493 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
