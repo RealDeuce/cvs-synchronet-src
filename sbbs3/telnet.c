@@ -2,7 +2,7 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.7 2019/08/22 23:48:03 rswindell Exp $ */
+/* $Id: telnet.c,v 1.8 2019/08/23 05:24:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <stdio.h>		/* sprintf */
+#include <string.h>		/* memchr */
 #include "gen_defs.h"
 #include "telnet.h"
 
