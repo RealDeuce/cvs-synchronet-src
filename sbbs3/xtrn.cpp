@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.252 2019/08/21 18:31:12 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.253 2019/08/23 05:40:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -224,33 +224,6 @@ BYTE* wwiv_expand(BYTE* buf, ulong buflen, BYTE* outbuf, ulong& newlen
         }
     }
     newlen=j;
-    return(outbuf);
-}
-
-/*****************************************************************************/
-// Escapes Telnet IAC (255) by doubling the IAC char
-/*****************************************************************************/
-BYTE* telnet_expand(BYTE* inbuf, ulong inlen, BYTE* outbuf, ulong& newlen)
-{
-	BYTE*   first_iac;
-	ulong	i,outlen;
-
-    first_iac=(BYTE*)memchr(inbuf, TELNET_IAC, inlen);
-
-	if(first_iac==NULL) {	/* Nothing to expand */
-		newlen=inlen;
-		return(inbuf);
-	}
-
-	outlen=first_iac-inbuf;
-	memcpy(outbuf, inbuf, outlen);
-
-    for(i=outlen;i<inlen;i++) {
-		if(inbuf[i]==TELNET_IAC)
-			outbuf[outlen++]=TELNET_IAC;
-		outbuf[outlen++]=inbuf[i];
-	}
-    newlen=outlen;
     return(outbuf);
 }
 
@@ -928,9 +901,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
-                		bp=telnet_expand(buf, rd, telnet_buf, rd);
-						if(rd>sizeof(telnet_buf))
-							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
+                		rd = telnet_expand(buf, rd, telnet_buf, sizeof(telnet_buf), &bp);
 					}
 					if(rd>RingBufFree(&outbuf)) {
 						lprintf(LOG_ERR,"output buffer overflow");
@@ -998,9 +969,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					} else if(telnet_mode&TELNET_MODE_OFF) {
 						bp=buf;
 					} else {
-                		bp=telnet_expand(buf, rd, telnet_buf, rd);
-						if(rd>sizeof(telnet_buf))
-							lprintf(LOG_ERR,"TELNET_BUF OVERRUN");
+                		rd = telnet_expand(buf, rd, telnet_buf, sizeof(telnet_buf), &bp);
 					}
 					if(rd>RingBufFree(&outbuf)) {
 						lprintf(LOG_ERR,"output buffer overflow");
@@ -1950,7 +1919,7 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 					output_len=rd;
 				}
 				else
-   	       			bp=telnet_expand(buf, rd, output_buf, output_len);
+   	       			output_len = telnet_expand(buf, rd, output_buf, sizeof(output_buf), &bp);
 			} else {
 				if ((mode & EX_STDIO) != EX_STDIO) {
 					/* LF to CRLF expansion */
