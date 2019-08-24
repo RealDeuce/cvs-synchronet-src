@@ -15,7 +15,6 @@ enum x11_local_events {
 	,X11_LOCAL_DRAWRECT
 	,X11_LOCAL_FLUSH
 	,X11_LOCAL_BEEP
-	,X11_LOCAL_SETICON
 };
 
 struct x11_local_event {
@@ -25,7 +24,6 @@ struct x11_local_event {
 		char	name[81];
 		char	title[81];
 		struct	rectlist *rect;
-		unsigned long	*icon_data;
 	} data;
 };
 
@@ -65,7 +63,7 @@ struct x11 {
 #ifndef XPutPixel
 	void	(*XPutPixel)	(XImage*,int,int,unsigned long);
 #endif
-	int	(*XPutImage)	(Display*, Drawable, GC, XImage *, int,int,int,int,unsigned int,unsigned int);
+	void	(*XPutImage)	(Display*, Drawable, GC, XImage *, int,int,int,int,unsigned int,unsigned int);
 #ifndef XDestroyImage
 	void	(*XDestroyImage)(XImage*);
 #endif
@@ -82,11 +80,9 @@ struct x11 {
 	Window (*XCreateWindow)(Display *display, Window parent, int x, int y, unsigned int width, unsigned int height, unsigned int border_width, int depth, 
                        unsigned int class, Visual *visual, unsigned long valuemask, XSetWindowAttributes *attributes);
 	Colormap (*XCreateColormap)(Display *display, Window w, Visual *visual, int alloc);
-	XClassHint *(*XAllocClassHint)(void);
-	int (*XSetForeground)(Display *display, GC gc, unsigned long foreground);
-	Atom utf8;
-	Atom targets;
 };
+
+
 
 extern int local_pipe[2];			/* Used for passing local events */
 extern int key_pipe[2];			/* Used for passing keyboard events */
@@ -98,8 +94,6 @@ extern pthread_mutex_t	copybuf_mutex;
 extern char 	*pastebuf;
 extern sem_t	pastebuf_set;
 extern sem_t	pastebuf_used;
-extern Atom	copybuf_format;
-extern Atom	pastebuf_format;
 extern sem_t	init_complete;
 extern sem_t	mode_set;
 extern sem_t	event_thread_complete;
