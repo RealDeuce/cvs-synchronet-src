@@ -1,6 +1,6 @@
 /* Synchronet pack QWK packet routine */
 
-/* $Id: pack_qwk.cpp,v 1.82 2019/02/14 09:55:36 rswindell Exp $ */
+/* $Id: pack_qwk.cpp,v 1.84 2019/08/17 02:21:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -105,8 +105,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 		mode|=QM_VIA;
 	if(useron.qwk&QWK_MSGID)
 		mode|=QM_MSGID;
-	if(useron.qwk&QWK_EXT)
-		mode|=QM_EXT;
+	mode |= useron.qwk&(QWK_EXT | QWK_UTF8);
 
 	(*msgcnt)=0L;
 	if(/* !prepack && */ !(useron.qwk&QWK_NOCTRL)) {
@@ -387,7 +386,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 						mv(str,tmp,/* copy: */TRUE); 
 				}
 
-				size=msgtoqwk(&msg,qwk,mode|QM_REPLYTO,INVALID_SUB,0,hdrs);
+				size=msgtoqwk(&msg, qwk, mode|QM_REPLYTO, &smb, /* confnum: */0, hdrs);
 				smb_unlockmsghdr(&smb,&msg);
 				smb_freemsgmem(&msg);
 				if(ndx && size) {
@@ -527,7 +526,7 @@ bool sbbs_t::pack_qwk(char *packet, ulong *msgcnt, bool prepack)
 					else
 						mode&=~(QM_TAGLINE|QM_TO_QNET);
 
-					size=msgtoqwk(&msg,qwk,mode,usrsub[i][j],conf,hdrs,voting);
+					size=msgtoqwk(&msg, qwk, mode, &smb, conf, hdrs, voting);
 					smb_unlockmsghdr(&smb,&msg);
 
 					if(ndx && size) {
