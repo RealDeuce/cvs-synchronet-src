@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.64 2019/08/17 06:31:18 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.65 2019/08/24 19:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -263,7 +263,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		if(mode&QM_UTF8)
 			qwk_newline = '\n';
 		else
-			utf8_normalize_str(buf);
+			utf8_to_cp437_str(buf);
 	}
 
 	fprintf(qwk_fp,"%*s",QWK_BLOCK_LEN,"");		/* Init header to space */
