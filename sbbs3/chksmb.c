@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.68 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.69 2019/07/23 06:14:44 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.68 $", "%*s %s", revision);
+	sscanf("$Revision: 1.69 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 
 	off_t sid_length = filelength(fileno(smb.sid_fp));
 	if(sid_length != smb.status.total_msgs * sizeof(idxrec_t)) {
-		printf("!Size of index file (%ld) is incorrect (expected: %ld)\n", sid_length, smb.status.total_msgs * sizeof(idxrec_t));
+		printf("!Size of index file (%ld) is incorrect (expected: %ld)\n", sid_length, (long)(smb.status.total_msgs * sizeof(idxrec_t)));
 		smb_close(&smb);
 		errors++;
 		continue;
