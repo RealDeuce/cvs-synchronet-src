@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.119 2020/03/01 07:57:29 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.112 2019/08/16 21:32:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,27 +47,6 @@
 	#define	SOCKLIB_DESC NULL
 #endif
 
-static char* separate_thousands(const char* src, char *dest, size_t maxlen, char sep)
-{
-	if(strlen(src) * 1.3 > maxlen)
-		return (char*)src;
-	const char* tail = src;
-	while(*tail && isdigit(*tail))
-		tail++;
-	if(tail == src)
-		return (char*)src;
-	size_t digits = tail - src;
-	char* d = dest;
-	for(size_t i = 0; i < digits; d++, i++) {
-		*d = src[i];
-		if(i && i + 3 < digits && (digits - (i + 1)) % 3 == 0)
-			*(++d) = sep;
-	}
-	*d = 0;
-	strcpy(d, tail);
-	return dest;
-}
-
 /****************************************************************************/
 /* Returns 0 if invalid @ code. Returns length of @ code if valid.          */
 /****************************************************************************/
@@ -82,7 +61,6 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	zero_padded=false;
 	bool	truncated = true;
 	bool	doubled = false;
-	bool	thousep = false;	// thousands-separated
 	long	pmode = 0;
 	const char *cp;
 
@@ -98,23 +76,7 @@ int sbbs_t::show_atcode(const char *instr)
 	sp=(str+1);
 
 	disp_len=len;
-	if((p = strchr(sp, '|')) != NULL) {
-		if(strchr(p, 'T') != NULL)
-			thousep = true;
-		if(strchr(p, 'L') != NULL)
-			padded_left = true;
-		else if(strchr(p, 'R') != NULL)
-			padded_right = true;
-		else if(strchr(p, 'C') != NULL)
-			centered = true;
-		else if(strchr(p, 'W') != NULL)
-			doubled = true;
-		else if(strchr(p, 'Z') != NULL)
-			zero_padded = true;
-		else if(strchr(p, '>') != NULL)
-			truncated = false;
-	}
-	else if(strchr(sp, ':') != NULL)
+	if(strchr(sp, ':') != NULL)
 		p = NULL;
 	else if((p=strstr(sp,"-L"))!=NULL)
 		padded_left=true;
@@ -126,15 +88,11 @@ int sbbs_t::show_atcode(const char *instr)
 		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
-	else if((p=strstr(sp,"-T"))!=NULL)
-		thousep=true;
 	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
 		truncated = false;
 	if(p!=NULL) {
-		char* lp = p;
-		while(*lp && !isdigit((uchar)*lp))
-			lp++;
-		if(*lp && isdigit((uchar)*lp))
+		char* lp = p + 2;
+		if(*lp && isdigit(*lp))
 			disp_len=atoi(lp);
 		*p=0;
 	}
@@ -142,10 +100,6 @@ int sbbs_t::show_atcode(const char *instr)
 	cp = atcode(sp, str2, sizeof(str2), &pmode);
 	if(cp==NULL)
 		return(0);
-
-	char separated[128];
-	if(thousep)
-		cp = separate_thousands(cp, separated, sizeof(separated), ',');
 
 	if(p==NULL || truncated == false)
 		disp_len = strlen(cp);
@@ -187,15 +141,6 @@ int sbbs_t::show_atcode(const char *instr)
 		bprintf(pmode, "%.*s", disp_len, cp);
 
 	return(len);
-}
-
-static const char* getpath(scfg_t* cfg, const char* path)
-{
-	for(int i = 0; i < cfg->total_dirs; i++) {
-		if(stricmp(cfg->dir[i]->code, path) == 0)
-			return cfg->dir[i]->path;
-	}
-	return path;
 }
 
 const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
@@ -393,22 +338,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return str;
 	}
 
-	if(strcmp(sp, "PWDAYS") == 0) {
-		if(cfg.sys_pwdays) {
-			safe_snprintf(str, maxlen, "%u", cfg.sys_pwdays);
-			return str;
-		}
-		return text[Unlimited];
-	}
-
-	if(strcmp(sp, "AUTODEL") == 0) {
-		if(cfg.sys_autodel) {
-			safe_snprintf(str, maxlen, "%u", cfg.sys_autodel);
-			return str;
-		}
-		return text[Unlimited];
-	}
-
 	if(strcmp(sp, "PAGER") == 0)
 		return (thisnode.misc&NODE_POFF) ? text[Off] : text[On];
 
@@ -491,77 +420,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 			l+=getfiles(&cfg,i);
 		safe_snprintf(str,maxlen,"%lu",l);
 		return(str);
-	}
-
-	if(strncmp(sp, "FILES:", 6) == 0) {	// Number of files in specified directory
-		const char* path = getpath(&cfg, sp + 6);
-		safe_snprintf(str, maxlen, "%lu", getfilecount(path));
-		return str;
-	}
-
-	if(strcmp(sp, "FILES") == 0) {	// Number of files in current directory
-		safe_snprintf(str, maxlen, "%lu", (ulong)getfiles(&cfg, usrdir[curlib][curdir[curlib]]));
-		return str;
-	}
-
-	if(strncmp(sp, "FILESIZE:", 9) == 0) {
-		const char* path = getpath(&cfg, sp + 9);
-		byte_estimate_to_str(getfilesizetotal(path), str, maxlen, /* unit: */1, /* precision: */1);
-		return str;
-	}
-
-	if(strcmp(sp, "FILESIZE") == 0) {
-		byte_estimate_to_str(getfilesizetotal(cfg.dir[usrdir[curlib][curdir[curlib]]]->path)
-			,str, maxlen, /* unit: */1, /* precision: */1);
-		return str;
-	}
-
-	if(strncmp(sp, "FILEBYTES:", 10) == 0) {	// Number of bytes in current file directory
-		const char* path = getpath(&cfg, sp + 10);
-		safe_snprintf(str, maxlen, "%" PRIu64, getfilesizetotal(path));
-		return str;
-	}
-
-	if(strcmp(sp, "FILEBYTES") == 0) {	// Number of bytes in current file directory
-		safe_snprintf(str, maxlen, "%" PRIu64
-			,getfilesizetotal(cfg.dir[usrdir[curlib][curdir[curlib]]]->path));
-		return str;
-	}
-
-	if(strncmp(sp, "FILEKB:", 7) == 0) {	// Number of kibibytes in current file directory
-		const char* path = getpath(&cfg, sp + 7);
-		safe_snprintf(str, maxlen, "%1.1f", getfilesizetotal(path) / 1024.0);
-		return str;
-	}
-
-	if(strcmp(sp, "FILEKB") == 0) {	// Number of kibibytes in current file directory
-		safe_snprintf(str, maxlen, "%1.1f"
-			,getfilesizetotal(cfg.dir[usrdir[curlib][curdir[curlib]]]->path) / 1024.0);
-		return str;
-	}
-
-	if(strncmp(sp, "FILEMB:", 7) == 0) {	// Number of mebibytes in current file directory
-		const char* path = getpath(&cfg, sp + 7);
-		safe_snprintf(str, maxlen, "%1.1f", getfilesizetotal(path) / (1024.0 * 1024.0));
-		return str;
-	}
-
-	if(strcmp(sp, "FILEMB") == 0) {	// Number of mebibytes in current file directory
-		safe_snprintf(str, maxlen, "%1.1f"
-			,getfilesizetotal(cfg.dir[usrdir[curlib][curdir[curlib]]]->path) / (1024.0 * 1024.0));
-		return str;
-	}
-
-	if(strncmp(sp, "FILEGB:", 7) == 0) {	// Number of gibibytes in current file directory
-		const char* path = getpath(&cfg, sp + 7);
-		safe_snprintf(str, maxlen, "%1.1f", getfilesizetotal(path) / (1024.0 * 1024.0 * 1024.0));
-		return str;
-	}
-
-	if(strcmp(sp, "FILEGB") == 0) {	// Number of gibibytes in current file directory
-		safe_snprintf(str, maxlen, "%1.1f"
-			,getfilesizetotal(cfg.dir[usrdir[curlib][curdir[curlib]]]->path) / (1024.0 * 1024.0 * 1024.0));
-		return str;
 	}
 
 	if(!strcmp(sp,"TCALLS") || !strcmp(sp,"NUMCALLS")) {
@@ -736,13 +594,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return(str);
 	}
 
-	if(strcmp(sp, "PWAGE") == 0) {
-		time_t age = time(NULL) - useron.pwmod;
-		safe_snprintf(str, maxlen, "%ld", (long)(age/(24*60*60)));
-		return str;
-	}
-
-	if(strcmp(sp, "PWDATE") == 0 || strcmp(sp, "MEMO") == 0)
+	if(!strcmp(sp,"MEMO"))
 		return(unixtodstr(&cfg,useron.pwmod,str));
 
 	if(!strcmp(sp,"SEC") || !strcmp(sp,"SECURITY")) {
@@ -1042,7 +894,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		tp=strchr(sp,',');
 		if(tp!=NULL) {
 			tp++;
-			cursor_xy(atoi(sp+7),atoi(tp));
+			ansi_gotoxy(atoi(sp+7),atoi(tp));
 		}
 		return(nulstr);
 	}
