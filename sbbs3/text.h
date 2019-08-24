@@ -837,6 +837,8 @@ enum {
 	,Utf8TerminalQ
 	,MsgCarbonCopyList
 	,LoggingOn
+	,QWKSettingsUtf8
+	,MsgPostedToYouVia
 
 	,TOTAL_TEXT
 };

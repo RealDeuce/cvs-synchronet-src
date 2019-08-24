@@ -2,7 +2,7 @@
 
 /* Synchronet QWK to SMB message conversion routine */
 
-/* $Id: qwktomsg.cpp,v 1.80 2019/08/14 21:12:24 rswindell Exp $ */
+/* $Id: qwktomsg.cpp,v 1.81 2019/08/17 06:22:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -53,6 +53,10 @@ static bool qwk_parse_header_list(sbbs_t* sbbs, ulong confnum, smbmsg_t* msg, st
 			sbbs->errormsg(WHERE, ERR_CHK, "Conference number", confnum, value);
 			return false;
 		}
+	}
+	if((p=iniPopKey(headers,ROOT_SECTION,"utf8",value))!=NULL) {
+		if(stricmp(value,"true") == 0)
+			msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
 	}
 
 	if((p=iniPopKey(headers,ROOT_SECTION,"WhenWritten",value))!=NULL) {
