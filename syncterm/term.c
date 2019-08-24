@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.345 2019/08/21 16:59:14 rswindell Exp $ */
+/* $Id: term.c,v 1.346 2019/08/24 09:41:07 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1510,8 +1510,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, /* expected_block: */ 0);
 				i=xmodem_get_block(&xm, block, /* expected_block: */ 0);
 				if(i==SUCCESS) {
-					send_byte(&xm,ACK,10);
-					flush_send(&xm);
+					if(!(mode&GMODE)) {
+						send_byte(&xm,ACK,10);
+						flush_send(&xm);
+					}
 					break;
 				}
 				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
