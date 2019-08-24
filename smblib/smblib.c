@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.203 2019/07/23 06:13:37 rswindell Exp $ */
+/* $Id: smblib.c,v 1.205 2019/07/30 10:20:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -767,7 +767,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case REPLYTO:
 			msg->replyto=(char*)hfield_dat;
 			break;
-		case RFC822REPLYTO:
+		case REPLYTOLIST:
 			msg->replyto_list = (char*)hfield_dat;
 			break;
 		case REPLYTOEXT:
@@ -785,7 +785,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case RECIPIENT:
 			msg->to=(char*)hfield_dat;
 			break;
-		case RFC822TO:
+		case RECIPIENTLIST:
 			msg->to_list = (char*)hfield_dat;
 			break;
 		case RECIPIENTEXT:
@@ -860,6 +860,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case FIDOFLAGS:
 			msg->ftn_flags=(char*)hfield_dat;
 			break;
+		case FIDOCHARSET:
+			msg->ftn_charset=(char*)hfield_dat;
+			break;
 		case RFC822HEADER:
 		{
 			char* p = (char*)hfield_dat;
@@ -923,6 +926,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->ftn_pid=NULL;
 	msg->ftn_tid=NULL;
 	msg->ftn_flags=NULL;
+	msg->ftn_charset=NULL;
 }
 
 /****************************************************************************/
@@ -1378,14 +1382,14 @@ int SMBCALL smb_hfield_replace_str(smbmsg_t* msg, uint16_t type, const char* str
 /****************************************************************************/
 /* Searches for a specific header field (by type) and returns it			*/
 /****************************************************************************/
-void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t* hfield)
+void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t** hfield)
 {
 	int i;
 
 	for(i=0;i<msg->total_hfields;i++)
 		if(msg->hfield[i].type == type) {
 			if(hfield != NULL)
-				*hfield = msg->hfield[i];
+				*hfield = &msg->hfield[i];
 			return(msg->hfield_dat[i]);
 		}
 
@@ -1693,7 +1697,7 @@ BOOL SMBCALL smb_msg_is_from(smbmsg_t* msg, const char* name, enum smb_net_type 
 	}
 }
 
-BOOL SMBCALL smb_msg_is_utf8(smbmsg_t* msg)
+BOOL SMBCALL smb_msg_is_utf8(const smbmsg_t* msg)
 {
 	for(int i=0; i < msg->total_hfields; i++) {
 		switch(msg->hfield[i].type) {
@@ -1702,6 +1706,8 @@ BOOL SMBCALL smb_msg_is_utf8(smbmsg_t* msg)
 				return TRUE;
 		}
 	}
+	if(msg->ftn_charset != NULL && strncmp(msg->ftn_charset, "UTF-8", 5) == 0)
+		return TRUE;
 	return msg->text_charset != NULL && stricmp(msg->text_charset, "utf-8") == 0;
 }
 
