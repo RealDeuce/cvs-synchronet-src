@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.66 2019/08/25 00:16:24 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.65 2019/08/24 19:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -259,7 +259,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		return(0);
 
 	char qwk_newline = QWK_NEWLINE;
-	if(smb_msg_is_utf8(msg) || (msg->hdr.auxattr & MSG_HFIELDS_UTF8)) {
+	if(smb_msg_is_utf8(msg)) {
 		if(mode&QM_UTF8)
 			qwk_newline = '\n';
 		else
