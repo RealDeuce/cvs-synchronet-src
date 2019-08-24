@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.761 2019/08/22 23:49:15 rswindell Exp $ */
+/* $Id: main.cpp,v 1.762 2019/08/24 08:04:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2183,7 +2183,7 @@ void passthru_thread(void* arg)
 			BYTE*	bp = (BYTE*)inbuf;
 
 			if(!(sbbs->telnet_mode&TELNET_MODE_OFF))
-				rd = telnet_expand((BYTE*)inbuf, rd, telnet_buf, sizeof(telnet_buf), &bp);
+				rd = telnet_expand((BYTE*)inbuf, rd, telnet_buf, sizeof(telnet_buf), /* expand_cr */false, &bp);
 
     		if(!RingBufWrite(&sbbs->outbuf, bp, rd)) {
 				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
