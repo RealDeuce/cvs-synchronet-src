@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.91 2019/08/31 22:38:33 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.89 2019/08/17 02:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1062,13 +1062,11 @@ bool sbbs_t::qwk_voting(str_list_t* ini, long offset, smb_net_type_t net_type, c
 
 	sprintf(location, "%lx", offset);
 	if((found = strListFind(section_list, location, /* case_sensitive: */FALSE)) < 0) {
-		lprintf(LOG_NOTICE, "QWK vote message (offset: %ld) not found in %s VOTING.DAT", offset, qnet_id);
 		strListFree(&section_list);
 		return false;
 	}
 	/* The section immediately following the (empty) [offset] section is the section of interest */
 	if((section = section_list[found+1]) == NULL) {
-		lprintf(LOG_NOTICE, "QWK vote section (offset: %ld) not found in %s VOTING.DAT", offset, qnet_id);
 		strListFree(&section_list);
 		return false;
 	}
@@ -1210,12 +1208,9 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 			notice = text[PollVoteNotice];
 		}
 		result = votemsg(&cfg, &smb, &msg, notice, text[VoteNoticeFmt]);
-		if(result == SMB_DUPE_MSG)
-			lprintf(LOG_DEBUG, "Duplicate vote-msg (%s) from %s", msg.id, qnet_id);
-		else if(result != SMB_SUCCESS) {
+		if(result != SMB_SUCCESS && result != SMB_DUPE_MSG) {
 			if(hubnum >= 0)
-				lprintf(LOG_DEBUG, "Error %s (%d) writing %s vote-msg (%s) to %s"
-					,smb.last_error, result, qnet_id, msg.id, smb.file);
+				lprintf(LOG_DEBUG, "Error %s (%d) writing vote-msg to %s", smb.last_error, result, smb.file);
 			else
 				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 		}
@@ -1224,8 +1219,7 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 		smb_hfield_str(&msg, RFC822MSGID, section + 6);
 		if((result = smb_addpollclosure(&smb, &msg, smb_storage_mode(&cfg, &smb))) != SMB_SUCCESS) {
 			if(hubnum >= 0)
-				lprintf(LOG_DEBUG, "Error %s (%d) writing poll-close-msg (%s) to %s"
-					,smb.last_error, result, msg.id, smb.file);
+				lprintf(LOG_DEBUG, "Error %s (%d) writing poll-close-msg to %s", smb.last_error, result, smb.file);
 			else
 				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 		}
