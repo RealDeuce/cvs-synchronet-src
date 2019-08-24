@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.347 2019/08/24 09:58:54 rswindell Exp $ */
+/* $Id: term.c,v 1.346 2019/08/24 09:41:07 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1595,10 +1595,9 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 
 		while(fexistcase(str) && !(mode&OVERWRITE)) {
 			lprintf(LOG_WARNING,"%s already exists",str);
-			if(!xmodem_duplicate(&xm, bbs, str, sizeof(str), getfname(fname))) {
-				xmodem_cancel(&xm);
-				goto end;
-			}
+			xmodem_duplicate(&xm, bbs, str, sizeof(str), getfname(fname));
+			xmodem_cancel(&xm);
+			goto end; 
 		}
 		if((fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
