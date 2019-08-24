@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.111 2019/08/16 16:00:57 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.112 2019/08/16 21:32:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -455,6 +455,13 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strcmp(sp,"PON") || !strcmp(sp,"AUTOMORE")) {
 		sys_status^=SS_PAUSEON;
 		return(nulstr);
+	}
+
+	if(strncmp(sp, "FILL:", 5) == 0) {
+		sp += 5;
+		while(*sp && online && column < cols - 1)
+			bputs(sp, P_TRUNCATE);
+		return nulstr;
 	}
 
 	if(strncmp(sp, "POS:", 4) == 0) {	// PCBoard	(nn is 1 based)

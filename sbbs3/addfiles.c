@@ -1,6 +1,6 @@
 /* Program to add files to a Synchronet file database */
 
-/* $Id: addfiles.c,v 1.59 2019/08/12 07:04:08 rswindell Exp $ */
+/* $Id: addfiles.c,v 1.60 2019/08/19 20:21:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,7 +413,7 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 		if(!isalnum(*fname)) {	// filename doesn't begin with an alpha-numeric char?
 			continue;
 		}
-		sprintf(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
+		SAFEPRINTF2(filepath,"%s%s",cur_altpath ? scfg.altpath[cur_altpath-1]
 			: scfg.dir[f.dir]->path,fname);
 
 #ifdef _WIN32
@@ -422,6 +422,9 @@ void addlist(char *inpath, file_t f, uint dskip, uint sskip)
 			GetShortPathName(filepath, shortpath, sizeof(shortpath));
 			SAFECOPY(fname, getfname(shortpath));
 		}
+#else
+		fexistcase(filepath);
+		SAFECOPY(fname, getfname(filepath));
 #endif
 
 		padfname(fname,f.name);
@@ -711,7 +714,7 @@ int main(int argc, char **argv)
 	long l;
 	file_t	f;
 
-	sscanf("$Revision: 1.59 $", "%*s %s", revision);
+	sscanf("$Revision: 1.60 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nADDFILES v%s-%s (rev %s) - Adds Files to Synchronet "
 		"Filebase\n"
