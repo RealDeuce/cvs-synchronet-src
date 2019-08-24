@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.183 2019/08/15 18:34:03 rswindell Exp $ */
+/* $Id: js_file.c,v 1.185 2019/08/21 18:32:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -183,8 +183,9 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 				/* Remove (C11 standard) 'x'clusive mode char to avoid MSVC assertion: */
 				for(e=strchr(fdomode, 'x'); e ; e=strchr(e, 'x'))
 					memmove(e, e+1, strlen(e));
-				if((p->fp=fdopen(file,fdomode))==NULL)
-					close(file);
+				if((p->fp=fdopen(file,fdomode)) == NULL) {
+					JS_ReportWarning(cx, "fdopen(%s, %s) ERROR %d: %s", p->name, fdomode, errno, strerror(errno));
+				}
 			}
 			free(fdomode);
 		}
