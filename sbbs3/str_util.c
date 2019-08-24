@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.67 2020/01/03 20:34:56 rswindell Exp $ */
+/* $Id: str_util.c,v 1.63 2019/08/24 19:35:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,21 +113,6 @@ char* strip_space(const char *str, char* dest)
 			dest[j++]=str[i];
 	dest[j]=0;
 	return dest;
-}
-
-char* strip_char(const char* str, char* dest, char ch)
-{
-	const char* src;
-
-	if(dest == NULL && (dest = strdup(str)) == NULL)
-		return NULL;
-	char* retval = dest;
-	for(src = str; *src != '\0'; src++) {
-		if(*src != ch)
-			*(dest++) = *src;
-	}
-	*dest = '\0';
-	return retval;
 }
 
 char* prep_file_desc(const char *str, char* dest)
@@ -619,15 +604,6 @@ BOOL str_is_ascii(const char* str)
 	return TRUE;
 }
 
-BOOL str_has_ctrl(const char* str)
-{
-	for(const char* p = str; *p != 0; p++) {
-		if((uchar)*p < ' ')
-			return TRUE;
-	}
-	return FALSE;
-}
-
 /****************************************************************************/
 /* Convert string from IBM extended ASCII to just ASCII						*/
 /****************************************************************************/
@@ -684,49 +660,3 @@ char* utf8_to_cp437_str(char* str)
 		,/* unsupported zero-width ch: */0
 		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
 }
-
-char* subnewsgroupname(scfg_t* cfg, sub_t* sub, char* str, size_t size)
-{
-	memset(str, 0, size);
-	if(sub->newsgroup[0])
-		strncpy(str, sub->newsgroup, size - 1);
-	else {
-		snprintf(str, size - 1, "%s.%s", cfg->grp[sub->grp]->sname, sub->sname);
-		/*
-		 * From RFC5536:
-		 * newsgroup-name  =  component *( "." component )
-		 * component       =  1*component-char
-		 * component-char  =  ALPHA / DIGIT / "+" / "-" / "_"
-		 */
-		if (str[0] == '.')
-			str[0] = '_';
-		size_t c;
-		for(c = 0; str[c] != 0; c++) {
-			/* Legal characters */
-			if ((str[c] >= 'A' && str[c] <= 'Z')
-					|| (str[c] >= 'a' && str[c] <= 'z')
-					|| (str[c] >= '0' && str[c] <= '9')
-					|| str[c] == '+'
-					|| str[c] == '-'
-					|| str[c] == '_'
-					|| str[c] == '.')
-				continue;
-			str[c] = '_';
-		}
-		c--;
-		if (str[c] == '.')
-			str[c] = '_';
-	}
-	return str;
-}
-
-char* get_ctrl_dir(void)
-{
-	char* p = getenv("SBBSCTRL");
-	if(p == NULL || *p == '\0') {
-		fprintf(stderr, "!SBBSCTRL environment variable not set, using default value: " SBBSCTRL_DEFAULT "\n\n");
-		p = SBBSCTRL_DEFAULT;
-	}
-	return p;
-}
-
