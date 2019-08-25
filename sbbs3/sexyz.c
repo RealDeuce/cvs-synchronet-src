@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.6 2019/08/24 09:40:28 rswindell Exp $ */
+/* $Id: sexyz.c,v 2.7 2019/08/25 01:13:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -473,7 +473,6 @@ static int recv_buffer(int timeout /* seconds */)
 #endif
 							FD_SET(sock,&socket_set);
 						tv.tv_sec=timeout;
-						timeout=0;
 						tv.tv_usec=0;
 						if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 							if(i==SOCKET_ERROR) {
@@ -483,8 +482,10 @@ static int recv_buffer(int timeout /* seconds */)
 							else
 								lprintf(LOG_WARNING,"Receive timeout (%u seconds)", timeout);
 						}
-						else
+						else {
+							timeout=0;
 							continue;
+						}
 					}
 					return 0;
 				default:
@@ -1539,7 +1540,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.6 $", "%*s %s", revision);
+	sscanf("$Revision: 2.7 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
