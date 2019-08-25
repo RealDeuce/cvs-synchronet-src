@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.89 2019/08/25 08:54:33 deuce Exp $ */
+/* $Id: js_internal.c,v 1.90 2019/08/25 20:06:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,7 +445,7 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	JS_ReportPendingException(cx);
 	JS_DestroyScript(cx, js_script);
 
-	if(js_scope == scope)
+	if(js_scope == scope) {
 		if (old_js_argv == JSVAL_VOID) {
 			JS_DeleteProperty(cx, js_scope, "argv");
 			JS_DeleteProperty(cx, js_scope, "argc");
