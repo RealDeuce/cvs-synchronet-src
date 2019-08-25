@@ -1,5 +1,4 @@
-/* $Id: dupefind.c,v 1.7 2020/01/03 20:34:55 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: dupefind.c,v 1.6 2019/01/05 01:56:45 rswindell Exp $ */
 
 #include "sbbs.h"
 #include "crc32.h"
@@ -77,7 +76,16 @@ int main(int argc,char **argv)
 	fprintf(stderr,"\nDUPEFIND Version %s (%s) - Synchronet Duplicate File "
 		"Finder\n", DUPEFIND_VER, PLATFORM_DESC);
 
-    p = get_ctrl_dir();
+    p=getenv("SBBSCTRL");
+    if(p==NULL) {
+		fprintf(stderr,"\nSBBSCTRL environment variable must be set.\n");
+#ifdef __unix__
+		fprintf(stderr,"\nExample: export SBBSCTRL=/sbbs/ctrl\n");
+#else
+		fprintf(stderr,"\nExample: SET SBBSCTRL=C:\\SBBS\\CTRL\n");
+#endif
+        return(1); 
+	}
 
 	if(argc>1 && (!stricmp(argv[1],"/?") || !stricmp(argv[1],"?") || !stricmp(argv[1],"-?"))) {
 		fprintf(stderr,"\n");
