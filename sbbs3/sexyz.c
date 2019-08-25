@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.7 2019/08/25 01:13:53 rswindell Exp $ */
+/* $Id: sexyz.c,v 2.8 2019/08/25 02:01:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1414,6 +1414,7 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
+	lprintf(LOG_DEBUG, "Exiting with error level %d", code);
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -1540,7 +1541,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.7 $", "%*s %s", revision);
+	sscanf("$Revision: 2.8 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
