@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.260 2020/04/15 08:46:19 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.256 2019/08/25 21:18:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -476,8 +476,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(fp, "SBBSEXEC=%s\n", exec_dir);
         fprintf(fp, "SBBSNNUM=%d\n", cfg.node_num);
 		fprintf(fp, "PCBNODE=%d\n", cfg.node_num);
-		fprintf(fp, "PCBDRIVE=%.2s\n", node_dir);
-		fprintf(fp, "PCBDIR=%s\n", node_dir + 2);
 		/* date/time env vars */
 		fprintf(fp, "DAY=%02u\n", tm.tm_mday);
 		fprintf(fp, "WEEKDAY=%s\n",wday[tm.tm_wday]);
@@ -1121,22 +1119,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		setenv("SBBSDATA",cfg.data_dir,1);
 		setenv("SBBSEXEC",cfg.exec_dir,1);
 		sprintf(str,"%u",cfg.node_num);
-		setenv("SBBSNNUM",str,1);
-
-		/* date/time env vars */
-		now = time(NULL);
-		struct	tm tm;
-		if(localtime_r(&now, &tm) == NULL)
-			memset(&tm, 0, sizeof(tm));
-		sprintf(str," %02u", tm.tm_mday);
-		setenv("DAY", str, /* overwrite */TRUE);
-		setenv("WEEKDAY", wday[tm.tm_wday], /* overwrite */TRUE);
-		setenv("MONTHNAME", mon[tm.tm_mon], /* overwrite */TRUE);
-		sprintf(str, "%02u", tm.tm_mon + 1);
-		setenv("MONTH", str, /* overwrite */TRUE);
-		sprintf(str,"%u", 1900 + tm.tm_year);
-		if(setenv("YEAR", str, /* overwrite */TRUE) != 0)
-			errormsg(WHERE,ERR_WRITE,"environment",0);
+		if(setenv("SBBSNNUM",str,1))
+        	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {
 		if(startup->options&BBS_OPT_NO_DOS) {
@@ -1181,8 +1165,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(doscmdrc,"SBBSEXEC=E:\\exec\\\n");
 		fprintf(doscmdrc,"SBBSNNUM=%d\n",cfg.node_num);
 		fprintf(doscmdrc,"PCBNODE=%d\n",cfg.node_num);
-		fprintf(doscmdrc,"PCBDRIVE=D:\n");
-		fprintf(doscmdrc,"PCBDIR=\\\n");
 
 		fclose(doscmdrc);
 		SAFECOPY(str,fullcmdline);
@@ -1316,8 +1298,6 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		fprintf(dosemubat,"set SBBSDATA=%s\r\n",datadrive);
 		fprintf(dosemubat,"set SBBSEXEC=%s\r\n",execdrive);
 		fprintf(dosemubat,"set PCBNODE=%d\r\n",cfg.node_num);
-		fprintf(dosemubat,"set PCBDRIVE=%s\r\n",nodedrive);
-		fprintf(dosemubat,"set PCBDIR=\\\r\n");
 
 		// let's do this cleanly like dosemu's default autoexec.bat does -wk42
 		/* clear existing redirections on dos side and */
@@ -1607,8 +1587,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(strcmp(cmdline, fullcmdline) != 0)
-		lprintf(LOG_DEBUG,"Executing cmd-line: %s", fullcmdline);
+	if(online==ON_REMOTE)
+		lprintf(LOG_INFO,"executing external: %s", fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
@@ -1909,7 +1889,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                 case 'R':   /* Rows */
                     strncat(cmd,ultoa(rows,str,10), avail);
                     break;
-                case 'S':   /* File Spec (or Baja command str) or startup-directory */
+                case 'S':   /* File Spec (or Baja command str) */
                     strncat(cmd, fspec, avail);
                     break;
                 case 'T':   /* Time left in seconds */
