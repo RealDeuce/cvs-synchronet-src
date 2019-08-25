@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.114 2020/04/14 23:58:38 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.112 2019/07/24 04:09:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -78,24 +78,7 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	return(numchars);
 }
 
-#ifdef NEEDS_STRLCPY
-size_t strlcpy(char *dst, const char *src, size_t size)
-{
-	size_t i;
-
-	if(size < 1)
-		return 0;
-
-	for(i = 0; src[i] != '\0'; i++) {
-		if(i < (size - 1))
-			*(dst++) = src[i];
-	}
-	*dst = 0;
-	return i;
-}
-#endif
-
-#ifdef _WIN32
+#ifdef _MSC_VER
 /****************************************************************************/
 /* Case insensitive version of strstr()	- currently heavy-handed			*/
 /****************************************************************************/
