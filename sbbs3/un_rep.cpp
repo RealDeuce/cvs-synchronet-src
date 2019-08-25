@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.73 2019/02/17 06:25:27 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.78 2019/08/20 08:45:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 	long	l,size,misc;
 	ulong	n;
 	ulong	ex;
+	ulong	tmsgs = 0;
+	ulong	dupes = 0;
 	ulong	errors = 0;
 	node_t	node;
 	FILE*	rep;
@@ -67,6 +69,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
 	str_list_t	twit_list=NULL;
+	link_list_t user_list={0};
 	const char* hostname;
 	const char* AttemptedToUploadREPpacket="Attempted to upload REP packet";
 
@@ -191,9 +194,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 		}
 		sprintf(tmp,"%.6s",block+116);
 		blocks=atoi(tmp);  /* i = number of blocks */
+		long confnum = atol((char *)block+1);
 		if(blocks<2) {
 			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
-				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias))
+				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias, confnum))
 					errors++;
 				continue;
 			}
@@ -206,9 +210,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 			continue;
 		}
 
-		long confnum = atol((char *)block+1);
-
-		qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false);
+		if(!qwk_new_msg(confnum, &msg, block, /* offset: */l, headers, /* parse_sender_hfields: */useron.rest&FLAG('Q') ? true:false)) {
+			errors++;
+			continue;
+		}
 
 		if(cfg.max_qwkmsgage && msg.hdr.when_written.time < (uint32_t)now
 			&& (now-msg.hdr.when_written.time)/(24*60*60) > cfg.max_qwkmsgage) {
@@ -343,9 +348,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 
 			smb_unlocksmbhdr(&smb);
 
+			bool dupe = false;
 			if(qwk_import_msg(rep, block, blocks
-				,/* fromhub: */0,/* subnum: */INVALID_SUB,/* touser: */usernum,&msg)) {
-
+				,/* fromhub: */0, &smb, /* touser: */usernum, &msg, &dupe)) {
 				if(usernum==1) {
 					useron.fbacks++;
 					logon_fbacks++;
@@ -383,6 +388,12 @@ bool sbbs_t::unpack_rep(char* repfile)
 					SAFEPRINTF(str,text[UserSentYouMail],msg.from);
 					putsmsg(&cfg,usernum,str); 
 				} 
+				tmsgs++;
+			} else {
+				if(dupe)
+					dupes++;
+				else
+					errors++;
 			}
 			smb_close(&smb);
 		}    /* end of email */
@@ -532,8 +543,9 @@ bool sbbs_t::unpack_rep(char* repfile)
 				lastsub=n; 
 			}
 
+			bool dupe = false;
 			if(qwk_import_msg(rep, block, blocks
-				,/* fromhub: */0,/* subnum: */n,/* touser: */0,&msg)) {
+				,/* fromhub: */0, &smb, /* touser: */0, &msg, &dupe)) {
 				logon_posts++;
 				user_posted_msg(&cfg, &useron, 1);
 				if(online == ON_REMOTE)
@@ -542,9 +554,23 @@ bool sbbs_t::unpack_rep(char* repfile)
 				SAFEPRINTF2(str,"posted QWK message on %s %s"
 					,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
 				signal_sub_sem(&cfg,n);
-				logline("P+",str); 
+				logline("P+",str);
+				int destuser = lookup_user(&cfg, &user_list, msg.to);
+				if(destuser > 0) {
+					SAFEPRINTF4(str, text[MsgPostedToYouVia]
+						,msg.from
+						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK"
+						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname);
+					putsmsg(&cfg, destuser, str);
+				}
 				if(!(useron.rest&FLAG('Q')))
 					user_event(EVENT_POST);
+				tmsgs++;
+			} else {
+				if(dupe)
+					dupes++;
+				else
+					errors++;
 			}
 		}   /* end of public message */
 	}
@@ -562,6 +588,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	strListFree(&host_can);
 	strListFree(&subject_can);
 	strListFree(&twit_list);
+	listFree(&user_list);
 
 	if(lastsub!=INVALID_SUB)
 		smb_close(&smb);
@@ -660,7 +687,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 		/**********************************************/
 		autohangup();
 	} else
-		lprintf(LOG_INFO, "Unpacking completed: %s", rep_fname);
+		lprintf(LOG_INFO, "Unpacking completed: %s (%lu msgs, %lu errors, %lu dupes)", rep_fname, tmsgs, errors, dupes);
 
 	return errors == 0;
 }
