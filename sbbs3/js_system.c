@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.175 2019/08/31 22:23:54 rswindell Exp $ */
+/* $Id: js_system.c,v 1.173 2019/08/20 23:14:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,7 +52,6 @@ enum {
 	,SYS_PROP_TIMEZONE
 	,SYS_PROP_PWDAYS
 	,SYS_PROP_DELDAYS
-	,SYS_PROP_AUTODEL
 
 	,SYS_PROP_LASTUSER
 	,SYS_PROP_LASTUSERON
@@ -170,9 +169,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SYS_PROP_DELDAYS:
 			*vp = INT_TO_JSVAL(cfg->sys_deldays);
-			break;
-		case SYS_PROP_AUTODEL:
-			*vp = INT_TO_JSVAL(cfg->sys_autodel);
 			break;
 		case SYS_PROP_LASTUSER:
 			*vp = INT_TO_JSVAL(lastuser(cfg));
@@ -375,7 +371,6 @@ static jsSyncPropertySpec js_system_properties[] = {
 	{	"timezone",					SYS_PROP_TIMEZONE,	SYSOBJ_FLAGS,		310  },
 	{	"pwdays",					SYS_PROP_PWDAYS,	SYSOBJ_FLAGS,		310  },
 	{	"deldays",					SYS_PROP_DELDAYS,	SYSOBJ_FLAGS,		310  },
-	{	"autodel",					SYS_PROP_AUTODEL,	SYSOBJ_FLAGS,		31702  },
 
 	{	"lastuser",					SYS_PROP_LASTUSER		,SYSOBJ_FLAGS,	311  },
 	{	"lastuseron",				SYS_PROP_LASTUSERON		,SYSOBJ_FLAGS,	310  },
@@ -450,9 +445,8 @@ static char* sys_prop_desc[] = {
 	,"Internet address (host or domain name)"
 	,"location (city, state)"
 	,"timezone (use <i>system.zonestr()</i> to get string representation)"
-	,"days between forced user password changes"
-	,"days to preserve deleted user records, record will not be reused/overwritten during this period"
-	,"days of user inactivity before auto-deletion (<tt>0</tt>=<i>disabled</i>), N/A to P-exempt users"
+	,"days between forced password changes"
+	,"days to preserve deleted user records"
 
 	,"last user record number in user database (includes deleted and inactive user records)"
 	,"name of last user to logoff"
@@ -2014,7 +2008,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
-	if(getnodedat(cfg, node_num, &node, /* lockit: */FALSE, &cfg->nodefile)) {
+	if(getnodedat(cfg, node_num, &node, NULL)) {
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -2058,6 +2052,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 {
 	jsval idval;
 	uint		node_num;
+	int			file;
 	jsint		val=0;
     jsint       tiny;
 	node_t		node;
@@ -2079,7 +2074,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
-	if(getnodedat(cfg, node_num, &node, /* lockit: */TRUE, &cfg->nodefile)) {
+	if(getnodedat(cfg, node_num, &node, &file)) {
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -2118,7 +2113,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 			node.extaux=val;
 			break;
 	}
-	putnodedat(cfg,node_num,&node, /* closeit: */FALSE, cfg->nodefile);
+	putnodedat(cfg,node_num,&node,file);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2395,16 +2390,6 @@ static JSBool js_system_enumerate(JSContext *cx, JSObject *obj)
 	return(js_system_resolve(cx, obj, JSID_VOID));
 }
 
-static void js_system_finalize(JSContext *cx, JSObject *obj)
-{
-	scfg_t* cfg;
-
-	if((cfg = (scfg_t*)JS_GetPrivate(cx, obj)) == NULL)
-		return;
-
-	CLOSE_OPEN_FILE(cfg->nodefile);
-}
-
 JSClass js_system_class = {
      "System"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
@@ -2415,7 +2400,7 @@ JSClass js_system_class = {
 	,js_system_enumerate	/* enumerate	*/
 	,js_system_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
-	,js_system_finalize		/* finalize		*/
+	,JS_FinalizeStub		/* finalize		*/
 };
 
 JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -2431,9 +2416,6 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	if(sysobj==NULL)
 		return(NULL);
-
-	if(cfg->nodefile < 1)	// An initialized scfg_t is usually all 0's
-		cfg->nodefile = -1;
 
 	if(!JS_SetPrivate(cx, sysobj, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);

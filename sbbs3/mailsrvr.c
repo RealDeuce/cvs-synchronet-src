@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.713 2019/09/01 06:25:38 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.711 2019/08/09 09:44:22 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3568,7 +3568,7 @@ static void smtp_thread(void* arg)
 					char* np = strdup(p);
 					if(np != NULL) {
 						mimehdr_value_decode(np, &msg);
-						parse_mail_address(np 
+						parse_mail_address(p 
 							,sender		,sizeof(sender)-1
 							,sender_addr,sizeof(sender_addr)-1);
 						free(np);
@@ -3933,7 +3933,7 @@ static void smtp_thread(void* arg)
 					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum) {
 						if(newmsg.idx.to)
 							for(i=1;i<=scfg.sys_nodes;i++) {
-								getnodedat(&scfg, i, &node, FALSE, NULL);
+								getnodedat(&scfg, i, &node, 0);
 								if(node.useron==usernum
 									&& (node.status==NODE_INUSE || node.status==NODE_QUIET))
 									break;
@@ -4816,7 +4816,7 @@ static void smtp_thread(void* arg)
 			}
 			else if(cmd==SMTP_CMD_SEND) { /* Check if user online */
 				for(i=0;i<scfg.sys_nodes;i++) {
-					getnodedat(&scfg, i+1, &node, FALSE, NULL);
+					getnodedat(&scfg, i+1, &node, 0);
 					if(node.status==NODE_INUSE && node.useron==user.number
 						&& !(node.misc&NODE_POFF))
 						break;
@@ -5912,7 +5912,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.713 $", "%*s %s", revision);
+	sscanf("$Revision: 1.711 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
