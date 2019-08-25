@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.109 2020/03/31 08:28:20 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.107 2019/08/21 09:42:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -129,7 +129,7 @@ bool sbbs_t::answer()
 							console&=~(CON_R_ECHOX|CON_L_ECHOX);
 						}
 						else {
-							if(REALSYSOP && (cfg.sys_misc&SM_SYSPASSLOGIN)) {
+							if(REALSYSOP) {
 								rioctl(IOFI);       /* flush input buffer */
 								if(!chksyspass())
 									bputs(text[InvalidLogon]);
@@ -229,7 +229,7 @@ bool sbbs_t::answer()
 				}
 				else {
 					SAFECOPY(rlogin_pass, tmp);
-					if(REALSYSOP && (cfg.sys_misc&SM_SYSPASSLOGIN)) {
+					if(REALSYSOP) {
 						rioctl(IOFI);       /* flush input buffer */
 						if(!chksyspass())
 							bputs(text[InvalidLogon]);
@@ -359,7 +359,7 @@ bool sbbs_t::answer()
 						if(x >= TERM_COLS_MIN && x <= TERM_COLS_MAX) cols=x; 
 						if(y >= TERM_ROWS_MIN && y <= TERM_ROWS_MAX) rows=y;
 					} else {	// second report
-						if(x < 3)	// ZWNBSP didn't move cursor (more than one column)
+						if(x == 1)	// ZWNBSP didn't move cursor
 							autoterm |= UTF8;
 					}
 				} else if(sscanf(p, "[=67;84;101;114;109;%u;%u", &x, &y) == 2 && *lastchar(p) == 'c') {
