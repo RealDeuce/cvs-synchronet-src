@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.547 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.548 2019/08/25 03:09:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,6 +332,7 @@ public:
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
 	bool	passthru_socket_active;
+	void	passthru_socket_activate(bool);
     bool	passthru_thread_running;
 
 	scfg_t	cfg;

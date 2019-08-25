@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.762 2019/08/24 08:04:53 rswindell Exp $ */
+/* $Id: main.cpp,v 1.763 2019/08/25 03:09:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2104,6 +2104,21 @@ void input_thread(void *arg)
 	thread_down();
 	lprintf(LOG_DEBUG,"Node %d input thread terminated (received %lu bytes in %lu blocks)"
 		,sbbs->cfg.node_num, total_recv, total_pkts);
+}
+
+// Flush the duplicate client_socket when activating the passthru socket
+// to eliminate any stale data from the previous passthru session
+void sbbs_t::passthru_socket_activate(bool activate)
+{
+	if(activate) {
+		BOOL rd = FALSE;
+		while(socket_check(client_socket_dup, &rd, /* wr_p */NULL, /* timeout */0) && rd) {
+			char ch;
+			if(recv(client_socket_dup, &ch, sizeof(ch), /* flags: */0) != sizeof(ch))
+				break;
+		}
+	}
+	passthru_socket_active = activate;
 }
 
 /*
