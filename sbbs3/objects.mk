@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.73 2019/08/20 23:14:30 deuce Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.74 2019/08/24 19:52:52 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -194,8 +194,7 @@ ECHOCFG_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)echocfg$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)rechocfg$(OFILE) \
 			$(UIFC_OBJS) \
-			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)str_util$(OFILE)
+			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE)
 			
 ADDFILES_OBJS = \
 			$(OBJODIR)$(DIRSEP)addfiles$(OFILE) \
