@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.765 2019/08/25 21:18:40 rswindell Exp $ */
+/* $Id: main.cpp,v 1.766 2019/08/26 05:44:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2111,6 +2111,15 @@ void sbbs_t::passthru_socket_activate(bool activate)
 				break;
 		}
 	} else {
+		/* Re-enable blocking (in case disabled by external program) */	 
+		ulong l=0;	 
+		ioctlsocket(client_socket_dup, FIONBIO, &l);	 
+ 	 
+		/* Re-set socket options */
+		char err[512];
+		if(set_socket_options(&cfg, client_socket_dup, "passthru", err, sizeof(err)))	 
+			lprintf(LOG_ERR,"%04d !ERROR %s setting passthru socket options", client_socket, err);
+
 		do { // Allow time for the passthru_thread to move any pending socket data to the outbuf
 			SLEEP(100); // Before the node_thread starts sending its own data to the outbuf
 		} while(RingBufFull(&sbbs->outbuf));
