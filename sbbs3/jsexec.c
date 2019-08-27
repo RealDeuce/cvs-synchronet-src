@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.207 2019/08/27 08:12:09 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.208 2019/08/27 19:02:09 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -823,6 +823,9 @@ static BOOL js_init(char** env)
 
     if((js_cx = JS_NewContext(js_runtime, js_cx_stack))==NULL)
 		return(FALSE);
+#ifdef JSDOOR
+	JS_SetOptions(js_cx, JSOPTION_VAROBJFIX | JSOPTION_JIT | JSOPTION_METHODJIT | JSOPTION_COMPILE_N_GO | JSOPTION_PROFILING);
+#endif
 	JS_BEGINREQUEST(js_cx);
 
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
@@ -1155,7 +1158,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.207 $", "%*s %s", revision);
+	sscanf("$Revision: 1.208 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
