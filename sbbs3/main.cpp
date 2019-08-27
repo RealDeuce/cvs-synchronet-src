@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.775 2019/09/01 09:08:40 rswindell Exp $ */
+/* $Id: main.cpp,v 1.770 2019/08/27 07:48:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1469,9 +1469,8 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	BYTE*	first_cr=NULL;
 	int 	i;
 
-	outlen=0;
-
 	if(inlen<1) {
+		outlen=0;
 		return(inbuf);	// no length? No interpretation
 	}
 
@@ -1486,20 +1485,19 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			first_cr=(BYTE*)memchr(inbuf, CR, inlen);
 	}
 
-    if(!sbbs->telnet_cmdlen) {
-		if(first_iac==NULL && first_cr==NULL) {
-			outlen=inlen;
-			return(inbuf);	// no interpretation needed
-		}
+    if(!sbbs->telnet_cmdlen	&& first_iac==NULL && first_cr==NULL) {
+        outlen=inlen;
+        return(inbuf);	// no interpretation needed
+    }
 
-		if(first_iac!=NULL || first_cr!=NULL) {
-			if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
-   				outlen=first_iac-inbuf;
-			else
-				outlen=first_cr-inbuf;
-			memcpy(outbuf, inbuf, outlen);
-		}
-	}
+    if(first_iac!=NULL || first_cr!=NULL) {
+		if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
+   			outlen=first_iac-inbuf;
+		else
+			outlen=first_cr-inbuf;
+	    memcpy(outbuf, inbuf, outlen);
+    } else
+    	outlen=0;
 
     for(i=outlen;i<inlen;i++) {
 		if(!(sbbs->telnet_mode&TELNET_MODE_GATE)
@@ -1526,21 +1524,11 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 			if(sbbs->telnet_cmdlen<sizeof(sbbs->telnet_cmd))
 				sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
-			else {
-				lprintf(LOG_WARNING, "Node %d telnet command (%d, %d) buffer limit reached (%u bytes)"
-					,sbbs->cfg.node_num, sbbs->telnet_cmd[1], sbbs->telnet_cmd[2], sbbs->telnet_cmdlen);
-				sbbs->telnet_cmdlen = 0;
-			}
 
 			uchar command	= sbbs->telnet_cmd[1];
 			uchar option	= sbbs->telnet_cmd[2];
 
-			if(sbbs->telnet_cmdlen == 2 && command == TELNET_SE) {
-				lprintf(LOG_WARNING, "Node %d unexpected telnet sub-negotiation END command"
-					,sbbs->cfg.node_num);
-				sbbs->telnet_cmdlen = 0;
-			}
-			else if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
+			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
@@ -1617,12 +1605,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
 					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
-						SAFEPRINTF4(sbbs->telnet_location, "%u.%u.%u.%u"
-							,sbbs->telnet_cmd[4]
-							,sbbs->telnet_cmd[5]
-							,sbbs->telnet_cmd[6]
-							,sbbs->telnet_cmd[7]
-						);
+						inet_ntop(AF_INET, sbbs->telnet_cmd + 4
+							,sbbs->telnet_location
+							,sizeof(sbbs->telnet_location));
 						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1645,7 +1630,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_cmd[3]);
 					sbbs->telnet_cmdlen=0;
 				}
-			} // Sub-negotiation command
+			}
             else if(sbbs->telnet_cmdlen==2 && inbuf[i]<TELNET_WILL) {
 				if(startup->options&BBS_OPT_DEBUG_TELNET)
             		lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s"
@@ -1737,7 +1722,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 #endif
 					}
 				}
+
                 sbbs->telnet_cmdlen=0;
+
             }
 			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
 				outbuf[outlen++]=inbuf[i];
@@ -2185,7 +2172,7 @@ void passthru_thread(void* arg)
                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
 			break;
 		}
-		rd = RingBufFree(&sbbs->outbuf) / 2;
+		rd = RingBufFree(&sbbs->outbuf);
 		if(rd > (int)sizeof(inbuf))
 			rd = sizeof(inbuf);
 
@@ -2882,7 +2869,7 @@ void event_thread(void* arg)
 						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
-						if(fexist(str) && remove(str))
+						if(remove(str))
 							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
 					}
 				}
@@ -5005,11 +4992,6 @@ void DLLCALL bbs_thread(void* arg)
 		);
 	lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 	lprintf(LOG_DEBUG,"SMBLIB %s (format %x.%02x)",smb_lib_ver(),smb_ver()>>8,smb_ver()&0xff);
-
-#ifdef _DEBUG
-	lprintf(LOG_DEBUG, "sizeof: int=%d, long=%d, off_t=%d, time_t=%d"
-		,(int)sizeof(int), (int)sizeof(long), (int)sizeof(off_t), (int)sizeof(time_t));
-#endif
 
     if(startup->first_node<1 || startup->first_node>startup->last_node) {
     	lprintf(LOG_CRIT,"!ILLEGAL node configuration (first: %d, last: %d)"
