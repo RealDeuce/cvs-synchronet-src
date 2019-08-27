@@ -1,4 +1,4 @@
-/* $Id: vidmodes.h,v 1.31 2020/04/01 10:51:06 deuce Exp $ */
+/* $Id: vidmodes.h,v 1.30 2019/07/25 18:20:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -62,8 +62,6 @@ struct  video_params {
 	int charheight;
 	int charwidth;
 	int	vmultiplier;
-	int	default_attr;
-	int	flags;
 };
 
 struct vstat_vmem {
