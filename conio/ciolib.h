@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.110 2020/04/02 22:59:27 deuce Exp $ */
+/* $Id: ciolib.h,v 1.106 2019/07/25 18:44:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,8 @@ enum {
 	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
+	,CIOLIB_MODE_SDL_YUV
+	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -363,8 +365,6 @@ typedef struct {
 	uint32_t	(*map_rgb)(uint16_t r, uint16_t g, uint16_t b);
 	void	(*replace_font)(uint8_t id, char *name, void *data, size_t size);
 	int	(*checkfont)(int font_num);
-	void	(*setwinsize)	(int width, int height);
-	void	(*setwinposition)	(int x, int y);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -458,8 +458,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr);
 CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int font_num);
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -541,20 +539,16 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define checkfont(a)			ciolib_checkfont(a)
 	#define set_vmem(a, b, c, d)		ciolib_set_vmem(a, b, c, d)
 	#define set_vmem_attr(a, b)		ciolib_set_vmem_attr(a, b)
-	#define setwinsize(a,b)			ciolib_setwinsize(a,b)
-	#define setwinposition(a,b)		ciolib_setwinposition(a,b)
 #endif
 
 #ifdef WITH_SDL
 	#include <gen_defs.h>
 	#include <SDL.h>
 
-#ifdef _WIN32
 	#ifdef main
 		#undef main
 	#endif
-	#define main	CIOLIB_main
-#endif
+	#define	main	CIOLIB_main
 #endif
 
 #define CIOLIB_BUTTON_1	1
