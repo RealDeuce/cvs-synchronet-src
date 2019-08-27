@@ -1,6 +1,6 @@
 /* Synchronet Unicode encode/decode/translate functions */
 
-/* $Id: unicode.c,v 1.11 2019/07/15 02:19:34 rswindell Exp $ */
+/* $Id: unicode.c,v 1.12 2019/07/30 08:14:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -484,6 +484,20 @@ char unicode_to_cp437(enum unicode_codepoint codepoint)
 		case UNICODE_SET_MINUS:									return '\\';
 		case UNICODE_ASTERISK_OPERATOR:							return '*';
 
+		case UNICODE_DOUBLE_VERTICAL_LINE:						return CP437_BOX_DRAWINGS_DOUBLE_VERTICAL;
+
+		case UNICODE_DOUBLE_LOW_LINE:							return '=';
+		case UNICODE_LEFT_SINGLE_QUOTATION_MARK:
+		case UNICODE_RIGHT_SINGLE_QUOTATION_MARK:
+		case UNICODE_SINGLE_HIGH_REVERSED_9_QUOTATION_MARK:		return '\'';
+		case UNICODE_SINGLE_LOW_9_QUOTATION_MARK:				return ',';
+		case UNICODE_LEFT_DOUBLE_QUOTATION_MARK:
+		case UNICODE_RIGHT_DOUBLE_QUOTATION_MARK:				
+		case UNICODE_DOUBLE_LOW_9_QUOTATION_MARK:
+		case UNICODE_DOUBLE_HIGH_REVERSED_9_QUOTATION_MARK:		return '"';
+		case UNICODE_DAGGER:									return CP437_BOX_DRAWINGS_VERTICAL_AND_HORIZONTAL;
+
+		case UNICODE_HORIZONTAL_BAR:
 		case UNICODE_OVERLINE:
 		case 0x2500: // Box Drawings Light Horizontal
 		case 0x2501: // Box Drawings Heavy Horizontal
