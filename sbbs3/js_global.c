@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.395 2019/08/27 19:16:48 deuce Exp $ */
+/* $Id: js_global.c,v 1.396 2019/08/27 21:37:47 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4703,7 +4703,11 @@ static JSBool js_global_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			if(JS_IsExceptionPending(cx)) {
+				JS_ClearPendingException(cx);
+				free(name);
+				return JS_FALSE;
+			}
 		}
 	}
 
