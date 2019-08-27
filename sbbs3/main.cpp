@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.770 2019/08/27 07:48:00 rswindell Exp $ */
+/* $Id: main.cpp,v 1.771 2019/08/27 10:36:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2172,7 +2172,7 @@ void passthru_thread(void* arg)
                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
 			break;
 		}
-		rd = RingBufFree(&sbbs->outbuf);
+		rd = RingBufFree(&sbbs->outbuf) / 2;
 		if(rd > (int)sizeof(inbuf))
 			rd = sizeof(inbuf);
 
