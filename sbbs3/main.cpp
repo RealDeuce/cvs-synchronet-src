@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.767 2019/08/27 00:08:33 rswindell Exp $ */
+/* $Id: main.cpp,v 1.768 2019/08/27 01:17:25 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2053,8 +2053,8 @@ void input_thread(void *arg)
 			if(socket_check(sbbs->passthru_socket, NULL, &writable, 1000) && writable)
 				sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
 			else
-				lprintf(LOG_WARNING, "Node %d could not write to passthru socket"
-					, sbbs->cfg.node_num);
+				lprintf(LOG_WARNING, "Node %d could not write to passthru socket (writable=%d)"
+					, sbbs->cfg.node_num, (int)writable);
 			continue;
 		}
 
