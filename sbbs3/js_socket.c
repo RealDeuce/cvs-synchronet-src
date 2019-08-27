@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.241 2019/08/21 01:58:55 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.242 2019/08/27 07:07:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -403,7 +403,8 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	do_js_close(p);
+	if (!p->external)
+		do_js_close(p);
 
 	if(p->hostname)
 		free(p->hostname);
