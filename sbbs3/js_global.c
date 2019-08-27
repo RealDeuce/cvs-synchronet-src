@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.394 2019/08/27 19:15:24 deuce Exp $ */
+/* $Id: js_global.c,v 1.395 2019/08/27 19:16:48 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -381,7 +381,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		/* Save parent's 'log' function (for later use by our log function) */
 		brc=JS_SUSPENDREQUEST(bg->cx);
 		JS_RESUMEREQUEST(cx, rc);
-		if(JS_GetProperty(cx, scope, "log", &val)) {
+		if(JS_GetProperty(cx, scope, "log", &val) || JS_GetProperty(cx, obj, "log", &val)) {
 			JSFunction* func;
 			if((func=JS_ValueToFunction(cx, val))!=NULL) {
 				JSObject *obj;
