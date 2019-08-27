@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.393 2019/08/27 18:06:29 deuce Exp $ */
+/* $Id: js_global.c,v 1.394 2019/08/27 19:15:24 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -301,7 +301,8 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		bg->cb.bg = TRUE;
 
 		// Get the js.internal private data since it's the parents js_callback_t...
-		if(JS_GetProperty(cx, scope, "js", &val) && !JSVAL_NULL_OR_VOID(val)) {
+		if((JS_GetProperty(cx, scope, "js", &val) && !JSVAL_NULL_OR_VOID(val))
+		    || (JS_GetProperty(cx, obj, "js", &val) && !JSVAL_NULL_OR_VOID(val))) {
 			js_internal = JSVAL_TO_OBJECT(val);
 			bg->cb.parent_cb = (js_callback_t*)JS_GetPrivate(cx,js_internal);
 			if (bg->cb.parent_cb == NULL) {
@@ -511,7 +512,8 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		path[0]=0;	/* Empty path, indicates load file not found (yet) */
 
 		JS_RESUMEREQUEST(cx, rc);
-		if(JS_GetProperty(cx, scope, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
+		if((JS_GetProperty(cx, scope, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))
+		    || (JS_GetProperty(cx, obj, "js", &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val))) {
 			JSObject* js_obj = JSVAL_TO_OBJECT(val);
 			
 			/* if js.exec_dir is defined (location of executed script), search there first */
