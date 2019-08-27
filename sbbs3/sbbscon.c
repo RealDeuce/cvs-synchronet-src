@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.276 2019/09/02 00:52:44 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.274 2019/03/31 04:32:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1363,7 +1363,7 @@ int main(int argc, char** argv)
 {
 	int		i;
 	int		n;
-	int		nodefile = -1;
+	int		file;
 	char	ch;
 	char*	p;
 	char*	arg;
@@ -2190,7 +2190,7 @@ int main(int argc, char** argv)
 					printf("\n");
 					count=0;
 					for(i=1;i<=scfg.sys_nodes;i++) {
-						getnodedat(&scfg,i,&node, /* lockit: */FALSE, &nodefile);
+						getnodedat(&scfg,i,&node,NULL /* file */);
 						if(ch=='w' && node.status!=NODE_INUSE && node.status!=NODE_QUIET)
 							continue;
 						printnodedat(&scfg, i,&node);
@@ -2210,7 +2210,7 @@ int main(int argc, char** argv)
 						break;
 					fflush(stdin);
 					printf("\n");
-					if((i=getnodedat(&scfg,n,&node, /* lockit: */TRUE, &nodefile))!=0) {
+					if((i=getnodedat(&scfg,n,&node,&file))!=0) {
 						printf("!Error %d getting node %d data\n",i,n);
 						break;
 					}
@@ -2225,7 +2225,7 @@ int main(int argc, char** argv)
 							node.misc^=NODE_INTR;
 							break;
 					}
-					putnodedat(&scfg,n,&node,/* closeit: */FALSE, nodefile);
+					putnodedat(&scfg,n,&node,file);
 					printnodedat(&scfg,n,&node);
 #ifdef __unix__
 	                _echo_off(); /* turn off echoing - failsafe */
