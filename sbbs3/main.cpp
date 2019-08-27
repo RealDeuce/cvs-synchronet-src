@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.771 2019/08/27 10:36:41 rswindell Exp $ */
+/* $Id: main.cpp,v 1.772 2019/08/27 16:24:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1605,9 +1605,12 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
 					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
-						inet_ntop(AF_INET, sbbs->telnet_cmd + 4
-							,sbbs->telnet_location
-							,sizeof(sbbs->telnet_location));
+						SAFEPRINTF4(sbbs->telnet_location, "%u.%u.%u.%u"
+							,sbbs->telnet_cmd[4]
+							,sbbs->telnet_cmd[5]
+							,sbbs->telnet_cmd[6]
+							,sbbs->telnet_cmd[7]
+						);
 						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
