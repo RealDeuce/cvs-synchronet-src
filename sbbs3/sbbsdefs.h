@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.245 2019/07/24 05:00:10 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.249 2019/08/17 02:21:01 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -412,6 +412,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
 #define QUOTEWRAP		(1<<21)		/* Word-wrap quoted message text		*/
 #define SAVECOLUMNS		(1<<22)		/* Save/share current terminal width	*/
+#define XTRN_UTF8		(1<<23)		/* External program supports UTF-8		*/
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
 
 									/* Bits in cfg.xtrn_misc				*/
@@ -435,6 +436,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 #define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
 #define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
+#define QWK_UTF8	(1L<<18)		/* Include UTF-8 characters				*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 
@@ -446,6 +448,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QHUB_NOKLUDGES	(1<<14)		/* Don't include @-kludges */
 #define QHUB_NOHEADERS	(1<<16)		/* Don't include HEADERS.DAT */
 #define QHUB_NOVOTING	(1<<17)		/* Don't include VOTING.DAT */
+#define QHUB_UTF8		(1<<18)		/* Include UTF-8 characters */
 
 							/* Bits in user.chat							*/
 #define CHAT_ECHO	(1<<0)	/* Multinode chat echo							*/
@@ -761,6 +764,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
 #define P_UTF8		(1<<13)		/* Message is UTF-8							*/
 #define P_AUTO_UTF8	(1<<14)		/* Message may be UTF-8, auto-detect		*/
+#define P_NOXATTRS	(1<<15)		/* No "Extra Attribute Codes" supported		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -784,6 +788,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
 #define WM_EDIT		(1<<10)		/* Editing existing message					*/
 #define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
+#define WM_NOFWD	(1<<12)		/* Don't forward email to netmail			*/
 
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
