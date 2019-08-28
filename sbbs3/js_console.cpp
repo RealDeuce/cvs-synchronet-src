@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.139 2019/09/10 19:57:27 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.138 2019/08/21 09:42:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -669,7 +669,7 @@ js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uint32_t	maxnum=~0;
-	int32		dflt=0;
+	int32_t		dflt=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
