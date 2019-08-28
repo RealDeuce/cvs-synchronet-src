@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.247 2020/01/03 20:59:58 rswindell Exp $
+# $Id: GNUmakefile,v 1.245 2019/08/24 19:53:40 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -108,13 +108,8 @@ endif
 CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(ENCODE_CFLAGS) $(HASH_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
-ifeq ($(os), win32)
-OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE)
-JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE)
-else
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
-endif
 LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(ENCODE_LDFLAGS) $(HASH_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
@@ -263,9 +258,9 @@ $(SMBACTIV): $(SMBACTIV_OBJS)
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(SMBACTIV_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS) $(ENCODE_LIBS) $(HASH_LIBS)
 
 # DSTSEDIT
-$(DSTSEDIT): $(DSTSEDIT_OBJS) $(ENCODE_LIB)
+$(DSTSEDIT): $(DSTSEDIT_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(DSTSEDIT_OBJS) $(XPDEV_LIBS) $(ENCODE_LIBS)
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(DSTSEDIT_OBJS) $(XPDEV_LIBS)
 
 # READSAUCE
 $(READSAUCE): $(READSAUCE_OBJS) $(OBJODIR) $(EXEODIR)
