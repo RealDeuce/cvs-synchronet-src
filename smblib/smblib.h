@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.96 2019/07/25 10:48:27 rswindell Exp $ */
+/* $Id: smblib.h,v 1.97 2019/07/30 10:20:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -167,7 +167,7 @@ SMBEXPORT int		SMBCALL smb_hfield_add_netaddr(smbmsg_t* msg, uint16_t type, cons
 #define smb_hfield_netaddr(msg, type, str, nettype) smb_hfield_add_netaddr(msg, type, str, nettype, /* insert: */FALSE)
 
 SMBEXPORT int 		SMBCALL smb_dfield(smbmsg_t* msg, uint16_t type, ulong length);
-SMBEXPORT void*		SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t* hfield);
+SMBEXPORT void*		SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t** hfield);
 SMBEXPORT int 		SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage);
 SMBEXPORT int 		SMBCALL smb_putmsg(smb_t* smb, smbmsg_t* msg);
 SMBEXPORT int 		SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg);
