@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.772 2019/08/27 16:24:23 rswindell Exp $ */
+/* $Id: main.cpp,v 1.773 2019/08/29 02:23:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2872,7 +2872,7 @@ void event_thread(void* arg)
 						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
-						if(remove(str))
+						if(fexist(str) && remove(str))
 							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
 					}
 				}
