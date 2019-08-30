@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.114 2019/09/20 02:47:01 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.112 2019/08/16 21:32:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -338,22 +338,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return str;
 	}
 
-	if(strcmp(sp, "PWDAYS") == 0) {
-		if(cfg.sys_pwdays) {
-			safe_snprintf(str, maxlen, "%u", cfg.sys_pwdays);
-			return str;
-		}
-		return text[Unlimited];
-	}
-
-	if(strcmp(sp, "AUTODEL") == 0) {
-		if(cfg.sys_autodel) {
-			safe_snprintf(str, maxlen, "%u", cfg.sys_autodel);
-			return str;
-		}
-		return text[Unlimited];
-	}
-
 	if(strcmp(sp, "PAGER") == 0)
 		return (thisnode.misc&NODE_POFF) ? text[Off] : text[On];
 
@@ -436,21 +420,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 			l+=getfiles(&cfg,i);
 		safe_snprintf(str,maxlen,"%lu",l);
 		return(str);
-	}
-
-	if(strncmp(sp, "FILES:", 6) == 0) {	// Number of files in specified directory
-		for(i = 0; i < cfg.total_dirs; i++) {
-			if(stricmp(cfg.dir[i]->code, sp + 6) == 0) {
-				safe_snprintf(str, maxlen, "%lu", (ulong)getfiles(&cfg, i));
-				return str;
-			}
-		}
-		return nulstr;
-	}
-
-	if(strcmp(sp, "FILES") == 0) {	// Number of files in current directory
-		safe_snprintf(str, maxlen, "%lu", (ulong)getfiles(&cfg, usrdir[curlib][curdir[curlib]]));
-		return str;
 	}
 
 	if(!strcmp(sp,"TCALLS") || !strcmp(sp,"NUMCALLS")) {
@@ -625,13 +594,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return(str);
 	}
 
-	if(strcmp(sp, "PWAGE") == 0) {
-		time_t age = time(NULL) - useron.pwmod;
-		safe_snprintf(str, maxlen, "%ld", (long)(age/(24*60*60)));
-		return str;
-	}
-
-	if(strcmp(sp, "PWDATE") == 0 || strcmp(sp, "MEMO") == 0)
+	if(!strcmp(sp,"MEMO"))
 		return(unixtodstr(&cfg,useron.pwmod,str));
 
 	if(!strcmp(sp,"SEC") || !strcmp(sp,"SECURITY")) {
