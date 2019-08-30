@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.57 2019/09/10 19:57:37 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.56 2019/08/06 19:44:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,9 +60,6 @@
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
-#endif
-#ifndef MSG_WAITALL
-#define MSG_WAITALL 0x08
 #endif
 
 #elif defined __unix__		/* Unix-variant */
