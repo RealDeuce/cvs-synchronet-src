@@ -2,7 +2,7 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.9 2019/08/24 08:04:53 rswindell Exp $ */
+/* $Id: telnet.c,v 1.10 2019/08/24 19:37:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -154,7 +154,7 @@ uchar telnet_opt_nak(uchar cmd)
 // 'result' may point to either inbuf (if there were no IACs) or outbuf
 // Returns the final byte count of the result
 /*****************************************************************************/
-size_t telnet_expand(const uchar* inbuf, size_t inlen, uchar* outbuf, size_t outlen, bool expand_cr, uchar** result)
+size_t telnet_expand(const uchar* inbuf, size_t inlen, uchar* outbuf, size_t outlen, BOOL expand_cr, uchar** result)
 {
     BYTE* first_iac = (BYTE*)memchr(inbuf, TELNET_IAC, inlen);
 	BYTE*   first_cr=NULL;
