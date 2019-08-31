@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.211 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.209 2019/08/29 16:26:40 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1158,7 +1158,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.211 $", "%*s %s", revision);
+	sscanf("$Revision: 1.209 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1321,7 +1321,13 @@ int main(int argc, char **argv, char** env)
 
 #ifndef JSDOOR
 	if(scfg.ctrl_dir[0]==0) {
-		SAFECOPY(scfg.ctrl_dir, get_ctrl_dir());
+		if((p=getenv("SBBSCTRL"))==NULL) {
+			fprintf(errfp,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
+			fprintf(errfp,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+			fprintf(errfp,"\n     or: %s -c /sbbs/ctrl [module]\n",argv[0]);
+			return(do_bail(1)); 
+		}
+		SAFECOPY(scfg.ctrl_dir,p);
 	}	
 #endif
 
@@ -1335,11 +1341,6 @@ int main(int argc, char **argv, char** env)
 
 #ifdef JSDOOR
 	SAFECOPY(scfg.temp_dir,"./temp");
-	scfg.tls_certificate = -1;
-	strcpy(scfg.sys_pass, "ThisIsNotHowToDoSecurity");
-	strcpy(scfg.sys_name, "JSDoor");
-	strcpy(scfg.sys_inetaddr, "example.com");
-	scfg.prepped = TRUE;
 #else
 	if(change_cwd && chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
