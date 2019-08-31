@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.48 2019/08/31 02:51:40 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.49 2019/08/31 02:57:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,7 @@ off_t DLLCALL filelength(int fd)
 }
 
 // See https://patchwork.kernel.org/patch/9289177/
-#if defined(F_OFD_SETLK) && defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS != 64
+#if defined(F_OFD_SETLK) && _FILE_OFFSET_BITS != 64
 	#undef F_OFD_SETLK
 #endif
 
