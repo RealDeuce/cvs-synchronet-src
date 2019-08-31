@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.547 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.549 2019/08/28 01:37:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -332,6 +332,7 @@ public:
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
 	bool	passthru_socket_active;
+	void	passthru_socket_activate(bool);
     bool	passthru_thread_running;
 
 	scfg_t	cfg;
@@ -1165,6 +1166,7 @@ extern "C" {
 	DLLEXPORT char *	ultoac(ulong l,char *str);
 	DLLEXPORT char *	rot13(char* str);
 	DLLEXPORT uint32_t	str_to_bits(uint32_t currval, const char *str);
+	DLLEXPORT BOOL		str_has_ctrl(const char*);
 	DLLEXPORT BOOL		str_is_ascii(const char*);
 	DLLEXPORT char *	utf8_to_cp437_str(char* str);
 
