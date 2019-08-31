@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.223 2020/03/31 01:17:27 rswindell Exp $ */
+/* $Id: userdat.c,v 1.218 2019/08/31 20:38:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,8 +296,6 @@ int parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 	getrec(userdat,U_LOCATION,LEN_LOCATION,user->location);
 	getrec(userdat,U_ZIPCODE,LEN_ZIPCODE,user->zipcode);
 	getrec(userdat,U_PASS,LEN_PASS,user->pass);
-	if(user->pass[0] == 0)	// Backwards compatibility hack
-		getrec(userdat, U_OLDPASS, LEN_OLDPASS, user->pass);
 	getrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	getrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	getrec(userdat,U_MODEM,LEN_MODEM,user->modem);
@@ -457,24 +455,23 @@ int fgetuserdat(scfg_t* cfg, user_t *user, int file)
 /****************************************************************************/
 static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 {
-	int	i,file = -1;
+	int	i,file;
     node_t	node;
 
 	for(i=1;i<=cfg->sys_nodes;i++) { /* instant user data update */
 //		if(i==cfg->node_num)
 //			continue;
-		if(getnodedat(cfg, i,&node, /* lockit: */FALSE, &file) != 0)
+		if(getnodedat(cfg, i,&node,NULL) != 0)
 			continue;
 		if(node.useron==usernumber && (node.status==NODE_INUSE
 			|| node.status==NODE_QUIET)) {
-			if(getnodedat(cfg, i,&node, /* lockit: */TRUE, &file) == 0) {
+			if(getnodedat(cfg, i,&node,&file) == 0) {
 				node.misc|=NODE_UDAT;
-				putnodedat(cfg, i,&node, /* closeit: */FALSE, file);
+				putnodedat(cfg, i,&node,file);
 			}
 			break;
 		}
 	}
-	CLOSE_OPEN_FILE(file);
 }
 
 /****************************************************************************/
@@ -482,16 +479,14 @@ static void dirtyuserdat(scfg_t* cfg, uint usernumber)
 int is_user_online(scfg_t* cfg, uint usernumber)
 {
 	int i;
-	int file = -1;
 	node_t	node;
 
 	for(i=1; i<=cfg->sys_nodes; i++) {
-		getnodedat(cfg, i, &node, /* lockit: */FALSE, &file);
+		getnodedat(cfg, i, &node, 0);
 		if((node.status==NODE_INUSE || node.status==NODE_QUIET
 			|| node.status==NODE_LOGON) && node.useron==usernumber)
 			return i;
 	}
-	CLOSE_OPEN_FILE(file);
 	return 0;
 }
 
@@ -532,7 +527,6 @@ int putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_ZIPCODE+LEN_ZIPCODE,2,crlf);
 
 	putrec(userdat,U_PASS,LEN_PASS,user->pass);
-	putrec(userdat,U_OLDPASS,LEN_OLDPASS,user->pass);	// So a sysop can downgrade to a previous build/version
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
@@ -583,7 +577,7 @@ int putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_CURXTRN,8,user->curxtrn);
 	putrec(userdat,U_CURXTRN+8,2,crlf);
 
-	putrec(userdat,U_PASS+LEN_PASS, 2, crlf);
+	putrec(userdat,U_XFER_CMD+LEN_XFER_CMD,2,crlf);
 
 	putrec(userdat,U_IPADDR+LEN_IPADDR,2,crlf);
 
@@ -773,52 +767,27 @@ uint getage(scfg_t* cfg, char *birth)
 }
 
 /****************************************************************************/
-/****************************************************************************/
-int opennodedat(scfg_t* cfg)
-{
-	char	fname[MAX_PATH+1];
-
-	if(!VALID_CFG(cfg))
-		return -1;
-
-	SAFEPRINTF(fname, "%snode.dab", cfg->ctrl_dir);
-	return nopen(fname, O_RDWR|O_DENYNONE);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-int opennodeext(scfg_t* cfg)
-{
-	char	fname[MAX_PATH+1];
-
-	if(!VALID_CFG(cfg))
-		return -1;
-
-	SAFEPRINTF(fname, "%snode.exb", cfg->ctrl_dir);
-	return nopen(fname, O_RDWR|O_DENYNONE);
-}
-
-/****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
 /* from node.dab															*/
 /****************************************************************************/
-int getnodedat(scfg_t* cfg, uint number, node_t *node, BOOL lockit, int* fdp)
+int getnodedat(scfg_t* cfg, uint number, node_t *node, int* fdp)
 {
+	char	str[MAX_PATH+1];
 	int		rd;
 	int		count=0;
 	int		file;
+
+	if(fdp!=NULL)
+		*fdp=-1;
 
 	if(!VALID_CFG(cfg)
 		|| node==NULL || number<1 || number>cfg->sys_nodes)
 		return(-1);
 
 	memset(node,0,sizeof(node_t));
-	if(fdp != NULL && *fdp > 0)
-		file = *fdp;
-	else {
-		if((file = opennodedat(cfg)) == -1)
-			return errno;
-	}
+	SAFEPRINTF(str,"%snode.dab",cfg->ctrl_dir);
+	if((file=nopen(str,O_RDWR|O_DENYNONE))==-1)
+		return(errno);
 
 	if(filelength(file)>=(long)(number*sizeof(node_t))) {
 		number--;	/* make zero based */
@@ -826,7 +795,7 @@ int getnodedat(scfg_t* cfg, uint number, node_t *node, BOOL lockit, int* fdp)
 			if(count)
 				mswait(100);
 			lseek(file,(long)number*sizeof(node_t),SEEK_SET);
-			if(lockit
+			if(fdp!=NULL
 				&& lock(file,(long)number*sizeof(node_t),sizeof(node_t))!=0)
 				continue;
 			rd=read(file,node,sizeof(node_t));
@@ -851,7 +820,7 @@ int getnodedat(scfg_t* cfg, uint number, node_t *node, BOOL lockit, int* fdp)
 /****************************************************************************/
 /* Write the data from the structure 'node' into node.dab  					*/
 /****************************************************************************/
-int putnodedat(scfg_t* cfg, uint number, node_t* node, BOOL closeit, int file)
+int putnodedat(scfg_t* cfg, uint number, node_t* node, int file)
 {
 	size_t	wr=0;
 	int		wrerr=0;
@@ -861,8 +830,7 @@ int putnodedat(scfg_t* cfg, uint number, node_t* node, BOOL closeit, int file)
 		return -1;
 	if(!VALID_CFG(cfg)
 		|| node==NULL || number<1 || number>cfg->sys_nodes) {
-		if(closeit)
-			close(file);
+		close(file);
 		return(-1);
 	}
 
@@ -875,8 +843,7 @@ int putnodedat(scfg_t* cfg, uint number, node_t* node, BOOL closeit, int file)
 		mswait(100);
 	}
 	unlock(file,(long)number*sizeof(node_t),sizeof(node_t));
-	if(closeit)
-		close(file);
+	close(file);
 
 	if(wr!=sizeof(node_t))
 		return(wrerr);
@@ -960,22 +927,7 @@ static char* node_connection_desc(ushort conn, char* str)
 	return str;
 }
 
-char* getnodeext(scfg_t* cfg, int num, char* buf)
-{
-	int f;
-
-	if(!VALID_CFG(cfg) || num < 1)
-		return "";
-	if((f = opennodeext(cfg)) < 1)
-		return "";
-	lseek(f, (num-1) * 128, SEEK_SET);
-	read(f, buf, 128);
-	close(f);
-	buf[127] = 0;
-	return buf;
-}
-
-char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen, int num)
+char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 {
 	char	str[256];
 	char	tmp[128];
@@ -1021,10 +973,6 @@ char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen, int num)
             break;
         case NODE_QUIET:
         case NODE_INUSE:
-			if(node->misc & NODE_EXT) {
-				getnodeext(cfg, num, str);
-				break;
-			}
             username(cfg,node->useron,str);
             strcat(str," ");
             switch(node->action) {
@@ -1200,7 +1148,7 @@ void printnodedat(scfg_t* cfg, uint number, node_t* node)
 {
 	char	status[128];
 
-	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status),number));
+	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status)));
 }
 
 /****************************************************************************/
@@ -1296,19 +1244,17 @@ int putsmsg(scfg_t* cfg, int usernumber, char *strin)
 		return(errno);
 	}
 	close(file);
-	file = -1;
 	for(i=1;i<=cfg->sys_nodes;i++) {     /* flag node if user on that msg waiting */
-		getnodedat(cfg,i,&node,/* lockit: */FALSE, &file);
+		getnodedat(cfg,i,&node,NULL);
 		if(node.useron==usernumber
 			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
 			&& !(node.misc&NODE_MSGW)) {
-			if(getnodedat(cfg,i,&node, /* lockit: */TRUE, &file)==0) {
+			if(getnodedat(cfg,i,&node,&file)==0) {
 				node.misc|=NODE_MSGW;
-				putnodedat(cfg,i,&node, /* closeit: */FALSE, file);
+				putnodedat(cfg,i,&node,file);
 			}
 		}
 	}
-	CLOSE_OPEN_FILE(file);
 	return(0);
 }
 
@@ -1319,7 +1265,7 @@ char* getsmsg(scfg_t* cfg, int usernumber)
 {
 	char	str[MAX_PATH+1], *buf;
 	int		i;
-    int		file = -1;
+    int		file;
     long	length;
 	node_t	node;
 
@@ -1327,17 +1273,16 @@ char* getsmsg(scfg_t* cfg, int usernumber)
 		return(NULL);
 
 	for(i=1;i<=cfg->sys_nodes;i++) {	/* clear msg waiting flag */
-		getnodedat(cfg,i,&node, /* lockit: */FALSE, &file);
+		getnodedat(cfg,i,&node,NULL);
 		if(node.useron==usernumber
 			&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
 			&& node.misc&NODE_MSGW) {
-			if(getnodedat(cfg,i,&node, /* lockit: */TRUE, &file) == 0) {
+			if(getnodedat(cfg,i,&node,&file) == 0) {
 				node.misc&=~NODE_MSGW;
-				putnodedat(cfg,i,&node, /* closeit: */FALSE, file);
+				putnodedat(cfg,i,&node,file);
 			}
 		}
 	}
-	CLOSE_OPEN_FILE(file);
 
 	SAFEPRINTF2(str,"%smsgs/%4.4u.msg",cfg->data_dir,usernumber);
 	if(flength(str)<1L)
@@ -1366,16 +1311,16 @@ char* getnmsg(scfg_t* cfg, int node_num)
 {
 	char	str[MAX_PATH+1];
 	char*	buf;
-	int		file = -1;
+	int		file;
 	long	length;
 	node_t	node;
 
 	if(!VALID_CFG(cfg) || node_num<1)
 		return(NULL);
 
-	if(getnodedat(cfg,node_num,&node, /* lockit: */TRUE, &file) == 0) {
+	if(getnodedat(cfg,node_num,&node,&file) == 0) {
 		node.misc&=~NODE_NMSG;          /* clear the NMSG flag */
-		putnodedat(cfg,node_num,&node, /* closeit: */TRUE, file);
+		putnodedat(cfg,node_num,&node,file);
 	}
 
 	SAFEPRINTF2(str,"%smsgs/n%3.3u.msg",cfg->data_dir,node_num);
@@ -1428,16 +1373,15 @@ int putnmsg(scfg_t* cfg, int num, char *strin)
 		close(file);
 		return(errno);
 	}
-	CLOSE_OPEN_FILE(file);
-	getnodedat(cfg,num,&node, /* lockit: */FALSE, &file);
+	close(file);
+	getnodedat(cfg,num,&node,NULL);
 	if((node.status==NODE_INUSE || node.status==NODE_QUIET)
 		&& !(node.misc&NODE_NMSG)) {
-		if(getnodedat(cfg,num,&node, /* lockit: */TRUE, &file) == 0) {
+		if(getnodedat(cfg,num,&node,&file) == 0) {
 			node.misc|=NODE_NMSG;
-			putnodedat(cfg,num,&node, /* closeit: */FALSE, file);
+			putnodedat(cfg,num,&node,file);
 		}
 	}
-	CLOSE_OPEN_FILE(file);
 
 	return(0);
 }
@@ -1535,9 +1479,6 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
 			case AR_PETSCII:
-			case AR_ASCII:
-			case AR_UTF8:
-			case AR_CP437:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -1592,22 +1533,7 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				else result=!not;
 				break;
 			case AR_PETSCII:
-				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_PETSCII)
-					result=not;
-				else result=!not;
-				break;
-			case AR_ASCII:
-				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_ASCII)
-					result=not;
-				else result=!not;
-				break;
-			case AR_UTF8:
-				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_UTF8)
-					result=not;
-				else result=!not;
-				break;
-			case AR_CP437:
-				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_CP437)
+				if(user==NULL || !(user->misc&PETSCII))
 					result=not;
 				else result=!not;
 				break;
@@ -2106,9 +2032,6 @@ int getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *str)
 	for(c=0;c<length;c++)
 		if(str[c]==ETX || str[c]==CR) break;
 	str[c]=0;
-
-	if(c == 0 && start == LEN_PASS) // Backwards compatibility hack
-		return getuserrec(cfg, usernumber, U_OLDPASS, LEN_OLDPASS, str);
 
 	return(0);
 }
