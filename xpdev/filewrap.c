@@ -2,7 +2,7 @@
 
 /* File-related system-call wrappers */
 
-/* $Id: filewrap.c,v 1.50 2019/08/31 20:59:39 rswindell Exp $ */
+/* $Id: filewrap.c,v 1.48 2019/08/31 02:51:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,7 +60,7 @@
 /* Returns the modification time of the file in 'fd'						*/
 /* or -1 if file doesn't exist.												*/
 /****************************************************************************/
-time_t filetime(int fd)
+time_t DLLCALL filetime(int fd)
 {
 	struct stat st;
 
@@ -76,7 +76,7 @@ time_t filetime(int fd)
 /* Returns the length of the file in 'fd'									*/
 /* or -1 if file doesn't exist.												*/
 /****************************************************************************/
-off_t filelength(int fd)
+off_t DLLCALL filelength(int fd)
 {
 	struct stat st;
 
@@ -87,12 +87,12 @@ off_t filelength(int fd)
 }
 
 // See https://patchwork.kernel.org/patch/9289177/
-#if defined(F_OFD_SETLK) && _FILE_OFFSET_BITS != 64
+#if defined(F_OFD_SETLK) && defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS != 64
 	#undef F_OFD_SETLK
 #endif
 
 /* Sets a lock on a portion of a file */
-int lock(int fd, off_t pos, off_t len)
+int DLLCALL lock(int fd, off_t pos, off_t len)
 {
 	#if defined(F_SANERDLCKNO) || !defined(BSD)
  		struct flock alock = {0};
@@ -135,7 +135,7 @@ int lock(int fd, off_t pos, off_t len)
 }
 
 /* Removes a lock from a file record */
-int unlock(int fd, off_t pos, off_t len)
+int DLLCALL unlock(int fd, off_t pos, off_t len)
 {
 
 #if defined(F_SANEUNLCK) || !defined(BSD)
@@ -207,7 +207,7 @@ int unlock(int fd, off_t pos, off_t len)
  * 2 = open succeeds if file read-only, else fails with INT 24 
  */
 #if !defined(__QNX__)
-int sopen(const char *fn, int sh_access, int share, ...)
+int DLLCALL sopen(const char *fn, int sh_access, int share, ...)
 {
 	int fd;
 	int pmode=S_IREAD;
@@ -276,7 +276,7 @@ int sopen(const char *fn, int sh_access, int share, ...)
 	#define LK_UNLCK LK_UNLOCK
 #endif
 
-int lock(int file, off_t offset, off_t size) 
+int DLLCALL lock(int file, off_t offset, off_t size) 
 {
 	int	i;
 	off_t pos;
@@ -290,7 +290,7 @@ int lock(int file, off_t offset, off_t size)
 	return(i);
 }
 
-int unlock(int file, off_t offset, off_t size)
+int DLLCALL unlock(int file, off_t offset, off_t size)
 {
 	int	i;
 	off_t	pos;
@@ -346,7 +346,7 @@ static int expandtofit(char **linep, size_t len, size_t *linecapp)
 	return 0;
 }
 
-long getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream)
+long DLLCALL getdelim(char **linep, size_t *linecapp, int delimiter, FILE *stream)
 {
 	size_t	linelen;
 	int		ch;

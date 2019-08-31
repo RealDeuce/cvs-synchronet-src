@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.407 2020/04/19 21:06:53 rswindell Exp $ */
+/* $Id: js_global.c,v 1.398 2019/08/28 04:24:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -60,7 +60,6 @@ enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
 	,GLOB_PROP_SOCKET_ERRNO
-	,GLOB_PROP_SOCKET_ERRNO_STR
 };
 
 BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min)
@@ -85,11 +84,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case GLOB_PROP_SOCKET_ERRNO:
 			*vp=DOUBLE_TO_JSVAL(ERROR_VALUE);
 			break;
-		case GLOB_PROP_SOCKET_ERRNO_STR:
-			if((js_str=JS_NewStringCopyZ(cx, socket_strerror(socket_errno)))==NULL)
-				return(JS_FALSE);
-	        *vp = STRING_TO_JSVAL(js_str);
-			break;
 		case GLOB_PROP_ERRNO:
 			*vp=INT_TO_JSVAL(errno);
 			break;
@@ -105,12 +99,11 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 #define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_SHARED
 
 static jsSyncPropertySpec js_global_properties[] = {
-/*		 name,				tinyid,					flags,			ver */
+/*		 name,			tinyid,					flags,			ver */
 
-	{	"errno"				,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS, 310 },
-	{	"errno_str"			,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS, 310 },
-	{	"socket_errno"		,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 310 },
-	{	"socket_errno_str"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 31800 },
+	{	"errno"			,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS, 310 },
+	{	"errno_str"		,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS, 310 },
+	{	"socket_errno"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 310 },
 	{0}
 };
 
@@ -654,7 +647,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
-//		lprintf(LOG_DEBUG, "JavaScript Background Load: %s", path); // non-contextual (always logs to terminal server)
+		lprintf(LOG_DEBUG, "JavaScript Background Load: %s", path);
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
@@ -3674,25 +3667,21 @@ static JSBool
 js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	JSObject*	inarray[3]={NULL, NULL, NULL};
-	jsuint		inarray_cnt = 0;
-	JSObject*	robj;
+	JSObject*	inarray=NULL;
 	JSObject*	rarray;
 	BOOL		poll_for_write=FALSE;
-	fd_set		socket_set[3];
-	fd_set*		sets[3] = {NULL, NULL, NULL};
+	fd_set		socket_set;
+	fd_set*		rd_set=NULL;
+	fd_set*		wr_set=NULL;
 	uintN		argn;
 	SOCKET		sock;
 	SOCKET		maxsock=0;
 	struct		timeval tv = {0, 0};
 	jsuint		i;
-	jsuint		j;
-	jsuint      limit[3];
+    jsuint      limit;
 	jsval		val;
 	int			len=0;
 	jsrefcount	rc;
-	BOOL	all_zero = TRUE;
-	const char *props[3] = {"read", "write", "except"};
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -3700,124 +3689,58 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 		if(JSVAL_IS_BOOLEAN(argv[argn]))
 			poll_for_write=JSVAL_TO_BOOLEAN(argv[argn]);
 		else if(JSVAL_IS_OBJECT(argv[argn]))
-			inarray[inarray_cnt++] = JSVAL_TO_OBJECT(argv[argn]);
+			inarray = JSVAL_TO_OBJECT(argv[argn]);
 		else if(JSVAL_IS_NUMBER(argv[argn]))
 			js_timeval(cx,argv[argn],&tv);
 	}
 
-	if(inarray_cnt == 0)
+    if(inarray==NULL || !JS_IsArrayObject(cx, inarray))
 		return(JS_TRUE);	/* This not a fatal error */
-	for (i = 0; i < inarray_cnt; i++) {
-		if (!JS_IsArrayObject(cx, inarray[i]))
-			return(JS_TRUE);	/* This not a fatal error */
-		if (JS_GetArrayLength(cx, inarray[i], &limit[i]) != 0)
-			all_zero = FALSE;
-	}
-	if (inarray_cnt > 3)
-		inarray_cnt = 3;
 
-	if (all_zero)
+    if(!JS_GetArrayLength(cx, inarray, &limit))
 		return(JS_TRUE);
 
-	if (inarray_cnt == 1) {
-		/* Return array */
-		if((robj = JS_NewArrayObject(cx, 0, NULL))==NULL)
-			return(JS_FALSE);
-		FD_ZERO(&socket_set[0]);
-		if(poll_for_write)
-			sets[1]=&socket_set[0];
-		else
-			sets[0]=&socket_set[0];
+	/* Return array */
+    if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
+		return(JS_FALSE);
 
-		for(i=0;i<limit[0];i++) {
-			if(!JS_GetElement(cx, inarray[0], i, &val))
+	FD_ZERO(&socket_set);
+	if(poll_for_write)
+		wr_set=&socket_set;
+	else
+		rd_set=&socket_set;
+
+    for(i=0;i<limit;i++) {
+        if(!JS_GetElement(cx, inarray, i, &val))
+			break;
+		sock=js_socket_add(cx,val,&socket_set);
+		if(sock!=INVALID_SOCKET) {
+			if(sock>maxsock)
+				maxsock=sock;
+		}
+    }
+
+	rc=JS_SUSPENDREQUEST(cx);
+	if(select(maxsock+1,rd_set,wr_set,NULL,&tv) >= 0) {
+		for(i=0;i<limit;i++) {
+        	if(!JS_GetElement(cx, inarray, i, &val))
 				break;
-			sock=js_socket_add(cx,val,&socket_set[0]);
-			if(sock!=INVALID_SOCKET) {
-				if(sock>maxsock)
-					maxsock=sock;
-			}
-		}
-
-		rc=JS_SUSPENDREQUEST(cx);
-		if(select(maxsock+1,sets[0],sets[1],sets[2],&tv) >= 0) {
-			for(i=0;i<limit[0];i++) {
-				if(!JS_GetElement(cx, inarray[0], i, &val))
+			if(js_socket_isset(cx,val,&socket_set)) {
+				val=INT_TO_JSVAL(i);
+				JS_RESUMEREQUEST(cx, rc);
+   				if(!JS_SetElement(cx, rarray, len++, &val)) {
+					rc=JS_SUSPENDREQUEST(cx);
 					break;
-				if(js_socket_isset(cx,val,&socket_set[0])) {
-					val=INT_TO_JSVAL(i);
-					JS_RESUMEREQUEST(cx, rc);
-					if(!JS_SetElement(cx, robj, len++, &val)) {
-						rc=JS_SUSPENDREQUEST(cx);
-						break;
-					}
-					rc=JS_SUSPENDREQUEST(cx);
 				}
+				rc=JS_SUSPENDREQUEST(cx);
 			}
-
-			JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(robj));
 		}
-		JS_RESUMEREQUEST(cx, rc);
 
-		return(JS_TRUE);
+		JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(rarray));
 	}
-	else {
-		/* Return object */
-		if((robj = JS_NewObject(cx, NULL, NULL, NULL))==NULL)
-			return(JS_FALSE);
-		for (j = 0; j < inarray_cnt; j++) {
-			if (limit[j] > 0) {
-				FD_ZERO(&socket_set[j]);
-				sets[j] = &socket_set[j];
-				for (i = 0; i < limit[j]; i++) {
-					if(!JS_GetElement(cx, inarray[j], i, &val))
-						break;
-					sock=js_socket_add(cx,val,&socket_set[j]);
-					if(sock!=INVALID_SOCKET) {
-						if(sock>maxsock)
-							maxsock=sock;
-					}
-				}
-			}
-		}
+	JS_RESUMEREQUEST(cx, rc);
 
-		rc=JS_SUSPENDREQUEST(cx);
-		if(select(maxsock+1,sets[0],sets[1],sets[2],&tv) >= 0) {
-			for (j = 0; j < inarray_cnt; j++) {
-				if (limit[j] > 0) {
-					len = 0;
-					JS_RESUMEREQUEST(cx, rc);
-					if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
-						return(JS_FALSE);
-					val = OBJECT_TO_JSVAL(rarray);
-					if (!JS_SetProperty(cx, robj, props[j], &val))
-						return JS_FALSE;
-					rc=JS_SUSPENDREQUEST(cx);
-					for(i=0;i<limit[j];i++) {
-						JS_RESUMEREQUEST(cx, rc);
-						if(!JS_GetElement(cx, inarray[j], i, &val)) {
-							rc=JS_SUSPENDREQUEST(cx);
-							break;
-						}
-						rc=JS_SUSPENDREQUEST(cx);
-						if(js_socket_isset(cx,val,&socket_set[j])) {
-							val=INT_TO_JSVAL(i);
-							JS_RESUMEREQUEST(cx, rc);
-							if(!JS_SetElement(cx, rarray, len++, &val)) {
-								rc=JS_SUSPENDREQUEST(cx);
-								break;
-							}
-							rc=JS_SUSPENDREQUEST(cx);
-						}
-					}
-				}
-			}
-			JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(robj));
-		}
-		JS_RESUMEREQUEST(cx, rc);
-
-		return(JS_TRUE);
-	}
+    return(JS_TRUE);
 }
 
 static JSBool
@@ -4700,10 +4623,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	{"socket_select",	js_socket_select,	0,	JSTYPE_ARRAY,	JSDOCSTR("[array of socket objects or descriptors] [,timeout=<tt>0</tt>] [,write=<tt>false</tt>]")
 	,JSDOCSTR("checks an array of socket objects or descriptors for read or write ability (default is <i>read</i>), "
 		"default timeout value is 0.0 seconds (immediate timeout), "
-		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing, or <i>null</i> on error. "
-		"If multiple arrays of sockets are passed, they are presumet to be in the order of read, write, and except.  In this case, the write parameter is ignored "
-		"and an object is returned instead with up to three properties \"read\", \"write\", and \"except\", corresponding to the passed arrays.  Empty passed "
-		"arrays will not have a corresponding property in the returned object.")
+		"returns an array of 0-based index values into the socket array, representing the sockets that were ready for reading or writing, or <i>null</i> on error")
 	,311
 	},
 	{"mkdir",			js_mkdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
@@ -4711,7 +4631,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories). Returns true if the directory already exists.")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
 	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
