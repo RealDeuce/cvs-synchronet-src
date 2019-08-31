@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.258 2020/04/09 09:33:27 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.249 2019/08/17 02:21:01 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -49,18 +49,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.18"  /* Version: Major.minor  */
-#define REVISION	'a'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31800	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31800 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.17"  /* Version: Major.minor  */
+#define REVISION	'c'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2020 Rob Swindell"
-#define COPYRIGHT_CRC		0xB12E96E6
-
-#define SBBSCTRL_DEFAULT	"/sbbs/ctrl"
+#define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
+#define COPYRIGHT_CRC		0x0E0503DF
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -167,7 +165,7 @@ typedef struct js_callback {
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_SYSPASSLOGIN	(1L<<13)	/* Require system password for sysop login	*/
+#define SM_UNUSED		(1L<<13)	/* Defaults to *on*	(used to SM_LOCAL_TZ)	*/
 #define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -179,7 +177,7 @@ typedef struct js_callback {
 #define SM_TIME_EXP		(1L<<22)	/* Set to expired values if out-of-time 	*/
 #define SM_FASTMAIL		(1L<<23)	/* Fast e-mail storage mode 				*/
 #define SM_NONODELIST	(1L<<24)	/* Suppress active node list during logon	*/
-#define SM_UNUSED2		(1L<<25)	/*											*/
+#define SM_ERRALARM		(1L<<25)	/* Error beeps on							*/
 #define SM_FWDTONET		(1L<<26)	/* Allow forwarding of e-mail to netmail	*/
 #define SM_DELREADM		(1L<<27)	/* Delete read mail automatically			*/
 #define SM_NOCDTCVT		(1L<<28)	/* No credit to minute conversions allowed	*/
@@ -515,7 +513,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_COMP		30	/* User computer description					*/
 #define LEN_COMMENT 	60	/* User comment 								*/
 #define LEN_NETMAIL 	60	/* NetMail forwarding address					*/
-#define LEN_OLDPASS		 8	/* User password (old)							*/
+#define LEN_PASS		 8	/* User password								*/
 #define LEN_PHONE		12	/* User phone number							*/
 #define LEN_BIRTH		 8	/* Birthday in MM/DD/YY format					*/
 #define LEN_ADDRESS 	30	/* User address 								*/
@@ -526,11 +524,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_FCDT		 9	/* 9 digits for file credit values				*/
 #define LEN_TITLE		70	/* Message title								*/
 #define LEN_MAIN_CMD	34	/* Storage in user.dat for custom commands		*/
-#define LEN_PASS		40
-#define MIN_PASS_LEN	 4
-#define RAND_PASS_LEN	 8
+#define LEN_XFER_CMD	40
 #define LEN_SCAN_CMD	35
-#define LEN_IPADDR		45
+#define LEN_IPADDR	45
 #define LEN_CID 		45	/* Caller ID (phone number) 					*/
 #define LEN_ARSTR		40	/* Max length of Access Requirement string		*/
 #define LEN_CHATACTCMD	 9	/* Chat action command							*/
@@ -553,8 +549,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define U_LOCATION	U_ADDRESS+LEN_ADDRESS
 #define U_ZIPCODE	U_LOCATION+LEN_LOCATION
 
-#define U_OLDPASS	U_ZIPCODE+LEN_ZIPCODE+2
-#define U_PHONE  	U_OLDPASS+LEN_OLDPASS  	/* Offset to phone-number */
+#define U_PASS		U_ZIPCODE+LEN_ZIPCODE+2
+#define U_PHONE  	U_PASS+8  			/* Offset to phone-number */
 #define U_BIRTH  	U_PHONE+12 		/* Offset to users birthday	*/
 #define U_MODEM     U_BIRTH+8
 #define U_LASTON	U_MODEM+8
@@ -595,8 +591,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define U_CURSUB	U_LEECH+2  	/* Current sub (internal code)  */
 #define U_CURXTRN	U_CURSUB+16 /* Current xtrn (internal code) */
 #define U_MAIN_CMD	U_CURXTRN+8+2 	/* unused */
-#define U_PASS		U_MAIN_CMD+LEN_MAIN_CMD
-#define U_SCAN_CMD	U_PASS+LEN_PASS+2  				/* unused */
+#define U_XFER_CMD	U_MAIN_CMD+LEN_MAIN_CMD 		/* unused */
+#define U_SCAN_CMD	U_XFER_CMD+LEN_XFER_CMD+2  	/* unused */
 #define U_IPADDR	U_SCAN_CMD+LEN_SCAN_CMD 		/* unused */
 #define U_FREECDT	U_IPADDR+LEN_IPADDR+2
 #define U_FLAGS3	U_FREECDT+10 	/* Flag set #3 */
@@ -664,12 +660,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
 #define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS		(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
-#define CHARSET_FLAGS	(NO_EXASCII|PETSCII|UTF8)
-#define CHARSET_ASCII	NO_EXASCII	// US-ASCII
-#define CHARSET_PETSCII	PETSCII		// CBM-ASCII
-#define CHARSET_UTF8	UTF8
-#define CHARSET_CP437	0
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -757,7 +748,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TRIM		(1L<<23)	/* Trimmed white-space						*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
-#define P_NONE		0			/* No mode flags							*/
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
 #define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */
@@ -894,7 +884,6 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define SCAN_MSGSONLY	(1<<6)	/* Do not do a new file scan even if the
 								 * user enabled Automatic New File Scan		*/
 #define SCAN_POLLS		(1<<7)	/* Scan for polls (only)					*/
-#define SCAN_INDEX		(1<<8)	// List the msg index or exec listmsgs_mod
 
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/

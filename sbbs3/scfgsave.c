@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.94 2020/04/21 20:04:19 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.89 2019/08/31 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,17 +271,13 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->readmail_mod, stream);
 	put_str(cfg->scanposts_mod, stream);
 	put_str(cfg->scansubs_mod, stream);
-	put_str(cfg->listmsgs_mod, stream);
-	put_str(cfg->textsec_mod,stream);
 
+	put_int(c,stream);
 	n=0;
-	for(i=0;i<26;i++)
+	for(i=0;i<62;i++)
 		put_int(n,stream);
-	put_str(cfg->nodelist_mod, stream);
-	put_str(cfg->whosonline_mod, stream);
-	put_str(cfg->privatemsg_mod, stream);
 	n=0xffff;
-	for(i=0;i<158;i++)
+	for(i=0;i<254;i++)
 		put_int(n,stream);
 
 	put_int(cfg->user_backup_level,stream);
@@ -1130,8 +1126,6 @@ int DLLCALL smb_storage_mode(scfg_t* cfg, smb_t* smb)
 	return SMB_SELFPACK;
 }
 
-/* Open Synchronet Message Base and create, if necessary (e.g. first time opened) */
-/* If return value is not SMB_SUCCESS, sub-board is not left open */
 int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 {
 	int retval;
@@ -1153,13 +1147,8 @@ int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 		smb->status.attr		= cfg->sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
 	}
 	smb->retry_time = cfg->smb_retry_time;
-	if((retval = smb_open(smb)) == SMB_SUCCESS) {
-		if(smb_fgetlength(smb->shd_fp) < sizeof(smbhdr_t) + sizeof(smb->status)) {
-			if((retval = smb_create(smb)) != SMB_SUCCESS)
-				smb_close(smb);
-		}
-		if(retval == SMB_SUCCESS)
-			smb->subnum = subnum;
-	}
+	if((retval = smb_open(smb)) == SMB_SUCCESS)
+		smb->subnum = subnum;
 	return retval;
 }
+
