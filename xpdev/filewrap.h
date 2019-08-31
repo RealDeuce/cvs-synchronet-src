@@ -2,7 +2,7 @@
 
 /* File system-call wrappers */
 
-/* $Id: filewrap.h,v 1.38 2019/08/31 20:59:39 rswindell Exp $ */
+/* $Id: filewrap.h,v 1.39 2019/08/31 22:16:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,6 +152,8 @@
 #ifndef O_DENYNONE
 #define O_DENYNONE		SH_DENYNO
 #endif
+
+#define CLOSE_OPEN_FILE(x)	while((x) >= 0) { close(x); (x)=-1; break; }
 
 /**************/
 /* Prototypes */
