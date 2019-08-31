@@ -2,7 +2,7 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.51 2020/04/16 07:39:46 rswindell Exp $ */
+/* $Id: baja.c,v 1.50 2018/06/30 02:51:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3222,9 +3222,6 @@ void compile(char *src)
 		if(!stricmp(p,"MSG_YOUR_SCAN_ALL")) {
 			fprintf(out,"%c",CS_MSG_YOUR_SCAN_ALL);
 			continue; }
-		if(!stricmp(p,"MSG_LIST")) {
-			fprintf(out,"%c",CS_MSG_LIST);
-			continue; }
 		if(!stricmp(p,"CHAT_SECTION")) {
 			fprintf(out,"%c",CS_CHAT_SECTION);
 			continue; }
@@ -3415,7 +3412,7 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.51 $", "%*s %s", revision);
+	sscanf("$Revision: 1.50 $", "%*s %s", revision);
 
 	p = getenv("BAJAINCLUDE");
 	if(p != NULL) {
