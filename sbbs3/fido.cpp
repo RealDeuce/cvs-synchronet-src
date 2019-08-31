@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.77 2020/04/19 07:20:38 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.76 2019/08/18 20:30:43 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -158,7 +158,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return qnetmail(to, subj, mode, resmb, remsg);
+		return qnetmail(to, title, mode, resmb, remsg);
 	}
 	if(net_type == NET_INTERNET) {
 		if(!(cfg.inetmail_misc&NMAIL_ALLOW)) {
@@ -169,7 +169,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			bputs(text[EmailFilesNotAllowed]);
 			mode&=~WM_FILE;
 		}
-		return inetmail(to, subj, mode, resmb, remsg);
+		return inetmail(to, title, mode, resmb, remsg);
 	}
 	p=strrchr(to,'@');      /* Find '@' in name@addr */
 	if(p==NULL || net_type != NET_FIDO) {
@@ -281,7 +281,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 			if(x<cfg.total_prots)	/* This should be always */
 				protocol(cfg.prot[x],XFER_UPLOAD,subj,nulstr,true); 
 		}
-		sprintf(tmp,"%s%s",cfg.temp_dir,subj);
+		sprintf(tmp,"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(subj) && fexistcase(tmp))
 			mv(tmp,subj,0);
 		l=(long)flength(subj);
