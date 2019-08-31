@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.170 2018/03/10 06:08:12 rswindell Exp $ */
+/* $Id: js_system.c,v 1.175 2019/08/31 22:23:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -52,6 +52,7 @@ enum {
 	,SYS_PROP_TIMEZONE
 	,SYS_PROP_PWDAYS
 	,SYS_PROP_DELDAYS
+	,SYS_PROP_AUTODEL
 
 	,SYS_PROP_LASTUSER
 	,SYS_PROP_LASTUSERON
@@ -169,6 +170,9 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SYS_PROP_DELDAYS:
 			*vp = INT_TO_JSVAL(cfg->sys_deldays);
+			break;
+		case SYS_PROP_AUTODEL:
+			*vp = INT_TO_JSVAL(cfg->sys_autodel);
 			break;
 		case SYS_PROP_LASTUSER:
 			*vp = INT_TO_JSVAL(lastuser(cfg));
@@ -371,6 +375,7 @@ static jsSyncPropertySpec js_system_properties[] = {
 	{	"timezone",					SYS_PROP_TIMEZONE,	SYSOBJ_FLAGS,		310  },
 	{	"pwdays",					SYS_PROP_PWDAYS,	SYSOBJ_FLAGS,		310  },
 	{	"deldays",					SYS_PROP_DELDAYS,	SYSOBJ_FLAGS,		310  },
+	{	"autodel",					SYS_PROP_AUTODEL,	SYSOBJ_FLAGS,		31702  },
 
 	{	"lastuser",					SYS_PROP_LASTUSER		,SYSOBJ_FLAGS,	311  },
 	{	"lastuseron",				SYS_PROP_LASTUSERON		,SYSOBJ_FLAGS,	310  },
@@ -445,8 +450,9 @@ static char* sys_prop_desc[] = {
 	,"Internet address (host or domain name)"
 	,"location (city, state)"
 	,"timezone (use <i>system.zonestr()</i> to get string representation)"
-	,"days between forced password changes"
-	,"days to preserve deleted user records"
+	,"days between forced user password changes"
+	,"days to preserve deleted user records, record will not be reused/overwritten during this period"
+	,"days of user inactivity before auto-deletion (<tt>0</tt>=<i>disabled</i>), N/A to P-exempt users"
 
 	,"last user record number in user database (includes deleted and inactive user records)"
 	,"name of last user to logoff"
@@ -551,6 +557,8 @@ enum {
 	,SYSSTAT_PROP_TOTALMAIL
 	,SYSSTAT_PROP_FEEDBACK
 };
+
+extern JSClass js_system_class;
 
 #ifndef JSDOOR
 static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
@@ -750,7 +758,7 @@ js_alias(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
@@ -789,7 +797,7 @@ js_username(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	val=0;
@@ -818,7 +826,7 @@ js_matchuser(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
@@ -858,7 +866,7 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&offset);
@@ -908,7 +916,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if((js_can=JS_ValueToString(cx, argv[0]))==NULL) {
@@ -1012,7 +1020,7 @@ js_zonestr(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if(argc<1)
@@ -1046,7 +1054,7 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if(argc<1)
@@ -1077,7 +1085,7 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if(argc<1)
@@ -1141,7 +1149,7 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	for(i=0;i<argc;i++) {
@@ -1228,7 +1236,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	memset(&addr,0,sizeof(addr));
@@ -1304,7 +1312,7 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	for(i=0;i<argc;i++) {
@@ -1377,7 +1385,7 @@ js_get_node_message(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	node_num=cfg->node_num;
@@ -1415,7 +1423,7 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&node);
@@ -1452,7 +1460,7 @@ js_get_telegram(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&usernumber);
@@ -1488,7 +1496,7 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&usernumber);
@@ -1531,7 +1539,7 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if(argc<1 || JSVAL_NULL_OR_VOID(argv[0])) {
@@ -1635,7 +1643,7 @@ js_del_user(JSContext *cx, uintN argc, jsval *arglist)
 	user_t		user;
 	char		str[128];
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	if(!JS_ValueToInt32(cx,argv[0],&n))
@@ -1749,7 +1757,7 @@ js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	JSVALUE_TO_ASTRING(cx, argv[0], pass, LEN_PASS+2, NULL); // +2 is so overly long passwords fail.
@@ -1770,7 +1778,7 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	JSVALUE_TO_ASTRING(cx, argv[0], str, (LEN_ALIAS > LEN_NAME)?LEN_ALIAS+2:LEN_NAME+2, NULL);
-	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+	if((cfg=(scfg_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -2006,7 +2014,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
-	if(getnodedat(cfg, node_num, &node, NULL)) {
+	if(getnodedat(cfg, node_num, &node, /* lockit: */FALSE, &cfg->nodefile)) {
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -2050,7 +2058,6 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 {
 	jsval idval;
 	uint		node_num;
-	int			file;
 	jsint		val=0;
     jsint       tiny;
 	node_t		node;
@@ -2072,7 +2079,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
-	if(getnodedat(cfg, node_num, &node, &file)) {
+	if(getnodedat(cfg, node_num, &node, /* lockit: */TRUE, &cfg->nodefile)) {
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -2111,7 +2118,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 			node.extaux=val;
 			break;
 	}
-	putnodedat(cfg,node_num,&node,file);
+	putnodedat(cfg,node_num,&node, /* closeit: */FALSE, cfg->nodefile);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2388,7 +2395,17 @@ static JSBool js_system_enumerate(JSContext *cx, JSObject *obj)
 	return(js_system_resolve(cx, obj, JSID_VOID));
 }
 
-static JSClass js_system_class = {
+static void js_system_finalize(JSContext *cx, JSObject *obj)
+{
+	scfg_t* cfg;
+
+	if((cfg = (scfg_t*)JS_GetPrivate(cx, obj)) == NULL)
+		return;
+
+	CLOSE_OPEN_FILE(cfg->nodefile);
+}
+
+JSClass js_system_class = {
      "System"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
@@ -2398,7 +2415,7 @@ static JSClass js_system_class = {
 	,js_system_enumerate	/* enumerate	*/
 	,js_system_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
-	,JS_FinalizeStub		/* finalize		*/
+	,js_system_finalize		/* finalize		*/
 };
 
 JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -2414,6 +2431,9 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	if(sysobj==NULL)
 		return(NULL);
+
+	if(cfg->nodefile < 1)	// An initialized scfg_t is usually all 0's
+		cfg->nodefile = -1;
 
 	if(!JS_SetPrivate(cx, sysobj, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);
