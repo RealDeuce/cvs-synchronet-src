@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.63 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: str_util.c,v 1.64 2019/08/28 01:37:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -602,6 +602,15 @@ BOOL str_is_ascii(const char* str)
 			return FALSE;
 	}
 	return TRUE;
+}
+
+BOOL str_has_ctrl(const char* str)
+{
+	for(const char* p = str; *p != 0; p++) {
+		if((uchar)*p < ' ')
+			return TRUE;
+	}
+	return FALSE;
 }
 
 /****************************************************************************/
