@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.14 2019/03/19 22:52:18 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.15 2019/04/11 01:00:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -169,8 +169,8 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 		else
 			if(time(NULL)-start>=(time_t)smb->retry_time) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s timeout opening %s (retry_time=%ld)", __FUNCTION__
-					,path,smb->retry_time);
+					,"%s timeout opening %s (retry_time=%lu)", __FUNCTION__
+					,path, (ulong)smb->retry_time);
 				return(SMB_ERR_TIMEOUT); 
 			}
 		SLEEP(smb->retry_delay);
