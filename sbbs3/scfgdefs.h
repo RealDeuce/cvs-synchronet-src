@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.52 2019/09/02 10:27:36 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.51 2019/08/31 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -615,6 +615,7 @@ typedef struct
 
 	// Run-time state information (not configuration)
 	int				tls_certificate;
+	int				nodefile;
 
 } scfg_t;
 

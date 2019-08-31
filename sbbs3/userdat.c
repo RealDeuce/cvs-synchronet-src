@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.221 2019/09/26 03:18:31 rswindell Exp $ */
+/* $Id: userdat.c,v 1.219 2019/08/31 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -489,7 +489,8 @@ int is_user_online(scfg_t* cfg, uint usernumber)
 			|| node.status==NODE_LOGON) && node.useron==usernumber)
 			return i;
 	}
-	CLOSE_OPEN_FILE(file);
+	if(file >= 0)
+		close(file);
 	return 0;
 }
 
@@ -783,19 +784,6 @@ int opennodedat(scfg_t* cfg)
 }
 
 /****************************************************************************/
-/****************************************************************************/
-int opennodeext(scfg_t* cfg)
-{
-	char	fname[MAX_PATH+1];
-
-	if(!VALID_CFG(cfg))
-		return -1;
-
-	SAFEPRINTF(fname, "%snode.exb", cfg->ctrl_dir);
-	return nopen(fname, O_RDWR|O_DENYNONE);
-}
-
-/****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
 /* from node.dab															*/
 /****************************************************************************/
@@ -858,8 +846,7 @@ int putnodedat(scfg_t* cfg, uint number, node_t* node, BOOL closeit, int file)
 		return -1;
 	if(!VALID_CFG(cfg)
 		|| node==NULL || number<1 || number>cfg->sys_nodes) {
-		if(closeit)
-			close(file);
+		close(file);
 		return(-1);
 	}
 
@@ -957,22 +944,7 @@ static char* node_connection_desc(ushort conn, char* str)
 	return str;
 }
 
-char* getnodeext(scfg_t* cfg, int num, char* buf)
-{
-	int f;
-
-	if(!VALID_CFG(cfg) || num < 1)
-		return "";
-	if((f = opennodeext(cfg)) < 1)
-		return "";
-	lseek(f, (num-1) * 128, SEEK_SET);
-	read(f, buf, 128);
-	close(f);
-	buf[127] = 0;
-	return buf;
-}
-
-char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen, int num)
+char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
 {
 	char	str[256];
 	char	tmp[128];
@@ -1018,10 +990,6 @@ char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen, int num)
             break;
         case NODE_QUIET:
         case NODE_INUSE:
-			if(node->misc & NODE_EXT) {
-				getnodeext(cfg, num, str);
-				break;
-			}
             username(cfg,node->useron,str);
             strcat(str," ");
             switch(node->action) {
@@ -1197,7 +1165,7 @@ void printnodedat(scfg_t* cfg, uint number, node_t* node)
 {
 	char	status[128];
 
-	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status),number));
+	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status)));
 }
 
 /****************************************************************************/
