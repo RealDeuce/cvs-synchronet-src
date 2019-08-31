@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.125 2019/09/21 11:10:09 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.122 2019/08/20 03:12:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -331,8 +331,7 @@ size_t sbbs_t::print_utf8_as_cp437(const char* str, size_t len)
 	enum unicode_codepoint codepoint = UNICODE_UNDEFINED;
 	len = utf8_getc(str, len, &codepoint);
 	if((int)len < 2) {
-		outchar(*str);	// Assume it's a CP437 character
-		lprintf(LOG_DEBUG, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
+		lprintf(LOG_NOTICE, "Invalid UTF-8 sequence: %02X (error = %d)", (uchar)*str, (int)len);
 		return 1;
 	}
 	for(int i = 1; i < 0x100; i++) {
@@ -746,19 +745,17 @@ void sbbs_t::inc_column(int count)
 	}
 }
 
-void sbbs_t::center(char *instr, unsigned int columns)
+void sbbs_t::center(char *instr)
 {
 	char str[256];
-	size_t len;
-
-	if(columns < 1)
-		columns = cols;
+	int i,j;
 
 	SAFECOPY(str,instr);
 	truncsp(str);
-	len = bstrlen(str);
-	if(len < columns)
-		cursor_right((columns - len) / 2);
+	j=bstrlen(str);
+	if(j < cols)
+		for(i=0;i<(cols-j)/2;i++)
+			outchar(' ');
 	bputs(str);
 	newline();
 }
