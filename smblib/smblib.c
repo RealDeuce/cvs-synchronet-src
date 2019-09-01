@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.206 2020/04/04 22:11:36 rswindell Exp $ */
+/* $Id: smblib.c,v 1.205 2019/07/30 10:20:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1827,8 +1827,8 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 	}
 	if(smb_hdrblocks(hdrlen) > smb_hdrblocks(msg->hdr.length)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s illegal header length increase: %lu (%lu blocks, %hu hfields, %hu dfields) vs %hu (%lu blocks)", __FUNCTION__
-			,hdrlen, smb_hdrblocks(hdrlen), msg->total_hfields, msg->hdr.total_dfields
+			,"%s illegal header length increase: %lu (%lu blocks) vs %hu (%lu blocks)", __FUNCTION__
+			,hdrlen, smb_hdrblocks(hdrlen)
 			,msg->hdr.length, smb_hdrblocks(msg->hdr.length));
 		return(SMB_ERR_HDR_LEN);
 	}

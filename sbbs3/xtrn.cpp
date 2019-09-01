@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.259 2020/03/28 23:30:44 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.257 2019/08/26 05:53:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1119,22 +1119,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		setenv("SBBSDATA",cfg.data_dir,1);
 		setenv("SBBSEXEC",cfg.exec_dir,1);
 		sprintf(str,"%u",cfg.node_num);
-		setenv("SBBSNNUM",str,1);
-
-		/* date/time env vars */
-		now = time(NULL);
-		struct	tm tm;
-		if(localtime_r(&now, &tm) == NULL)
-			memset(&tm, 0, sizeof(tm));
-		sprintf(str," %02u", tm.tm_mday);
-		setenv("DAY", str, /* overwrite */TRUE);
-		setenv("WEEKDAY", wday[tm.tm_wday], /* overwrite */TRUE);
-		setenv("MONTHNAME", mon[tm.tm_mon], /* overwrite */TRUE);
-		sprintf(str, "%02u", tm.tm_mon + 1);
-		setenv("MONTH", str, /* overwrite */TRUE);
-		sprintf(str,"%u", 1900 + tm.tm_year);
-		if(setenv("YEAR", str, /* overwrite */TRUE) != 0)
-			errormsg(WHERE,ERR_WRITE,"environment",0);
+		if(setenv("SBBSNNUM",str,1))
+        	errormsg(WHERE,ERR_WRITE,"environment",0);
 
 	} else {
 		if(startup->options&BBS_OPT_NO_DOS) {
@@ -1903,7 +1889,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                 case 'R':   /* Rows */
                     strncat(cmd,ultoa(rows,str,10), avail);
                     break;
-                case 'S':   /* File Spec (or Baja command str) or startup-directory */
+                case 'S':   /* File Spec (or Baja command str) */
                     strncat(cmd, fspec, avail);
                     break;
                 case 'T':   /* Time left in seconds */
