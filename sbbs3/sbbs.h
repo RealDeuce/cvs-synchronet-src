@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.560 2020/04/23 02:39:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.550 2019/08/31 22:37:40 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,14 +394,11 @@ public:
 	JSRuntime*		js_runtime;
 	JSContext*		js_cx;
 	JSObject*		js_glob;
-	JSRuntime*		js_hotkey_runtime;
-	JSContext*		js_hotkey_cx;
-	JSObject*		js_hotkey_glob;
 	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope = NULL, JSContext* cx = NULL);
-	JSContext*		js_init(JSRuntime**, JSObject**, const char* desc);
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
+	bool			js_init(ulong* stack_frame);
 	void			js_cleanup(void);
-	bool			js_create_user_objects(JSContext*, JSObject* glob);
+	void			js_create_user_objects(void);
 
 #endif
 
@@ -599,7 +596,7 @@ public:
 	void	xfer_prot_menu(enum XFER_TYPE);
 	void	node_stats(uint node_num);
 	void	sys_stats(void);
-	void	logonlist(const char* args = "");
+	void	logonlist(void);
 	bool	spy(uint node_num);
 
 	void	reset_logon_vars(void);
@@ -737,7 +734,7 @@ public:
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
-	void	center(char *str, unsigned int columns = 0);
+	void	center(char *str);
 	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -747,7 +744,6 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
-	bool	cursor_xy(int x, int y);
 	void	carriage_return(int count=1);
 	void	line_feed(int count=1);
 	void	newline(int count=1);
@@ -790,8 +786,8 @@ public:
 	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str, long mode = 0);
-	bool	noyes(const char *str, long mode = 0);
+	bool	yesno(const char *str);
+	bool	noyes(const char *str);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
@@ -863,7 +859,7 @@ public:
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
-	void	dump_msghdr(smbmsg_t*);
+	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
 	int64_t get_start_msgnum(smb_t*, int next=0);
 
@@ -972,7 +968,7 @@ public:
 	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
-	int		xtrn_sec(const char* section = "");	/* The external program section  */
+	int		xtrn_sec(void);					/* The external program section  */
 	void	xtrndat(const char* name, const char* dropdir, uchar type, ulong tleft
 				,ulong misc);
 	bool	exec_xtrn(uint xtrnnum);			/* Executes online external program */
@@ -1113,8 +1109,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
-	DLLEXPORT BOOL		DLLCALL inc_sys_upload_stats(scfg_t*, ulong files, ulong bytes);
-	DLLEXPORT BOOL		DLLCALL inc_sys_download_stats(scfg_t*, ulong files, ulong bytes);
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
@@ -1166,7 +1160,6 @@ extern "C" {
 	DLLEXPORT char *	strip_space(const char *str, char* dest);
 	DLLEXPORT char *	prep_file_desc(const char *str, char* dest);
 	DLLEXPORT char *	strip_ctrl(const char *str, char* dest);
-	DLLEXPORT char *	strip_char(const char* str, char* dest, char);
 	DLLEXPORT char *	net_addr(net_t* net);
 	DLLEXPORT BOOL		valid_ctrl_a_attr(char a);
 	DLLEXPORT BOOL		valid_ctrl_a_code(char a);
@@ -1177,8 +1170,6 @@ extern "C" {
 	DLLEXPORT BOOL		str_has_ctrl(const char*);
 	DLLEXPORT BOOL		str_is_ascii(const char*);
 	DLLEXPORT char *	utf8_to_cp437_str(char* str);
-	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
-	DLLEXPORT char * 	get_ctrl_dir(void);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
@@ -1457,6 +1448,11 @@ char*	prep_code(char *str, const char* prefix);
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...)	/* log output */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
+	int 	eprintf(int level, const char *fmt, ...)	/* event log */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));
 #endif
