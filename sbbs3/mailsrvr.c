@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.712 2019/08/31 22:23:54 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.713 2019/09/01 06:25:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3568,7 +3568,7 @@ static void smtp_thread(void* arg)
 					char* np = strdup(p);
 					if(np != NULL) {
 						mimehdr_value_decode(np, &msg);
-						parse_mail_address(p 
+						parse_mail_address(np 
 							,sender		,sizeof(sender)-1
 							,sender_addr,sizeof(sender_addr)-1);
 						free(np);
@@ -5912,7 +5912,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.712 $", "%*s %s", revision);
+	sscanf("$Revision: 1.713 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
