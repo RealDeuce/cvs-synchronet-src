@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.127 2019/08/17 02:21:01 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.128 2019/09/02 04:54:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,18 +359,24 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 
 	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
+	if(client->time
+		&& (i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
 		,/* separators: */"","","", /* precision: */0
 		,date,sizeof(date))))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
+	if(*client->addr
+		&& (i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
+	if(*client->host
+		&& (i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
 		return(i);
 	if(client->protocol!=NULL && (i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
-	SAFEPRINTF(port,"%u",client->port);
-	return smb_hfield_str(msg,SENDERPORT,port);
+	if(client->port) {
+		SAFEPRINTF(port,"%u",client->port);
+		return smb_hfield_str(msg,SENDERPORT,port);
+	}
+	return SMB_SUCCESS;
 }
 
 /* Note: support MSG_BODY only, no tails or other data fields (dfields) */
