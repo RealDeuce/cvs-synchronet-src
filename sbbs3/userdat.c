@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.219 2019/08/31 22:23:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.220 2019/09/02 01:29:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -489,8 +489,7 @@ int is_user_online(scfg_t* cfg, uint usernumber)
 			|| node.status==NODE_LOGON) && node.useron==usernumber)
 			return i;
 	}
-	if(file >= 0)
-		close(file);
+	CLOSE_OPEN_FILE(file);
 	return 0;
 }
 
@@ -846,7 +845,8 @@ int putnodedat(scfg_t* cfg, uint number, node_t* node, BOOL closeit, int file)
 		return -1;
 	if(!VALID_CFG(cfg)
 		|| node==NULL || number<1 || number>cfg->sys_nodes) {
-		close(file);
+		if(closeit)
+			close(file);
 		return(-1);
 	}
 
