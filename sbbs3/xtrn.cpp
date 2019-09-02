@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.256 2019/08/25 21:18:40 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.257 2019/08/26 05:53:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1587,8 +1587,8 @@ int sbbs_t::external(const char* cmdline, long mode, const char* startup_dir)
 		_exit(-1);	/* should never get here */
 	}
 
-	if(online==ON_REMOTE)
-		lprintf(LOG_INFO,"executing external: %s", fullcmdline);
+	if(strcmp(cmdline, fullcmdline) != 0)
+		lprintf(LOG_DEBUG,"Executing cmd-line: %s", fullcmdline);
 
 	/* Disable Ctrl-C checking */
 	if(!(mode&EX_OFFLINE))
