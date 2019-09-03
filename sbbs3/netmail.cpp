@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.57 2019/03/26 07:45:42 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.62 2019/08/18 20:24:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,8 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	char	title[256] = "";
 	char	name[256] = "";
 	char	addr[256] = "";
-	char*	editor=NULL;
+	const char*	editor=NULL;
+	const char*	charset=NULL;
 	char	your_addr[128];
 	ushort	xlat=XLAT_NONE,net=NET_INTERNET;
 	int 	i,j,x,file;
@@ -64,7 +65,17 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	if(into != NULL) {
 		SAFECOPY(name,into);
-		SAFECOPY(addr,into);
+		if((p = strrchr((char*)into, '<')) != NULL) {
+			SAFECOPY(addr, p + 1);
+			p = strrchr(addr, '>');
+			if(p == NULL) {
+				bputs(text[InvalidNetMailAddr]);
+				return false;
+			}
+			*p = 0;
+		} else {
+			SAFECOPY(addr, into);
+		}
 	}
 	if(subj != NULL)
 		SAFECOPY(title,subj);
@@ -82,6 +93,11 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 		return(false); 
 	}
 
+	if(strchr(addr, ' ') != NULL || strchr(addr, '@') <= addr) {
+		bputs(text[InvalidNetMailAddr]);
+		return false;
+	}
+
 	if(cfg.inetmail_cost && !(useron.exempt&FLAG('S'))) {
 		if(useron.cdt+useron.freecdt<cfg.inetmail_cost) {
 			bputs(text[NotEnoughCredits]);
@@ -93,12 +109,16 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	}
 
 	/* Get destination user name */
-	p=strrchr(name,'@');
+	p=strrchr(name,'<');
+	if(!p)
+		p=strrchr(name,'@');
 	if(!p)
 		p=strrchr(name,'!');
 	if(p) {
 		*p=0;
-		truncsp(name); 
+		truncsp(name);
+		if(name[0] == 0)
+			SAFECOPY(name, addr);
 	}
 
 	/* Get this user's internet mailing address */
@@ -115,7 +135,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	}
 
 	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title,WM_NETMAIL|mode,INVALID_SUB,into,/* from: */your_addr,&editor)) {
+	if(!writemsg(msgpath,nulstr,title,WM_NETMAIL|mode,INVALID_SUB,into,/* from: */your_addr, &editor, &charset)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -250,7 +270,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 	memset(&msg,0,sizeof(smbmsg_t));
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
-		msg.hdr.auxattr|=MSG_FILEATTACH;
+		msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
@@ -279,9 +299,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor, charset);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
@@ -323,7 +341,8 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 	char 	tmp[512];
 	char	title[128] = "";
 	char	to[128] = "";
-	char*	editor=NULL;
+	const char*	editor=NULL;
+	const char*	charset=NULL;
 	ushort	xlat=XLAT_NONE,net=NET_QWK,touser;
 	int 	i,j,x,file;
 	ulong	length,offset;
@@ -376,7 +395,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 	}
 
 	SAFEPRINTF(msgpath,"%snetmail.msg",cfg.node_dir);
-	if(!writemsg(msgpath,nulstr,title, (mode|WM_QWKNET|WM_NETMAIL) ,INVALID_SUB,to,/* from: */useron.alias,&editor)) {
+	if(!writemsg(msgpath,nulstr,title, (mode|WM_QWKNET|WM_NETMAIL) ,INVALID_SUB,to,/* from: */useron.alias, &editor, &charset)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -467,7 +486,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 	memset(&msg,0,sizeof(smbmsg_t));
 	msg.hdr.version=smb_ver();
 	if(mode&WM_FILE)
-		msg.hdr.auxattr|=MSG_FILEATTACH;
+		msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
@@ -493,9 +512,7 @@ bool sbbs_t::qnetmail(const char *into, const char *subj, long mode, smb_t* resm
 
 	add_msg_ids(&cfg, &smb, &msg, /* remsg: */NULL);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
-	smb_hfield_bin(&msg, SMB_COLUMNS, cols);
+	editor_info_to_msg(&msg, editor, charset);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
