@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.399 2019/09/04 03:27:19 deuce Exp $ */
+/* $Id: js_global.c,v 1.400 2019/09/04 18:06:20 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3723,7 +3723,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 			sets[0]=&socket_set[0];
 
 		for(i=0;i<limit[0];i++) {
-			if(!JS_GetElement(cx, inarray[i], i, &val))
+			if(!JS_GetElement(cx, inarray[0], i, &val))
 				break;
 			sock=js_socket_add(cx,val,&socket_set[0]);
 			if(sock!=INVALID_SOCKET) {
@@ -3735,7 +3735,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		if(select(maxsock+1,sets[0],sets[1],sets[2],&tv) >= 0) {
 			for(i=0;i<limit[0];i++) {
-				if(!JS_GetElement(cx, inarray[i], i, &val))
+				if(!JS_GetElement(cx, inarray[0], i, &val))
 					break;
 				if(js_socket_isset(cx,val,&socket_set[0])) {
 					val=INT_TO_JSVAL(i);
