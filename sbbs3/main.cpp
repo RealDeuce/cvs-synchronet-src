@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.766 2019/08/26 05:44:36 rswindell Exp $ */
+/* $Id: main.cpp,v 1.775 2019/09/01 09:08:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1469,8 +1469,9 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 	BYTE*	first_cr=NULL;
 	int 	i;
 
+	outlen=0;
+
 	if(inlen<1) {
-		outlen=0;
 		return(inbuf);	// no length? No interpretation
 	}
 
@@ -1485,19 +1486,20 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 			first_cr=(BYTE*)memchr(inbuf, CR, inlen);
 	}
 
-    if(!sbbs->telnet_cmdlen	&& first_iac==NULL && first_cr==NULL) {
-        outlen=inlen;
-        return(inbuf);	// no interpretation needed
-    }
+    if(!sbbs->telnet_cmdlen) {
+		if(first_iac==NULL && first_cr==NULL) {
+			outlen=inlen;
+			return(inbuf);	// no interpretation needed
+		}
 
-    if(first_iac!=NULL || first_cr!=NULL) {
-		if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
-   			outlen=first_iac-inbuf;
-		else
-			outlen=first_cr-inbuf;
-	    memcpy(outbuf, inbuf, outlen);
-    } else
-    	outlen=0;
+		if(first_iac!=NULL || first_cr!=NULL) {
+			if(first_iac!=NULL && (first_cr==NULL || first_iac<first_cr))
+   				outlen=first_iac-inbuf;
+			else
+				outlen=first_cr-inbuf;
+			memcpy(outbuf, inbuf, outlen);
+		}
+	}
 
     for(i=outlen;i<inlen;i++) {
 		if(!(sbbs->telnet_mode&TELNET_MODE_GATE)
@@ -1524,11 +1526,21 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 
 			if(sbbs->telnet_cmdlen<sizeof(sbbs->telnet_cmd))
 				sbbs->telnet_cmd[sbbs->telnet_cmdlen++]=inbuf[i];
+			else {
+				lprintf(LOG_WARNING, "Node %d telnet command (%d, %d) buffer limit reached (%u bytes)"
+					,sbbs->cfg.node_num, sbbs->telnet_cmd[1], sbbs->telnet_cmd[2], sbbs->telnet_cmdlen);
+				sbbs->telnet_cmdlen = 0;
+			}
 
 			uchar command	= sbbs->telnet_cmd[1];
 			uchar option	= sbbs->telnet_cmd[2];
 
-			if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
+			if(sbbs->telnet_cmdlen == 2 && command == TELNET_SE) {
+				lprintf(LOG_WARNING, "Node %d unexpected telnet sub-negotiation END command"
+					,sbbs->cfg.node_num);
+				sbbs->telnet_cmdlen = 0;
+			}
+			else if(sbbs->telnet_cmdlen>=2 && command==TELNET_SB) {
 				if(inbuf[i]==TELNET_SE
 					&& sbbs->telnet_cmd[sbbs->telnet_cmdlen-2]==TELNET_IAC) {
 
@@ -1605,9 +1617,12 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
 							,sbbs->telnet_location);
 					} else if(option==TELNET_TERM_LOCATION_NUMBER && sbbs->telnet_cmd[3] == 0) {
-						inet_ntop(AF_INET, sbbs->telnet_cmd + 4
-							,sbbs->telnet_location
-							,sizeof(sbbs->telnet_location));
+						SAFEPRINTF4(sbbs->telnet_location, "%u.%u.%u.%u"
+							,sbbs->telnet_cmd[4]
+							,sbbs->telnet_cmd[5]
+							,sbbs->telnet_cmd[6]
+							,sbbs->telnet_cmd[7]
+						);
 						lprintf(LOG_DEBUG,"Node %d %s telnet location number (IP address): %s"
 	                		,sbbs->cfg.node_num
 							,sbbs->telnet_mode&TELNET_MODE_GATE ? "passed-through" : "received"
@@ -1630,7 +1645,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 							,sbbs->telnet_cmd[3]);
 					sbbs->telnet_cmdlen=0;
 				}
-			}
+			} // Sub-negotiation command
             else if(sbbs->telnet_cmdlen==2 && inbuf[i]<TELNET_WILL) {
 				if(startup->options&BBS_OPT_DEBUG_TELNET)
             		lprintf(LOG_DEBUG,"Node %d %s telnet cmd: %s"
@@ -1722,9 +1737,7 @@ static BYTE* telnet_interpret(sbbs_t* sbbs, BYTE* inbuf, int inlen,
 #endif
 					}
 				}
-
                 sbbs->telnet_cmdlen=0;
-
             }
 			if(sbbs->telnet_mode&TELNET_MODE_GATE)	// Pass-through commands
 				outbuf[outlen++]=inbuf[i];
@@ -2053,8 +2066,8 @@ void input_thread(void *arg)
 			if(socket_check(sbbs->passthru_socket, NULL, &writable, 1000) && writable)
 				sendsocket(sbbs->passthru_socket, (char*)wrbuf, wr);
 			else
-				lprintf(LOG_WARNING, "Node %d could not write to passthru socket"
-					, sbbs->cfg.node_num);
+				lprintf(LOG_WARNING, "Node %d could not write to passthru socket (writable=%d)"
+					, sbbs->cfg.node_num, (int)writable);
 			continue;
 		}
 
@@ -2143,7 +2156,7 @@ void passthru_thread(void* arg)
 	SetThreadName("sbbs/passthru");
 	thread_up(FALSE /* setuid */);
 
-	while(sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
+	while(sbbs->online && sbbs->passthru_socket!=INVALID_SOCKET && !terminate_server) {
 		tv.tv_sec=1;
 		tv.tv_usec=0;
 
@@ -2172,10 +2185,11 @@ void passthru_thread(void* arg)
                		,sbbs->cfg.node_num, ERROR_VALUE, sbbs->passthru_socket);
 			break;
 		}
-		if(RingBufFree(&sbbs->outbuf) < sizeof(inbuf) * 2)
-			continue;
+		rd = RingBufFree(&sbbs->outbuf) / 2;
+		if(rd > (int)sizeof(inbuf))
+			rd = sizeof(inbuf);
 
-    	rd = recv(sbbs->passthru_socket, inbuf, sizeof(inbuf), 0);
+    	rd = recv(sbbs->passthru_socket, inbuf, rd, 0);
 
 		if(rd == SOCKET_ERROR)
 		{
@@ -2195,8 +2209,14 @@ void passthru_thread(void* arg)
 
 		if(rd == 0)
 		{
-			lprintf(LOG_DEBUG,"Node %d passthru disconnected", sbbs->cfg.node_num);
-			break;
+			char ch;
+			if(recv(sbbs->passthru_socket, &ch, sizeof(ch), MSG_PEEK) == 0) {
+				lprintf(sbbs->online ? LOG_WARNING : LOG_DEBUG
+					,"Node %d passthru socket disconnected", sbbs->cfg.node_num);
+				break;
+			}
+			YIELD();
+			continue;
 		}
 
 		if(sbbs->xtrn_mode & EX_BIN) {
@@ -2206,8 +2226,10 @@ void passthru_thread(void* arg)
 			if(!(sbbs->telnet_mode&TELNET_MODE_OFF))
 				rd = telnet_expand((BYTE*)inbuf, rd, telnet_buf, sizeof(telnet_buf), /* expand_cr */false, &bp);
 
-    		if(!RingBufWrite(&sbbs->outbuf, bp, rd)) {
-				lprintf(LOG_ERR,"Cannot pass from passthru socket to outbuf");
+			int wr = RingBufWrite(&sbbs->outbuf, bp, rd);
+    		if(wr != rd) {
+				lprintf(LOG_ERR,"Short-write (%ld of %ld bytes) from passthru socket to outbuf"
+					,(long)wr, (long)rd);
 				break;
 			}
 		} else {
@@ -2221,6 +2243,7 @@ void passthru_thread(void* arg)
 	thread_down();
 
 	sbbs->passthru_thread_running = false;
+	sbbs->passthru_socket_active = false;
 }
 
 void output_thread(void* arg)
@@ -2859,7 +2882,7 @@ void event_thread(void* arg)
 						sbbs->delfiles(sbbs->cfg.temp_dir,ALLFILES);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
-						if(remove(str))
+						if(fexist(str) && remove(str))
 							sbbs->errormsg(WHERE, ERR_REMOVE, str, 0);
 					}
 				}
@@ -4983,6 +5006,11 @@ void DLLCALL bbs_thread(void* arg)
 	lprintf(LOG_INFO,"Compiled %s %s with %s", __DATE__, __TIME__, compiler);
 	lprintf(LOG_DEBUG,"SMBLIB %s (format %x.%02x)",smb_lib_ver(),smb_ver()>>8,smb_ver()&0xff);
 
+#ifdef _DEBUG
+	lprintf(LOG_DEBUG, "sizeof: int=%d, long=%d, off_t=%d, time_t=%d"
+		,(int)sizeof(int), (int)sizeof(long), (int)sizeof(off_t), (int)sizeof(time_t));
+#endif
+
     if(startup->first_node<1 || startup->first_node>startup->last_node) {
     	lprintf(LOG_CRIT,"!ILLEGAL node configuration (first: %d, last: %d)"
         	,startup->first_node, startup->last_node);
@@ -5682,6 +5710,7 @@ NO_SSH:
 			new_node->telnet_mode|=TELNET_MODE_OFF; // RLogin does not use Telnet commands
 		}
 
+		// Passthru socket creation/connection
 		if(true) {
 			/* TODO: IPv6? */
 			SOCKET	tmp_sock;
@@ -5693,12 +5722,12 @@ NO_SSH:
     		tmp_sock = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(tmp_sock == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru listen socket"
+				lprintf(LOG_ERR,"Node %d !ERROR %d creating passthru listen socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				goto NO_PASSTHRU;
 			}
 
-    		lprintf(LOG_DEBUG,"Node %d SSH passthru listen socket %d opened"
+    		lprintf(LOG_DEBUG,"Node %d passthru listen socket %d opened"
 				,new_node->cfg.node_num, tmp_sock);
 
 			/*****************************/
@@ -5720,29 +5749,29 @@ NO_SSH:
 		    result = listen(tmp_sock, 1);
 
 			if(result != 0) {
-				lprintf(LOG_ERR,"Node %d SSH !ERROR %d (%d) listening on passthru socket"
+				lprintf(LOG_ERR,"Node %d !ERROR %d (%d) listening on passthru socket"
 					,new_node->cfg.node_num, result, ERROR_VALUE);
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
-			lprintf(LOG_INFO,"Node %d SSH passthru socket listening on port %u"
+			lprintf(LOG_INFO,"Node %d passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
     		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
 
 			if(new_node->passthru_socket == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d SSH !ERROR %d creating passthru connecting socket"
+				lprintf(LOG_ERR,"Node %d !ERROR %d creating passthru connecting socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
 
-			lprintf(LOG_DEBUG,"Node %d SSH passthru connect socket %d opened"
+			lprintf(LOG_DEBUG,"Node %d passthru connect socket %d opened"
 				,new_node->cfg.node_num, new_node->passthru_socket);
 
 			tmp_addr_len=sizeof(tmp_addr);
 			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
-				lprintf(LOG_ERR,"Node %d SSH !ERROR %d getting passthru listener address"
+				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
 					,new_node->cfg.node_num, ERROR_VALUE);
 				close_socket(tmp_sock);
 				close_socket(new_node->passthru_socket);
@@ -5753,7 +5782,7 @@ NO_SSH:
 			result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
 
 			if(result != 0) {
-				lprintf(LOG_ERR,"Node %d SSH !ERROR %d (%d) connecting to passthru socket"
+				lprintf(LOG_ERR,"Node %d !ERROR %d (%d) connecting to passthru socket"
 					,new_node->cfg.node_num, result, ERROR_VALUE);
 				close_socket(new_node->passthru_socket);
 				new_node->passthru_socket=INVALID_SOCKET;
@@ -5764,9 +5793,9 @@ NO_SSH:
 			new_node->client_socket_dup=accept(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len);
 
 			if(new_node->client_socket_dup == INVALID_SOCKET) {
-				lprintf(LOG_ERR,"Node %d SSH !ERROR (%d) connecting accept()ing on passthru socket"
+				lprintf(LOG_ERR,"Node %d !ERROR (%d) connecting accept()ing on passthru socket"
 					,new_node->cfg.node_num, ERROR_VALUE);
-				lprintf(LOG_WARNING,"Node %d SSH !WARNING native doors which use sockets will not function"
+				lprintf(LOG_WARNING,"Node %d !WARNING native doors which use sockets will not function"
 					,new_node->cfg.node_num);
 				close_socket(new_node->passthru_socket);
 				new_node->passthru_socket=INVALID_SOCKET;
