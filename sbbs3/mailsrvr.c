@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.713 2019/09/01 06:25:38 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.714 2019/09/04 07:16:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3950,6 +3950,8 @@ static void smtp_thread(void* arg)
 								,startup->newmail_notice
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
+							if(newmsg.hdr.auxattr&MSG_HFIELDS_UTF8)
+								utf8_to_cp437_str(str);
 							if(!newmsg.idx.to) 	/* Forwarding */
 								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
@@ -5912,7 +5914,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.713 $", "%*s %s", revision);
+	sscanf("$Revision: 1.714 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
