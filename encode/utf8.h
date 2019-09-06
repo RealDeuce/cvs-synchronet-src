@@ -1,6 +1,6 @@
 /* Synchronet UTF-8 translation functions */
 
-/* $Id: utf8.h,v 1.5 2019/07/10 00:02:40 rswindell Exp $ */
+/* $Id: utf8.h,v 1.6 2019/08/03 08:05:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,6 +48,12 @@ extern "C" {
 
 // Returns true if the string is valid UTF-8
 bool utf8_str_is_valid(const char*);
+
+// Returns the fixed printed-width of the UTF-8 string
+size_t utf8_str_total_width(const char*);
+
+// Return the count of chars within the specified width range in UTF-8 string (str)
+size_t utf8_str_count_width(const char*, size_t min_width, size_t max_width);
 
 // Normalizes (to ASCII) chars in UTF-8 string 'str', in-place, resulting in string <= original in length
 char* utf8_normalize_str(char* str);
