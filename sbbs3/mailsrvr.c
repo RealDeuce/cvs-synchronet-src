@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.714 2019/09/04 07:16:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.715 2019/09/09 06:41:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2401,7 +2401,7 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 	return MIMEHDR_CHARSET_OTHER;
 }
 
-// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
+// Replace MIME (RFC 2047) "encoded-words" with their decoded-values
 // Returns true if the value was MIME-encoded
 bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 {
@@ -3565,14 +3565,11 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if((p=smb_get_hfield(&msg, RFC822FROM, NULL))!=NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						mimehdr_value_decode(np, &msg);
-						parse_mail_address(np 
-							,sender		,sizeof(sender)-1
-							,sender_addr,sizeof(sender_addr)-1);
-						free(np);
-					}
+					parse_mail_address(p 
+						,sender		,sizeof(sender)-1
+						,sender_addr,sizeof(sender_addr)-1);
+					// We only support MIME-encoded name portion of 'name <user@addr>'
+					mimehdr_value_decode(sender, &msg);
 				}
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
@@ -5914,7 +5911,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.714 $", "%*s %s", revision);
+	sscanf("$Revision: 1.715 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
