@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.405 2020/03/11 18:08:35 deuce Exp $ */
+/* $Id: js_global.c,v 1.400 2019/09/04 18:06:20 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3668,7 +3668,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	inarray[3]={NULL, NULL, NULL};
-	jsuint		inarray_cnt = 0;
+	int		inarray_cnt = 0;
 	JSObject*	robj;
 	JSObject*	rarray;
 	BOOL		poll_for_write=FALSE;
@@ -3779,15 +3779,15 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 			for (j = 0; j < inarray_cnt; j++) {
 				if (limit[j] > 0) {
 					len = 0;
-					JS_RESUMEREQUEST(cx, rc);
-					if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
-						return(JS_FALSE);
-					val = OBJECT_TO_JSVAL(rarray);
-					if (!JS_SetProperty(cx, robj, props[j], &val))
-						return JS_FALSE;
-					rc=JS_SUSPENDREQUEST(cx);
 					for(i=0;i<limit[j];i++) {
 						JS_RESUMEREQUEST(cx, rc);
+						if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
+							return(JS_FALSE);
+						val = OBJECT_TO_JSVAL(rarray);
+						if (!JS_SetProperty(cx, robj, props[j], &val)) {
+							rc=JS_SUSPENDREQUEST(cx);
+							return JS_FALSE;
+						}
 						if(!JS_GetElement(cx, inarray[j], i, &val)) {
 							rc=JS_SUSPENDREQUEST(cx);
 							break;
@@ -4704,7 +4704,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories). Returns true if the directory already exists.")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
 	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
