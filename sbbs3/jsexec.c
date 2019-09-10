@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.208 2019/08/27 19:02:09 deuce Exp $ */
+/* $Id: jsexec.c,v 1.210 2019/09/02 20:13:45 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -824,7 +824,7 @@ static BOOL js_init(char** env)
     if((js_cx = JS_NewContext(js_runtime, js_cx_stack))==NULL)
 		return(FALSE);
 #ifdef JSDOOR
-	JS_SetOptions(js_cx, JSOPTION_VAROBJFIX | JSOPTION_JIT | JSOPTION_METHODJIT | JSOPTION_COMPILE_N_GO | JSOPTION_PROFILING);
+	JS_SetOptions(js_cx, JSOPTION_JIT | JSOPTION_METHODJIT | JSOPTION_COMPILE_N_GO | JSOPTION_PROFILING);
 #endif
 	JS_BEGINREQUEST(js_cx);
 
@@ -1158,7 +1158,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.208 $", "%*s %s", revision);
+	sscanf("$Revision: 1.210 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1341,6 +1341,11 @@ int main(int argc, char **argv, char** env)
 
 #ifdef JSDOOR
 	SAFECOPY(scfg.temp_dir,"./temp");
+	scfg.tls_certificate = -1;
+	strcpy(scfg.sys_pass, "ThisIsNotHowToDoSecurity");
+	strcpy(scfg.sys_name, "JSDoor");
+	strcpy(scfg.sys_inetaddr, "example.com");
+	scfg.prepped = TRUE;
 #else
 	if(change_cwd && chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);

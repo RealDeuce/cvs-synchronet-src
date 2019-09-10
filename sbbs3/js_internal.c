@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.93 2019/08/27 18:54:46 deuce Exp $ */
+/* $Id: js_internal.c,v 1.95 2019/08/29 16:35:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -287,8 +287,8 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	size_t		cmdlen;
 	size_t		pathlen;
 	char*		startup_dir = NULL;
-	int		arg=0;
-	char		path[MAX_PATH+1];
+	uintN		arg=0;
+	char		path[MAX_PATH+1] = "";
 	JSObject*	scope = JS_GetScopeChain(cx);
 	JSObject*	js_scope = NULL;
 	JSObject*	pscope;
@@ -296,7 +296,7 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject*	nargv;
 	jsval		rval;
 	jsrefcount	rc;
-	int		i;
+	uintN		i;
 	jsval		val;
 	JSObject *js_obj;
 	JSObject *pjs_obj;

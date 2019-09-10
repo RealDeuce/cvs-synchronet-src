@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.245 2019/08/24 19:53:40 rswindell Exp $
+# $Id: GNUmakefile,v 1.246 2019/09/10 19:57:27 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -108,8 +108,13 @@ endif
 CFLAGS	+=	$(JS_CFLAGS) $(CRYPT_CFLAGS) $(UIFC-MT_CFLAGS) $(XPDEV-MT_CFLAGS) $(SMBLIB_CFLAGS) $(CIOLIB-MT_CFLAGS) $(ENCODE_CFLAGS) $(HASH_CFLAGS)
 CFLAGS	+=	-I../comio
 vpath %.c ../comio
+ifeq ($(os), win32)
+OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE)
+JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_win32$(OFILE)
+else
 OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
 JSDOOR_OBJS	+= $(MTOBJODIR)$(DIRSEP)comio_nix$(OFILE)
+endif
 LDFLAGS +=	$(UIFC-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(SMBLIB_LDFLAGS) $(ENCODE_LDFLAGS) $(HASH_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(JS_LDFLAGS) $(CRYPT_LDFLAGS)
 
 # Monolithic Synchronet executable Build Rule
