@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "Socket" Object */
 // vi: tabstop=4
 
-/* $Id: js_socket.c,v 1.241 2019/08/21 01:58:55 rswindell Exp $ */
+/* $Id: js_socket.c,v 1.243 2019/09/09 19:40:56 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ static void dbprintf(BOOL error, js_socket_private_t* p, char* fmt, ...);
 static bool do_CryptFlush(js_socket_private_t *p);
 static int do_cryptAttribute(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, int val);
 static int do_cryptAttributeString(const CRYPT_CONTEXT session, CRYPT_ATTRIBUTE_TYPE attr, void *val, int len);
-static void do_js_close(js_socket_private_t *p);
+static void do_js_close(js_socket_private_t *p, bool finalize);
 static BOOL js_DefineSocketOptionsArray(JSContext *cx, JSObject *obj, int type);
 static JSBool js_accept(JSContext *cx, uintN argc, jsval *arglist);
 static JSBool js_bind(JSContext *cx, uintN argc, jsval *arglist);
@@ -168,7 +168,7 @@ static bool do_CryptFlush(js_socket_private_t *p)
 	return true;
 }
 
-static void do_js_close(js_socket_private_t *p)
+static void do_js_close(js_socket_private_t *p, bool finalize)
 {
 	if(p->session != -1) {
 		cryptDestroySession(p->session);
@@ -182,8 +182,10 @@ static void do_js_close(js_socket_private_t *p)
 		close_socket(p->sock);
 		p->last_error = ERROR_VALUE;
 	}
-	else
-		shutdown(p->sock, SHUT_RDWR);
+	else {
+		if (!finalize)
+			shutdown(p->sock, SHUT_RDWR);
+	}
 	// This is a lie for external sockets... don't tell anyone.
 	p->sock = INVALID_SOCKET;
 	p->is_connected = FALSE;
@@ -403,7 +405,7 @@ static void js_finalize_socket(JSContext *cx, JSObject *obj)
 	if((p=(js_socket_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	do_js_close(p);
+	do_js_close(p, true);
 
 	if(p->hostname)
 		free(p->hostname);
@@ -430,7 +432,7 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	do_js_close(p);
+	do_js_close(p, false);
 	dbprintf(FALSE, p, "closed");
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1871,7 +1873,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 							cryptDestroySession(p->session);
 						p->session=-1;
 						ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-						do_js_close(p);
+						do_js_close(p, false);
 					}
 				}
 			}
@@ -1880,7 +1882,7 @@ static JSBool js_socket_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 					cryptDestroySession(p->session);
 					p->session=-1;
 					ioctlsocket(p->sock,FIONBIO,(ulong*)&(p->nonblocking));
-					do_js_close(p);
+					do_js_close(p, false);
 				}
 			}
 			JS_RESUMEREQUEST(cx, rc);
