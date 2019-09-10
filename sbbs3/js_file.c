@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.192 2020/04/07 01:31:21 rswindell Exp $ */
+/* $Id: js_file.c,v 1.186 2019/08/27 16:47:58 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,6 +56,7 @@ typedef struct
 	char	name[MAX_PATH+1];
 	char	mode[4];
 	uchar	etx;
+	BOOL	external;	/* externally created, don't close */
 	BOOL	debug;
 	BOOL	rot13;
 	BOOL	yencoded;
@@ -80,7 +81,7 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	lprintf(LOG_DEBUG,"%04d File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
+	lprintf(LOG_DEBUG,"%04u File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
 }
 
 /* Converts fopen() style 'mode' string into open() style 'flags' integer */
@@ -285,9 +286,9 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 		fclose(p->fp);
 
-	p->fp=NULL;
-	dbprintf(FALSE, p, "closed: %s", p->name);
+	dbprintf(FALSE, p, "closed");
 
+	p->fp=NULL;
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -313,7 +314,7 @@ js_raw_pollin(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&timeout))
 			return(JS_FALSE);
 	}
@@ -380,7 +381,7 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	} else
@@ -393,7 +394,6 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len = read(fileno(p->fp),buf,len);
-	dbprintf(FALSE, p, "read %u raw bytes",len);
 	if(len<0)
 		len=0;
 
@@ -406,6 +406,10 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+
+	rc=JS_SUSPENDREQUEST(cx);
+	dbprintf(FALSE, p, "read %u raw bytes",len);
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -435,7 +439,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	} else {
@@ -454,7 +458,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len = fread(buf,1,len,p->fp);
-	dbprintf(FALSE, p, "read %u bytes",len);
 	if(len<0)
 		len=0;
 	buf[len]=0;
@@ -499,6 +502,10 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
 
+	rc=JS_SUSPENDREQUEST(cx);
+	dbprintf(FALSE, p, "read %u bytes",len);
+	JS_RESUMEREQUEST(cx, rc);
+
 	return(JS_TRUE);
 }
 
@@ -523,7 +530,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	}
@@ -581,10 +588,10 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&size))
 			return(JS_FALSE);
-		if(argc>1 && !JSVAL_NULL_OR_VOID(argv[1])) {
+		if(argc>1) {
 			if(!JS_ValueToInt32(cx,argv[1],&count))
 				return(JS_FALSE);
 		}
@@ -1673,7 +1680,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_RESUMEREQUEST(cx, rc);
 	tlen=len;
-	if(argc>1 && !JSVAL_NULL_OR_VOID(argv[1])) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&i)) {
 			free(cp);
 			return(JS_FALSE);
@@ -1779,16 +1786,11 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	union {
-		uint8_t		*b;
-		uint16_t	*w;
-		uint32_t	*l;
-		int8_t		*sb;
-		int16_t		*sw;
-		int32_t		*sl;
-	} o;
+	BYTE		*b;
+	WORD		*w;
+	DWORD		*l;
 	size_t		wr=0;
-	int32		size=sizeof(int32_t);
+	int32		size=sizeof(DWORD);
 	jsuint		count=1;
 	void		*buffer;
 	private_t*	p;
@@ -1819,7 +1821,7 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToNumber(cx,argv[0],&val))
 			return(JS_FALSE);
 	}
-	if(argc>1 && !JSVAL_NULL_OR_VOID(argv[1])) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&size))
 			return(JS_FALSE);
 	}
@@ -1836,34 +1838,27 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_FALSE);
 	}
-	o.b=buffer;
+	b=buffer;
+	w=buffer;
+	l=buffer;
 	if(array==NULL) {
 		switch(size) {
-			case sizeof(int8_t):
-				if(val < 0)
-					*o.sb=(int8_t)val;
-				else
-					*o.b=(uint8_t)val;
+			case sizeof(BYTE):
+				*b=(BYTE)val;
 				break;
-			case sizeof(int16_t):
-				if(val < 0)
-					*o.sw=(int16_t)val;
-				else
-					*o.w=(uint16_t)val;
+			case sizeof(WORD):
+				*w=(WORD)val;
 				if (p->network_byte_order)
-					*o.w = BE_SHORT(*o.w);
+					*w = BE_SHORT(*w);
 				else
-					*o.w = LE_SHORT(*o.w);
+					*w = LE_SHORT(*w);
 				break;
-			case sizeof(int32_t):
-				if(val < 0)
-					*o.sl=(int32_t)val;
-				else
-					*o.l=(uint32_t)val;
+			case sizeof(DWORD):
+				*l=(DWORD)val;
 				if (p->network_byte_order)
-					*o.l = BE_LONG(*o.l);
+					*l = BE_LONG(*l);
 				else
-					*o.l = LE_LONG(*o.l);
+					*l = LE_LONG(*l);
 				break;
 		}
 	}
@@ -1874,34 +1869,24 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToNumber(cx,elemval,&val))
 				goto end;
 			switch(size) {
-				case sizeof(int8_t):
-					if(val < 0)
-						*o.sb=(int8_t)val;
-					else
-						*o.b=(uint8_t)val;
-					o.b++;
+				case sizeof(BYTE):
+					*(b++)=(BYTE)val;
 					break;
-				case sizeof(int16_t):
-					if(val < 0)
-						*o.sw=(int16_t)val;
-					else
-						*o.w=(uint16_t)val;
+				case sizeof(WORD):
+					*(w)=(WORD)val;
 					if (p->network_byte_order)
-						*o.w = BE_SHORT(*o.w);
+						*w = BE_SHORT(*w);
 					else
-						*o.w = LE_SHORT(*o.w);
-					o.w++;
+						*w = LE_SHORT(*w);
+					w++;
 					break;
-				case sizeof(int32_t):
-					if(val < 0)
-						*o.sl=(int32_t)val;
-					else
-						*o.l=(uint32_t)val;
+				case sizeof(DWORD):
+					*(l)=(DWORD)val;
 					if (p->network_byte_order)
-						*o.l = BE_LONG(*o.l);
+						*l = BE_LONG(*l);
 					else
-						*o.l = LE_LONG(*o.l);
-					o.l++;
+						*l = LE_LONG(*l);
+					l++;
 					break;
 			}
 		}
@@ -2142,7 +2127,7 @@ js_truncate(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	}
@@ -2803,7 +2788,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,310
 	},
 	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[text]")
-	,JSDOCSTR("write a new-line terminated string (a line of text) to the file")
+	,JSDOCSTR("write a line-feed terminated string to the file")
 	,310
 	},
 	{"writeBin",		js_writebin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value(s) [,bytes=<tt>4</tt>]")
@@ -2812,7 +2797,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,310
 	},
 	{"writeAll",		js_writeall,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("array lines")
-	,JSDOCSTR("write an array of new-line terminated strings (lines of text) to the file")
+	,JSDOCSTR("write an array of strings to file")
 	,310
 	},
 	{"raw_write",		js_raw_write,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("text")
@@ -2902,10 +2887,10 @@ static void js_finalize_file(JSContext *cx, JSObject *obj)
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	if(p->fp!=NULL)
+	if(p->external==JS_FALSE && p->fp!=NULL)
 		fclose(p->fp);
 
-	dbprintf(FALSE, p, "finalized: %s",p->name);
+	dbprintf(FALSE, p, "closed: %s",p->name);
 
 	FREE_AND_NULL(p->ini_style.key_prefix);
 	FREE_AND_NULL(p->ini_style.section_separator);
@@ -3039,36 +3024,25 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 {
 	JSObject* obj;
 	private_t*	p;
-	int newfd = dup(fd);
-	FILE* fp;
+	FILE* fp = fdopen(fd, mode);
 
-	if (newfd == -1)
+	if(fp == NULL)
 		return NULL;
-
-	fp = fdopen(newfd, mode);
-	if(fp == NULL) {
-		close(newfd);
-		return NULL;
-	}
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
-	if(obj==NULL) {
-		fclose(fp);
+	if(obj==NULL)
 		return(NULL);
-	}
 
-	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL) {
-		fclose(fp);
+	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL)
 		return(NULL);
-	}
 
 	p->fp=fp;
 	p->debug=JS_FALSE;
+	p->external=JS_TRUE;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
-		fclose(fp);
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
