@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.65 2019/10/05 20:47:48 rswindell Exp $ */
+/* $Id: str_util.c,v 1.64 2019/08/28 01:37:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,21 +113,6 @@ char* strip_space(const char *str, char* dest)
 			dest[j++]=str[i];
 	dest[j]=0;
 	return dest;
-}
-
-char* strip_char(const char* str, char* dest, char ch)
-{
-	const char* src;
-
-	if(dest == NULL && (dest = strdup(str)) == NULL)
-		return NULL;
-	char* retval = dest;
-	for(src = str; *src != '\0'; src++) {
-		if(*src != ch)
-			*(dest++) = *src;
-	}
-	*dest = '\0';
-	return retval;
 }
 
 char* prep_file_desc(const char *str, char* dest)
