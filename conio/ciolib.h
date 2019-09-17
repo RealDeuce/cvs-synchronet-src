@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.105 2019/07/25 18:20:45 deuce Exp $ */
+/* $Id: ciolib.h,v 1.106 2019/07/25 18:44:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -34,7 +34,6 @@
 #ifndef _CIOLIB_H_
 #define _CIOLIB_H_
 
-#include <limits.h>	/* INT_MAX */
 #include <string.h>	/* size_t */
 #include "gen_defs.h"
 
@@ -205,7 +204,7 @@ enum text_modes
 	VESA_132X60	= 196,
 
 	/* Custom Mode */
-	CIOLIB_MODE_CUSTOM = INT_MAX,
+	CIOLIB_MODE_CUSTOM = 255,	// Last mode... if it's over 255, text_info can't hold it.
 };
 
 #define COLOR_MODE	C80
