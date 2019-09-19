@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.250 2019/10/24 20:04:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.249 2019/08/17 02:21:01 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -177,7 +177,7 @@ typedef struct js_callback {
 #define SM_TIME_EXP		(1L<<22)	/* Set to expired values if out-of-time 	*/
 #define SM_FASTMAIL		(1L<<23)	/* Fast e-mail storage mode 				*/
 #define SM_NONODELIST	(1L<<24)	/* Suppress active node list during logon	*/
-#define SM_UNUSED2		(1L<<25)	/*											*/
+#define SM_ERRALARM		(1L<<25)	/* Error beeps on							*/
 #define SM_FWDTONET		(1L<<26)	/* Allow forwarding of e-mail to netmail	*/
 #define SM_DELREADM		(1L<<27)	/* Delete read mail automatically			*/
 #define SM_NOCDTCVT		(1L<<28)	/* No credit to minute conversions allowed	*/

@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.42 2019/10/05 20:47:48 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.41 2019/09/17 10:29:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,7 +230,6 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->auto_add_subs				= true;
 	cfg->auto_add_to_areafile		= true;
 	cfg->auto_utf8					= true;
-	cfg->strip_soft_cr				= true;
 	cfg->min_free_diskspace			= 10*1024*1024;
 }
 
