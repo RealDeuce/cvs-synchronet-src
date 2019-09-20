@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.405 2020/03/11 18:08:35 deuce Exp $ */
+/* $Id: js_global.c,v 1.402 2019/09/19 06:52:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -151,6 +151,7 @@ static void background_thread(void* arg)
 
 	jsrt_Release(bg->runtime);
 	sem_post(bg->sem);
+	msgQueueDetach(bg->msg_queue);
 	free(bg);
 }
 
@@ -3668,7 +3669,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	inarray[3]={NULL, NULL, NULL};
-	jsuint		inarray_cnt = 0;
+	int		inarray_cnt = 0;
 	JSObject*	robj;
 	JSObject*	rarray;
 	BOOL		poll_for_write=FALSE;
@@ -4704,7 +4705,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories). Returns true if the directory already exists.")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
 	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
