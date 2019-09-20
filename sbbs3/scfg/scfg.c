@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.105 2019/11/30 23:26:20 rswindell Exp $ */
+/* $Id: scfg.c,v 1.104 2019/07/13 21:09:26 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,8 +87,6 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
 	if(stricmp(fname, "control.dat") == 0)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
-	if(stricmp(fname, "newsgroup.lst") == 0)
-		return IMPORT_LIST_TYPE_NEWSGROUPS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
