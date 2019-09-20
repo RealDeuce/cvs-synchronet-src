@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.111 2019/09/21 11:19:07 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.110 2019/09/20 08:59:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -826,7 +826,6 @@ uint64_t DLLCALL getfilesizetotal(const char *inpath)
 	char path[MAX_PATH+1];
 	glob_t	g;
 	uint	gi;
-	off_t	size;
 	uint64_t total = 0;
 
 	SAFECOPY(path, inpath);
@@ -839,7 +838,7 @@ uint64_t DLLCALL getfilesizetotal(const char *inpath)
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
 		if(*lastchar(g.gl_pathv[gi]) == '/')
 			continue;
-		size = flength(g.gl_pathv[gi]);
+		off_t size = flength(g.gl_pathv[gi]);
 		if(size >= 1)
 			total += size;
 	}

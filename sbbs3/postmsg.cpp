@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.130 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.129 2019/09/02 05:42:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -358,7 +358,7 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 	if(client==NULL)
 		return(-1);
 
-	if(client->user!=NULL && client->usernum && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
+	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
 		return(i);
 	if(client->time
 		&& (i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
