@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.493 2019/06/20 20:48:52 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.494 2019/08/31 22:23:54 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3558,7 +3558,7 @@ static void ctrl_thread(void* arg)
 		if(!stricmp(cmd, "SITE WHO")) {
 			sockprintf(sock,sess,"211-Active Telnet Nodes:");
 			for(i=0;i<scfg.sys_nodes && i<scfg.sys_lastnode;i++) {
-				if((result=getnodedat(&scfg, i+1, &node, 0))!=0) {
+				if((result=getnodedat(&scfg, i+1, &node, FALSE, NULL))!=0) {
 					sockprintf(sock,sess," Error %d getting data for Telnet Node %d",result,i+1);
 					continue;
 				}
@@ -5991,7 +5991,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.493 $", "%*s %s", revision);
+	sscanf("$Revision: 1.494 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
