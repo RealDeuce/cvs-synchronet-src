@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.112 2020/04/14 11:56:07 deuce Exp $ */
+/* $Id: dirwrap.c,v 1.109 2019/09/20 08:24:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,16 +152,16 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 	ext[0]=0;
 	drive[0]=0;			/* no drive letters on Unix */
 
-	snprintf(dir, MAX_PATH+1, "%s", path);	/* Optional directory path, including trailing slash. */
+	strcpy(dir,path);	/* Optional directory path, including trailing slash. */
 	p=getfname(dir);
-	snprintf(fname, MAX_PATH+1, "%s", p);	/* Base filename (no extension) */
+	strcpy(fname,p);	/* Base filename (no extension) */
 	if(p==dir)
 		dir[0]=0;		/* no directory specified in path */
 	else
 		*p=0;			/* truncate dir at filename */
 	p=getfext(fname);
 	if(p!=NULL) {
-		snprintf(ext, MAX_PATH+1, "%s", p);	/* Optional filename extension, including leading period (.) */
+		strcpy(ext,p);	/* Optional filename extension, including leading period (.) */
 		*p=0;
 	}
 }
@@ -792,10 +792,10 @@ long DLLCALL delfiles(const char *inpath, const char *spec, size_t keep)
 }
 
 /****************************************************************************/
-/* Returns number of files matching 'inpath'								*/
+/* Returns number of files in a directory (inpath) matching 'pattern'		*/
 /* Similar, but not identical, to getdirsize(), e.g. subdirs never counted	*/
 /****************************************************************************/
-ulong DLLCALL getfilecount(const char *inpath)
+ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 {
 	char path[MAX_PATH+1];
 	glob_t	g;
@@ -803,10 +803,8 @@ ulong DLLCALL getfilecount(const char *inpath)
 	ulong	count = 0;
 
 	SAFECOPY(path, inpath);
-	if(isdir(path))
-		backslash(path);
-	if(IS_PATH_DELIM(*lastchar(path)))
-		SAFECAT(path, ALLFILES);
+	backslash(path);
+	SAFECAT(path, pattern);
 	if(glob(path, GLOB_MARK, NULL, &g))
 		return 0;
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
@@ -826,7 +824,6 @@ uint64_t DLLCALL getfilesizetotal(const char *inpath)
 	char path[MAX_PATH+1];
 	glob_t	g;
 	uint	gi;
-	off_t	size;
 	uint64_t total = 0;
 
 	SAFECOPY(path, inpath);
@@ -839,7 +836,7 @@ uint64_t DLLCALL getfilesizetotal(const char *inpath)
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
 		if(*lastchar(g.gl_pathv[gi]) == '/')
 			continue;
-		size = flength(g.gl_pathv[gi]);
+		off_t size = flength(g.gl_pathv[gi]);
 		if(size >= 1)
 			total += size;
 	}
