@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.108 2019/08/12 06:32:28 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.109 2019/09/20 08:24:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -814,6 +814,34 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 	}
 	globfree(&g);
 	return count;
+}
+
+/****************************************************************************/
+/* Returns number of bytes used by file(s) matching 'inpath'				*/
+/****************************************************************************/
+uint64_t DLLCALL getfilesizetotal(const char *inpath)
+{
+	char path[MAX_PATH+1];
+	glob_t	g;
+	uint	gi;
+	uint64_t total = 0;
+
+	SAFECOPY(path, inpath);
+	if(isdir(path))
+		backslash(path);
+	if(IS_PATH_DELIM(*lastchar(path)))
+		SAFECAT(path, ALLFILES);
+	if(glob(path, GLOB_MARK, NULL, &g))
+		return 0;
+	for(gi = 0; gi < g.gl_pathc; ++gi) {
+		if(*lastchar(g.gl_pathv[gi]) == '/')
+			continue;
+		off_t size = flength(g.gl_pathv[gi]);
+		if(size >= 1)
+			total += size;
+	}
+	globfree(&g);
+	return total;
 }
 
 /****************************************************************************/
