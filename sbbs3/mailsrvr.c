@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.710 2019/08/03 09:35:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.715 2019/09/09 06:41:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2401,7 +2401,7 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 	return MIMEHDR_CHARSET_OTHER;
 }
 
-// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
+// Replace MIME (RFC 2047) "encoded-words" with their decoded-values
 // Returns true if the value was MIME-encoded
 bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 {
@@ -3565,14 +3565,11 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if((p=smb_get_hfield(&msg, RFC822FROM, NULL))!=NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						mimehdr_value_decode(np, &msg);
-						parse_mail_address(p 
-							,sender		,sizeof(sender)-1
-							,sender_addr,sizeof(sender_addr)-1);
-						free(np);
-					}
+					parse_mail_address(p 
+						,sender		,sizeof(sender)-1
+						,sender_addr,sizeof(sender_addr)-1);
+					// We only support MIME-encoded name portion of 'name <user@addr>'
+					mimehdr_value_decode(sender, &msg);
 				}
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
@@ -3933,7 +3930,7 @@ static void smtp_thread(void* arg)
 					if(!(startup->options&MAIL_OPT_NO_NOTIFY) && usernum) {
 						if(newmsg.idx.to)
 							for(i=1;i<=scfg.sys_nodes;i++) {
-								getnodedat(&scfg, i, &node, 0);
+								getnodedat(&scfg, i, &node, FALSE, NULL);
 								if(node.useron==usernum
 									&& (node.status==NODE_INUSE || node.status==NODE_QUIET))
 									break;
@@ -3950,6 +3947,8 @@ static void smtp_thread(void* arg)
 								,startup->newmail_notice
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
+							if(newmsg.hdr.auxattr&MSG_HFIELDS_UTF8)
+								utf8_to_cp437_str(str);
 							if(!newmsg.idx.to) 	/* Forwarding */
 								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
@@ -4816,7 +4815,7 @@ static void smtp_thread(void* arg)
 			}
 			else if(cmd==SMTP_CMD_SEND) { /* Check if user online */
 				for(i=0;i<scfg.sys_nodes;i++) {
-					getnodedat(&scfg, i+1, &node, 0);
+					getnodedat(&scfg, i+1, &node, FALSE, NULL);
 					if(node.status==NODE_INUSE && node.useron==user.number
 						&& !(node.misc&NODE_POFF))
 						break;
@@ -4834,7 +4833,6 @@ static void smtp_thread(void* arg)
 			fprintf(rcptlst,"[%u]\n",rcpt_count++);
 			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENT),rcpt_addr);
 			fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTEXT),user.number);
-			fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 
 			/* Forward to Internet */
 			tp=strrchr(user.netmail,'@');
@@ -4855,6 +4853,7 @@ static void smtp_thread(void* arg)
 					fprintf(rcptlst,"%s=%u\n",smb_hfieldtype(RECIPIENTNETTYPE),NET_QWK);
 					fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(RECIPIENTNETADDR),user.alias);
 				}						
+				fprintf(rcptlst,"%s=%s\n",smb_hfieldtype(SMTPFORWARDPATH),rcpt_to);
 				sockprintf(socket,client.protocol,session,ok_rsp);
 			}
 			state=SMTP_STATE_RCPT_TO;
@@ -5912,7 +5911,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.710 $", "%*s %s", revision);
+	sscanf("$Revision: 1.715 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
