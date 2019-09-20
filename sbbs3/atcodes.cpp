@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.115 2019/09/20 08:35:41 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.116 2019/09/20 09:00:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -449,7 +449,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 
 	if(strncmp(sp, "FILES:", 6) == 0) {	// Number of files in specified directory
 		const char* path = getpath(&cfg, sp + 6);
-		safe_snprintf(str, maxlen, "%lu", getfilecount(path, ALLFILES));
+		safe_snprintf(str, maxlen, "%lu", getfilecount(path));
 		return str;
 	}
 
