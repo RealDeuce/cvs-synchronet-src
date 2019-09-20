@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.134 2019/08/03 21:27:03 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.139 2019/09/10 19:57:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,8 @@ enum {
 	,CON_PROP_INBUF_SPACE
 	,CON_PROP_OUTBUF_LEVEL
 	,CON_PROP_OUTBUF_SPACE
+
+	,CON_PROP_OUTPUT_RATE
 };
 
 extern JSClass js_console_class;
@@ -189,6 +191,9 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_OUTBUF_SPACE:
 			val=RingBufFree(&sbbs->outbuf);
+			break;
+		case CON_PROP_OUTPUT_RATE:
+			val = sbbs->cur_output_rate;
 			break;
 
 		default:
@@ -322,6 +327,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
+		case CON_PROP_OUTPUT_RATE:
+			sbbs->set_output_rate((enum sbbs_t::output_rate)val);
+			break;
 
 		default:
 			return(JS_TRUE);
@@ -364,6 +372,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"input_buffer_space",CON_PROP_INBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_level",CON_PROP_OUTBUF_LEVEL		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_space",CON_PROP_OUTBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
+	{	"output_rate"		,CON_PROP_OUTPUT_RATE		,JSPROP_ENUMERATE, 31702},
 	{0}
 };
 
@@ -407,6 +416,7 @@ static const char* con_prop_desc[] = {
 	,"number of bytes available in the input buffer	- <small>READ ONLY</small>"
 	,"number of bytes currently in the output buffer (from the local server) - <small>READ ONLY</small>"
 	,"number of bytes available in the output buffer - <small>READ ONLY</small>"
+	,"emulated serial data output rate, in bits-per-second (0 = unlimited)"
 	,NULL
 };
 #endif
@@ -659,7 +669,7 @@ js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uint32_t	maxnum=~0;
-	int32_t		dflt=0;
+	int32		dflt=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1103,6 +1113,7 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	}
     else for (i=0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
+
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1119,20 +1130,28 @@ static JSBool
 js_strlen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
+	sbbs_t*		sbbs;
     JSString*	str;
 	char*		cstr;
 	jsrefcount	rc;
+	int32		pmode = 0;
+
+	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
+		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
+	if(argc > 1)
+		JS_ValueToInt32(cx, argv[1], &pmode);
+
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(bstrlen(cstr)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->bstrlen(cstr, pmode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1746,16 +1765,21 @@ js_cursor_left(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	int32		val=1;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc) {
+		if(!JS_ValueToInt32(cx, argv[0], &val))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->backspace();
+	sbbs->backspace(val);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1763,16 +1787,21 @@ js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_creturn(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	int32		val=1;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc) {
+		if(!JS_ValueToInt32(cx, argv[0], &val))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->carriage_return();
+	sbbs->carriage_return(val);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1829,10 +1858,8 @@ js_lock_input(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=true;
-	} else if(sbbs->input_thread_mutex_locked) {
+	} else {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=false;
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2014,8 +2041,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("display a string double-wide on the screen (sending \"fullwidth\" Unicode characters when possible)")
 	,31702
 	},
-	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
-	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
+	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
+	,JSDOCSTR("returns the printed-length (number of columns) of the specified <i>text</i>, accounting for Ctrl-A codes")
 	,310
 	},
 	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>] [,orig_columns=0")
@@ -2120,11 +2147,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"<i>terminal_flags</i> (numeric bit-field) if no <i>terminal_flags</i> were specified")
 	,314
 	},
-	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("")
+	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("send a destructive backspace sequence")
 	,315
 	},
-	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("send a carriage return sequence")
 	,31700
 	},
