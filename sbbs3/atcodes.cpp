@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.118 2019/10/08 02:08:58 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.116 2019/09/20 09:00:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,27 +47,6 @@
 	#define	SOCKLIB_DESC NULL
 #endif
 
-static char* separate_thousands(const char* src, char *dest, size_t maxlen, char sep)
-{
-	if(strlen(src) * 1.3 > maxlen)
-		return (char*)src;
-	const char* tail = src;
-	while(*tail && isdigit(*tail))
-		tail++;
-	if(tail == src)
-		return (char*)src;
-	size_t digits = tail - src;
-	char* d = dest;
-	for(size_t i = 0; i < digits; d++, i++) {
-		*d = src[i];
-		if(i && i + 3 < digits && (digits - (i + 1)) % 3 == 0)
-			*(++d) = sep;
-	}
-	*d = 0;
-	strcpy(d, tail);
-	return dest;
-}
-
 /****************************************************************************/
 /* Returns 0 if invalid @ code. Returns length of @ code if valid.          */
 /****************************************************************************/
@@ -82,7 +61,6 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	zero_padded=false;
 	bool	truncated = true;
 	bool	doubled = false;
-	bool	thousep = false;	// thousands-separated
 	long	pmode = 0;
 	const char *cp;
 
@@ -98,23 +76,7 @@ int sbbs_t::show_atcode(const char *instr)
 	sp=(str+1);
 
 	disp_len=len;
-	if((p = strchr(sp, '|')) != NULL) {
-		if(strchr(p, 'T') != NULL)
-			thousep = true;
-		if(strchr(p, 'L') != NULL)
-			padded_left = true;
-		else if(strchr(p, 'R') != NULL)
-			padded_right = true;
-		else if(strchr(p, 'C') != NULL)
-			centered = true;
-		else if(strchr(p, 'W') != NULL)
-			doubled = true;
-		else if(strchr(p, 'Z') != NULL)
-			zero_padded = true;
-		else if(strchr(p, '>') != NULL)
-			truncated = false;
-	}
-	else if(strchr(sp, ':') != NULL)
+	if(strchr(sp, ':') != NULL)
 		p = NULL;
 	else if((p=strstr(sp,"-L"))!=NULL)
 		padded_left=true;
@@ -126,14 +88,10 @@ int sbbs_t::show_atcode(const char *instr)
 		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
-	else if((p=strstr(sp,"-T"))!=NULL)
-		thousep=true;
 	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
 		truncated = false;
 	if(p!=NULL) {
-		char* lp = p;
-		while(*lp && !isdigit(*lp))
-			lp++;
+		char* lp = p + 2;
 		if(*lp && isdigit(*lp))
 			disp_len=atoi(lp);
 		*p=0;
@@ -142,10 +100,6 @@ int sbbs_t::show_atcode(const char *instr)
 	cp = atcode(sp, str2, sizeof(str2), &pmode);
 	if(cp==NULL)
 		return(0);
-
-	char separated[128];
-	if(thousep)
-		cp = separate_thousands(cp, separated, sizeof(separated), ',');
 
 	if(p==NULL || truncated == false)
 		disp_len = strlen(cp);
@@ -1042,7 +996,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		tp=strchr(sp,',');
 		if(tp!=NULL) {
 			tp++;
-			cursor_xy(atoi(sp+7),atoi(tp));
+			ansi_gotoxy(atoi(sp+7),atoi(tp));
 		}
 		return(nulstr);
 	}

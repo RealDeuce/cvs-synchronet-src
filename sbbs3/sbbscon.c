@@ -1,6 +1,6 @@
 /* Synchronet vanilla/console-mode "front-end" */
 
-/* $Id: sbbscon.c,v 1.277 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id: sbbscon.c,v 1.276 2019/09/02 00:52:44 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1399,7 +1399,12 @@ int main(int argc, char** argv)
 	loginAttemptListInit(&login_attempt_list);
 	atexit(cleanup);
 
-	ctrl_dir = get_ctrl_dir();
+	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
+	if(ctrl_dir==NULL || ctrl_dir[0]==0) {
+		ctrl_dir="/sbbs/ctrl";		/* Not set? Use default */
+		printf("!SBBSCTRL environment variable not set, using default value: %s\n\n"
+			,ctrl_dir);
+	}
 
 	if(!winsock_startup())
 		return(-1);
