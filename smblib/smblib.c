@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.192 2019/04/11 01:00:30 rswindell Exp $ */
+/* $Id: smblib.c,v 1.205 2019/07/30 10:20:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -52,7 +52,7 @@
 #include "filewrap.h"
 
 /* Use smb_ver() and smb_lib_ver() to obtain these values */
-#define SMBLIB_VERSION		"2.60"      /* SMB library version */
+#define SMBLIB_VERSION		"2.61"      /* SMB library version */
 #define SMB_VERSION 		0x0121		/* SMB format version */
 										/* High byte major, low byte minor */
 
@@ -767,6 +767,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case REPLYTO:
 			msg->replyto=(char*)hfield_dat;
 			break;
+		case REPLYTOLIST:
+			msg->replyto_list = (char*)hfield_dat;
+			break;
 		case REPLYTOEXT:
 			msg->replyto_ext=(char*)hfield_dat;
 			break;
@@ -781,6 +784,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 			break;
 		case RECIPIENT:
 			msg->to=(char*)hfield_dat;
+			break;
+		case RECIPIENTLIST:
+			msg->to_list = (char*)hfield_dat;
 			break;
 		case RECIPIENTEXT:
 			msg->to_ext=(char*)hfield_dat;
@@ -797,6 +803,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SUBJECT:
 			msg->subj=(char*)hfield_dat;
 			break;
+		case SMB_CARBONCOPY:
+			msg->cc_list = (char*)hfield_dat;
+			break;
 		case SMB_SUMMARY:
 			msg->summary=(char*)hfield_dat;
 			break;
@@ -812,9 +821,6 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case SMB_EXPIRATION:
 			msg->expiration=*(uint32_t*)hfield_dat;
 			break;
-		case SMB_PRIORITY:
-			msg->priority=*(uint32_t*)hfield_dat;
-			break;
 		case SMB_COST:
 			msg->cost=*(uint32_t*)hfield_dat;
 			break;
@@ -826,6 +832,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 			break;
 		case SMTPREVERSEPATH:
 			msg->reverse_path=(char*)hfield_dat;
+			break;
+		case SMTPFORWARDPATH:
+			msg->forward_path=(char*)hfield_dat;
 			break;
 		case USENETPATH:
 			msg->path=(char*)hfield_dat;
@@ -851,6 +860,9 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case FIDOFLAGS:
 			msg->ftn_flags=(char*)hfield_dat;
 			break;
+		case FIDOCHARSET:
+			msg->ftn_charset=(char*)hfield_dat;
+			break;
 		case RFC822HEADER:
 		{
 			char* p = (char*)hfield_dat;
@@ -864,6 +876,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 				p += 13;
 				SKIP_WHITESPACE(p);
 				msg->content_type = p;
+				smb_parse_content_type(p, &(msg->text_subtype), &(msg->text_charset));
 				break;
 			}
 			break;
@@ -883,12 +896,15 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 
 	msg->replyto=NULL;
 	msg->replyto_ext=NULL;
+	msg->replyto_list=NULL;
 	memset(&msg->replyto_net,0,sizeof(net_t));
 
 	msg->to=NULL;
 	msg->to_ext=NULL;
+	msg->to_list=NULL;
 	memset(&msg->to_net,0,sizeof(net_t));
 
+	msg->cc_list=NULL;
 	msg->subj=NULL;
 	msg->summary=NULL;
 	msg->tags=NULL;
@@ -896,10 +912,13 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->id=NULL;
 	msg->reply_id=NULL;
 	msg->reverse_path=NULL;
+	msg->forward_path=NULL;
 	msg->path=NULL;
 	msg->newsgroups=NULL;
 	msg->mime_version=NULL;
 	msg->content_type=NULL;
+	msg->text_subtype=NULL;
+	msg->text_charset=NULL;
 
 	msg->ftn_msgid=NULL;
 	msg->ftn_reply=NULL;
@@ -907,6 +926,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 	msg->ftn_pid=NULL;
 	msg->ftn_tid=NULL;
 	msg->ftn_flags=NULL;
+	msg->ftn_charset=NULL;
 }
 
 /****************************************************************************/
@@ -918,7 +938,7 @@ static void clear_convenience_ptrs(smbmsg_t* msg)
 int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 {
 	void	*vp,**vpp;
-	uint16_t	i;
+	size_t	i;
 	long	l,offset;
 	idxrec_t idx;
 
@@ -972,8 +992,8 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 		&& (msg->dfield = malloc(sizeof(*msg->dfield)*msg->hdr.total_dfields)) == NULL) {
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s malloc failure of %lu bytes for %u data fields", __FUNCTION__
-			,sizeof(*msg->dfield ) * msg->hdr.total_dfields, msg->hdr.total_dfields);
+			,"%s malloc failure of %ld bytes for %u data fields", __FUNCTION__
+			,(long)(sizeof(*msg->dfield) * msg->hdr.total_dfields), msg->hdr.total_dfields);
 		return(SMB_ERR_MEM); 
 	}
 	i = fread(msg->dfield, sizeof(*msg->dfield), msg->hdr.total_dfields, smb->shd_fp);
@@ -981,7 +1001,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 		smb_freemsgmem(msg);
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
 			,"%s insufficient data fields read (%d instead of %d)", __FUNCTION__
-			,i,msg->hdr.total_dfields);
+			,(int)i,msg->hdr.total_dfields);
 		return(SMB_ERR_READ); 
 	}
 	l += msg->hdr.total_dfields * sizeof(*msg->dfield);
@@ -991,7 +1011,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			smb_freemsgmem(msg);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s realloc failure of %d bytes for header field data", __FUNCTION__
-				,(int)sizeof(void*)*(i+1));
+				,(int)(sizeof(void*)*(i+1)));
 			return(SMB_ERR_MEM); 
 		}
 		msg->hfield_dat=vpp;
@@ -999,7 +1019,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			smb_freemsgmem(msg);
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s realloc failure of %d bytes for header fields", __FUNCTION__
-				,(int)sizeof(hfield_t)*(i+1));
+				,(int)(sizeof(hfield_t)*(i+1)));
 			return(SMB_ERR_MEM); 
 		}
 		msg->hfield=vp;
@@ -1014,7 +1034,7 @@ int SMBCALL smb_getmsghdr(smb_t* smb, smbmsg_t* msg)
 			==NULL) {			/* Allocate 1 extra for ASCIIZ terminator */
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
 				,"%s malloc failure of %d bytes for header field %d", __FUNCTION__
-				,msg->hfield[i].length+1, i);
+				,msg->hfield[i].length+1, (int)i);
 			smb_freemsgmem(msg);  /* or 0 length field */
 			return(SMB_ERR_MEM); 
 		}
@@ -1083,6 +1103,8 @@ void SMBCALL smb_freemsgmem(smbmsg_t* msg)
 		msg->dfield=NULL;
 	}
 	msg->hdr.total_dfields=0;
+	FREE_AND_NULL(msg->text_subtype);
+	FREE_AND_NULL(msg->text_charset);
 	smb_freemsghdrmem(msg);
 }
 
@@ -1101,8 +1123,8 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 		if((msg->dfield=(dfield_t *)malloc(msg->hdr.total_dfields*sizeof(dfield_t)))==NULL) {
 			if(smb!=NULL)
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s malloc failure of %lu bytes for %d data fields", __FUNCTION__
-					,msg->hdr.total_dfields*sizeof(dfield_t), msg->hdr.total_dfields);
+					,"%s malloc failure of %ld bytes for %d data fields", __FUNCTION__
+					,(long)(msg->hdr.total_dfields*sizeof(dfield_t)), msg->hdr.total_dfields);
 			return(SMB_ERR_MEM);
 		}
 		memcpy(msg->dfield,srcmsg->dfield,msg->hdr.total_dfields*sizeof(dfield_t));
@@ -1113,8 +1135,8 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 		if((msg->hfield=(hfield_t *)malloc(msg->total_hfields*sizeof(hfield_t)))==NULL) {
 			if(smb!=NULL)
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s malloc failure of %lu bytes for %d header fields", __FUNCTION__
-					,msg->total_hfields*sizeof(hfield_t), msg->total_hfields);
+					,"%s malloc failure of %ld bytes for %d header fields", __FUNCTION__
+					,(long)(msg->total_hfields*sizeof(hfield_t)), msg->total_hfields);
 			return(SMB_ERR_MEM);
 		}
 		memcpy(msg->hfield,srcmsg->hfield,msg->total_hfields*sizeof(hfield_t));
@@ -1123,8 +1145,8 @@ int SMBCALL smb_copymsgmem(smb_t* smb, smbmsg_t* msg, smbmsg_t* srcmsg)
 		if((msg->hfield_dat=(void**)malloc(msg->total_hfields*sizeof(void*)))==NULL) {
 			if(smb!=NULL)
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s malloc failure of %lu bytes for %d header fields", __FUNCTION__
-					,msg->total_hfields*sizeof(void*), msg->total_hfields);
+					,"%s malloc failure of %ld bytes for %d header fields", __FUNCTION__
+					,(long)(msg->total_hfields*sizeof(void*)), msg->total_hfields);
 			return(SMB_ERR_MEM);
 		}
 
@@ -1188,7 +1210,7 @@ int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* da
 	}
 	msg->total_hfields++;
 	msg->hfield[i].type=type;
-	msg->hfield[i].length=length;
+	msg->hfield[i].length=(uint16_t)length;
 	if(length) {
 		if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
 			return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
@@ -1305,7 +1327,7 @@ int SMBCALL smb_hfield_append(smbmsg_t* msg, uint16_t type, size_t length, void*
 	p+=msg->hfield[i].length;	/* skip existing data */
 	memset(p,0,length+1);
 	memcpy(p,data,length);		/* append */
-	msg->hfield[i].length+=length;
+	msg->hfield[i].length+=(uint16_t)length;
 	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return(SMB_SUCCESS);
@@ -1343,7 +1365,7 @@ int SMBCALL smb_hfield_replace(smbmsg_t* msg, uint16_t type, size_t length, void
 	msg->hfield_dat[i]=p;
 	memset(p,0,length+1);
 	memcpy(p,data,length);
-	msg->hfield[i].length=length;
+	msg->hfield[i].length=(uint16_t)length;
 	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return SMB_SUCCESS;
@@ -1360,14 +1382,14 @@ int SMBCALL smb_hfield_replace_str(smbmsg_t* msg, uint16_t type, const char* str
 /****************************************************************************/
 /* Searches for a specific header field (by type) and returns it			*/
 /****************************************************************************/
-void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t* hfield)
+void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t** hfield)
 {
 	int i;
 
 	for(i=0;i<msg->total_hfields;i++)
 		if(msg->hfield[i].type == type) {
 			if(hfield != NULL)
-				*hfield = msg->hfield[i];
+				*hfield = &msg->hfield[i];
 			return(msg->hfield_dat[i]);
 		}
 
@@ -1487,8 +1509,8 @@ int SMBCALL smb_addcrc(smb_t* smb, uint32_t crc)
 
 	if(wr!=sizeof(crc)) {	
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s %d '%s' writing %lu bytes", __FUNCTION__
-			,get_errno(),STRERROR(get_errno()),sizeof(crc));
+			,"%s %d '%s' writing %ld bytes", __FUNCTION__
+			,get_errno(),STRERROR(get_errno()),(long)sizeof(crc));
 		return(SMB_ERR_WRITE);
 	}
 
@@ -1535,7 +1557,7 @@ int SMBCALL smb_addmsghdr(smb_t* smb, smbmsg_t* msg, int storage)
 	if(idxlen != (smb->status.total_msgs * sizeof(idxrec_t))) {
 		safe_snprintf(smb->last_error, sizeof(smb->last_error)
 			,"%s index file length (%ld) unexpected (%ld)", __FUNCTION__
-			,idxlen, smb->status.total_msgs * sizeof(idxrec_t));
+			,idxlen, (long)(smb->status.total_msgs * sizeof(idxrec_t)));
 		smb_unlocksmbhdr(smb);
 		return SMB_ERR_FILE_LEN;
 	}
@@ -1675,6 +1697,19 @@ BOOL SMBCALL smb_msg_is_from(smbmsg_t* msg, const char* name, enum smb_net_type 
 	}
 }
 
+BOOL SMBCALL smb_msg_is_utf8(const smbmsg_t* msg)
+{
+	for(int i=0; i < msg->total_hfields; i++) {
+		switch(msg->hfield[i].type) {
+		case FIDOCTRL:
+			if(strncmp(msg->hfield_dat[i], "CHRS: UTF-8", 11) == 0)
+				return TRUE;
+		}
+	}
+	if(msg->ftn_charset != NULL && strncmp(msg->ftn_charset, "UTF-8", 5) == 0)
+		return TRUE;
+	return msg->text_charset != NULL && stricmp(msg->text_charset, "utf-8") == 0;
+}
 
 uint16_t SMBCALL smb_voted_already(smb_t* smb, uint32_t msgnum, const char* name, enum smb_net_type net_type, void* net_addr)
 {
@@ -1735,8 +1770,8 @@ int SMBCALL smb_putmsgidx(smb_t* smb, smbmsg_t* msg)
 	length = filelength(fileno(smb->sid_fp));
 	if(length < (long)(msg->offset*sizeof(idxrec_t))) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s invalid index offset: %ld, byte offset: %lu, length: %lu", __FUNCTION__
-			,(long)msg->offset, msg->offset*sizeof(idxrec_t), length);
+			,"%s invalid index offset: %ld, byte offset: %ld, length: %lu", __FUNCTION__
+			,(long)msg->offset, (long)(msg->offset*sizeof(idxrec_t)), length);
 		return(SMB_ERR_HDR_OFFSET);
 	}
 	if(fseek(smb->sid_fp,msg->offset*sizeof(idxrec_t),SEEK_SET)) {
