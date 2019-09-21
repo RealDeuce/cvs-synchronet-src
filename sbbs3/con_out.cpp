@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.124 2019/09/21 09:50:44 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.125 2019/09/21 11:10:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -749,19 +749,17 @@ void sbbs_t::inc_column(int count)
 void sbbs_t::center(char *instr, unsigned int columns)
 {
 	char str[256];
-	int i,j;
+	size_t len;
 
 	if(columns < 1)
 		columns = cols;
 
 	SAFECOPY(str,instr);
 	truncsp(str);
-	j=bstrlen(str);
-	if(j < columns)
-		for(i=0;i<(columns-j)/2;i++)
-			outchar(' ');
+	len = bstrlen(str);
+	if(len < columns)
+		cursor_right((columns - len) / 2);
 	bputs(str);
-	cleartoeol();
 	newline();
 }
 
