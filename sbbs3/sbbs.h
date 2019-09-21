@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.550 2019/08/31 22:37:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.551 2019/09/21 09:50:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,7 +734,7 @@ public:
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
-	void	center(char *str);
+	void	center(char *str, unsigned int columns = 0);
 	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
