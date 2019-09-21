@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.697 2019/08/02 22:20:37 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.699 2019/09/03 02:19:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5274,7 +5274,8 @@ static JSBool
 js_login(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p;
+	char*		username;
+	char*		password;
 	JSBool		inc_logons=JS_FALSE;
 	user_t		user;
 	http_session_t*	session;
@@ -5286,29 +5287,29 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* User name */
-	JSVALUE_TO_ASTRING(cx, argv[0], p, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
-	if(p==NULL)
+	JSVALUE_TO_ASTRING(cx, argv[0], username, (LEN_ALIAS > LEN_NAME) ? LEN_ALIAS+2 : LEN_NAME+2, NULL);
+	if(username==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
 
 	memset(&user,0,sizeof(user));
 
-	if(isdigit((uchar)*p))
-		user.number=atoi(p);
-	else if(*p)
-		user.number=matchuser(&scfg,p,FALSE);
+	if(isdigit((uchar)*username))
+		user.number=atoi(username);
+	else if(*username)
+		user.number=matchuser(&scfg,username,FALSE);
 
 	if(getuserdat(&scfg,&user)!=0) {
 		lprintf(LOG_NOTICE,"%04d !USER NOT FOUND: '%s'"
-			,session->socket,p);
+			,session->socket, username);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 
 	if(user.misc&(DELETED|INACTIVE)) {
 		lprintf(LOG_WARNING,"%04d !DELETED OR INACTIVE USER #%d: %s"
-			,session->socket,user.number,p);
+			,session->socket,user.number, username);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -5316,14 +5317,15 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 	/* Password */
 	if(user.pass[0]) {
-		JSVALUE_TO_ASTRING(cx, argv[1], p, LEN_PASS+2, NULL);
-		if(p==NULL)
+		JSVALUE_TO_ASTRING(cx, argv[1], password, LEN_PASS+2, NULL);
+		if(password==NULL)
 			return(JS_FALSE);
 
-		if(stricmp(user.pass,p)) { /* Wrong password */
+		if(stricmp(user.pass, password)) { /* Wrong password */
 			rc=JS_SUSPENDREQUEST(cx);
 			lprintf(LOG_WARNING,"%04d !INVALID PASSWORD ATTEMPT FOR USER: '%s'"
 				,session->socket,user.alias);
+			badlogin(session->socket,session->client.protocol, username, password, session->host_name, &session->addr);
 			JS_RESUMEREQUEST(cx, rc);
 			return(JS_TRUE);
 		}
@@ -6531,6 +6533,7 @@ static void cleanup(int code)
 		lprintf(LOG_INFO,"0000 Waiting for %d child threads to terminate", protected_uint32_value(thread_count)-1);
 		while(protected_uint32_value(thread_count) > 1) {
 			mswait(100);
+			listSemPost(&log_list);
 		}
 		lprintf(LOG_INFO,"0000 Done waiting");
 	}
@@ -6581,7 +6584,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.697 $", "%*s %s", revision);
+	sscanf("$Revision: 1.699 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6618,7 +6621,7 @@ void http_logging_thread(void* arg)
 
 	lprintf(LOG_INFO,"HTTP logging thread started");
 
-	for(;;) {
+	while(!terminate_http_logging_thread) {
 		struct log_data *ld;
 		char	timestr[128];
 		char	sizestr[100];
@@ -7084,6 +7087,7 @@ void DLLCALL web_server(void* arg)
             			"terminate");
 					break;
 				}
+				listSemPost(&log_list);
 				mswait(100);
 			}
 			lprintf(LOG_INFO, "Done waiting for HTTP logging thread to terminate");
