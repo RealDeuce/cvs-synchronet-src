@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.40 2019/08/22 00:15:07 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.41 2019/09/17 10:29:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -229,6 +229,7 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->cfgfile_backups			= 100;
 	cfg->auto_add_subs				= true;
 	cfg->auto_add_to_areafile		= true;
+	cfg->auto_utf8					= true;
 	cfg->min_free_diskspace			= 10*1024*1024;
 }
 
@@ -281,6 +282,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
 	cfg->strip_soft_cr			= iniGetBool(ini, ROOT_SECTION, "StripSoftCRs", cfg->strip_soft_cr);
 	cfg->use_outboxes			= iniGetBool(ini, ROOT_SECTION, "UseOutboxes", cfg->use_outboxes);
+	cfg->auto_utf8				= iniGetBool(ini, ROOT_SECTION, "AutoUTF8", cfg->auto_utf8);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -523,6 +525,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetBool(&ini,		ROOT_SECTION, "StripLineFeeds"			,cfg->strip_lf					,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "StripSoftCRs"			,cfg->strip_soft_cr				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "UseOutboxes"				,cfg->use_outboxes				,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "AutoUTF8"				,cfg->auto_utf8					,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "ConvertTearLines"		,cfg->convert_tear				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "FuzzyNetmailZones"		,cfg->fuzzy_zone				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "BinkleyStyleOutbound"	,cfg->flo_mailer				,NULL);
