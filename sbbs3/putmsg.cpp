@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.54 2019/07/26 19:58:35 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.58 2019/08/05 11:14:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -37,6 +37,7 @@
 #include "sbbs.h"
 #include "wordwrap.h"
 #include "utf8.h"
+#include "zmodem.h"
 
 /****************************************************************************/
 /* Outputs a NULL terminated string with @-code parsing,                    */
@@ -59,6 +60,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 	ulong	l=0,sys_status_sav=sys_status;
 	int		defered_pause=FALSE;
 	uint	lines_printed = 0;
+	enum output_rate output_rate = cur_output_rate;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -104,6 +106,12 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 			case FF:
 			case CTRL_A:
 				break;
+			case ZHEX:
+				if(l && str[l - 1] == ZDLE) {
+					l++;
+					continue;
+				}
+				// fallthrough
 			default: // printing char
 				if((mode&P_TRUNCATE) && column >= (cols - 1)) {
 					l++;
@@ -375,7 +383,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if(term&UTF8)
 					outcom(str[l]);
 				else
-					skip = utf8_to_cp437(str + l, len - l);
+					skip = print_utf8_as_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
 			l += skip;
@@ -385,6 +393,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		console=orgcon;
 		attr(tmpatr);
 	}
+	if(!(mode&P_NOATCODES) && cur_output_rate != output_rate)
+		set_output_rate(output_rate);
 
 	attr_sp=0;	/* clear any saved attributes */
 
