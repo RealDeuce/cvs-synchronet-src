@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.407 2020/04/19 21:06:53 rswindell Exp $ */
+/* $Id: js_global.c,v 1.403 2019/09/25 04:18:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -60,7 +60,6 @@ enum {
 	 GLOB_PROP_ERRNO
 	,GLOB_PROP_ERRNO_STR
 	,GLOB_PROP_SOCKET_ERRNO
-	,GLOB_PROP_SOCKET_ERRNO_STR
 };
 
 BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min)
@@ -85,11 +84,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case GLOB_PROP_SOCKET_ERRNO:
 			*vp=DOUBLE_TO_JSVAL(ERROR_VALUE);
 			break;
-		case GLOB_PROP_SOCKET_ERRNO_STR:
-			if((js_str=JS_NewStringCopyZ(cx, socket_strerror(socket_errno)))==NULL)
-				return(JS_FALSE);
-	        *vp = STRING_TO_JSVAL(js_str);
-			break;
 		case GLOB_PROP_ERRNO:
 			*vp=INT_TO_JSVAL(errno);
 			break;
@@ -105,12 +99,11 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 #define GLOBOBJ_FLAGS JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_SHARED
 
 static jsSyncPropertySpec js_global_properties[] = {
-/*		 name,				tinyid,					flags,			ver */
+/*		 name,			tinyid,					flags,			ver */
 
-	{	"errno"				,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS, 310 },
-	{	"errno_str"			,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS, 310 },
-	{	"socket_errno"		,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 310 },
-	{	"socket_errno_str"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 31800 },
+	{	"errno"			,GLOB_PROP_ERRNO		,GLOBOBJ_FLAGS, 310 },
+	{	"errno_str"		,GLOB_PROP_ERRNO_STR	,GLOBOBJ_FLAGS, 310 },
+	{	"socket_errno"	,GLOB_PROP_SOCKET_ERRNO	,GLOBOBJ_FLAGS, 310 },
 	{0}
 };
 
@@ -654,7 +647,7 @@ js_load(JSContext *cx, uintN argc, jsval *arglist)
 		JS_ENDREQUEST(bg->cx);
 		JS_ClearContextThread(bg->cx);
 		bg->sem=&p->bg_sem;
-//		lprintf(LOG_DEBUG, "JavaScript Background Load: %s", path); // non-contextual (always logs to terminal server)
+		lprintf(LOG_DEBUG, "JavaScript Background Load: %s", path);
 		success = _beginthread(background_thread,0,bg)!=-1;
 		JS_RESUMEREQUEST(cx, rc);
 		if(success) {
@@ -3675,7 +3668,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	inarray[3]={NULL, NULL, NULL};
-	jsuint		inarray_cnt = 0;
+	int		inarray_cnt = 0;
 	JSObject*	robj;
 	JSObject*	rarray;
 	BOOL		poll_for_write=FALSE;
@@ -4711,7 +4704,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories). Returns true if the directory already exists.")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
 	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
