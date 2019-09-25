@@ -1,7 +1,7 @@
 /* Synchronet message/menu display routine */
 // vi: tabstop=4
 
-/* $Id: putmsg.cpp,v 1.55 2019/07/29 22:38:01 rswindell Exp $ */
+/* $Id: putmsg.cpp,v 1.58 2019/08/05 11:14:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 	ulong	l=0,sys_status_sav=sys_status;
 	int		defered_pause=FALSE;
 	uint	lines_printed = 0;
+	enum output_rate output_rate = cur_output_rate;
 
 	attr_sp=0;	/* clear any saved attributes */
 	tmpatr=curatr;	/* was lclatr(-1) */
@@ -382,7 +383,7 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 				if(term&UTF8)
 					outcom(str[l]);
 				else
-					skip = utf8_to_cp437(str + l, len - l);
+					skip = print_utf8_as_cp437(str + l, len - l);
 			} else
 				outchar(str[l]);
 			l += skip;
@@ -392,6 +393,8 @@ char sbbs_t::putmsg(const char *buf, long mode, long org_cols)
 		console=orgcon;
 		attr(tmpatr);
 	}
+	if(!(mode&P_NOATCODES) && cur_output_rate != output_rate)
+		set_output_rate(output_rate);
 
 	attr_sp=0;	/* clear any saved attributes */
 
