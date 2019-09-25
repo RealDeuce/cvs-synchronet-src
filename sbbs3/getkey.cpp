@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.59 2020/04/06 02:41:31 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.57 2019/08/05 06:49:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -362,7 +362,7 @@ void sbbs_t::mnemonics(const char *str)
 /* Returns true for Yes or false for No                                     */
 /* Called from quite a few places                                           */
 /****************************************************************************/
-bool sbbs_t::yesno(const char *str, long mode)
+bool sbbs_t::yesno(const char *str)
 {
     char ch;
 
@@ -370,25 +370,21 @@ bool sbbs_t::yesno(const char *str, long mode)
 		return true;
 	SAFECOPY(question,str);
 	SYNC;
-	bprintf(mode, text[YesNoQuestion], str);
+	bprintf(text[YesNoQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YNQP][1];
 		else
 			ch=getkey(K_UPPER|K_COLD);
 		if(ch==text[YNQP][0] || ch==CR) {
-			if(bputs(text[Yes], mode) && !(mode&P_NOCRLF))
+			if(bputs(text[Yes]))
 				CRLF;
-			if(!(mode&P_SAVEATR))
-				attr(LIGHTGRAY);
 			lncntr=0;
 			return(true); 
 		}
 		if(ch==text[YNQP][1]) {
-			if(bputs(text[No], mode) && !(mode&P_NOCRLF))
+			if(bputs(text[No]))
 				CRLF;
-			if(!(mode&P_SAVEATR))
-				attr(LIGHTGRAY);
 			lncntr=0;
 			return(false); 
 		} 
@@ -400,7 +396,7 @@ bool sbbs_t::yesno(const char *str, long mode)
 /* Prompts user for N or Y (no or yes) and CR is interpreted as a N         */
 /* Returns true for No or false for Yes                                     */
 /****************************************************************************/
-bool sbbs_t::noyes(const char *str, long mode)
+bool sbbs_t::noyes(const char *str)
 {
     char ch;
 
@@ -408,25 +404,21 @@ bool sbbs_t::noyes(const char *str, long mode)
 		return true;
 	SAFECOPY(question,str);
 	SYNC;
-	bprintf(mode, text[NoYesQuestion], str);
+	bprintf(text[NoYesQuestion],str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YNQP][1];
 		else
 			ch=getkey(K_UPPER|K_COLD);
 		if(ch==text[YNQP][1] || ch==CR) {
-			if(bputs(text[No], mode) && !(mode&P_NOCRLF))
+			if(bputs(text[No]))
 				CRLF;
-			if(!(mode&P_SAVEATR))
-				attr(LIGHTGRAY);
 			lncntr=0;
 			return(true); 
 		}
 		if(ch==text[YNQP][0]) {
-			if(bputs(text[Yes], mode) && !(mode&P_NOCRLF))
+			if(bputs(text[Yes]))
 				CRLF;
-			if(!(mode&P_SAVEATR))
-				attr(LIGHTGRAY);
 			lncntr=0;
 			return(false); 
 		} 
