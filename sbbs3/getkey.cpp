@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.56 2019/07/24 05:00:09 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.57 2019/08/05 06:49:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -526,16 +526,16 @@ void sbbs_t::pause()
 {
 	char	ch;
 	uint	tempattrs=curatr; /* was lclatr(-1) */
-    int		i,j;
 	long	l=K_UPPER;
+	size_t	len;
 
-	if(sys_status&SS_ABORT)
+ 	if(sys_status&SS_ABORT)
 		return;
 	lncntr=0;
 	if(online==ON_REMOTE)
 		rioctl(IOFI);
 	bputs(text[Pause]);
-	j=bstrlen(text[Pause]);
+	len = bstrlen(text[Pause]);
 	if(sys_status&SS_USERON && !(useron.misc&(HTML|WIP|NOPAUSESPIN))
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
@@ -545,8 +545,7 @@ void sbbs_t::pause()
 	else if(ch==LF)	// down arrow == display one more line
 		lncntr=rows-2;
 	if(text[Pause][0]!='@')
-		for(i=0;i<j;i++)
-			backspace();
+		backspace(len);
 	getnodedat(cfg.node_num,&thisnode,0);
 	nodesync();
 	attr(tempattrs);
