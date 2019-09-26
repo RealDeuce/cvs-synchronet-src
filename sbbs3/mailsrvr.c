@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.712 2019/08/31 22:23:54 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.716 2019/09/24 08:35:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -149,7 +149,7 @@ typedef struct {
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s/TLS %s", sock, server, GCES_estr);                     \
+		lprintf(GCES_level, "%04d %s %s", sock, server, GCES_estr);                     \
 		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
@@ -159,7 +159,7 @@ typedef struct {
 	int GCES_level;                                                                 \
 	get_crypt_error_string(status, sess, &GCES_estr, action, &GCES_level);  \
 	if (GCES_estr) {                                                                  \
-		lprintf(GCES_level, "%04d %s/TLS [%s] %s", sock, server, host, GCES_estr);         \
+		lprintf(GCES_level, "%04d %s [%s] %s", sock, server, host, GCES_estr);         \
 		free_crypt_attrstr(GCES_estr);                                                  \
 	}                                                                                    \
 } while(0)
@@ -2401,7 +2401,7 @@ static enum mimehdr_charset mimehdr_charset_decode(const char* str)
 	return MIMEHDR_CHARSET_OTHER;
 }
 
-// Replace unnecessary MIME (RFC 2047) "encoded-words" with their decoded-values
+// Replace MIME (RFC 2047) "encoded-words" with their decoded-values
 // Returns true if the value was MIME-encoded
 bool mimehdr_value_decode(char* str, smbmsg_t* msg)
 {
@@ -3565,14 +3565,11 @@ static void smtp_thread(void* arg)
 					}
 				}
 				if((p=smb_get_hfield(&msg, RFC822FROM, NULL))!=NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						mimehdr_value_decode(np, &msg);
-						parse_mail_address(p 
-							,sender		,sizeof(sender)-1
-							,sender_addr,sizeof(sender_addr)-1);
-						free(np);
-					}
+					parse_mail_address(p 
+						,sender		,sizeof(sender)-1
+						,sender_addr,sizeof(sender_addr)-1);
+					// We only support MIME-encoded name portion of 'name <user@addr>'
+					mimehdr_value_decode(sender, &msg);
 				}
 				dnsbl_recvhdr=FALSE;
 				if(startup->options&MAIL_OPT_DNSBL_CHKRECVHDRS)  {
@@ -3950,6 +3947,8 @@ static void smtp_thread(void* arg)
 								,startup->newmail_notice
 								,timestr(&scfg,newmsg.hdr.when_imported.time,tmp)
 								,sender, p);
+							if(newmsg.hdr.auxattr&MSG_HFIELDS_UTF8)
+								utf8_to_cp437_str(str);
 							if(!newmsg.idx.to) 	/* Forwarding */
 								sprintf(str+strlen(str), startup->forward_notice, rcpt_addr);
 							putsmsg(&scfg, usernum, str);
@@ -5912,7 +5911,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.712 $", "%*s %s", revision);
+	sscanf("$Revision: 1.716 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"

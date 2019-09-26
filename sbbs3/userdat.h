@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.74 2019/08/31 22:23:55 rswindell Exp $ */
+/* $Id: userdat.h,v 1.75 2019/09/26 03:18:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -83,9 +83,10 @@ DLLEXPORT uint	getage(scfg_t*, char *birthdate);
 DLLEXPORT char*	username(scfg_t*, int usernumber, char * str);
 DLLEXPORT char* usermailaddr(scfg_t*, char* addr, const char* name);
 DLLEXPORT int	opennodedat(scfg_t*);
+DLLEXPORT int	opennodeext(scfg_t*);
 DLLEXPORT int	getnodedat(scfg_t*, uint number, node_t *node, BOOL lockit, int* file);
 DLLEXPORT int	putnodedat(scfg_t*, uint number, node_t *node, BOOL closeit, int file);
-DLLEXPORT char* nodestatus(scfg_t*, node_t* node, char* buf, size_t buflen);
+DLLEXPORT char* nodestatus(scfg_t*, node_t* node, char* buf, size_t buflen, int num);
 DLLEXPORT void	printnodedat(scfg_t*, uint number, node_t* node);
 DLLEXPORT int	is_user_online(scfg_t*, uint usernumber);
 DLLEXPORT void	packchatpass(char *pass, node_t* node);
