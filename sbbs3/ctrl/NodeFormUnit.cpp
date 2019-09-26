@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.cpp,v 1.31 2019/09/26 18:30:18 rswindell Exp $ */
+/* $Id: NodeFormUnit.cpp,v 1.30 2019/08/31 22:25:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -174,7 +174,7 @@ void __fastcall TNodeForm::TimerTick(TObject *Sender)
 		sprintf(str,"%*d %s"
 			,digits
 			,n+1
-			,nodestatus(&MainForm->cfg,&node,status,sizeof(status),n+1));
+			,nodestatus(&MainForm->cfg,&node,status,sizeof(status)));
         AnsiString Str=AnsiString(str);
         if(ListBox->Items->Count<n+1)
         	ListBox->Items->Add(Str);
