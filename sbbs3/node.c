@@ -1,7 +1,7 @@
 /* Synchronet BBS Node control program */
 // vi: tabstop=4
 
-/* $Id: node.c,v 1.33 2019/10/03 17:54:28 rswindell Exp $ */
+/* $Id: node.c,v 1.32 2019/09/26 02:46:06 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -292,7 +292,7 @@ void printnodedat(int number, node_t node)
 		case NODE_QUIET:
 		case NODE_INUSE:
 			if(node.misc&NODE_EXT) {
-				printf("%s", extended_status(number - 1, tmp));
+				printf("%s", extended_status(number,tmp));
 				break;
 			}
 			printf("User #%d",node.useron);
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.33 $", "%*s %s", revision);
+	sscanf("$Revision: 1.32 $", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.37 2020/04/01 07:39:16 deuce Exp $ */
+/* $Id: js_conio.c,v 1.36 2019/09/25 02:53:52 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,6 +334,10 @@ js_conio_init(JSContext *cx, uintN argc, jsval *arglist)
 			ciolib_mode=CIOLIB_MODE_SDL;
 		else if(!stricmp(mode,"SDL_FULLSCREEN"))
 			ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
+		else if(!stricmp(mode,"SDL_YUV"))
+			ciolib_mode=CIOLIB_MODE_SDL_YUV;
+		else if(!stricmp(mode,"SDL_YUV_FULLSCREEN"))
+			ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
 		else {
 			JS_ReportError(cx, "Unhandled ciolib mode \"%s\"", mode);
 			return JS_FALSE;
@@ -1039,7 +1043,8 @@ static jsSyncMethodSpec js_functions[] = {
 				"<tr><td>\"CURSES_IBM\"</td><td>Use the curses terminal library and write extended ASCII characters directly as-is, assuming the terminal is using CP437. (*nix only)</td></tr><tr><td>"
 				"<tr><td>\"SDL\"</td><td>Use the SDL library for output.</td></tr><tr><td>"
 				"<tr><td>\"SDL_FULLSCREEN\"</td><td>Use the SDL library for output (fullscreen).</td></tr><tr><td>"
-				"</table>"
+				"<tr><td>\"SDL_YUV\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling.</td></tr><tr><td>"
+				"<tr><td>\"SDL_YUV_FULLSCREEN\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling (fullscreen).</td></tr><tr><td></table>"
 			),315
 	},
 	{"suspend",			js_conio_suspend,		0
