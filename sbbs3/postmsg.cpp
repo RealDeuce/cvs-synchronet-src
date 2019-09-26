@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.132 2020/04/23 06:25:08 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.129 2019/09/02 05:42:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,9 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, lon
 
 	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+
+	if(filelength(fileno(smb->shd_fp)) < 1) /* MsgBase doesn't exist yet, create it */
+		i=smb_create(smb);
 
 	*storage=smb_storage_mode(cfg, smb);
 
@@ -355,7 +358,7 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 	if(client==NULL)
 		return(-1);
 
-	if(client->user!=NULL && client->usernum && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
+	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
 		return(i);
 	if(client->time
 		&& (i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
@@ -462,7 +465,7 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 	if((i=smb_addmsg(smb,msg,smb_storage_mode(cfg, smb),dupechk_hashes,xlat,(uchar*)msgbuf, /* tail: */NULL))==SMB_SUCCESS
 		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
 		if(smb->subnum == INVALID_SUB) {
-			if(msg->to_net.type == NET_FIDO && cfg->netmail_sem[0])
+			if(msg->to_net.type == NET_FIDO)
 				ftouch(cmdstr(cfg,NULL,cfg->netmail_sem,nulstr,nulstr,NULL));
 		} else
 			signal_sub_sem(cfg,smb->subnum);

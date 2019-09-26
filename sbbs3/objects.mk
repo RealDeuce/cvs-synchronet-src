@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for SBBS.DLL
 
-# $Id: objects.mk,v 1.76 2020/04/03 19:54:31 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
+# $Id: objects.mk,v 1.74 2019/08/24 19:52:52 rswindell Exp $(DIRSEP)09$(DIRSEP)08 07:23:54 deuce Exp $
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -193,10 +193,9 @@ SBBSECHO_OBJS = \
 ECHOCFG_OBJS = \
 			$(MTOBJODIR)$(DIRSEP)echocfg$(OFILE) \
 			$(MTOBJODIR)$(DIRSEP)rechocfg$(OFILE) \
-			$(MTOBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(UIFC_OBJS) \
 			$(MTOBJODIR)$(DIRSEP)nopen$(OFILE)
-
+			
 ADDFILES_OBJS = \
 			$(OBJODIR)$(DIRSEP)addfiles$(OFILE) \
 			$(OBJODIR)$(DIRSEP)ars$(OFILE) \
@@ -337,7 +336,6 @@ SMBACTIV_OBJS = \
 DSTSEDIT_OBJS = \
 			$(OBJODIR)$(DIRSEP)dstsedit$(OFILE)\
 			$(OBJODIR)$(DIRSEP)date_str$(OFILE) \
-			$(OBJODIR)$(DIRSEP)str_util$(OFILE) \
 			$(OBJODIR)$(DIRSEP)nopen$(OFILE)
 
 READSAUCE_OBJS = \
