@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.702 2020/01/23 17:27:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.699 2019/09/03 02:19:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2728,7 +2728,7 @@ static BOOL parse_headers(http_session_t * session)
 				default:
 					break;
 			}
-			SAFEPRINTF(env_name,"HTTP_%s",head_line);
+			sprintf(env_name,"HTTP_%s",head_line);
 			add_env(session,env_name,value);
 		}
 		free(head_line);
@@ -3649,8 +3649,6 @@ static BOOL check_request(http_session_t * session)
 		return(FALSE);
 	}
 
-	if (session->req.send_location >= MOVED_TEMP && session->redir_req[0])
-		return (TRUE);
 	if(stat(path,&sb) || IS_PATH_DELIM(*(lastchar(path))) || send404) {
 		/* OPTIONS requests never return 404 errors (ala Apache) */
 		if(session->req.method!=HTTP_OPTIONS) {
@@ -6298,7 +6296,6 @@ void http_session_thread(void* arg)
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
-		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_MINVER_TLS12), &session, "setting TLS minver to 1.2");
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
 			unlock_ssl_cert();
@@ -6587,7 +6584,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.702 $", "%*s %s", revision);
+	sscanf("$Revision: 1.699 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
