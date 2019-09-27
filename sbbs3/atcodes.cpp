@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.119 2020/03/01 07:57:29 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.117 2019/09/24 08:24:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -132,9 +132,9 @@ int sbbs_t::show_atcode(const char *instr)
 		truncated = false;
 	if(p!=NULL) {
 		char* lp = p;
-		while(*lp && !isdigit((uchar)*lp))
+		while(*lp && !isdigit(*lp))
 			lp++;
-		if(*lp && isdigit((uchar)*lp))
+		if(*lp && isdigit(*lp))
 			disp_len=atoi(lp);
 		*p=0;
 	}
@@ -1042,7 +1042,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		tp=strchr(sp,',');
 		if(tp!=NULL) {
 			tp++;
-			cursor_xy(atoi(sp+7),atoi(tp));
+			ansi_gotoxy(atoi(sp+7),atoi(tp));
 		}
 		return(nulstr);
 	}
