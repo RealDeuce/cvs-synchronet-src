@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.114 2018/07/23 22:52:54 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.116 2019/09/10 19:57:37 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -244,7 +244,7 @@ extern "C" {
 	#endif
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 	DLLEXPORT char* DLLCALL strcasestr(const char* haystack, const char* needle);
 #endif
 
@@ -359,7 +359,11 @@ DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL os_cmdshell(void);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
-DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
+DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3 , 4)));            // 1 is 'this'
+#endif
+;
 
 /* C string/char escape-sequence processing */
 DLLEXPORT char*		DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_only);
