@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.13 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id: delfiles.c,v 1.12 2019/09/23 19:18:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -117,7 +117,16 @@ int main(int argc, char **argv)
 		return(0); 
 	}
 
-	p = get_ctrl_dir();
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\nSBBSCTRL environment variable not set.\n");
+	#ifdef __unix__
+		printf("\nExample: export SBBSCTRL=/sbbs/ctrl\n");
+	#else
+		printf("\nExample: SET SBBSCTRL=C:\\SBBS\\CTRL\n");
+	#endif
+		return(1); 
+	}
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.size=sizeof(cfg);

@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.332 2020/03/19 05:09:35 rswindell Exp $ */
+/* $Id: services.c,v 1.331 2019/08/09 00:49:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -442,7 +442,6 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(client->client!=NULL) {
 		client->client->user=client->user.alias;
-		client->client->usernum = client->user.number;
 		client_on(client->socket,client->client,TRUE /* update */);
 	}
 
@@ -622,7 +621,6 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	client.protocol=service_client->service->protocol;
 	client.time=time32(NULL);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -1087,7 +1085,6 @@ static void js_service_thread(void* arg)
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	service_client.client=&client;
 
 	/* Initialize client display */
@@ -1438,7 +1435,6 @@ static void native_service_thread(void* arg)
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1669,7 +1665,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.332 $", "%*s %s", revision);
+	sscanf("$Revision: 1.331 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"

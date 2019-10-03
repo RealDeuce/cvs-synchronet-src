@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.720 2020/03/31 07:12:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.716 2019/09/24 08:35:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1105,7 +1105,6 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF2(str,"%s: %s", client.protocol, host_ip);
@@ -1129,7 +1128,7 @@ static void pop3_thread(void* arg)
 		srand((unsigned int)(time(NULL) ^ (time_t)GetCurrentThreadId()));	/* seed random number generator */
 		rand();	/* throw-away first result */
 		safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%.128s>"
-			,rand(),socket,(ulong)time(NULL),(ulong)clock(),startup->host_name);
+			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 
 		sockprintf(socket,client.protocol,session,"+OK Synchronet %s Server %s-%s Ready %s"
 			,client.protocol, revision,PLATFORM_DESC,challenge);
@@ -1292,7 +1291,6 @@ static void pop3_thread(void* arg)
 
 		/* Update client display */
 		client.user=user.alias;
-		client.usernum = user.number;
 		client_on(socket,&client,TRUE /* update */);
 		activity=FALSE;
 
@@ -2633,6 +2631,24 @@ static int chk_received_hdr(SOCKET socket,const char* prot,const char *buf,IN_AD
 	return(dnsbl_result->s_addr);
 }
 
+static void strip_char(char* str, char ch)
+{
+	char* src;
+	char* p;
+	char* tmp = strdup(str);
+
+	if(tmp == NULL)
+		return;
+	p=tmp;
+	for(src = str; *src; src++) {
+		if(*src != ch)
+			*(p++) = *src;
+	}
+	*p=0;
+	strcpy(str, tmp);
+	free(tmp);
+}
+
 static void parse_mail_address(char* p
 							   ,char* name, size_t name_len
 							   ,char* addr, size_t addr_len)
@@ -2668,7 +2684,7 @@ static void parse_mail_address(char* p
 	if(tp) *tp=0;
 	sprintf(name,"%.*s",(int)name_len,p);
 	truncsp(name);
-	strip_char(name, name, '\\');
+	strip_char(name, '\\');
 }
 
 /* Decode quoted-printable content-transfer-encoded text */
@@ -3151,7 +3167,6 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -4000,7 +4015,7 @@ static void smtp_thread(void* arg)
 				continue;
 			}
 			/* RFC822 Header parsing */
-			strip_char(buf, buf, '\r');	/* There should be no bare carriage returns in header fields */
+			strip_char(buf, '\r');	/* There should be no bare carriage returns in header fields */
 			if(startup->options&MAIL_OPT_DEBUG_RX_HEADER)
 				lprintf(LOG_DEBUG,"%04d %s %s",socket, client.protocol, buf);
 
@@ -4172,7 +4187,6 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
-			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using %s authentication"
@@ -4182,7 +4196,7 @@ static void smtp_thread(void* arg)
 		}
 		if(!stricmp(buf,"AUTH CRAM-MD5")) {
 			safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%s>"
-				,rand(),socket,(ulong)time(NULL),(ulong)clock(),startup->host_name);
+				,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 #if 0
 			lprintf(LOG_DEBUG,"%04d SMTP CRAM-MD5 challenge: %s"
 				,socket,challenge);
@@ -4260,7 +4274,6 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
-			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using CRAM-MD5 authentication"
@@ -5883,7 +5896,7 @@ static void cleanup(int code)
 		if(stats.errors)
 			sprintf(str+strlen(str),", %lu errors", stats.errors);
 		if(stats.crit_errors)
-			sprintf(str+strlen(str),", %lu critical", stats.crit_errors);
+			sprintf(str+strlen(str),", %lu critcal", stats.crit_errors);
 
 		lprintf(LOG_INFO,"#### Mail Server thread terminated (%s)",str);
 	}
@@ -5898,7 +5911,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.720 $", "%*s %s", revision);
+	sscanf("$Revision: 1.716 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
