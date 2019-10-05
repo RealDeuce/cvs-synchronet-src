@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.723 2020/04/24 05:04:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.717 2019/10/05 20:47:49 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -89,7 +89,6 @@ int dns_getmx(char* name, char* mx, char* mx2
 
 static mail_startup_t* startup=NULL;
 static scfg_t	scfg;
-static char*	text[TOTAL_TEXT];
 static struct xpms_set	*mail_set=NULL;
 static BOOL terminated=FALSE;
 static protected_uint32_t active_clients;
@@ -700,8 +699,6 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		return(0);
 
 	if((p = smb_get_hfield(msg, RFC822TO, NULL)) != NULL)
-		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field (MIME-Encoded) */
-	else if((p = msg->to_list) != NULL)
 		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field */
 	else {
 		if(strchr(msg->to,'@')!=NULL || msg->to_net.addr==NULL)
@@ -724,8 +721,7 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		if(!sockprintf(socket,prot,sess,"Cc: %s", p == NULL ? msg->cc_list : p))
 			return(0);
 	np=NULL;
-	p = smb_get_hfield(msg, RFC822REPLYTO, NULL);
-	if(p == NULL && (p = msg->replyto_list) == NULL) {
+	if((p = smb_get_hfield(msg, RFC822REPLYTO, NULL)) == NULL) {
 		np=msg->replyto;
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
@@ -1109,7 +1105,6 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF2(str,"%s: %s", client.protocol, host_ip);
@@ -1133,7 +1128,7 @@ static void pop3_thread(void* arg)
 		srand((unsigned int)(time(NULL) ^ (time_t)GetCurrentThreadId()));	/* seed random number generator */
 		rand();	/* throw-away first result */
 		safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%.128s>"
-			,rand(),socket,(ulong)time(NULL),(ulong)clock(),startup->host_name);
+			,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 
 		sockprintf(socket,client.protocol,session,"+OK Synchronet %s Server %s-%s Ready %s"
 			,client.protocol, revision,PLATFORM_DESC,challenge);
@@ -1296,7 +1291,6 @@ static void pop3_thread(void* arg)
 
 		/* Update client display */
 		client.user=user.alias;
-		client.usernum = user.number;
 		client_on(socket,&client,TRUE /* update */);
 		activity=FALSE;
 
@@ -3155,7 +3149,6 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.user=STR_UNKNOWN_USER;
-	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -3632,16 +3625,6 @@ static void smtp_thread(void* arg)
 							smb_hfield_str(&msg, SMB_CARBONCOPY, np);
 						else
 							hfield->type = SMB_CARBONCOPY;
-						free(np);
-					}
-				}
-				if((p = smb_get_hfield(&msg, RFC822REPLYTO, &hfield)) != NULL) {
-					char* np = strdup(p);
-					if(np != NULL) {
-						if(mimehdr_value_decode(np, &msg))
-							smb_hfield_str(&msg, REPLYTOLIST, np);
-						else
-							hfield->type = REPLYTOLIST;
 						free(np);
 					}
 				}
@@ -4186,7 +4169,6 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
-			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using %s authentication"
@@ -4196,7 +4178,7 @@ static void smtp_thread(void* arg)
 		}
 		if(!stricmp(buf,"AUTH CRAM-MD5")) {
 			safe_snprintf(challenge,sizeof(challenge),"<%x%x%lx%lx@%s>"
-				,rand(),socket,(ulong)time(NULL),(ulong)clock(),startup->host_name);
+				,rand(),socket,(ulong)time(NULL),clock(),startup->host_name);
 #if 0
 			lprintf(LOG_DEBUG,"%04d SMTP CRAM-MD5 challenge: %s"
 				,socket,challenge);
@@ -4274,7 +4256,6 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
-			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using CRAM-MD5 authentication"
@@ -5897,7 +5878,7 @@ static void cleanup(int code)
 		if(stats.errors)
 			sprintf(str+strlen(str),", %lu errors", stats.errors);
 		if(stats.crit_errors)
-			sprintf(str+strlen(str),", %lu critical", stats.crit_errors);
+			sprintf(str+strlen(str),", %lu critcal", stats.crit_errors);
 
 		lprintf(LOG_INFO,"#### Mail Server thread terminated (%s)",str);
 	}
@@ -5912,7 +5893,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.723 $", "%*s %s", revision);
+	sscanf("$Revision: 1.717 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -6050,7 +6031,7 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, text, TRUE, error)) {
+		if(!load_cfg(&scfg, NULL, TRUE, error)) {
 			lprintf(LOG_CRIT,"!ERROR %s",error);
 			lprintf(LOG_CRIT,"!Failed to load configuration files");
 			cleanup(1);

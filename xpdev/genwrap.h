@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.118 2020/04/14 23:58:38 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.116 2019/09/10 19:57:37 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -224,7 +224,6 @@ extern "C" {
 	#define snprintf		_snprintf
 #endif
 	#define vsnprintf		_vsnprintf
-	#define NEEDS_STRLCPY
 #endif
 
 #if defined(__WATCOMC__)
@@ -243,10 +242,6 @@ extern "C" {
 		#define stricmp			strcasecmp
 		#define strnicmp		strncasecmp
 	#endif
-#endif
-
-#if defined(NEEDS_STRLCPY)
-	size_t strlcpy(char *dst, const char *src, size_t size);
 #endif
 
 #if defined(_WIN32)
@@ -302,7 +297,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#else
 		#define SLEEP(x)		({	int sleep_msecs=x; struct timespec ts={0}; \
 								ts.tv_sec=(sleep_msecs/1000); ts.tv_nsec=((sleep_msecs%1000)*1000000); \
-								while(nanosleep(&ts, &ts) != 0 && errno==EINTR && x > 1); })
+								nanosleep(&ts, NULL); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
