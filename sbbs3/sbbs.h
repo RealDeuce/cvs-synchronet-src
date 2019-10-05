@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.550 2019/08/31 22:37:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.552 2019/10/05 20:47:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -734,7 +734,7 @@ public:
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
-	void	center(char *str);
+	void	center(char *str, unsigned int columns = 0);
 	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -1160,6 +1160,7 @@ extern "C" {
 	DLLEXPORT char *	strip_space(const char *str, char* dest);
 	DLLEXPORT char *	prep_file_desc(const char *str, char* dest);
 	DLLEXPORT char *	strip_ctrl(const char *str, char* dest);
+	DLLEXPORT char *	strip_char(const char* str, char* dest, char);
 	DLLEXPORT char *	net_addr(net_t* net);
 	DLLEXPORT BOOL		valid_ctrl_a_attr(char a);
 	DLLEXPORT BOOL		valid_ctrl_a_code(char a);
