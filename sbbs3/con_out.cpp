@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.127 2019/10/08 08:01:26 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.126 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -375,11 +375,8 @@ int sbbs_t::rputs(const char *str, size_t len)
 	for(l=0;l<len && online;l++) {
 		uchar ch = str[l];
 		utf8[0] = 0;
-		if(term&PETSCII) {
+		if(term&PETSCII)
 			ch = cp437_to_petscii(ch);
-			if(ch == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_ON);
-		}
 		else if((term&NO_EXASCII) && (ch&0x80))
 			ch = exascii_to_ascii_char(ch);  /* seven bit table */
 		else if(term&UTF8) {
@@ -394,8 +391,6 @@ int sbbs_t::rputs(const char *str, size_t len)
 				break;
 			if((char)ch == (char)TELNET_IAC && !(telnet_mode&TELNET_MODE_OFF))
 				outcom(TELNET_IAC);	/* Must escape Telnet IAC char (255) */
-			if((term&PETSCII) && ch == PETSCII_SOLID)
-				outcom(PETSCII_REVERSE_OFF);
 		}
 		if(ch == '\n')
 			lbuflen=0;

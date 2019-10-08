@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.247 2020/01/03 20:59:58 rswindell Exp $
+# $Id: GNUmakefile,v 1.246 2019/09/10 19:57:27 deuce Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
@@ -263,9 +263,9 @@ $(SMBACTIV): $(SMBACTIV_OBJS)
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(SMBACTIV_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS) $(ENCODE_LIBS) $(HASH_LIBS)
 
 # DSTSEDIT
-$(DSTSEDIT): $(DSTSEDIT_OBJS) $(ENCODE_LIB)
+$(DSTSEDIT): $(DSTSEDIT_OBJS)
 	@echo Linking $@
-	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(DSTSEDIT_OBJS) $(XPDEV_LIBS) $(ENCODE_LIBS)
+	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(DSTSEDIT_OBJS) $(XPDEV_LIBS)
 
 # READSAUCE
 $(READSAUCE): $(READSAUCE_OBJS) $(OBJODIR) $(EXEODIR)
