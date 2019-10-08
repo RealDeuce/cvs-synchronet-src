@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.137 2019/08/05 10:21:20 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.140 2019/09/21 09:50:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -669,7 +669,7 @@ js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uint32_t	maxnum=~0;
-	int32_t		dflt=0;
+	int32		dflt=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1113,6 +1113,7 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	}
     else for (i=0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
+
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1444,6 +1445,7 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
+	int32		cols = 0;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -1455,11 +1457,16 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 	if (!str)
 		return(JS_FALSE);
 
+	if(argc > 1) {
+		if(!JS_ValueToInt32(cx, argv[1], &cols))
+			return JS_FALSE;
+	}
+
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->center(cstr);
+	sbbs->center(cstr, cols);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1857,10 +1864,8 @@ js_lock_input(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=true;
-	} else if(sbbs->input_thread_mutex_locked) {
+	} else {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=false;
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2034,8 +2039,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
 	,310
 	},
-	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a string centered on the screen")
+	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text [,width]")
+	,JSDOCSTR("display a string centered on the screen, with an optionally-specified screen width (in columns)")
 	,310
 	},
 	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")
