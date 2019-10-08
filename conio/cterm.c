@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.259 2020/04/06 18:40:44 deuce Exp $ */
+/* $Id: cterm.c,v 1.256 2019/07/12 22:35:24 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 #include <string.h>
 #if defined(_WIN32)
  #include <malloc.h>	/* alloca() on Win32 */
- #include <xpprintf.h>	/* asprintf() on Win32 */
 #endif
 
 #include <genwrap.h>
@@ -1805,19 +1804,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									case 80:
 										cterm->extattr |= CTERM_EXTATTR_SXSCROLL;
 										break;
-									case 9:
-									case 1000:
-									case 1001:
-									case 1002:
-									case 1003:
-									case 1004:
-									case 1005:
-									case 1006:
-									case 1007:
-									case 1015:
-										if (cterm->mouse_state_change)
-											cterm->mouse_state_change(seq->param_int[i], 1, cterm->mouse_state_change_cbdata);
-										break;
 								}
 							}
 							if (updfg || updbg) {
@@ -1876,19 +1862,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										break;
 									case 80:
 										cterm->extattr &= ~CTERM_EXTATTR_SXSCROLL;
-										break;
-									case 9:
-									case 1000:
-									case 1001:
-									case 1002:
-									case 1003:
-									case 1004:
-									case 1005:
-									case 1006:
-									case 1007:
-									case 1015:
-										if (cterm->mouse_state_change)
-											cterm->mouse_state_change(seq->param_int[i], 0, cterm->mouse_state_change_cbdata);
 										break;
 								}
 							}
@@ -3281,7 +3254,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.259 $";
+	char	*revision="$Revision: 1.256 $";
 	char *in;
 	char	*out;
 	int		i;
@@ -3404,7 +3377,6 @@ void CIOLIBCALL cterm_start(struct cterminal *cterm)
 		cterm->fg_color += 16;
 		cterm->bg_color += 16;
 		TEXTATTR(cterm->attr);
-		ciolib_setcolour(cterm->fg_color, cterm->bg_color);
 		SETCURSORTYPE(cterm->cursor);
 		cterm->started=1;
 		if(ti.winleft != cterm->x || ti.wintop != cterm->y || ti.winright != cterm->x+cterm->width-1 || ti.winleft != cterm->y+cterm->height-1)

@@ -1,12 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.349 2020/04/06 08:33:18 deuce Exp $ */
+/* $Id: term.c,v 1.347 2019/08/24 09:58:54 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
 
-#include "gen_defs.h"
 #include "threadwrap.h"
 #include "filewrap.h"
 #include "xpbeep.h"
@@ -466,7 +465,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 			,(unsigned long)(l/60L)
 			,(unsigned long)(l%60L)
 			,zm->block_size
-			,zmodem_mode==ZMODEM_MODE_RECV ? (zm->receive_32bit_data ? 32:16) :
+			,zmodem_mode==ZMODEM_MODE_RECV ? (zm->receive_32bit_data ? 32:16) : 
 				(zm->can_fcs_32 && !zm->want_fcs_16) ? 32:16
 			,cps
 			);
@@ -481,7 +480,7 @@ void zmodem_progress(void* cbdata, int64_t current_pos)
 				,(long)(((float)current_pos/(float)zm->current_file_size)*100.0));
 			l = (long)(60*((float)current_pos/(float)zm->current_file_size));
 		}
-		cprintf("[%*.*s%*s]", l, l,
+		cprintf("[%*.*s%*s]", l, l, 
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 				"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -738,7 +737,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		return;
 	}
 	result=filepick(&uifc, "Upload", &fpick, bbs->uldir, NULL, UIFC_FP_ALLOWENTRY);
-
+	
 	if(result==-1 || fpick.files<1) {
 		check_exit(FALSE);
 		filepick_free(&fpick);
@@ -765,7 +764,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 	}
 	setvbuf(fp,NULL,_IOFBF,0x10000);
 
-	if(autozm)
+	if(autozm) 
 		zmodem_upload(bbs, fp, path);
 	else {
 		i=0;
@@ -975,7 +974,7 @@ void zmodem_upload(struct bbslist *bbs, FILE *fp, char *path)
 	zm.log_level=&log_level;
 
 	zm.current_file_num = zm.total_files = 1;	/* ToDo: support multi-file/batch uploads */
-
+	
 	fsize=filelength(fileno(fp));
 
 	lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via ZMODEM"
@@ -1031,7 +1030,7 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 				loop=TRUE;
 				break;
 			case 0:	/* Overwrite */
-				SAFEPRINTF2(fpath,"%s/%s",cb->bbs->dldir,zm->current_file_name);
+				sprintf(fpath,"%s/%s",cb->bbs->dldir,zm->current_file_name);
 				unlink(fpath);
 				ret=TRUE;
 				break;
@@ -1211,7 +1210,7 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
 			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
-			cprintf("[%*.*s%*s]", l, l,
+			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1238,7 +1237,7 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 			cprintf("%*s%3d%%\r\n", TRANSFER_WIN_WIDTH/2-5, ""
 				,fsize?(long)(((float)offset/(float)fsize)*100.0):100);
 			l = fsize?(long)(((float)offset/(float)fsize)*60.0):60;
-			cprintf("[%*.*s%*s]", l, l,
+			cprintf("[%*.*s%*s]", l, l, 
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
 					"\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1\xb1"
@@ -1270,7 +1269,7 @@ void xmodem_progress(void* cbdata, unsigned block_num, int64_t offset, int64_t f
 static int recv_g(void *cbdata, unsigned timeout)
 {
 	xmodem_t	*xm=(xmodem_t *)cbdata;
-
+	
 	xm->recv_byte=recv_byte;
 	return('G');
 }
@@ -1278,7 +1277,7 @@ static int recv_g(void *cbdata, unsigned timeout)
 static int recv_c(void *cbdata, unsigned timeout)
 {
 	xmodem_t	*xm=(xmodem_t *)cbdata;
-
+	
 	xm->recv_byte=recv_byte;
 	return('C');
 }
@@ -1286,7 +1285,7 @@ static int recv_c(void *cbdata, unsigned timeout)
 static int recv_nak(void *cbdata, unsigned timeout)
 {
 	xmodem_t	*xm=(xmodem_t *)cbdata;
-
+	
 	xm->recv_byte=recv_byte;
 	return(NAK);
 }
@@ -1364,7 +1363,7 @@ void xmodem_upload(struct bbslist *bbs, FILE *fp, char *path, long mode, int las
 				memset(block,0,128);	/* send short block for terminator */
 				xmodem_put_block(&xm, block, 128 /* block_size */, 0 /* block_num */);
 				if(xmodem_get_ack(&xm,/* tries: */6, /* block_num: */0) != ACK) {
-					lprintf(LOG_WARNING,"Failed to receive ACK after terminating block");
+					lprintf(LOG_WARNING,"Failed to receive ACK after terminating block"); 
 				}
 			}
 		}
@@ -1498,11 +1497,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 	xm.log_level=&log_level;
 	while(is_connected(NULL)) {
 		if(mode&XMODEM) {
-			if(isfullpath(path)) {
+			if(isfullpath(path))
 				SAFECOPY(str,path);
-			} else {
-				SAFEPRINTF2(str,"%s/%s",bbs->dldir,path);
-			}
+			else
+				sprintf(str,"%s/%s",bbs->dldir,path);
 			file_bytes=file_bytes_left=0x7fffffff;
 		}
 
@@ -1520,7 +1518,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				}
 				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
 					mode &= ~GMODE;
-					lprintf(LOG_WARNING,"Falling back to %s",
+					lprintf(LOG_WARNING,"Falling back to %s", 
 						(mode&CRC)?"CRC-16":"Checksum");
 				}
 				if(i==NOT_YMODEM) {
@@ -1539,11 +1537,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 					else
 						draw_transfer_window("XMODEM-g Download");
 					lprintf(LOG_WARNING,"Falling back to XMODEM%s",(mode&GMODE)?"-g":"");
-					if(isfullpath(fname)) {
+					if(isfullpath(fname))
 						SAFECOPY(str,fname);
-					} else {
-						SAFEPRINTF2(str,"%s/%s",bbs->dldir,fname);
-					}
+					else
+						sprintf(str,"%s/%s",bbs->dldir,fname);
 					file_bytes=file_bytes_left=0x7fffffff;
 					break;
 				}
@@ -1559,7 +1556,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 			if(i!=NOT_YMODEM) {
 				if(!block[0]) {
 					lprintf(LOG_INFO,"Received YMODEM termination block");
-					goto end;
+					goto end; 
 				}
 				file_bytes=total_bytes=0;
 				total_files=0;
@@ -1585,7 +1582,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 
 				lprintf(LOG_DEBUG,"Incoming filename: %.64s ",getfname(fname));
 
-				SAFEPRINTF2(str,"%s/%s",bbs->dldir,getfname(fname));
+				sprintf(str,"%s/%s",bbs->dldir,getfname(fname));
 				lprintf(LOG_INFO,"File size: %"PRId64" bytes", file_bytes);
 				if(total_files>1)
 					lprintf(LOG_INFO,"Remaining: %"PRId64" bytes in %u files", total_bytes, total_files);
@@ -1606,7 +1603,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 		if((fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
 			xmodem_cancel(&xm);
-			goto end;
+			goto end; 
 		}
 
 		if(mode&XMODEM)
@@ -1633,7 +1630,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 			if(xm.is_cancelled(&xm)) {
 				lprintf(LOG_WARNING,"Cancelled locally");
 				xmodem_cancel(&xm);
-				goto end;
+				goto end; 
 			}
 			if(i==NOT_YMODEM)
 				i=SUCCESS;
@@ -1652,7 +1649,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				}
 				if(mode&GMODE) {
 					lprintf(LOG_ERR,"Too many errors (%u)",++errors);
-					goto end;
+					goto end; 
 				}
 
 				if(++errors>xm.max_errors) {
@@ -1674,7 +1671,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 			}
 			if(file_bytes_left<=0L)  { /* No more bytes to receive */
 				lprintf(LOG_WARNING,"Sender attempted to send more bytes than were specified in header");
-				break;
+				break; 
 			}
 			wr=xm.block_size;
 			if(wr>(uint)file_bytes_left)
@@ -1683,9 +1680,9 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				lprintf(LOG_ERR,"Error writing %u bytes to file at offset %"PRId64
 					,wr,(int64_t)ftello(fp));
 				xmodem_cancel(&xm);
-				goto end;
+				goto end; 
 			}
-			file_bytes_left-=wr;
+			file_bytes_left-=wr; 
 			block_num++;
 		}
 
@@ -1703,7 +1700,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 			file_bytes = filelength(fileno(fp));
 		fclose(fp);
 		fp = NULL;
-
+		
 		t=time(NULL)-startfile;
 		if(!t) t=1;
 		if(success)
@@ -1713,7 +1710,7 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 			lprintf(LOG_ERR,"File Transfer %s", xm.cancelled ? "Cancelled":"Failure");
 
 		if(!(mode&XMODEM) && ftime)
-			setfdate(str,ftime);
+			setfdate(str,ftime); 
 
 		if(!success && file_bytes==0) {	/* remove 0-byte files */
 			if (remove(str) == -1)
@@ -2220,56 +2217,9 @@ static void apc_handler(char *strbuf, size_t slen, void *apcd)
 	}
 }
 
-void mouse_state_change(int type, int action)
-{
-	if (!action) {
-		setup_mouse_events();
-	}
-	else {
-		ciomouse_setevents(0);
-		if (type == 9) {
-			ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-			ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
-			ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
-		}
-		if (type == 1000) {
-			ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-			ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
-			ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
-			ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
-			ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
-			ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
-		}
-	}
-}
-
-static void fill_mevent(char *buf, int button, int x, int y)
-{
-	if (button > 3)
-		button = 3;
-	if (button < 0)
-		button = 0;
-	if (x < 0)
-		x = 0;
-	if (x > 222)
-		x = 222;
-	if (y < 0)
-		y = 0;
-	if (y > 222)
-		y = 222;
-	buf[0] = '\x1b';
-	buf[1] = '[';
-	buf[2] = 'M';
-	buf[3] = ' '+button;
-	buf[4] = '!'+x;
-	buf[5] = '!'+y;
-fprintf(stderr, "%c%c%c%c%c\n", buf[1], buf[2], buf[3], buf[4], buf[5]);
-}
-
 BOOL doterm(struct bbslist *bbs)
 {
 	unsigned char ch[2];
-	char mouse_buf[6];
 	unsigned char outbuf[OUTBUF_SIZE];
 	size_t outbuf_size=0;
 	int	key;
@@ -2320,7 +2270,6 @@ BOOL doterm(struct bbslist *bbs)
 	}
 	cterm->apc_handler = apc_handler;
 	cterm->apc_handler_data = bbs;
-	cterm->mouse_state_change = mouse_state_change;
 	scrollback_cols=term.width;
 	cterm->music_enable=bbs->music;
 	ch[1]=0;
@@ -2485,30 +2434,6 @@ BOOL doterm(struct bbslist *bbs)
 				case CIO_KEY_MOUSE:
 					getmouse(&mevent);
 					switch(mevent.event) {
-						case CIOLIB_BUTTON_1_PRESS:
-							fill_mevent(mouse_buf, 0, mevent.startx-1, mevent.starty-1);
-							conn_send(mouse_buf, 6, 0);
-							break;
-						case CIOLIB_BUTTON_1_RELEASE:
-							fill_mevent(mouse_buf, 3, mevent.startx-1, mevent.starty-1);
-							conn_send(mouse_buf, 6, 0);
-							break;
-						case CIOLIB_BUTTON_2_PRESS:
-							fill_mevent(mouse_buf, 1, mevent.startx-1, mevent.starty-1);
-							conn_send(mouse_buf, 6, 0);
-							break;
-						case CIOLIB_BUTTON_2_RELEASE:
-							fill_mevent(mouse_buf, 3, mevent.startx-1, mevent.starty-1);
-							conn_send(mouse_buf, 6, 0);
-							break;
-						case CIOLIB_BUTTON_3_PRESS:
-							fill_mevent(mouse_buf, 2, mevent.startx-1, mevent.starty-1);
-							conn_send(mouse_buf, 6, 0);
-							break;
-						case CIOLIB_BUTTON_3_RELEASE:
-							fill_mevent(mouse_buf, 3, mevent.startx-1, mevent.starty-1);
-							conn_send(mouse_buf, 6, 0);
-							break;
 						case CIOLIB_BUTTON_1_DRAG_START:
 							mousedrag(scrollback_buf);
 							break;
