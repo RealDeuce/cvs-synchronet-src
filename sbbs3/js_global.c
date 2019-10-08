@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.404 2020/03/01 18:45:40 rswindell Exp $ */
+/* $Id: js_global.c,v 1.403 2019/09/25 04:18:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3668,7 +3668,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	inarray[3]={NULL, NULL, NULL};
-	jsuint		inarray_cnt = 0;
+	int		inarray_cnt = 0;
 	JSObject*	robj;
 	JSObject*	rarray;
 	BOOL		poll_for_write=FALSE;
