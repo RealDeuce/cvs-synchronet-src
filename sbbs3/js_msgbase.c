@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.253 2020/03/01 07:52:14 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.252 2019/08/23 04:50:06 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -53,7 +53,6 @@ typedef struct
 {
 	private_t	*p;
 	BOOL		expand_fields;
-	BOOL		enumerated;
 	smbmsg_t	msg;
 	post_t		post;
 
@@ -1353,7 +1352,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	}
 
 	/* If we have already enumerated, we're done here... */
-	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL || p->enumerated) {
+	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL) {
 		if(name) free(name);
 		return JS_TRUE;
 	}
@@ -1640,7 +1639,10 @@ static JSBool js_get_msg_header_enumerate(JSContext *cx, JSObject *obj)
 	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_TRUE;
 
-	p->enumerated = TRUE;
+	smb_freemsgmem(&(p->msg));
+	free(p);
+
+	JS_SetPrivate(cx, obj, NULL);
 
 	return JS_TRUE;
 }
