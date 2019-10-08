@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.125 2019/09/21 11:10:09 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.126 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -910,6 +910,20 @@ void sbbs_t::cursor_left(int count)
 		column-=count;
 	else
 		column=0;
+}
+
+bool sbbs_t::cursor_xy(int x, int y)
+{
+	long term = term_supports();
+	if(term&ANSI)
+		return ansi_gotoxy(x, y);
+	if(term&PETSCII) {
+		outcom(PETSCII_HOME);
+		cursor_down(y - 1);
+		cursor_right(x - 1);
+		return true;
+	}
+	return false;
 }
 
 void sbbs_t::cleartoeol(void)

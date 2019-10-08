@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.117 2019/09/24 08:24:36 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.118 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1042,7 +1042,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		tp=strchr(sp,',');
 		if(tp!=NULL) {
 			tp++;
-			ansi_gotoxy(atoi(sp+7),atoi(tp));
+			cursor_xy(atoi(sp+7),atoi(tp));
 		}
 		return(nulstr);
 	}

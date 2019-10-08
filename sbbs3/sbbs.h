@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.552 2019/10/05 20:47:48 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.553 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -744,6 +744,7 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
+	bool	cursor_xy(int x, int y);
 	void	carriage_return(int count=1);
 	void	line_feed(int count=1);
 	void	newline(int count=1);
