@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.72 2019/08/15 01:16:43 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.73 2019/09/27 03:16:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ bool sbbs_t::logon()
 #endif
 
 	if(useron.rest&FLAG('Q'))
-		sys_status |= SS_QWKLOGON;
+		sys_status ^= SS_QWKLOGON;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
 		hangup();
 		return(false);

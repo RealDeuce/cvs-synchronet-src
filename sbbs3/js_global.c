@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.399 2019/09/04 03:27:19 deuce Exp $ */
+/* $Id: js_global.c,v 1.403 2019/09/25 04:18:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3723,7 +3723,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 			sets[0]=&socket_set[0];
 
 		for(i=0;i<limit[0];i++) {
-			if(!JS_GetElement(cx, inarray[i], i, &val))
+			if(!JS_GetElement(cx, inarray[0], i, &val))
 				break;
 			sock=js_socket_add(cx,val,&socket_set[0]);
 			if(sock!=INVALID_SOCKET) {
@@ -3735,7 +3735,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		if(select(maxsock+1,sets[0],sets[1],sets[2],&tv) >= 0) {
 			for(i=0;i<limit[0];i++) {
-				if(!JS_GetElement(cx, inarray[i], i, &val))
+				if(!JS_GetElement(cx, inarray[0], i, &val))
 					break;
 				if(js_socket_isset(cx,val,&socket_set[0])) {
 					val=INT_TO_JSVAL(i);
@@ -3779,15 +3779,15 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 			for (j = 0; j < inarray_cnt; j++) {
 				if (limit[j] > 0) {
 					len = 0;
+					JS_RESUMEREQUEST(cx, rc);
+					if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
+						return(JS_FALSE);
+					val = OBJECT_TO_JSVAL(rarray);
+					if (!JS_SetProperty(cx, robj, props[j], &val))
+						return JS_FALSE;
+					rc=JS_SUSPENDREQUEST(cx);
 					for(i=0;i<limit[j];i++) {
 						JS_RESUMEREQUEST(cx, rc);
-						if((rarray = JS_NewArrayObject(cx, 0, NULL))==NULL)
-							return(JS_FALSE);
-						val = OBJECT_TO_JSVAL(rarray);
-						if (!JS_SetProperty(cx, robj, props[j], &val)) {
-							rc=JS_SUSPENDREQUEST(cx);
-							return JS_FALSE;
-						}
 						if(!JS_GetElement(cx, inarray[j], i, &val)) {
 							rc=JS_SUSPENDREQUEST(cx);
 							break;

@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.11 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: delfiles.c,v 1.12 2019/09/23 19:18:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,8 +104,9 @@ int main(int argc, char **argv)
 		"Filebase\n" ,DELFILES_VER, PLATFORM_DESC );
 
 	if(argc<2) {
-		printf("\n   usage: DELFILES <dir_code or * for ALL> [switches]\n");
+		printf("\n   usage: DELFILES [dir_code] [switches]\n");
 		printf("\nswitches: -LIB name All directories of specified library\n");
+		printf("          -ALL      Search all directories\n");
 		printf("          -NOT code Exclude specific directory\n");
 		printf("          -OFF      Remove files that are offline "
 			"(don't exist on disk)\n");
