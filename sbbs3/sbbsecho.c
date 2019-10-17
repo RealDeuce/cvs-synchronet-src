@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.140 2019/08/30 00:58:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.144 2019/10/17 04:01:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -57,6 +57,7 @@
 #include "sbbsecho.h"
 #include "genwrap.h"		/* PLATFORM_DESC */
 #include "xpendian.h"
+#include "utf8.h"
 
 #define MAX_OPEN_SMBS	10
 
@@ -775,6 +776,7 @@ bool bso_lock_node(fidoaddr_t dest)
 		if(terminated)
 			return false;
 		SLEEP(cfg.bso_lock_delay*1000);
+		mkpath(outbound); // Just in case something (e.g. Argus) deleted the outbound directory
 	}
 	strListPush(&locked_bso_nodes, fname);
 	lprintf(LOG_DEBUG, "Node (%s) successfully locked via: %s", smb_faddrtoa(&dest, NULL), fname);
@@ -1170,8 +1172,16 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 	hdr.destpoint=dest.point;
 
 	hdr.attr=(FIDO_PRIVATE|FIDO_KILLSENT|FIDO_LOCAL);
-	if(msg != NULL && (msg->hdr.auxattr&MSG_FILEATTACH))
-		hdr.attr|=FIDO_FILE;
+	if(msg != NULL) {
+		if(msg->hdr.netattr&MSG_CRASH)
+			hdr.attr|=FIDO_CRASH;
+		if(msg->hdr.auxattr&MSG_FILEATTACH)
+			hdr.attr|=FIDO_FILE;
+		if(msg->hdr.auxattr&MSG_FILEREQUEST)
+			hdr.attr|=FIDO_FREQ;
+		if(msg->hdr.auxattr&MSG_RECEIPTREQ)
+			hdr.attr|=FIDO_RRREQ;
+	}
 
 	if(nodecfg != NULL) {
 		switch(nodecfg->status) {
@@ -3428,8 +3438,6 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 				while(m && fbuf[m-1]<=' ' && fbuf[m-1]>=0) m--;
 				if(m>l) {
 					smb_hfield(&msg, FIDOCHARSET, (ushort)(m-l), fbuf+l);
-					if(smb_msg_is_utf8(&msg))
-						msg.hdr.auxattr |= MSG_HFIELDS_UTF8;
 				}
 			}
 
@@ -3476,8 +3484,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 			continue;
 		}
 
-		if(ch == '\n' ||
-			(ch == FIDO_SOFT_CR && cfg.strip_soft_cr))
+		if(ch == '\n')
 			continue;
 		if(cr && (!strncmp((char *)fbuf+l,"--- ",4)
 			|| !strncmp((char *)fbuf+l,"---\r",4)))
@@ -3544,6 +3551,16 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 	while(taillen && stail[taillen-1]<=' ')	/* trim all garbage off the tail */
 		taillen--;
 	stail[taillen]=0;
+
+	if(cfg.auto_utf8 && msg.ftn_charset == NULL && !str_is_ascii(fbuf) && utf8_str_is_valid(fbuf))
+		smb_hfield_str(&msg, FIDOCHARSET, FIDO_CHARSET_UTF8);
+
+	if(smb_msg_is_utf8(&msg))
+		msg.hdr.auxattr |= MSG_HFIELDS_UTF8;
+	else {
+		if(cfg.strip_soft_cr)
+			strip_char((const char*)sbody, (char*)sbody, FIDO_SOFT_CR);
+	}
 
 	if(subnum==INVALID_SUB && !bodylen && !taillen && cfg.kill_empty_netmail) {
 		lprintf(LOG_INFO,"Empty NetMail - Ignored ");
@@ -6009,7 +6026,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.140 $", "%*s %s", revision);
+	sscanf("$Revision: 3.144 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

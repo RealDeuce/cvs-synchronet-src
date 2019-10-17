@@ -1,6 +1,6 @@
-GTKCHAT	=	$(EXEODIR)$(DIRSEP)gtkchat$(EXEFILE)
+GTKUSERLIST	=	$(EXEODIR)$(DIRSEP)gtkuserlist$(EXEFILE)
 
-all: xpdev-mt smblib $(MTOBJODIR) $(EXEODIR) $(GTKCHAT)
+all: xpdev-mt $(MTOBJODIR) $(EXEODIR) $(GTKUSERLIST)
 
 ifdef SBBSEXEC
 .PHONY: install
@@ -12,4 +12,4 @@ symlinks: all
         ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 endif
 
-$(GTKCHAT):	$(XPDEV-MT_LIB) $(SMBLIB)
+$(GTKUSERLIST):	$(XPDEV-MT_LIB) $(SMBLIB)
