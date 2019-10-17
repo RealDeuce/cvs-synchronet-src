@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.143 2019/10/08 22:54:24 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.144 2019/10/17 04:01:43 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -776,6 +776,7 @@ bool bso_lock_node(fidoaddr_t dest)
 		if(terminated)
 			return false;
 		SLEEP(cfg.bso_lock_delay*1000);
+		mkpath(outbound); // Just in case something (e.g. Argus) deleted the outbound directory
 	}
 	strListPush(&locked_bso_nodes, fname);
 	lprintf(LOG_DEBUG, "Node (%s) successfully locked via: %s", smb_faddrtoa(&dest, NULL), fname);
@@ -6025,7 +6026,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.143 $", "%*s %s", revision);
+	sscanf("$Revision: 3.144 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
