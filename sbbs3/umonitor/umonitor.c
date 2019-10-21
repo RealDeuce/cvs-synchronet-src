@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.88 2019/08/31 22:33:26 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.89 2019/09/26 03:19:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,7 +805,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.88 $", "%*s %s", revision);
+	sscanf("$Revision: 1.89 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -978,7 +978,7 @@ USAGE:
 			if((j=getnodedat(&cfg,i,&node,FALSE,NULL)))
 				sprintf(mopt[i],"Error reading node data (%d)!",j);
 			else {
-				nodestatus(&cfg, &node, str, 71);
+				nodestatus(&cfg, &node, str, 71, i);
 				if(i == paging_node) {
 					strupr(str);
 					strcat(str,  " <PAGING>");
