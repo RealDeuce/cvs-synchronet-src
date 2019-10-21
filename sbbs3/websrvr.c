@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.699 2019/09/03 02:19:00 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.700 2019/10/21 06:32:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2728,7 +2728,7 @@ static BOOL parse_headers(http_session_t * session)
 				default:
 					break;
 			}
-			sprintf(env_name,"HTTP_%s",head_line);
+			SAFEPRINTF(env_name,"HTTP_%s",head_line);
 			add_env(session,env_name,value);
 		}
 		free(head_line);
@@ -6584,7 +6584,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.699 $", "%*s %s", revision);
+	sscanf("$Revision: 1.700 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
