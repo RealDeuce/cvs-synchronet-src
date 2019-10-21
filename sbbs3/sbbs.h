@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.557 2020/03/01 23:55:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.553 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,14 +394,11 @@ public:
 	JSRuntime*		js_runtime;
 	JSContext*		js_cx;
 	JSObject*		js_glob;
-	JSRuntime*		js_hotkey_runtime;
-	JSContext*		js_hotkey_cx;
-	JSObject*		js_hotkey_glob;
 	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope = NULL, JSContext* cx = NULL);
-	JSContext*		js_init(JSRuntime**, JSObject**, const char* desc);
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
+	bool			js_init(ulong* stack_frame);
 	void			js_cleanup(void);
-	bool			js_create_user_objects(JSContext*, JSObject* glob);
+	void			js_create_user_objects(void);
 
 #endif
 
@@ -790,8 +787,8 @@ public:
 	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str, long mode = 0);
-	bool	noyes(const char *str, long mode = 0);
+	bool	yesno(const char *str);
+	bool	noyes(const char *str);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
@@ -1175,8 +1172,6 @@ extern "C" {
 	DLLEXPORT BOOL		str_has_ctrl(const char*);
 	DLLEXPORT BOOL		str_is_ascii(const char*);
 	DLLEXPORT char *	utf8_to_cp437_str(char* str);
-	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
-	DLLEXPORT char * 	get_ctrl_dir(void);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
