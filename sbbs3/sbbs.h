@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.553 2019/10/08 02:08:58 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.554 2019/10/24 20:54:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,11 +394,14 @@ public:
 	JSRuntime*		js_runtime;
 	JSContext*		js_cx;
 	JSObject*		js_glob;
+	JSRuntime*		js_hotkey_runtime;
+	JSContext*		js_hotkey_cx;
+	JSObject*		js_hotkey_glob;
 	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
-	bool			js_init(ulong* stack_frame);
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope = NULL, JSContext* cx = NULL);
+	JSContext*		js_init(JSRuntime**, JSObject**, const char* desc);
 	void			js_cleanup(void);
-	void			js_create_user_objects(void);
+	bool			js_create_user_objects(JSContext*, JSObject* glob);
 
 #endif
 
