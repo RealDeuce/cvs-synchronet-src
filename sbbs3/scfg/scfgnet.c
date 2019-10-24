@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.46 2020/04/07 03:44:17 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.43 2019/08/17 02:27:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1261,7 +1261,7 @@ BOOL import_qwk_conferences(uint qhubnum)
 	}
 	uifc.pop("Importing Areas...");
 	long added = 0;
-	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], /* pkt_orig */NULL, /* faddr: */NULL, /* misc: */0, &added);
+	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], &added);
 	fclose(fp);
 	uifc.pop(NULL);
 	if(ported < 0)
