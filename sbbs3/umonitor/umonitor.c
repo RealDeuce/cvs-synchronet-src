@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.91 2020/02/04 05:04:38 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.89 2019/09/26 03:19:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -786,7 +786,7 @@ int main(int argc, char** argv)  {
 	int		main_dflt=0;
 	int		main_bar=0;
 	char	revision[16];
-	char	str[256],ctrl_dir[MAX_PATH + 1];
+	char	str[256],ctrl_dir[41],*p;
 	char	title[256];
 	int		i,j;
 	node_t	node;
@@ -805,13 +805,22 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.91 $", "%*s %s", revision);
+	sscanf("$Revision: 1.89 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
 
-	SAFECOPY(ctrl_dir, get_ctrl_dir());
-	backslash(ctrl_dir);
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\7\nSBBSCTRL environment variable is not set.\n");
+		printf("This environment variable must be set to your CTRL directory.");
+		printf("\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+		exit(1); }
+
+	sprintf(ctrl_dir,"%.40s",p);
+	if(ctrl_dir[strlen(ctrl_dir)-1]!='\\'
+		&& ctrl_dir[strlen(ctrl_dir)-1]!='/')
+		strcat(ctrl_dir,"/");
 
 	gethostname(str,sizeof(str)-1);
 
@@ -820,7 +829,7 @@ int main(int argc, char** argv)  {
 	/* Initialize BBS startup structure */
 	memset(&bbs_startup,0,sizeof(bbs_startup));
 	bbs_startup.size=sizeof(bbs_startup);
-	SAFECOPY(bbs_startup.ctrl_dir,ctrl_dir);
+	strcpy(bbs_startup.ctrl_dir,ctrl_dir);
 
 	/* Read .ini file here */
 	if(ini_file[0]!=0 && (fp=fopen(ini_file,"r"))!=NULL) {
