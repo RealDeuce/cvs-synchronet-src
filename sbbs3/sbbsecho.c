@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.144 2019/10/17 04:01:43 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.145 2019/10/27 15:00:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4194,6 +4194,8 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr
 			continue;
 		if(check_psb(&seenbys, area.link[u]))
 			continue;
+		if(check_psb(&paths, area.link[u]))
+			continue;
 		if(hdr->origzone == area.link[u].zone
 			&& hdr->orignet == area.link[u].net
 			&& hdr->orignode == area.link[u].node
@@ -6026,7 +6028,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.144 $", "%*s %s", revision);
+	sscanf("$Revision: 3.145 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
