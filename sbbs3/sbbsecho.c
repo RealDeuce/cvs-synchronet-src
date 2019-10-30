@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.151 2020/01/23 02:25:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.146 2019/10/30 18:52:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1377,20 +1377,13 @@ bool area_is_valid(uint areanum)
 	return areanum < cfg.areas;
 }
 
-// if full is true, compare full address, otherwise, exclude point in comparison
-uint find_sysfaddr(faddr_t addr, bool full)
+uint find_sysfaddr(faddr_t addr)
 {
 	unsigned u;
 
-	for(u=0; u < scfg.total_faddrs; u++) {
-		if(full && memcmp(&scfg.faddr[u], &addr, sizeof(addr)) == 0)
+	for(u=0; u < scfg.total_faddrs; u++)
+		if(memcmp(&scfg.faddr[u], &addr, sizeof(addr)) == 0)
 			break;
-		if(!full
-			&& scfg.faddr[u].zone == addr.zone
-			&& scfg.faddr[u].net == addr.net
-			&& scfg.faddr[u].node == addr.node)
-			break;
-	}
 
 	return u;
 }
@@ -1698,6 +1691,16 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 							break;
 						}
 						lprintf(LOG_INFO,"AreaFix (for %s) Unlinking area: %s", smb_faddrtoa(&addr,NULL), echotag);
+
+						/* Added 12/4/95 to remove link from connected link */
+
+						for(k=u;k<cfg.area[u].links-1;k++)
+							memcpy(&cfg.area[u].link[k],&cfg.area[u].link[k+1]
+								,sizeof(fidoaddr_t));
+						--cfg.area[u].links;
+						if(cfg.area[u].links==0) {
+							FREE_AND_NULL(cfg.area[u].link);
+						}
 
 						fprintf(afileout,"%-*s %-*s "
 							,LEN_EXTCODE, code
@@ -5163,11 +5166,8 @@ int export_netmail(void)
 		if((msg.idx.attr&MSG_DELETE) || msg.idx.to != 0)
 			continue;
 
-		if((i = smb_getmsghdr(email, &msg)) != SMB_SUCCESS) {
-			lprintf(LOG_ERR,"ERROR %d (%s) line %d reading msg header #%u from %s"
-				,i, email->last_error, __LINE__, msg.idx.number, email->file);
+		if(smb_getmsghdr(email, &msg) != SMB_SUCCESS)
 			continue;
-		}
 
 		if(msg.to_ext != 0 || msg.to_net.type != NET_FIDO)
 			continue;
@@ -5347,7 +5347,7 @@ void pack_netmail(void)
 		addr.point		= hdr.destpoint;
 		printf("NetMail msg %s from %s (%s) to %s (%s): "
 			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
-		if(sysfaddr_is_valid(find_sysfaddr(addr, true)))	{				  /* In-bound, so ignore */
+		if(sysfaddr_is_valid(find_sysfaddr(addr)))	{				  /* In-bound, so ignore */
 			printf("in-bound\n");
 			fclose(fidomsg);
 			continue;
@@ -5401,13 +5401,11 @@ void pack_netmail(void)
 		}
 
 		nodecfg=findnodecfg(&cfg, addr, 0);
-		if(!sysfaddr_is_valid(find_sysfaddr(addr, false))) {
-			if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL
-				&& !(hdr.attr&(FIDO_CRASH|FIDO_HOLD))) {
-				addr=nodecfg->route;		/* Routed */
-				lprintf(LOG_INFO, "Routing NetMail (%s) to %s",getfname(path),smb_faddrtoa(&addr,NULL));
-				nodecfg=findnodecfg(&cfg, addr,0);
-			}
+		if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL
+			&& !(hdr.attr&(FIDO_CRASH|FIDO_HOLD))) {
+			addr=nodecfg->route;		/* Routed */
+			lprintf(LOG_INFO, "Routing NetMail (%s) to %s",getfname(path),smb_faddrtoa(&addr,NULL));
+			nodecfg=findnodecfg(&cfg, addr,0);
 		}
 		if(!bso_lock_node(addr))
 			continue;
@@ -5550,7 +5548,7 @@ void find_stray_packets(void)
 			delfile(packet, __LINE__);
 			continue;
 		}
-		uint sysfaddr = find_sysfaddr(pkt_orig, true);
+		uint sysfaddr = find_sysfaddr(pkt_orig);
 		lprintf(LOG_WARNING,"Stray Outbound Packet (type %s) found, from %s address %s to %s: %s"
 			,pktTypeStringList[pkt_type], sysfaddr_is_valid(sysfaddr) ? "local" : "FOREIGN"
 			,smb_faddrtoa(&pkt_orig, NULL), smb_faddrtoa(&pkt_dest, str), packet);
@@ -6032,7 +6030,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.151 $", "%*s %s", revision);
+	sscanf("$Revision: 3.146 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6137,7 +6135,13 @@ int main(int argc, char **argv)
 	if(!opt_import_echomail && !opt_import_netmail)
 		opt_import_packets = false;
 
-	SAFECOPY(scfg.ctrl_dir, get_ctrl_dir());
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\7\nSBBSCTRL environment variable not set.\n");
+		bail(1);
+		return -1;
+	}
+	SAFECOPY(scfg.ctrl_dir,p);
 
 	backslash(scfg.ctrl_dir);
 
