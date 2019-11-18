@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.147 2019/11/18 00:31:10 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.148 2019/11/18 21:08:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5407,8 +5407,8 @@ void pack_netmail(void)
 			return;
 		}
 
+		nodecfg=findnodecfg(&cfg, addr, 0);
 		if(!sysfaddr_is_valid(find_sysfaddr(addr, false))) {
-			nodecfg=findnodecfg(&cfg, addr, 0);
 			if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL
 				&& !(hdr.attr&(FIDO_CRASH|FIDO_HOLD))) {
 				addr=nodecfg->route;		/* Routed */
@@ -6039,7 +6039,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.147 $", "%*s %s", revision);
+	sscanf("$Revision: 3.148 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
