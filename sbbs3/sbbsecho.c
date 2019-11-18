@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.146 2019/10/30 18:52:32 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.147 2019/11/18 00:31:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1377,13 +1377,20 @@ bool area_is_valid(uint areanum)
 	return areanum < cfg.areas;
 }
 
-uint find_sysfaddr(faddr_t addr)
+// if full is true, compare full address, otherwise, exclude point in comparison
+uint find_sysfaddr(faddr_t addr, bool full)
 {
 	unsigned u;
 
-	for(u=0; u < scfg.total_faddrs; u++)
-		if(memcmp(&scfg.faddr[u], &addr, sizeof(addr)) == 0)
+	for(u=0; u < scfg.total_faddrs; u++) {
+		if(full && memcmp(&scfg.faddr[u], &addr, sizeof(addr)) == 0)
 			break;
+		if(!full
+			&& scfg.faddr[u].zone == addr.zone
+			&& scfg.faddr[u].net == addr.net
+			&& scfg.faddr[u].node == addr.node)
+			break;
+	}
 
 	return u;
 }
@@ -5347,7 +5354,7 @@ void pack_netmail(void)
 		addr.point		= hdr.destpoint;
 		printf("NetMail msg %s from %s (%s) to %s (%s): "
 			,getfname(path), hdr.from, fmsghdr_srcaddr_str(&hdr), hdr.to, smb_faddrtoa(&addr,NULL));
-		if(sysfaddr_is_valid(find_sysfaddr(addr)))	{				  /* In-bound, so ignore */
+		if(sysfaddr_is_valid(find_sysfaddr(addr, true)))	{				  /* In-bound, so ignore */
 			printf("in-bound\n");
 			fclose(fidomsg);
 			continue;
@@ -5400,12 +5407,14 @@ void pack_netmail(void)
 			return;
 		}
 
-		nodecfg=findnodecfg(&cfg, addr, 0);
-		if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL
-			&& !(hdr.attr&(FIDO_CRASH|FIDO_HOLD))) {
-			addr=nodecfg->route;		/* Routed */
-			lprintf(LOG_INFO, "Routing NetMail (%s) to %s",getfname(path),smb_faddrtoa(&addr,NULL));
-			nodecfg=findnodecfg(&cfg, addr,0);
+		if(!sysfaddr_is_valid(find_sysfaddr(addr, false))) {
+			nodecfg=findnodecfg(&cfg, addr, 0);
+			if(nodecfg!=NULL && nodecfg->route.zone	&& nodecfg->status==MAIL_STATUS_NORMAL
+				&& !(hdr.attr&(FIDO_CRASH|FIDO_HOLD))) {
+				addr=nodecfg->route;		/* Routed */
+				lprintf(LOG_INFO, "Routing NetMail (%s) to %s",getfname(path),smb_faddrtoa(&addr,NULL));
+				nodecfg=findnodecfg(&cfg, addr,0);
+			}
 		}
 		if(!bso_lock_node(addr))
 			continue;
@@ -5548,7 +5557,7 @@ void find_stray_packets(void)
 			delfile(packet, __LINE__);
 			continue;
 		}
-		uint sysfaddr = find_sysfaddr(pkt_orig);
+		uint sysfaddr = find_sysfaddr(pkt_orig, true);
 		lprintf(LOG_WARNING,"Stray Outbound Packet (type %s) found, from %s address %s to %s: %s"
 			,pktTypeStringList[pkt_type], sysfaddr_is_valid(sysfaddr) ? "local" : "FOREIGN"
 			,smb_faddrtoa(&pkt_orig, NULL), smb_faddrtoa(&pkt_dest, str), packet);
@@ -6030,7 +6039,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.146 $", "%*s %s", revision);
+	sscanf("$Revision: 3.147 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
