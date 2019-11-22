@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.50 2019/08/01 08:16:25 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.52 2019/09/02 10:27:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -613,6 +613,7 @@ typedef struct
 	uint16_t		user_backup_level;
 	uint16_t		mail_backup_level;
 
+	// Run-time state information (not configuration)
 	int				tls_certificate;
 
 } scfg_t;

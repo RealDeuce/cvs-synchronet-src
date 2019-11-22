@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.47 2019/07/26 20:10:03 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.49 2019/09/17 10:29:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,8 @@ void global_settings(void)
 			,cfg.strip_soft_cr ? "Yes":"No");
 		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Strip Outgoing Line Feeds "
 			,cfg.strip_lf ? "Yes":"No");
+		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Auto-detect UTF-8 Messages "
+			,cfg.auto_utf8 ? "Yes":"No");
 		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Use Outboxes for Mail Files "
 			,cfg.use_outboxes ? "Yes":"No");
 
@@ -143,6 +145,11 @@ void global_settings(void)
 			"`Strip Outgoing Line Feeds` instructs SBBSecho to remove any Line Feed\n"
 			"    (ASCII 10) characters from the body text of `exported` EchoMail and\n"
 			"    NetMail messages.\n"
+			"\n"
+			"`Auto-detect UTF-8 Messages` instructs SBBSecho to treat incoming\n"
+			"    messages which lack a CHRS/CHARSET control line and contain valid\n"
+			"    UTF-8 character sequences in the message text, as UTF-8 encoded\n"
+			"    messages.\n"
 			"\n"
 			"`Use Outboxes for Mail Files` instructs SBBSecho to place outbound\n"
 			"    NetMail and EchoMail files into the configured `Outbox Directory`\n"
@@ -254,6 +261,16 @@ void global_settings(void)
 			}
 			case 8:
 			{
+				int k = !cfg.auto_utf8;
+				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+					,"Auto-detect incoming UTF-8 encoded messages",uifcYesNoOpts)) {
+					case 0:	cfg.auto_utf8 = true;	break;
+					case 1:	cfg.auto_utf8 = false;	break;
+				}
+				break;
+			}
+			case 9:
+			{
 				int k = !cfg.use_outboxes;
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Outboxes for Outbound NetMail and EchoMail",uifcYesNoOpts)) {
@@ -262,35 +279,35 @@ void global_settings(void)
 				}
 				break;
 			}
-			case 9:
+			case 10:
 				duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration));
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "BSY Mutex File Timeout", duration, 10, K_EDIT) > 0)
 					cfg.bsy_timeout = (ulong)parse_duration(duration);
 				break;
 
-			case 10:
+			case 11:
 				duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration));
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Delay Between BSO Lock Attempts", duration, 10, K_EDIT) > 0)
 					cfg.bso_lock_delay = (ulong)parse_duration(duration);
 				break;
 
-			case 11:
+			case 12:
 				sprintf(str, "%lu", cfg.bso_lock_attempts);
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Maximum BSO Lock Attempts", str, 5, K_EDIT|K_NUMBER) > 0)
 					cfg.bso_lock_attempts = atoi(str);
 				break;
 
-			case 12:
+			case 13:
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Capabilities (BinkIT)", cfg.binkp_caps, sizeof(cfg.binkp_caps)-1, K_EDIT);
 				break;
 
-			case 13:
+			case 14:
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Sysop Name (BinkIT)", cfg.binkp_sysop, sizeof(cfg.binkp_sysop)-1, K_EDIT);
 				break;
 
-			case 14:
+			case 15:
 			{
 				int k = !cfg.binkp_plainAuthOnly;
 				strcpy(opt[0], "Plain-Password Only");
@@ -308,7 +325,7 @@ void global_settings(void)
 				break;
 			}
 
-			case 15:
+			case 16:
 			{
 				if(cfg.binkp_plainAuthOnly) {
 					uifc.msg("CRAM-MD5 authentication/encryption has been disabled globally");
@@ -1754,10 +1771,10 @@ int main(int argc, char **argv)
 	"    (`---`) existing in outgoing EchoMail message text to `===`.\n"
 	"    This setting defaults to `No`.\n"
 	"\n"
-	"`Automatically Add New Subs to Area File`, when set to `Yes`, enables\n"
+	"`Automatically Add New Subs to Area List`, when enabled, instructs\n"
 	"    SBBSecho to detect newly added Sub-boards in any Message Groups that\n"
-	"    are listed with a `Linked Node` as their hub/uplink and add those\n"
-	"    Sub-boards as new areas in your Area File.\n"
+	"    are listed with a `Linked Node` as their hub/uplink and add those new\n"
+	"    Sub-boards as new areas to your Area List and optionally, Area File.\n"
 	"\n"
 	"`Allow Nodes to Add Areas from Area File` when set to `Yes` allows linked\n"
 	"    nodes to add areas listed in your Area File (e.g. `areas.bbs`).\n"
@@ -1805,8 +1822,8 @@ int main(int argc, char **argv)
 						,cfg.echomail_notify ? "Yes":"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Convert Existing Tear Lines"
 						,cfg.convert_tear ? "Yes":"No");
-					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Automatically Add New Subs "
-						"to Area File",cfg.auto_add_subs ? "Yes":"No");
+					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%s","Automatically Add New Subs "
+						"to Area List", cfg.auto_add_subs ? (cfg.auto_add_to_areafile ? "List/File":"List Only"):"No");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%-3.3s","Allow Nodes to Add Areas "
 						"from Area File",cfg.add_from_echolists_only ? "No":"Yes");
 					snprintf(opt[i++],MAX_OPLN-1,"%-45.45s%u","Maximum Backups to Maintain of Area File"
@@ -1887,11 +1904,22 @@ int main(int argc, char **argv)
 							}
 							break;
 						case 6:
-							k = !cfg.auto_add_subs;
+							i=0;
+							strncpy(opt[i++], "Area List (memory) Only", MAX_OPLN-1);
+							strncpy(opt[i++], "Area List and Area File", MAX_OPLN-1);
+							strncpy(opt[i++], "No", MAX_OPLN-1);
+							opt[i][0] = 0;
+							if(!cfg.auto_add_subs)
+								k = 2;
+							else if(cfg.auto_add_to_areafile)
+								k = 1;
+							else
+								k = 0;
 							switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
-								,"Automatically Add New Sub-boards to Area File",uifcYesNoOpts)) {
-								case 0:	cfg.auto_add_subs = true;	break;
-								case 1:	cfg.auto_add_subs = false;	break;
+								,"Automatically Add New Sub-boards to Area List",opt)) {
+								case 0:	cfg.auto_add_subs = true;	cfg.auto_add_to_areafile = false; break;
+								case 1:	cfg.auto_add_subs = true;	cfg.auto_add_to_areafile = true; break;
+								case 2:	cfg.auto_add_subs = false;	break;
 							}
 							break;
 						case 7:
