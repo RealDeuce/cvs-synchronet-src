@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.550 2019/08/31 22:37:40 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.554 2019/10/24 20:54:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -394,11 +394,14 @@ public:
 	JSRuntime*		js_runtime;
 	JSContext*		js_cx;
 	JSObject*		js_glob;
+	JSRuntime*		js_hotkey_runtime;
+	JSContext*		js_hotkey_cx;
+	JSObject*		js_hotkey_glob;
 	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
-	bool			js_init(ulong* stack_frame);
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope = NULL, JSContext* cx = NULL);
+	JSContext*		js_init(JSRuntime**, JSObject**, const char* desc);
 	void			js_cleanup(void);
-	void			js_create_user_objects(void);
+	bool			js_create_user_objects(JSContext*, JSObject* glob);
 
 #endif
 
@@ -734,7 +737,7 @@ public:
 	int		outchar(enum unicode_codepoint, char cp437_fallback);
 	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
 	void	inc_column(int count);
-	void	center(char *str);
+	void	center(char *str, unsigned int columns = 0);
 	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
@@ -744,6 +747,7 @@ public:
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
+	bool	cursor_xy(int x, int y);
 	void	carriage_return(int count=1);
 	void	line_feed(int count=1);
 	void	newline(int count=1);
@@ -1160,6 +1164,7 @@ extern "C" {
 	DLLEXPORT char *	strip_space(const char *str, char* dest);
 	DLLEXPORT char *	prep_file_desc(const char *str, char* dest);
 	DLLEXPORT char *	strip_ctrl(const char *str, char* dest);
+	DLLEXPORT char *	strip_char(const char* str, char* dest, char);
 	DLLEXPORT char *	net_addr(net_t* net);
 	DLLEXPORT BOOL		valid_ctrl_a_attr(char a);
 	DLLEXPORT BOOL		valid_ctrl_a_code(char a);
