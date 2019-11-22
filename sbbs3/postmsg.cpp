@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.126 2019/08/04 22:48:38 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.129 2019/09/02 05:42:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "utf8.h"
 
 int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, long* dupechk_hashes, uint16_t* xlat)
 {
@@ -91,23 +92,23 @@ bool sbbs_t::postmsg(uint subnum, long wm_mode, smb_t* resmb, smbmsg_t* remsg)
 	uint	reason;
 
 	if(remsg) {
-		SAFECOPY(title, msghdr_field(remsg, remsg->subj, NULL, /* UTF8: */true));
+		SAFECOPY(title, msghdr_field(remsg, remsg->subj, NULL, term_supports(UTF8)));
 		if(remsg->hdr.attr&MSG_ANONYMOUS)
 			SAFECOPY(from,text[Anonymous]);
 		else
-			SAFECOPY(from, msghdr_field(remsg, remsg->from, NULL, /* UTF8: */true));
+			SAFECOPY(from, msghdr_field(remsg, remsg->from, NULL, term_supports(UTF8)));
 		// If user posted this message, reply to the original recipient again
 		if(remsg->to != NULL
 			&& ((remsg->from_ext != NULL && atoi(remsg->from_ext)==useron.number)
 				|| stricmp(useron.alias,remsg->from) == 0 || stricmp(useron.name,remsg->from) == 0))
-			SAFECOPY(touser, msghdr_field(remsg, remsg->to, NULL, /* UTF8: */true));
+			SAFECOPY(touser, msghdr_field(remsg, remsg->to, NULL, term_supports(UTF8)));
 		else
 			SAFECOPY(touser,from);
 		msgattr=(ushort)(remsg->hdr.attr&MSG_PRIVATE);
 		sprintf(top,text[RegardingByToOn]
 			,title
 			,from
-			,msghdr_field(remsg, remsg->to, NULL, /* UTF8: */true)
+			,msghdr_field(remsg, remsg->to, NULL, term_supports(UTF8))
 			,timestr(remsg->hdr.when_written.time)
 			,smb_zonestr(remsg->hdr.when_written.zone,NULL));
 		if(remsg->tags != NULL)
@@ -359,18 +360,24 @@ extern "C" int DLLCALL msg_client_hfields(smbmsg_t* msg, client_t* client)
 
 	if(client->user!=NULL && (i=smb_hfield_str(msg,SENDERUSERID,client->user))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
+	if(client->time
+		&& (i=smb_hfield_str(msg,SENDERTIME,xpDateTime_to_isoDateTimeStr(gmtime_to_xpDateTime(client->time)
 		,/* separators: */"","","", /* precision: */0
 		,date,sizeof(date))))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
+	if(*client->addr
+		&& (i=smb_hfield_str(msg,SENDERIPADDR,client->addr))!=SMB_SUCCESS)
 		return(i);
-	if((i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
+	if(*client->host
+		&& (i=smb_hfield_str(msg,SENDERHOSTNAME,client->host))!=SMB_SUCCESS)
 		return(i);
 	if(client->protocol!=NULL && (i=smb_hfield_str(msg,SENDERPROTOCOL,client->protocol))!=SMB_SUCCESS)
 		return(i);
-	SAFEPRINTF(port,"%u",client->port);
-	return smb_hfield_str(msg,SENDERPORT,port);
+	if(client->port) {
+		SAFEPRINTF(port,"%u",client->port);
+		return smb_hfield_str(msg,SENDERPORT,port);
+	}
+	return SMB_SUCCESS;
 }
 
 /* Note: support MSG_BODY only, no tails or other data fields (dfields) */
@@ -449,6 +456,11 @@ extern "C" int DLLCALL savemsg(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, client_t*
 		smb_hfield_str(msg,SENDERSERVER,server);
  
 	add_msg_ids(cfg, smb, msg, remsg);
+
+	if((msg->to != NULL && !str_is_ascii(msg->to) && utf8_str_is_valid(msg->to))
+		|| (msg->from != NULL && !str_is_ascii(msg->from) && utf8_str_is_valid(msg->from))
+		|| (msg->subj != NULL && !str_is_ascii(msg->subj) && utf8_str_is_valid(msg->subj)))
+		msg->hdr.auxattr |= MSG_HFIELDS_UTF8;
 
 	if((i=smb_addmsg(smb,msg,smb_storage_mode(cfg, smb),dupechk_hashes,xlat,(uchar*)msgbuf, /* tail: */NULL))==SMB_SUCCESS
 		&& msg->to!=NULL	/* no recipient means no header created at this stage */) {
