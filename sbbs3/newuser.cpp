@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.82 2019/07/08 21:18:06 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.84 2019/10/24 20:54:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "petdefs.h"
 #include "cmdshell.h"
 
 /****************************************************************************/
@@ -473,7 +474,7 @@ BOOL sbbs_t::newuser()
 	answertime=starttime=time(NULL);	  /* set answertime to now */
 
 #ifdef JAVASCRIPT
-	js_create_user_objects();
+	js_create_user_objects(js_cx, js_glob);
 #endif
 
 	if(cfg.newuser_mod[0])
