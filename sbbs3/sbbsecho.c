@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.151 2020/01/23 02:25:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.148 2019/11/18 21:08:15 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1698,6 +1698,16 @@ void alter_areas(str_list_t add_area, str_list_t del_area, fidoaddr_t addr, cons
 							break;
 						}
 						lprintf(LOG_INFO,"AreaFix (for %s) Unlinking area: %s", smb_faddrtoa(&addr,NULL), echotag);
+
+						/* Added 12/4/95 to remove link from connected link */
+
+						for(k=u;k<cfg.area[u].links-1;k++)
+							memcpy(&cfg.area[u].link[k],&cfg.area[u].link[k+1]
+								,sizeof(fidoaddr_t));
+						--cfg.area[u].links;
+						if(cfg.area[u].links==0) {
+							FREE_AND_NULL(cfg.area[u].link);
+						}
 
 						fprintf(afileout,"%-*s %-*s "
 							,LEN_EXTCODE, code
@@ -5163,11 +5173,8 @@ int export_netmail(void)
 		if((msg.idx.attr&MSG_DELETE) || msg.idx.to != 0)
 			continue;
 
-		if((i = smb_getmsghdr(email, &msg)) != SMB_SUCCESS) {
-			lprintf(LOG_ERR,"ERROR %d (%s) line %d reading msg header #%u from %s"
-				,i, email->last_error, __LINE__, msg.idx.number, email->file);
+		if(smb_getmsghdr(email, &msg) != SMB_SUCCESS)
 			continue;
-		}
 
 		if(msg.to_ext != 0 || msg.to_net.type != NET_FIDO)
 			continue;
@@ -6032,7 +6039,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.151 $", "%*s %s", revision);
+	sscanf("$Revision: 3.148 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6137,7 +6144,13 @@ int main(int argc, char **argv)
 	if(!opt_import_echomail && !opt_import_netmail)
 		opt_import_packets = false;
 
-	SAFECOPY(scfg.ctrl_dir, get_ctrl_dir());
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\7\nSBBSCTRL environment variable not set.\n");
+		bail(1);
+		return -1;
+	}
+	SAFECOPY(scfg.ctrl_dir,p);
 
 	backslash(scfg.ctrl_dir);
 
