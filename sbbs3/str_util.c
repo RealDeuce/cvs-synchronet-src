@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.64 2019/08/28 01:37:20 rswindell Exp $ */
+/* $Id: str_util.c,v 1.66 2019/12/01 19:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,6 +113,21 @@ char* strip_space(const char *str, char* dest)
 			dest[j++]=str[i];
 	dest[j]=0;
 	return dest;
+}
+
+char* strip_char(const char* str, char* dest, char ch)
+{
+	const char* src;
+
+	if(dest == NULL && (dest = strdup(str)) == NULL)
+		return NULL;
+	char* retval = dest;
+	for(src = str; *src != '\0'; src++) {
+		if(*src != ch)
+			*(dest++) = *src;
+	}
+	*dest = '\0';
+	return retval;
 }
 
 char* prep_file_desc(const char *str, char* dest)
@@ -668,4 +683,39 @@ char* utf8_to_cp437_str(char* str)
 		,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
 		,/* unsupported zero-width ch: */0
 		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
+}
+
+char* subnewsgroupname(scfg_t* cfg, sub_t* sub, char* str, size_t size)
+{
+	memset(str, 0, size);
+	if(sub->newsgroup[0])
+		strncpy(str, sub->newsgroup, size - 1);
+	else {
+		snprintf(str, size - 1, "%s.%s", cfg->grp[sub->grp]->sname, sub->sname);
+		/*
+		 * From RFC5536:
+		 * newsgroup-name  =  component *( "." component )
+		 * component       =  1*component-char
+		 * component-char  =  ALPHA / DIGIT / "+" / "-" / "_"
+		 */
+		if (str[0] == '.')
+			str[0] = '_';
+		size_t c;
+		for(c = 0; str[c] != 0; c++) {
+			/* Legal characters */
+			if ((str[c] >= 'A' && str[c] <= 'Z')
+					|| (str[c] >= 'a' && str[c] <= 'z')
+					|| (str[c] >= '0' && str[c] <= '9')
+					|| str[c] == '+'
+					|| str[c] == '-'
+					|| str[c] == '_'
+					|| str[c] == '.')
+				continue;
+			str[c] = '_';
+		}
+		c--;
+		if (str[c] == '.')
+			str[c] = '_';
+	}
+	return str;
 }
