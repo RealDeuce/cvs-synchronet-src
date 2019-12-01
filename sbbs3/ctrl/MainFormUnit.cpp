@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.207 2020/03/15 09:36:21 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.206 2019/08/31 22:25:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3916,13 +3916,6 @@ void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
       TObject *Sender)
 {
     clearLoginAttemptList = true;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TMainForm::RefreshLogClick(TObject *Sender)
-{
-    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
-    Log->Refresh();
 }
 //---------------------------------------------------------------------------
 

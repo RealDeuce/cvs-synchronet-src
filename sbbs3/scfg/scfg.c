@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.107 2020/03/15 03:58:13 rswindell Exp $ */
+/* $Id: scfg.c,v 1.105 2019/11/30 23:26:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -175,7 +175,11 @@ int main(int argc, char **argv)
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
-    SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
+    p=getenv("SBBSCTRL");
+    if(p!=NULL)
+        SAFECOPY(cfg.ctrl_dir,p);
+    else
+		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
 
 	uifc.esc_delay=25;
 
@@ -2188,10 +2192,7 @@ int lprintf(int level, char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     strip_ctrl(sbuf,sbuf);
-	if(uifc.msg == NULL)
-		puts(sbuf);
-	else
-    	uifc.msg(sbuf);
+    uifc.msg(sbuf);
     return(0);
 }
 

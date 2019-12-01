@@ -1,6 +1,6 @@
 /* Synchronet string utility routines */
 
-/* $Id: str_util.c,v 1.67 2020/01/03 20:34:56 rswindell Exp $ */
+/* $Id: str_util.c,v 1.66 2019/12/01 19:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -719,14 +719,3 @@ char* subnewsgroupname(scfg_t* cfg, sub_t* sub, char* str, size_t size)
 	}
 	return str;
 }
-
-char* get_ctrl_dir(void)
-{
-	char* p = getenv("SBBSCTRL");
-	if(p == NULL || *p == '\0') {
-		fprintf(stderr, "!SBBSCTRL environment variable not set, using default value: " SBBSCTRL_DEFAULT "\n\n");
-		p = SBBSCTRL_DEFAULT;
-	}
-	return p;
-}
-

@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.557 2020/03/01 23:55:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.555 2019/12/01 19:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,8 +790,8 @@ public:
 	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str, long mode = 0);
-	bool	noyes(const char *str, long mode = 0);
+	bool	yesno(const char *str);
+	bool	noyes(const char *str);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
@@ -1176,7 +1176,6 @@ extern "C" {
 	DLLEXPORT BOOL		str_is_ascii(const char*);
 	DLLEXPORT char *	utf8_to_cp437_str(char* str);
 	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
-	DLLEXPORT char * 	get_ctrl_dir(void);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
