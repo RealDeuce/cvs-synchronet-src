@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.554 2019/10/24 20:54:31 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.555 2019/12/01 19:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1175,6 +1175,7 @@ extern "C" {
 	DLLEXPORT BOOL		str_has_ctrl(const char*);
 	DLLEXPORT BOOL		str_is_ascii(const char*);
 	DLLEXPORT char *	utf8_to_cp437_str(char* str);
+	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
