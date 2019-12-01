@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.402 2019/09/19 06:52:21 rswindell Exp $ */
+/* $Id: js_global.c,v 1.403 2019/09/25 04:18:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -151,7 +151,6 @@ static void background_thread(void* arg)
 
 	jsrt_Release(bg->runtime);
 	sem_post(bg->sem);
-	msgQueueDetach(bg->msg_queue);
 	free(bg);
 }
 

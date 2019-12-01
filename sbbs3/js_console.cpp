@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.139 2019/09/10 19:57:27 deuce Exp $ */
+/* $Id: js_console.cpp,v 1.141 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1445,6 +1445,7 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
+	int32		cols = 0;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -1456,11 +1457,16 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 	if (!str)
 		return(JS_FALSE);
 
+	if(argc > 1) {
+		if(!JS_ValueToInt32(cx, argv[1], &cols))
+			return JS_FALSE;
+	}
+
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->center(cstr);
+	sbbs->center(cstr, cols);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1617,7 +1623,7 @@ js_gotoxy(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->ansi_gotoxy(x,y);
+	sbbs->cursor_xy(x,y);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -2033,8 +2039,8 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
 	,310
 	},
-	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a string centered on the screen")
+	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text [,width]")
+	,JSDOCSTR("display a string centered on the screen, with an optionally-specified screen width (in columns)")
 	,310
 	},
 	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")
@@ -2090,7 +2096,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
 	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("[x,y] or [object { x,y }]")
-	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI, 1-based values), "
+	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI or PETSCII, 1-based values), "
 	"arguments can be separate x and y coordinates or an object with x and y properties "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
@@ -2123,7 +2129,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_getxy",		js_getxy,			0, JSTYPE_ALIAS },
 	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	JSDOCSTR("")
-	,JSDOCSTR("query the current cursor position on the remote terminal "
+	,JSDOCSTR("query the current cursor position on the remote (ANSI) terminal "
 		"and returns the coordinates as an object (with x and y properties)")
 	,311
 	},
