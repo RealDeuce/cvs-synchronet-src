@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.558 2020/03/19 05:58:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.555 2019/12/01 19:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,8 +790,8 @@ public:
 	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str, long mode = 0);
-	bool	noyes(const char *str, long mode = 0);
+	bool	yesno(const char *str);
+	bool	noyes(const char *str);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
@@ -863,7 +863,7 @@ public:
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
 	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
 	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
-	void	dump_msghdr(smbmsg_t*);
+	void	msghdr(smbmsg_t* msg);
 	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
 	int64_t get_start_msgnum(smb_t*, int next=0);
 
@@ -1176,7 +1176,6 @@ extern "C" {
 	DLLEXPORT BOOL		str_is_ascii(const char*);
 	DLLEXPORT char *	utf8_to_cp437_str(char* str);
 	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
-	DLLEXPORT char * 	get_ctrl_dir(void);
 
 	/* msg_id.c */
 	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
