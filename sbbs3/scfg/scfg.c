@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.103 2019/06/22 22:51:56 rswindell Exp $ */
+/* $Id: scfg.c,v 1.106 2020/01/03 20:37:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -46,7 +46,7 @@
 scfg_t	cfg;    /* Synchronet Configuration */
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 
-BOOL no_dirchk=FALSE,forcesave=FALSE;
+BOOL forcesave=FALSE;
 BOOL new_install=FALSE;
 static BOOL auto_save=FALSE;
 extern BOOL all_msghdr;
@@ -87,6 +87,8 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
 	if(stricmp(fname, "control.dat") == 0)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
+	if(stricmp(fname, "newsgroup.lst") == 0)
+		return IMPORT_LIST_TYPE_NEWSGROUPS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
@@ -173,11 +175,7 @@ int main(int argc, char **argv)
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
-    p=getenv("SBBSCTRL");
-    if(p!=NULL)
-        SAFECOPY(cfg.ctrl_dir,p);
-    else
-		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+    SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
 
 	uifc.esc_delay=25;
 
@@ -223,9 +221,6 @@ int main(int argc, char **argv)
 				case 'U':
 					umask(strtoul(argv[i]+2,NULL,8));
 					break;
-                case 'S':
-        			no_dirchk=!no_dirchk;
-                    break;
 				case 'G':
 					if(isalpha(argv[i][2]))
 						grpname = argv[i]+2;
@@ -286,7 +281,6 @@ int main(int argc, char **argv)
 					USAGE:
                     printf("\nusage: scfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
-                        "-s  =  don't check directories\r\n"
                         "-f  =  force save of configuration files\r\n"
                         "-a  =  update all message base status headers\r\n"
                         "-h  =  don't update message base status headers\r\n"
