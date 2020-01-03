@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.148 2019/11/18 21:08:15 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.149 2020/01/03 20:59:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6039,7 +6039,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.148 $", "%*s %s", revision);
+	sscanf("$Revision: 3.149 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -6144,13 +6144,7 @@ int main(int argc, char **argv)
 	if(!opt_import_echomail && !opt_import_netmail)
 		opt_import_packets = false;
 
-	p=getenv("SBBSCTRL");
-	if(p==NULL) {
-		printf("\7\nSBBSCTRL environment variable not set.\n");
-		bail(1);
-		return -1;
-	}
-	SAFECOPY(scfg.ctrl_dir,p);
+	SAFECOPY(scfg.ctrl_dir, get_ctrl_dir());
 
 	backslash(scfg.ctrl_dir);
 
