@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.252 2020/03/01 23:52:45 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.251 2020/01/03 20:34:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -750,7 +750,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TRIM		(1L<<23)	/* Trimmed white-space						*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
-#define P_NONE		0			/* No mode flags							*/
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
 #define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */
