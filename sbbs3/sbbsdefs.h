@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.250 2019/10/24 20:04:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.251 2020/01/03 20:34:56 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -59,6 +59,8 @@
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
 #define COPYRIGHT_CRC		0x0E0503DF
+
+#define SBBSCTRL_DEFAULT	"/sbbs/ctrl"
 
 #define Y2K_2DIGIT_WINDOW	70
 
