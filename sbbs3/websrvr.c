@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.700 2019/10/21 06:32:29 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.701 2020/01/03 20:35:41 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3649,6 +3649,8 @@ static BOOL check_request(http_session_t * session)
 		return(FALSE);
 	}
 
+	if (session->req.send_location >= MOVED_TEMP && session->redir_req[0])
+		return (TRUE);
 	if(stat(path,&sb) || IS_PATH_DELIM(*(lastchar(path))) || send404) {
 		/* OPTIONS requests never return 404 errors (ala Apache) */
 		if(session->req.method!=HTTP_OPTIONS) {
@@ -6584,7 +6586,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.700 $", "%*s %s", revision);
+	sscanf("$Revision: 1.701 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
