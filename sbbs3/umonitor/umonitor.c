@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.92 2020/03/15 19:54:07 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.90 2020/01/03 20:35:24 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -410,12 +410,11 @@ int view_log(char *filename, char *title)
 	if(fexist(filename)) {
 		if((buffile=sopen(filename,O_RDONLY,SH_DENYWR))>=0) {
 			j=filelength(buffile);
-			if(j >= 0 && (buf=(char *)malloc(j+1))!=NULL) {
+			if((buf=(char *)alloca(j+1))!=NULL) {
 				read(buffile,buf,j);
 				close(buffile);
 				*(buf+j)=0;
 				uifc.showbuf(WIN_MID,0,0,76,uifc.scrn_len-2,title,buf,NULL,NULL);
-				free(buf);
 				return(0);
 			}
 			close(buffile);
@@ -806,13 +805,12 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.92 $", "%*s %s", revision);
+	sscanf("$Revision: 1.90 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
 
 	SAFECOPY(ctrl_dir, get_ctrl_dir());
-	backslash(ctrl_dir);
 
 	gethostname(str,sizeof(str)-1);
 
@@ -821,7 +819,7 @@ int main(int argc, char** argv)  {
 	/* Initialize BBS startup structure */
 	memset(&bbs_startup,0,sizeof(bbs_startup));
 	bbs_startup.size=sizeof(bbs_startup);
-	SAFECOPY(bbs_startup.ctrl_dir,ctrl_dir);
+	strcpy(bbs_startup.ctrl_dir,ctrl_dir);
 
 	/* Read .ini file here */
 	if(ini_file[0]!=0 && (fp=fopen(ini_file,"r"))!=NULL) {
