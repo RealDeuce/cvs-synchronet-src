@@ -1,6 +1,6 @@
-GTKCHAT	=	$(EXEODIR)$(DIRSEP)gtkchat$(EXEFILE)
+GTKMONITOR	=	$(EXEODIR)$(DIRSEP)gtkmonitor$(EXEFILE)
 
-all: xpdev-mt smblib $(MTOBJODIR) $(EXEODIR) $(GTKCHAT)
+all: xpdev-mt smblib $(MTOBJODIR) $(EXEODIR) $(GTKMONITOR)
 
 ifdef SBBSEXEC
 .PHONY: install
@@ -12,4 +12,4 @@ symlinks: all
 	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
 endif
 
-$(GTKCHAT):	$(XPDEV-MT_LIB) $(SMBLIB)
+$(GTKMONITOR):	$(XPDEV-MT_LIB) $(SMBLIB)

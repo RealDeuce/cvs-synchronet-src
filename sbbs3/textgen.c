@@ -191,9 +191,8 @@ int main(int argc, char **argv)
 	FILE			*text_js;
 	FILE			*text_defaults_c;
 
-	if((p=getenv("SBBSCTRL"))==NULL)
-		p="/sbbs/ctrl";
-	sprintf(path,"%s/text.dat",p);
+	p = get_ctrl_dir();
+	SAFEPRINTF(path,"%s/text.dat",p);
 	if((text_dat=fopen(path,"r"))==NULL) {
 		perror(path);
 		return(1);
@@ -223,7 +222,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.13 2019/07/11 21:18:42 rswindell Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.14 2020/01/03 20:34:56 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -238,7 +237,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.13 2019/07/11 21:18:42 rswindell Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.14 2020/01/03 20:34:56 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
