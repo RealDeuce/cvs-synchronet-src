@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.116 2020/04/07 20:31:15 rswindell Exp $ */
+/* $Id: scfg.c,v 1.106 2020/01/03 20:37:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -73,7 +73,7 @@ char *num_flags=
 
 void allocfail(uint size)
 {
-    printf("\7Error allocating %u bytes of memory.\n",size);
+    printf("\7Error allocating %u bytes of memory.\r\n",size);
     bail(1);
 }
 
@@ -89,8 +89,6 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
 	if(stricmp(fname, "newsgroup.lst") == 0)
 		return IMPORT_LIST_TYPE_NEWSGROUPS;
-	if(stricmp(fname, "echostats.ini") == 0)
-		return IMPORT_LIST_TYPE_ECHOSTATS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
@@ -166,11 +164,12 @@ int main(int argc, char **argv)
     char    errormsg[MAX_PATH*2];
 	int 	i,j,main_dflt=0,chat_dflt=0;
 	char 	str[MAX_PATH+1];
+ 	char	exepath[MAX_PATH+1];
 	BOOL    door_mode=FALSE;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
 
-    printf("\nSynchronet Configuration Utility (%s)  v%s  " COPYRIGHT_NOTICE
-        "\n",PLATFORM_DESC,VERSION);
+    printf("\r\nSynchronet Configuration Utility (%s)  v%s  Copyright %s "
+        "Rob Swindell\r\n",PLATFORM_DESC,VERSION,__DATE__+7);
 
 	xp_randomize();
 	cfg.size=sizeof(cfg);
@@ -183,27 +182,17 @@ int main(int argc, char **argv)
 	const char* import = NULL;
 	const char* grpname = NULL;
 	unsigned int grpnum = 0;
-	faddr_t faddr = {0};
-	uint32_t misc = 0;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
 #ifndef __unix__
             || argv[i][0]=='/'
 #endif
             ) {
-			if(strncmp(argv[i], "-import=", 8) == 0) {
+			if(strncmp(argv[i]+1, "import=", 7) == 0) {
 				import = argv[i] + 8;
 				continue;
 			}
-			if(strncmp(argv[i], "-faddr=", 7) == 0) {
-				faddr = atofaddr(argv[i] + 7);
-				continue;
-			}
-			if(strncmp(argv[i], "-misc=", 6) == 0) {
-				misc = strtoul(argv[i] + 7, NULL, 0);
-				continue;
-			}
-			if(strcmp(argv[i], "-insert") == 0) {
+			if(strcmp(argv[i]+1, "insert") == 0) {
 				uifc.insert_mode = TRUE;
 				continue;
 			}
@@ -222,7 +211,7 @@ int main(int argc, char **argv)
         			uifc.mode|=UIFC_COLOR;
                     break;
                 case 'D':
-					printf("NOTICE: The -d option is deprecated, use -id instead\n");
+					printf("NOTICE: The -d option is deprecated, use -id instead\r\n");
 					SLEEP(2000);
                     door_mode=TRUE;
                     break;
@@ -292,32 +281,30 @@ int main(int argc, char **argv)
 					USAGE:
                     printf("\nusage: scfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
-                        "-f  =  force save of configuration files\n"
-                        "-a  =  update all message base status headers\n"
-                        "-h  =  don't update message base status headers\n"
+                        "-f  =  force save of configuration files\r\n"
+                        "-a  =  update all message base status headers\r\n"
+                        "-h  =  don't update message base status headers\r\n"
 						"-u# =  set file creation permissions mask (in octal)\n"
-						"-k  =  keyboard mode only (no mouse support)\n"
-						"-c  =  force color mode\n"
-						"-m  =  force monochrome mode\n"
-                        "-e# =  set escape delay to #msec\n"
-						"-import=<filename> = import a message area list file\n"
-						"-faddr=<addr> = specify your FTN address for imported subs\n"
-						"-misc=<value> = specify option flags for imported subs\n"
-						"-g# =  set group number (or name) to import into\n"
-						"-iX =  set interface mode to X (default=auto) where X is one of:\n"
+						"-k  =  keyboard mode only (no mouse support)\r\n"
+						"-c  =  force color mode\r\n"
+						"-m  =  force monochrome mode\r\n"
+                        "-e# =  set escape delay to #msec\r\n"
+						"-import=<filename> = import a message area list file\r\n"
+						"-g# =  set group number (or name) to import into\r\n"
+						"-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
 #ifdef __unix__
-						"       X = X11 mode\n"
-						"       C = Curses mode\n"
-						"       F = Curses mode with forced IBM charset\n"
+						"       X = X11 mode\r\n"
+						"       C = Curses mode\r\n"
+						"       F = Curses mode with forced IBM charset\r\n"
 #else
-						"       W = Win32 native mode\n"
+						"       W = Win32 native mode\r\n"
 #endif
-						"       A = ANSI mode\n"
-						"       D = standard input/output/door mode\n"
-                        "-v# =  set video mode to # (default=auto)\n"
-                        "-l# =  set screen lines to # (default=auto-detect)\n"
-                        "-b# =  set automatic back-up level (default=%d)\n"
-						"-y  =  automatically save changes (don't ask)\n"
+						"       A = ANSI mode\r\n"
+						"       D = standard input/output/door mode\r\n"
+                        "-v# =  set video mode to # (default=auto)\r\n"
+                        "-l# =  set screen lines to # (default=auto-detect)\r\n"
+                        "-b# =  set automatic back-up level (default=%d)\r\n"
+						"-y  =  automatically save changes (don't ask)\r\n"
 						,backup_level
                         );
         			exit(0);
@@ -326,6 +313,12 @@ int main(int argc, char **argv)
 		else
 			SAFECOPY(cfg.ctrl_dir,argv[i]);
     }
+
+#ifdef _WIN32
+	FULLPATH(exepath,argv[0],sizeof(exepath));	/* Must do this before chdir */
+#else
+	exepath[0]=0;
+#endif
 
 	if(chdir(cfg.ctrl_dir)!=0) {
 		printf("!ERROR %d changing current directory to: %s\n"
@@ -378,7 +371,7 @@ int main(int argc, char **argv)
 			case msgbase:
 			{
 				enum import_list_type list_type = determine_msg_list_type(fname);
-				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, /* pkt_orig: */NULL, &faddr, misc, &added);
+				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, &added);
 				break;
 			}
 			case filebase:
@@ -430,13 +423,26 @@ int main(int argc, char **argv)
 		if((mopt[i]=(char *)malloc(64))==NULL)
 			allocfail(64);
 
-	SAFEPRINTF2(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
+	if((p=getenv("SBBSEXEC"))!=NULL)
+		SAFECOPY(str,p);
+	else {
+		SAFECOPY(str,exepath);
+		p=strrchr(str,'/');
+		if(p==NULL)
+			p=strrchr(str,'\\');
+		if(p!=NULL)
+			*p=0;
+		else 
+	   		sprintf(str,"%s../exec",cfg.ctrl_dir);
+	}
+
+	sprintf(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
 	if(uifc.scrn(str)) {
-		printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
+		printf(" USCRN (len=%d) failed!\r\n",uifc.scrn_len+1);
 		bail(1);
 	}
 
-	SAFEPRINTF(str,"%smain.cnf",cfg.ctrl_dir);
+	sprintf(str,"%smain.cnf",cfg.ctrl_dir);
 	if(!fexist(str)) {
 		sprintf(errormsg,"Main configuration file (%s) missing!",str);
 		uifc.msg(errormsg);
@@ -858,7 +864,7 @@ void txt_cfg()
 		int msk = i & MSK_ON;
 		i &= MSK_OFF;
 		if (msk == MSK_INS) {
-			strcpy(str,"");
+			strcpy(str,"ANSI Artwork");
 			uifc.helpbuf=
 				"`Text Section Name:`\n"
 				"\n"
@@ -877,7 +883,7 @@ void txt_cfg()
 				"abbreviation of the name.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Text Section Internal Code",code,LEN_CODE
-				,K_EDIT|K_UPPER)<1)
+				,K_EDIT)<1)
 				continue;
 			if(!code_ok(code)) {
 				uifc.helpbuf=invalid_code;
@@ -933,9 +939,9 @@ void txt_cfg()
 		while(!done) {
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.txtsec[i]->name);
-			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.txtsec[i]->code);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
 				,cfg.txtsec[i]->arstr);
+			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.txtsec[i]->code);
 			opt[k][0]=0;
 			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,0,cfg.txtsec[i]->name
 				,opt)) {
@@ -955,6 +961,10 @@ void txt_cfg()
 						strcpy(cfg.txtsec[i]->name,str);
 					break;
 				case 1:
+					sprintf(str,"%s Text Section",cfg.txtsec[i]->name);
+					getar(str,cfg.txtsec[i]->arstr);
+					break;
+				case 2:
 					strcpy(str,cfg.txtsec[i]->code);
 					uifc.helpbuf=
 						"`Text Section Internal Code:`\n"
@@ -964,7 +974,7 @@ void txt_cfg()
 						"abbreviation of the name.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
-						,str,LEN_CODE,K_EDIT|K_UPPER);
+						,str,LEN_CODE,K_EDIT);
 					if(code_ok(str))
 						strcpy(cfg.txtsec[i]->code,str);
 					else {
@@ -973,10 +983,6 @@ void txt_cfg()
 						uifc.helpbuf=0; 
 					}
 					break; 
-				case 2:
-					sprintf(str,"%s Text Section",cfg.txtsec[i]->name);
-					getar(str,cfg.txtsec[i]->arstr);
-					break;
 			} 
 		} 
 	}
@@ -1053,7 +1059,7 @@ void shell_cfg()
 				"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Command Shell Internal Code",code,LEN_CODE
-				,K_EDIT|K_UPPER)<1)
+				,K_EDIT)<1)
 				continue;
 			if(!code_ok(code)) {
 				uifc.helpbuf=invalid_code;
@@ -1110,9 +1116,9 @@ void shell_cfg()
 			static int bar;
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.shell[i]->name);
-			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.shell[i]->code);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
 				,cfg.shell[i]->arstr);
+			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.shell[i]->code);
 			opt[k][0]=0;
 			uifc.helpbuf=
 				"`Command Shell:`\n"
@@ -1145,6 +1151,10 @@ void shell_cfg()
 						strcpy(cfg.shell[i]->name,str);
 					break;
 				case 1:
+					sprintf(str,"%s Command Shell",cfg.shell[i]->name);
+					getar(str,cfg.shell[i]->arstr);
+					break;
+				case 2:
 					strcpy(str,cfg.shell[i]->code);
 					uifc.helpbuf=
 						"`Command Shell Internal Code:`\n"
@@ -1158,7 +1168,7 @@ void shell_cfg()
 						"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
-						,str,LEN_CODE,K_EDIT|K_UPPER);
+						,str,LEN_CODE,K_EDIT);
 					if(code_ok(str))
 						strcpy(cfg.shell[i]->code,str);
 					else {
@@ -1166,10 +1176,6 @@ void shell_cfg()
 						uifc.msg("Invalid Code");
 						uifc.helpbuf=0; 
 					}
-					break;
-				case 2:
-					sprintf(str,"%s Command Shell",cfg.shell[i]->name);
-					getar(str,cfg.shell[i]->arstr);
 					break; 
 			} 
 		} 
@@ -2182,10 +2188,7 @@ int lprintf(int level, char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     strip_ctrl(sbuf,sbuf);
-	if(uifc.msg == NULL)
-		puts(sbuf);
-	else
-    	uifc.msg(sbuf);
+    uifc.msg(sbuf);
     return(0);
 }
 
