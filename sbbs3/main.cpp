@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.780 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: main.cpp,v 1.778 2019/12/20 08:09:34 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5645,7 +5645,6 @@ NO_SSH:
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
 		client.user=STR_UNKNOWN_USER;
-		client.usernum = 0;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
@@ -5777,15 +5776,7 @@ NO_SSH:
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
-
-			tmp_addr_len=sizeof(tmp_addr);
-			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
-					,new_node->cfg.node_num, ERROR_VALUE);
-				close_socket(tmp_sock);
-				goto NO_PASSTHRU;
-			}
-			lprintf(LOG_DEBUG,"Node %d passthru socket listening on port %u"
+			lprintf(LOG_INFO,"Node %d passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
     		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
@@ -5799,6 +5790,16 @@ NO_SSH:
 
 			lprintf(LOG_DEBUG,"Node %d passthru connect socket %d opened"
 				,new_node->cfg.node_num, new_node->passthru_socket);
+
+			tmp_addr_len=sizeof(tmp_addr);
+			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
+				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
+					,new_node->cfg.node_num, ERROR_VALUE);
+				close_socket(tmp_sock);
+				close_socket(new_node->passthru_socket);
+				new_node->passthru_socket=INVALID_SOCKET;
+				goto NO_PASSTHRU;
+			}
 
 			result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
 
