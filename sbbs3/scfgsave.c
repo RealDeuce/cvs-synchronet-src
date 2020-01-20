@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.79 2019/04/16 08:48:18 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.89 2019/08/31 22:23:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -444,9 +444,11 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			put_str(cfg->sub[i]->mod_arstr,stream);
 			put_int(cfg->sub[i]->qwkconf,stream);
 			c=0;
-			put_int(c,stream);
+			put_int(c,stream); // unused
+			put_int(cfg->sub[i]->pmode,stream);
+			put_int(cfg->sub[i]->n_pmode,stream);
 			n=0;
-			for(k=0;k<26;k++)
+			for(k=0;k<22;k++)
 				put_int(n,stream);
 
 			if(all_msghdr || (cfg->sub[i]->misc&SUB_HDRMOD && !no_msghdr)) {
@@ -810,12 +812,12 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->lname, stream);
 				put_str(cfg->dir[i]->sname, stream);
 				put_str(cfg->dir[i]->code_suffix, stream);
-#if 1
+
 				if (cfg->dir[i]->data_dir[0]) {
 					backslash(cfg->dir[i]->data_dir);
 					md(cfg->dir[i]->data_dir);
 				}
-#endif
+
 				put_str(cfg->dir[i]->data_dir, stream);
 				put_str(cfg->dir[i]->arstr, stream);
 				put_str(cfg->dir[i]->ul_arstr, stream);
@@ -823,30 +825,26 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->op_arstr, stream);
 				backslash(cfg->dir[i]->path);
 				put_str(cfg->dir[i]->path, stream);
-#if 1
+
 				if (cfg->dir[i]->misc&DIR_FCHK) {
 					SAFECOPY(path, cfg->dir[i]->path);
 					if (!path[0]) {		/* no file storage path specified */
-						SAFEPRINTF2(str, "%s%s"
+						SAFEPRINTF2(path, "%s%s"
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
-						strlwr(str);
-						safe_snprintf(path, sizeof(path), "%s%s/"
-							, cfg->dir[i]->data_dir
-							, str);
+						strlwr(path);
 					}
-					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
-						SAFECOPY(path, cfg->lib[cfg->dir[i]->lib]->parent_path);
-						prep_dir(cfg->ctrl_dir, path, sizeof(path));
-						md(path);
-						backslash(path);
-						strcat(path, cfg->dir[i]->path);
+					if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
+						prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, path, sizeof(path));
+					else {
+						if(cfg->dir[i]->data_dir[0])
+							SAFECOPY(str, cfg->dir[i]->data_dir);
+						else
+							SAFEPRINTF(str, "%sdirs", cfg->data_dir);
+						prep_dir(str, path, sizeof(path));
 					}
-					else
-						prep_dir(cfg->ctrl_dir, path, sizeof(path));
-					md(path);
+					mkpath(path);
 				}
-#endif
 
 				put_str(cfg->dir[i]->upload_sem, stream);
 				put_int(cfg->dir[i]->maxfiles, stream);
@@ -1005,7 +1003,7 @@ BOOL DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level)
 		put_int(cfg->xedit[i]->misc,stream);
 		put_str(cfg->xedit[i]->arstr,stream);
 		put_int(cfg->xedit[i]->type,stream);
-		c=0;
+		c = cfg->xedit[i]->soft_cr;
 		put_int(c,stream);
 		n=0;
 		put_int(cfg->xedit[i]->quotewrap_cols, stream);
@@ -1098,16 +1096,17 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
 {
 	char	str[MAX_PATH+1];
     int		i;
-	int		file;
+	int		file = -1;
     node_t	node;
     
     for(i=0;i<cfg->sys_nodes;i++) {
-       	if(getnodedat(cfg,i+1,&node,&file)!=0)
+       	if(getnodedat(cfg,i+1,&node, /* lockit: */TRUE, &file)!=0)
 			continue;
         node.misc|=NODE_RRUN;
-        if(putnodedat(cfg,i+1,&node,file))
+        if(putnodedat(cfg,i+1,&node, /* closeit: */FALSE, file))
             break;
     }
+	CLOSE_OPEN_FILE(file);
 
 	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
 }
