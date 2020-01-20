@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.149 2020/01/03 20:59:58 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.150 2020/01/20 22:37:37 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5173,8 +5173,11 @@ int export_netmail(void)
 		if((msg.idx.attr&MSG_DELETE) || msg.idx.to != 0)
 			continue;
 
-		if(smb_getmsghdr(email, &msg) != SMB_SUCCESS)
+		if((i = smb_getmsghdr(email, &msg)) != SMB_SUCCESS) {
+			lprintf(LOG_ERR,"ERROR %d (%s) line %d reading msg header #%u from %s"
+				,i, email->last_error, __LINE__, msg.idx.number, email->file);
 			continue;
+		}
 
 		if(msg.to_ext != 0 || msg.to_net.type != NET_FIDO)
 			continue;
@@ -6039,7 +6042,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.149 $", "%*s %s", revision);
+	sscanf("$Revision: 3.150 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
