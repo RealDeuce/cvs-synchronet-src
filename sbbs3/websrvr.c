@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.714 2020/04/12 06:06:47 rswindell Exp $ */
+/* $Id: websrvr.c,v 1.702 2020/01/23 17:27:47 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -85,17 +85,13 @@ static const char*	server_name="Synchronet Web Server";
 static const char*	newline="\r\n";
 static const char*	http_scheme="http://";
 static const size_t	http_scheme_len=7;
-static const char*	https_scheme="https://";
-static const size_t	https_scheme_len=8;
 static const char*	error_301="301 Moved Permanently";
 static const char*	error_302="302 Moved Temporarily";
-static const char*	error_307="307 Temporary Redirect";
 static const char*	error_404="404 Not Found";
 static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
 static const char*	unknown=STR_UNKNOWN_USER;
-static char*		text[TOTAL_TEXT];
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -210,9 +206,6 @@ typedef struct  {
 	char		vhost[128];				/* The requested host. (virtual host) */
 	int			send_location;
 	BOOL			send_content;
-	BOOL			upgrading;
-	char*		location_to_send;
-	char*		vary_list;
 	const char*	mime_type;
 	str_list_t	headers;
 	char		status[MAX_REQUEST_LINE+1];
@@ -367,10 +360,6 @@ enum {
 	,HEAD_RANGE
 	,HEAD_IFRANGE
 	,HEAD_COOKIE
-	,HEAD_STS
-	,HEAD_UPGRADEINSECURE
-	,HEAD_VARY
-	,HEAD_CSP
 };
 
 static struct {
@@ -400,10 +389,6 @@ static struct {
 	{ HEAD_RANGE,			"Range"					},
 	{ HEAD_IFRANGE,			"If-Range"				},
 	{ HEAD_COOKIE,			"Cookie"				},
-	{ HEAD_STS,			"Strict-Transport-Security"		},
-	{ HEAD_UPGRADEINSECURE,		"Upgrade-Insecure-Requests"		},
-	{ HEAD_VARY,			"Vary"					},
-	{ HEAD_CSP,			"Content-Security-Policy"		},
 	{ -1,					NULL /* terminator */	},
 };
 
@@ -411,7 +396,6 @@ static struct {
 enum  {
 	 NO_LOCATION
 	,MOVED_PERM
-	,MOVED_TEMPREDIR
 	,MOVED_TEMP
 	,MOVED_STAT
 };
@@ -1104,8 +1088,6 @@ static void close_request(http_session_t * session)
 	FREE_AND_NULL(session->req.realm);
 	FREE_AND_NULL(session->req.digest_realm);
 	FREE_AND_NULL(session->req.fastcgi_socket);
-	FREE_AND_NULL(session->req.location_to_send);
-	FREE_AND_NULL(session->req.vary_list);
 
 	FREE_AND_NULL(session->req.auth_list);
 	FREE_AND_NULL(session->req.auth.digest_uri);
@@ -1292,19 +1274,17 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 			session->req.range_start=0;
 			session->req.range_end=0;
 		}
-		if (session->req.send_location) {
+		if(session->req.send_location==MOVED_PERM)  {
+			status_line=error_301;
 			ret=-1;
-			switch (session->req.send_location) {
-				case MOVED_PERM:
-					status_line=error_301;
-					break;
-				case MOVED_TEMPREDIR:
-					status_line=error_307;
-					break;
-				case MOVED_TEMP:
-					status_line=error_302;
-					break;
-			}
+			session->req.send_content = FALSE;
+			send_entity = FALSE;
+		}
+		if(session->req.send_location==MOVED_TEMP)  {
+			status_line=error_302;
+			ret=-1;
+			session->req.send_content = FALSE;
+			send_entity = FALSE;
 		}
 
 		stat_code=atoi(status_line);
@@ -1325,12 +1305,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		safecat(headers,header,MAX_HEADERS_SIZE);
 
 		/* General Headers */
-		if(session->is_tls && startup->options & WEB_OPT_HSTS_SAFE) {
-			safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_STS),"max-age=10886400; preload");
-			safecat(headers,header,MAX_HEADERS_SIZE);
-			safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_CSP),"block-all-mixed-content");
-			safecat(headers,header,MAX_HEADERS_SIZE);
-		}
 		ti=time(NULL);
 		if(gmtime_r(&ti,&tm)==NULL)
 			memset(&tm,0,sizeof(tm));
@@ -1351,10 +1325,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		/* Response Headers */
 		safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_SERVER),VERSION_NOTICE);
 		safecat(headers,header,MAX_HEADERS_SIZE);
-		if (session->req.vary_list) {
-			safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_VARY), session->req.vary_list);
-			safecat(headers,header,MAX_HEADERS_SIZE);
-		}
 
 		/* Entity Headers */
 		if(session->req.dynamic) {
@@ -1371,10 +1341,7 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 
 		if(session->req.send_location) {
-			if (session->req.location_to_send)
-				safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LOCATION),(session->req.location_to_send));
-			else
-				safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LOCATION),(session->req.virtual_path));
+			safe_snprintf(header,sizeof(header),"%s: %s",get_header(HEAD_LOCATION),(session->req.virtual_path));
 			safecat(headers,header,MAX_HEADERS_SIZE);
 		}
 
@@ -1612,7 +1579,6 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserdat(&scfg, &session->user);
 	}
 	session->client.user=session->username;
-	session->client.usernum = session->user.number;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
 
 	session->last_user_num=session->user.number;
@@ -2556,7 +2522,6 @@ static BOOL parse_headers(http_session_t * session)
 	size_t	idx;
 	size_t	content_len=0;
 	char	env_name[128];
-	char	portstr[7]; // ":65535"
 
 	for(idx=0;session->req.headers[idx]!=NULL;idx++) {
 		/* TODO: strdup() is possibly too slow here... */
@@ -2760,33 +2725,6 @@ static BOOL parse_headers(http_session_t * session)
 				case HEAD_TYPE:
 					add_env(session,"CONTENT_TYPE",value);
 					break;
-				case HEAD_UPGRADEINSECURE:
-					if (startup->options & WEB_OPT_HSTS_SAFE) {
-						if (strcmp(value, "1") == 0) {
-							if (!session->is_tls) {
-								portstr[0] = 0;
-								if (startup->tls_port != 443)
-									sprintf(portstr, ":%hu", startup->tls_port);
-								p = realloc(session->req.vary_list, (session->req.vary_list ? strlen(session->req.vary_list) + 2 : 0) + strlen(get_header(HEAD_UPGRADEINSECURE)) + 1);
-								if (p == NULL)
-									send_error(session, __LINE__, error_500);
-								else {
-									if (session->req.vary_list)
-										strcat(p, ", ");
-									strcat(p, get_header(HEAD_UPGRADEINSECURE));
-									session->req.vary_list = p;
-
-									session->req.send_location = MOVED_TEMPREDIR;
-									session->req.upgrading = TRUE;
-									session->req.keep_alive = FALSE;
-									FREE_AND_NULL(session->req.location_to_send);
-									if (asprintf(&session->req.location_to_send, "https://%s%s%s", session->req.vhost, portstr, session->req.virtual_path) < 0)
-										send_error(session, __LINE__, error_500);
-								}
-							}
-						}
-					}
-					break;
 				default:
 					break;
 			}
@@ -2987,8 +2925,6 @@ static char *get_request(http_session_t * session, char *req_line)
 	char*	retval;
 	char*	last;
 	int		offset;
-	const char*	scheme = NULL;
-	size_t	scheme_len;
 
 	SKIP_WHITESPACE(req_line);
 	SAFECOPY(session->req.virtual_path,req_line);
@@ -3008,17 +2944,9 @@ static char *get_request(http_session_t * session, char *req_line)
 	SAFECOPY(session->req.physical_path,session->req.virtual_path);
 	unescape(session->req.physical_path);
 
-	if (strnicmp(session->req.physical_path,http_scheme,http_scheme_len) == 0) {
-		scheme = http_scheme;
-		scheme_len = http_scheme_len;
-	}
-	else if (strnicmp(session->req.physical_path,https_scheme,https_scheme_len) == 0) {
-		scheme = https_scheme;
-		scheme_len = https_scheme_len;
-	}
-	if(scheme != NULL) {
+	if(!strnicmp(session->req.physical_path,http_scheme,http_scheme_len)) {
 		/* Remove http:// from start of physical_path */
-		memmove(session->req.physical_path, session->req.physical_path+scheme_len, strlen(session->req.physical_path+scheme_len)+1);
+		memmove(session->req.physical_path, session->req.physical_path+http_scheme_len, strlen(session->req.physical_path+http_scheme_len)+1);
 
 		/* Set HOST value... ignore HOST header */
 		SAFECOPY(session->req.host,session->req.physical_path);
@@ -3531,8 +3459,6 @@ static BOOL check_request(http_session_t * session)
 
 	if(session->req.finished)
 		return(FALSE);
-	if (session->req.upgrading)
-		return(TRUE);
 
 	SAFECOPY(path,session->req.physical_path);
 	if(startup->options&WEB_OPT_DEBUG_TX)
@@ -4010,7 +3936,6 @@ struct fastcgi_data {
 	struct fastcgi_header header;
 	struct fastcgi_body *body;
 	size_t used;
-	int request_ended;
 };
 
 static struct fastcgi_body * fastcgi_read_body(SOCKET sock)
@@ -4047,8 +3972,6 @@ static int fastcgi_read_wait_timeout(void *arg)
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 	struct fastcgi_body *body;
 
-	if (cd->request_ended)
-		return CGI_PROCESS_TERMINATED;
 	switch (cd->header.type) {
 		case FCGI_STDOUT:
 			return CGI_OUTPUT_READY;
@@ -4081,7 +4004,6 @@ static int fastcgi_read_wait_timeout(void *arg)
 					break;
 				case FCGI_END_REQUEST:
 					ret |= CGI_PROCESS_TERMINATED;
-					cd->request_ended = 1;
 					// Fall-through
 				case FCGI_BEGIN_REQUEST:
 				case FCGI_ABORT_REQUEST:
@@ -4118,11 +4040,8 @@ static int fastcgi_read(void *arg, char *buf, size_t sz)
 {
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
-	if (cd->request_ended)
-		return -1;
 	if (cd->body == NULL) {
-		if (cd->header.type != 0)
-			cd->body = fastcgi_read_body(cd->sock);
+		cd->body = fastcgi_read_body(cd->sock);
 		if (cd->body == NULL)
 			return -1;
 	}
@@ -4152,11 +4071,8 @@ static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, si
 
 	outpos = 0;
 
-	if (cd->request_ended)
-		return -1;
 	if (cd->body == NULL) {
-		if (cd->header.type != 0)
-			cd->body = fastcgi_read_body(cd->sock);
+		cd->body = fastcgi_read_body(cd->sock);
 		if (cd->body == NULL)
 			return -1;
 	}
@@ -4211,8 +4127,6 @@ static int fastcgi_done_wait(void *arg)
 {
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
-	if (cd->request_ended)
-		return 1;
 	return (!socket_check(cd->sock, NULL, NULL, /* timeout: */0));
 }
 
@@ -4459,49 +4373,47 @@ static int do_cgi_stuff(http_session_t *session, struct cgi_api *cgi, BOOL orig_
 						directive=strtok_r(header,":",&last);
 						if(directive != NULL)  {
 							value=strtok_r(NULL,"",&last);
-							if(value != NULL) {
-								SKIP_WHITESPACE(value);
-								i=get_header_type(directive);
-								switch (i)  {
-									case HEAD_LOCATION:
+							SKIP_WHITESPACE(value);
+							i=get_header_type(directive);
+							switch (i)  {
+								case HEAD_LOCATION:
+									ret |= CGI_STUFF_VALID_HEADERS;
+									if(*value=='/')  {
+										unescape(value);
+										SAFECOPY(session->req.virtual_path,value);
+										session->req.send_location=MOVED_STAT;
+										if(cgi_status[0]==0)
+											SAFECOPY(cgi_status,error_302);
+									} else  {
+										SAFECOPY(session->req.virtual_path,value);
+										session->req.send_location=MOVED_TEMP;
+										if(cgi_status[0]==0)
+											SAFECOPY(cgi_status,error_302);
+									}
+									break;
+								case HEAD_STATUS:
+									SAFECOPY(cgi_status,value);
+									/*
+									 * 1xx, 204, and 304 responses don't have bodies, so don't
+									 * need a Location or Content-Type header to be valid.
+									 */
+									if (value[0] == '1' || ((value[0] == '2' || value[0] == '3') && value[1] == '0' && value[2] == '4'))
 										ret |= CGI_STUFF_VALID_HEADERS;
-										if(*value=='/')  {
-											unescape(value);
-											SAFECOPY(session->req.virtual_path,value);
-											session->req.send_location=MOVED_STAT;
-											if(cgi_status[0]==0)
-												SAFECOPY(cgi_status,error_302);
-										} else  {
-											SAFECOPY(session->req.virtual_path,value);
-											session->req.send_location=MOVED_TEMP;
-											if(cgi_status[0]==0)
-												SAFECOPY(cgi_status,error_302);
-										}
-										break;
-									case HEAD_STATUS:
-										SAFECOPY(cgi_status,value);
-										/*
-										 * 1xx, 204, and 304 responses don't have bodies, so don't
-										 * need a Location or Content-Type header to be valid.
-										 */
-										if (value[0] == '1' || ((value[0] == '2' || value[0] == '3') && value[1] == '0' && value[2] == '4'))
-											ret |= CGI_STUFF_VALID_HEADERS;
-										break;
-									case HEAD_LENGTH:
-										session->req.keep_alive=orig_keep;
-										strListPush(&session->req.dynamic_heads,buf);
-										no_chunked=TRUE;
-										break;
-									case HEAD_TYPE:
-										ret |= CGI_STUFF_VALID_HEADERS;
-										strListPush(&session->req.dynamic_heads,buf);
-										break;
-									case HEAD_TRANSFER_ENCODING:
-										no_chunked=TRUE;
-										break;
-									default:
-										strListPush(&session->req.dynamic_heads,buf);
-								}
+									break;
+								case HEAD_LENGTH:
+									session->req.keep_alive=orig_keep;
+									strListPush(&session->req.dynamic_heads,buf);
+									no_chunked=TRUE;
+									break;
+								case HEAD_TYPE:
+									ret |= CGI_STUFF_VALID_HEADERS;
+									strListPush(&session->req.dynamic_heads,buf);
+									break;
+								case HEAD_TRANSFER_ENCODING:
+									no_chunked=TRUE;
+									break;
+								default:
+									strListPush(&session->req.dynamic_heads,buf);
 							}
 						}
 						if(directive == NULL || value == NULL) {
@@ -4661,7 +4573,6 @@ static BOOL exec_fastcgi(http_session_t *session)
 	// TODO handle stdin better
 	memset(&cd, 0, sizeof(cd));
 	cd.sock = sock;
-	cd.request_ended = 0;
 	fastcgi_write_in(&cd, session->req.post_data, session->req.post_len);
 	msg->head.len = 0;
 	msg->head.type = FCGI_STDIN;
@@ -4708,12 +4619,10 @@ static BOOL exec_cgi(http_session_t *session)
 	int		i=0;
 	int		status=0;
 	pid_t	child=0;
-	int		in_pipe[2];
 	int		out_pipe[2];
 	int		err_pipe[2];
 	struct timeval tv={0,0};
 	fd_set	read_set;
-	fd_set	write_set;
 	int		high_fd=0;
 	char	buf[1024];
 	BOOL	done_parsing_headers=FALSE;
@@ -4723,8 +4632,6 @@ static BOOL exec_cgi(http_session_t *session)
 	char	cgipath[MAX_PATH+1];
 	char	*p;
 	BOOL	orig_keep=FALSE;
-	char	*handler;
-	size_t	sent;
 
 	SAFECOPY(cmdline,session->req.physical_path);
 
@@ -4735,36 +4642,15 @@ static BOOL exec_cgi(http_session_t *session)
 
 	/* Set up I/O pipes */
 
-	if (session->tls_sess) {
-		if(pipe(in_pipe)!=0) {
-			lprintf(LOG_ERR,"%04d Can't create in_pipe",session->socket);
-			return(FALSE);
-		}
-	}
-
 	if(pipe(out_pipe)!=0) {
-		if (session->tls_sess) {
-			close(in_pipe[0]);
-			close(in_pipe[1]);
-		}
 		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket);
 		return(FALSE);
 	}
 
 	if(pipe(err_pipe)!=0) {
-		if (session->tls_sess) {
-			close(in_pipe[0]);
-			close(in_pipe[1]);
-		}
-		close(out_pipe[0]);
-		close(out_pipe[1]);
 		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket);
 		return(FALSE);
 	}
-
-	handler = get_cgi_handler(cmdline);
-	if (handler)
-		lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,handler,cmdline);
 
 	if((child=fork())==0)  {
 		str_list_t  env_list;
@@ -4774,13 +4660,9 @@ static BOOL exec_cgi(http_session_t *session)
 			startup->setuid(TRUE);
 
 		env_list=get_cgi_env(session);
+
 		/* Set up STDIO */
-		if (session->tls_sess) {
-			dup2(in_pipe[0],0);		/* stdin */
-			close(in_pipe[1]);		/* close write-end of pipe */
-		}
-		else
-			dup2(session->socket,0);		/* redirect stdin */
+		dup2(session->socket,0);		/* redirect stdin */
 		close(out_pipe[0]);		/* close read-end of pipe */
 		dup2(out_pipe[1],1);	/* stdout */
 		close(out_pipe[1]);		/* close excess file descriptor */
@@ -4796,9 +4678,10 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 
 		/* Execute command */
-		if (handler != NULL) {
+		if((p=get_cgi_handler(cmdline))!=NULL) {
 			char* shell=os_cmdshell();
-			execle(shell,shell,"-c",handler,cmdline,NULL,env_list);
+			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,p,cmdline);
+			execle(shell,shell,"-c",p,cmdline,NULL,env_list);
 		}
 		else {
 			execle(cmdline,cmdline,NULL,env_list);
@@ -4810,14 +4693,10 @@ static BOOL exec_cgi(http_session_t *session)
 
 	if(child==-1)  {
 		lprintf(LOG_ERR,"%04d !FAILED! fork() errno=%d",session->socket,errno);
-		if (session->tls_sess)
-			close(in_pipe[1]);	/* close write-end of pipe */
 		close(out_pipe[0]);		/* close read-end of pipe */
 		close(err_pipe[0]);		/* close read-end of pipe */
 	}
 
-	if (session->tls_sess)
-		close(in_pipe[0]);	/* close excess file descriptor */
 	close(out_pipe[1]);		/* close excess file descriptor */
 	close(err_pipe[1]);		/* close excess file descriptor */
 
@@ -4825,38 +4704,6 @@ static BOOL exec_cgi(http_session_t *session)
 		return(FALSE);
 
 	start=time(NULL);
-
-	// TODO: For TLS-CGI, write each separate read...
-	if (session->tls_sess && session->req.post_len && session->req.post_data) {
-		tv.tv_sec=1;
-		tv.tv_usec=0;
-		FD_ZERO(&read_set);
-		high_fd = in_pipe[1];
-		FD_SET(in_pipe[1], &write_set);
-		sent = 0;
-		while(sent < session->req.post_len) {
-			if (select(high_fd+1, NULL, &write_set, NULL, &tv) > 0) {
-				if (FD_ISSET(in_pipe[1], &write_set))
-					i = write(in_pipe[1], &session->req.post_data[sent], session->req.post_len - sent);
-				if (i > 0)
-					sent += i;
-				else {
-					lprintf(LOG_INFO, "%04d FAILED writing CGI POST data", session->socket);
-					close(in_pipe[1]);
-					close(out_pipe[0]);
-					close(err_pipe[0]);
-					return(FALSE);
-				}
-			}
-			else {
-				lprintf(LOG_INFO, "%04d FAILED selecting CGI stding for write", session->socket);
-				close(in_pipe[1]);
-				close(out_pipe[0]);
-				close(err_pipe[0]);
-				return(FALSE);
-			}
-		}
-	}
 
 	high_fd=out_pipe[0];
 	if(err_pipe[0]>high_fd)
@@ -4891,8 +4738,6 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 	}
 
-	if (session->tls_sess)
-		close(in_pipe[1]);	/* close excess file descriptor */
 	/* Drain STDERR & STDOUT */
 	tv.tv_sec=1;
 	tv.tv_usec=0;
@@ -6131,8 +5976,7 @@ int read_post_data(http_session_t * session)
 	size_t		s = 0;
 	FILE		*fp=NULL;
 
-	// TODO: For TLS-CGI, write each separate read...
-	if((session->req.dynamic!=IS_CGI || (session->req.dynamic == IS_CGI && session->tls_sess)) && (session->req.post_len || session->req.read_chunked)) {
+	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked)) {
 		if(session->req.read_chunked) {
 			char *p;
 			size_t	ch_len=0;
@@ -6454,7 +6298,7 @@ void http_session_thread(void* arg)
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
-		//HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_MINVER_TLS12), &session, "setting TLS minver to 1.2");
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_MINVER_TLS12), &session, "setting TLS minver to 1.2");
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
 			unlock_ssl_cert();
@@ -6539,7 +6383,6 @@ void http_session_thread(void* arg)
 	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
-	session.client.usernum = 0;
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 
 	if(startup->login_attempt.throttle
@@ -6744,7 +6587,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.714 $", "%*s %s", revision);
+	sscanf("$Revision: 1.702 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6991,7 +6834,7 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(logstr,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, text, TRUE, logstr)) {
+		if(!load_cfg(&scfg, NULL, TRUE, logstr)) {
 			lprintf(LOG_CRIT,"!ERROR %s",logstr);
 			lprintf(LOG_CRIT,"!FAILED to load configuration files");
 			cleanup(1);
