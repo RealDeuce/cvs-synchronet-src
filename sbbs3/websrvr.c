@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.701 2020/01/03 20:35:41 deuce Exp $ */
+/* $Id: websrvr.c,v 1.702 2020/01/23 17:27:47 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6298,6 +6298,7 @@ void http_session_thread(void* arg)
 		BOOL nodelay=TRUE;
 		setsockopt(session.socket,IPPROTO_TCP,TCP_NODELAY,(char*)&nodelay,sizeof(nodelay));
 
+		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_SSL_OPTIONS, CRYPT_SSLOPTION_MINVER_TLS12), &session, "setting TLS minver to 1.2");
 		HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_NETWORKSOCKET, session.socket), &session, "setting network socket");
 		if (!HANDLE_CRYPT_CALL(cryptSetAttribute(session.tls_sess, CRYPT_SESSINFO_ACTIVE, 1), &session, "setting session active")) {
 			unlock_ssl_cert();
@@ -6586,7 +6587,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.701 $", "%*s %s", revision);
+	sscanf("$Revision: 1.702 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
