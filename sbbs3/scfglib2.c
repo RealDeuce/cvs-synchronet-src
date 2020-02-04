@@ -2,7 +2,7 @@
 
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib2.c,v 1.49 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: scfglib2.c,v 1.51 2019/09/23 02:14:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -607,6 +607,10 @@ BOOL read_xtrn_cfg(scfg_t* cfg, char* error)
 
 		for(j=0;j<4;j++)
 			get_int(n,instream);
+
+		// You can't require exclusion *and* not specify which node/instance will execute the event
+		if(cfg->event[i]->node == NODE_ANY)
+			cfg->event[i]->misc &= ~EVENT_EXCL;
 	}
 	cfg->total_events=i;
 
@@ -877,7 +881,7 @@ long aftol(char *str)
 /*****************************************************************************/
 char *ltoaf(long l,char *str)
 {
-	size_t	c=0;
+	int	c=0;
 
 	while(c<26) {
 		if(l&(long)(1L<<c))
