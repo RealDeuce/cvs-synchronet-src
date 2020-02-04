@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.90 2020/01/03 20:35:24 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.91 2020/02/04 05:04:38 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -805,12 +805,13 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.90 $", "%*s %s", revision);
+	sscanf("$Revision: 1.91 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
 
 	SAFECOPY(ctrl_dir, get_ctrl_dir());
+	backslash(ctrl_dir);
 
 	gethostname(str,sizeof(str)-1);
 
@@ -819,7 +820,7 @@ int main(int argc, char** argv)  {
 	/* Initialize BBS startup structure */
 	memset(&bbs_startup,0,sizeof(bbs_startup));
 	bbs_startup.size=sizeof(bbs_startup);
-	strcpy(bbs_startup.ctrl_dir,ctrl_dir);
+	SAFECOPY(bbs_startup.ctrl_dir,ctrl_dir);
 
 	/* Read .ini file here */
 	if(ini_file[0]!=0 && (fp=fopen(ini_file,"r"))!=NULL) {
