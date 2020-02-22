@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.53 2020/02/22 19:32:30 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.54 2020/02/22 19:34:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,7 +553,7 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Time Banking:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to be deposit\n"
+								"If you want the users of your system to be allowed to deposit\n"
 								"any extra time they may have left during a call into their minute bank,\n"
 								"set this option to `Yes`. If this option is set to `No`, then the only\n"
 								"way a user may get minutes in their minute bank is to purchase them\n"
@@ -578,7 +578,7 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Credits to be Converted into Minutes:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to be convert\n"
+								"If you want the users of your system to be allowed to convert\n"
 								"any credits they may have into minutes for their minute bank,\n"
 								"set this option to `Yes`.\n"
 							;
