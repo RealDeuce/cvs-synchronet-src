@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.55 2020/03/01 19:11:32 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.53 2020/02/22 19:32:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -553,7 +553,7 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Time Banking:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to deposit\n"
+								"If you want the users of your system to be allowed to be deposit\n"
 								"any extra time they may have left during a call into their minute bank,\n"
 								"set this option to `Yes`. If this option is set to `No`, then the only\n"
 								"way a user may get minutes in their minute bank is to purchase them\n"
@@ -578,7 +578,7 @@ void sys_cfg(void)
 							uifc.helpbuf=
 								"`Allow Credits to be Converted into Minutes:`\n"
 								"\n"
-								"If you want the users of your system to be allowed to convert\n"
+								"If you want the users of your system to be allowed to be convert\n"
 								"any credits they may have into minutes for their minute bank,\n"
 								"set this option to `Yes`.\n"
 							;
@@ -1634,7 +1634,6 @@ void sys_cfg(void)
 					sprintf(opt[i++],"%-16.16s%s","Read Mail",cfg.readmail_mod);
 					sprintf(opt[i++],"%-16.16s%s","Scan Msgs",cfg.scanposts_mod);
 					sprintf(opt[i++],"%-16.16s%s","Scan Subs",cfg.scansubs_mod);
-					sprintf(opt[i++],"%-16.16s%s","List Msgs",cfg.listmsgs_mod);
 					opt[i][0]=0;
 					uifc.helpbuf=
 						"`Loadable Modules:`\n"
@@ -1657,7 +1656,6 @@ void sys_cfg(void)
 						"`Read Mail`    Executed when a user reads email/netmail\n"
 						"`Scan Msgs`    Executed when a user reads or scans a message sub-board\n"
 						"`Scan Subs`    Executed when a user scans one or more sub-boards for msgs\n"
-						"`List Msgs`    Executed when a user list msgs from the msg read prompt\n"
 						"\n"
 						"`Note:` JavaScript modules take precedence over Baja modules if both exist\n"
 						"in your `exec` or `mods` directories.\n"
@@ -1708,10 +1706,6 @@ void sys_cfg(void)
 						case 9:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Subs Command"
 								,cfg.scansubs_mod,sizeof(cfg.scansubs_mod)-1,K_EDIT);
-							break;
-						case 10:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"List Msgs Command"
-								,cfg.listmsgs_mod,sizeof(cfg.listmsgs_mod)-1,K_EDIT);
 							break;
 					} 
 				}

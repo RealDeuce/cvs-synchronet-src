@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.107 2020/03/15 03:58:13 rswindell Exp $ */
+/* $Id: scfg.c,v 1.106 2020/01/03 20:37:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2188,10 +2188,7 @@ int lprintf(int level, char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     strip_ctrl(sbuf,sbuf);
-	if(uifc.msg == NULL)
-		puts(sbuf);
-	else
-    	uifc.msg(sbuf);
+    uifc.msg(sbuf);
     return(0);
 }
 
