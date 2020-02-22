@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.140 2019/09/21 09:50:44 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.141 2019/10/08 02:08:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1623,7 +1623,7 @@ js_gotoxy(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->ansi_gotoxy(x,y);
+	sbbs->cursor_xy(x,y);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -2096,7 +2096,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
 	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("[x,y] or [object { x,y }]")
-	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI, 1-based values), "
+	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI or PETSCII, 1-based values), "
 	"arguments can be separate x and y coordinates or an object with x and y properties "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
@@ -2129,7 +2129,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_getxy",		js_getxy,			0, JSTYPE_ALIAS },
 	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	JSDOCSTR("")
-	,JSDOCSTR("query the current cursor position on the remote terminal "
+	,JSDOCSTR("query the current cursor position on the remote (ANSI) terminal "
 		"and returns the coordinates as an object (with x and y properties)")
 	,311
 	},
