@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.52 2019/07/16 07:38:16 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.53 2020/02/22 19:32:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -560,7 +560,7 @@ void sys_cfg(void)
 								"with credits.\n"
 							;
 							i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0
-								,"Allow Users to Depost Time in Minute Bank",opt);
+								,"Allow Users to Deposit Time in Minute Bank",opt);
 							if(!i && !(cfg.sys_misc&SM_TIMEBANK)) {
 								cfg.sys_misc|=SM_TIMEBANK;
 								uifc.changes=1; 
