@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.556 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.557 2020/03/01 23:55:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -790,8 +790,8 @@ public:
 	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str);
-	bool	noyes(const char *str);
+	bool	yesno(const char *str, long mode = 0);
+	bool	noyes(const char *str, long mode = 0);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
