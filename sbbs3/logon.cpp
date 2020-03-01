@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.73 2019/09/27 03:16:14 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.74 2019/10/24 20:54:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ bool sbbs_t::logon()
 	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
-	js_create_user_objects();
+	js_create_user_objects(js_cx, js_glob);
 #endif
 
 	if(useron.rest&FLAG('Q'))
