@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.115 2019/04/11 00:46:08 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.116 2019/09/10 19:57:37 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -244,7 +244,7 @@ extern "C" {
 	#endif
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 	DLLEXPORT char* DLLCALL strcasestr(const char* haystack, const char* needle);
 #endif
 
