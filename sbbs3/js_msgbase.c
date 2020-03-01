@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.253 2020/03/01 07:52:14 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.254 2020/03/01 23:51:25 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2310,7 +2310,7 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_OBJECT(argv[n])) {		/* Use existing header */
 			JSClass *oc=JS_GetClass(cx, JSVAL_TO_OBJECT(argv[n]));
-			if(strcmp(oc->name, js_msghdr_class.name)==0) {
+			if(oc != NULL && strcmp(oc->name, js_msghdr_class.name) == 0) {
 				privatemsg_t	*pmsg=JS_GetPrivate(cx,JSVAL_TO_OBJECT(argv[n]));
 
 				if(pmsg != NULL) {
@@ -2424,7 +2424,7 @@ js_get_msg_tail(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_OBJECT(argv[n])) {		/* Use existing header */
 			JSClass *oc=JS_GetClass(cx, JSVAL_TO_OBJECT(argv[n]));
-			if(strcmp(oc->name, js_msghdr_class.name)==0) {
+			if(oc != NULL && strcmp(oc->name, js_msghdr_class.name) == 0) {
 				privatemsg_t	*pmsg=JS_GetPrivate(cx,JSVAL_TO_OBJECT(argv[n]));
 
 				if(pmsg != NULL) {
