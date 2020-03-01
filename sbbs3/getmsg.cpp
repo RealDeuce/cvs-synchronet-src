@@ -1,6 +1,6 @@
 /* Synchronet message retrieval functions */
 
-/* $Id: getmsg.cpp,v 1.99 2019/08/17 02:21:00 rswindell Exp $ */
+/* $Id: getmsg.cpp,v 1.101 2019/10/08 03:01:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -40,8 +40,6 @@
 
 #include "sbbs.h"
 #include "utf8.h"
-#include "unicode.h"
-#include "cp437defs.h"
 
 /****************************************************************************/
 /* Loads an SMB message from the open msg base the fastest way possible 	*/
@@ -117,6 +115,7 @@ void sbbs_t::show_msgattr(smbmsg_t* msg)
 		,auxattr&(MSG_FILEATTACH|MSG_MIMEATTACH) ? "Attach  "   :nulstr
 		,netattr&MSG_SENT						 ? "Sent  "		:nulstr
 		,netattr&MSG_INTRANSIT					 ? "InTransit  ":nulstr
+		,netattr&MSG_KILLSENT					 ? "KillSent  " :nulstr
 		);
 }
 
@@ -146,11 +145,7 @@ const char* sbbs_t::msghdr_field(const smbmsg_t* msg, const char* str, char* buf
 		buf = msgghdr_field_cp437_str;
 
 	strncpy(buf, str, sizeof(msgghdr_field_cp437_str));
-	utf8_normalize_str(buf);
-	utf8_replace_chars(buf, unicode_to_cp437
-		,/* unsupported char: */CP437_INVERTED_QUESTION_MARK
-		,/* unsupported zero-width ch: */0
-		,/* decode error char: */CP437_INVERTED_EXCLAMATION_MARK);
+	utf8_to_cp437_str(buf);
 
 	return buf;
 }
@@ -211,7 +206,7 @@ void sbbs_t::show_msghdr(smb_t* smb, smbmsg_t* msg, const char* subject, const c
 			bprintf(pmode, msghdr_text(msg, MsgFrom), current_msg_from);
 			if(msg->from_ext)
 				bprintf(text[MsgFromExt],msg->from_ext);
-			if(msg->from_net.addr!=NULL && (current_msg_from == NULL || strchr(current_msg_from,'@')==NULL))
+			if(msg->from_net.addr!=NULL)
 				bprintf(text[MsgFromNet],smb_netaddrstr(&msg->from_net,str));
 		}
 		if(!(msg->hdr.attr&MSG_POLL) && (msg->upvotes || msg->downvotes))
