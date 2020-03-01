@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.30 2019/08/23 21:45:55 rswindell Exp $ */
+/* $Id: scfg.h,v 1.31 2019/11/30 23:26:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -81,6 +81,8 @@ enum import_list_type {
 	IMPORT_LIST_TYPE_GENERIC_AREAS_BBS,
 	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
 	IMPORT_LIST_TYPE_BACKBONE_NA,
+	IMPORT_LIST_TYPE_BAD_AREAS,
+	IMPORT_LIST_TYPE_NEWSGROUPS,
 };
 
 /************/
