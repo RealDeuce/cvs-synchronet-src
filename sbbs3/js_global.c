@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.405 2020/03/11 18:08:35 deuce Exp $ */
+/* $Id: js_global.c,v 1.404 2020/03/01 18:45:40 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4704,7 +4704,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories). Returns true if the directory already exists.")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
 	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
