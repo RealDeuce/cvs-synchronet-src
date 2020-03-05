@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.104 2019/07/13 21:09:26 rswindell Exp $ */
+/* $Id: scfg.c,v 1.106 2020/01/03 20:37:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,6 +87,8 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
 	if(stricmp(fname, "control.dat") == 0)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
+	if(stricmp(fname, "newsgroup.lst") == 0)
+		return IMPORT_LIST_TYPE_NEWSGROUPS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
@@ -173,11 +175,7 @@ int main(int argc, char **argv)
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
-    p=getenv("SBBSCTRL");
-    if(p!=NULL)
-        SAFECOPY(cfg.ctrl_dir,p);
-    else
-		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+    SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
 
 	uifc.esc_delay=25;
 
