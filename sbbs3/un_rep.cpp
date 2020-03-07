@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.77 2019/08/20 07:59:14 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.79 2019/08/29 02:24:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,8 +197,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 		long confnum = atol((char *)block+1);
 		if(blocks<2) {
 			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
-				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias, confnum))
+				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias, confnum)) {
+					lprintf(LOG_WARNING, "QWK vote failure, offset %ld of %s", l, getfname(msg_fname));
 					errors++;
+				}
 				continue;
 			}
 			lprintf(LOG_WARNING
@@ -559,8 +561,8 @@ bool sbbs_t::unpack_rep(char* repfile)
 				if(destuser > 0) {
 					SAFEPRINTF4(str, text[MsgPostedToYouVia]
 						,msg.from
-						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname
-						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK");
+						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK"
+						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname);
 					putsmsg(&cfg, destuser, str);
 				}
 				if(!(useron.rest&FLAG('Q')))
