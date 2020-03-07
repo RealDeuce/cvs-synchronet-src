@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.187 2019/08/02 10:36:45 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.189 2020/03/01 23:30:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2650,12 +2650,14 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 			js_top=JS_ValueToString(cx,argv[i]);
 		else if(JSVAL_IS_STRING(argv[i]))
 			js_subj=JS_ValueToString(cx,argv[i]);
-		else if(JSVAL_IS_OBJECT(argv[i])) {
+		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
 			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -2721,12 +2723,14 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 				JSSTRING_TO_MSTRING(cx, js_str, subj, NULL);
 			}
 		}
-		else if(JSVAL_IS_OBJECT(argv[i])) {
+		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
 			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -3549,12 +3553,14 @@ js_post_msg(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToECMAUint32(cx,argv[n],&mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_OBJECT(argv[n])) {
+		else if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -3591,10 +3597,11 @@ js_show_msg(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToECMAUint32(cx, argv[n], &p_mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_OBJECT(argv[n])) {
+		else if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, &post)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		}
@@ -3629,10 +3636,13 @@ js_show_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	for(n=0; n<argc; n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
-			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
+			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL) {
+				JS_ReportError(cx, "invalid object argument");
 				return JS_FALSE;
+			}
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_STRING(argv[n])) {
@@ -3677,10 +3687,11 @@ js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	for(n=0; n<argc; n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_BOOLEAN(argv[n])) {
