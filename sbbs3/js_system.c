@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.177 2020/03/24 04:50:06 rswindell Exp $ */
+/* $Id: js_system.c,v 1.176 2019/09/02 10:27:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -577,24 +577,19 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsrefcount	rc;
 
 	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx, "JS_GetPrivate failure in %s", __FUNCTION__);
+	if((sys = (js_system_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
-	}
 	scfg_t* cfg = sys->cfg;
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
-	if(tiny < SYSSTAT_PROP_TOTALUSERS) {
-		rc=JS_SUSPENDREQUEST(cx);
-		if(!getstats(cfg, 0, &stats)) {
-			JS_RESUMEREQUEST(cx, rc);
-			JS_ReportError(cx, "getstats failure in %s", __FUNCTION__);
-			return JS_FALSE;
-		}
+	rc=JS_SUSPENDREQUEST(cx);
+	if(!getstats(cfg, 0, &stats)) {
 		JS_RESUMEREQUEST(cx, rc);
+		return(FALSE);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	switch(tiny) {
 		case SYSSTAT_PROP_LOGONS:

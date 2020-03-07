@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.251 2020/03/08 20:25:59 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.250 2020/03/07 02:21:01 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,7 +47,6 @@
 	#define mswait(x) Sleep(x)
 #endif
 #include <genwrap.h>	// for alloca()
-#include <datewrap.h>	// localtime_r()
 
 #include "ciolib.h"
 #include "uifc.h"
