@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.144 2020/03/19 08:15:16 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.143 2020/03/02 02:39:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -700,8 +700,7 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	char		key[2];
 	uintN		i;
 	int32		val;
-	uint32		maxnum = ~0;
-	bool		maxnum_specified = false;
+	uint32		maxnum = 0;
 	long		mode = K_UPPER;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -717,10 +716,9 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!JS_ValueToInt32(cx, argv[i], &val))
 				return JS_FALSE;
-			if(!maxnum_specified) {
-				maxnum_specified = true;
+			if(maxnum == 0)
 				maxnum = val;
-			} else
+			else
 				mode = val;
 			continue;
 		}
@@ -731,6 +729,9 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 				return JS_FALSE;
 		}
 	}
+
+	if(maxnum == 0)
+		maxnum = ~0;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	val=sbbs->getkeys(cstr, maxnum, mode);
