@@ -200,6 +200,10 @@ static struct {
 static void resize_xim(void)
 {
 	if (xim) {
+		if (bitmap_width*x_cvstat.scaling == xim->width
+		    && bitmap_height*x_cvstat.scaling*x_cvstat.vmultiplier == xim->height) {
+			return;
+		}
 #ifdef XDestroyImage
 		XDestroyImage(xim);
 #else
@@ -309,8 +313,6 @@ static int init_window()
     x11.XStoreName(dpy, win, "SyncConsole");
 	x11.XSetWMProtocols(dpy, win, &WM_DELETE_WINDOW, 1);
 
-	resize_xim();
-
 	return(0);
 }
 
@@ -339,8 +341,6 @@ static void map_window()
 
     x11.XFree(sh);
 
-	bitmap_drv_request_pixels();
-
     return;
 }
 
@@ -353,34 +353,45 @@ static void resize_window()
     return;
 }
 
-static int init_mode(int mode)
+static void init_mode_internal(int mode)
 {
     int oldcols;
-	int oldwidth=bitmap_width;
-	int oldheight=bitmap_height;
 
 	oldcols=x_cvstat.cols;
 
+	pthread_mutex_lock(&blinker_lock);
 	pthread_mutex_lock(&vstatlock);
 	bitmap_drv_init_mode(mode, &bitmap_width, &bitmap_height);
-	x_cvstat = vstat;
-	pthread_mutex_unlock(&vstatlock);
 
 	/* Deal with 40 col doubling */
-	if(oldcols != x_cvstat.cols) {
+	if(oldcols != vstat.cols) {
 		if(oldcols == 40)
-			x_cvstat.scaling /= 2;
-		if(x_cvstat.cols == 40)
-			x_cvstat.scaling *= 2;
+			vstat.scaling /= 2;
+		if(vstat.cols == 40)
+			vstat.scaling *= 2;
 	}
+	if(vstat.scaling < 1)
+		vstat.scaling = 1;
+	if(vstat.vmultiplier < 1)
+		vstat.vmultiplier = 1;
 
-	if(x_cvstat.scaling < 1)
-		x_setscaling(1);
-
+	x_cvstat = vstat;
+	pthread_mutex_unlock(&vstatlock);
+	pthread_mutex_unlock(&blinker_lock);
     map_window();
-    /* Resize window if necessary. */
-	if((!(bitmap_width == 0 && bitmap_height == 0)) && (oldwidth != bitmap_width || oldheight != bitmap_height))
+}
+
+static void check_scaling(void)
+{
+	if (old_scaling != x_cvstat.scaling) {
 		resize_window();
+		old_scaling = x_cvstat.scaling;
+	}
+}
+
+static int init_mode(int mode)
+{
+	init_mode_internal(mode);
 	bitmap_drv_request_pixels();
 
 	sem_post(&mode_set);
@@ -402,11 +413,7 @@ static int video_init()
 	bitmap_drv_init(x11_drawrect, x11_flush);
 
     /* Initialize mode 3 (text, 80x25, 16 colors) */
-    if(init_mode(3)) {
-		return(-1);
-	}
-
-	sem_wait(&mode_set);
+    init_mode_internal(3);
 
     return(0);
 }
@@ -422,6 +429,8 @@ static void local_draw_rect(struct rectlist *rect)
 	int cbottom = -1;
 	int idx;
 
+	if (bitmap_width != cleft || bitmap_height != ctop)
+		return;
 	/* TODO: Translate into local colour depth */
 	for(y=0;y<rect->rect.height;y++) {
 		idx = y*rect->rect.width;
@@ -516,9 +525,8 @@ static void handle_resize_event(int width, int height)
 	 * Otherwise, we can simply resend everything
 	 */
 	if((width % (x_cvstat.charwidth * x_cvstat.cols) != 0)
-			|| (height % (x_cvstat.charheight * x_cvstat.rows) != 0)) {
+			|| (height % (x_cvstat.charheight * x_cvstat.rows) != 0))
 		resize_window();
-	}
 	bitmap_drv_request_pixels();
 }
 
@@ -540,6 +548,11 @@ static void expose_rect(int x, int y, int width, int height)
 	ex=ex/x_cvstat.scaling;
 	ey=ey/(x_cvstat.scaling*x_cvstat.vmultiplier);
 
+	/* Since we're exposing, we *have* to redraw */
+	if (last) {
+		bitmap_drv_free_rect(last);
+		last = NULL;
+	}
 	bitmap_drv_request_some_pixels(sx, sy, ex-sx+1, ey-sy+1);
 }
 
@@ -898,14 +911,6 @@ static int x11_event(XEvent *ev)
 	return(0);
 }
 
-void check_scaling(void)
-{
-	if (old_scaling != x_cvstat.scaling) {
-		resize_window();
-		old_scaling = x_cvstat.scaling;
-	}
-}
-
 static void x11_terminate_event_thread(void)
 {
 	terminate = 1;
@@ -943,16 +948,17 @@ void x11_event_thread(void *args)
 		sem_post(&init_complete);
 		return;
 	}
-	x11_initialized=1;
 	sem_init(&event_thread_complete, 0, 0);
 	atexit(x11_terminate_event_thread);
-	sem_post(&init_complete);
 
 	if(local_pipe[0] > xfd)
 		high_fd=local_pipe[0];
 	else
 		high_fd=xfd;
 
+	x11.XSync(dpy, False);
+	x11_initialized=1;
+	sem_post(&init_complete);
 	for (;!terminate;) {
 		check_scaling();
 
@@ -988,8 +994,14 @@ void x11_event_thread(void *args)
 				break;
 			default:
 				if (FD_ISSET(xfd, &fdset)) {
+					// This blocks for the event...
 					x11.XNextEvent(dpy, &ev);
 					x11_event(&ev);
+					// And this reads anything else from the queue.
+					while (QLength(dpy) > 0) {
+						x11.XNextEvent(dpy, &ev);
+						x11_event(&ev);
+					}
 				}
 				if(FD_ISSET(local_pipe[0], &fdset)) {
 					struct x11_local_event lev;
