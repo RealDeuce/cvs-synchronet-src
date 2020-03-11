@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.705 2020/03/07 00:18:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.706 2020/03/11 01:07:32 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4730,12 +4730,16 @@ static BOOL exec_cgi(http_session_t *session)
 
 	if((child=fork())==0)  {
 		str_list_t  env_list;
+		char *handler;
 
 		/* Do a full suid thing. */
 		if(startup->setuid!=NULL)
 			startup->setuid(TRUE);
 
 		env_list=get_cgi_env(session);
+		handler = get_cgi_handler(cmdline);
+		if (handler)
+			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,handler,cmdline);
 
 		/* Set up STDIO */
 		dup2(session->socket,0);		/* redirect stdin */
@@ -4754,10 +4758,9 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 
 		/* Execute command */
-		if((p=get_cgi_handler(cmdline))!=NULL) {
+		if (handler != NULL) {
 			char* shell=os_cmdshell();
-			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,p,cmdline);
-			execle(shell,shell,"-c",p,cmdline,NULL,env_list);
+			execle(shell,shell,"-c",handler,cmdline,NULL,env_list);
 		}
 		else {
 			execle(cmdline,cmdline,NULL,env_list);
@@ -6663,7 +6666,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.705 $", "%*s %s", revision);
+	sscanf("$Revision: 1.706 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
