@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.131 2019/04/11 01:18:59 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.132 2020/01/03 20:31:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -94,6 +94,7 @@ FILE*		statfp;
 BOOL		pause_on_exit=FALSE;
 BOOL		pause_on_error=FALSE;
 char*		beep="";
+long		msgtxtmode = GETMSGTXT_ALL|GETMSGTXT_PLAIN;
 
 /************************/
 /* Program usage/syntax */
@@ -134,6 +135,7 @@ char *usage=
 "      -p    = wait for keypress (pause) on exit\n"
 "      -!    = wait for keypress (pause) on error\n"
 "      -b    = beep on error\n"
+"      -r    = display raw message body text (not MIME-decoded)\n"
 "      -C    = continue after some (normally fatal) error conditions\n"
 "      -t<s> = set 'to' user name for imported message\n"
 "      -n<s> = set 'to' netmail address for imported message\n"
@@ -1411,7 +1413,7 @@ void readmsgs(ulong start)
 
 			printf("\n\n");
 
-			if((inbuf=smb_getmsgtxt(&smb,&msg,GETMSGTXT_ALL|GETMSGTXT_PLAIN))!=NULL) {
+			if((inbuf=smb_getmsgtxt(&smb,&msg, msgtxtmode))!=NULL) {
 				printf("%s",inbuf);
 				free(inbuf); 
 			}
@@ -1572,7 +1574,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.131 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
@@ -1682,6 +1684,9 @@ int main(int argc, char **argv)
 						break;
 					case '!':
 						pause_on_error=TRUE;
+						break;
+					case 'r':
+						msgtxtmode = GETMSGTXT_ALL;
 						break;
 					case 'b':
 						beep="\a";
