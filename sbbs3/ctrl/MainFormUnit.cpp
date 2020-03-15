@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.209 2020/03/15 19:17:56 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.210 2020/03/15 20:04:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3946,7 +3946,7 @@ void __fastcall TMainForm::FidonetConfigureMenuItemClick(TObject *Sender)
 		NULL,  			// process security attributes
 		NULL,   		// thread security attributes
 		FALSE, 			// handle inheritance flag
-		CREATE_NEW_CONSOLE|CREATE_SEPARATE_WOW_VDM, // creation flags
+		0,              // creation flags
         NULL,  			// pointer to new environment block
 		cfg.ctrl_dir,	// pointer to current directory name
 		&startup_info,  // pointer to STARTUPINFO
