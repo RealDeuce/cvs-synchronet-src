@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.204 2019/02/15 06:26:05 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.208 2020/03/15 10:48:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2971,52 +2971,45 @@ void __fastcall TMainForm::UpTimerTick(TObject *Sender)
         sprintf(days,"%u days ",up/(24*60*60));
         up%=(24*60*60);
     }
-    sprintf(str,"Up: %s%u:%02u"
-        ,days
-        ,up/(60*60)
-        ,(up/60)%60
-        );
-    AnsiString Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[STATUSBAR_LAST_PANEL]->Text=Str;
-
-    sprintf(str,"Threads: %u",threads);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[0]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[0]->Text=Str;
-
-    sprintf(str,"Sockets: %u",sockets);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[1]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[1]->Text=Str;
-
-    sprintf(str,"Clients: %u",clients);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[2]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[2]->Text=Str;
-
-    sprintf(str,"Served: %u",total_clients);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[3]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[3]->Text=Str;
-
-    sprintf(str,"Failed: %u",loginAttemptListCount(&login_attempt_list));
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[4]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[4]->Text=Str;
-
-    sprintf(str,"Errors: %u",errors);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[5]->Text=Str;
-
-#if 0
-    THeapStatus hp=GetHeapStatus();
-    sprintf(str,"Mem Used: %lu bytes",hp.TotalAllocated);
-    Str=AnsiString(str);
-    if(MainForm->StatusBar->Panels->Items[5]->Text!=Str)
-		MainForm->StatusBar->Panels->Items[5]->Text=Str;
-#endif
+		
+	for(int i = 0; i <= STATUSBAR_LAST_PANEL; i++) {
+		switch(i) {
+			case 0:
+				sprintf(str,"Threads: %u",threads);
+				break;
+			case 1:
+				sprintf(str,"Sockets: %u",sockets);
+				break;
+			case 2:
+				sprintf(str,"Clients: %u",clients);
+				break;
+			case 3:
+			    sprintf(str,"Served: %u",total_clients);
+				break;
+			case 4:
+				sprintf(str,"Failed: %u",loginAttemptListCount(&login_attempt_list));
+				break;
+			case 5:
+				sprintf(str,"Errors: %u",errors);
+				break;
+			default:
+				sprintf(str,"Up: %s%u:%02u"
+					,days
+					,up/(60*60)
+					,(up/60)%60
+					);
+		}
+		TStatusPanel* panel = MainForm->StatusBar->Panels->Items[i];	
+		
+		AnsiString Str = AnsiString(str);
+		if(panel->Text != Str) {
+			panel->Text = Str;
+//			panel->Bevel = pbRaised;
+		} else {
+//			panel->Bevel = pbLowered;
+		}
+	}
+	
     if(TrayIcon->Visible) {
         /* Animate TrayIcon when in use */
         AnsiString NumClients;
@@ -3872,10 +3865,10 @@ void __fastcall TMainForm::ClearErrorsExecute(TObject *Sender)
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
     	int file;
-       	if(NodeForm->getnodedat(i+1,&node,&file))
+       	if(NodeForm->getnodedat(i+1,&node, /*lockit: */true))
             break;
         node.errors=0;
-        if(NodeForm->putnodedat(i+1,&node,file))
+        if(NodeForm->putnodedat(i+1,&node))
             break;
     }
 }
@@ -3925,4 +3918,39 @@ void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
     clearLoginAttemptList = true;
 }
 //---------------------------------------------------------------------------
+
+void __fastcall TMainForm::RefreshLogClick(TObject *Sender)
+{
+    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
+    Log->Refresh();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::FidonetConfigureMenuItemClick(TObject *Sender)
+{
+	char str[256];
+
+    sprintf(str, "%sechocfg.exe", cfg.exec_dir);
+    STARTUPINFO startup_info={0};
+    PROCESS_INFORMATION process_info;
+    startup_info.cb=sizeof(startup_info);
+    startup_info.lpTitle="Fidonet Configuration";
+	CreateProcess(
+		NULL,			// pointer to name of executable module
+		str,  			// pointer to command line string
+		NULL,  			// process security attributes
+		NULL,   		// thread security attributes
+		FALSE, 			// handle inheritance flag
+		CREATE_NEW_CONSOLE|CREATE_SEPARATE_WOW_VDM, // creation flags
+        NULL,  			// pointer to new environment block
+		cfg.ctrl_dir,	// pointer to current directory name
+		&startup_info,  // pointer to STARTUPINFO
+		&process_info  	// pointer to PROCESS_INFORMATION
+		);
+	// Resource leak if you don't close these:
+	CloseHandle(process_info.hThread);
+	CloseHandle(process_info.hProcess);
+}
+//---------------------------------------------------------------------------
+
 

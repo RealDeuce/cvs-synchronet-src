@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.102 2019/06/28 23:04:48 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.108 2019/09/27 20:58:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,7 +99,7 @@ bool sbbs_t::answer()
 				,LEN_ALIAS*2,str2
 				,terminal);
 			SAFECOPY(rlogin_term, terminal);
-			SAFECOPY(rlogin_name, str2);
+			SAFECOPY(rlogin_name, parse_login(str2));
 			SAFECOPY(rlogin_pass, str);
 			/* Truncate terminal speed (e.g. "/57600") from terminal-type string 
 			   (but keep full terminal type/speed string in rlogin_term): */
@@ -192,7 +192,7 @@ bool sbbs_t::answer()
 		pthread_mutex_lock(&ssh_mutex);
 		ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_USERNAME);
 		if (ctmp) {
-			SAFECOPY(rlogin_name, ctmp);
+			SAFECOPY(rlogin_name, parse_login(ctmp));
 			free_crypt_attrstr(ctmp);
 			ctmp = get_crypt_attribute(ssh_session, CRYPT_SESSINFO_PASSWORD);
 			if (ctmp) {
@@ -359,14 +359,12 @@ bool sbbs_t::answer()
 						if(x >= TERM_COLS_MIN && x <= TERM_COLS_MAX) cols=x; 
 						if(y >= TERM_ROWS_MIN && y <= TERM_ROWS_MAX) rows=y;
 					} else {	// second report
-						if(x == 1)	// ZWNBSP didn't move cursor
+						if(x < 3)	// ZWNBSP didn't move cursor (more than one column)
 							autoterm |= UTF8;
 					}
 				} else if(sscanf(p, "[=67;84;101;114;109;%u;%u", &x, &y) == 2 && *lastchar(p) == 'c') {
 					lprintf(LOG_INFO,"received CTerm version report: %u.%u", x, y);
 					cterm_version = (x*1000) + y;
-					if(cterm_version >= 1061)
-						autoterm |= CTERM_FONTS;
 				}
 				p = strtok_r(NULL, "\x1b", &tokenizer);
 			}
@@ -406,7 +404,6 @@ bool sbbs_t::answer()
 	if(!(telnet_mode&TELNET_MODE_OFF)) {
 		/* Stop the input thread from writing to the telnet_* vars */
 		pthread_mutex_lock(&input_thread_mutex);
-		input_thread_mutex_locked = true;
 
 		if(stricmp(telnet_terminal,"sexpots")==0) {	/* dial-up connection (via SexPOTS) */
 			SAFEPRINTF2(str,"%s connection detected at %lu bps", terminal, cur_rate);
@@ -433,6 +430,7 @@ bool sbbs_t::answer()
 		} else {
 			if(telnet_location[0]) {			/* Telnet Location info provided */
 				lprintf(LOG_INFO, "Telnet Location: %s", telnet_location);
+				SAFECOPY(cid, telnet_location);
 			}
 		}
 		if(telnet_speed) {
@@ -447,11 +445,8 @@ bool sbbs_t::answer()
 		if(telnet_rows >= TERM_ROWS_MIN && telnet_rows <= TERM_ROWS_MAX)
 			rows = telnet_rows;
 		pthread_mutex_unlock(&input_thread_mutex);
-		input_thread_mutex_locked = false;
 	}
 	lprintf(LOG_INFO, "terminal type: %lux%lu %s", cols, rows, terminal);
-	useron.misc&=~TERM_FLAGS;
-	useron.misc|=autoterm;
 	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
 	SAFECOPY(useron.comp,client_name);
 
