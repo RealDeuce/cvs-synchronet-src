@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.717 2019/10/05 20:47:49 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.718 2020/03/15 10:52:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5878,7 +5878,7 @@ static void cleanup(int code)
 		if(stats.errors)
 			sprintf(str+strlen(str),", %lu errors", stats.errors);
 		if(stats.crit_errors)
-			sprintf(str+strlen(str),", %lu critcal", stats.crit_errors);
+			sprintf(str+strlen(str),", %lu critical", stats.crit_errors);
 
 		lprintf(LOG_INFO,"#### Mail Server thread terminated (%s)",str);
 	}
@@ -5893,7 +5893,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.717 $", "%*s %s", revision);
+	sscanf("$Revision: 1.718 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
