@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.93 2020/03/17 05:47:29 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.91 2020/03/15 19:17:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -345,11 +345,6 @@ __published:	// IDE-managed Components
     TMenuItem *sbbsechoEditMenuItem;
     TMenuItem *areafileEditMenuItem;
     TMenuItem *FidonetPollMenuItem;
-    TMenuItem *FileRunMenuItem;
-    TMenuItem *FileRunUpdateMenuItem;
-    TMenuItem *FileRunChkSetupMenuItem;
-    TMenuItem *FileRunInitFidonetMenuItem;
-    TMenuItem *FileMenuRunJSMenuItem;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -405,7 +400,6 @@ __published:	// IDE-managed Components
     void __fastcall ExportSettings(TObject *Sender);
     void __fastcall BBSLoginMenuItemClick(TObject *Sender);
     void __fastcall ViewLogClick(TObject *Sender);
-    void __fastcall RunJSClick(TObject *Sender);
     void __fastcall UserListExecute(TObject *Sender);
     void __fastcall WebPageMenuItemClick(TObject *Sender);
     void __fastcall TrayIconRestore(TObject *Sender);
@@ -450,7 +444,6 @@ __published:	// IDE-managed Components
     void __fastcall RefreshLogClick(TObject *Sender);
     void __fastcall FidonetConfigureMenuItemClick(TObject *Sender);
     void __fastcall FidonetPollMenuItemClick(TObject *Sender);
-    void __fastcall FileMenuRunJSMenuItemClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
