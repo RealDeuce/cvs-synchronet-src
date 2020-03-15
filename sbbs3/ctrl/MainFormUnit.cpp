@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.205 2019/07/18 04:10:00 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.210 2020/03/15 20:04:20 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -787,7 +787,7 @@ static void recycle(void* cbdata)
         );
     if(fp!=NULL)
         fclose(fp);
-	MainForm->SetLogControls();
+	MainForm->SetControls();
 }
 //---------------------------------------------------------------------------
 __fastcall TMainForm::TMainForm(TComponent* Owner)
@@ -1638,7 +1638,7 @@ void __fastcall TMainForm::WriteFont(AnsiString subkey, TFont* Font)
     delete Registry;
 }
 
-void __fastcall TMainForm::SetLogControls(void)
+void __fastcall TMainForm::SetControls(void)
 {
     TelnetForm->LogLevelUpDown->Position=bbs_startup.log_level;
     TelnetForm->LogLevelText->Caption=LogLevelDesc[bbs_startup.log_level];
@@ -1650,7 +1650,13 @@ void __fastcall TMainForm::SetLogControls(void)
     WebForm->LogLevelText->Caption=LogLevelDesc[web_startup.log_level];
     ServicesForm->LogLevelUpDown->Position=services_startup.log_level;
     ServicesForm->LogLevelText->Caption=LogLevelDesc[services_startup.log_level];
+
+    if(cfg.total_faddrs)
+        FidonetMenuItem->Visible = true;
+    else
+        FidonetMenuItem->Visible = false;
 }
+
 void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
 {
     bool	TelnetFormFloating=false;
@@ -2347,8 +2353,7 @@ void __fastcall TMainForm::StartupTimerTick(TObject *Sender)
                 
     ServiceStatusTimer->Enabled=true;
 
-
-	SetLogControls();
+	SetControls();
 	
     if(!Application->Active)	/* Starting up minimized? */
     	FormMinimize(Sender);   /* Put icon in systray */
@@ -3375,7 +3380,7 @@ void __fastcall TMainForm::reload_config(void)
     	SoundToggle->Checked=false;
     else
     	SoundToggle->Checked=true;
-	SetLogControls();
+	SetControls();
 }
 //---------------------------------------------------------------------------
 
@@ -3865,10 +3870,10 @@ void __fastcall TMainForm::ClearErrorsExecute(TObject *Sender)
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
     	int file;
-       	if(NodeForm->getnodedat(i+1,&node,&file))
+       	if(NodeForm->getnodedat(i+1,&node, /*lockit: */true))
             break;
         node.errors=0;
-        if(NodeForm->putnodedat(i+1,&node,file))
+        if(NodeForm->putnodedat(i+1,&node))
             break;
     }
 }
@@ -3916,6 +3921,54 @@ void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
       TObject *Sender)
 {
     clearLoginAttemptList = true;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::RefreshLogClick(TObject *Sender)
+{
+    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
+    Log->Refresh();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::FidonetConfigureMenuItemClick(TObject *Sender)
+{
+	char str[MAX_PATH + 1];
+
+    SAFEPRINTF(str, "%sechocfg.exe", cfg.exec_dir);
+    STARTUPINFO startup_info={0};
+    PROCESS_INFORMATION process_info;
+    startup_info.cb=sizeof(startup_info);
+    startup_info.lpTitle="Fidonet Configuration";
+	CreateProcess(
+		NULL,			// pointer to name of executable module
+		str,  			// pointer to command line string
+		NULL,  			// process security attributes
+		NULL,   		// thread security attributes
+		FALSE, 			// handle inheritance flag
+		0,              // creation flags
+        NULL,  			// pointer to new environment block
+		cfg.ctrl_dir,	// pointer to current directory name
+		&startup_info,  // pointer to STARTUPINFO
+		&process_info  	// pointer to PROCESS_INFORMATION
+		);
+	// Resource leak if you don't close these:
+	CloseHandle(process_info.hThread);
+	CloseHandle(process_info.hProcess);
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TMainForm::FidonetPollMenuItemClick(TObject *Sender)
+{
+	char path[MAX_PATH + 1];
+
+    SAFEPRINTF(path, "%sbinkpoll.now", cfg.data_dir);
+    int file=_sopen(path,O_CREAT|O_TRUNC|O_WRONLY
+	                ,SH_DENYRW,S_IREAD|S_IWRITE);
+    if (file!=-1)
+        close(file);
 }
 //---------------------------------------------------------------------------
 
