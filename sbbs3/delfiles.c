@@ -2,7 +2,7 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.10 2018/07/18 04:50:28 rswindell Exp $ */
+/* $Id: delfiles.c,v 1.13 2020/01/03 20:34:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -104,8 +104,9 @@ int main(int argc, char **argv)
 		"Filebase\n" ,DELFILES_VER, PLATFORM_DESC );
 
 	if(argc<2) {
-		printf("\n   usage: DELFILES <dir_code or * for ALL> [switches]\n");
+		printf("\n   usage: DELFILES [dir_code] [switches]\n");
 		printf("\nswitches: -LIB name All directories of specified library\n");
+		printf("          -ALL      Search all directories\n");
 		printf("          -NOT code Exclude specific directory\n");
 		printf("          -OFF      Remove files that are offline "
 			"(don't exist on disk)\n");
@@ -116,16 +117,7 @@ int main(int argc, char **argv)
 		return(0); 
 	}
 
-	p=getenv("SBBSCTRL");
-	if(p==NULL) {
-		printf("\nSBBSCTRL environment variable not set.\n");
-	#ifdef __unix__
-		printf("\nExample: export SBBSCTRL=/sbbs/ctrl\n");
-	#else
-		printf("\nExample: SET SBBSCTRL=C:\\SBBS\\CTRL\n");
-	#endif
-		return(1); 
-	}
+	p = get_ctrl_dir();
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.size=sizeof(cfg);
@@ -288,7 +280,7 @@ int main(int argc, char **argv)
 			if(cfg.dir[i]->maxage && cfg.dir[i]->misc&DIR_SINCEDL && workfile.datedled
 				&& (now-workfile.datedled)/86400L>cfg.dir[i]->maxage) {
 					printf("Deleting %s (%ld days since last download)\n",fname
-						,(now-workfile.datedled)/86400L);
+						,(long)(now-workfile.datedled)/86400L);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT)) {
 						removefiledat(&cfg, &workfile);
@@ -300,7 +292,7 @@ int main(int argc, char **argv)
 				&& !(workfile.datedled && cfg.dir[i]->misc&DIR_SINCEDL)
 				&& (now-workfile.dateuled)/86400L>cfg.dir[i]->maxage) {
 					printf("Deleting %s (uploaded %ld days ago)\n",fname
-						,(now-workfile.dateuled)/86400L);
+						,(long)(now-workfile.dateuled)/86400L);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT)) {
 						removefiledat(&cfg, &workfile);
