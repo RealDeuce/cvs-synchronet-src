@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.205 2019/07/18 04:10:00 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.207 2020/03/15 09:36:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3865,10 +3865,10 @@ void __fastcall TMainForm::ClearErrorsExecute(TObject *Sender)
     node_t node;
     for(int i=0;i<cfg.sys_nodes;i++) {
     	int file;
-       	if(NodeForm->getnodedat(i+1,&node,&file))
+       	if(NodeForm->getnodedat(i+1,&node, /*lockit: */true))
             break;
         node.errors=0;
-        if(NodeForm->putnodedat(i+1,&node,file))
+        if(NodeForm->putnodedat(i+1,&node))
             break;
     }
 }
@@ -3916,6 +3916,13 @@ void __fastcall TMainForm::ClearFailedLoginsPopupMenuItemClick(
       TObject *Sender)
 {
     clearLoginAttemptList = true;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TMainForm::RefreshLogClick(TObject *Sender)
+{
+    TRichEdit* Log = (TRichEdit*)LogPopupMenu->PopupComponent;
+    Log->Refresh();
 }
 //---------------------------------------------------------------------------
 

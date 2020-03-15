@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.249 2019/08/17 02:21:01 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.252 2020/03/01 23:52:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -59,6 +59,8 @@
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
 #define COPYRIGHT_CRC		0x0E0503DF
+
+#define SBBSCTRL_DEFAULT	"/sbbs/ctrl"
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -177,7 +179,7 @@ typedef struct js_callback {
 #define SM_TIME_EXP		(1L<<22)	/* Set to expired values if out-of-time 	*/
 #define SM_FASTMAIL		(1L<<23)	/* Fast e-mail storage mode 				*/
 #define SM_NONODELIST	(1L<<24)	/* Suppress active node list during logon	*/
-#define SM_ERRALARM		(1L<<25)	/* Error beeps on							*/
+#define SM_UNUSED2		(1L<<25)	/*											*/
 #define SM_FWDTONET		(1L<<26)	/* Allow forwarding of e-mail to netmail	*/
 #define SM_DELREADM		(1L<<27)	/* Delete read mail automatically			*/
 #define SM_NOCDTCVT		(1L<<28)	/* No credit to minute conversions allowed	*/
@@ -748,6 +750,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TRIM		(1L<<23)	/* Trimmed white-space						*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
+#define P_NONE		0			/* No mode flags							*/
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
 #define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */
