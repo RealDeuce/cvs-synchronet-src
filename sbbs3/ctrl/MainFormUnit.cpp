@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.207 2020/03/15 09:36:21 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.208 2020/03/15 10:48:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3925,4 +3925,32 @@ void __fastcall TMainForm::RefreshLogClick(TObject *Sender)
     Log->Refresh();
 }
 //---------------------------------------------------------------------------
+
+void __fastcall TMainForm::FidonetConfigureMenuItemClick(TObject *Sender)
+{
+	char str[256];
+
+    sprintf(str, "%sechocfg.exe", cfg.exec_dir);
+    STARTUPINFO startup_info={0};
+    PROCESS_INFORMATION process_info;
+    startup_info.cb=sizeof(startup_info);
+    startup_info.lpTitle="Fidonet Configuration";
+	CreateProcess(
+		NULL,			// pointer to name of executable module
+		str,  			// pointer to command line string
+		NULL,  			// process security attributes
+		NULL,   		// thread security attributes
+		FALSE, 			// handle inheritance flag
+		CREATE_NEW_CONSOLE|CREATE_SEPARATE_WOW_VDM, // creation flags
+        NULL,  			// pointer to new environment block
+		cfg.ctrl_dir,	// pointer to current directory name
+		&startup_info,  // pointer to STARTUPINFO
+		&process_info  	// pointer to PROCESS_INFORMATION
+		);
+	// Resource leak if you don't close these:
+	CloseHandle(process_info.hThread);
+	CloseHandle(process_info.hProcess);
+}
+//---------------------------------------------------------------------------
+
 
