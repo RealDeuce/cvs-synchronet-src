@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.252 2019/08/23 04:50:06 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.254 2020/03/01 23:51:25 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -53,6 +53,7 @@ typedef struct
 {
 	private_t	*p;
 	BOOL		expand_fields;
+	BOOL		enumerated;
 	smbmsg_t	msg;
 	post_t		post;
 
@@ -1352,7 +1353,7 @@ static JSBool js_get_msg_header_resolve(JSContext *cx, JSObject *obj, jsid id)
 	}
 
 	/* If we have already enumerated, we're done here... */
-	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL) {
+	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL || p->enumerated) {
 		if(name) free(name);
 		return JS_TRUE;
 	}
@@ -1639,10 +1640,7 @@ static JSBool js_get_msg_header_enumerate(JSContext *cx, JSObject *obj)
 	if((p=(privatemsg_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_TRUE;
 
-	smb_freemsgmem(&(p->msg));
-	free(p);
-
-	JS_SetPrivate(cx, obj, NULL);
+	p->enumerated = TRUE;
 
 	return JS_TRUE;
 }
@@ -2312,7 +2310,7 @@ js_get_msg_body(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_OBJECT(argv[n])) {		/* Use existing header */
 			JSClass *oc=JS_GetClass(cx, JSVAL_TO_OBJECT(argv[n]));
-			if(strcmp(oc->name, js_msghdr_class.name)==0) {
+			if(oc != NULL && strcmp(oc->name, js_msghdr_class.name) == 0) {
 				privatemsg_t	*pmsg=JS_GetPrivate(cx,JSVAL_TO_OBJECT(argv[n]));
 
 				if(pmsg != NULL) {
@@ -2426,7 +2424,7 @@ js_get_msg_tail(JSContext *cx, uintN argc, jsval *arglist)
 			break;
 		} else if(JSVAL_IS_OBJECT(argv[n])) {		/* Use existing header */
 			JSClass *oc=JS_GetClass(cx, JSVAL_TO_OBJECT(argv[n]));
-			if(strcmp(oc->name, js_msghdr_class.name)==0) {
+			if(oc != NULL && strcmp(oc->name, js_msghdr_class.name) == 0) {
 				privatemsg_t	*pmsg=JS_GetPrivate(cx,JSVAL_TO_OBJECT(argv[n]));
 
 				if(pmsg != NULL) {

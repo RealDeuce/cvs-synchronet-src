@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.250 2019/10/24 20:04:57 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.252 2020/03/01 23:52:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -59,6 +59,8 @@
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
 #define COPYRIGHT_CRC		0x0E0503DF
+
+#define SBBSCTRL_DEFAULT	"/sbbs/ctrl"
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -748,6 +750,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TRIM		(1L<<23)	/* Trimmed white-space						*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
+#define P_NONE		0			/* No mode flags							*/
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
 #define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */

@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.141 2019/10/08 02:08:58 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.143 2020/03/02 02:39:25 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -846,6 +846,7 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
     JSString*	js_str;
 	char*		cstr;
+	int32		mode = P_NONE;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -859,8 +860,12 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
+	if(JSVAL_IS_NUMBER(argv[1])) {
+		if(!JS_ValueToInt32(cx, argv[1], &mode))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr, mode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -873,6 +878,7 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
     JSString*	js_str;
 	char*		cstr;
+	int32		mode = P_NONE;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -886,8 +892,12 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
+	if(JSVAL_IS_NUMBER(argv[1])) {
+		if(!JS_ValueToInt32(cx, argv[1], &mode))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr, mode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1969,19 +1979,19 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,310
 	},
 	{"gettemplate",		js_gettemplate,		1, JSTYPE_STRING,	JSDOCSTR("format [,string] [,mode=<tt>0</tt>]")
-	,JSDOCSTR("get a string based on template")
+	,JSDOCSTR("get an input string based on specified template")
 	,310
 	},
 	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("keys")
-	,JSDOCSTR("put a data (e.g. a string of characters) in the keyboard input buffer")
+	,JSDOCSTR("put one or more characters in the keyboard input buffer")
 	,310
 	},
-	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
-	,JSDOCSTR("YES/no question - returns <i>true</i> if yes is selected")
+	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	,JSDOCSTR("YES/no question - returns <i>true</i> if 'yes' is selected")
 	,310
 	},
-	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
-	,JSDOCSTR("NO/yes question - returns <i>true</i> if no is selected")
+	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	,JSDOCSTR("NO/yes question - returns <i>true</i> if 'no' is selected")
 	,310
 	},
 	{"mnemonics",		js_mnemonics,		1, JSTYPE_VOID,		JSDOCSTR("text")
