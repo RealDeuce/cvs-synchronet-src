@@ -1,12 +1,11 @@
 object MainForm: TMainForm
-  Left = 724
-  Top = 315
+  Left = 633
+  Top = 318
   Width = 793
   Height = 400
   Caption = 'Synchronet Control Panel'
   Color = clBtnFace
   UseDockManager = True
-  DragKind = dkDock
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13976,7 +13975,7 @@ object MainForm: TMainForm
       end
       object TelnetEditMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = 'Edit'
+        Caption = '&Edit'
         ImageIndex = 27
         object TelnetEditRLoginList: TMenuItem
           Caption = 'Allowed RLogin List'
@@ -14011,7 +14010,7 @@ object MainForm: TMainForm
       end
       object MailViewMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = 'View'
+        Caption = '&View'
         ImageIndex = 47
         object MailViewSpamLog: TMenuItem
           Caption = 'Spam Log'
@@ -14193,7 +14192,8 @@ object MainForm: TMainForm
       end
       object WebEditMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = 'Edit'
+        Caption = '&Edit'
+        ImageIndex = 27
         object WebEditMimeTypesMenuItem: TMenuItem
           Caption = 'MIME Types'
           Hint = 'mime_types.ini'
@@ -14234,10 +14234,65 @@ object MainForm: TMainForm
       end
       object ServicesEditMenuItem: TMenuItem
         AutoHotkeys = maManual
-        Caption = 'Edit'
+        Caption = '&Edit'
+        ImageIndex = 27
         object ServicesEditIniMenuOption: TMenuItem
           Caption = 'services.ini'
           Hint = 'services.ini'
+          OnClick = CtrlMenuItemEditClick
+        end
+      end
+    end
+    object FidonetMenuItem: TMenuItem
+      Caption = 'Fido&Net'
+      object FidonetConfigureMenuItem: TMenuItem
+        Caption = '&Configure'
+        ImageIndex = 4
+        OnClick = FidonetConfigureMenuItemClick
+      end
+      object FidonetPollMenuItem: TMenuItem
+        Caption = '&Poll'
+        ImageIndex = 0
+        OnClick = FidonetPollMenuItemClick
+      end
+      object N13: TMenuItem
+        Caption = '-'
+      end
+      object FidonetViewMenuItem: TMenuItem
+        Caption = '&View'
+        ImageIndex = 47
+        object binkstasViewMenuItem: TMenuItem
+          Caption = 'BinkP Statistics'
+          Hint = 'binkstats.ini'
+          OnClick = ViewLogClick
+        end
+        object echostatsViewMenuItem: TMenuItem
+          Caption = 'EchoMail Statistics'
+          Hint = 'echostats.ini'
+          OnClick = ViewLogClick
+        end
+        object sbbsechoLogViewMenuItem: TMenuItem
+          Caption = 'SBBSecho Log'
+          Hint = 'sbbsecho.log'
+          OnClick = ViewLogClick
+        end
+        object badareasViewMenuItem: TMenuItem
+          Caption = 'Bad Area List'
+          Hint = 'badareas.lst'
+          OnClick = ViewLogClick
+        end
+      end
+      object FidonetEditMenuItem: TMenuItem
+        Caption = '&Edit'
+        ImageIndex = 27
+        object areafileEditMenuItem: TMenuItem
+          Caption = 'Area File'
+          Hint = 'areas.bbs'
+          OnClick = DataMenuItemClick
+        end
+        object sbbsechoEditMenuItem: TMenuItem
+          Caption = 'sbbsecho.ini'
+          Hint = 'sbbsecho.ini'
           OnClick = CtrlMenuItemEditClick
         end
       end
@@ -16074,6 +16129,10 @@ object MainForm: TMainForm
     object LogPopupCopyAll: TMenuItem
       Caption = 'Copy &All'
       OnClick = LogPopupCopyAllClick
+    end
+    object LogRefresh: TMenuItem
+      Caption = 'Refresh'
+      OnClick = RefreshLogClick
     end
   end
 end
