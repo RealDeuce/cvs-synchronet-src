@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.780 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: main.cpp,v 1.779 2020/02/02 02:55:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5645,7 +5645,6 @@ NO_SSH:
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
 		client.user=STR_UNKNOWN_USER;
-		client.usernum = 0;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
