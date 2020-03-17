@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.240 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.252 2020/03/01 23:52:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -59,6 +59,8 @@
 #define SYNCHRONET_CRC		0x9BCDD162
 #define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
 #define COPYRIGHT_CRC		0x0E0503DF
+
+#define SBBSCTRL_DEFAULT	"/sbbs/ctrl"
 
 #define Y2K_2DIGIT_WINDOW	70
 
@@ -177,7 +179,7 @@ typedef struct js_callback {
 #define SM_TIME_EXP		(1L<<22)	/* Set to expired values if out-of-time 	*/
 #define SM_FASTMAIL		(1L<<23)	/* Fast e-mail storage mode 				*/
 #define SM_NONODELIST	(1L<<24)	/* Suppress active node list during logon	*/
-#define SM_ERRALARM		(1L<<25)	/* Error beeps on							*/
+#define SM_UNUSED2		(1L<<25)	/*											*/
 #define SM_FWDTONET		(1L<<26)	/* Allow forwarding of e-mail to netmail	*/
 #define SM_DELREADM		(1L<<27)	/* Delete read mail automatically			*/
 #define SM_NOCDTCVT		(1L<<28)	/* No credit to minute conversions allowed	*/
@@ -412,6 +414,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define XTRN_NOECHO		(1<<20)		/* Don't echo stdin to stdout			*/
 #define QUOTEWRAP		(1<<21)		/* Word-wrap quoted message text		*/
 #define SAVECOLUMNS		(1<<22)		/* Save/share current terminal width	*/
+#define XTRN_UTF8		(1<<23)		/* External program supports UTF-8		*/
 #define XTRN_CONIO		(1<<31)		/* Intercept Windows Console I/O (Drwy)	*/
 
 									/* Bits in cfg.xtrn_misc				*/
@@ -435,6 +438,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QWK_MSGID	(1L<<14)		/* Include "@MSGID" in msgs				*/
 #define QWK_HEADERS	(1L<<16)		/* Include HEADERS.DAT file				*/
 #define QWK_VOTING	(1L<<17)		/* Include VOTING.DAT					*/
+#define QWK_UTF8	(1L<<18)		/* Include UTF-8 characters				*/
 
 #define QWK_DEFAULT	(QWK_FILES|QWK_ATTACH|QWK_EMAIL|QWK_DELMAIL)
 
@@ -446,6 +450,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define QHUB_NOKLUDGES	(1<<14)		/* Don't include @-kludges */
 #define QHUB_NOHEADERS	(1<<16)		/* Don't include HEADERS.DAT */
 #define QHUB_NOVOTING	(1<<17)		/* Don't include VOTING.DAT */
+#define QHUB_UTF8		(1<<18)		/* Include UTF-8 characters */
 
 							/* Bits in user.chat							*/
 #define CHAT_ECHO	(1<<0)	/* Multinode chat echo							*/
@@ -652,12 +657,12 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define AUTOLOGON	(1L<<22)		/* AutoLogon via IP						*/
 #define HTML		(1L<<23)		/* Using Zuul/HTML terminal				*/
 #define NOPAUSESPIN	(1L<<24)		/* No spinning cursor at pause prompt	*/
-#define CTERM_FONTS	(1L<<25)		/* Loadable fonts are supported			*/
 #define PETSCII		(1L<<26)		/* Commodore PET/CBM terminal			*/
 #define SWAP_DELETE	(1L<<27)		/* Swap Delete and Backspace keys		*/
 #define ICE_COLOR	(1L<<28)		/* Bright background color support		*/
+#define UTF8		(1L<<29)		/* UTF-8 terminal						*/
 
-#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|CTERM_FONTS|PETSCII|SWAP_DELETE|ICE_COLOR)
+#define TERM_FLAGS	(ANSI|COLOR|NO_EXASCII|RIP|WIP|HTML|PETSCII|SWAP_DELETE|ICE_COLOR|UTF8)
 
 									/* Special terminal key mappings */
 #define TERM_KEY_HOME	CTRL_B
@@ -714,6 +719,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define SS_FILEXFER	(1L<<27) /* File transfer in progress, halt spy			*/
 #define SS_SSH		(1L<<28) /* Current login via SSH						*/
 #define SS_MOFF		(1L<<29) /* Disable automatic messages					*/
+#define SS_QWKLOGON	(1L<<30) /* QWK logon									*/
+#define SS_FASTLOGON (1<<31) /* Fast logon									*/
 
 								/* Bits in 'mode' for getkey and getstr     */
 #define K_NONE		0			/* Use as a place holder for no mode flags	*/
@@ -743,6 +750,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define K_TRIM		(1L<<23)	/* Trimmed white-space						*/
 
 								/* Bits in 'mode' for putmsg and printfile  */
+#define P_NONE		0			/* No mode flags							*/
 #define P_NOABORT  	(1<<0)		/* Disallows abortion of a message          */
 #define P_SAVEATR   (1<<1)		/* Save the new current attributes after	*/
 								/* msg has printed. */
@@ -757,6 +765,9 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define P_NOERROR	(1<<10)		/* Don't report error if file doesn't exist	*/
 #define P_PETSCII	(1<<11)		/* Message is native PETSCII				*/
 #define P_WRAP		(1<<12)		/* Wrap/split long-lines, ungracefully		*/
+#define P_UTF8		(1<<13)		/* Message is UTF-8							*/
+#define P_AUTO_UTF8	(1<<14)		/* Message may be UTF-8, auto-detect		*/
+#define P_NOXATTRS	(1<<15)		/* No "Extra Attribute Codes" supported		*/
 
 								/* Bits in 'mode' for listfiles             */
 #define FL_ULTIME   (1<<0)		/* List files by upload time                */
@@ -780,6 +791,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define WM_SUBJ_RO	(1<<9)		/* Subject/title is read-only				*/
 #define WM_EDIT		(1<<10)		/* Editing existing message					*/
 #define WM_FORCEFWD	(1<<11)		/* Force "yes" to ForwardMailQ for email	*/
+#define WM_NOFWD	(1<<12)		/* Don't forward email to netmail			*/
 
 								/* Bits in the mode of loadposts()			*/
 #define LP_BYSELF	(1<<0)		/* Include messages sent by self			*/
