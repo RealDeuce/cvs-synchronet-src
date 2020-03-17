@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.91 2020/03/15 19:17:56 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.92 2020/03/17 04:27:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -345,6 +345,11 @@ __published:	// IDE-managed Components
     TMenuItem *sbbsechoEditMenuItem;
     TMenuItem *areafileEditMenuItem;
     TMenuItem *FidonetPollMenuItem;
+    TMenuItem *FileRunMenuItem;
+    TMenuItem *FileRunUpdateMenuItem;
+    TMenuItem *FileRunChkSetupMenuItem;
+    TMenuItem *FileRunInitFidonetMenuItem;
+    TMenuItem *FileMenuRunJSMenuItem;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -400,6 +405,7 @@ __published:	// IDE-managed Components
     void __fastcall ExportSettings(TObject *Sender);
     void __fastcall BBSLoginMenuItemClick(TObject *Sender);
     void __fastcall ViewLogClick(TObject *Sender);
+    void __fastcall RunJSClick(TObject *Sender);
     void __fastcall UserListExecute(TObject *Sender);
     void __fastcall WebPageMenuItemClick(TObject *Sender);
     void __fastcall TrayIconRestore(TObject *Sender);
