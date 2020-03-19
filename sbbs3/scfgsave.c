@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.91 2020/03/25 04:45:21 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.90 2020/03/01 19:10:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -272,10 +272,10 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->scanposts_mod, stream);
 	put_str(cfg->scansubs_mod, stream);
 	put_str(cfg->listmsgs_mod, stream);
-	put_str(cfg->textsec_mod,stream);
 
+	put_int(c,stream);
 	n=0;
-	for(i=0;i<26;i++)
+	for(i=0;i<30;i++)
 		put_int(n,stream);
 	n=0xffff;
 	for(i=0;i<254;i++)
