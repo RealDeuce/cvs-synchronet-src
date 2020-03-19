@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.67 2019/02/17 05:24:51 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.70 2019/09/24 06:41:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -55,9 +55,9 @@
 char *ultoac(ulong l, char *string)
 {
 	char str[256];
-	signed char i,j,k;
+	int i,j,k;
 
-	sprintf(str,"%lu",l);
+	SAFEPRINTF(str,"%lu",l);
 	i=strlen(str)-1;
 	j=i/3+1+i;
 	string[j--]=0;
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.67 $", "%*s %s", revision);
+	sscanf("$Revision: 1.70 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 
 	off_t sid_length = filelength(fileno(smb.sid_fp));
 	if(sid_length != smb.status.total_msgs * sizeof(idxrec_t)) {
-		printf("!Size of index file (%ld) is incorrect (expected: %ld)\n", sid_length, smb.status.total_msgs * sizeof(idxrec_t));
+		printf("!Size of index file (%ld) is incorrect (expected: %ld)\n", sid_length, (long)(smb.status.total_msgs * sizeof(idxrec_t)));
 		smb_close(&smb);
 		errors++;
 		continue;
