@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.74 2019/10/24 20:54:30 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.75 2020/03/19 05:09:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,6 +63,7 @@ bool sbbs_t::logon()
 		return(false);
 
 	client.user=useron.alias;
+	client.usernum = useron.number;
 	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
