@@ -1,4 +1,4 @@
-/* $Id: dstsedit.c,v 1.7 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: dstsedit.c,v 1.8 2020/01/03 20:59:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,7 +48,7 @@ main(int argc, char **argv)
 {
 	char		ch, str[MAX_PATH+1], path[MAX_PATH + 1]
 	               ,*lst = "%c) %-25s: %13lu\n"
-	               ,*nv = "\nNew value: ", *p;
+	               ,*nv = "\nNew value: ";
 	int		file;
 	stats_t		stats;
 	time32_t		t;
@@ -56,14 +56,10 @@ main(int argc, char **argv)
 
 	memset(&cfg, 0, sizeof(cfg));
 
-	if (argc > 1)
-		strcpy(path, argv[1]);
-	else {
-		p=getenv("SBBSCTRL");
-		if(p)
-			SAFECOPY(path, p);
-		else
-			getcwd(path, sizeof(path));
+	if (argc > 1) {
+		SAFECOPY(path, argv[1]);
+	} else {
+		SAFECOPY(path, get_ctrl_dir());
 	}
 	backslash(path);
 

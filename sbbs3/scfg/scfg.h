@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.27 2019/01/12 12:09:15 rswindell Exp $ */
+/* $Id: scfg.h,v 1.31 2019/11/30 23:26:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -81,6 +81,8 @@ enum import_list_type {
 	IMPORT_LIST_TYPE_GENERIC_AREAS_BBS,
 	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
 	IMPORT_LIST_TYPE_BACKBONE_NA,
+	IMPORT_LIST_TYPE_BAD_AREAS,
+	IMPORT_LIST_TYPE_NEWSGROUPS,
 };
 
 /************/
@@ -142,8 +144,9 @@ int export_mdm(char *fname);
 int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
-bool new_sub(unsigned new_subnum, unsigned group_num);
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long misc);
 bool new_qhub_sub(qhub_t*, unsigned qsubnum, sub_t*, unsigned confnum);
+void remove_sub(scfg_t*, unsigned subnum, bool cut);
 void sort_subs(int grpnum);
 void sort_dirs(int libnum);
 unsigned subs_in_group(unsigned grpnum);
