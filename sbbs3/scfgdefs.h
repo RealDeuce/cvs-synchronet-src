@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.52 2019/09/02 10:27:36 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.53 2020/03/01 19:10:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -598,6 +598,7 @@ typedef struct
 	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
 	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
 	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */
+	char			listmsgs_mod[LEN_CMD+1];	/* Listing messages module */
 	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line - unused! */
 	uchar			smb_retry_time; 		/* Seconds to retry on SMBs */
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */

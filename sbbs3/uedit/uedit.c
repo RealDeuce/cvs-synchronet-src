@@ -1,6 +1,6 @@
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.60 2020/01/03 20:35:14 rswindell Exp $ */
+/* $Id: uedit.c,v 1.61 2020/01/09 05:40:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1912,7 +1912,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.60 $", "%*s %s", revision);
+	sscanf("$Revision: 1.61 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
         "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
@@ -2061,18 +2061,21 @@ int main(int argc, char** argv)  {
 		bail(0);
 	}
 
-	strcpy(mopt[0],"New User");
-	strcpy(mopt[1],"Find User");
-	strcpy(mopt[2],"User List");
-	mopt[3][0]=0;
+	i=0;
+	strcpy(mopt[i++],"New User");
+	strcpy(mopt[i++],"Find User");
+	strcpy(mopt[i++],"List All User Records");
+	strcpy(mopt[i++],"List Active User Records");
+	mopt[i][0]=0;
 
 	uifc.helpbuf=	"`User Editor\n"
 					"`-----------\n\n"
 					"`New User  : `Add a new user.  This will created a default user using\n"
 					"            some default entries that you can then edit.\n"
 					"`Find User : `Find a user using full or partial search name\n"
-					"`User List : `Display the complete User List.  Users can be edited from\n"
-					"            this list by highlighting a user and pressing Enter";
+					"`List All User Records: `Display all user records (including deleted/inactive)\n"
+					"`List Active User Records: `Display active user records only\n"
+					" Users can be edited from lists by highlighting a user and pressing ~Enter~";
 
 	while(1) {
 		j=uifc.list(WIN_L2R|WIN_ESC|WIN_ACT|WIN_DYN|WIN_ORG|WIN_EXTKEYS,0,5,0,&main_dflt,&main_bar
@@ -2110,7 +2113,7 @@ int main(int argc, char** argv)  {
 			finduser(&cfg,&user);
 		}
 		if(j==2) {
-			/* User List */
+			/* List All Users */
 			done=0;
 			while(!done) {
 				last=lastuser(&cfg);
@@ -2127,6 +2130,28 @@ int main(int argc, char** argv)  {
 						break;
 					default:
 						edit_user(&cfg, i+1);
+						break;
+				}
+			}
+		}
+		if(j==3) {
+			/* List Active Users */
+			done=0;
+			while(!done) {
+				last=lastuser(&cfg);
+				for(i=1,j=0; i<=last; i++) {
+					user.number = i;
+					GETUSERDAT(&cfg, &user);
+					sprintf(opt[j++], "%-4u ³ %-25.25s ³ %-25.25s", i, user.name, user.alias);
+				}
+				opt[j][0] = 0;
+				i=0;
+				switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT,0,0,0,&i,0,"Num  ³ Real Name                 ³ Alias                    ",opt)) {
+					case -1:
+						done = 1;
+						break;
+					default:
+						edit_user(&cfg, atoi(opt[i]));
 						break;
 				}
 			}
