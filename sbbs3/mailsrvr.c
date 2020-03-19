@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.718 2020/03/15 10:52:17 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.719 2020/03/19 05:09:34 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1105,6 +1105,7 @@ static void pop3_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&pop3.client_addr);
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF2(str,"%s: %s", client.protocol, host_ip);
@@ -1291,6 +1292,7 @@ static void pop3_thread(void* arg)
 
 		/* Update client display */
 		client.user=user.alias;
+		client.usernum = user.number;
 		client_on(socket,&client,TRUE /* update */);
 		activity=FALSE;
 
@@ -3149,6 +3151,7 @@ static void smtp_thread(void* arg)
 	SAFECOPY(client.host,host_name);
 	client.port=inet_addrport(&smtp.client_addr);
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	client_on(socket,&client,FALSE /* update */);
 
 	SAFEPRINTF(str,"SMTP: %s",host_ip);
@@ -4169,6 +4172,7 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
+			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using %s authentication"
@@ -4256,6 +4260,7 @@ static void smtp_thread(void* arg)
 
 			/* Update client display */
 			client.user=relay_user.alias;
+			client.usernum = relay_user.number;
 			client_on(socket,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d %s %s authenticated using CRAM-MD5 authentication"
@@ -5893,7 +5898,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.718 $", "%*s %s", revision);
+	sscanf("$Revision: 1.719 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
