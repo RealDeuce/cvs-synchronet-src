@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "system" Object */
 // vi: tabstop=4
 
-/* $Id: js_system.c,v 1.178 2020/03/29 08:01:59 rswindell Exp $ */
+/* $Id: js_system.c,v 1.176 2019/09/02 10:27:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -42,7 +42,6 @@
 typedef struct {
 	scfg_t* cfg;
 	int nodefile;
-	int nodegets;
 } js_system_private_t;
 
 extern JSClass js_system_class;
@@ -565,8 +564,6 @@ enum {
 	,SYSSTAT_PROP_TOTALMSGS
 	,SYSSTAT_PROP_TOTALMAIL
 	,SYSSTAT_PROP_FEEDBACK
-
-	,SYSSTAT_PROP_NODE_GETS
 };
 
 #ifndef JSDOOR
@@ -580,24 +577,19 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsrefcount	rc;
 
 	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx, "JS_GetPrivate failure in %s", __FUNCTION__);
+	if((sys = (js_system_private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return JS_FALSE;
-	}
 	scfg_t* cfg = sys->cfg;
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
-	if(tiny < SYSSTAT_PROP_TOTALUSERS) {
-		rc=JS_SUSPENDREQUEST(cx);
-		if(!getstats(cfg, 0, &stats)) {
-			JS_RESUMEREQUEST(cx, rc);
-			JS_ReportError(cx, "getstats failure in %s", __FUNCTION__);
-			return JS_FALSE;
-		}
+	rc=JS_SUSPENDREQUEST(cx);
+	if(!getstats(cfg, 0, &stats)) {
 		JS_RESUMEREQUEST(cx, rc);
+		return(FALSE);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	switch(tiny) {
 		case SYSSTAT_PROP_LOGONS:
@@ -668,10 +660,6 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */1, /* Sent: */FALSE, /* SPAM: */FALSE));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
-
-		case SYSSTAT_PROP_NODE_GETS:
-			*vp = INT_TO_JSVAL(sys->nodegets);
-			break;
 	}
 
 	return(TRUE);
@@ -699,7 +687,6 @@ static jsSyncPropertySpec js_sysstats_properties[] = {
 	{	"feedback_sent_today",		SYSSTAT_PROP_FTODAY,		SYSSTAT_FLAGS,	310 },
 	{	"total_users",				SYSSTAT_PROP_TOTALUSERS,	SYSSTAT_FLAGS,	310 },
 	{	"new_users_today",			SYSSTAT_PROP_NUSERS,		SYSSTAT_FLAGS,	310 },
-	{	"node_gets",				SYSSTAT_PROP_NODE_GETS,		JSPROP_READONLY, 31702 },
 	{0}
 };
 
@@ -1393,54 +1380,6 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_get_node(JSContext *cx, uintN argc, jsval *arglist)
-{
-	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
-	JSObject*	nodeobj;
-	jsval*		argv=JS_ARGV(cx, arglist);
-	node_t		node = {0};
-	int32		node_num;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
-
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
-	scfg_t* cfg = sys->cfg;
-
-	node_num=cfg->node_num;
-	if(argc) 
-		JS_ValueToInt32(cx,argv[0],&node_num);
-	if(node_num<1)
-		node_num=1;
-
-	rc=JS_SUSPENDREQUEST(cx);
-
-	int retval = getnodedat(sys->cfg, node_num, &node, /* lockit: */FALSE, &sys->nodefile);
-	sys->nodegets++;
-	JS_RESUMEREQUEST(cx, rc);
-	if(retval != 0) {
-		JS_ReportError(cx, "getnodat(%d) returned %d", node_num, retval);
-		return JS_TRUE;
-	}
-	if((nodeobj = JS_NewObject(cx, NULL, NULL, obj)) == NULL) {
-		JS_ReportError(cx, "JS_NewObject failure");
-		return JS_TRUE;
-	}
-	JS_DefineProperty(cx, nodeobj, "status", INT_TO_JSVAL((int)node.status), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "errors", INT_TO_JSVAL((int)node.errors), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "action", INT_TO_JSVAL((int)node.action), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "useron", INT_TO_JSVAL((int)node.useron), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "connection", INT_TO_JSVAL((int)node.connection), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "misc", INT_TO_JSVAL((int)node.misc), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "aux", INT_TO_JSVAL((int)node.aux), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "extaux", INT_TO_JSVAL((int)node.extaux), NULL, NULL, JSPROP_ENUMERATE);
-	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(nodeobj));
-	return JS_TRUE;
-}
-
-static JSBool
 js_get_node_message(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
@@ -1964,12 +1903,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	{"filter_ip",		js_filter_ip,		4,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, reason, host, ip, username, filename]")
 	,JSDOCSTR("add an IP address (with comment) to an IP filter file. If filename is not specified, the ip.can file is used")
 	,311
-	},
-	{"get_node",		js_get_node,		1,	JSTYPE_OBJECT,	JSDOCSTR("node_number")
-	,JSDOCSTR("read a node data record all at once (and leaving the record unlocked) "
-		"returning an object matching the elements of <tt>system.node_list</tt>")
-	,31702
-	},
+	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_STRING,	JSDOCSTR("node_number")
 	,JSDOCSTR("read any messages waiting for the specified node and return in a single string")
 	,311
@@ -2095,7 +2029,6 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		return(JS_TRUE);
 	}
 	JS_RESUMEREQUEST(cx, rc);
-	sys->nodegets++;
 	
     switch(tiny) {
 		case NODE_PROP_STATUS:
