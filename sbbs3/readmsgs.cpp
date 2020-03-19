@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.127 2020/03/19 05:58:08 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.128 2020/03/19 08:12:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,29 +87,6 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long start, long pos
 	}
 
 	return(listed);
-}
-
-char *binstr(uchar *buf, ushort length, char* str)
-{
-	char tmp[128];
-	int i;
-
-	str[0]=0;
-	for(i=0;i<length;i++)
-		if(buf[i] && (buf[i]<' ' || buf[i]>=0x7f)
-			&& buf[i]!='\r' && buf[i]!='\n' && buf[i]!='\t')
-			break;
-	if(i==length)		/* not binary */
-		return((char*)buf);
-	for(i=0;i<length;i++) {
-		sprintf(tmp,"%02X ",buf[i]);
-		strcat(str,tmp); 
-		if(i >= 100) {
-			strcat(str,"...");
-			break;
-		}
-	}
-	return(str);
 }
 
 void sbbs_t::dump_msghdr(smbmsg_t* msg)
