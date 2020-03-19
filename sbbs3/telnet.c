@@ -2,7 +2,7 @@
 
 /* Synchronet telnet command/option functions */
 
-/* $Id: telnet.c,v 1.7 2019/08/22 23:48:03 rswindell Exp $ */
+/* $Id: telnet.c,v 1.10 2019/08/24 19:37:11 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
  ****************************************************************************/
 
 #include <stdio.h>		/* sprintf */
+#include <string.h>		/* memchr */
 #include "gen_defs.h"
 #include "telnet.h"
 
@@ -153,17 +154,25 @@ uchar telnet_opt_nak(uchar cmd)
 // 'result' may point to either inbuf (if there were no IACs) or outbuf
 // Returns the final byte count of the result
 /*****************************************************************************/
-size_t telnet_expand(const uchar* inbuf, size_t inlen, uchar* outbuf, size_t outlen, uchar** result)
+size_t telnet_expand(const uchar* inbuf, size_t inlen, uchar* outbuf, size_t outlen, BOOL expand_cr, uchar** result)
 {
     BYTE* first_iac = (BYTE*)memchr(inbuf, TELNET_IAC, inlen);
+	BYTE*   first_cr=NULL;
+	if(expand_cr)
+	    first_cr = (BYTE*)memchr(inbuf, '\r', inlen);
 
-	if(first_iac == NULL) {	/* Nothing to expand */
+	if(first_iac == NULL && first_cr==NULL) {	/* Nothing to expand */
 		if(result != NULL)
 			*result = (uchar*)inbuf;
 		return inlen;
 	}
 
-	size_t o = first_iac - inbuf;
+	size_t o;
+
+	if(first_iac != NULL && (first_cr == NULL || first_iac < first_cr))
+		o = first_iac - inbuf;
+	else
+		o = first_cr - inbuf;
 	memcpy(outbuf, inbuf, o);
 
 	for(size_t i = o; i < inlen && o < outlen; i++) {
@@ -172,6 +181,8 @@ size_t telnet_expand(const uchar* inbuf, size_t inlen, uchar* outbuf, size_t out
 		if(o >= outlen)
 			break;
 		outbuf[o++] = inbuf[i];
+		if(expand_cr && inbuf[i] == '\r' && o < outlen)
+			outbuf[o++] = '\n'; // See RFC5198
 	}
 	if(result != NULL)
 		*result = outbuf;
