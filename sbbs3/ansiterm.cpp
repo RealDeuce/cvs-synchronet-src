@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.22 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.23 2019/08/20 03:09:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -225,7 +225,7 @@ bool sbbs_t::ansi_getxy(int* x, int* y)
     *x=0;
     *y=0;
 
-	putcom("\x1b[6n");	/* Request cusor position */
+	putcom("\x1b[6n");	/* Request cursor position */
 
     time_t start=time(NULL);
     sys_status&=~SS_ABORT;
@@ -274,7 +274,7 @@ bool sbbs_t::ansi_getxy(int* x, int* y)
 bool sbbs_t::ansi_gotoxy(int x, int y)
 {
 	if(term_supports(ANSI)) {
-		rprintf("\x1b[%d;%dH",y,x);
+		comprintf("\x1b[%d;%dH",y,x);
 		if(x>0)
 			column=x-1;
 		lncntr=0;
@@ -286,7 +286,7 @@ bool sbbs_t::ansi_gotoxy(int x, int y)
 bool sbbs_t::ansi_save(void)
 {
 	if(term_supports(ANSI)) {
-		rputs("\x1b[s");
+		putcom("\x1b[s");
 		return true;
 	}
 	return false;
@@ -295,7 +295,7 @@ bool sbbs_t::ansi_save(void)
 bool sbbs_t::ansi_restore(void)
 {
 	if(term_supports(ANSI)) {
-		rputs("\x1b[u");
+		putcom("\x1b[u");
 		return true;
 	}
 	return false;
