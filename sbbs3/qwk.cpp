@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.93 2020/04/15 02:33:25 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.91 2019/08/31 22:38:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1083,12 +1083,8 @@ void sbbs_t::qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t net_type
 {
 	str_list_t section_list = iniGetSectionList(*ini, /* prefix: */NULL);
 
-	for(int i=0; section_list != NULL && section_list[i] != NULL; i++) {
-		if(strnicmp(section_list[i], "poll:", 5) == 0
-			|| strnicmp(section_list[i], "vote:", 5) == 0
-			|| strnicmp(section_list[i], "close:", 6) == 0)
-			qwk_vote(*ini, section_list[i], net_type, qnet_id, /* confnum: */0, hubnum);
-	}
+	for(int i=0; section_list != NULL && section_list[i] != NULL; i++)
+		qwk_vote(*ini, section_list[i], net_type, qnet_id, /* confnum: */0, hubnum);
 	strListFree(&section_list);
 }
 
@@ -1217,11 +1213,10 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 		if(result == SMB_DUPE_MSG)
 			lprintf(LOG_DEBUG, "Duplicate vote-msg (%s) from %s", msg.id, qnet_id);
 		else if(result != SMB_SUCCESS) {
-			if(hubnum >= 0) {
+			if(hubnum >= 0)
 				lprintf(LOG_DEBUG, "Error %s (%d) writing %s vote-msg (%s) to %s"
 					,smb.last_error, result, qnet_id, msg.id, smb.file);
-				result = SMB_SUCCESS; // ignore vote failures for old messages
-			} else
+			else
 				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 		}
 	}
