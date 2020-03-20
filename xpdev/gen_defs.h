@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.78 2019/01/31 03:13:14 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.80 2019/07/16 20:43:08 deuce Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -393,7 +393,11 @@ typedef struct {
 #define SAFECOPY(dst,src)                   (strncpy(dst,src,sizeof(dst)), TERMINATE(dst))
 #endif
 
-#define SAFECAT(dst, src)					if(strlen(dst) + strlen(src) < sizeof(dst)) { strcat(dst, src); }
+#define SAFECAT(dst, src) do { \
+	if(strlen(dst) + strlen(src) < sizeof(dst)) { \
+		strcat(dst, src); \
+	} \
+} while(0)
 
 /* Bound-safe version of sprintf() - only works with fixed-length arrays */
 #if (defined __FreeBSD__) || (defined __NetBSD__) || (defined __OpenBSD__) || (defined(__APPLE__) && defined(__MACH__) && defined(__POWERPC__))
@@ -486,7 +490,12 @@ typedef struct {
 /********************************/
 /* Handy Pointer-freeing Macros */
 /********************************/
-#define FREE_AND_NULL(x)                if((x)!=NULL) { FREE(x); (x)=NULL; }
+#define FREE_AND_NULL(x)	do {                  \
+								if((x)!=NULL) {   \
+									FREE(x);      \
+									(x)=NULL;     \
+								}		          \
+							} while(0)
 #define FREE_LIST_ITEMS(list,i)         if(list!=NULL) {                                \
 											for(i=0;list[i]!=NULL;i++)      \
 												FREE_AND_NULL(list[i]); \
