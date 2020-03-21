@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.345 2019/08/21 16:59:14 rswindell Exp $ */
+/* $Id: term.c,v 1.347 2019/08/24 09:58:54 rswindell Exp $ */
 
 #include <genwrap.h>
 #include <ciolib.h>
@@ -1510,8 +1510,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 				xmodem_put_nak(&xm, /* expected_block: */ 0);
 				i=xmodem_get_block(&xm, block, /* expected_block: */ 0);
 				if(i==SUCCESS) {
-					send_byte(&xm,ACK,10);
-					flush_send(&xm);
+					if(!(mode&GMODE)) {
+						send_byte(&xm,ACK,10);
+						flush_send(&xm);
+					}
 					break;
 				}
 				if(i==NOINP && (mode&GMODE)) {			/* Timeout */
@@ -1593,9 +1595,10 @@ void xmodem_download(struct bbslist *bbs, long mode, char *path)
 
 		while(fexistcase(str) && !(mode&OVERWRITE)) {
 			lprintf(LOG_WARNING,"%s already exists",str);
-			xmodem_duplicate(&xm, bbs, str, sizeof(str), getfname(fname));
-			xmodem_cancel(&xm);
-			goto end; 
+			if(!xmodem_duplicate(&xm, bbs, str, sizeof(str), getfname(fname))) {
+				xmodem_cancel(&xm);
+				goto end;
+			}
 		}
 		if((fp=fopen(str,"wb"))==NULL) {
 			lprintf(LOG_ERR,"Error %d creating %s",errno,str);
