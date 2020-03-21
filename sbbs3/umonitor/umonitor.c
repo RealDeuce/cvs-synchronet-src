@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.92 2020/03/15 19:54:07 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.93 2020/03/21 23:21:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -457,7 +457,7 @@ int view_logs(scfg_t *cfg)
 	strcpy(opt[i++],"Today's log");
 	strcpy(opt[i++],"Yesterday's log");
 	strcpy(opt[i++],"Spam log");
-	strcpy(opt[i++],"SBBSEcho log");
+	strcpy(opt[i++],"SBBSecho log");
 	strcpy(opt[i++],"Guru log");
 	strcpy(opt[i++],"Hack log");
 	opt[i][0]=0;
@@ -470,7 +470,7 @@ int view_logs(scfg_t *cfg)
 	                "`Today's log         : `View Today's system activity.\n"
 	                "`Yesterday's log     : `View Yesterday's system activity.\n"
 	                "`Spam log            : `View the log of Spam E-Mail sent to the system.\n"
-	                "`SBBSEcho log        : `View the SBBSecho tosser log.\n"
+	                "`SBBSecho log        : `View the FidoNet EchoMail program log.\n"
 	                "`Guru log            : `View the transcriptions of chats with the Guru.\n"
 	                "`Hack log            : `View the Hack attempt log.";
 
@@ -508,7 +508,7 @@ int view_logs(scfg_t *cfg)
 				break;
 			case 6:
 				sprintf(str,"%ssbbsecho.log",cfg->logs_dir);
-				view_log(str,"SBBSEcho Log");
+				view_log(str,"SBBSecho Log");
 				break;
 			case 7:
 				sprintf(str,"%sguru.log",cfg->logs_dir);
@@ -716,7 +716,7 @@ int edit_cfg(scfg_t *cfg)
 	strcpy(opt[i++],"mailproc.ini");
 	strcpy(opt[i++],"mime_types.ini");
 	strcpy(opt[i++],"relay.cfg");
-	strcpy(opt[i++],"sbbsecho.cfg");
+	strcpy(opt[i++],"sbbsecho.ini");
 	strcpy(opt[i++],"services.ini");
 	strcpy(opt[i++],"ftpalias.cfg");
 	strcpy(opt[i++],"sockopts.ini");
@@ -806,7 +806,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.92 $", "%*s %s", revision);
+	sscanf("$Revision: 1.93 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
