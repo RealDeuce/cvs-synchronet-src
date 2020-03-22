@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.94 2020/03/22 04:01:32 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.95 2020/03/22 09:23:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -713,14 +713,16 @@ int edit_cfg(scfg_t *cfg)
 	char	cmd[1024];
 	char	editcmd[1024];
 
-	if((opt=(char **)alloca(sizeof(char *)*(17+1)))==NULL)
-		allocfail(sizeof(char *)*(17+1));
-	for(i=0;i<(17+1);i++)
+	const int num_opts = 16;
+	if((opt=(char **)alloca(sizeof(char *)*(num_opts+1)))==NULL)
+		allocfail(sizeof(char *)*(num_opts+1));
+	for(i=0;i<(num_opts+1);i++)
 		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
 	i=0;
 	strcpy(opt[i++],"sbbs.ini");
+	strcpy(opt[i++],"modopts.ini");
 	strcpy(opt[i++],"alias.cfg");
 	strcpy(opt[i++],"attr.cfg");
 	strcpy(opt[i++],"dns_blacklist.cfg");
@@ -735,8 +737,6 @@ int edit_cfg(scfg_t *cfg)
 	strcpy(opt[i++],"ftpalias.cfg");
 	strcpy(opt[i++],"sockopts.ini");
 	strcpy(opt[i++],"spambait.cfg");
-	strcpy(opt[i++],"spamblock.cfg");
-	strcpy(opt[i++],"twitlist.cfg");
 	opt[i][0]=0;
 	uifc.helpbuf= "Highlight desired file and hit Enter to edit it.";
 	i=0;
@@ -761,9 +761,10 @@ int edit_can(scfg_t *cfg)
 	char	cmd[1024];
 	char	editcmd[1024];
 
-	if((opt=(char **)alloca(sizeof(char *)*(9+1)))==NULL)
-		allocfail(sizeof(char *)*(9+1));
-	for(i=0;i<(9+1);i++)
+	const int num_opts = 11;
+	if((opt=(char **)alloca(sizeof(char *)*(num_opts+1)))==NULL)
+		allocfail(sizeof(char *)*(num_opts+1));
+	for(i=0;i<(num_opts+1);i++)
 		if((opt[i]=(char *)alloca(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
@@ -777,6 +778,8 @@ int edit_can(scfg_t *cfg)
 	strcpy(opt[i++],"phone.can");
 	strcpy(opt[i++],"rlogin.can");
 	strcpy(opt[i++],"subject.can");
+	strcpy(opt[i++],"../ctrl/twitlist.cfg");
+	strcpy(opt[i++],"../ctrl/spamblock.cfg");
 	opt[i][0]=0;
 	uifc.helpbuf="Highlight desired file and hit Enter to edit it.";
 	i=0;
@@ -820,7 +823,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.94 $", "%*s %s", revision);
+	sscanf("$Revision: 1.95 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
