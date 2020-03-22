@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.151 2020/01/23 02:25:22 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.152 2020/03/11 07:58:51 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4178,13 +4178,10 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 	unsigned u;
 	fidoaddr_t sysaddr;
 	unsigned pkts_written = 0;
-	char* p;
+	char* rescanned_from = NULL;
 
-	if(!rescan && (p = parse_control_line(fbuf, "RESCANNED ")) != NULL) {
-		lprintf(LOG_DEBUG, "NOT EXPORTING previously-rescanned message from: %s", p);
-		free(p);
-		return false;
-	}
+	if(!rescan)
+		rescanned_from = parse_control_line(fbuf, "RESCANNED ");
 
 	for(u=0; u<area.links; u++) {
 		if(faddr != NULL && memcmp(faddr,&area.link[u], sizeof(fidoaddr_t)) != 0)
@@ -4203,6 +4200,11 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 		nodecfg_t* nodecfg = findnodecfg(&cfg, area.link[u],0);
 		if(nodecfg != NULL && nodecfg->passive)
 			continue;
+		if(rescanned_from != NULL) {
+			lprintf(LOG_DEBUG, "NOT EXPORTING (to %s) previously-rescanned message from: %s"
+				,smb_faddrtoa(&area.link[u], NULL), rescanned_from);
+			continue;
+		}
 		sysaddr = getsysfaddr(area.link[u]);
 		printf("%s ",smb_faddrtoa(&area.link[u],NULL));
 		outpkt_t* pkt = get_outpkt(sysaddr, area.link[u], nodecfg);
@@ -4218,7 +4220,7 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 		putfmsg(pkt->fp, fbuf, hdr, area, seenbys, paths);
 		pkts_written++;
 	}
-
+	free(rescanned_from);
 	return pkts_written > 0;
 }
 
@@ -6032,7 +6034,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.151 $", "%*s %s", revision);
+	sscanf("$Revision: 3.152 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
