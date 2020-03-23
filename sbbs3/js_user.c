@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.113 2019/08/18 04:42:51 deuce Exp $ */
+/* $Id: js_user.c,v 1.114 2019/08/21 01:32:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1212,7 +1212,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	int32	start_time=0;
 	jsrefcount	rc;
 	scfg_t*		scfg;
-	ulong		tl;
+	time_t		tl;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
