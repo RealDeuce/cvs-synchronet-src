@@ -1,4 +1,4 @@
-/* $Id: scfgxfr2.c,v 1.57 2019/02/15 01:36:07 rswindell Exp $ */
+/* $Id: scfgxfr2.c,v 1.62 2019/08/12 06:21:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -327,7 +327,7 @@ void xfer_cfg()
 								sprintf(tmp, "%sdirs/", cfg.data_dir);
 							else
 								strcpy(tmp, cfg.dir[j]->data_dir);
-							delfiles(tmp, str);
+							delfiles(tmp, str, /* keep: */0);
 						}
 					}
 				}
@@ -448,13 +448,16 @@ void xfer_cfg()
 						"\n"
 						"This an optional path to be used as the physical \"parent\" directory for \n"
 						"all logical directories in this library. This parent directory will be\n"
-						"used in combination with each directory's storage path to create the\n"
-						"full physical storage path for files in this directory.\n"
+						"used in combination with each directory's `Transfer File Path` to create\n"
+						"the full physical storage path for files in each directory.\n"
 						"\n"
 						"This option is convenient for adding libraries with many directories\n"
 						"that share a common parent directory (e.g. CD-ROMs) and gives you the\n"
 						"option of easily changing the common parent directory location later, if\n"
 						"desired.\n"
+						"\n"
+						"The parent directory is not used for directories with a full/absolute\n"
+						"`Transfer File Path` configured."
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,0,"Parent Directory"
 						,cfg.lib[i]->parent_path,sizeof(cfg.lib[i]->parent_path)-1,K_EDIT);
@@ -964,6 +967,22 @@ void dir_cfg(uint libnum)
 		"`Note:` The internal code is constructed from the file library's code prefix\n"
 		"(if present) and the directory's code suffix.\n"
 		;
+	char* dir_transfer_path_help =
+		"`Transfer File Path:`\n"
+		"\n"
+		"This is the default storage path for files uploaded-to and available for\n"
+		"download-from this directory.\n"
+		"\n"
+		"If this setting is blank, the internal-code (lower-cased) is used as the\n"
+		"default directory name.\n"
+		"\n"
+		"If this value is not a full/absolute path, the parent directory will be\n"
+		"either the library's `Parent Directory` (if set) or the data directory\n"
+		"(e.g. ../data/dirs)\n"
+		"\n"
+		"This path can be overridden on a per-file basis using `Alternate File\n"
+		"Paths`.\n"
+		;
 
 	while(1) {
 		if(uifc.changes && cfg.lib[libnum]->sort)
@@ -1044,17 +1063,10 @@ void dir_cfg(uint libnum)
 				uifc.helpbuf=0;
 				continue;
 			}
-			if(cfg.lib[libnum]->parent_path[0])
-				SAFECOPY(path,code);
-			else
-				sprintf(path,"%sdirs/%s",cfg.data_dir,code);
-			uifc.helpbuf=
-				"`Directory File Path:`\n"
-				"\n"
-				"This is the drive and directory where your uploads to and downloads from\n"
-				"this directory will be stored. Example: `C:\\XFER\\GAMES`\n"
-			;
-			uifc.input(WIN_MID|WIN_SAV,0,0,"Directory File Path", path, LEN_DIR,K_EDIT);
+			SAFECOPY(path,code);
+			strlwr(path);
+			uifc.helpbuf = dir_transfer_path_help;
+			uifc.input(WIN_MID|WIN_SAV,0,0,"File Transfer Path", path, LEN_DIR,K_EDIT);
 
 			if (!new_dir(dirnum[i], libnum))
 				continue;
@@ -1093,7 +1105,7 @@ void dir_cfg(uint libnum)
 					if (j == -1)
 						continue;
 					if (j == 0)
-						delfiles(data_dir, str);
+						delfiles(data_dir, str, /* keep: */0);
 				}
 			}
 			if(msk == MSK_CUT)
@@ -1136,23 +1148,24 @@ void dir_cfg(uint libnum)
 				,cfg.dir[i]->op_arstr);
 			sprintf(opt[n++],"%-27.27s%.40s","Exemption Requirements"
 				,cfg.dir[i]->ex_arstr);
-			if(cfg.dir[i]->path[0]) {
-				SAFECOPY(str, cfg.dir[i]->path);
-				if(cfg.lib[cfg.dir[i]->lib]->parent_path[0])
-					prep_dir(cfg.lib[cfg.dir[i]->lib]->parent_path, str, sizeof(str));
-				else 
-					prep_dir(cfg.ctrl_dir, str, sizeof(str));
-			} else {
-				if (!cfg.dir[dirnum[i]]->data_dir[0])
-					SAFEPRINTF(data_dir, "%sdirs/", cfg.data_dir);
-				else
-					SAFECOPY(data_dir, cfg.dir[dirnum[i]]->data_dir);
-				backslash(data_dir);
-				SAFEPRINTF3(str, "[%s%s%s/]"
-					,data_dir 
-					,cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
+			SAFECOPY(path, cfg.dir[i]->path);
+			if(!path[0]) {
+				SAFEPRINTF2(path, "%s%s", cfg.lib[cfg.dir[i]->lib]->code_prefix, cfg.dir[i]->code_suffix);
+				strlwr(path);
 			}
-			strlwr(str);
+			if(cfg.lib[cfg.dir[i]->lib]->parent_path[0])
+				prep_dir(cfg.lib[cfg.dir[i]->lib]->parent_path, path, sizeof(path));
+			else {
+				if (!cfg.dir[i]->data_dir[0])
+					SAFEPRINTF(data_dir, "%sdirs", cfg.data_dir);
+				else
+					SAFECOPY(data_dir, cfg.dir[i]->data_dir);
+				prep_dir(data_dir, path, sizeof(path));
+			}
+			if(strcmp(path, cfg.dir[i]->path) == 0)
+				SAFECOPY(str, path);
+			else
+				SAFEPRINTF(str, "[%s]", path);
 			sprintf(opt[n++],"%-27.27s%.40s","Transfer File Path"
 				,str);
 			sprintf(opt[n++],"%-27.27s%u","Maximum Number of Files"
@@ -1229,18 +1242,8 @@ void dir_cfg(uint libnum)
 					getar(str,cfg.dir[i]->ex_arstr);
 					break;
 				case 8:
-					uifc.helpbuf=
-						"`File Path:`\n"
-						"\n"
-						"This is the default storage path for files uploaded to this directory.\n"
-						"If this path is blank, files are stored in a directory off of the\n"
-						"`data/dirs` directory using the internal code of this directory as the\n"
-						"name of the sub-directory (i.e. `data/dirs/<CODE>`).\n"
-						"\n"
-						"This path can be overridden on a per file basis using `Alternate File\n"
-						"Paths`.\n"
-					;
-					uifc.input(WIN_L2R|WIN_SAV,0,17,"File Path"
+					uifc.helpbuf = dir_transfer_path_help;
+					uifc.input(WIN_L2R|WIN_SAV,0,17,"Transfer File Path"
 						,cfg.dir[i]->path,sizeof(cfg.dir[i]->path)-1,K_EDIT);
 					break;
 				case 9:
