@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.137 2018/04/18 06:33:39 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.141 2020/03/07 07:22:10 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -94,7 +94,6 @@ static unsigned char *font[4];
 static unsigned char space=' ';
 static int force_redraws=0;
 static int update_pixels = 0;
-static pthread_mutex_t blinker_lock;
 struct rectlist *free_rects;
 
 /* The read lock must be held here. */
@@ -103,6 +102,7 @@ struct rectlist *free_rects;
 /* Exported globals */
 
 pthread_mutex_t		vstatlock;
+pthread_mutex_t blinker_lock;
 
 /* Forward declarations */
 
@@ -434,8 +434,9 @@ static struct rectlist *alloc_full_rect(void)
 	while (free_rects) {
 		if (free_rects->rect.width == screen.screenwidth && free_rects->rect.height == screen.screenheight) {
 			ret = free_rects;
-			ret->rect.x = ret->rect.y = 0;
 			free_rects = free_rects->next;
+			ret->next = NULL;
+			ret->rect.x = ret->rect.y = 0;
 			return ret;
 		}
 		else {
@@ -447,6 +448,7 @@ static struct rectlist *alloc_full_rect(void)
 	}
 
 	ret = malloc(sizeof(struct rectlist));
+	ret->next = NULL;
 	ret->rect.x = 0;
 	ret->rect.y = 0;
 	ret->rect.width = screen.screenwidth;
@@ -535,19 +537,23 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 	fg = vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].fg;
 	bg = vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].bg;
 
-	switch (vstat.charheight) {
-		case 8:
-			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_eight;
-			break;
-		case 14:
-			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_fourteen;
-			break;
-		case 16:
-			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_sixteen;
-			break;
-		default:
-			pthread_mutex_unlock(&screen.screenlock);
-			return(-1);
+	if (current_font[0] == -1)
+		this_font = font[0];
+	else {
+		switch (vstat.charheight) {
+			case 8:
+				this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_eight;
+				break;
+			case 14:
+				this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_fourteen;
+				break;
+			case 16:
+				this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_sixteen;
+				break;
+			default:
+				pthread_mutex_unlock(&screen.screenlock);
+				return(-1);
+		}
 	}
 	if (this_font == NULL)
 		this_font = font[0];
@@ -1534,8 +1540,10 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 	if(!bitmap_initialized)
 		return(-1);
 
-	if(load_vmode(&vstat, mode))
+	if(load_vmode(&vstat, mode)) {
+		pthread_mutex_unlock(&blinker_lock);
 		return(-1);
+	}
 
 	/* Initialize video memory with black background, white foreground */
 	for (i = 0; i < vstat.cols*vstat.rows; ++i) {
