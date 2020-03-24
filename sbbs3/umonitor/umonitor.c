@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.96 2020/03/24 06:22:12 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.95 2020/03/22 09:23:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -444,7 +444,7 @@ int view_logs(scfg_t *cfg)
 	localtime_r(&now,&tm);
 	now -= 60*60*24;
 	localtime_r(&now,&tm_yest);
-	const int num_opts = 12;
+	const int num_opts = 11;
 	if((opt=(char **)alloca(sizeof(char *)*(num_opts+1)))==NULL)
 		allocfail(sizeof(char *)*(num_opts+1));
 	for(i=0;i<(num_opts+1);i++)
@@ -460,7 +460,6 @@ int view_logs(scfg_t *cfg)
 	strcpy(opt[i++],"Spam log");
 	strcpy(opt[i++],"SBBSecho log");
 	strcpy(opt[i++],"EchoMail stats");
-	strcpy(opt[i++],"BinkP stats");
 	strcpy(opt[i++],"Bad Areas list");
 	strcpy(opt[i++],"Guru log");
 	strcpy(opt[i++],"Hack log");
@@ -475,8 +474,7 @@ int view_logs(scfg_t *cfg)
 	                "`Yesterday's log     : `View Yesterday's system activity.\n"
 	                "`Spam log            : `View the log of Spam E-Mail sent to the system.\n"
 	                "`SBBSecho log        : `View the FidoNet EchoMail program log.\n"
-	                "`EchoMail stats      : `view the FidoNet EchoMail statistics.\n"
-					"`Binkp stats         : `view the BinkP FidoNet mailer statistics.\n"
+	                "`EchoMail stats      : `view the EchoMail statistics.\n"
 	                "`Bad Areas list      : `view the list of unknown EchoMail areas.\n"
 	                "`Guru log            : `View the transcriptions of chats with the Guru.\n"
 	                "`Hack log            : `View the Hack attempt log.";
@@ -522,18 +520,14 @@ int view_logs(scfg_t *cfg)
 				view_log(str,"EchoMail Stats");
 				break;
 			case 8:
-				sprintf(str,"%sbinkstats.ini",cfg->data_dir);
-				view_log(str,"BinkP Stats");
-				break;
-			case 9:
 				sprintf(str,"%sbadareas.lst",cfg->data_dir);
 				view_log(str,"Bad Area List");
 				break;
-			case 10:
+			case 9:
 				sprintf(str,"%sguru.log",cfg->logs_dir);
 				view_log(str,"Guru Log");
 				break;
-			case 11:
+			case 10:
 				sprintf(str,"%shack.log",cfg->logs_dir);
 				view_log(str,"Hack Log");
 				break;
@@ -829,7 +823,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.96 $", "%*s %s", revision);
+	sscanf("$Revision: 1.95 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);

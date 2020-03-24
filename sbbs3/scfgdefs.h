@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.54 2020/03/25 04:45:21 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.53 2020/03/01 19:10:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -595,7 +595,6 @@ typedef struct
 	char			logout_mod[LEN_MODNAME+1];			/* Logout module */
 	char			sync_mod[LEN_MODNAME+1];			/* Synchronization module */
 	char			expire_mod[LEN_MODNAME+1];			/* User expiration module */
-	char			textsec_mod[LEN_MODNAME+1];			/* Text section module */
 	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
 	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
 	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */

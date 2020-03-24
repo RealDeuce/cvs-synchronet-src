@@ -5,6 +5,7 @@ include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rule
 CFLAGS += $(XPDEV-MT_CFLAGS) $(ENCODE_CFLAGS) $(CIOLIB-MT_CFLAGS)
 
 ifeq ($(os),win32)
+ OBJS	+=	$(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)ciolib_res$(OFILE)
 else
@@ -30,6 +31,7 @@ else
   OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
   OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
   ifeq ($(os),darwin)
+   OBJS 	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
    OBJS 	+=      $(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE)
   endif
  endif
@@ -56,6 +58,10 @@ $(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR) $(OBJS)
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(OBJS) $(SHLIBOPTS) -o $@
 
 ifeq ($(os),darwin)
+$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
+	@echo $(COMPILE_MSG) $<
+	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
+
 $(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE): pasteboard.m
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
