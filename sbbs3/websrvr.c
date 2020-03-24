@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.705 2020/03/07 00:18:50 deuce Exp $ */
+/* $Id: websrvr.c,v 1.708 2020/03/19 05:09:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1613,6 +1613,7 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserdat(&scfg, &session->user);
 	}
 	session->client.user=session->username;
+	session->client.usernum = session->user.number;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
 
 	session->last_user_num=session->user.number;
@@ -4708,6 +4709,7 @@ static BOOL exec_cgi(http_session_t *session)
 	char	cgipath[MAX_PATH+1];
 	char	*p;
 	BOOL	orig_keep=FALSE;
+    char *handler;
 
 	SAFECOPY(cmdline,session->req.physical_path);
 
@@ -4728,6 +4730,10 @@ static BOOL exec_cgi(http_session_t *session)
 		return(FALSE);
 	}
 
+	handler = get_cgi_handler(cmdline);
+	if (handler)
+		lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,handler,cmdline);
+
 	if((child=fork())==0)  {
 		str_list_t  env_list;
 
@@ -4736,7 +4742,6 @@ static BOOL exec_cgi(http_session_t *session)
 			startup->setuid(TRUE);
 
 		env_list=get_cgi_env(session);
-
 		/* Set up STDIO */
 		dup2(session->socket,0);		/* redirect stdin */
 		close(out_pipe[0]);		/* close read-end of pipe */
@@ -4754,10 +4759,9 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 
 		/* Execute command */
-		if((p=get_cgi_handler(cmdline))!=NULL) {
+		if (handler != NULL) {
 			char* shell=os_cmdshell();
-			lprintf(LOG_INFO,"%04d Using handler %s to execute %s",session->socket,p,cmdline);
-			execle(shell,shell,"-c",p,cmdline,NULL,env_list);
+			execle(shell,shell,"-c",handler,cmdline,NULL,env_list);
 		}
 		else {
 			execle(cmdline,cmdline,NULL,env_list);
@@ -6459,6 +6463,7 @@ void http_session_thread(void* arg)
 	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
+	session.client.usernum = 0;
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 
 	if(startup->login_attempt.throttle
@@ -6663,7 +6668,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.705 $", "%*s %s", revision);
+	sscanf("$Revision: 1.708 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
