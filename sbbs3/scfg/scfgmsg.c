@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.66 2019/12/01 19:38:40 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.67 2020/03/24 00:24:35 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -370,7 +370,8 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			SAFECOPY(cfg.sub[j]->lname,tmpsub.lname);
 			SAFECOPY(cfg.sub[j]->newsgroup,tmpsub.newsgroup);
 			SAFECOPY(cfg.sub[j]->qwkname,tmpsub.qwkname);
-			SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
+			if(tmpsub.data_dir[0])
+				SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
 		}
 		if(qhub != NULL)
 			new_qhub_sub(qhub, qhub->subs, cfg.sub[j], qwk_confnum);
