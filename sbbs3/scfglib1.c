@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.80 2020/03/25 04:45:21 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.79 2020/03/01 19:10:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -305,10 +305,9 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->scanposts_mod, instream);
 	get_str(cfg->scansubs_mod, instream);
 	get_str(cfg->listmsgs_mod, instream);
-	get_str(cfg->textsec_mod,instream);
-	if(!cfg->textsec_mod[0]) SAFECOPY(cfg->textsec_mod,"text_sec");
 
-	for(i=0;i<26;i++)					/* unused - initialized to NULL */
+	get_int(c,instream);
+	for(i=0;i<30;i++)					/* unused - initialized to NULL */
 		get_int(n,instream);
 	for(i=0;i<254;i++)					/* unused - initialized to 0xff */
 		get_int(n,instream);
