@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.127 2019/10/08 08:01:26 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.128 2020/03/20 02:41:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1325,7 +1325,7 @@ int sbbs_t::backfill(const char* instr, float pct, int full_attr, int empty_attr
 	char* str = strip_ctrl(instr, NULL);
 
 	len = strlen(str);
-	if(!term_supports(ANSI))
+	if(!(term_supports()&(ANSI|PETSCII)))
 		bputs(str);
 	else {
 		for(int i=0; i<len; i++) {
