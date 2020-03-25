@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.249 2019/07/25 18:28:34 deuce Exp $ */
+/* $Id: uifc32.c,v 1.251 2020/03/08 20:25:59 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,7 @@
 	#define mswait(x) Sleep(x)
 #endif
 #include <genwrap.h>	// for alloca()
+#include <datewrap.h>	// localtime_r()
 
 #include "ciolib.h"
 #include "uifc.h"
@@ -541,12 +542,16 @@ static void scroll_text(int x1, int y1, int x2, int y2, int down)
 static void timedisplay(BOOL force)
 {
 	static time_t savetime;
+	static int savemin;
 	time_t now;
+	struct tm gm;
 
 	now=time(NULL);
-	if(force || difftime(now,savetime)>=60) {
+	localtime_r(&now, &gm);
+	if(force || savemin != gm.tm_min || difftime(now,savetime)>=60) {
 		uprintf(api->scrn_width-25,1,api->bclr|(api->cclr<<4),utimestr(&now));
 		savetime=now;
+		savemin = gm.tm_min;
 	}
 }
 
