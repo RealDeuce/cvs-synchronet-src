@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.104 2019/07/13 21:09:26 rswindell Exp $ */
+/* $Id: scfg.c,v 1.109 2020/03/25 03:27:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -87,6 +87,10 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
 	if(stricmp(fname, "control.dat") == 0)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
+	if(stricmp(fname, "newsgroup.lst") == 0)
+		return IMPORT_LIST_TYPE_NEWSGROUPS;
+	if(stricmp(fname, "echostats.ini") == 0)
+		return IMPORT_LIST_TYPE_ECHOSTATS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
@@ -173,11 +177,7 @@ int main(int argc, char **argv)
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
-    p=getenv("SBBSCTRL");
-    if(p!=NULL)
-        SAFECOPY(cfg.ctrl_dir,p);
-    else
-		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+    SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
 
 	uifc.esc_delay=25;
 
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 			case msgbase:
 			{
 				enum import_list_type list_type = determine_msg_list_type(fname);
-				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, &added);
+				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, /* pkt_orig: */NULL, &added);
 				break;
 			}
 			case filebase:
@@ -885,7 +885,7 @@ void txt_cfg()
 				"abbreviation of the name.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Text Section Internal Code",code,LEN_CODE
-				,K_EDIT)<1)
+				,K_EDIT|K_UPPER)<1)
 				continue;
 			if(!code_ok(code)) {
 				uifc.helpbuf=invalid_code;
@@ -976,7 +976,7 @@ void txt_cfg()
 						"abbreviation of the name.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
-						,str,LEN_CODE,K_EDIT);
+						,str,LEN_CODE,K_EDIT|K_UPPER);
 					if(code_ok(str))
 						strcpy(cfg.txtsec[i]->code,str);
 					else {
@@ -2190,7 +2190,10 @@ int lprintf(int level, char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     strip_ctrl(sbuf,sbuf);
-    uifc.msg(sbuf);
+	if(uifc.msg == NULL)
+		puts(sbuf);
+	else
+    	uifc.msg(sbuf);
     return(0);
 }
 
