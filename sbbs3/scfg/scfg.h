@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.29 2019/05/22 20:11:38 rswindell Exp $ */
+/* $Id: scfg.h,v 1.32 2020/03/24 06:05:18 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -81,6 +81,9 @@ enum import_list_type {
 	IMPORT_LIST_TYPE_GENERIC_AREAS_BBS,
 	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
 	IMPORT_LIST_TYPE_BACKBONE_NA,
+	IMPORT_LIST_TYPE_BAD_AREAS,
+	IMPORT_LIST_TYPE_ECHOSTATS,
+	IMPORT_LIST_TYPE_NEWSGROUPS
 };
 
 /************/
@@ -142,7 +145,7 @@ int export_mdm(char *fname);
 int code_ok(char *str);
 int  bits(long l);
 void getar(char *desc, char *ar);
-bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub);
+bool new_sub(unsigned new_subnum, unsigned group_num, sub_t* pasted_sub, long misc);
 bool new_qhub_sub(qhub_t*, unsigned qsubnum, sub_t*, unsigned confnum);
 void remove_sub(scfg_t*, unsigned subnum, bool cut);
 void sort_subs(int grpnum);
@@ -162,7 +165,8 @@ BOOL save_file_cfg(scfg_t*, int);
 BOOL save_chat_cfg(scfg_t*, int);	
 BOOL save_xtrn_cfg(scfg_t*, int);
 
-long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum, qhub_t*, long* added);
+long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum
+	, qhub_t*, const char* pkt_orig, long* added);
 
 /* Prepare a string to be used as an internal code; Note: use the return value, Luke */
 char* prep_code(char *str, const char* prefix);

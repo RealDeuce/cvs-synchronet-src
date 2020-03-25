@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.39 2019/07/23 04:55:55 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.43 2019/12/13 05:41:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,6 +228,9 @@ void get_default_echocfg(sbbsecho_cfg_t* cfg)
 	cfg->areafile_backups			= 100;
 	cfg->cfgfile_backups			= 100;
 	cfg->auto_add_subs				= true;
+	cfg->auto_add_to_areafile		= true;
+	cfg->auto_utf8					= true;
+	cfg->strip_soft_cr				= true;
 	cfg->min_free_diskspace			= 10*1024*1024;
 }
 
@@ -280,6 +283,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
 	cfg->strip_soft_cr			= iniGetBool(ini, ROOT_SECTION, "StripSoftCRs", cfg->strip_soft_cr);
 	cfg->use_outboxes			= iniGetBool(ini, ROOT_SECTION, "UseOutboxes", cfg->use_outboxes);
+	cfg->auto_utf8				= iniGetBool(ini, ROOT_SECTION, "AutoUTF8", cfg->auto_utf8);
 
 	/* EchoMail options: */
 	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
@@ -295,6 +299,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	cfg->max_echomail_age		= (ulong)iniGetDuration(ini, ROOT_SECTION, "MaxEchomailAge", cfg->max_echomail_age);
 	SAFECOPY(cfg->areamgr,		  iniGetString(ini, ROOT_SECTION, "AreaManager", "SYSOP", value));
 	cfg->auto_add_subs			= iniGetBool(ini, ROOT_SECTION, "AutoAddSubs", cfg->auto_add_subs);
+	cfg->auto_add_to_areafile	= iniGetBool(ini, ROOT_SECTION, "AutoAddToAreaFile", cfg->auto_add_to_areafile);
 
 	/* NetMail options: */
 	SAFECOPY(cfg->default_recipient, iniGetString(ini, ROOT_SECTION, "DefaultRecipient", "", value));
@@ -413,6 +418,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		ncfg->binkp_plainAuthOnly	= iniGetBool(ini, node, "BinkpPlainAuthOnly", FALSE);
 		ncfg->binkp_allowPlainAuth	= iniGetBool(ini, node, "BinkpAllowPlainAuth", FALSE);
 		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", TRUE);
+		ncfg->binkp_tls             = iniGetBool(ini, node, "BinkpTLS", FALSE);
 	}
 	strListFree(&nodelist);
 
@@ -521,12 +527,14 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 	iniSetBool(&ini,		ROOT_SECTION, "StripLineFeeds"			,cfg->strip_lf					,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "StripSoftCRs"			,cfg->strip_soft_cr				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "UseOutboxes"				,cfg->use_outboxes				,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "AutoUTF8"				,cfg->auto_utf8					,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "ConvertTearLines"		,cfg->convert_tear				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "FuzzyNetmailZones"		,cfg->fuzzy_zone				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "BinkleyStyleOutbound"	,cfg->flo_mailer				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "TruncateBundles"			,cfg->trunc_bundles				,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "AreaAddFromEcholistsOnly",cfg->add_from_echolists_only	,NULL);
 	iniSetBool(&ini,		ROOT_SECTION, "AutoAddSubs"				,cfg->auto_add_subs				,NULL);
+	iniSetBool(&ini,		ROOT_SECTION, "AutoAddToAreaFile"		,cfg->auto_add_to_areafile		,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "BsyTimeout"				,cfg->bsy_timeout				,NULL);
 	iniSetDuration(&ini,	ROOT_SECTION, "BsoLockDelay"			,cfg->bso_lock_delay			,NULL);
 	iniSetLongInt(&ini,		ROOT_SECTION, "BsoLockAttempts"			,cfg->bso_lock_attempts			,NULL);
@@ -610,6 +618,7 @@ bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
 		iniSetBool(&ini		,section,	"BinkpPlainAuthOnly",node->binkp_plainAuthOnly, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainAuth",node->binkp_allowPlainAuth, &style);
 		iniSetBool(&ini		,section,	"BinkpAllowPlainText",node->binkp_allowPlainText, &style);
+		iniSetBool(&ini		,section,	"BinkpTLS",node->binkp_tls, &style);
 		iniSetString(&ini	,section,	"BinkpSourceAddress",node->binkp_src, &style);
 	}
 
