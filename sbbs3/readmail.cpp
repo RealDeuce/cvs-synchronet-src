@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.96 2019/08/08 18:30:41 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.98 2020/03/19 05:58:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -465,10 +465,18 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				break;
 			case 'H':
 				domsg=0;
-				msghdr(&msg);
+				dump_msghdr(&msg);
 				break;
 			case 'L':     /* List mail */
 				domsg=0;
+				if(cfg.listmsgs_mod[0]) {
+					char cmdline[256];
+
+					safe_snprintf(cmdline, sizeof(cmdline), "%s %s %d %u %lu", cfg.listmsgs_mod, "mail", which, usernumber, lm_mode);
+					exec_bin(cmdline, &main_csi);
+					break;
+				}
+
 				bprintf(text[StartWithN],(long)smb.curmsg+1);
 				if((i=getnum(smb.msgs))>0)
 					i--;
