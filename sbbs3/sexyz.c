@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.7 2019/08/25 01:13:53 rswindell Exp $ */
+/* $Id: sexyz.c,v 2.9 2019/08/25 02:07:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1414,6 +1414,7 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
+	lprintf(LOG_DEBUG, "Exiting with error level %d", code);
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -1540,7 +1541,7 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.7 $", "%*s %s", revision);
+	sscanf("$Revision: 2.9 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
@@ -1632,7 +1633,7 @@ int main(int argc, char **argv)
 	else if(outbuf_size > MAX_OUTBUF_SIZE)
 		outbuf_size = MAX_OUTBUF_SIZE;
 	
-	fprintf(statfp,"Output buffer size: %lu\n", outbuf_size);
+	lprintf(LOG_DEBUG, "Output buffer size: %lu", outbuf_size);
 	RingBufInit(&outbuf, outbuf_size);
 
 #if !defined(RINGBUF_EVENT)
@@ -1911,6 +1912,7 @@ int main(int argc, char **argv)
 	}
 
 	if((dszlog=getenv("DSZLOG"))!=NULL) {
+		lprintf(LOG_DEBUG, "Logging to %s", dszlog);
 		if((logfp=fopen(dszlog,"w"))==NULL) {
 			lprintf(LOG_WARNING,"Error %d opening DSZLOG file: %s",errno,dszlog);
 			bail(-1); 
@@ -1957,9 +1959,8 @@ int main(int argc, char **argv)
 /*	sem_post(outbuf.sem);
 	sem_post(outbuf.highwater_sem); */
 
-	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
+	lprintf(LOG_INFO, "Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
-	fprintf(statfp,"\n");
 
 	bail(retval);
 	return retval;
