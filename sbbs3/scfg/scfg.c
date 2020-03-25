@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.109 2020/03/25 03:27:45 rswindell Exp $ */
+/* $Id: scfg.c,v 1.110 2020/03/25 03:46:16 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1061,7 +1061,7 @@ void shell_cfg()
 				"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Command Shell Internal Code",code,LEN_CODE
-				,K_EDIT)<1)
+				,K_EDIT|K_UPPER)<1)
 				continue;
 			if(!code_ok(code)) {
 				uifc.helpbuf=invalid_code;
@@ -1170,7 +1170,7 @@ void shell_cfg()
 						"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
-						,str,LEN_CODE,K_EDIT);
+						,str,LEN_CODE,K_EDIT|K_UPPER);
 					if(code_ok(str))
 						strcpy(cfg.shell[i]->code,str);
 					else {
