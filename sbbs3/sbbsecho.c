@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.152 2020/03/11 07:58:51 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.153 2020/03/24 00:55:05 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -466,8 +466,11 @@ void fwrite_echostat_msg(FILE* fp, echostat_msg_t msg, const char* prefix)
 
 void fwrite_echostat(FILE* fp, echostat_t* stat)
 {
+	const char* desc = area_desc(stat->tag);
 	fprintf(fp, "[%s]\n"						, stat->tag);
 	fprintf(fp,	"Known = %s\n"					, stat->known ? "true" : "false");
+	if(desc != NULL)
+		fprintf(fp, "Title = %s\n"				, desc);
 	for(int type = 0; type < ECHOSTAT_MSG_TYPES; type++) {
 		char prefix[32];
 		sprintf(prefix, "First%s", echostat_msg_type[type])	, fwrite_echostat_msg(fp, stat->first[type], prefix);
@@ -6034,7 +6037,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.152 $", "%*s %s", revision);
+	sscanf("$Revision: 3.153 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
