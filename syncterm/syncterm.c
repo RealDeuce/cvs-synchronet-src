@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.225 2020/04/01 07:39:23 deuce Exp $ */
+/* $Id: syncterm.c,v 1.223 2019/07/25 18:28:59 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -67,6 +67,7 @@ char	*usage =
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
 		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
+		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"
@@ -725,6 +726,8 @@ char *output_types[]={
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,"SDL"
 	,"SDL Fullscreen"
+	,"SDL Overlay"
+	,"SDL Overlay Fullscreen"
 #endif
 ,NULL};
 int output_map[]={
@@ -744,6 +747,8 @@ int output_map[]={
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
+	,CIOLIB_MODE_SDL_YUV
+	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 #endif
 ,0};
 char *output_descrs[]={
@@ -756,6 +761,8 @@ char *output_descrs[]={
 	,"Win32 Console Fullscreen"
 	,"SDL"
 	,"SDL Fullscreen"
+	,"SDL Overlay"
+	,"SDL Overlay Fullscreen"
 ,NULL};
 
 char *output_enum[]={
@@ -768,6 +775,8 @@ char *output_enum[]={
 	,"WinConsoleFullscreen"
 	,"SDL"
 	,"SDLFullscreen"
+	,"SDLOverlay"
+	,"SDLOverlayFullscreen"
 ,NULL};
 
 BOOL check_exit(BOOL force)
@@ -1437,6 +1446,17 @@ int main(int argc, char **argv)
 									break;
 								case 'F':
 									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
+									break;
+							}
+							break;
+						case 'O':
+							switch(toupper(argv[i][3])) {
+								case 0:
+								case 'W':
+									ciolib_mode=CIOLIB_MODE_SDL_YUV;
+									break;
+								case 'F':
+									ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
 									break;
 							}
 							break;
