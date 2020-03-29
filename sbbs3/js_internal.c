@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.95 2019/08/29 16:35:01 deuce Exp $ */
+/* $Id: js_internal.c,v 1.97 2020/03/29 01:49:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,7 +390,7 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	free(cmd);
 
 	if(!fexistcase(path)) {
-		JS_ReportError(cx, "Can't find script");
+		JS_ReportError(cx, "Script file (%s) does not exist", path);
 		free(startup_dir);
 		return JS_FALSE;
 	}
@@ -449,7 +449,6 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(js_script == NULL) {
 		/* If the script fails to compile, it's not a fatal error
 		 * for the caller. */
-		free(startup_dir);
 		if (JS_IsExceptionPending(cx)) {
 			JS_GetPendingException(cx, &rval);
 			JS_SET_RVAL(cx, arglist, rval);
@@ -717,9 +716,9 @@ static jsSyncMethodSpec js_functions[] = {
 	,JSDOCSTR("Executes a script optionally with a custom scope.  The main difference between this "
 	"and load() is that scripts called this way can call exit() without terminating the caller.  If it does, any "
 	"on_exit() handlers will be evaluated in scripts scope when the script exists. "
-	"NOTE: To get a child of the current scope, you need to create an object in the current scope "
-	"an anonymous object can be created using 'new function(){}'.")
-	,316
+	"NOTE: To get a child of the current scope, you need to create an object in the current scope. "
+	"An anonymous object can be created using 'new function(){}'.")
+	,31702
 	},
 	{0}
 };
