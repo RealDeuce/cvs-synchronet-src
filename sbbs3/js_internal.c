@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.96 2020/03/29 01:11:58 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.97 2020/03/29 01:49:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,7 +390,7 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	free(cmd);
 
 	if(!fexistcase(path)) {
-		JS_ReportError(cx, "Can't find script");
+		JS_ReportError(cx, "Script file (%s) does not exist", path);
 		free(startup_dir);
 		return JS_FALSE;
 	}
@@ -449,7 +449,6 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(js_script == NULL) {
 		/* If the script fails to compile, it's not a fatal error
 		 * for the caller. */
-		free(startup_dir);
 		if (JS_IsExceptionPending(cx)) {
 			JS_GetPendingException(cx, &rval);
 			JS_SET_RVAL(cx, arglist, rval);
