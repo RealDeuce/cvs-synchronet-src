@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.707 2020/03/11 01:51:06 deuce Exp $ */
+/* $Id: websrvr.c,v 1.708 2020/03/19 05:09:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1613,6 +1613,7 @@ void http_logon(http_session_t * session, user_t *usr)
 		putuserdat(&scfg, &session->user);
 	}
 	session->client.user=session->username;
+	session->client.usernum = session->user.number;
 	client_on(session->socket, &session->client, /* update existing client record? */TRUE);
 
 	session->last_user_num=session->user.number;
@@ -6462,6 +6463,7 @@ void http_session_thread(void* arg)
 	session.client.protocol=session.is_tls ? "HTTPS":"HTTP";
 	session.client.user=session.username;
 	session.client.size=sizeof(session.client);
+	session.client.usernum = 0;
 	client_on(session.socket, &session.client, /* update existing client record? */FALSE);
 
 	if(startup->login_attempt.throttle
@@ -6666,7 +6668,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.707 $", "%*s %s", revision);
+	sscanf("$Revision: 1.708 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"

@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.254 2020/03/01 23:51:25 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.256 2020/03/19 19:41:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1179,10 +1179,7 @@ js_get_index(JSContext *cx, uintN argc, jsval *arglist)
     JSObject*	array;
 	idxrec_t*	idx;
 
-    if((array = JS_NewArrayObject(cx, 0, NULL)) == NULL)
-		return JS_FALSE;
-
-    JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(array));
+	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
 	if((priv=(private_t*)js_GetClassPrivate(cx, obj, &js_msgbase_class))==NULL) {
 		return JS_FALSE;
@@ -1194,18 +1191,33 @@ js_get_index(JSContext *cx, uintN argc, jsval *arglist)
 	off_t index_length = filelength(fileno(priv->smb.sid_fp));
 	if(index_length < sizeof(*idx))
 		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	if(smb_getstatus(&(priv->smb)) != SMB_SUCCESS) {
+		JS_RESUMEREQUEST(cx, rc);
+		return JS_TRUE;
+	}
+    if((array = JS_NewArrayObject(cx, 0, NULL)) == NULL) {
+		JS_RESUMEREQUEST(cx, rc);
+		JS_ReportError(cx, "JS_NewArrayObject failure");
+		return JS_FALSE;
+	}
+    JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(array));
+
 	uint32_t total_msgs = index_length / sizeof(*idx);
 	if(total_msgs > priv->smb.status.total_msgs)
 		total_msgs = priv->smb.status.total_msgs;
-	if(total_msgs < 1)
+	if(total_msgs < 1) {
+		JS_RESUMEREQUEST(cx, rc);
 		return JS_TRUE;
+	}
 
 	if((idx = calloc(total_msgs, sizeof(*idx))) == NULL) {
-		JS_ReportError(cx, "malloc error", WHERE);
+		JS_RESUMEREQUEST(cx, rc);
+		JS_ReportError(cx, "malloc error on line %d in %s of %s", WHERE);
 		return JS_FALSE;
 	}
 
-	rc=JS_SUSPENDREQUEST(cx);
 	if((priv->smb_result = smb_locksmbhdr(&(priv->smb))) != SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		free(idx);
@@ -1844,18 +1856,35 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 	off_t index_length = filelength(fileno(priv->smb.sid_fp));
 	if(index_length < sizeof(*idx))
 		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	if(smb_getstatus(&(priv->smb)) != SMB_SUCCESS) {
+		JS_RESUMEREQUEST(cx, rc);
+		return JS_TRUE;
+	}
+    if((retobj = JS_NewObject(cx, NULL, NULL, obj)) == NULL) {
+		JS_RESUMEREQUEST(cx, rc);
+		JS_ReportError(cx, "JS_NewObject failure");
+		return JS_FALSE;
+	}
+    JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(retobj));
+
 	uint32_t total_msgs = index_length / sizeof(*idx);
 	if(total_msgs > priv->smb.status.total_msgs)
 		total_msgs = priv->smb.status.total_msgs;
-	if(total_msgs < 1)
+	if(total_msgs < 1) {
+		JS_RESUMEREQUEST(cx, rc);
 		return JS_TRUE;
+	}
 
 	if((post = calloc(total_msgs, sizeof(*post))) == NULL) {
-		JS_ReportError(cx, "malloc error", WHERE);
+		JS_RESUMEREQUEST(cx, rc);
+		JS_ReportError(cx, "malloc error on line %d in %s of %s", WHERE);
 		return JS_FALSE;
 	}
 	if((idx = calloc(total_msgs, sizeof(*idx))) == NULL) {
-		JS_ReportError(cx, "malloc error", WHERE);
+		JS_RESUMEREQUEST(cx, rc);
+		JS_ReportError(cx, "malloc error on line %d in %s of %s", WHERE);
 		free(post);
 		return JS_FALSE;
 	}
@@ -1870,10 +1899,6 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 		argn++;
 	}
 
-    retobj = JS_NewObject(cx, NULL, NULL, obj);
-    JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(retobj));
-
-	rc=JS_SUSPENDREQUEST(cx);
 	if((priv->smb_result=smb_locksmbhdr(&(priv->smb)))!=SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		free(post);
@@ -2000,6 +2025,39 @@ js_get_all_msg_headers(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_dump_msg_header(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
+
+	if(argc >= 1 && JSVAL_IS_OBJECT(argv[0])) {
+		JSObject* hdr = JSVAL_TO_OBJECT(argv[0]);
+		if(hdr == NULL)		/* no header supplied? */
+			return JS_TRUE;
+		privatemsg_t* mp = (privatemsg_t*)JS_GetPrivate(cx, hdr);
+		if(mp == NULL)
+			return JS_TRUE;
+		str_list_t list = smb_msghdr_str_list(&mp->msg);
+		if(list != NULL) {
+			JSObject* array;
+			if((array = JS_NewArrayObject(cx, 0, NULL)) == NULL) {
+				JS_ReportError(cx, "JS_NewArrayObject failure");
+				return JS_FALSE;
+			}
+			JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(array));
+			for(int i = 0; list[i] != NULL; i++) {
+				JSString* js_str = JS_NewStringCopyZ(cx, list[i]);
+				if(js_str == NULL)
+					break;
+				JS_DefineElement(cx, array, i, STRING_TO_JSVAL(js_str), NULL, NULL, JSPROP_ENUMERATE);
+			}
+			strListFree(&list);
+		}
+	}
+	return JS_TRUE;
+}
+
+static JSBool
 js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
@@ -2062,7 +2120,7 @@ js_put_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	mp=(privatemsg_t*)JS_GetPrivate(cx,hdr);
 	if(mp != NULL) {
 		if(mp->expand_fields) {
-			JS_ReportError(cx, "Message header has 'expanded fields'", WHERE);
+			JS_ReportError(cx, "Message header has 'expanded fields'");
 			return JS_FALSE;
 		}
 		msg.offset = mp->msg.offset;
@@ -3203,7 +3261,10 @@ static jsSyncMethodSpec js_msgbase_functions[] = {
 	,JSDOCSTR("Returns 0 for no votes, 1 for an up-vote, 2 for a down-vote, or in the case of a poll-response: a bit-field of votes.")
 	,317
 	},
-
+	{"dump_msg_header",		js_dump_msg_header,		1,	JSTYPE_ARRAY,	JSDOCSTR("object header")
+		,JSDOCSTR("dump a message header object to an array of strings for diagnostic uses")
+		,31702
+	},
 	{0}
 };
 
