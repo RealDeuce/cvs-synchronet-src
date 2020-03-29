@@ -2,7 +2,7 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.99 2020/03/29 23:40:57 rswindell Exp $ */
+/* $Id: js_internal.c,v 1.96 2020/03/29 01:11:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -390,7 +390,7 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	free(cmd);
 
 	if(!fexistcase(path)) {
-		JS_ReportError(cx, "Script file (%s) does not exist", path);
+		JS_ReportError(cx, "Can't find script");
 		free(startup_dir);
 		return JS_FALSE;
 	}
@@ -400,13 +400,10 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	JS_DefineProperty(cx, js_scope, "argv", OBJECT_TO_JSVAL(nargv)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	uintN nargc = 0;
-	for(i=arg; i<argc; i++) {
-		JS_SetElement(cx, nargv, nargc, &argv[i]);
-		nargc++;
-	}
+	for(i=arg; i<argc; i++)
+		JS_SetElement(cx, nargv, i-arg, &argv[i]);
 
-	JS_DefineProperty(cx, js_scope, "argc", INT_TO_JSVAL(nargc)
+	JS_DefineProperty(cx, js_scope, "argc", INT_TO_JSVAL(argc-arg)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 
 	js_obj = js_CreateInternalJsObject(cx, js_scope, js_callback, NULL);
@@ -452,6 +449,7 @@ js_execfile(JSContext *cx, uintN argc, jsval *arglist)
 	if(js_script == NULL) {
 		/* If the script fails to compile, it's not a fatal error
 		 * for the caller. */
+		free(startup_dir);
 		if (JS_IsExceptionPending(cx)) {
 			JS_GetPendingException(cx, &rval);
 			JS_SET_RVAL(cx, arglist, rval);
@@ -712,16 +710,15 @@ static jsSyncMethodSpec js_functions[] = {
 	,316
 	},
 	{"flatten_string",	js_flatten,			1,	JSTYPE_VOID,	JSDOCSTR("[string]")
-	,JSDOCSTR("flatten a string, optimizing allocated memory used for concatenated strings")
+	,JSDOCSTR("flattens a string, optimizing allocated memory used for concatenated strings")
 	,316
 	},
-	{"exec",	js_execfile,			1,	JSTYPE_NUMBER,	JSDOCSTR("filename [, startup_dir], <i>object</i> scope [,...]")
-	,JSDOCSTR("execute a script within the specified scope.  The main difference between this method "
-	"and <tt>load()</tt> is that scripts called this way can call <tt>exit()</tt> without terminating the caller.  If it does, any "
-	"<tt>on_exit()</tt> handlers will be evaluated in scripts scope when the script exists. <br>"
-	"NOTE: to get a child of the current scope, you need to create an object in the current scope. "
-	"An anonymous object can be created using '<tt>new function(){}</tt>'. <br>"
-	"NOTE: Use <tt>js.exec.apply()</tt> if you need to pass a variable number of arguments to the executed script.")
+	{"exec",	js_execfile,			1,	JSTYPE_NUMBER,	JSDOCSTR("filename [, startup_dir], obj [,...]")
+	,JSDOCSTR("Executes a script optionally with a custom scope.  The main difference between this "
+	"and load() is that scripts called this way can call exit() without terminating the caller.  If it does, any "
+	"on_exit() handlers will be evaluated in scripts scope when the script exists. "
+	"NOTE: To get a child of the current scope, you need to create an object in the current scope. "
+	"An anonymous object can be created using 'new function(){}'.")
 	,31702
 	},
 	{0}

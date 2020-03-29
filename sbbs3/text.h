@@ -342,7 +342,7 @@ enum {
 	,HappyBirthday
 	,TimeToChangePw
 	,NewPasswordQ
-	,NewPasswordPromptFmt
+	,NewPassword
 	,VerifyPassword
 	,Wrong
 	,PasswordChanged
