@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.16 2019/08/24 08:06:10 rswindell Exp $ */
+/* $Id: conn_telnet.c,v 1.17 2019/12/22 21:17:30 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -92,7 +92,7 @@ void telnet_output_thread(void *args)
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
 			wr = telnet_expand(conn_api.wr_buf, wr, (BYTE *)ebuf, sizeof(ebuf)
-				,telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO, &buf);
+				,telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO, (uchar**)&buf);
 			sent=0;
 			while(sent < wr) {
 				FD_ZERO(&wds);
