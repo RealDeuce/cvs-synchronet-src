@@ -3,7 +3,7 @@
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.110 2019/05/28 08:49:00 rswindell Exp $ */
+/* $Id: exec.cpp,v 1.112 2019/10/24 20:54:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -562,7 +562,7 @@ js_OperationCallback(JSContext *cx)
 	return ret;
 }
 
-long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope)
+long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope, JSContext* js_cx)
 {
 	char*		p;
 	char*		args=NULL;
@@ -575,7 +575,10 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	jsval		old_js_argv = JSVAL_VOID;
 	jsval		old_js_argc = JSVAL_VOID;
 	jsval		rval;
-	int32_t		result=0;
+	int32		result=0;
+
+	if(js_cx == NULL)
+		js_cx = this->js_cx;
 
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -720,9 +723,8 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		JS_RemoveValueRoot(js_cx, &old_js_argc);
 	}
 
-	JS_GC(js_cx);
-
 	JS_ENDREQUEST(js_cx);
+	JS_GC(js_cx);
 
 	return(result);
 }
