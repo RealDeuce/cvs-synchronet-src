@@ -27,7 +27,6 @@
 #include "link_list.h"
 #include "x_events.h"
 #include "x_cio.h"
-#include "utf8_codepages.h"
 
 /*
  * Exported variables 
@@ -52,9 +51,6 @@ int x11_window_height;
 int x11_initialized=0;
 sem_t	event_thread_complete;
 int	terminate = 0;
-Atom	copybuf_format;
-Atom	pastebuf_format;
-
 /*
  * Local variables
  */
@@ -238,10 +234,9 @@ my_fls(unsigned long mask)
 /* Get a connection to the X server and create the window. */
 static int init_window()
 {
-	XGCValues gcv;
-	int i;
+    XGCValues gcv;
+    int i;
 	XWMHints *wmhints;
-	XClassHint *classhints;
 	int ret;
 	int best=-1;
 	int best_depth=0;
@@ -250,12 +245,10 @@ static int init_window()
 	XVisualInfo *vi;
 
 	dpy = x11.XOpenDisplay(NULL);
-	if (dpy == NULL) {
+    if (dpy == NULL) {
 		return(-1);
 	}
-	xfd = ConnectionNumber(dpy);
-	x11.utf8 = x11.XInternAtom(dpy, "UTF8_STRING", False);
-	x11.targets = x11.XInternAtom(dpy, "TARGETS", False);
+    xfd = ConnectionNumber(dpy);
 
 	template.screen = DefaultScreen(dpy);
 	template.class = TrueColor;
@@ -296,33 +289,28 @@ static int init_window()
     win = x11.XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0,
 			      640*x_cvstat.scaling, 400*x_cvstat.scaling*x_cvstat.vmultiplier, 2, depth, InputOutput, &visual, CWColormap | CWBorderPixel | CWBackPixel, &wa);
 
-	classhints=x11.XAllocClassHint();
-	if (classhints)
-		classhints->res_name = classhints->res_class = "CIOLIB";
 	wmhints=x11.XAllocWMHints();
 	if(wmhints) {
 		wmhints->initial_state=NormalState;
-		wmhints->flags = (StateHint/* | IconPixmapHint | IconMaskHint*/ | InputHint);
+		wmhints->flags = (StateHint | IconPixmapHint | IconMaskHint | InputHint);
 		wmhints->input = True;
-		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, classhints);
-		x11.XFree(wmhints);
+		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, NULL);
 	}
-	if (classhints)
-		x11.XFree(classhints);
 
 	WM_DELETE_WINDOW = x11.XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 
 	gcv.function = GXcopy;
-	gcv.foreground = black | 0xff000000;
-	gcv.background = white;
+    gcv.foreground = white;
+    gcv.background = black;
 	gcv.graphics_exposures = False;
+
 	gc=x11.XCreateGC(dpy, win, GCFunction | GCForeground | GCBackground | GCGraphicsExposures, &gcv);
 
-	x11.XSelectInput(dpy, win, KeyReleaseMask | KeyPressMask |
+    x11.XSelectInput(dpy, win, KeyReleaseMask | KeyPressMask |
 		     ExposureMask | ButtonPressMask
 		     | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask);
 
-	x11.XStoreName(dpy, win, "SyncConsole");
+    x11.XStoreName(dpy, win, "SyncConsole");
 	x11.XSetWMProtocols(dpy, win, &WM_DELETE_WINDOW, 1);
 
 	return(0);
@@ -367,7 +355,7 @@ static void resize_window()
 
 static void init_mode_internal(int mode)
 {
-	int oldcols;
+    int oldcols;
 
 	oldcols=x_cvstat.cols;
 
@@ -390,7 +378,7 @@ static void init_mode_internal(int mode)
 	x_cvstat = vstat;
 	pthread_mutex_unlock(&vstatlock);
 	pthread_mutex_unlock(&blinker_lock);
-	map_window();
+    map_window();
 }
 
 static void check_scaling(void)
@@ -404,11 +392,10 @@ static void check_scaling(void)
 static int init_mode(int mode)
 {
 	init_mode_internal(mode);
-	resize_window();
 	bitmap_drv_request_pixels();
 
 	sem_post(&mode_set);
-	return(0);
+    return(0);
 }
 
 static int video_init()
@@ -433,7 +420,7 @@ static int video_init()
 
 static void local_draw_rect(struct rectlist *rect)
 {
-	int x,y,xscale,yscale,xoff=0,yoff=0;
+	int x,y,xscale,yscale;
 	unsigned int r, g, b;
 	unsigned long pixel;
 	int cleft = rect->rect.width;
@@ -444,14 +431,6 @@ static void local_draw_rect(struct rectlist *rect)
 
 	if (bitmap_width != cleft || bitmap_height != ctop)
 		return;
-
-	xoff = (x11_window_width - xim->width) / 2;
-	if (xoff < 0)
-		xoff = 0;
-	yoff = (x11_window_height - xim->height) / 2;
-	if (yoff < 0)
-		yoff = 0;
-
 	/* TODO: Translate into local colour depth */
 	for(y=0;y<rect->rect.height;y++) {
 		idx = y*rect->rect.width;
@@ -504,7 +483,7 @@ static void local_draw_rect(struct rectlist *rect)
 		}
 		/* This line was changed */
 		if (last && (((y & 0x1f) == 0x1f) || (y == rect->rect.height-1)) && cright >= 0) {
-			x11.XPutImage(dpy, win, gc, xim, cleft*x_cvstat.scaling, ctop*x_cvstat.scaling*x_cvstat.vmultiplier, cleft*x_cvstat.scaling + xoff, ctop*x_cvstat.scaling*x_cvstat.vmultiplier + yoff, (cright-cleft+1)*x_cvstat.scaling, (cbottom-ctop+1)*x_cvstat.scaling*x_cvstat.vmultiplier);
+			x11.XPutImage(dpy,win,gc,xim,cleft*x_cvstat.scaling,ctop*x_cvstat.scaling*x_cvstat.vmultiplier,cleft*x_cvstat.scaling,ctop*x_cvstat.scaling*x_cvstat.vmultiplier,(cright-cleft+1)*x_cvstat.scaling,(cbottom-ctop+1)*x_cvstat.scaling*x_cvstat.vmultiplier);
 			cleft = rect->rect.width;
 			cright = cbottom = -1;
 			ctop = rect->rect.height;
@@ -512,7 +491,7 @@ static void local_draw_rect(struct rectlist *rect)
 	}
 
 	if (last == NULL)
-		x11.XPutImage(dpy, win, gc, xim, rect->rect.x*x_cvstat.scaling, rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier, rect->rect.x*x_cvstat.scaling + xoff, rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier + yoff, rect->rect.width*x_cvstat.scaling, rect->rect.height*x_cvstat.scaling*x_cvstat.vmultiplier);
+		x11.XPutImage(dpy,win,gc,xim,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.width*x_cvstat.scaling,rect->rect.height*x_cvstat.scaling*x_cvstat.vmultiplier);
 	else
 		bitmap_drv_free_rect(last);
 	last = rect;
@@ -541,56 +520,25 @@ static void handle_resize_event(int width, int height)
 	old_scaling = x_cvstat.scaling;
 	if(x_cvstat.scaling > 16)
 		x_setscaling(16);
-
 	/*
-	 * We only need to resize if the width/height are not even multiples,
-	 * or if the two axis don't scale the same way.
+	 * We only need to resize if the width/height are not even multiples
 	 * Otherwise, we can simply resend everything
 	 */
-	if (newFSH != newFSW)
-		resize_window();
-	else if((width % (x_cvstat.charwidth * x_cvstat.cols) != 0)
+	if((width % (x_cvstat.charwidth * x_cvstat.cols) != 0)
 			|| (height % (x_cvstat.charheight * x_cvstat.rows) != 0))
 		resize_window();
-	else
-		resize_xim();
 	bitmap_drv_request_pixels();
 }
 
 static void expose_rect(int x, int y, int width, int height)
 {
 	int sx,sy,ex,ey;
-	int xoff=0, yoff=0;
 
-	xoff = (x11_window_width - xim->width) / 2;
-	if (xoff < 0)
-		xoff = 0;
-	yoff = (x11_window_height - xim->height) / 2;
-	if (yoff < 0)
-		yoff = 0;
+	sx=x/x_cvstat.scaling;
+	sy=y/(x_cvstat.scaling*x_cvstat.vmultiplier);
 
-	if (xoff > 0 || yoff > 0) {
-		if (x < xoff || y < yoff || x + width > xoff + xim->width || y + height > yoff + xim->height) {
-			x11.XFillRectangle(dpy, win, gc, 0, 0, x11_window_width, yoff);
-			x11.XFillRectangle(dpy, win, gc, 0, yoff, xoff, yoff + xim->height);
-			x11.XFillRectangle(dpy, win, gc, xoff+xim->width, yoff, x11_window_width, yoff + xim->height);
-			x11.XFillRectangle(dpy, win, gc, 0, yoff + xim->height, x11_window_width, x11_window_height);
-		}
-	}
-
-	sx=(x-xoff)/x_cvstat.scaling;
-	sy=(y-yoff)/(x_cvstat.scaling*x_cvstat.vmultiplier);
-	if (sx < 0)
-		sx = 0;
-	if (sy < 0)
-		sy = 0;
-
-	ex=(x-xoff)+width-1;
-	ey=(y-yoff)+height-1;
-	if (ex < 0)
-		ex = 0;
-	if (ey < 0)
-		ey = 0;
+	ex=x+width-1;
+	ey=y+height-1;
 	if((ex+1)%x_cvstat.scaling) {
 		ex += x_cvstat.scaling-(ex%x_cvstat.scaling);
 	}
@@ -604,11 +552,7 @@ static void expose_rect(int x, int y, int width, int height)
 	if (last) {
 		bitmap_drv_free_rect(last);
 		last = NULL;
-		bitmap_drv_request_some_pixels(sx, sy, ex-sx+1, ey-sy+1);
 	}
-	// Do nothing...
-	if (sx == ex || sy == ey)
-		return;
 	bitmap_drv_request_some_pixels(sx, sy, ex-sx+1, ey-sy+1);
 }
 
@@ -629,12 +573,12 @@ static int x11_event(XEvent *ev)
 			x11_window_height=ev->xconfigure.height;
 			handle_resize_event(ev->xconfigure.width, ev->xconfigure.height);
 			break;
-		case NoExpose:
-			break;
-		case GraphicsExpose:
+        case NoExpose:
+                break;
+        case GraphicsExpose:
 			expose_rect(ev->xgraphicsexpose.x, ev->xgraphicsexpose.y, ev->xgraphicsexpose.width, ev->xgraphicsexpose.height);
 			break;
-		case Expose:
+        case Expose:
 			expose_rect(ev->xexpose.x, ev->xexpose.y, ev->xexpose.width, ev->xexpose.height);
 			break;
 
@@ -654,24 +598,16 @@ static int x11_event(XEvent *ev)
 			{
 				int format;
 				unsigned long len, bytes_left, dummy;
+				Atom type;
 
 				if(ev->xselection.selection != CONSOLE_CLIPBOARD)
 					break;
 				if(ev->xselection.requestor!=win)
 					break;
 				if(ev->xselection.property) {
-					x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, 0, True, AnyPropertyType, &pastebuf_format, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
-					if(bytes_left > 0 && format==8) {
-						x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, bytes_left, True, AnyPropertyType, &pastebuf_format, &format, &len, &dummy, (unsigned char **)&pastebuf);
-						if (x11.utf8 && pastebuf_format == x11.utf8) {
-							char *opb = pastebuf;
-							pastebuf = (char *)utf8_to_cp437((uint8_t *)pastebuf, '?');
-							if (pastebuf == NULL)
-								pastebuf = opb;
-							else
-								x11.XFree(opb);
-						}
-					}
+					x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
+					if(bytes_left > 0 && format==8)
+						x11.XGetWindowProperty(dpy, win, ev->xselection.property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&pastebuf);
 					else
 						pastebuf=NULL;
 				}
@@ -681,10 +617,7 @@ static int x11_event(XEvent *ev)
 				/* Set paste buffer */
 				sem_post(&pastebuf_set);
 				sem_wait(&pastebuf_used);
-				if (x11.utf8 && pastebuf_format == x11.utf8)
-					free(pastebuf);
-				else
-					x11.XFree(pastebuf);
+				x11.XFree(pastebuf);
 				pastebuf=NULL;
 			}
 			break;
@@ -692,46 +625,27 @@ static int x11_event(XEvent *ev)
 			{
 				XSelectionRequestEvent *req;
 				XEvent respond;
-				Atom supported[3];
-				int count = 0;
 
 				req=&(ev->xselectionrequest);
 				pthread_mutex_lock(&copybuf_mutex);
-				if (x11.targets == 0)
-					x11.targets = x11.XInternAtom(dpy, "TARGETS", False);
-				respond.xselection.property=None;
-				if(copybuf!=NULL) {
+				if(copybuf==NULL) {
+					respond.xselection.property=None;
+				}
+				else {
 					if(req->target==XA_STRING) {
 						x11.XChangeProperty(dpy, req->requestor, req->property, XA_STRING, 8, PropModeReplace, (unsigned char *)copybuf, strlen(copybuf));
 						respond.xselection.property=req->property;
 					}
-					else if(req->target == x11.utf8) {
-						uint8_t *utf8_str = cp437_to_utf8(copybuf, strlen(copybuf), NULL);
-						if (utf8_str != NULL) {
-							x11.XChangeProperty(dpy, req->requestor, req->property, x11.utf8, 8, PropModeReplace, utf8_str, strlen((char *)utf8_str));
-							respond.xselection.property=req->property;
-						}
-					}
-					else if(req->target == x11.targets) {
-						if (x11.utf8 == 0)
-							x11.utf8 = x11.XInternAtom(dpy, "UTF8_STRING", False);
-
-						supported[count++] = x11.targets;
-						supported[count++] = XA_STRING;
-						if (x11.utf8)
-							supported[count++] = x11.utf8;
-						x11.XChangeProperty(dpy, req->requestor, req->property, XA_ATOM, 32, PropModeReplace, (unsigned char *)supported, count);
-						respond.xselection.property=req->property;
-					}
+					else
+						respond.xselection.property=None;
 				}
-				respond.xselection.requestor=req->requestor;
-				respond.xselection.selection=req->selection;
-				respond.xselection.time=req->time;
-				respond.xselection.target=req->target;
 				respond.xselection.type=SelectionNotify;
 				respond.xselection.display=req->display;
+				respond.xselection.requestor=req->requestor;
+				respond.xselection.selection=req->selection;
+				respond.xselection.target=req->target;
+				respond.xselection.time=req->time;
 				x11.XSendEvent(dpy,req->requestor,0,0,&respond);
-				x11.XFlush(dpy);
 				pthread_mutex_unlock(&copybuf_mutex);
 			}
 			break;
@@ -1117,17 +1031,15 @@ void x11_event_thread(void *args)
 									/* Get your own primary selection */
 									if(copybuf==NULL)
 										pastebuf=NULL;
-									else {
+									else
 										pastebuf=strdup(copybuf);
-										pastebuf_format = copybuf_format;
-									}
 									/* Set paste buffer */
 									sem_post(&pastebuf_set);
 									sem_wait(&pastebuf_used);
 									FREE_AND_NULL(pastebuf);
 								}
 								else if(sowner!=None) {
-									x11.XConvertSelection(dpy, CONSOLE_CLIPBOARD, x11.utf8 ? x11.utf8 : XA_STRING, x11.utf8 ? x11.utf8 : XA_STRING, win, CurrentTime);
+									x11.XConvertSelection(dpy, CONSOLE_CLIPBOARD, XA_STRING, XA_STRING, win, CurrentTime);
 								}
 								else {
 									/* Set paste buffer */
@@ -1146,15 +1058,6 @@ void x11_event_thread(void *args)
 						case X11_LOCAL_BEEP:
 							x11.XBell(dpy, 100);
 							break;
-						case X11_LOCAL_SETICON: {
-							Atom wmicon = x11.XInternAtom(dpy, "_NET_WM_ICON", False);
-							if (wmicon) {
-								x11.XChangeProperty(dpy, win, wmicon, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)lev.data.icon_data, lev.data.icon_data[0] * lev.data.icon_data[1] + 2);
-								x11.XFlush(dpy);
-							}
-							free(lev.data.icon_data);
-							break;
-						}
 					}
 				}
 		}
