@@ -5,7 +5,6 @@ include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rule
 CFLAGS += $(XPDEV-MT_CFLAGS) $(ENCODE_CFLAGS) $(CIOLIB-MT_CFLAGS)
 
 ifeq ($(os),win32)
- OBJS	+=	$(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)win32cio$(OFILE)
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)ciolib_res$(OFILE)
 else
@@ -40,10 +39,6 @@ ifeq ($(os),netbsd)
  ifndef USE_SYSTEM_CURSES
   CFLAGS	+=	-DN_CURSES_LIB
  endif
-endif
-
-ifeq ($(shell if [ -e /usr/include/ncursesw/ncurses.h ] ; then echo YES ; fi),YES)
- CFLAGS += -DDEBIAN_HATES_YOU
 endif
 
 ifdef NEED_BITMAP
