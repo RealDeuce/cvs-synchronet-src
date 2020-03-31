@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.103 2019/06/22 22:51:56 rswindell Exp $ */
+/* $Id: scfg.c,v 1.111 2020/03/25 03:53:34 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -46,7 +46,7 @@
 scfg_t	cfg;    /* Synchronet Configuration */
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 
-BOOL no_dirchk=FALSE,forcesave=FALSE;
+BOOL forcesave=FALSE;
 BOOL new_install=FALSE;
 static BOOL auto_save=FALSE;
 extern BOOL all_msghdr;
@@ -87,6 +87,10 @@ enum import_list_type determine_msg_list_type(const char* path)
 		return IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS;
 	if(stricmp(fname, "control.dat") == 0)
 		return IMPORT_LIST_TYPE_QWK_CONTROL_DAT;
+	if(stricmp(fname, "newsgroup.lst") == 0)
+		return IMPORT_LIST_TYPE_NEWSGROUPS;
+	if(stricmp(fname, "echostats.ini") == 0)
+		return IMPORT_LIST_TYPE_ECHOSTATS;
 	return IMPORT_LIST_TYPE_BACKBONE_NA;
 }
 
@@ -173,11 +177,7 @@ int main(int argc, char **argv)
 	cfg.size=sizeof(cfg);
 
     memset(&uifc,0,sizeof(uifc));
-    p=getenv("SBBSCTRL");
-    if(p!=NULL)
-        SAFECOPY(cfg.ctrl_dir,p);
-    else
-		getcwd(cfg.ctrl_dir,sizeof(cfg.ctrl_dir));
+    SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
 
 	uifc.esc_delay=25;
 
@@ -223,9 +223,6 @@ int main(int argc, char **argv)
 				case 'U':
 					umask(strtoul(argv[i]+2,NULL,8));
 					break;
-                case 'S':
-        			no_dirchk=!no_dirchk;
-                    break;
 				case 'G':
 					if(isalpha(argv[i][2]))
 						grpname = argv[i]+2;
@@ -286,7 +283,6 @@ int main(int argc, char **argv)
 					USAGE:
                     printf("\nusage: scfg [ctrl_dir] [options]"
                         "\n\noptions:\n\n"
-                        "-s  =  don't check directories\r\n"
                         "-f  =  force save of configuration files\r\n"
                         "-a  =  update all message base status headers\r\n"
                         "-h  =  don't update message base status headers\r\n"
@@ -377,7 +373,7 @@ int main(int argc, char **argv)
 			case msgbase:
 			{
 				enum import_list_type list_type = determine_msg_list_type(fname);
-				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, &added);
+				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, /* pkt_orig: */NULL, &added);
 				break;
 			}
 			case filebase:
@@ -870,7 +866,7 @@ void txt_cfg()
 		int msk = i & MSK_ON;
 		i &= MSK_OFF;
 		if (msk == MSK_INS) {
-			strcpy(str,"ANSI Artwork");
+			strcpy(str,"");
 			uifc.helpbuf=
 				"`Text Section Name:`\n"
 				"\n"
@@ -889,7 +885,7 @@ void txt_cfg()
 				"abbreviation of the name.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Text Section Internal Code",code,LEN_CODE
-				,K_EDIT)<1)
+				,K_EDIT|K_UPPER)<1)
 				continue;
 			if(!code_ok(code)) {
 				uifc.helpbuf=invalid_code;
@@ -945,9 +941,9 @@ void txt_cfg()
 		while(!done) {
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.txtsec[i]->name);
+			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.txtsec[i]->code);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
 				,cfg.txtsec[i]->arstr);
-			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.txtsec[i]->code);
 			opt[k][0]=0;
 			switch(uifc.list(WIN_ACT|WIN_MID,0,0,60,&j,0,cfg.txtsec[i]->name
 				,opt)) {
@@ -967,10 +963,6 @@ void txt_cfg()
 						strcpy(cfg.txtsec[i]->name,str);
 					break;
 				case 1:
-					sprintf(str,"%s Text Section",cfg.txtsec[i]->name);
-					getar(str,cfg.txtsec[i]->arstr);
-					break;
-				case 2:
 					strcpy(str,cfg.txtsec[i]->code);
 					uifc.helpbuf=
 						"`Text Section Internal Code:`\n"
@@ -980,7 +972,7 @@ void txt_cfg()
 						"abbreviation of the name.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
-						,str,LEN_CODE,K_EDIT);
+						,str,LEN_CODE,K_EDIT|K_UPPER);
 					if(code_ok(str))
 						strcpy(cfg.txtsec[i]->code,str);
 					else {
@@ -989,6 +981,10 @@ void txt_cfg()
 						uifc.helpbuf=0; 
 					}
 					break; 
+				case 2:
+					sprintf(str,"%s Text Section",cfg.txtsec[i]->name);
+					getar(str,cfg.txtsec[i]->arstr);
+					break;
 			} 
 		} 
 	}
@@ -1065,7 +1061,7 @@ void shell_cfg()
 				"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
 			;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Command Shell Internal Code",code,LEN_CODE
-				,K_EDIT)<1)
+				,K_EDIT|K_UPPER)<1)
 				continue;
 			if(!code_ok(code)) {
 				uifc.helpbuf=invalid_code;
@@ -1122,9 +1118,9 @@ void shell_cfg()
 			static int bar;
 			k=0;
 			sprintf(opt[k++],"%-27.27s%s","Name",cfg.shell[i]->name);
+			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.shell[i]->code);
 			sprintf(opt[k++],"%-27.27s%s","Access Requirements"
 				,cfg.shell[i]->arstr);
-			sprintf(opt[k++],"%-27.27s%s","Internal Code",cfg.shell[i]->code);
 			opt[k][0]=0;
 			uifc.helpbuf=
 				"`Command Shell:`\n"
@@ -1157,10 +1153,6 @@ void shell_cfg()
 						strcpy(cfg.shell[i]->name,str);
 					break;
 				case 1:
-					sprintf(str,"%s Command Shell",cfg.shell[i]->name);
-					getar(str,cfg.shell[i]->arstr);
-					break;
-				case 2:
 					strcpy(str,cfg.shell[i]->code);
 					uifc.helpbuf=
 						"`Command Shell Internal Code:`\n"
@@ -1174,7 +1166,7 @@ void shell_cfg()
 						"indicate a Baja shell file named `mybbs.bin` in your exec directory.\n"
 					;
 					uifc.input(WIN_MID|WIN_SAV,0,17,"Internal Code (unique)"
-						,str,LEN_CODE,K_EDIT);
+						,str,LEN_CODE,K_EDIT|K_UPPER);
 					if(code_ok(str))
 						strcpy(cfg.shell[i]->code,str);
 					else {
@@ -1182,6 +1174,10 @@ void shell_cfg()
 						uifc.msg("Invalid Code");
 						uifc.helpbuf=0; 
 					}
+					break;
+				case 2:
+					sprintf(str,"%s Command Shell",cfg.shell[i]->name);
+					getar(str,cfg.shell[i]->arstr);
 					break; 
 			} 
 		} 
@@ -2194,7 +2190,10 @@ int lprintf(int level, char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     strip_ctrl(sbuf,sbuf);
-    uifc.msg(sbuf);
+	if(uifc.msg == NULL)
+		puts(sbuf);
+	else
+    	uifc.msg(sbuf);
     return(0);
 }
 
