@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.116 2019/09/10 19:57:37 deuce Exp $ */
+/* $Id: genwrap.h,v 1.117 2020/03/22 04:14:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -297,7 +297,7 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#else
 		#define SLEEP(x)		({	int sleep_msecs=x; struct timespec ts={0}; \
 								ts.tv_sec=(sleep_msecs/1000); ts.tv_nsec=((sleep_msecs%1000)*1000000); \
-								nanosleep(&ts, NULL); })
+								while(nanosleep(&ts, &ts) != 0 && errno==EINTR && x > 1); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
