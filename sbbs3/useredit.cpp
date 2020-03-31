@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.63 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.68 2020/03/31 01:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -171,11 +171,13 @@ void sbbs_t::useredit(int usernumber)
 			SAFECOPY(str,"QG[]?/{},");
 		else
 			SAFECOPY(str,"ABCDEFGHIJKLMNOPQRSTUVWXYZ+[]?/{}~*$#");
-		l=getkeys(str,l);
+		l=getkeys(str, l, K_UPPER|K_NOCRLF);
 		if(l&0x80000000L) {
 			user.number=(ushort)(l&~0x80000000L);
 			continue; 
 		}
+		if(l != '[' && l != ']' && l != '{' && l != '}' && l != '?')
+			newline();
 		switch(l) {
 			case 'A':
 				bputs(text[EnterYourAlias]);
@@ -449,6 +451,7 @@ void sbbs_t::useredit(int usernumber)
 				putuserrec(&cfg,user.number,U_PHONE,LEN_PHONE,user.phone);
 				break;
 			case 'Q':
+				lncntr = 0;
 				CLS;
 				sys_status&=~SS_INUEDIT;
 				FREE_AR(ar);	/* assertion here */
@@ -587,11 +590,7 @@ void sbbs_t::useredit(int usernumber)
 					l*=1024;
 				else if(strstr(str,"$"))
 					l*=cfg.cdt_per_dollar;
-				if(l<0L && l*-1 > (long)user.cdt)
-					user.cdt=0L;
-				else
-					user.cdt+=l;
-				putuserrec(&cfg,user.number,U_CDT,10,ultoa(user.cdt,tmp,10));
+				adjustuserrec(&cfg, user.number, U_CDT, 10, l);
 				break;
 			case '*':
 				bputs(text[ModifyMinutes]);
@@ -928,7 +927,8 @@ void sbbs_t::maindflts(user_t* user)
 					user->misc |= COLOR;
 					user->misc &= ~ICE_COLOR;
 					if(yesno(text[ColorTerminalQ])) {
-						if(!noyes(text[IceColorTerminalQ]))
+						if(!(console&(CON_BLINK_FONT|CON_HBLINK_FONT))
+							&& !noyes(text[IceColorTerminalQ]))
 							user->misc |= ICE_COLOR;
 					} else
 						user->misc &= ~COLOR;
@@ -1081,7 +1081,7 @@ void sbbs_t::maindflts(user_t* user)
 						pause();
 						break; 
 					}
-					bputs(text[NewPassword]);
+					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
 					if(!getstr(str,LEN_PASS,K_UPPER|K_LINE))
 						break;
 					truncsp(str);
