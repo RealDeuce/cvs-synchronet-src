@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.107 2020/03/31 22:51:20 deuce Exp $ */
+/* $Id: ciolib.h,v 1.106 2019/07/25 18:44:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -544,6 +544,11 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 #ifdef WITH_SDL
 	#include <gen_defs.h>
 	#include <SDL.h>
+
+	#ifdef main
+		#undef main
+	#endif
+	#define	main	CIOLIB_main
 #endif
 
 #define CIOLIB_BUTTON_1	1

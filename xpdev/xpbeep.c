@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.98 2020/03/31 22:51:33 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.97 2018/03/09 05:50:12 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -372,7 +372,7 @@ BOOL DLLCALL xptone_open(void)
 					||
 						(
 							((pa_api->active=xp_dlsym(dl,Pa_StreamActive))==NULL)
-							&& ((pa_api->active=xp_dlsym(dl,Pa_IsStreamStopped))==NULL)
+							&& ((pa_api->active=xp_dlsym(dl,Pa_IsStreamActive))==NULL)
 						)
 					|| ((pa_api->stop=xp_dlsym(dl,Pa_StopStream))==NULL)
 					) {
@@ -428,9 +428,8 @@ BOOL DLLCALL xptone_open(void)
 
 #ifdef WITH_SDL_AUDIO
 	if(!sdl_device_open_failed) {
-		if(init_sdl_audio()==-1) {
+		if(init_sdl_audio()==-1)
 			sdl_device_open_failed=TRUE;
-		}
 		else {
 			spec.freq=22050;
 			spec.format=AUDIO_U8;
@@ -471,9 +470,8 @@ BOOL DLLCALL xptone_open(void)
 		wh[0].dwBufferLength=S_RATE*15/2+1;
 		wh[1].dwBufferLength=S_RATE*15/2+1;
 		handle_type=SOUND_DEVICE_WIN32;
-		if(!sound_device_open_failed) {
+		if(!sound_device_open_failed)
 			return(TRUE);
-		}
 	}
 #endif
 
@@ -559,9 +557,8 @@ BOOL DLLCALL xptone_open(void)
 	if(sound_device_open_failed)
 		return(FALSE);
 	handle_type=SOUND_DEVICE_OSS;
-	if(!sound_device_open_failed) {
+	if(!sound_device_open_failed)
 		return(TRUE);
-	}
 #endif
 	return(FALSE);
 }
@@ -572,7 +569,7 @@ void DLLCALL xptone_complete(void)
 		return;
 #ifdef WITH_PORTAUDIO
 	else if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-		while(pa_api->active(portaudio_stream) == 1)
+		while(pa_api->active(portaudio_stream))
 			SLEEP(1);
 		pa_api->stop(portaudio_stream);
 		if (pawave) {
@@ -720,7 +717,6 @@ void DLLCALL xp_play_sample_thread(void *data)
 	#ifdef WITH_PORTAUDIO
 		if(handle_type==SOUND_DEVICE_PORTAUDIO) {
 			if(pa_api->ver >= 1899) {
-				pa_api->start(portaudio_stream);
 				pa_api->write(portaudio_stream, sample, this_sample_size);
 				FREE_AND_NULL(sample);
 			}
@@ -890,8 +886,8 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 #ifdef WITH_PORTAUDIO
 	if(handle_type==SOUND_DEVICE_PORTAUDIO) {
 		if(pa_api->ver >= 1899) {
-			pa_api->start(portaudio_stream);
 			pa_api->write(portaudio_stream, sample, sample_size);
+			free(sample);
 		}
 		else {
 			xptone_complete();
@@ -909,14 +905,7 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 #ifdef WITH_SDL_AUDIO
 	if(handle_type==SOUND_DEVICE_SDL) {
 		sdl.LockAudio();
-		swave=malloc(sample_size);
-		if (swave == NULL) {
-			sdl.UnlockAudio();
-			if(must_close)
-				xptone_close();
-			return FALSE;
-		}
-		memcpy(swave, sample, sample_size);
+		swave=sample;
 		sdl_audio_buf_pos=0;
 		sdl_audio_buf_len=sample_size;
 		sdl.UnlockAudio();

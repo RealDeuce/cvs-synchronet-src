@@ -4,8 +4,13 @@
 #include "gen_defs.h"
 #include "threadwrap.h"
 #include <SDL.h>
+#ifndef main
+ #define USE_REAL_MAIN
+#endif
+#ifdef USE_REAL_MAIN
+ #undef main
+#endif
 #include "sdlfuncs.h"
-#include "sdl_con.h"
 extern int sdl_video_initialized;
 
 #ifndef _WIN32
@@ -21,13 +26,23 @@ struct sdlfuncs sdl;
 static int sdl_funcs_loaded=0;
 static int sdl_initialized=0;
 static int sdl_audio_initialized=0;
+static int (*sdl_drawing_thread)(void *data)=NULL;
+static void (*sdl_exit_drawing_thread)(void)=NULL;
+static int main_returned=0;
+static SDL_sem *sdl_main_sem;
+SDL_sem *sdl_exit_sem;
 
-static void QuitWrap(void);
+int CIOLIB_main(int argc, char **argv, char **enviro);
+int XPDEV_main(int argc, char **argv, char **enviro)
+{
+	return CIOLIB_main(argc, argv, enviro);
+}
+
 
 int load_sdl_funcs(struct sdlfuncs *sdlf)
 {
 	dll_handle	sdl_dll;
-	const char *libnames[]={"SDL2", "SDL", NULL};
+	const char *libnames[]={"SDL", "SDL-1.2", "SDL-1.1", NULL};
 
 	putenv("SDL_VIDEO_ALLOW_SCREENSAVER=1");
 	sdlf->gotfuncs=0;
@@ -48,12 +63,11 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	// SDL2: Rename from mutexP/mutexV to LockMutex/UnlockMutex
-	if((sdlf->mutexP=xp_dlsym(sdl_dll, SDL_LockMutex))==NULL) {
+	if((sdlf->mutexP=xp_dlsym(sdl_dll, SDL_mutexP))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->mutexV=xp_dlsym(sdl_dll, SDL_UnlockMutex))==NULL) {
+	if((sdlf->mutexV=xp_dlsym(sdl_dll, SDL_mutexV))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -61,7 +75,7 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetCurrentVideoDriver=xp_dlsym(sdl_dll, SDL_GetCurrentVideoDriver))==NULL) {
+	if((sdlf->VideoDriverName=xp_dlsym(sdl_dll, SDL_VideoDriverName))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -93,11 +107,19 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->SetColors=xp_dlsym(sdl_dll, SDL_SetColors))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
 	if((sdlf->BlitSurface=xp_dlsym(sdl_dll, SDL_UpperBlit))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->RenderPresent=xp_dlsym(sdl_dll, SDL_RenderPresent))==NULL) {
+	if((sdlf->UpdateRects=xp_dlsym(sdl_dll, SDL_UpdateRects))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->UpdateRect=xp_dlsym(sdl_dll, SDL_UpdateRect))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -117,11 +139,15 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->KillThread=xp_dlsym(sdl_dll, SDL_KillThread))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
 	if((sdlf->WaitThread=xp_dlsym(sdl_dll, SDL_WaitThread))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->WaitEventTimeout=xp_dlsym(sdl_dll, SDL_WaitEventTimeout))==NULL) {
+	if((sdlf->WaitEvent=xp_dlsym(sdl_dll, SDL_WaitEvent))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -129,15 +155,7 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateWindow=xp_dlsym(sdl_dll, SDL_CreateWindow))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->CreateWindowAndRenderer=xp_dlsym(sdl_dll, SDL_CreateWindowAndRenderer))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->CreateRenderer=xp_dlsym(sdl_dll, SDL_CreateRenderer))==NULL) {
+	if((sdlf->SetVideoMode=xp_dlsym(sdl_dll, SDL_SetVideoMode))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -145,19 +163,11 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SetWindowTitle=xp_dlsym(sdl_dll, SDL_SetWindowTitle))==NULL) {
+	if((sdlf->WM_SetCaption=xp_dlsym(sdl_dll, SDL_WM_SetCaption))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetWindowSize=xp_dlsym(sdl_dll, SDL_GetWindowSize))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->GetWindowSurface=xp_dlsym(sdl_dll, SDL_GetWindowSurface))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->SetWindowIcon=xp_dlsym(sdl_dll, SDL_SetWindowIcon))==NULL) {
+	if((sdlf->WM_SetIcon=xp_dlsym(sdl_dll, SDL_WM_SetIcon))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -169,7 +179,15 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->GetWindowWMInfo=xp_dlsym(sdl_dll, SDL_GetWindowWMInfo))==NULL) {
+	if((sdlf->EnableUNICODE=xp_dlsym(sdl_dll, SDL_EnableUNICODE))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->EnableKeyRepeat=xp_dlsym(sdl_dll, SDL_EnableKeyRepeat))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetWMInfo=xp_dlsym(sdl_dll, SDL_GetWMInfo))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -221,31 +239,42 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->ConvertSurface=xp_dlsym(sdl_dll, SDL_ConvertSurface))==NULL) {
+	if((sdlf->DisplayFormat=xp_dlsym(sdl_dll, SDL_DisplayFormat))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->CreateTexture=xp_dlsym(sdl_dll, SDL_CreateTexture))==NULL) {
+	if((sdlf->Flip=xp_dlsym(sdl_dll, SDL_Flip))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->UpdateTexture=xp_dlsym(sdl_dll, SDL_UpdateTexture))==NULL) {
+	if((sdlf->CreateYUVOverlay=xp_dlsym(sdl_dll, SDL_CreateYUVOverlay))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->RenderClear=xp_dlsym(sdl_dll, SDL_RenderClear))==NULL) {
+	if((sdlf->DisplayYUVOverlay=xp_dlsym(sdl_dll, SDL_DisplayYUVOverlay))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->RenderCopy=xp_dlsym(sdl_dll, SDL_RenderCopy))==NULL) {
+	if((sdlf->FreeYUVOverlay=xp_dlsym(sdl_dll, SDL_FreeYUVOverlay))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->SetHint=xp_dlsym(sdl_dll, SDL_SetHint))==NULL) {
+	if((sdlf->LockYUVOverlay=xp_dlsym(sdl_dll, SDL_LockYUVOverlay))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-
+	if((sdlf->UnlockYUVOverlay=xp_dlsym(sdl_dll, SDL_UnlockYUVOverlay))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetVideoInfo=xp_dlsym(sdl_dll, SDL_GetVideoInfo))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->Linked_Version=xp_dlsym(sdl_dll, SDL_Linked_Version))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
 	return(0);
@@ -253,87 +282,11 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 
 int init_sdl_video(void)
 {
-	char	*drivername;
-	int		use_sdl_video=FALSE;
-#ifdef _WIN32
-	char		*driver_env=NULL;
-#endif
-
+	/* This is all handled in SDL_main_env() */
 	if(sdl_video_initialized)
 		return(0);
-
-#ifndef _WIN32
-	load_sdl_funcs(&sdl);
-#endif
-
-	if (!sdl.gotfuncs)
-		return -1;
-
-	use_sdl_video=TRUE;
-
-	sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1" );
-#ifdef _WIN32
-	/* Fail to windib (ie: No mouse attached) */
-	if(sdl.Init(SDL_INIT_VIDEO)) {
-		// SDL2: We can likely do better now...
-		driver_env=getenv("SDL_VIDEODRIVER");
-		if(driver_env==NULL || strcmp(driver_env,"windib")) {
-			putenv("SDL_VIDEODRIVER=windib");
-			WinExec(GetCommandLine(), SW_SHOWDEFAULT);
-			return(0);
-		}
-		/* Sure ,we can't use video, but audio is still valid! */
-		if(sdl.Init(0)==0)
-			sdl_initialized=TRUE;
-	}
-	else {
-		sdl_video_initialized=TRUE;
-		sdl_initialized=TRUE;
-	}
-#else
-	/*
-	 * SDL2: Is the below comment still true for SDL2?
-	 * On Linux, SDL doesn't properly detect availability of the
-	 * framebuffer apparently.  This results in remote connections
-	 * displaying on the local framebuffer... a definate no-no.
-	 * This ugly hack attempts to prevent this... of course, remote X11
-	 * connections must still be allowed.
-	 */
-	if((!use_sdl_video) || ((getenv("REMOTEHOST")!=NULL || getenv("SSH_CLIENT")!=NULL) && getenv("DISPLAY")==NULL)) {
-		/* Sure ,we can't use video, but audio is still valid! */
-		if(sdl.Init(0)==0)
-			sdl_initialized=TRUE;
-	}
-	else {
-		if(sdl.Init(SDL_INIT_VIDEO)==0) {
-			sdl_initialized=TRUE;
-			sdl_video_initialized=TRUE;
-		}
-		else {
-			/* Sure ,we can't use video, but audio is still valid! */
-			if(sdl.Init(0)==0)
-				sdl_initialized=TRUE;
-		}
-	}
-#endif
-	if(sdl_video_initialized && (drivername = sdl.GetCurrentVideoDriver())!=NULL) {
-		/* Unacceptable drivers */
-		if((!strcmp(drivername, "caca")) || (!strcmp(drivername,"aalib")) || (!strcmp(drivername,"dummy"))) {
-			sdl.QuitSubSystem(SDL_INIT_VIDEO);
-			sdl_video_initialized=FALSE;
-		}
-		else {
-			sdl_video_initialized=TRUE;
-		}
-	}
-
-	if(sdl_video_initialized) {
-		SetThreadName("SDL Main");
-		atexit(QuitWrap);
-		return 0;
-	}
-
-	return(-1);
+	else
+		return(-1);
 }
 
 int init_sdl_audio(void)
@@ -349,16 +302,144 @@ int init_sdl_audio(void)
 	return(-1);
 }
 
-void run_sdl_drawing_thread(int (*drawing_thread)(void *data))
+struct main_args {
+	int		argc;
+	char	**argv;
+	char	**enviro;
+};
+
+static int sdl_run_main(void *data)
 {
-	sdl.CreateThread(drawing_thread, NULL);
+	struct main_args	*args;
+	int	ret;
+
+	args=data;
+	ret=CIOLIB_main(args->argc, args->argv, args->enviro);
+	main_returned=1;
+	sdl.SemPost(sdl_main_sem);
+	if(sdl_exit_drawing_thread!=NULL)
+		sdl_exit_drawing_thread();
+	sdl.SemPost(sdl_exit_sem);
+	return(ret);
+}
+
+void run_sdl_drawing_thread(int (*drawing_thread)(void *data), void (*exit_drawing_thread)(void))
+{
+	sdl_drawing_thread=drawing_thread;
+	sdl_exit_drawing_thread=exit_drawing_thread;
+	sdl.SemPost(sdl_main_sem);
 }
 
 static void QuitWrap(void)
 {
-	if (sdl_initialized) {
-		exit_sdl_con();
-		if(sdl.Quit)
-			sdl.Quit();
+	if(sdl.Quit && sdl_initialized)
+		sdl.Quit();
+}
+
+#ifndef main
+int main(int argc, char **argv, char **env)
+#else
+int SDL_main_env(int argc, char **argv, char **env)
+#endif
+{
+	char	drivername[64];
+	struct main_args ma;
+	SDL_Thread	*main_thread;
+	int		main_ret=0;
+	int		use_sdl_video=FALSE;
+#ifdef _WIN32
+	char		*driver_env=NULL;
+#endif
+
+	ma.argc=argc;
+	ma.argv=argv;
+	ma.enviro=env;
+#ifndef _WIN32
+	load_sdl_funcs(&sdl);
+#endif
+
+	if(sdl.gotfuncs) {
+		use_sdl_video=TRUE;
+
+#ifdef _WIN32
+		/* Fail to windib (ie: No mouse attached) */
+		if(sdl.Init(SDL_INIT_VIDEO)) {
+			driver_env=getenv("SDL_VIDEODRIVER");
+			if(driver_env==NULL || strcmp(driver_env,"windib")) {
+				putenv("SDL_VIDEODRIVER=windib");
+				WinExec(GetCommandLine(), SW_SHOWDEFAULT);
+				return(0);
+			}
+			/* Sure ,we can't use video, but audio is still valid! */
+			if(sdl.Init(0)==0)
+				sdl_initialized=TRUE;
+		}
+		else {
+			sdl_video_initialized=TRUE;
+			sdl_initialized=TRUE;
+		}
+#else
+		/*
+		 * On Linux, SDL doesn't properly detect availability of the
+		 * framebuffer apparently.  This results in remote connections
+		 * displaying on the local framebuffer... a definate no-no.
+		 * This ugly hack attempts to prevent this... of course, remote X11
+		 * connections must still be allowed.
+		 */
+		if((!use_sdl_video) || ((getenv("REMOTEHOST")!=NULL || getenv("SSH_CLIENT")!=NULL) && getenv("DISPLAY")==NULL)) {
+			/* Sure ,we can't use video, but audio is still valid! */
+			if(sdl.Init(0)==0)
+				sdl_initialized=TRUE;
+		}
+		else {
+			if(sdl.Init(SDL_INIT_VIDEO)==0) {
+				sdl_initialized=TRUE;
+				sdl_video_initialized=TRUE;
+			}
+			else {
+				/* Sure ,we can't use video, but audio is still valid! */
+				if(sdl.Init(0)==0)
+					sdl_initialized=TRUE;
+			}
+		}
+#endif
+		if(sdl_video_initialized && sdl.VideoDriverName(drivername, sizeof(drivername))!=NULL) {
+			/* Unacceptable drivers */
+			if((!strcmp(drivername, "caca")) || (!strcmp(drivername,"aalib")) || (!strcmp(drivername,"dummy"))) {
+				sdl.QuitSubSystem(SDL_INIT_VIDEO);
+				sdl_video_initialized=FALSE;
+			}
+			else {
+				const SDL_VideoInfo *initial=sdl.GetVideoInfo();
+
+				/* Save initial video mode */
+				if(initial)
+					sdl.initial_videoinfo=*initial;
+				else
+					memset(&sdl.initial_videoinfo, 0, sizeof(sdl.initial_videoinfo));
+				sdl_video_initialized=TRUE;
+			}
+		}
 	}
+	if(sdl_video_initialized) {
+		SetThreadName("SDL Main");
+		atexit(QuitWrap);
+		sdl_main_sem=sdl.SDL_CreateSemaphore(0);
+		sdl_exit_sem=sdl.SDL_CreateSemaphore(0);
+		main_thread=sdl.CreateThread(sdl_run_main,&ma);
+		sdl.SemWait(sdl_main_sem);
+		if(sdl_drawing_thread!=NULL) {
+			sdl_drawing_thread(NULL);
+			sdl_exit_drawing_thread=NULL;
+			if(!main_returned) {
+				main_ret=0;
+			}
+		}
+		sdl.SemWait(sdl_exit_sem);
+		if(main_returned)
+			sdl.WaitThread(main_thread, &main_ret);
+	}
+	else
+		main_ret=CIOLIB_main(argc, argv, env);
+	return(main_ret);
 }
