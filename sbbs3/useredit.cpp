@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.67 2019/08/15 01:18:07 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.68 2020/03/31 01:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1081,7 +1081,7 @@ void sbbs_t::maindflts(user_t* user)
 						pause();
 						break; 
 					}
-					bputs(text[NewPassword]);
+					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
 					if(!getstr(str,LEN_PASS,K_UPPER|K_LINE))
 						break;
 					truncsp(str);
