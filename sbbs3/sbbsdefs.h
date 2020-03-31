@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.256 2020/04/01 22:06:28 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.254 2020/03/31 01:17:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -167,7 +167,7 @@ typedef struct js_callback {
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_SYSPASSLOGIN	(1L<<13)	/* Require system password for sysop login	*/
+#define SM_UNUSED		(1L<<13)	/* Defaults to *on*	(used to SM_LOCAL_TZ)	*/
 #define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -528,7 +528,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_MAIN_CMD	34	/* Storage in user.dat for custom commands		*/
 #define LEN_PASS		40
 #define MIN_PASS_LEN	 4
-#define RAND_PASS_LEN	 8
 #define LEN_SCAN_CMD	35
 #define LEN_IPADDR		45
 #define LEN_CID 		45	/* Caller ID (phone number) 					*/
