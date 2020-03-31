@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.69 2020/03/31 06:05:59 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.68 2020/03/24 06:05:18 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -100,7 +100,7 @@ static bool new_grp(unsigned new_grpnum)
 
 // Return number of imported (including over-written) subs or negative on error
 long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
-	, int min_confnum, int max_confnum, qhub_t* qhub, const char* pkt_orig, faddr_t* faddr
+	, int min_confnum, int max_confnum, qhub_t* qhub, const char* pkt_orig
 	, long* added)
 {
 	char		str[256];
@@ -421,8 +421,6 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			if(tmpsub.data_dir[0])
 				SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
 		}
-		if(faddr != NULL && faddr->zone)
-			cfg.sub[j]->faddr = *faddr;
 		if(qhub != NULL)
 			new_qhub_sub(qhub, qhub->subs, cfg.sub[j], qwk_confnum);
 		ported++;
@@ -1026,7 +1024,7 @@ void msgs_cfg()
 					}
 					uifc.pop("Importing Areas...");
 					long added = 0;
-					ported = import_msg_areas(k, stream, i, min_confnum, max_confnum, /* qhub: */NULL, pkt_orig, /* faddr: */NULL, &added);
+					ported = import_msg_areas(k, stream, i, min_confnum, max_confnum, /* qhub: */NULL, pkt_orig, &added);
 					fclose(stream);
 					uifc.pop(0);
 					if(ported < 0)
