@@ -2,7 +2,7 @@
 
 /* Synchronet new user routine */
 
-/* $Id: newuser.cpp,v 1.84 2019/10/24 20:54:31 rswindell Exp $ */
+/* $Id: newuser.cpp,v 1.85 2020/03/31 01:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -378,7 +378,7 @@ BOOL sbbs_t::newuser()
 
 		if(cfg.sys_misc&SM_PWEDIT && text[NewPasswordQ][0] && yesno(text[NewPasswordQ]))
 			while(online) {
-				bputs(text[NewPassword]);
+				bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
 				getstr(str,LEN_PASS,K_UPPER|K_LINE);
 				truncsp(str);
 				if(chkpass(str,&useron,true)) {
