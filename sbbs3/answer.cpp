@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.105 2019/07/16 07:07:17 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.108 2019/09/27 20:58:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -359,7 +359,7 @@ bool sbbs_t::answer()
 						if(x >= TERM_COLS_MIN && x <= TERM_COLS_MAX) cols=x; 
 						if(y >= TERM_ROWS_MIN && y <= TERM_ROWS_MAX) rows=y;
 					} else {	// second report
-						if(x == 1)	// ZWNBSP didn't move cursor
+						if(x < 3)	// ZWNBSP didn't move cursor (more than one column)
 							autoterm |= UTF8;
 					}
 				} else if(sscanf(p, "[=67;84;101;114;109;%u;%u", &x, &y) == 2 && *lastchar(p) == 'c') {
@@ -404,7 +404,6 @@ bool sbbs_t::answer()
 	if(!(telnet_mode&TELNET_MODE_OFF)) {
 		/* Stop the input thread from writing to the telnet_* vars */
 		pthread_mutex_lock(&input_thread_mutex);
-		input_thread_mutex_locked = true;
 
 		if(stricmp(telnet_terminal,"sexpots")==0) {	/* dial-up connection (via SexPOTS) */
 			SAFEPRINTF2(str,"%s connection detected at %lu bps", terminal, cur_rate);
@@ -431,6 +430,7 @@ bool sbbs_t::answer()
 		} else {
 			if(telnet_location[0]) {			/* Telnet Location info provided */
 				lprintf(LOG_INFO, "Telnet Location: %s", telnet_location);
+				SAFECOPY(cid, telnet_location);
 			}
 		}
 		if(telnet_speed) {
@@ -445,7 +445,6 @@ bool sbbs_t::answer()
 		if(telnet_rows >= TERM_ROWS_MIN && telnet_rows <= TERM_ROWS_MAX)
 			rows = telnet_rows;
 		pthread_mutex_unlock(&input_thread_mutex);
-		input_thread_mutex_locked = false;
 	}
 	lprintf(LOG_INFO, "terminal type: %lux%lu %s", cols, rows, terminal);
 	SAFECOPY(client_ipaddr, cid);	/* Over-ride IP address with Caller-ID info */
