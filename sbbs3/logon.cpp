@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.75 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.76 2020/03/31 01:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -242,7 +242,7 @@ bool sbbs_t::logon()
 
 			if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
 				while(online) {
-					bputs(text[NewPassword]);
+					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
 					getstr(str,LEN_PASS,K_UPPER|K_LINE);
 					truncsp(str);
 					if(chkpass(str,&useron,true))
