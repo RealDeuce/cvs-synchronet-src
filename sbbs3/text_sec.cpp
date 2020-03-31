@@ -1,6 +1,6 @@
 /* Synchronet general text file (g-file) section */
 
-/* $Id: text_sec.cpp,v 1.17 2020/03/25 04:45:21 rswindell Exp $ */
+/* $Id: text_sec.cpp,v 1.18 2020/03/31 07:06:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,7 @@
 /****************************************************************************/
 int sbbs_t::text_sec()
 {
-	if(!cfg.textsec_mod) {
+	if(!cfg.textsec_mod[0]) {
 		bputs(text[NoTextSections]);
 		return(1); 
 	}
