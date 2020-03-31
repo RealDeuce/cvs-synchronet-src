@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.85 2020/03/30 21:42:00 rswindell Exp $ */
+/* $Id: str.cpp,v 1.86 2020/03/31 01:41:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -702,7 +702,7 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 	SAFECOPY(pass,passwd);
 	strupr(pass);
 
-	if(strlen(pass)<4) {
+	if(strlen(pass) < MIN_PASS_LEN) {
 		bputs(text[PasswordTooShort]);
 		return(false); 
 	}
