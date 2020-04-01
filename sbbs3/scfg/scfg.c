@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.114 2020/04/03 20:50:39 rswindell Exp $ */
+/* $Id: scfg.c,v 1.113 2020/03/31 20:23:21 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -431,13 +431,26 @@ int main(int argc, char **argv)
 		if((mopt[i]=(char *)malloc(64))==NULL)
 			allocfail(64);
 
-	SAFEPRINTF2(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
+	if((p=getenv("SBBSEXEC"))!=NULL)
+		SAFECOPY(str,p);
+	else {
+		SAFECOPY(str,exepath);
+		p=strrchr(str,'/');
+		if(p==NULL)
+			p=strrchr(str,'\\');
+		if(p!=NULL)
+			*p=0;
+		else 
+	   		sprintf(str,"%s../exec",cfg.ctrl_dir);
+	}
+
+	sprintf(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
 	if(uifc.scrn(str)) {
 		printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
 		bail(1);
 	}
 
-	SAFEPRINTF(str,"%smain.cnf",cfg.ctrl_dir);
+	sprintf(str,"%smain.cnf",cfg.ctrl_dir);
 	if(!fexist(str)) {
 		sprintf(errormsg,"Main configuration file (%s) missing!",str);
 		uifc.msg(errormsg);
