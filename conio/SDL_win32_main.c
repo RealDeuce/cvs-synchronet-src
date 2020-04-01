@@ -15,8 +15,6 @@
 #define DIR_SEPERATOR TEXT("/")
 #include <direct.h>
 
-#include "SDL_main.h"			/* SDL_RegisterApp() which sets program name... */
-
 /* Parse a command line buffer into arguments */
 static int ParseCommandLine(char *cmdline, char **argv)
 {
@@ -96,7 +94,6 @@ static int console_main(int argc, char *argv[], char **env)
 	strncpy(bufp, appname, n);
 	bufp[n] = '\0';
 	appname = bufp;
-	SDL_RegisterApp(appname, 0, NULL);
 
 	/* Run the application main() code */
 	n=CIOLIB_main(argc, argv);
