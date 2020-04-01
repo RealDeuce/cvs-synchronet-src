@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.559 2020/04/11 04:01:36 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.558 2020/03/19 05:58:08 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1113,8 +1113,6 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
-	DLLEXPORT BOOL		DLLCALL inc_sys_upload_stats(scfg_t*, ulong files, ulong bytes);
-	DLLEXPORT BOOL		DLLCALL inc_sys_download_stats(scfg_t*, ulong files, ulong bytes);
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
@@ -1457,6 +1455,11 @@ char*	prep_code(char *str, const char* prefix);
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...)	/* log output */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
+	int 	eprintf(int level, const char *fmt, ...)	/* event log */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));
 #endif
