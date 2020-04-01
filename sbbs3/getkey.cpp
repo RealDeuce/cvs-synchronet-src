@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.55 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.58 2020/03/01 23:55:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -46,6 +46,7 @@ char sbbs_t::getkey(long mode)
 {
 	uchar	ch,coldkey,c=0,spin=sbbs_random(5);
 	time_t	last_telnet_cmd=0;
+	long	term = term_supports();
 
 	if(online==ON_REMOTE && !input_thread_running)
 		online=FALSE;
@@ -69,7 +70,7 @@ char sbbs_t::getkey(long mode)
 		}
 
 		if(mode&K_SPIN) {
-			if(useron.misc&NO_EXASCII) {
+			if(term&NO_EXASCII) {
 				switch(c++) {
 					case 0:
 						outchar(BS);
@@ -361,7 +362,7 @@ void sbbs_t::mnemonics(const char *str)
 /* Returns true for Yes or false for No                                     */
 /* Called from quite a few places                                           */
 /****************************************************************************/
-bool sbbs_t::yesno(const char *str)
+bool sbbs_t::yesno(const char *str, long mode)
 {
     char ch;
 
@@ -369,20 +370,20 @@ bool sbbs_t::yesno(const char *str)
 		return true;
 	SAFECOPY(question,str);
 	SYNC;
-	bprintf(text[YesNoQuestion],str);
+	bprintf(mode, text[YesNoQuestion], str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YNQP][1];
 		else
 			ch=getkey(K_UPPER|K_COLD);
 		if(ch==text[YNQP][0] || ch==CR) {
-			if(bputs(text[Yes]))
+			if(bputs(text[Yes], mode) && !(mode&P_NOCRLF))
 				CRLF;
 			lncntr=0;
 			return(true); 
 		}
 		if(ch==text[YNQP][1]) {
-			if(bputs(text[No]))
+			if(bputs(text[No], mode) && !(mode&P_NOCRLF))
 				CRLF;
 			lncntr=0;
 			return(false); 
@@ -395,7 +396,7 @@ bool sbbs_t::yesno(const char *str)
 /* Prompts user for N or Y (no or yes) and CR is interpreted as a N         */
 /* Returns true for No or false for Yes                                     */
 /****************************************************************************/
-bool sbbs_t::noyes(const char *str)
+bool sbbs_t::noyes(const char *str, long mode)
 {
     char ch;
 
@@ -403,20 +404,20 @@ bool sbbs_t::noyes(const char *str)
 		return true;
 	SAFECOPY(question,str);
 	SYNC;
-	bprintf(text[NoYesQuestion],str);
+	bprintf(mode, text[NoYesQuestion], str);
 	while(online) {
 		if(sys_status&SS_ABORT)
 			ch=text[YNQP][1];
 		else
 			ch=getkey(K_UPPER|K_COLD);
 		if(ch==text[YNQP][1] || ch==CR) {
-			if(bputs(text[No]))
+			if(bputs(text[No], mode) && !(mode&P_NOCRLF))
 				CRLF;
 			lncntr=0;
 			return(true); 
 		}
 		if(ch==text[YNQP][0]) {
-			if(bputs(text[Yes]))
+			if(bputs(text[Yes], mode) && !(mode&P_NOCRLF))
 				CRLF;
 			lncntr=0;
 			return(false); 
@@ -525,16 +526,16 @@ void sbbs_t::pause()
 {
 	char	ch;
 	uint	tempattrs=curatr; /* was lclatr(-1) */
-    int		i,j;
 	long	l=K_UPPER;
+	size_t	len;
 
-	if(sys_status&SS_ABORT)
+ 	if(sys_status&SS_ABORT)
 		return;
 	lncntr=0;
 	if(online==ON_REMOTE)
 		rioctl(IOFI);
 	bputs(text[Pause]);
-	j=bstrlen(text[Pause]);
+	len = bstrlen(text[Pause]);
 	if(sys_status&SS_USERON && !(useron.misc&(HTML|WIP|NOPAUSESPIN))
 		&& !(cfg.node_misc&NM_NOPAUSESPIN))
 		l|=K_SPIN;
@@ -544,8 +545,7 @@ void sbbs_t::pause()
 	else if(ch==LF)	// down arrow == display one more line
 		lncntr=rows-2;
 	if(text[Pause][0]!='@')
-		for(i=0;i<j;i++)
-			backspace();
+		backspace(len);
 	getnodedat(cfg.node_num,&thisnode,0);
 	nodesync();
 	attr(tempattrs);
