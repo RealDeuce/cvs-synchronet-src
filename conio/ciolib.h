@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.109 2020/04/01 07:39:07 deuce Exp $ */
+/* $Id: ciolib.h,v 1.107 2020/03/31 22:51:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -79,6 +79,8 @@ enum {
 	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
+	,CIOLIB_MODE_SDL_YUV
+	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -542,13 +544,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 #ifdef WITH_SDL
 	#include <gen_defs.h>
 	#include <SDL.h>
-
-#ifdef _WIN32
-	#ifdef main
-		#undef main
-	#endif
-	#define main	CIOLIB_main
-#endif
 #endif
 
 #define CIOLIB_BUTTON_1	1
