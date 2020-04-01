@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.253 2020/03/19 18:50:51 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.255 2020/03/31 08:28:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -167,7 +167,7 @@ typedef struct js_callback {
 #define SM_CELERITY		(1L<<10)	/* Expand Celerity color codes in messages	*/
 #define SM_RENEGADE		(1L<<11)	/* Expand Renegade color codes in messages	*/
 #define SM_ECHO_PW		(1L<<12)	/* Echo passwords locally					*/
-#define SM_UNUSED		(1L<<13)	/* Defaults to *on*	(used to SM_LOCAL_TZ)	*/
+#define SM_SYSPASSLOGIN	(1L<<13)	/* Require system password for sysop login	*/
 #define SM_AUTO_DST		(1L<<14)	/* Automatic Daylight Savings Toggle (US)   */
 #define SM_R_SYSOP		(1L<<15)	/* Allow remote sysop logon/commands		*/
 #define SM_QUOTE_EM		(1L<<16)	/* Allow quoting of e-mail					*/
@@ -515,7 +515,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_COMP		30	/* User computer description					*/
 #define LEN_COMMENT 	60	/* User comment 								*/
 #define LEN_NETMAIL 	60	/* NetMail forwarding address					*/
-#define LEN_PASS		 8	/* User password								*/
+#define LEN_OLDPASS		 8	/* User password (old)							*/
 #define LEN_PHONE		12	/* User phone number							*/
 #define LEN_BIRTH		 8	/* Birthday in MM/DD/YY format					*/
 #define LEN_ADDRESS 	30	/* User address 								*/
@@ -526,9 +526,10 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_FCDT		 9	/* 9 digits for file credit values				*/
 #define LEN_TITLE		70	/* Message title								*/
 #define LEN_MAIN_CMD	34	/* Storage in user.dat for custom commands		*/
-#define LEN_XFER_CMD	40
+#define LEN_PASS		40
+#define MIN_PASS_LEN	 4
 #define LEN_SCAN_CMD	35
-#define LEN_IPADDR	45
+#define LEN_IPADDR		45
 #define LEN_CID 		45	/* Caller ID (phone number) 					*/
 #define LEN_ARSTR		40	/* Max length of Access Requirement string		*/
 #define LEN_CHATACTCMD	 9	/* Chat action command							*/
@@ -551,8 +552,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define U_LOCATION	U_ADDRESS+LEN_ADDRESS
 #define U_ZIPCODE	U_LOCATION+LEN_LOCATION
 
-#define U_PASS		U_ZIPCODE+LEN_ZIPCODE+2
-#define U_PHONE  	U_PASS+8  			/* Offset to phone-number */
+#define U_OLDPASS	U_ZIPCODE+LEN_ZIPCODE+2
+#define U_PHONE  	U_OLDPASS+LEN_OLDPASS  	/* Offset to phone-number */
 #define U_BIRTH  	U_PHONE+12 		/* Offset to users birthday	*/
 #define U_MODEM     U_BIRTH+8
 #define U_LASTON	U_MODEM+8
@@ -593,8 +594,8 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define U_CURSUB	U_LEECH+2  	/* Current sub (internal code)  */
 #define U_CURXTRN	U_CURSUB+16 /* Current xtrn (internal code) */
 #define U_MAIN_CMD	U_CURXTRN+8+2 	/* unused */
-#define U_XFER_CMD	U_MAIN_CMD+LEN_MAIN_CMD 		/* unused */
-#define U_SCAN_CMD	U_XFER_CMD+LEN_XFER_CMD+2  	/* unused */
+#define U_PASS		U_MAIN_CMD+LEN_MAIN_CMD
+#define U_SCAN_CMD	U_PASS+LEN_PASS+2  				/* unused */
 #define U_IPADDR	U_SCAN_CMD+LEN_SCAN_CMD 		/* unused */
 #define U_FREECDT	U_IPADDR+LEN_IPADDR+2
 #define U_FLAGS3	U_FREECDT+10 	/* Flag set #3 */

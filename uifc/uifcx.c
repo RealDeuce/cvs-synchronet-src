@@ -1,6 +1,6 @@
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.38 2020/03/25 06:06:32 rswindell Exp $ */
+/* $Id: uifcx.c,v 1.39 2020/03/30 09:30:37 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -361,7 +361,7 @@ void umsg(char *str)
 /****************************************************************************/
 void upop(char *str)
 {
-	static size_t len;
+	static int len;
 
     if(str==NULL)
         printf("\r%*s\r", len, "");
