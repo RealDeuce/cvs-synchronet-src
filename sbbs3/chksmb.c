@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.71 2020/04/02 17:40:32 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.70 2019/09/24 06:41:19 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.71 $", "%*s %s", revision);
+	sscanf("$Revision: 1.70 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -897,7 +897,7 @@ int main(int argc, char **argv)
 				break;
 			if(hash.number==0 || hash.number > smb.status.last_msg)
 				fprintf(stderr,"\r%sInvalid message number (%u > %u)\n", beep, hash.number, smb.status.last_msg), badhash++, print_hash(&hash);
-			else if(hash.time < 0x40000000 || hash.time > (ulong)now + (60 * 60))
+			else if(hash.time < 0x40000000 || hash.time > (ulong)now)
 				fprintf(stderr,"\r%sInvalid time (0x%08"PRIX32")\n", beep, hash.time), badhash++, print_hash(&hash);
 			else if(hash.length < 1 || hash.length > 1024*1024)
 				fprintf(stderr,"\r%sInvalid length (%"PRIu32")\n", beep, hash.length), badhash++, print_hash(&hash);
