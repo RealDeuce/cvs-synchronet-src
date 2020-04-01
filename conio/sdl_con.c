@@ -325,9 +325,7 @@ static int sdl_user_func_ret(int func, ...)
 
 void exit_sdl_con(void)
 {
-	// Avoid calling exit(0) from an atexit() function...
-	ciolib_reaper = 0;
-	sdl_user_func_ret(SDL_USEREVENT_QUIT);
+	sdl_user_func(SDL_USEREVENT_QUIT);
 }
 
 void sdl_copytext(const char *text, size_t buflen)
@@ -552,7 +550,6 @@ int sdl_init(int mode)
 		return(0);
 	}
 
-	ciolib_reaper = 0;
 	sdl_user_func_ret(SDL_USEREVENT_QUIT);
 	return(-1);
 }
@@ -695,9 +692,6 @@ static void setup_surfaces(void)
 			win = NULL;
 			renderer = NULL;
 		}
-	}
-	else {
-		sdl.SetWindowSize(win, char_width, char_height);
 	}
 
 	if(win!=NULL) {
@@ -1251,47 +1245,7 @@ static void sdl_video_event_thread(void *data)
 		else {
 			switch (ev.type) {
 				case SDL_KEYDOWN:			/* Keypress */
-					if ((ev.key.keysym.mod & KMOD_GUI) &&
-					    (ev.key.keysym.sym == SDLK_LEFT ||
-					     ev.key.keysym.sym == SDLK_RIGHT ||
-					     ev.key.keysym.sym == SDLK_UP ||
-					     ev.key.keysym.sym == SDLK_DOWN)) {
-						int w, h;
-						sdl.mutexP(win_mutex);
-						sdl.GetWindowSize(win, &w, &h);
-						switch(ev.key.keysym.sym) {
-							case SDLK_LEFT:
-								if (w % (cvstat.charwidth * cvstat.cols)) {
-									w = w - w % (cvstat.charwidth * cvstat.cols);
-								}
-								else {
-									w -= (cvstat.charwidth * cvstat.cols);
-									if (w < (cvstat.charwidth * cvstat.cols))
-										w = cvstat.charwidth * cvstat.cols;
-								}
-								break;
-							case SDLK_RIGHT:
-								w = (w - w % (cvstat.charwidth * cvstat.cols)) + (cvstat.charwidth * cvstat.cols);
-								break;
-							case SDLK_UP:
-								if (h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier)) {
-									h = h - h % (cvstat.charheight * cvstat.rows);
-								}
-								else {
-									h -= (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
-									if (h < (cvstat.charheight * cvstat.rows * cvstat.vmultiplier))
-										h = cvstat.charheight * cvstat.rows * cvstat.vmultiplier;
-								}
-								break;
-							case SDLK_DOWN:
-								h = (h - h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier)) + (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
-								break;
-						}
-						sdl.SetWindowSize(win, w, h);
-						sdl.mutexP(win_mutex);
-					}
-					else
-						sdl_add_key(sdl_get_char_code(ev.key.keysym.sym, ev.key.keysym.mod));
+					sdl_add_key(sdl_get_char_code(ev.key.keysym.sym, ev.key.keysym.mod));
 					break;
 				case SDL_KEYUP:				/* Ignored (handled in KEYDOWN event) */
 					break;
@@ -1337,7 +1291,7 @@ static void sdl_video_event_thread(void *data)
 					 * X is hit.
 					 */
 					if (ciolib_reaper)
-						sdl_user_func(SDL_USEREVENT_QUIT);
+						exit(0);
 					else
 						sdl_add_key(CIO_KEY_QUIT);
 					break;
@@ -1345,27 +1299,13 @@ static void sdl_video_event_thread(void *data)
 					switch(ev.window.event) {
 						case SDL_WINDOWEVENT_SIZE_CHANGED:
 							// SDL2: User resized window
+							break;
 						case SDL_WINDOWEVENT_RESIZED:
-							{
-								// SDL2: Something resized window
-								const char *newh;
-								if(ev.window.data1 > 0 && ev.window.data2 > 0) {
-									new_scaling = (int)(ev.window.data1/(cvstat.charwidth*cvstat.cols));
-								}
-								if ((ev.window.data1 % (cvstat.charwidth * cvstat.cols)) || (ev.window.data2 % (cvstat.charheight * cvstat.rows)))
-									newh = "2";
-								else
-									newh = "0";
-								sdl.mutexP(win_mutex);
-								if (strcmp(newh, sdl.GetHint(SDL_HINT_RENDER_SCALE_QUALITY))) {
-									sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, newh );
-									sdl.DestroyTexture(texture);
-									texture = sdl.CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, cvstat.charwidth*cvstat.cols, cvstat.charheight*cvstat.rows);
-									bitmap_drv_request_pixels();
-								}
-								sdl.mutexV(win_mutex);
-								break;
+							// SDL2: Something resized window
+							if(ev.window.data1 > 0 && ev.window.data2 > 0) {
+								new_scaling = (int)(ev.window.data1/(cvstat.charwidth*cvstat.cols));
 							}
+							break;
 						case SDL_WINDOWEVENT_EXPOSED:
 							{
 								sdl.mutexP(win_mutex);
@@ -1386,8 +1326,6 @@ static void sdl_video_event_thread(void *data)
 					switch(ev.user.code) {
 						case SDL_USEREVENT_QUIT:
 							sdl_ufunc_retval=0;
-							if (ciolib_reaper)
-								exit(0);
 							sdl.SemPost(sdl_ufunc_ret);
 							return;
 						case SDL_USEREVENT_FLUSH:
@@ -1402,11 +1340,11 @@ static void sdl_video_event_thread(void *data)
 
 									old_next = list->next;
 									if (list->next == NULL) {
+										sdl.UpdateTexture(texture, NULL, list->data, list->rect.width * sizeof(uint32_t));
 										src.x = 0;
 										src.y = 0;
 										src.w = list->rect.width;
 										src.h = list->rect.height;
-										sdl.UpdateTexture(texture, &src, list->data, list->rect.width * sizeof(uint32_t));
 										sdl.RenderCopy(renderer, texture, &src, NULL);
 									}
 									bitmap_drv_free_rect(list);
@@ -1416,9 +1354,7 @@ static void sdl_video_event_thread(void *data)
 							sdl.mutexV(win_mutex);
 							break;
 						case SDL_USEREVENT_SETNAME:
-							sdl.mutexP(win_mutex);
 							sdl.SetWindowTitle(win, (char *)ev.user.data1);
-							sdl.mutexV(win_mutex);
 							free(ev.user.data1);
 							break;
 						case SDL_USEREVENT_SETICON:
@@ -1434,15 +1370,11 @@ static void sdl_video_event_thread(void *data)
 									, *(DWORD *)"\0\0\377\0"
 									, *(DWORD *)"\0\0\0\377"
 							);
-							sdl.mutexP(win_mutex);
 							sdl.SetWindowIcon(win, sdl_icon);
-							sdl.mutexV(win_mutex);
 							free(ev.user.data2);
 							break;
 						case SDL_USEREVENT_SETTITLE:
-							sdl.mutexP(win_mutex);
 							sdl.SetWindowTitle(win, (char *)ev.user.data1);
-							sdl.mutexV(win_mutex);
 							free(ev.user.data1);
 							break;
 						case SDL_USEREVENT_SETVIDMODE:
@@ -1476,9 +1408,7 @@ static void sdl_video_event_thread(void *data)
 								SDL_SysWMinfo	wmi;
 
 								SDL_VERSION(&(wmi.version));
-								sdl.mutexP(win_mutex);
 								sdl.GetWindowWMInfo(win, &wmi);
-								sdl.mutexV(win_mutex);
 								sdl.EventState(SDL_SYSWMEVENT, SDL_ENABLE);
 								copy_needs_events = 1;
 								sdl_x11.XSetSelectionOwner(wmi.info.x11.display, CONSOLE_CLIPBOARD, wmi.info.x11.window, CurrentTime);
@@ -1492,9 +1422,7 @@ static void sdl_video_event_thread(void *data)
 								SDL_SysWMinfo	wmi;
 
 								SDL_VERSION(&(wmi.version));
-								sdl.mutexP(win_mutex);
 								sdl.GetWindowWMInfo(win, &wmi);
-								sdl.mutexV(win_mutex);
 
 								paste_needs_events = 1;
 								sdl.EventState(SDL_SYSWMEVENT, SDL_ENABLE);
@@ -1563,9 +1491,7 @@ static void sdl_video_event_thread(void *data)
 									SDL_SysWMinfo	wmi;
 
 									SDL_VERSION(&(wmi.version));
-									sdl.mutexP(win_mutex);
 									sdl.GetWindowWMInfo(win, &wmi);
-									sdl.mutexV(win_mutex);
 									req=&(e->xselection);
 									if(req->requestor!=wmi.info.x11.window)
 										break;

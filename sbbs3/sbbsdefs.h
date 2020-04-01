@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.256 2020/04/01 22:06:28 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.255 2020/03/31 08:28:20 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -528,7 +528,6 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_MAIN_CMD	34	/* Storage in user.dat for custom commands		*/
 #define LEN_PASS		40
 #define MIN_PASS_LEN	 4
-#define RAND_PASS_LEN	 8
 #define LEN_SCAN_CMD	35
 #define LEN_IPADDR		45
 #define LEN_CID 		45	/* Caller ID (phone number) 					*/

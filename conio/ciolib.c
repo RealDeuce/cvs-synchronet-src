@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.181 2020/04/01 11:09:53 deuce Exp $ */
+/* $Id: ciolib.c,v 1.179 2020/04/01 07:39:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -439,20 +439,16 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-
-	/* Default C64 is Lt Blue on Dark Blue (As per Every picture ever) */
+	/* Default C64 is Lt Blue on Black (As per CGTerm) */
 	switch(cio_textinfo.currmode) {
 		case C64_40X25:
-			cio_textinfo.normattr=0x6e;
-			break;
 		case C128_40X25:
-			cio_textinfo.normattr=0xbd;
+		case C128_80X25:
+			cio_textinfo.normattr=14;
 			break;
 		default:
 			cio_textinfo.normattr=LIGHTGRAY;
-			break;
 	}
-
 	_beginthread(ciolib_mouse_thread,0,NULL);
 	return(0);
 }
@@ -830,17 +826,14 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-
 	switch(cio_textinfo.currmode) {
 		case C64_40X25:
-			cio_textinfo.normattr=0x6e;
-			break;
 		case C128_40X25:
-			cio_textinfo.normattr=0xbd;
+		case C128_80X25:
+			cio_textinfo.normattr=14;
 			break;
 		default:
-			cio_textinfo.normattr=LIGHTGRAY;
-			break;
+			cio_textinfo.normattr=7;
 	}
 }
 
