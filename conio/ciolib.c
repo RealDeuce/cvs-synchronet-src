@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.181 2020/04/01 11:09:53 deuce Exp $ */
+/* $Id: ciolib.c,v 1.180 2020/04/01 10:51:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -446,7 +446,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			cio_textinfo.normattr=0x6e;
 			break;
 		case C128_40X25:
-			cio_textinfo.normattr=0xbd;
+			cio_textinfo.normattr=6e;
 			break;
 		default:
 			cio_textinfo.normattr=LIGHTGRAY;
@@ -836,7 +836,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 			cio_textinfo.normattr=0x6e;
 			break;
 		case C128_40X25:
-			cio_textinfo.normattr=0xbd;
+			cio_textinfo.normattr=6e;
 			break;
 		default:
 			cio_textinfo.normattr=LIGHTGRAY;
