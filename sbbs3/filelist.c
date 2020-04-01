@@ -4,7 +4,7 @@
 /* Default list format is FILES.BBS, but file size, uploader, upload date */
 /* and other information can be included. */
 
-/* $Id: filelist.c,v 1.20 2018/07/15 07:53:30 rswindell Exp $ */
+/* $Id: filelist.c,v 1.21 2020/01/03 20:34:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 {
 	char	revision[16];
 	char	error[512];
-	char	*p,str[256],fname[256],ext,not[MAX_NOTS][9];
+	char	str[256],fname[256],ext,not[MAX_NOTS][9];
 	uchar	*datbuf,*ixbbuf;
 	int 	i,j,file,dirnum,libnum,desc_off,lines,nots=0
 			,omode=O_WRONLY|O_CREAT|O_TRUNC;
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 	long	max_age=0;
 	FILE	*in,*out=NULL;
 
-	sscanf("$Revision: 1.20 $", "%*s %s", revision);
+	sscanf("$Revision: 1.21 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nFILELIST v%s-%s (rev %s) - Generate Synchronet File "
 		"Directory Lists\n"
@@ -152,18 +152,11 @@ int main(int argc, char **argv)
 		exit(0); 
 	}
 
-	p=getenv("SBBSCTRL");
-	if(p==NULL) {
-		printf("\nSBBSCTRL environment variable not set.\n");
-		printf("\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
-		exit(1); 
-	}
-
 	now=time32(NULL);
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);
-	SAFECOPY(scfg.ctrl_dir,p);
+	SAFECOPY(scfg.ctrl_dir, get_ctrl_dir());
 
 	if(chdir(scfg.ctrl_dir)!=0)
 		fprintf(stderr,"!ERROR changing directory to: %s", scfg.ctrl_dir);

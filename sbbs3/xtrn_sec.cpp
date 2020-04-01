@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.87 2019/08/20 01:33:15 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.88 2020/03/28 23:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1723,9 +1723,6 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		logfile_fp=NULL;
 	}
 
-	sprintf(str,"%sINTRSBBS.DAT"
-			,cfg.xtrn[xtrnnum]->path[0] ? cfg.xtrn[xtrnnum]->path : cfg.node_dir);
-	removecase(str);
 	sprintf(str,"%shangup.now",cfg.node_dir);
 	removecase(str);
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
