@@ -65,7 +65,7 @@ static int ParseCommandLine(char *cmdline, char **argv)
 	return(argc);
 }
 
-extern int CIOLIB_main(int argc, char **argv);
+extern int main(int argc, char **argv);
 
 /* This is where execution begins [console apps] */
 static int console_main(int argc, char *argv[], char **env)
@@ -96,7 +96,7 @@ static int console_main(int argc, char *argv[], char **env)
 	appname = bufp;
 
 	/* Run the application main() code */
-	n=CIOLIB_main(argc, argv);
+	n=main(argc, argv);
 
 	/* Exit cleanly, calling atexit() functions */
 	exit(n);

@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.251 2020/03/08 20:25:59 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.252 2020/03/31 07:19:46 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -545,11 +545,15 @@ static void timedisplay(BOOL force)
 	static int savemin;
 	time_t now;
 	struct tm gm;
+	int old_hold;
 
 	now=time(NULL);
 	localtime_r(&now, &gm);
 	if(force || savemin != gm.tm_min || difftime(now,savetime)>=60) {
+		old_hold=hold_update;
+		hold_update=FALSE;
 		uprintf(api->scrn_width-25,1,api->bclr|(api->cclr<<4),utimestr(&now));
+		hold_update=old_hold;
 		savetime=now;
 		savemin = gm.tm_min;
 	}
