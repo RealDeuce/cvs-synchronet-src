@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.186 2019/08/27 16:47:58 deuce Exp $ */
+/* $Id: js_file.c,v 1.189 2019/09/19 06:54:48 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -56,7 +56,6 @@ typedef struct
 	char	name[MAX_PATH+1];
 	char	mode[4];
 	uchar	etx;
-	BOOL	external;	/* externally created, don't close */
 	BOOL	debug;
 	BOOL	rot13;
 	BOOL	yencoded;
@@ -81,7 +80,7 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	lprintf(LOG_DEBUG,"%04u File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
+	lprintf(LOG_DEBUG,"%04d File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
 }
 
 /* Converts fopen() style 'mode' string into open() style 'flags' integer */
@@ -286,9 +285,9 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 		fclose(p->fp);
 
-	dbprintf(FALSE, p, "closed");
-
 	p->fp=NULL;
+	dbprintf(FALSE, p, "closed: %s", p->name);
+
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2887,10 +2886,10 @@ static void js_finalize_file(JSContext *cx, JSObject *obj)
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	if(p->external==JS_FALSE && p->fp!=NULL)
+	if(p->fp!=NULL)
 		fclose(p->fp);
 
-	dbprintf(FALSE, p, "closed: %s",p->name);
+	dbprintf(FALSE, p, "finalized: %s",p->name);
 
 	FREE_AND_NULL(p->ini_style.key_prefix);
 	FREE_AND_NULL(p->ini_style.section_separator);
@@ -3024,25 +3023,36 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 {
 	JSObject* obj;
 	private_t*	p;
-	FILE* fp = fdopen(fd, mode);
+	int newfd = dup(fd);
+	FILE* fp;
 
-	if(fp == NULL)
+	if (newfd == -1)
 		return NULL;
+
+	fp = fdopen(newfd, mode);
+	if(fp == NULL) {
+		close(newfd);
+		return NULL;
+	}
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
-	if(obj==NULL)
+	if(obj==NULL) {
+		fclose(fp);
 		return(NULL);
+	}
 
-	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL)
+	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL) {
+		fclose(fp);
 		return(NULL);
+	}
 
 	p->fp=fp;
 	p->debug=JS_FALSE;
-	p->external=JS_TRUE;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
+		fclose(fp);
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
