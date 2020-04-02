@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.132 2019/07/10 20:38:35 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.144 2020/03/19 08:15:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -74,6 +74,8 @@ enum {
 	,CON_PROP_INBUF_SPACE
 	,CON_PROP_OUTBUF_LEVEL
 	,CON_PROP_OUTBUF_SPACE
+
+	,CON_PROP_OUTPUT_RATE
 };
 
 extern JSClass js_console_class;
@@ -189,6 +191,9 @@ static JSBool js_console_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case CON_PROP_OUTBUF_SPACE:
 			val=RingBufFree(&sbbs->outbuf);
+			break;
+		case CON_PROP_OUTPUT_RATE:
+			val = sbbs->cur_output_rate;
 			break;
 
 		default:
@@ -322,6 +327,9 @@ static JSBool js_console_set(JSContext *cx, JSObject *obj, jsid id, JSBool stric
 			}
 			sbbs->cfg.ctrlkey_passthru=val;
 			break;
+		case CON_PROP_OUTPUT_RATE:
+			sbbs->set_output_rate((enum sbbs_t::output_rate)val);
+			break;
 
 		default:
 			return(JS_TRUE);
@@ -364,6 +372,7 @@ static jsSyncPropertySpec js_console_properties[] = {
 	{	"input_buffer_space",CON_PROP_INBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_level",CON_PROP_OUTBUF_LEVEL		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
 	{	"output_buffer_space",CON_PROP_OUTBUF_SPACE		,JSPROP_ENUMERATE|JSPROP_READONLY, 312},
+	{	"output_rate"		,CON_PROP_OUTPUT_RATE		,JSPROP_ENUMERATE, 31702},
 	{0}
 };
 
@@ -407,6 +416,7 @@ static const char* con_prop_desc[] = {
 	,"number of bytes available in the input buffer	- <small>READ ONLY</small>"
 	,"number of bytes currently in the output buffer (from the local server) - <small>READ ONLY</small>"
 	,"number of bytes available in the output buffer - <small>READ ONLY</small>"
+	,"emulated serial data output rate, in bits-per-second (0 = unlimited)"
 	,NULL
 };
 #endif
@@ -659,7 +669,7 @@ js_getnum(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	uint32_t	maxnum=~0;
-	int32_t		dflt=0;
+	int32		dflt=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -690,7 +700,8 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	char		key[2];
 	uintN		i;
 	int32		val;
-	uint32		maxnum = 0;
+	uint32		maxnum = ~0;
+	bool		maxnum_specified = false;
 	long		mode = K_UPPER;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -706,9 +717,10 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!JS_ValueToInt32(cx, argv[i], &val))
 				return JS_FALSE;
-			if(maxnum == 0)
+			if(!maxnum_specified) {
+				maxnum_specified = true;
 				maxnum = val;
-			else
+			} else
 				mode = val;
 			continue;
 		}
@@ -719,9 +731,6 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 				return JS_FALSE;
 		}
 	}
-
-	if(maxnum == 0)
-		maxnum = ~0;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	val=sbbs->getkeys(cstr, maxnum, mode);
@@ -836,6 +845,7 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
     JSString*	js_str;
 	char*		cstr;
+	int32		mode = P_NONE;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -849,8 +859,12 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
+	if(JSVAL_IS_NUMBER(argv[1])) {
+		if(!JS_ValueToInt32(cx, argv[1], &mode))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->yesno(cstr, mode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -863,6 +877,7 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
     JSString*	js_str;
 	char*		cstr;
+	int32		mode = P_NONE;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -876,8 +891,12 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
+	if(JSVAL_IS_NUMBER(argv[1])) {
+		if(!JS_ValueToInt32(cx, argv[1], &mode))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->noyes(cstr, mode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1084,14 +1103,26 @@ js_print(JSContext *cx, uintN argc, jsval *arglist)
 	char*		cstr=NULL;
 	size_t		cstr_sz=0;
 	jsrefcount	rc;
+	int32		pmode = 0;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-    for (i = 0; i < argc; i++) {
+	if(argc == 2 && JSVAL_IS_STRING(argv[0]) && JSVAL_IS_NUMBER(argv[1])) {
+		JSVALUE_TO_RASTRING(cx, argv[0], cstr, &cstr_sz, NULL);
+		if(cstr==NULL)
+		    return(JS_FALSE);
+		if(!JS_ValueToInt32(cx, argv[1], &pmode))
+			return JS_FALSE;
+		rc=JS_SUSPENDREQUEST(cx);
+		sbbs->bputs(cstr, pmode);
+		JS_RESUMEREQUEST(cx, rc);
+	}
+    else for (i=0; i < argc; i++) {
 		JSVALUE_TO_RASTRING(cx, argv[i], cstr, &cstr_sz, NULL);
+
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -1108,20 +1139,28 @@ static JSBool
 js_strlen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
+	sbbs_t*		sbbs;
     JSString*	str;
 	char*		cstr;
 	jsrefcount	rc;
+	int32		pmode = 0;
+
+	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
+		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		return(JS_FALSE);
 
+	if(argc > 1)
+		JS_ValueToInt32(cx, argv[1], &pmode);
+
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(bstrlen(cstr)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(sbbs->bstrlen(cstr, pmode)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1415,6 +1454,7 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
     JSString*	str;
 	sbbs_t*		sbbs;
 	char*		cstr;
+	int32		cols = 0;
 	jsrefcount	rc;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
@@ -1426,11 +1466,16 @@ js_center(JSContext *cx, uintN argc, jsval *arglist)
 	if (!str)
 		return(JS_FALSE);
 
+	if(argc > 1) {
+		if(!JS_ValueToInt32(cx, argv[1], &cols))
+			return JS_FALSE;
+	}
+
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->center(cstr);
+	sbbs->center(cstr, cols);
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
@@ -1587,7 +1632,7 @@ js_gotoxy(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->ansi_gotoxy(x,y);
+	sbbs->cursor_xy(x,y);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1735,16 +1780,21 @@ js_cursor_left(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	int32		val=1;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc) {
+		if(!JS_ValueToInt32(cx, argv[0], &val))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->backspace();
+	sbbs->backspace(val);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1752,16 +1802,21 @@ js_backspace(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_creturn(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
+	int32		val=1;
 
 	if((sbbs=(sbbs_t*)js_GetClassPrivate(cx, JS_THIS_OBJECT(cx, arglist), &js_console_class))==NULL)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc) {
+		if(!JS_ValueToInt32(cx, argv[0], &val))
+			return JS_FALSE;
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->carriage_return();
+	sbbs->carriage_return(val);
 	JS_RESUMEREQUEST(cx, rc);
     return(JS_TRUE);
 }
@@ -1818,10 +1873,8 @@ js_lock_input(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	if(lock) {
 		pthread_mutex_lock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=true;
-	} else if(sbbs->input_thread_mutex_locked) {
+	} else {
 		pthread_mutex_unlock(&sbbs->input_thread_mutex);
-		sbbs->input_thread_mutex_locked=false;
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -1925,19 +1978,19 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,310
 	},
 	{"gettemplate",		js_gettemplate,		1, JSTYPE_STRING,	JSDOCSTR("format [,string] [,mode=<tt>0</tt>]")
-	,JSDOCSTR("get a string based on template")
+	,JSDOCSTR("get an input string based on specified template")
 	,310
 	},
 	{"ungetstr",		js_ungetstr,		1, JSTYPE_VOID,		JSDOCSTR("keys")
-	,JSDOCSTR("put a data (e.g. a string of characters) in the keyboard input buffer")
+	,JSDOCSTR("put one or more characters in the keyboard input buffer")
 	,310
 	},
-	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
-	,JSDOCSTR("YES/no question - returns <i>true</i> if yes is selected")
+	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	,JSDOCSTR("YES/no question - returns <i>true</i> if 'yes' is selected")
 	,310
 	},
-	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question")
-	,JSDOCSTR("NO/yes question - returns <i>true</i> if no is selected")
+	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	,JSDOCSTR("NO/yes question - returns <i>true</i> if 'no' is selected")
 	,310
 	},
 	{"mnemonics",		js_mnemonics,		1, JSTYPE_VOID,		JSDOCSTR("text")
@@ -1975,8 +2028,10 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("beep for <i>count</i> number of times (default count is 1)")
 	,311
 	},
-	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
-	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.)")
+	{"print",			js_print,			1, JSTYPE_VOID,		JSDOCSTR("[value [,value][...]] or [string [,mode=<tt>P_NONE</tt>]]")
+	,JSDOCSTR("display one or more values as strings (supports Ctrl-A codes, Telnet-escaping, auto-screen pausing, etc.).<br>"
+		"Supports a limited set of <tt>P_*</tt> flags, e.g. <tt>P_PETSCII</tt> and <tt>P_UTF8</tt>."
+	)
 	,310
 	},
 	{"write",			js_write,			1, JSTYPE_VOID,		JSDOCSTR("value [,value]")
@@ -1993,16 +2048,16 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"When <tt>P_WORDWRAP</tt> mode flag is specified, <i>orig_columns</i> specifies the original text column width, if known")
 	,310
 	},
-	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text")
-	,JSDOCSTR("display a string centered on the screen")
+	{"center",			js_center,			1, JSTYPE_VOID,		JSDOCSTR("text [,width]")
+	,JSDOCSTR("display a string centered on the screen, with an optionally-specified screen width (in columns)")
 	,310
 	},
 	{"wide",			js_wide,			1, JSTYPE_VOID,		JSDOCSTR("text")
 	,JSDOCSTR("display a string double-wide on the screen (sending \"fullwidth\" Unicode characters when possible)")
 	,31702
 	},
-	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text")
-	,JSDOCSTR("returns the number of characters in text, excluding Ctrl-A codes")
+	{"strlen",			js_strlen,			1, JSTYPE_NUMBER,	JSDOCSTR("text [,mode=<tt>P_NONE</tt>]")
+	,JSDOCSTR("returns the printed-length (number of columns) of the specified <i>text</i>, accounting for Ctrl-A codes")
 	,310
 	},
 	{"printfile",		js_printfile,		1, JSTYPE_BOOLEAN,		JSDOCSTR("filename [,mode=<tt>P_NONE</tt>] [,orig_columns=0")
@@ -2050,7 +2105,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_gotoxy",		js_gotoxy,			1, JSTYPE_ALIAS },
 	{"gotoxy",			js_gotoxy,			1, JSTYPE_VOID,		JSDOCSTR("[x,y] or [object { x,y }]")
-	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI, 1-based values), "
+	,JSDOCSTR("move cursor to a specific screen coordinate (ANSI or PETSCII, 1-based values), "
 	"arguments can be separate x and y coordinates or an object with x and y properties "
 	"(like that returned from <tt>console.getxy()</tt>)")
 	,311
@@ -2083,7 +2138,7 @@ static jsSyncMethodSpec js_console_functions[] = {
 	},
 	{"ansi_getxy",		js_getxy,			0, JSTYPE_ALIAS },
 	{"getxy",			js_getxy,			0, JSTYPE_OBJECT,	JSDOCSTR("")
-	,JSDOCSTR("query the current cursor position on the remote terminal "
+	,JSDOCSTR("query the current cursor position on the remote (ANSI) terminal "
 		"and returns the coordinates as an object (with x and y properties)")
 	,311
 	},
@@ -2107,11 +2162,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 		"<i>terminal_flags</i> (numeric bit-field) if no <i>terminal_flags</i> were specified")
 	,314
 	},
-	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("")
+	{"backspace",		js_backspace,		0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("send a destructive backspace sequence")
 	,315
 	},
-	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("")
+	{"creturn",			js_creturn,			0, JSTYPE_VOID,		JSDOCSTR("[count=<tt>1</tt>]")
 	,JSDOCSTR("send a carriage return sequence")
 	,31700
 	},
