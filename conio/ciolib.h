@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.115 2020/04/16 16:55:35 deuce Exp $ */
+/* $Id: ciolib.h,v 1.109 2020/04/01 07:39:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 
 #include <string.h>	/* size_t */
 #include "gen_defs.h"
-#include "utf8_codepages.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -74,7 +73,6 @@ enum {
 	 CIOLIB_MODE_AUTO
 	,CIOLIB_MODE_CURSES
 	,CIOLIB_MODE_CURSES_IBM
-	,CIOLIB_MODE_CURSES_ASCII
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
@@ -251,7 +249,6 @@ struct conio_font_data_struct {
         char 	*eight_by_eight;
         char	*put_xlat;
         char 	*desc;
-        enum ciolib_codepage cp;
 };
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
@@ -366,8 +363,6 @@ typedef struct {
 	uint32_t	(*map_rgb)(uint16_t r, uint16_t g, uint16_t b);
 	void	(*replace_font)(uint8_t id, char *name, void *data, size_t size);
 	int	(*checkfont)(int font_num);
-	void	(*setwinsize)	(int width, int height);
-	void	(*setwinposition)	(int x, int y);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -382,7 +377,6 @@ CIOLIBEXPORTVAR int ciolib_xlat;
 #define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
 
 CIOLIBEXPORTVAR int ciolib_reaper;
-CIOLIBEXPORTVAR char *ciolib_appname;
 
 #define _conio_kbhit()		kbhit()
 
@@ -462,8 +456,6 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr);
 CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int font_num);
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
-CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -545,8 +537,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define checkfont(a)			ciolib_checkfont(a)
 	#define set_vmem(a, b, c, d)		ciolib_set_vmem(a, b, c, d)
 	#define set_vmem_attr(a, b)		ciolib_set_vmem_attr(a, b)
-	#define setwinsize(a,b)			ciolib_setwinsize(a,b)
-	#define setwinposition(a,b)		ciolib_setwinposition(a,b)
 #endif
 
 #ifdef WITH_SDL
@@ -648,10 +638,7 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
 #define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_SHIFT_F(x)((x<11)?((0x53 + x) << 8):((0x7c + x) << 8))
-#define CIO_KEY_CTRL_F(x) ((x<11)?((0x5d + x) << 8):((0x7e + x) << 8))
-#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67 + x) << 8):((0x80 + x) << 8))
-#define CIO_KEY_BACKTAB   (0x0f << 8)
+#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
 
 #define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
 #define CIO_KEY_QUIT	  0x7e00	// "F-15"
