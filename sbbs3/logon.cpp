@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.72 2019/08/15 01:16:43 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.77 2020/04/01 22:06:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,14 +63,15 @@ bool sbbs_t::logon()
 		return(false);
 
 	client.user=useron.alias;
+	client.usernum = useron.number;
 	client_on(client_socket,&client,TRUE /* update */);
 
 #ifdef JAVASCRIPT
-	js_create_user_objects();
+	js_create_user_objects(js_cx, js_glob);
 #endif
 
 	if(useron.rest&FLAG('Q'))
-		sys_status |= SS_QWKLOGON;
+		sys_status ^= SS_QWKLOGON;
 	if(SYSOP && !(cfg.sys_misc&SM_R_SYSOP)) {
 		hangup();
 		return(false);
@@ -231,7 +232,7 @@ bool sbbs_t::logon()
 			bprintf(text[TimeToChangePw],cfg.sys_pwdays);
 
 			c=0;
-			while(c<LEN_PASS) { 				/* Create random password */
+			while(c < RAND_PASS_LEN) { 				/* Create random password */
 				str[c]=sbbs_random(43)+'0';
 				if(isalnum(str[c]))
 					c++; 
@@ -241,7 +242,7 @@ bool sbbs_t::logon()
 
 			if(cfg.sys_misc&SM_PWEDIT && yesno(text[NewPasswordQ]))
 				while(online) {
-					bputs(text[NewPassword]);
+					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
 					getstr(str,LEN_PASS,K_UPPER|K_LINE);
 					truncsp(str);
 					if(chkpass(str,&useron,true))
@@ -260,7 +261,7 @@ bool sbbs_t::logon()
 				getstr(tmp,LEN_PASS*2,K_UPPER);
 				console&=~(CON_R_ECHOX|CON_L_ECHOX);
 				if(strcmp(str,tmp)) {
-					bputs(text[Wrong]);
+					bputs(text[Wrong]); // Should be WrongPassword instead?
 					continue; 
 				}
 				break; 
