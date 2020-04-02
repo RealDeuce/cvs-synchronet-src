@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.22 2018/10/22 04:18:04 rswindell Exp $ */
+/* $Id: ars.c,v 1.23 2020/03/19 18:50:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -368,6 +368,18 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 				artype=AR_PETSCII;
 				i+=6; 
 			}
+			else if(!strnicmp(str+i,"ASCII",5)) {
+				artype=AR_ASCII;
+				i+=4; 
+			}
+			else if(!strnicmp(str+i,"UTF8",4)) {
+				artype=AR_UTF8;
+				i+=3; 
+			}
+			else if(!strnicmp(str+i,"CP437",5)) {
+				artype=AR_CP437;
+				i+=4; 
+			}
 			else if(!strnicmp(str+i,"TERM",4)) {
 				artype=AR_TERM;
 				i+=3; 
@@ -505,6 +517,9 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 					case AR_WIP:
 					case AR_ANSI:
 					case AR_PETSCII:
+					case AR_ASCII:
+					case AR_UTF8:
+					case AR_CP437:
 					case AR_DOS:
 					case AR_OS2:
 					case AR_UNIX:
