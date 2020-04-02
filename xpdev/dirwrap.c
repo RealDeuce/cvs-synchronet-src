@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.108 2019/08/12 06:32:28 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.111 2019/09/21 11:19:07 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -792,10 +792,10 @@ long DLLCALL delfiles(const char *inpath, const char *spec, size_t keep)
 }
 
 /****************************************************************************/
-/* Returns number of files in a directory (inpath) matching 'pattern'		*/
+/* Returns number of files matching 'inpath'								*/
 /* Similar, but not identical, to getdirsize(), e.g. subdirs never counted	*/
 /****************************************************************************/
-ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
+ulong DLLCALL getfilecount(const char *inpath)
 {
 	char path[MAX_PATH+1];
 	glob_t	g;
@@ -803,8 +803,10 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 	ulong	count = 0;
 
 	SAFECOPY(path, inpath);
-	backslash(path);
-	SAFECAT(path, pattern);
+	if(isdir(path))
+		backslash(path);
+	if(IS_PATH_DELIM(*lastchar(path)))
+		SAFECAT(path, ALLFILES);
 	if(glob(path, GLOB_MARK, NULL, &g))
 		return 0;
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
@@ -814,6 +816,35 @@ ulong DLLCALL getfilecount(const char *inpath, const char* pattern)
 	}
 	globfree(&g);
 	return count;
+}
+
+/****************************************************************************/
+/* Returns number of bytes used by file(s) matching 'inpath'				*/
+/****************************************************************************/
+uint64_t DLLCALL getfilesizetotal(const char *inpath)
+{
+	char path[MAX_PATH+1];
+	glob_t	g;
+	uint	gi;
+	off_t	size;
+	uint64_t total = 0;
+
+	SAFECOPY(path, inpath);
+	if(isdir(path))
+		backslash(path);
+	if(IS_PATH_DELIM(*lastchar(path)))
+		SAFECAT(path, ALLFILES);
+	if(glob(path, GLOB_MARK, NULL, &g))
+		return 0;
+	for(gi = 0; gi < g.gl_pathc; ++gi) {
+		if(*lastchar(g.gl_pathv[gi]) == '/')
+			continue;
+		size = flength(g.gl_pathv[gi]);
+		if(size >= 1)
+			total += size;
+	}
+	globfree(&g);
+	return total;
 }
 
 /****************************************************************************/
