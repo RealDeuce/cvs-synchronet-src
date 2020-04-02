@@ -16,8 +16,6 @@ struct sdlfuncs sdl;
 #endif
 #include <xp_dl.h>
 
-#include "ciolib.h"
-
 static int sdl_funcs_loaded=0;
 static int sdl_initialized=0;
 static int sdl_audio_initialized=0;
@@ -201,40 +199,6 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 	if((sdlf->DestroyTexture=xp_dlsym(sdl_dll, SDL_DestroyTexture))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
-	}
-	if((sdlf->SetWindowFullscreen=xp_dlsym(sdl_dll, SDL_SetWindowFullscreen))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->LockTexture=xp_dlsym(sdl_dll, SDL_LockTexture))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->UnlockTexture=xp_dlsym(sdl_dll, SDL_UnlockTexture))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->QueryTexture=xp_dlsym(sdl_dll, SDL_QueryTexture))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->GetWindowPosition=xp_dlsym(sdl_dll, SDL_GetWindowPosition))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->SetWindowPosition=xp_dlsym(sdl_dll, SDL_SetWindowPosition))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	if((sdlf->SetWindowMinimumSize=xp_dlsym(sdl_dll, SDL_SetWindowMinimumSize))==NULL) {
-		xp_dlclose(sdl_dll);
-		return(-1);
-	}
-	{
-		int (HACK_HACK_HACK *ra)(char *name, Uint32 style, void *hInst);
-		if ((ra = xp_dlsym(sdl_dll, SDL_RegisterApp)) != NULL) {
-			ra(ciolib_appname, 0, NULL);
-		}
 	}
 
 	sdlf->gotfuncs=1;
