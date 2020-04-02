@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) utility */
 
-/* $Id: smbutil.c,v 1.133 2020/04/04 02:37:26 rswindell Exp $ */
+/* $Id: smbutil.c,v 1.132 2020/01/03 20:31:53 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -64,8 +64,16 @@ const char *mon[]={"Jan","Feb","Mar","Apr","May","Jun"
 #include <string.h>		/* strrchr */
 #include <ctype.h>		/* toupper */
 
-#include "sbbs.h"
-#include "conwrap.h"
+#include "genwrap.h"	/* stricmp */
+#include "dirwrap.h"	/* fexist */
+#include "conwrap.h"	/* getch */
+#include "filewrap.h"
+#include "smblib.h"
+#include "gen_defs.h"	/* MAX_PATH */
+
+#ifdef __WATCOMC__
+	#include <dos.h>
+#endif
 
 /* gets is dangerous */
 #define gets(str)  fgets((str), sizeof(str), stdin)
@@ -1406,7 +1414,7 @@ void readmsgs(ulong start)
 			printf("\n\n");
 
 			if((inbuf=smb_getmsgtxt(&smb,&msg, msgtxtmode))!=NULL) {
-				printf("%s",remove_ctrl_a(inbuf, inbuf));
+				printf("%s",inbuf);
 				free(inbuf); 
 			}
 
@@ -1467,7 +1475,6 @@ void readmsgs(ulong start)
 				setmsgattr(&smb, msg.hdr.number, msg.hdr.attr^MSG_DELETE);
 				break;
 			case CR:
-			case '\n':
 			case '+':
 				printf("Next\n");
 				msg.offset++;
@@ -1567,7 +1574,7 @@ int main(int argc, char **argv)
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
-	sscanf("$Revision: 1.133 $", "%*s %s", revision);
+	sscanf("$Revision: 1.132 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
