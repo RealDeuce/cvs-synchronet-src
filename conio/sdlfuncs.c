@@ -184,6 +184,46 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->GetHint=xp_dlsym(sdl_dll, SDL_GetHint))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetModState=xp_dlsym(sdl_dll, SDL_GetModState))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowSize=xp_dlsym(sdl_dll, SDL_SetWindowSize))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->DestroyTexture=xp_dlsym(sdl_dll, SDL_DestroyTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowFullscreen=xp_dlsym(sdl_dll, SDL_SetWindowFullscreen))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->LockTexture=xp_dlsym(sdl_dll, SDL_LockTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->UnlockTexture=xp_dlsym(sdl_dll, SDL_UnlockTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->QueryTexture=xp_dlsym(sdl_dll, SDL_QueryTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetWindowPosition=xp_dlsym(sdl_dll, SDL_GetWindowPosition))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowPosition=xp_dlsym(sdl_dll, SDL_SetWindowPosition))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
 
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
@@ -208,7 +248,7 @@ int init_sdl_video(void)
 
 	use_sdl_video=TRUE;
 
-	sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1" );
+	sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2" );
 	sdl.SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1" );
 #ifdef _WIN32
 	/* Fail to windib (ie: No mouse attached) */
