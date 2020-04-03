@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.156 2020/04/03 22:20:23 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.155 2020/04/03 18:59:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1971,7 +1971,8 @@ bool alter_config(nodecfg_t* nodecfg, const char* key, const char* value)
 	SAFEPRINTF2(section, "node:%s@%s", smb_faddrtoa(&nodecfg->addr,NULL), nodecfg->domain);
 	if(!iniSectionExists(ini, section))
 		SAFEPRINTF(section, "node:%s", smb_faddrtoa(&nodecfg->addr,NULL));
-	iniSetString(&ini, section, key, value, &sbbsecho_ini_style);
+	ini_style_t style = {  .key_prefix = "\t", .value_separator = " = " };
+	iniSetString(&ini, section, key, value, &style);
 	iniWriteFile(fp, ini);
 	iniCloseFile(fp);
 	iniFreeStringList(ini);
@@ -6046,7 +6047,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.156 $", "%*s %s", revision);
+	sscanf("$Revision: 3.155 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.78 2020/04/05 03:16:45 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.77 2020/04/01 22:06:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,7 +103,7 @@ bool sbbs_t::logon()
 
 	if(!chk_ar(cfg.node_ar,&useron,&client)) {
 		bputs(text[NoNodeAccess]);
-		safe_snprintf(str, sizeof(str), "(%04u)  %-25s  Insufficient node access"
+		sprintf(str,"(%04u)  %-25s  Insufficient node access"
 			,useron.number,useron.alias);
 		logline(LOG_NOTICE,"+!",str);
 		hangup();
@@ -115,7 +115,7 @@ bool sbbs_t::logon()
 		putnodedat(cfg.node_num,&thisnode);	/* must unlock! */
 		if(!SYSOP && !(useron.exempt&FLAG('N'))) {
 			bputs(text[NodeLocked]);
-			safe_snprintf(str, sizeof(str), "(%04u)  %-25s  Locked node logon attempt"
+			sprintf(str,"(%04u)  %-25s  Locked node logon attempt"
 				,useron.number,useron.alias);
 			logline(LOG_NOTICE,"+!",str);
 			hangup();
@@ -198,9 +198,9 @@ bool sbbs_t::logon()
 	last_ns_time=ns_time=useron.ns_time;
 	// ns_time-=(useron.tlast*60); /* file newscan time == last logon time */
 	delfiles(cfg.temp_dir,ALLFILES);
-	safe_snprintf(str, sizeof(str), "%smsgs/n%3.3u.msg",cfg.data_dir,cfg.node_num);
+	sprintf(str,"%smsgs/n%3.3u.msg",cfg.data_dir,cfg.node_num);
 	remove(str);            /* remove any pending node messages */
-	safe_snprintf(str, sizeof(str), "%smsgs/n%3.3u.ixb",cfg.data_dir,cfg.node_num);
+	sprintf(str,"%smsgs/n%3.3u.ixb",cfg.data_dir,cfg.node_num);
 	remove(str);			/* remove any pending node message indices */
 
 	if(!SYSOP && online==ON_REMOTE && !(sys_status&SS_QWKLOGON)) {
@@ -223,7 +223,7 @@ bool sbbs_t::logon()
 	useron.ltoday++;
 
 	gettimeleft();
-	safe_snprintf(str, sizeof(str), "%sfile/%04u.dwn",cfg.data_dir,useron.number);
+	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
 	batch_add_list(str);
 	if(!(sys_status&SS_QWKLOGON)) { 	 /* QWK Nodes don't go through this */
 
@@ -266,7 +266,7 @@ bool sbbs_t::logon()
 				}
 				break; 
 			}
-			SAFECOPY(useron.pass,str);
+			strcpy(useron.pass,str);
 			useron.pwmod=time32(NULL);
 			putuserrec(&cfg,useron.number,U_PWMOD,8,ultoa((ulong)useron.pwmod,str,16));
 			bputs(text[PasswordChanged]);
@@ -275,7 +275,7 @@ bool sbbs_t::logon()
 		if(useron.ltoday>cfg.level_callsperday[useron.level]
 			&& !(useron.exempt&FLAG('L'))) {
 			bputs(text[NoMoreLogons]);
-			safe_snprintf(str, sizeof(str), "(%04u)  %-25s  Out of logons"
+			sprintf(str,"(%04u)  %-25s  Out of logons"
 				,useron.number,useron.alias);
 			logline(LOG_NOTICE,"+!",str);
 			hangup();
@@ -283,7 +283,7 @@ bool sbbs_t::logon()
 		}
 		if(useron.rest&FLAG('L') && useron.ltoday>1) {
 			bputs(text[R_Logons]);
-			safe_snprintf(str, sizeof(str), "(%04u)  %-25s  Out of logons"
+			sprintf(str,"(%04u)  %-25s  Out of logons"
 				,useron.number,useron.alias);
 			logline(LOG_NOTICE,"+!",str);
 			hangup();
@@ -317,7 +317,7 @@ bool sbbs_t::logon()
 						break; 
 				}
 			if(cfg.uq&UQ_HANDLE && !useron.handle[0]) {
-				SAFECOPY(useron.handle, useron.alias);
+				sprintf(useron.handle,"%.*s",LEN_HANDLE,useron.alias);
 				while(online) {
 					bputs(text[EnterYourHandle]);
 					if(!getstr(useron.handle,LEN_HANDLE
@@ -383,14 +383,14 @@ bool sbbs_t::logon()
 					useron.misc&=~NETMAIL;
 			}
 			if(cfg.new_sif[0]) {
-				safe_snprintf(str, sizeof(str), "%suser/%4.4u.dat",cfg.data_dir,useron.number);
+				sprintf(str,"%suser/%4.4u.dat",cfg.data_dir,useron.number);
 				if(flength(str)<1L)
 					create_sif_dat(cfg.new_sif,str); 
 			} 
 		}
 	}	
 	if(!online) {
-		safe_snprintf(str, sizeof(str), "(%04u)  %-25s  Unsuccessful logon"
+		sprintf(str,"(%04u)  %-25s  Unsuccessful logon"
 			,useron.number,useron.alias);
 		logline(LOG_NOTICE,"+!",str);
 		return(false); 
@@ -404,7 +404,7 @@ bool sbbs_t::logon()
 	sys_status|=SS_USERON;          /* moved from further down */
 
 	if(useron.rest&FLAG('Q')) {
-		safe_snprintf(str, sizeof(str), "(%04u)  %-25s  QWK Network Connection"
+		sprintf(str,"(%04u)  %-25s  QWK Network Connection"
 			,useron.number,useron.alias);
 		logline("++",str);
 		return(true); 
@@ -414,7 +414,7 @@ bool sbbs_t::logon()
 	/* SUCCESSFUL LOGON */
 	/********************/
 	totallogons=logonstats();
-	safe_snprintf(str, sizeof(str), "(%04u)  %-25s  %sLogon %lu - %u"
+	sprintf(str,"(%04u)  %-25s  %sLogon %lu - %u"
 		,useron.number,useron.alias, (sys_status&SS_FASTLOGON) ? "Fast-":"", totallogons,useron.ltoday);
 	logline("++",str);
 
@@ -422,14 +422,14 @@ bool sbbs_t::logon()
 		exec_bin(cfg.logon_mod,&main_csi);
 
 	if(thisnode.status!=NODE_QUIET && (!REALSYSOP || cfg.sys_misc&SM_SYSSTAT)) {
-		safe_snprintf(str, sizeof(str), "%slogon.lst",cfg.data_dir);
+		sprintf(str,"%slogon.lst",cfg.data_dir);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_CREAT|O_APPEND);
 			return(false); 
 		}
 		getuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
 		getuserrec(&cfg,useron.number,U_LOCATION,LEN_LOCATION,useron.location);
-		safe_snprintf(str, sizeof(str), text[LastFewCallersFmt],cfg.node_num
+		sprintf(str,text[LastFewCallersFmt],cfg.node_num
 			,totallogons,useron.alias
 			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.ipaddr
 			,tm.tm_hour,tm.tm_min
@@ -458,8 +458,12 @@ bool sbbs_t::logon()
 		bprintf(text[LiTimeonToday],useron.ttoday
 			,cfg.level_timeperday[useron.level]+useron.min);
 		bprintf(text[LiMailWaiting],mailw);
-		bprintf("%s%s\r\n\r\n", text[LiSysopIs]
-			, text[sysop_available(&cfg) ? LiSysopAvailable : LiSysopNotAvailable]);
+		strcpy(str,text[LiSysopIs]);
+		if(sysop_available(&cfg))
+			strcat(str,text[LiSysopAvailable]);
+		else
+			strcat(str,text[LiSysopNotAvailable]);
+		bprintf("%s\r\n\r\n",str);
 	}
 
 	if(sys_status&SS_EVENT)
@@ -498,7 +502,7 @@ bool sbbs_t::logon()
 			if(thisnode.status!=NODE_QUIET
 				&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
 				&& !(node.misc&NODE_AOFF) && node.useron!=useron.number) {
-				safe_snprintf(str, sizeof(str), text[NodeLoggedOnAtNbps]
+				sprintf(str,text[NodeLoggedOnAtNbps]
 					,cfg.node_num
 					,thisnode.misc&NODE_ANON ? text[UNKNOWN_USER] : useron.alias
 					,connection);
@@ -551,7 +555,7 @@ ulong sbbs_t::logonstats()
 
 	sys_status&=~SS_DAILY;
 	memset(&stats,0,sizeof(stats));
-	safe_snprintf(str, sizeof(str), "%sdsts.dab",cfg.ctrl_dir);
+	sprintf(str,"%sdsts.dab",cfg.ctrl_dir);
 	if((dsts=nopen(str,O_RDWR))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 		return(0L); 
@@ -571,11 +575,11 @@ ulong sbbs_t::logonstats()
 	if((tm.tm_mday>update_tm.tm_mday && tm.tm_mon==update_tm.tm_mon)
 		|| tm.tm_mon>update_tm.tm_mon || tm.tm_year>update_tm.tm_year) {
 
-		safe_snprintf(str, sizeof(str), "New Day - Prev: %s ",timestr(update_t));
+		sprintf(str,"New Day - Prev: %s ",timestr(update_t));
 		logentry("!=",str);
 
 		sys_status|=SS_DAILY;       /* New Day !!! */
-		safe_snprintf(str, sizeof(str), "%slogon.lst",cfg.data_dir);    /* Truncate logon list */
+		sprintf(str,"%slogon.lst",cfg.data_dir);    /* Truncate logon list */
 		if((dsts=nopen(str,O_TRUNC|O_CREAT|O_WRONLY))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_TRUNC|O_CREAT|O_WRONLY);
 			return(0L); 
@@ -587,10 +591,10 @@ ulong sbbs_t::logonstats()
 				node.misc|=NODE_EVENT;
 				putnodedat(i,&node); 
 			}
-			safe_snprintf(str, sizeof(str), "%sdsts.dab",i ? cfg.node_path[i-1] : cfg.ctrl_dir);
+			sprintf(str,"%sdsts.dab",i ? cfg.node_path[i-1] : cfg.ctrl_dir);
 			if((dsts=nopen(str,O_RDWR))==-1) /* node doesn't have stats yet */
 				continue;
-			safe_snprintf(str, sizeof(str), "%scsts.dab",i ? cfg.node_path[i-1] : cfg.ctrl_dir);
+			sprintf(str,"%scsts.dab",i ? cfg.node_path[i-1] : cfg.ctrl_dir);
 			if((csts=nopen(str,O_WRONLY|O_APPEND|O_CREAT))==-1) {
 				close(dsts);
 				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_APPEND|O_CREAT);
@@ -648,7 +652,7 @@ ulong sbbs_t::logonstats()
 		return(0);
 
 	for(i=0;i<2;i++) {
-		safe_snprintf(str, sizeof(str), "%sdsts.dab",i ? cfg.ctrl_dir : cfg.node_dir);
+		sprintf(str,"%sdsts.dab",i ? cfg.ctrl_dir : cfg.node_dir);
 		if((dsts=nopen(str,O_RDWR))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR);
 			return(0L); 

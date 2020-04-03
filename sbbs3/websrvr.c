@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.709 2020/04/05 08:04:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.708 2020/03/19 05:09:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4696,12 +4696,10 @@ static BOOL exec_cgi(http_session_t *session)
 	int		i=0;
 	int		status=0;
 	pid_t	child=0;
-	int		in_pipe[2];
 	int		out_pipe[2];
 	int		err_pipe[2];
 	struct timeval tv={0,0};
 	fd_set	read_set;
-	fd_set	write_set;
 	int		high_fd=0;
 	char	buf[1024];
 	BOOL	done_parsing_headers=FALSE;
@@ -4711,8 +4709,7 @@ static BOOL exec_cgi(http_session_t *session)
 	char	cgipath[MAX_PATH+1];
 	char	*p;
 	BOOL	orig_keep=FALSE;
-	char	*handler;
-	size_t	sent;
+    char *handler;
 
 	SAFECOPY(cmdline,session->req.physical_path);
 
@@ -4723,29 +4720,12 @@ static BOOL exec_cgi(http_session_t *session)
 
 	/* Set up I/O pipes */
 
-	if (session->tls_sess) {
-		if(pipe(in_pipe)!=0) {
-			lprintf(LOG_ERR,"%04d Can't create in_pipe",session->socket);
-			return(FALSE);
-		}
-	}
-
 	if(pipe(out_pipe)!=0) {
-		if (session->tls_sess) {
-			close(in_pipe[0]);
-			close(in_pipe[1]);
-		}
 		lprintf(LOG_ERR,"%04d Can't create out_pipe",session->socket);
 		return(FALSE);
 	}
 
 	if(pipe(err_pipe)!=0) {
-		if (session->tls_sess) {
-			close(in_pipe[0]);
-			close(in_pipe[1]);
-		}
-		close(out_pipe[0]);
-		close(out_pipe[1]);
 		lprintf(LOG_ERR,"%04d Can't create err_pipe",session->socket);
 		return(FALSE);
 	}
@@ -4763,12 +4743,7 @@ static BOOL exec_cgi(http_session_t *session)
 
 		env_list=get_cgi_env(session);
 		/* Set up STDIO */
-		if (session->tls_sess) {
-			dup2(in_pipe[0],0);		/* stdin */
-			close(in_pipe[1]);		/* close write-end of pipe */
-		}
-		else
-			dup2(session->socket,0);		/* redirect stdin */
+		dup2(session->socket,0);		/* redirect stdin */
 		close(out_pipe[0]);		/* close read-end of pipe */
 		dup2(out_pipe[1],1);	/* stdout */
 		close(out_pipe[1]);		/* close excess file descriptor */
@@ -4798,14 +4773,10 @@ static BOOL exec_cgi(http_session_t *session)
 
 	if(child==-1)  {
 		lprintf(LOG_ERR,"%04d !FAILED! fork() errno=%d",session->socket,errno);
-		if (session->tls_sess)
-			close(in_pipe[1]);	/* close write-end of pipe */
 		close(out_pipe[0]);		/* close read-end of pipe */
 		close(err_pipe[0]);		/* close read-end of pipe */
 	}
 
-	if (session->tls_sess)
-		close(in_pipe[0]);	/* close excess file descriptor */
 	close(out_pipe[1]);		/* close excess file descriptor */
 	close(err_pipe[1]);		/* close excess file descriptor */
 
@@ -4813,38 +4784,6 @@ static BOOL exec_cgi(http_session_t *session)
 		return(FALSE);
 
 	start=time(NULL);
-
-	// TODO: For TLS-CGI, write each separate read...
-	if (session->tls_sess && session->req.post_len && session->req.post_data) {
-		tv.tv_sec=1;
-		tv.tv_usec=0;
-		FD_ZERO(&read_set);
-		high_fd = in_pipe[1];
-		FD_SET(in_pipe[1], &write_set);
-		sent = 0;
-		while(sent < session->req.post_len) {
-			if (select(high_fd+1, NULL, &write_set, NULL, &tv) > 0) {
-				if (FD_ISSET(in_pipe[1], &write_set))
-					i = write(in_pipe[1], &session->req.post_data[sent], session->req.post_len - sent);
-				if (i > 0)
-					sent += i;
-				else {
-					lprintf(LOG_INFO, "%04d FAILED writing CGI POST data", session->socket);
-					close(in_pipe[1]);
-					close(out_pipe[0]);
-					close(err_pipe[0]);
-					return(FALSE);
-				}
-			}
-			else {
-				lprintf(LOG_INFO, "%04d FAILED selecting CGI stding for write", session->socket);
-				close(in_pipe[1]);
-				close(out_pipe[0]);
-				close(err_pipe[0]);
-				return(FALSE);
-			}
-		}
-	}
 
 	high_fd=out_pipe[0];
 	if(err_pipe[0]>high_fd)
@@ -4879,8 +4818,6 @@ static BOOL exec_cgi(http_session_t *session)
 		}
 	}
 
-	if (session->tls_sess)
-		close(in_pipe[1]);	/* close excess file descriptor */
 	/* Drain STDERR & STDOUT */
 	tv.tv_sec=1;
 	tv.tv_usec=0;
@@ -6119,8 +6056,7 @@ int read_post_data(http_session_t * session)
 	size_t		s = 0;
 	FILE		*fp=NULL;
 
-	// TODO: For TLS-CGI, write each separate read...
-	if((session->req.dynamic!=IS_CGI || (session->req.dynamic == IS_CGI && session->tls_sess)) && (session->req.post_len || session->req.read_chunked)) {
+	if(session->req.dynamic!=IS_CGI && (session->req.post_len || session->req.read_chunked)) {
 		if(session->req.read_chunked) {
 			char *p;
 			size_t	ch_len=0;
@@ -6732,7 +6668,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.709 $", "%*s %s", revision);
+	sscanf("$Revision: 1.708 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
