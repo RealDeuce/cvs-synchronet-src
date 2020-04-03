@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.84 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: ansi_cio.c,v 1.85 2019/08/21 22:17:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -467,7 +467,7 @@ int ansi_puttext(int sx, int sy, int ex, int ey, void* buf)
 					if(out[(cx-x)*2] != ' ' && out[(cx-x)*2] != 0)
 						break;
 					/* Next, make sure that the attribute is the same */
-					if(out[(cx-x)*2+1] != out[cx*2+1])
+					if(out[(cx-x)*2+1] != out[1])
 						break;
 					/* Finally, if this isn't what's on screen, increment i */
 					if((ansivmem[y*cio_textinfo.screenwidth+cx] & 0xff) != 0 && (ansivmem[y*cio_textinfo.screenwidth+cx] & 0xff) != ' ')
