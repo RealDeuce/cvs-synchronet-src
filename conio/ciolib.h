@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.116 2020/04/17 16:54:15 deuce Exp $ */
+/* $Id: ciolib.h,v 1.111 2020/04/03 00:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,7 +36,6 @@
 
 #include <string.h>	/* size_t */
 #include "gen_defs.h"
-#include "utf8_codepages.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -74,7 +73,6 @@ enum {
 	 CIOLIB_MODE_AUTO
 	,CIOLIB_MODE_CURSES
 	,CIOLIB_MODE_CURSES_IBM
-	,CIOLIB_MODE_CURSES_ASCII
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
@@ -249,8 +247,8 @@ struct conio_font_data_struct {
         char 	*eight_by_sixteen;
         char 	*eight_by_fourteen;
         char 	*eight_by_eight;
+        char	*put_xlat;
         char 	*desc;
-        enum ciolib_codepage cp;
 };
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
@@ -374,6 +372,12 @@ CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
+CIOLIBEXPORTVAR int ciolib_xlat;
+#define CIOLIB_XLAT_NONE	0
+#define CIOLIB_XLAT_CHARS	1
+#define CIOLIB_XLAT_ATTR	2
+#define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
+
 CIOLIBEXPORTVAR int ciolib_reaper;
 CIOLIBEXPORTVAR char *ciolib_appname;
 
@@ -641,10 +645,7 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
 #define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_SHIFT_F(x)((x<11)?((0x53 + x) << 8):((0x7c + x) << 8))
-#define CIO_KEY_CTRL_F(x) ((x<11)?((0x5d + x) << 8):((0x7e + x) << 8))
-#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67 + x) << 8):((0x80 + x) << 8))
-#define CIO_KEY_BACKTAB   (0x0f << 8)
+#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
 
 #define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
 #define CIO_KEY_QUIT	  0x7e00	// "F-15"

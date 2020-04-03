@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.71 2020/04/10 08:31:12 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.69 2020/03/31 06:05:59 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -100,7 +100,7 @@ static bool new_grp(unsigned new_grpnum)
 
 // Return number of imported (including over-written) subs or negative on error
 long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
-	, int min_confnum, int max_confnum, qhub_t* qhub, const char* pkt_orig, faddr_t* faddr, uint32_t misc
+	, int min_confnum, int max_confnum, qhub_t* qhub, const char* pkt_orig, faddr_t* faddr
 	, long* added)
 {
 	char		str[256];
@@ -156,7 +156,6 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			new_sub_misc = SUB_FIDO;
 			break;
 	}
-	new_sub_misc |= misc;
 
 	while(1) {
 		memset(&tmpsub,0,sizeof(tmpsub));
@@ -421,12 +420,6 @@ long import_msg_areas(enum import_list_type type, FILE* stream, unsigned grpnum
 			SAFECOPY(cfg.sub[j]->qwkname,tmpsub.qwkname);
 			if(tmpsub.data_dir[0])
 				SAFECOPY(cfg.sub[j]->data_dir,tmpsub.data_dir);
-			if(strcasestr(tmpsub.lname, "sysop") != NULL && strcasestr(tmpsub.lname, "only") != NULL) {
-				if(cfg.sub[j]->arstr[0]) {
-					SAFECAT(cfg.sub[j]->arstr, " ");
-				}
-				SAFECAT(cfg.sub[j]->arstr, "SYSOP");
-			}
 		}
 		if(faddr != NULL && faddr->zone)
 			cfg.sub[j]->faddr = *faddr;
@@ -1033,8 +1026,7 @@ void msgs_cfg()
 					}
 					uifc.pop("Importing Areas...");
 					long added = 0;
-					ported = import_msg_areas(k, stream, i, min_confnum, max_confnum, /* qhub: */NULL
-						, pkt_orig, /* faddr: */NULL, /* misc: */0, &added);
+					ported = import_msg_areas(k, stream, i, min_confnum, max_confnum, /* qhub: */NULL, pkt_orig, /* faddr: */NULL, &added);
 					fclose(stream);
 					uifc.pop(0);
 					if(ported < 0)
