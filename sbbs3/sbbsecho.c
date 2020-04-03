@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.157 2020/04/07 02:54:11 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.154 2020/04/03 07:06:59 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1558,13 +1558,8 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		if((fp=tmpfile())==NULL) {
 			lprintf(LOG_ERR,"ERROR line %d couldn't open tmpfile",__LINE__);
 		} else {
-			int longest = 0;
-			for(u = 0; area_list[u] != NULL; u++) {
-				int len = strlen(area_list[u]);
-				if(len > longest) longest = len;
-			}
 			for(u = 0; area_list[u] != NULL; u++)
-				fprintf(fp, "%-*s %s\r\n", longest, area_list[u], area_desc(area_list[u]));
+				fprintf(fp, "%-*s %s\r\n", FIDO_AREATAG_LEN, area_list[u], area_desc(area_list[u]));
 			file_to_netmail(fp,title,addr,to);
 			fclose(fp);
 		}
@@ -1971,7 +1966,8 @@ bool alter_config(nodecfg_t* nodecfg, const char* key, const char* value)
 	SAFEPRINTF2(section, "node:%s@%s", smb_faddrtoa(&nodecfg->addr,NULL), nodecfg->domain);
 	if(!iniSectionExists(ini, section))
 		SAFEPRINTF(section, "node:%s", smb_faddrtoa(&nodecfg->addr,NULL));
-	iniSetString(&ini, section, key, value, &sbbsecho_ini_style);
+	ini_style_t style = {  .key_prefix = "\t", .value_separator = " = " };
+	iniSetString(&ini, section, key, value, &style);
 	iniWriteFile(fp, ini);
 	iniCloseFile(fp);
 	iniFreeStringList(ini);
@@ -4233,10 +4229,6 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 		pkts_written++;
 	}
 	free(rescanned_from);
-	lprintf(LOG_DEBUG, "Message from %s (%s) added to packets for %u links"
-		,hdr->from
-		,fmsghdr_srcaddr_str(hdr)
-		,pkts_written);
 	return pkts_written > 0;
 }
 
@@ -4938,13 +4930,9 @@ void export_echomail(const char* sub_code, const nodecfg_t* nodecfg, bool rescan
 
 			for(uint u=0; u < cfg.areas; u++) {
 				if(cfg.area[u].sub == subnum) {
-					if(cfg.area[u].links == 0) {
-						lprintf(LOG_ERR, "No links for sub: %s", scfg.sub[subnum]->code);
-					} else {
-						if(write_to_pkts(fmsgbuf, cfg.area[u]
-							,nodecfg ? &nodecfg->addr : NULL, /* pkt_orig: */NULL, &hdr, msg_seen, msg_path, rescan))
-							cfg.area[u].exported++;
-					}
+					cfg.area[u].exported++;
+					write_to_pkts(fmsgbuf, cfg.area[u]
+						,nodecfg ? &nodecfg->addr : NULL, /* pkt_orig: */NULL, &hdr, msg_seen, msg_path, rescan);
 					break;
 				}
 			}
@@ -6054,7 +6042,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.157 $", "%*s %s", revision);
+	sscanf("$Revision: 3.154 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 

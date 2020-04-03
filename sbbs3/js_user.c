@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.116 2020/04/03 08:42:57 deuce Exp $ */
+/* $Id: js_user.c,v 1.114 2019/08/21 01:32:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1239,8 +1239,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 
 static jsSyncMethodSpec js_user_functions[] = {
 	{"compare_ars",		js_chk_ar,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string ars")
-	,JSDOCSTR("Verify user meets access requirements string<br>"
-		"Note: For the current user of the terminal server, use <tt>bbs.compare_ars()</tt> instead.")
+	,JSDOCSTR("Verify user meets access requirements string")
 	,310
 	},		
 	{"adjust_credits",	js_adjust_credits,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("count")
