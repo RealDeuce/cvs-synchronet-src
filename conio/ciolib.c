@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.185 2020/04/04 04:26:08 deuce Exp $ */
+/* $Id: ciolib.c,v 1.184 2020/04/03 17:35:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -457,7 +457,6 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			break;
 	}
 	ciolib_seticon(syncicon64, SYNCICON64_WIDTH);
-	ciolib_textattr(cio_textinfo.normattr);
 
 	_beginthread(ciolib_mouse_thread,0,NULL);
 	return(0);
@@ -848,7 +847,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 			cio_textinfo.normattr=LIGHTGRAY;
 			break;
 	}
-	ciolib_textattr(cio_textinfo.normattr);
 }
 
 /* Optional */
