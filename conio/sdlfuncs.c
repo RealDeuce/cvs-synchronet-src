@@ -41,12 +41,11 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	// SDL2: Rename from mutexP/mutexV to LockMutex/UnlockMutex
-	if((sdlf->mutexP=xp_dlsym(sdl_dll, SDL_LockMutex))==NULL) {
+	if((sdlf->LockMutex=xp_dlsym(sdl_dll, SDL_LockMutex))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->mutexV=xp_dlsym(sdl_dll, SDL_UnlockMutex))==NULL) {
+	if((sdlf->UnlockMutex=xp_dlsym(sdl_dll, SDL_UnlockMutex))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -230,6 +229,18 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->SetClipboardText=xp_dlsym(sdl_dll, SDL_SetClipboardText))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetClipboardText=xp_dlsym(sdl_dll, SDL_GetClipboardText))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->free=xp_dlsym(sdl_dll, SDL_free))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
 	{
 		int (HACK_HACK_HACK *ra)(char *name, Uint32 style, void *hInst);
 		if ((ra = xp_dlsym(sdl_dll, SDL_RegisterApp)) != NULL) {
@@ -265,14 +276,6 @@ int init_sdl_video(void)
 #ifdef _WIN32
 	/* Fail to windib (ie: No mouse attached) */
 	if(sdl.Init(SDL_INIT_VIDEO)) {
-		// SDL2: We can likely do better now...
-		driver_env=getenv("SDL_VIDEODRIVER");
-		if(driver_env==NULL || strcmp(driver_env,"windib")) {
-			putenv("SDL_VIDEODRIVER=windib");
-			WinExec(GetCommandLine(), SW_SHOWDEFAULT);
-			return(0);
-		}
-		/* Sure ,we can't use video, but audio is still valid! */
 		if(sdl.Init(0)==0)
 			sdl_initialized=TRUE;
 	}
@@ -318,7 +321,6 @@ int init_sdl_video(void)
 	}
 
 	if(sdl_video_initialized) {
-		SetThreadName("SDL Main");
 		atexit(QuitWrap);
 		return 0;
 	}
