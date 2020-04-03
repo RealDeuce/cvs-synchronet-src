@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.182 2020/04/02 22:59:27 deuce Exp $ */
+/* $Id: ciolib.c,v 1.183 2020/04/03 00:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,6 +81,7 @@ CIOLIBEXPORT int hold_update=0;
 CIOLIBEXPORT int puttext_can_move=0;
 CIOLIBEXPORT int ciolib_xlat=0;
 CIOLIBEXPORT int ciolib_reaper=TRUE;
+CIOLIBEXPORT char *ciolib_appname=NULL;
 static int initialized=0;
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
