@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.49 2019/09/17 10:29:34 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.52 2020/04/03 19:54:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -445,6 +445,7 @@ void binkp_settings(nodecfg_t* node)
 		}
 		sprintf(opt[i++], "%-20s %s", "Authentication", auth);
 		sprintf(opt[i++], "%-20s %s", "Encryption", crypt);
+		sprintf(opt[i++], "%-20s %s", "Implicit TLS", node->binkp_tls ? "Yes" : "No");
 		sprintf(opt[i++], "%-20s %s", "Source Address", node->binkp_src);
 		opt[i][0]=0;
 		char title[128];
@@ -475,6 +476,9 @@ void binkp_settings(nodecfg_t* node)
 			"    With this setting set to `Required`, ~only~ BinkD-style-encrypted BinkP\n"
 			"    sessions will be supported.\n"
 			"    CRAM-MD5 authentication `must` be used when encrypting BinkP sessions.\n"
+			"\n"
+			"`Implicit TLS` defines whether or not to use `BINKPS` when connecting\n"
+			"    (outbound) with this linked node.\n"
 			"\n"
 			"`Source Address` allows you to override the source FTN address used\n"
 			"    with outgoing BinkP mailer sessions with this linked node.\n"
@@ -561,6 +565,14 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 5:
+				k = !node->binkp_tls;
+				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+					,"Use BINKPS (Implicit TLS) Connections with This Node",uifcYesNoOpts)) {
+					case 0:	node->binkp_tls = true;		uifc.changes=TRUE; break;
+					case 1:	node->binkp_tls = false;	uifc.changes=TRUE; break;
+				}
+				break;
+			case 6:
 				uifc.helpbuf=
 				"~ Source Address ~\n\n"
 				"This is the FidoNet style address to use as the source address when\n"
@@ -593,8 +605,8 @@ int main(int argc, char **argv)
 	ZERO_VAR(savarcdef);
 	ZERO_VAR(savedomain);
 
-	fprintf(stderr,"\nSynchronet FidoNet Configuration  Version %u.%02u  Copyright %s "
-		"Rob Swindell\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR, __DATE__+7);
+	fprintf(stderr,"\nSynchronet FidoNet Configuration  Version %u.%02u  " COPYRIGHT_NOTICE
+		"\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR);
 
 	memset(&cfg,0,sizeof(cfg));
 	str[0]=0;
@@ -678,23 +690,12 @@ int main(int argc, char **argv)
 			SAFECOPY(str,argv[i]);
 	}
 	if(str[0]==0) {
-		p=getenv("SBBSCTRL");
-		if(!p) {
-			p=getenv("SBBSNODE");
-			if(!p) {
-				goto USAGE;
-			}
-			SAFECOPY(str,p);
-			backslash(str);
-			SAFECAT(str,"../ctrl/sbbsecho.ini");
-		}
-		else {
-			SAFECOPY(str,p);
-			backslash(str);
-			SAFECAT(str,"sbbsecho.ini");
-		}
+		SAFECOPY(cfg.cfgfile, get_ctrl_dir());
+		backslash(cfg.cfgfile);
+		SAFECAT(cfg.cfgfile, "sbbsecho.ini");
+	} else {
+		SAFECOPY(cfg.cfgfile,str);
 	}
-	SAFECOPY(cfg.cfgfile,str);
 
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
