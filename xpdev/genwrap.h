@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.118 2020/04/14 23:58:38 rswindell Exp $ */
+/* $Id: genwrap.h,v 1.117 2020/03/22 04:14:57 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -224,7 +224,6 @@ extern "C" {
 	#define snprintf		_snprintf
 #endif
 	#define vsnprintf		_vsnprintf
-	#define NEEDS_STRLCPY
 #endif
 
 #if defined(__WATCOMC__)
@@ -243,10 +242,6 @@ extern "C" {
 		#define stricmp			strcasecmp
 		#define strnicmp		strncasecmp
 	#endif
-#endif
-
-#if defined(NEEDS_STRLCPY)
-	size_t strlcpy(char *dst, const char *src, size_t size);
 #endif
 
 #if defined(_WIN32)
