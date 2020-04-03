@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.36 2019/09/17 10:29:35 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.37 2019/12/13 05:41:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -129,6 +129,7 @@ typedef struct {
 	bool		binkp_plainAuthOnly;
 	bool		binkp_allowPlainAuth;
 	bool		binkp_allowPlainText;
+	bool		binkp_tls;
 	bool		binkp_poll;
 	uint16_t	binkp_port;
 	char		binkp_host[64];
