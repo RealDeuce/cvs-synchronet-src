@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library function prototypes */
 
-/* $Id: smblib.h,v 1.97 2019/07/30 10:20:21 rswindell Exp $ */
+/* $Id: smblib.h,v 1.98 2020/03/19 05:33:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -65,6 +65,7 @@
 #endif
 
 #include "smbdefs.h"
+#include "str_list.h"
 
 #define SMB_SUCCESS			0			/* Successful result/return code */
 #define SMB_FAILURE			-1			/* Generic error (discouraged) */
@@ -265,7 +266,8 @@ SMBEXPORT fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char
 SMBEXPORT enum smb_net_type SMBCALL smb_netaddr_type(const char* addr);
 SMBEXPORT enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr);
 /* smbdump.c */
-SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE* fp, smbmsg_t* msg);
+SMBEXPORT void		SMBCALL smb_dump_msghdr(FILE*, smbmsg_t*);
+SMBEXPORT str_list_t SMBCALL smb_msghdr_str_list(smbmsg_t*);
 
 /* smbtxt.c */
 SMBEXPORT char*		SMBCALL smb_getmsgtxt(smb_t*, smbmsg_t*, ulong mode);
