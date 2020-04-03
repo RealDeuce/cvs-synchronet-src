@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.36 2019/09/17 10:29:35 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.38 2020/04/03 21:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -129,6 +129,7 @@ typedef struct {
 	bool		binkp_plainAuthOnly;
 	bool		binkp_allowPlainAuth;
 	bool		binkp_allowPlainText;
+	bool		binkp_tls;
 	bool		binkp_poll;
 	uint16_t	binkp_port;
 	char		binkp_host[64];
@@ -227,6 +228,7 @@ typedef struct {
 	char		binkp_sysop[64];
 	bool		binkp_plainAuthOnly;
 	bool		binkp_plainTextOnly;
+	bool		used_include;
 } sbbsecho_cfg_t;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
