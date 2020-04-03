@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.173 2019/02/01 10:29:53 rswindell Exp $ */
+/* $Id: ciolib.c,v 1.184 2020/04/03 17:35:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@
 
 #include "bitmap_con.h"
 #include "ansi_cio.h"
+#include "syncicon64.h"
 
 CIOLIBEXPORT cioapi_t	cio_api;
 
@@ -81,6 +82,7 @@ CIOLIBEXPORT int hold_update=0;
 CIOLIBEXPORT int puttext_can_move=0;
 CIOLIBEXPORT int ciolib_xlat=0;
 CIOLIBEXPORT int ciolib_reaper=TRUE;
+CIOLIBEXPORT char *ciolib_appname=NULL;
 static int initialized=0;
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -134,6 +136,10 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setcolour(uint32_t fg, uint32_t bg);
 CIOLIBEXPORT int CIOLIBCALL ciolib_get_modepalette(uint32_t p[16]);
 CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t p[16]);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -178,8 +184,8 @@ static int try_sdl_init(int mode)
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
 		cio_api.get_window_info=sdl_get_window_info;
-		cio_api.setscaling=sdl_setscaling;
-		cio_api.getscaling=sdl_getscaling;
+		cio_api.setwinsize=sdl_setwinsize;
+		cio_api.setwinposition=sdl_setwinposition;
 		cio_api.setpalette=bitmap_setpalette;
 		cio_api.attr2palette=bitmap_attr2palette;
 		cio_api.setpixel=bitmap_setpixel;
@@ -423,8 +429,6 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 		case CIOLIB_MODE_SDL:
 		case CIOLIB_MODE_SDL_FULLSCREEN:
-		case CIOLIB_MODE_SDL_YUV:
-		case CIOLIB_MODE_SDL_YUV_FULLSCREEN:
 			try_sdl_init(mode);
 			break;
 #endif
@@ -439,16 +443,21 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
-	/* Default C64 is Lt Blue on Black (As per CGTerm) */
+
+	/* Default C64 is Lt Blue on Dark Blue (As per Every picture ever) */
 	switch(cio_textinfo.currmode) {
 		case C64_40X25:
+			cio_textinfo.normattr=0x6e;
+			break;
 		case C128_40X25:
-		case C128_80X25:
-			cio_textinfo.normattr=14;
+			cio_textinfo.normattr=0xbd;
 			break;
 		default:
 			cio_textinfo.normattr=LIGHTGRAY;
+			break;
 	}
+	ciolib_seticon(syncicon64, SYNCICON64_WIDTH);
+
 	_beginthread(ciolib_mouse_thread,0,NULL);
 	return(0);
 }
@@ -826,14 +835,17 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 	cio_textinfo.wintop=1;
 	cio_textinfo.winright=cio_textinfo.screenwidth;
 	cio_textinfo.winbottom=cio_textinfo.screenheight;
+
 	switch(cio_textinfo.currmode) {
 		case C64_40X25:
+			cio_textinfo.normattr=0x6e;
+			break;
 		case C128_40X25:
-		case C128_80X25:
-			cio_textinfo.normattr=14;
+			cio_textinfo.normattr=0xbd;
 			break;
 		default:
-			cio_textinfo.normattr=7;
+			cio_textinfo.normattr=LIGHTGRAY;
+			break;
 	}
 }
 
@@ -1842,19 +1854,6 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 		free(ret);
 		return NULL;
 	}
-	ret->foreground = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->foreground[0]));
-	if (ret->foreground == NULL) {
-		free(ret->vmem);
-		free(ret);
-		return NULL;
-	}
-	ret->background = malloc(ret->text_info.screenwidth * ret->text_info.screenheight * sizeof(ret->background[0]));
-	if (ret->background == NULL) {
-		free(ret->foreground);
-		free(ret->vmem);
-		free(ret);
-		return NULL;
-	}
 
 	if (vmode != -1) {
 		ret->pixels = ciolib_getpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1);
@@ -1865,6 +1864,7 @@ CIOLIBEXPORT struct ciolib_screen * CIOLIBCALL ciolib_savescreen(void)
 	for (i=0; i<5; i++)
 		ret->fonts[i] = ciolib_getfont(i);
 	ret->flags = ciolib_getvideoflags();
+	ciolib_get_modepalette(ret->palette);
 
 	return ret;
 }
@@ -1875,8 +1875,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_freescreen(struct ciolib_screen *scrn)
 		return;
 
 	ciolib_freepixels(scrn->pixels);
-	FREE_AND_NULL(scrn->background);
-	FREE_AND_NULL(scrn->foreground);
 	FREE_AND_NULL(scrn->vmem);
 	free(scrn);
 }
@@ -1894,11 +1892,12 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_restorescreen(struct ciolib_screen *scrn)
 
 	if (ti.currmode != scrn->text_info.currmode)
 		ciolib_textmode(scrn->text_info.currmode);
+	ciolib_set_modepalette(scrn->palette);
 	ciolib_vmem_puttext(1, 1, scrn->text_info.screenwidth, scrn->text_info.screenheight, scrn->vmem);
 	ciolib_textcolor(scrn->text_info.attribute);
 	ciolib_window(scrn->text_info.winleft, scrn->text_info.wintop, scrn->text_info.winright, scrn->text_info.winbottom);
 	vmode = find_vmode(scrn->text_info.currmode);
-	if (vmode != -1)
+	if (vmode != -1 && scrn->pixels != NULL)
 		ciolib_setpixels(0, 0, vparams[vmode].charwidth * vparams[vmode].cols - 1, vparams[vmode].charheight * vparams[vmode].rows - 1, 0, 0, scrn->pixels, NULL);
 	for (i=0; i<5; i++)
 		ciolib_setfont(scrn->fonts[i], FALSE, i);
@@ -2013,4 +2012,45 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int fontnum)
 	}
 	return 0;
 
+}
+
+CIOLIBEXPORT void CIOLIBCALL
+ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font)
+{
+	CIOLIB_INIT();
+
+	if (cell == NULL)
+		return;
+	cell->ch = ch;
+	cell->font = font;
+	ciolib_set_vmem_attr(cell, attr);
+}
+
+CIOLIBEXPORT void CIOLIBCALL
+ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr)
+{
+	CIOLIB_INIT();
+
+	if (cell == NULL)
+		return;
+	cell->legacy_attr = attr;
+	ciolib_attr2palette(attr, &cell->fg, &cell->bg);
+}
+
+/* Optional */
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int w, int h)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.setwinsize)
+		cio_api.setwinsize(w, h);
+}
+
+/* Optional */
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.setwinposition)
+		cio_api.setwinposition(x, y);
 }
