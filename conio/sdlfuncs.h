@@ -14,8 +14,8 @@
 struct sdlfuncs {
 	int	(HACK_HACK_HACK *Init)	(Uint32 flags);
 	void	(HACK_HACK_HACK *Quit)	(void);
-	int	(HACK_HACK_HACK *LockMutex)	(SDL_mutex *mutex);
-	int	(HACK_HACK_HACK *UnlockMutex)	(SDL_mutex *mutex);
+	int	(HACK_HACK_HACK *mutexP)	(SDL_mutex *mutex);
+	int	(HACK_HACK_HACK *mutexV)	(SDL_mutex *mutex);
 	int	(HACK_HACK_HACK *PeepEvents)	(SDL_Event *events, int numevents,
 					SDL_eventaction action, Uint32 minType, Uint32 maxType);
 	char	*(HACK_HACK_HACK *GetCurrentVideoDriver)	(void);
@@ -63,9 +63,6 @@ struct sdlfuncs {
 	void (HACK_HACK_HACK *GetWindowPosition)	(SDL_Window *window, int *x, int *y);
 	void (HACK_HACK_HACK *SetWindowPosition)	(SDL_Window *window, int x, int y);
 	void (HACK_HACK_HACK *SetWindowMinimumSize)	(SDL_Window *window, int w, int y);
-	void (HACK_HACK_HACK *SetClipboardText)	(const char *);
-	char *(HACK_HACK_HACK *GetClipboardText)	(void);
-	void(HACK_HACK_HACK *free)	(void *);
 	int	gotfuncs;
 };
 
