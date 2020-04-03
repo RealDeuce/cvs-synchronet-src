@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.110 2019/05/04 03:09:19 rswindell Exp $ */
+/* $Id: js_user.c,v 1.115 2020/04/03 07:47:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -611,7 +611,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS1:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1, str);
+				val=str_to_bits(p->user->flags1 << 1, str) >> 1;
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -625,7 +625,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS2:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1, str);
+				val=str_to_bits(p->user->flags2 << 1, str) >> 1;
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -639,7 +639,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS3:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1, str);
+				val=str_to_bits(p->user->flags3 << 1, str) >> 1;
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -653,7 +653,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_FLAGS4:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1, str);
+				val=str_to_bits(p->user->flags4 << 1, str) >> 1;
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -667,7 +667,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_EXEMPT:
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1, str);
+				val=str_to_bits(p->user->exempt << 1, str) >> 1;
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -681,7 +681,7 @@ static JSBool js_user_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 		case USER_PROP_REST:	
 			JS_RESUMEREQUEST(cx, rc);
 			if(JSVAL_IS_STRING(*vp)) {
-				val=str_to_bits(p->user->flags1, str);
+				val=str_to_bits(p->user->rest << 1, str) >> 1;
 			}
 			else {
 				if(!JS_ValueToInt32(cx,*vp,&val)) {
@@ -1212,6 +1212,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	int32	start_time=0;
 	jsrefcount	rc;
 	scfg_t*		scfg;
+	time_t		tl;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
@@ -1228,7 +1229,8 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(scfg,p);
 
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL((int32_t)gettimeleft(scfg, p->user, start_time)));
+	tl = gettimeleft(scfg, p->user, start_time);
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(tl > INT32_MAX ? INT32_MAX : (int32) tl));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
@@ -1237,7 +1239,8 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 
 static jsSyncMethodSpec js_user_functions[] = {
 	{"compare_ars",		js_chk_ar,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string ars")
-	,JSDOCSTR("Verify user meets access requirements string")
+	,JSDOCSTR("Verify user meets access requirements string<br>"
+		"Note: For the current user of the terminal server, use <tt>bbs.compare_ares()</tt> instead.")
 	,310
 	},		
 	{"adjust_credits",	js_adjust_credits,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("count")
@@ -1267,7 +1270,8 @@ static jsSyncMethodSpec js_user_functions[] = {
 	{"get_time_left",	js_get_time_left,	1,	JSTYPE_NUMBER,	JSDOCSTR("start_time")
 	,JSDOCSTR("Returns the user's available remaining time online, in seconds,<br>"
 	"based on the passed <i>start_time</i> value (in time_t format)<br>"
-	"Note: this method does not account for pending forced timed events")
+	"Note: this method does not account for pending forced timed events"
+	"Note: for the pre-defined user object on the BBS, you almost certainly want bbs.get_time_left() instead.")
 	,31401
 	},
 	{0}
