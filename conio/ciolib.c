@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.181 2020/04/01 11:09:53 deuce Exp $ */
+/* $Id: ciolib.c,v 1.183 2020/04/03 00:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,6 +81,7 @@ CIOLIBEXPORT int hold_update=0;
 CIOLIBEXPORT int puttext_can_move=0;
 CIOLIBEXPORT int ciolib_xlat=0;
 CIOLIBEXPORT int ciolib_reaper=TRUE;
+CIOLIBEXPORT char *ciolib_appname=NULL;
 static int initialized=0;
 
 CIOLIBEXPORT int CIOLIBCALL ciolib_movetext(int sx, int sy, int ex, int ey, int dx, int dy);
@@ -136,6 +137,8 @@ CIOLIBEXPORT int CIOLIBCALL ciolib_get_modepalette(uint32_t p[16]);
 CIOLIBEXPORT int CIOLIBCALL ciolib_set_modepalette(uint32_t p[16]);
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -180,8 +183,8 @@ static int try_sdl_init(int mode)
 		cio_api.getcliptext=sdl_getcliptext;
 #endif
 		cio_api.get_window_info=sdl_get_window_info;
-		cio_api.setscaling=sdl_setscaling;
-		cio_api.getscaling=sdl_getscaling;
+		cio_api.setwinsize=sdl_setwinsize;
+		cio_api.setwinposition=sdl_setwinposition;
 		cio_api.setpalette=bitmap_setpalette;
 		cio_api.attr2palette=bitmap_attr2palette;
 		cio_api.setpixel=bitmap_setpixel;
@@ -2030,4 +2033,22 @@ ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr)
 		return;
 	cell->legacy_attr = attr;
 	ciolib_attr2palette(attr, &cell->fg, &cell->bg);
+}
+
+/* Optional */
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int w, int h)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.setwinsize)
+		cio_api.setwinsize(w, h);
+}
+
+/* Optional */
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y)
+{
+	CIOLIB_INIT();
+
+	if(cio_api.setwinposition)
+		cio_api.setwinposition(x, y);
 }
