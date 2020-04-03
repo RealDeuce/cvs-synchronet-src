@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.39 2020/04/03 22:20:24 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.38 2020/04/03 21:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -230,8 +230,6 @@ typedef struct {
 	bool		binkp_plainTextOnly;
 	bool		used_include;
 } sbbsecho_cfg_t;
-
-extern ini_style_t sbbsecho_ini_style;
 
 char* pktTypeStringList[PKT_TYPES_SUPPORTED+1];
 char* mailStatusStringList[4];
