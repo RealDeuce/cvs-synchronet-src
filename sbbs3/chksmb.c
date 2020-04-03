@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) validity checker */
 
-/* $Id: chksmb.c,v 1.72 2020/04/04 20:36:38 rswindell Exp $ */
+/* $Id: chksmb.c,v 1.71 2020/04/02 17:40:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	char		revision[16];
 	time_t		now=time(NULL);
 
-	sscanf("$Revision: 1.72 $", "%*s %s", revision);
+	sscanf("$Revision: 1.71 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nCHKSMB v2.30-%s (rev %s) SMBLIB %s - Check Synchronet Message Base\n"
 		,PLATFORM_DESC,revision,smb_lib_ver());
@@ -899,7 +899,7 @@ int main(int argc, char **argv)
 				fprintf(stderr,"\r%sInvalid message number (%u > %u)\n", beep, hash.number, smb.status.last_msg), badhash++, print_hash(&hash);
 			else if(hash.time < 0x40000000 || hash.time > (ulong)now + (60 * 60))
 				fprintf(stderr,"\r%sInvalid time (0x%08"PRIX32")\n", beep, hash.time), badhash++, print_hash(&hash);
-			else if(hash.length < 1 || hash.length > 1024*1024*1024)
+			else if(hash.length < 1 || hash.length > 1024*1024)
 				fprintf(stderr,"\r%sInvalid length (%"PRIu32")\n", beep, hash.length), badhash++, print_hash(&hash);
 			else if(hash.source >= SMB_HASH_SOURCE_TYPES)
 				fprintf(stderr,"\r%sInvalid source type (%u)\n", beep, hash.source), badhash++, print_hash(&hash);
