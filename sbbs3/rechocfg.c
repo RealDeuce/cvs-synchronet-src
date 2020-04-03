@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.43 2019/12/13 05:41:35 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.44 2020/04/03 21:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -474,6 +474,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 	if(cfg->maxbdlsize<1024)
 		cfg->maxbdlsize=DFLT_BDL_SIZE;
 
+	cfg->used_include = iniHasInclude(ini);
 	strListFree(&ini);
 
 	return true;
