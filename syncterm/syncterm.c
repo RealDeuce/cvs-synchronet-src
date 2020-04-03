@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.224 2020/03/31 22:51:29 deuce Exp $ */
+/* $Id: syncterm.c,v 1.226 2020/04/02 22:59:39 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -744,8 +744,6 @@ int output_map[]={
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
-	,CIOLIB_MODE_SDL_YUV
-	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 #endif
 ,0};
 char *output_descrs[]={
@@ -1235,6 +1233,8 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
+	set->window_width=iniReadInteger(inifile,"SyncTERM","WindowWidth",0);
+	set->window_height=iniReadInteger(inifile,"SyncTERM","WindowHeight",0);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1280,6 +1280,7 @@ int main(int argc, char **argv)
 	char	*last_bbs=NULL;
 	char	*p, *lp;
 	int	cvmode;
+	int	ww, wh, sf;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
 				"syncterm|SyncTERM,\n"
 				"	am,bce,ccc,da,mir,msgr,ndscr,\n"	// sam?
@@ -1442,17 +1443,6 @@ int main(int argc, char **argv)
 									break;
 							}
 							break;
-						case 'O':
-							switch(toupper(argv[i][3])) {
-								case 0:
-								case 'W':
-									ciolib_mode=CIOLIB_MODE_SDL_YUV;
-									break;
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
-									break;
-							}
-							break;
 						default:
 							goto USAGE;
 					}
@@ -1515,6 +1505,7 @@ int main(int argc, char **argv)
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	setscaling(settings.scaling_factor);
+	setwinsize(settings.window_width, settings.window_height);
 	textmode(text_mode);
 
     gettextinfo(&txtinfo);
@@ -1675,7 +1666,12 @@ int main(int argc, char **argv)
 	if (last_bbs)
 		free(last_bbs);
 	// Save changed settings
-	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
+	ww = wh = sf = -1;
+	get_window_info(&ww, &wh, NULL, NULL);
+	sf = getscaling();
+	if((sf > 0 && sf != settings.scaling_factor) ||
+	    (ww > 0 && ww != settings.window_width) ||
+	    (wh > 0 && wh != settings.window_height)) {
 		char	inipath[MAX_PATH+1];
 		FILE	*inifile;
 		str_list_t	inicontents;
@@ -1688,12 +1684,18 @@ int main(int argc, char **argv)
 		else {
 			inicontents=strListInit();
 		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",getscaling(),&ini_style);
+		if (sf > 0 && sf != settings.scaling_factor)
+			iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
+		if (ww > 0 && ww != settings.window_width)
+			iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
+		if (wh > 0 && wh != settings.window_height)
+			iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
 		if((inifile=fopen(inipath,"w"))!=NULL) {
 			iniWriteFile(inifile,inicontents);
 			fclose(inifile);
 		}
 	}
+
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0)
