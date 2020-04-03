@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.95 2020/04/03 21:10:33 rswindell Exp $ */
+/* $Id: uifc.h,v 1.94 2019/03/22 21:29:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -416,11 +416,6 @@ typedef struct {
 	uifc_graphics_t	*chars;
 
 /****************************************************************************/
-/* Allow application override												*/
-/****************************************************************************/
-	char** yesNoOpts;
-
-/****************************************************************************/
 /* Exit/uninitialize function.												*/
 /****************************************************************************/
     void    (*bail) (void);
@@ -433,10 +428,7 @@ typedef struct {
 /****************************************************************************/
 /* Popup a message, maybe wait for the user to hit a key or click button.	*/
 /****************************************************************************/
-	int		(*msg)  (char* str);
-	int		(*msgf) (char* fmt, ...);
-	BOOL	(*deny) (char* fmt, ...);
-	BOOL	(*confirm) (char* fmt, ...);
+    void    (*msg)  (char* str);
 /****************************************************************************/
 /* Popup/down a status message.												*/
 /* str is the message to display on popup.									*/
