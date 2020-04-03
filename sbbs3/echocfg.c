@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.55 2020/04/12 18:55:33 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.52 2020/04/03 19:54:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -638,9 +638,6 @@ int main(int argc, char **argv)
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
 							break;
-						case 'I':
-							ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
-							break;
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
 							break;
@@ -679,7 +676,6 @@ int main(int argc, char **argv)
 						"       X = X11 mode\n"
 						"       C = Curses mode\n"
 						"       F = Curses mode with forced IBM charset\n"
-						"       I = Curses mode with forced ASCII charset\n"
 #else
 						"       W = Win32 native mode\n"
 #endif
@@ -741,12 +737,6 @@ int main(int argc, char **argv)
 	if(strlen(p) + strlen(str) + 4 > uifc.scrn_width)
 		p=getfname(cfg.cfgfile);
 	uifc.printf(uifc.scrn_width-(strlen(p)+1),1,uifc.bclr|(uifc.cclr<<4),p);
-
-	if(cfg.used_include && uifc.deny("%s uses !include, continue read only", getfname(p))) {
-		uifc.pop("Exiting");
-		uifc.bail();
-		exit(0);
-	}
 
 	/* Remember current menu item selections using these vars: */
 	int netmail_opt = 0;
@@ -813,7 +803,7 @@ int main(int argc, char **argv)
 		sprintf(opt[i++],"Paths and Filenames...");
 		sprintf(opt[i++],"Domains...");
 		sprintf(opt[i++],"EchoLists...");
-		if(uifc.changes && !cfg.used_include)
+		if(uifc.changes)
 			snprintf(opt[i++],MAX_OPLN-1,"Save Changes to %s", getfname(cfg.cfgfile));
 		opt[i][0]=0;
 		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT|WIN_ESC,0,0,0,&dflt,0
@@ -1072,10 +1062,7 @@ int main(int argc, char **argv)
 	"~ Domain ~\n\n"
 	"This is the domain portion of the 5D FTN address of this linked node\n"
 	"(e.g. '`fidonet`').  FTN domains are limited to 8 characters and must not\n"
-	"contain the characters '@' or '.'.\n"
-	"\n"
-	"This setting is currently not used by SBBSecho but is available and\n"
-	"managed here for 5D address use by BinkIT.";
+	"contain the characters '@' or '.'";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Domain"
 									,cfg.nodecfg[i].domain, sizeof(cfg.nodecfg[i].domain)-1
@@ -2496,24 +2483,19 @@ int main(int argc, char **argv)
 				break;
 			case -1:
 				if(uifc.changes) {
-					if(cfg.used_include) {
-						if(uifc.msg("Changes made will not be saved"))
-							break;
-					} else {
-						uifc.helpbuf=
-							"~ Save Configuration File ~\n\n"
-							"Select `Yes` to save the config file, `No` to quit without saving,\n"
-							"or hit ~ ESC ~ to go back to the menu.\n\n";
-						i=0;
-						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
-						if(i==-1) break;
-						if(i == 0) {
-							uifc.pop("Writing config ...");
-							bool success = sbbsecho_write_ini(&cfg);
-							uifc.pop(NULL);
-							if(!success)
-								uifc.msg("Error saving configuration file");
-						}
+		uifc.helpbuf=
+		"~ Save Configuration File ~\n\n"
+		"Select `Yes` to save the config file, `No` to quit without saving,\n"
+		"or hit ~ ESC ~ to go back to the menu.\n\n";
+					i=0;
+					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
+					if(i==-1) break;
+					if(i == 0) {
+						uifc.pop("Writing config ...");
+						bool success = sbbsecho_write_ini(&cfg);
+						uifc.pop(NULL);
+						if(!success)
+							uifc.msg("Error saving configuration file");
 					}
 				}
 				uifc.pop("Exiting");
