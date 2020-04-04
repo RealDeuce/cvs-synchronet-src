@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.219 2019/08/31 22:23:55 rswindell Exp $ */
+/* $Id: userdat.c,v 1.223 2020/03/31 01:17:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,6 +296,8 @@ int parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 	getrec(userdat,U_LOCATION,LEN_LOCATION,user->location);
 	getrec(userdat,U_ZIPCODE,LEN_ZIPCODE,user->zipcode);
 	getrec(userdat,U_PASS,LEN_PASS,user->pass);
+	if(user->pass[0] == 0)	// Backwards compatibility hack
+		getrec(userdat, U_OLDPASS, LEN_OLDPASS, user->pass);
 	getrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	getrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	getrec(userdat,U_MODEM,LEN_MODEM,user->modem);
@@ -489,8 +491,7 @@ int is_user_online(scfg_t* cfg, uint usernumber)
 			|| node.status==NODE_LOGON) && node.useron==usernumber)
 			return i;
 	}
-	if(file >= 0)
-		close(file);
+	CLOSE_OPEN_FILE(file);
 	return 0;
 }
 
@@ -531,6 +532,7 @@ int putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_ZIPCODE+LEN_ZIPCODE,2,crlf);
 
 	putrec(userdat,U_PASS,LEN_PASS,user->pass);
+	putrec(userdat,U_OLDPASS,LEN_OLDPASS,user->pass);	// So a sysop can downgrade to a previous build/version
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
@@ -581,7 +583,7 @@ int putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_CURXTRN,8,user->curxtrn);
 	putrec(userdat,U_CURXTRN+8,2,crlf);
 
-	putrec(userdat,U_XFER_CMD+LEN_XFER_CMD,2,crlf);
+	putrec(userdat,U_PASS+LEN_PASS, 2, crlf);
 
 	putrec(userdat,U_IPADDR+LEN_IPADDR,2,crlf);
 
@@ -784,6 +786,19 @@ int opennodedat(scfg_t* cfg)
 }
 
 /****************************************************************************/
+/****************************************************************************/
+int opennodeext(scfg_t* cfg)
+{
+	char	fname[MAX_PATH+1];
+
+	if(!VALID_CFG(cfg))
+		return -1;
+
+	SAFEPRINTF(fname, "%snode.exb", cfg->ctrl_dir);
+	return nopen(fname, O_RDWR|O_DENYNONE);
+}
+
+/****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
 /* from node.dab															*/
 /****************************************************************************/
@@ -846,7 +861,8 @@ int putnodedat(scfg_t* cfg, uint number, node_t* node, BOOL closeit, int file)
 		return -1;
 	if(!VALID_CFG(cfg)
 		|| node==NULL || number<1 || number>cfg->sys_nodes) {
-		close(file);
+		if(closeit)
+			close(file);
 		return(-1);
 	}
 
@@ -944,7 +960,22 @@ static char* node_connection_desc(ushort conn, char* str)
 	return str;
 }
 
-char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
+char* getnodeext(scfg_t* cfg, int num, char* buf)
+{
+	int f;
+
+	if(!VALID_CFG(cfg) || num < 1)
+		return "";
+	if((f = opennodeext(cfg)) < 1)
+		return "";
+	lseek(f, (num-1) * 128, SEEK_SET);
+	read(f, buf, 128);
+	close(f);
+	buf[127] = 0;
+	return buf;
+}
+
+char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen, int num)
 {
 	char	str[256];
 	char	tmp[128];
@@ -990,6 +1021,10 @@ char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             break;
         case NODE_QUIET:
         case NODE_INUSE:
+			if(node->misc & NODE_EXT) {
+				getnodeext(cfg, num, str);
+				break;
+			}
             username(cfg,node->useron,str);
             strcat(str," ");
             switch(node->action) {
@@ -1165,7 +1200,7 @@ void printnodedat(scfg_t* cfg, uint number, node_t* node)
 {
 	char	status[128];
 
-	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status)));
+	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status),number));
 }
 
 /****************************************************************************/
@@ -1500,6 +1535,9 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
 			case AR_PETSCII:
+			case AR_ASCII:
+			case AR_UTF8:
+			case AR_CP437:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -1554,7 +1592,22 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				else result=!not;
 				break;
 			case AR_PETSCII:
-				if(user==NULL || !(user->misc&PETSCII))
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_PETSCII)
+					result=not;
+				else result=!not;
+				break;
+			case AR_ASCII:
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_ASCII)
+					result=not;
+				else result=!not;
+				break;
+			case AR_UTF8:
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_UTF8)
+					result=not;
+				else result=!not;
+				break;
+			case AR_CP437:
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_CP437)
 					result=not;
 				else result=!not;
 				break;
@@ -2053,6 +2106,9 @@ int getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *str)
 	for(c=0;c<length;c++)
 		if(str[c]==ETX || str[c]==CR) break;
 	str[c]=0;
+
+	if(c == 0 && start == LEN_PASS) // Backwards compatibility hack
+		return getuserrec(cfg, usernumber, U_OLDPASS, LEN_OLDPASS, str);
 
 	return(0);
 }
