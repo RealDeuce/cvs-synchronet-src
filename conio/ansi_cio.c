@@ -1,4 +1,4 @@
-/* $Id: ansi_cio.c,v 1.86 2020/04/13 18:36:21 deuce Exp $ */
+/* $Id: ansi_cio.c,v 1.85 2019/08/21 22:17:09 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -148,15 +148,6 @@ static tODKeySequence ODaKeySequences[] =
    {"\033[21~", ANSI_KEY_F10},
    {"\033[23~", ANSI_KEY_F11},
    {"\033[24~", ANSI_KEY_F12},
-
-   /* XTerm specific control sequences */
-   {"\033[15~", ANSI_KEY_F5},
-
-   /* Old, deprecated XTerm specific control sequences */
-   {"\033[11~", ANSI_KEY_F1},
-   {"\033[12~", ANSI_KEY_F2},
-   {"\033[13~", ANSI_KEY_F3},
-   {"\033[14~", ANSI_KEY_F4},
 
    /* ANSI-specific control sequences. */
    {"\033[L", ANSI_KEY_HOME},
