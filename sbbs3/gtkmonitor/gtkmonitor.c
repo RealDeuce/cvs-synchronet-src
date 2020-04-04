@@ -221,7 +221,7 @@ int refresh_data(gpointer data)
 		if((j=getnodedat(&cfg,i,&node,FALSE,NULL)))
 			sprintf(str,"Error reading node data (%d)!",j);
 		else
-			nodestatus(&cfg,&node,str,1023);
+			nodestatus(&cfg,&node,str,1023, i);
 		gtk_list_store_set(store, &curr, 1, str, -1);
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &curr);
 	}
@@ -441,15 +441,11 @@ gtk_widget_set_sensitive(w, TRUE);
 int read_config(void)
 {
 	char	ctrl_dir[MAX_PATH+1];
-	char	*p;
 
-	p=getenv("SBBSCTRL");
-	if(p==NULL)
-		p="/sbbs/ctrl";
-	SAFECOPY(ctrl_dir, p);
+	SAFECOPY(ctrl_dir, get_ctrl_dir());
 	prep_dir("",ctrl_dir,sizeof(ctrl_dir));
 	if(!isdir(ctrl_dir)) {
-		display_message("Environment Errpr","SBBSCTRL does not point to a directory","gtk-dialog-error");
+		display_message("Environment Error","SBBSCTRL does not point to a directory","gtk-dialog-error");
 		return(-1);
 	}
     memset(&cfg,0,sizeof(cfg));

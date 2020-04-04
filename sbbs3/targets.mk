@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.50 2019/08/20 23:30:34 deuce Exp $
+# $Id: targets.mk,v 1.51 2020/03/23 00:02:04 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -99,6 +99,12 @@ symlinks: all
 	ln -sfr scfg/$(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr uedit/$(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
+endif
+
+ifeq ($(os),linux)
+.PHONY: setcap
+setcap: all
+	sudo setcap 'cap_net_bind_service=+ep' $(EXEODIR)/sbbs
 endif
 
 .PHONY: sexyz
