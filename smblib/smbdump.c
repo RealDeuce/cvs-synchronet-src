@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.17 2020/04/04 22:11:14 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.16 2020/03/19 05:33:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -113,7 +113,6 @@ str_list_t SMBCALL smb_msghdr_str_list(smbmsg_t* msg)
 	strListAppendFormat(&list, HFIELD_NAME_FMT "%08"PRIX32"h"	,"auxattr"			,msg->hdr.auxattr);
 	strListAppendFormat(&list, HFIELD_NAME_FMT "%08"PRIX32"h"	,"netattr"			,msg->hdr.netattr);
 	strListAppendFormat(&list, HFIELD_NAME_FMT "%06"PRIX32"h"	,"header_offset"	,msg->idx.offset);
-	strListAppendFormat(&list, HFIELD_NAME_FMT "%hu"            ,"header_fields"    ,msg->total_hfields);
 	strListAppendFormat(&list, HFIELD_NAME_FMT "%u (calc: %lu)"	,"header_length"	,msg->hdr.length, smb_getmsghdrlen(msg));
 	strListAppendFormat(&list, HFIELD_NAME_FMT "%"PRId32		,"number"			,msg->hdr.number);
 
