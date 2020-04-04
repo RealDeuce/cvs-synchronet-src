@@ -1,6 +1,6 @@
 /* Synchronet message to QWK format conversion routine */
 
-/* $Id: msgtoqwk.cpp,v 1.58 2019/07/25 10:56:59 rswindell Exp $ */
+/* $Id: msgtoqwk.cpp,v 1.67 2019/09/10 05:48:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,8 @@
 
 #include "sbbs.h"
 #include "qwk.h"
+#include "utf8.h"
+#include "cp437defs.h"
 
 #define MAX_MSGNUM	0x7FFFFFUL	// only 7 (decimal) digits allowed for msg num 
 
@@ -46,8 +48,10 @@
 ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 	, int conf, FILE* hdrs, FILE* voting)
 {
-	char	str[512],from[512],to[512],ch=0,tear=0,tearwatch=0,*buf,*p;
-	char	asc;
+	char	str[512],ch=0,tear=0,tearwatch=0,*buf,*p;
+	char	to[512] = "";
+	char	from[512] = "";
+	char	subj[512] = "";
 	char	msgid[256];
 	char	reply_id[256];
 	char 	tmp[512];
@@ -61,6 +65,13 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 
 	get_msgid(&cfg, subnum, msg, msgid, sizeof(msgid));
 	offset=(long)ftell(qwk_fp);
+
+	if(msg->to != NULL)
+		SAFECOPY(to, msghdr_field(msg, msg->to, NULL, mode&QM_UTF8));
+	if(msg->from != NULL)
+		SAFECOPY(from, msghdr_field(msg, msg->from, NULL, mode&QM_UTF8));
+	if(msg->subj != NULL)
+	  	SAFECOPY(subj, msghdr_field(msg, msg->subj, NULL, mode&QM_UTF8));
 
 	if(msg->hdr.type != SMB_MSG_TYPE_NORMAL) {
 		if(voting == NULL)
@@ -79,6 +90,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			unsigned comments = 0;
 			unsigned answers = 0;
 			fprintf(voting, "[poll:%s]\n", msgid);
+			fprintf(voting , "Utf8 = %s\n"
+				,((msg->hdr.auxattr & MSG_HFIELDS_UTF8) && (mode&QM_UTF8)) ? "true" : "false");
 			if(msg->hdr.votes)
 				fprintf(voting, "MaxVotes = %hd\n", msg->hdr.votes);
 			if(msg->hdr.auxattr&POLL_RESULTS_MASK)
@@ -95,8 +108,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			fprintf(voting, "[close:%s]\n", msgid);
 			break;
 		}
-		if(msg->subj && *msg->subj)
-			fprintf(voting, "%s: %s\n",smb_hfieldtype(SUBJECT), msg->subj);
+		if(subj[0])
+			fprintf(voting, "%s: %s\n",smb_hfieldtype(SUBJECT), subj);
 		if((p = get_replyid(&cfg, smb, msg, reply_id, sizeof(reply_id))) != NULL)
 			fprintf(voting, "%s: %s\n", smb_hfieldtype(RFC822REPLYID), p);
 		/* Time/Date/Zone info */
@@ -109,7 +122,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			);
 
 		/* SENDER */
-		fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDER), msg->from);
+		fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDER), from);
 		if(msg->from_net.type)
 			fprintf(voting, "%s: %s\n", smb_hfieldtype(SENDERNETADDR), smb_netaddrstr(&msg->from_net, tmp));
 		fprintf(voting, "Conference: %u\n", conf);
@@ -117,6 +130,10 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 	}
 	else if(hdrs!=NULL) {
 		fprintf(hdrs,"[%lx]\n",offset);
+
+		fprintf(hdrs,"Utf8 = %s\n"
+			,((smb_msg_is_utf8(msg) || (msg->hdr.auxattr & MSG_HFIELDS_UTF8)) && (mode&QM_UTF8))
+				? "true" : "false");
 
 		/* Message-IDs */
 		fprintf(hdrs,"%s: %s\n", smb_hfieldtype(RFC822MSGID), msgid);
@@ -152,7 +169,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			);
 
 		/* SENDER */
-		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(SENDER),msg->from);
+		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(SENDER), from);
 		if(msg->from_net.type)
 			fprintf(hdrs,"%s: %s\n",smb_hfieldtype(SENDERNETADDR),smb_netaddrstr(&msg->from_net,tmp));
 		if((p=(char*)smb_get_hfield(msg,hfield_type=SENDERIPADDR,NULL))!=NULL)
@@ -177,10 +194,10 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			fprintf(hdrs,"Reply-To: %s\n",p);	/* use original RFC822 header field */
 
 		/* SUBJECT */
-		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(SUBJECT),msg->subj);
+		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(SUBJECT), subj);
 
 		/* RECIPIENT */
-		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENT),msg->to);
+		fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENT), to);
 		if(msg->to_net.type!=NET_NONE && subnum==INVALID_SUB)
 			fprintf(hdrs,"%s: %s\n",smb_hfieldtype(RECIPIENTNETADDR),smb_netaddrstr(&msg->to_net,tmp));
 
@@ -229,6 +246,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			if(msg->hfield[i].type==RFC822HEADER)
 				fprintf(hdrs,"%s\n",truncsp_lines((char*)msg->hfield_dat[i]));
 
+		fprintf(hdrs, "Conference: %u\n", conf);
+
 		/* Blank line: */
 		fprintf(hdrs,"\n");
 	}
@@ -241,13 +260,14 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		return(0);
 
 	char qwk_newline = QWK_NEWLINE;
-	if(smb_msg_is_utf8(msg))
-		qwk_newline = '\n';
+	if(smb_msg_is_utf8(msg) || (msg->hdr.auxattr & MSG_HFIELDS_UTF8)) {
+		if(mode&QM_UTF8)
+			qwk_newline = '\n';
+		else
+			utf8_to_cp437_str(buf);
+	}
 
 	fprintf(qwk_fp,"%*s",QWK_BLOCK_LEN,"");		/* Init header to space */
-
-	SAFECOPY(from,msg->from);
-	SAFECOPY(to,msg->to);
 
 	if(msg->hdr.type == SMB_MSG_TYPE_NORMAL) {
 		/* QWKE compatible kludges */
@@ -296,8 +316,8 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			else
 				SAFECOPY(to,msg->to); 
 		}
-		if((mode&QM_EXT) && strlen(msg->subj) > QWK_HFIELD_LEN)
-			size+=fprintf(qwk_fp,"Subject: %.128s%c", msg->subj, qwk_newline);
+		if((mode&QM_EXT) && strlen(subj) > QWK_HFIELD_LEN)
+			size+=fprintf(qwk_fp,"Subject: %.128s%c", subj, qwk_newline);
 
 		if(msg->from_net.type==NET_QWK && mode&QM_VIA && !msg->forwarded)
 			size+=fprintf(qwk_fp,"@VIA: %s%c"
@@ -399,11 +419,6 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 				ch=buf[++l];
 				if(ch==0 || ch=='Z')	/* EOF */
 					break;
-				if((asc=ctrl_a_to_ascii_char(ch)) != 0) {
-					fputc(asc,qwk_fp);
-					size++;
-					continue;
-				}
 				if(mode&QM_EXPCTLA) {
 					str[0]=0;
 					switch(toupper(ch)) {
@@ -471,7 +486,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 						size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
 					continue; 
 				} 						/* End Expand */
-				if(mode&QM_RETCTLA && valid_ctrl_a_code(ch)) {
+				if(mode&QM_RETCTLA && valid_ctrl_a_attr(ch)) {
 					fputc(CTRL_A,qwk_fp);
 					fputc(ch,qwk_fp);
 					size+=2L; 
@@ -494,10 +509,15 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 			else
 				SAFECOPY(str,"\1n");
 			if(cfg.sub[subnum]->misc&SUB_ASCII) ch='*';
-			else ch='þ';
+			else ch = CP437_BLACK_SQUARE;
 			safe_snprintf(tmp,sizeof(tmp)," %c \1g%.10s\1n %c %.127s%c"
 				,ch,VERSION_NOTICE,ch,cfg.sub[subnum]->tagline,qwk_newline);
-			strcat(str,tmp);
+			char* tail = tmp;
+			if((smb_msg_is_utf8(msg) || (msg->hdr.auxattr & MSG_HFIELDS_UTF8)) && (mode&QM_UTF8)) {
+				if(cp437_to_utf8_str(tmp, msghdr_utf8_text, sizeof(msghdr_utf8_text), /* min-char-val: */'\x80') > 1)
+					tail = msghdr_utf8_text;
+			}
+			strcat(str, tail);
 			if(!(mode&QM_RETCTLA))
 				remove_ctrl_a(str,str);
 			size+=fwrite(str,sizeof(char),strlen(str),qwk_fp);
@@ -539,7 +559,7 @@ ulong sbbs_t::msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t* smb
 		,tmp					/* date and time */
 		,to 					/* To: */
 		,from					/* From: */
-		,msg->subj              /* Subject */
+		,subj					/* Subject */
 		,nulstr                 /* Password */
 		,msg->hdr.thread_back&MAX_MSGNUM   /* Message Re: Number */
 		,(size/QWK_BLOCK_LEN)+1	/* Number of blocks */
