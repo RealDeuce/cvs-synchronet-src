@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.96 2020/03/24 06:22:12 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.97 2020/04/02 19:19:52 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -829,10 +829,10 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.96 $", "%*s %s", revision);
+	sscanf("$Revision: 1.97 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
-		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
+		"Rob Swindell\n",revision,PLATFORM_DESC,&__DATE__[7]);
 
 	SAFECOPY(ctrl_dir, get_ctrl_dir());
 	backslash(ctrl_dir);
