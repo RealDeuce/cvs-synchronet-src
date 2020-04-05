@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.712 2020/04/05 21:15:21 deuce Exp $ */
+/* $Id: websrvr.c,v 1.713 2020/04/05 22:12:21 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1293,8 +1293,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 		if (session->req.send_location) {
 			ret=-1;
-			session->req.send_content = FALSE;
-			send_entity = FALSE;
 			switch (session->req.send_location) {
 				case MOVED_PERM:
 					status_line=error_301;
@@ -6745,7 +6743,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.712 $", "%*s %s", revision);
+	sscanf("$Revision: 1.713 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
