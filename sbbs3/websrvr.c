@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.709 2020/04/05 08:04:47 deuce Exp $ */
+/* $Id: websrvr.c,v 1.710 2020/04/05 10:01:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4116,7 +4116,8 @@ static int fastcgi_read(void *arg, char *buf, size_t sz)
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
 	if (cd->body == NULL) {
-		cd->body = fastcgi_read_body(cd->sock);
+		if (cd->header.type != 0)
+			cd->body = fastcgi_read_body(cd->sock);
 		if (cd->body == NULL)
 			return -1;
 	}
@@ -4147,7 +4148,8 @@ static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, si
 	outpos = 0;
 
 	if (cd->body == NULL) {
-		cd->body = fastcgi_read_body(cd->sock);
+		if (cd->header.type != 0)
+			cd->body = fastcgi_read_body(cd->sock);
 		if (cd->body == NULL)
 			return -1;
 	}
@@ -6732,7 +6734,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.709 $", "%*s %s", revision);
+	sscanf("$Revision: 1.710 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
