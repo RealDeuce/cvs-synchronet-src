@@ -77,9 +77,7 @@ void refresh_events(void)
     /* Read .cfg files here */
 	free_cfg(&cfg);
     if(!load_cfg(&cfg, NULL, TRUE, str)) {
-		char error[256];
-		SAFEPRINTF(error, "ERROR Loading Configuration Files: %s", str);
-		display_message("Load Error",error,"gtk-dialog-error");
+		display_message("Load Error","Cannot load configuration data","gtk-dialog-error");
         return;
 	}
 
