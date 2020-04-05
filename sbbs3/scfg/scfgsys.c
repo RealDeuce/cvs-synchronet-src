@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.61 2020/04/21 22:56:50 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.57 2020/03/31 08:29:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,19 +75,6 @@ void sys_cfg(void)
 	static int sys_dflt,adv_dflt,tog_dflt,new_dflt;
 	char str[81],done=0;
 	int i,j,k,dflt,bar;
-	char sys_pass[sizeof(cfg.sys_pass)];
-	SAFECOPY(sys_pass, cfg.sys_pass);
-	char* cryptlib_syspass_helpbuf =
-		"`Changing the System Password requires new Cryptlib key and certificate:`\n"
-		"\n"
-		"The Cryptlib private key (`cryptlib.key`) and TLS certificate (`ssl.cert`)\n"
-		"files, located in the Synchronet `ctrl` directory, are encrypted with the\n"
-		"current `System Password`.\n"
-		"\n"
-		"Changing the System Password will require that the Cryptlib Private Key\n"
-		"and Certificate files be regenerated.  The Cryptlib key and certificate\n"
-		"regeneration should occur automatically after the files are deleted and\n"
-		"the Synchronet servers are recycled.";
 
 	while(1) {
 		i=0;
@@ -138,16 +125,6 @@ void sys_cfg(void)
 					break;
 				if(!i) {
 					cfg.new_install=new_install;
-					if(strcmp(sys_pass, cfg.sys_pass) != 0) {
-						uifc.helpbuf = cryptlib_syspass_helpbuf;
-						if((fexist("ssl.cert") || fexist("cryptlib.key"))
-							&& uifc.confirm("System Password Changed. Delete Cryptlib Key and Certificate?")) {
-							if(remove("ssl.cert") != 0)
-								uifc.msgf("Error %d removing ssl.cert", errno);
-							if(remove("cryptlib.key") != 0)
-								uifc.msgf("Error %d removing cryptlib.key", errno);
-						}
-					}
 					save_main_cfg(&cfg,backup_level);
 					refresh_cfg(&cfg);
 				}
@@ -396,9 +373,6 @@ void sys_cfg(void)
 				uifc.input(WIN_MID,0,0,"System Operator",cfg.sys_op,sizeof(cfg.sys_op)-1,K_EDIT);
 				break;
 			case 4:
-				uifc.helpbuf=cryptlib_syspass_helpbuf;
-				if(uifc.deny("Changing SysPass requires new Cryptlib key/cert. Continue?"))
-					break;
 				uifc.helpbuf=
 					"`System Password:`\n"
 					"\n"
@@ -502,7 +476,7 @@ void sys_cfg(void)
 				done=0;
 				while(!done) {
 					i=0;
-					sprintf(opt[i++],"%-33.33s%s","Allow User Aliases"
+					sprintf(opt[i++],"%-33.33s%s","Allow Aliases"
 						,cfg.uq&UQ_ALIASES ? "Yes" : "No");
 					sprintf(opt[i++],"%-33.33s%s","Allow Time Banking"
 						,cfg.sys_misc&SM_TIMEBANK ? "Yes" : "No");
@@ -1631,15 +1605,11 @@ void sys_cfg(void)
 					sprintf(opt[i++],"%-16.16s%s","Logout",cfg.logout_mod);
 					sprintf(opt[i++],"%-16.16s%s","New User",cfg.newuser_mod);
 					sprintf(opt[i++],"%-16.16s%s","Expired User",cfg.expire_mod);
-					sprintf(opt[i++],"%-16.16s%s","Auto Message",cfg.automsg_mod);
 					sprintf(opt[i++],"%-16.16s%s","Text Section",cfg.textsec_mod);
 					sprintf(opt[i++],"%-16.16s%s","Read Mail",cfg.readmail_mod);
 					sprintf(opt[i++],"%-16.16s%s","Scan Msgs",cfg.scanposts_mod);
 					sprintf(opt[i++],"%-16.16s%s","Scan Subs",cfg.scansubs_mod);
 					sprintf(opt[i++],"%-16.16s%s","List Msgs",cfg.listmsgs_mod);
-					sprintf(opt[i++],"%-16.16s%s","List Nodes",cfg.nodelist_mod);
-					sprintf(opt[i++],"%-16.16s%s","Who's Online",cfg.whosonline_mod);
-					sprintf(opt[i++],"%-16.16s%s","Private Msg",cfg.privatemsg_mod);
 					opt[i][0]=0;
 					uifc.helpbuf=
 						"`Loadable Modules:`\n"
@@ -1656,7 +1626,6 @@ void sys_cfg(void)
 						"`Logout`       Executed during terminal logout procedure (offline)\n"
 						"`New User`     Executed at end of new terminal user creation process\n"
 						"`Expired User` Executed during daily event when user expires (offline)\n"
-						"`Auto Message` Executed when a user chooses to edit the auto-message\n"
 						"`Text Section` Executed to handle general text file (viewing) section\n"
 						"\n"
 						"Full module command-lines may be used for the operations listed below:\n"
@@ -1664,10 +1633,7 @@ void sys_cfg(void)
 						"`Read Mail`    Executed when a user reads email/netmail\n"
 						"`Scan Msgs`    Executed when a user reads or scans a message sub-board\n"
 						"`Scan Subs`    Executed when a user scans one or more sub-boards for msgs\n"
-						"`List Msgs`    Executed when a user lists msgs from the msg read prompt\n"
-						"`List Nodes`   Executed when a user lists all nodes\n"
-						"`Who's Online` Executed when a user lists the nodes in-use (e.g. `^U`)\n"
-						"`Private Msg`  Executed when a user sends a private node msg (e.g. `^P`)\n"
+						"`List Msgs`    Executed when a user list msgs from the msg read prompt\n"
 						"\n"
 						"`Note:` JavaScript modules take precedence over Baja modules if both exist\n"
 						"in your `exec` or `mods` directories.\n"
@@ -1708,40 +1674,24 @@ void sys_cfg(void)
 								,cfg.expire_mod,sizeof(cfg.expire_mod)-1,K_EDIT);
 							break;
 						case 7:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Auto Message Module"
-								,cfg.automsg_mod,sizeof(cfg.automsg_mod)-1,K_EDIT);
-							break;
-						case 8:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Text File Section Module"
 								,cfg.textsec_mod,sizeof(cfg.textsec_mod)-1,K_EDIT);
 							break;
-						case 9:
+						case 8:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Read Mail Command"
 								,cfg.readmail_mod,sizeof(cfg.readmail_mod)-1,K_EDIT);
 							break;
-						case 10:
+						case 9:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Msgs Command"
 								,cfg.scanposts_mod,sizeof(cfg.scanposts_mod)-1,K_EDIT);
 							break;
-						case 11:
+						case 10:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"Scan Subs Command"
 								,cfg.scansubs_mod,sizeof(cfg.scansubs_mod)-1,K_EDIT);
 							break;
-						case 12:
+						case 11:
 							uifc.input(WIN_MID|WIN_SAV,0,0,"List Msgs Command"
 								,cfg.listmsgs_mod,sizeof(cfg.listmsgs_mod)-1,K_EDIT);
-							break;
-						case 13:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"List Nodes Command"
-								,cfg.nodelist_mod,sizeof(cfg.nodelist_mod)-1,K_EDIT);
-							break;
-						case 14:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Who's Online Command"
-								,cfg.whosonline_mod,sizeof(cfg.whosonline_mod)-1,K_EDIT);
-							break;
-						case 15:
-							uifc.input(WIN_MID|WIN_SAV,0,0,"Private Message Command"
-								,cfg.privatemsg_mod,sizeof(cfg.privatemsg_mod)-1,K_EDIT);
 							break;
 					} 
 				}
