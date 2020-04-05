@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.715 2020/04/13 23:21:38 deuce Exp $ */
+/* $Id: websrvr.c,v 1.710 2020/04/05 10:01:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -95,7 +95,6 @@ static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
 static const char*	unknown=STR_UNKNOWN_USER;
-static char*		text[TOTAL_TEXT];
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -1294,6 +1293,8 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 		if (session->req.send_location) {
 			ret=-1;
+			session->req.send_content = FALSE;
+			send_entity = FALSE;
 			switch (session->req.send_location) {
 				case MOVED_PERM:
 					status_line=error_301;
@@ -4010,7 +4011,6 @@ struct fastcgi_data {
 	struct fastcgi_header header;
 	struct fastcgi_body *body;
 	size_t used;
-	int request_ended;
 };
 
 static struct fastcgi_body * fastcgi_read_body(SOCKET sock)
@@ -4047,8 +4047,6 @@ static int fastcgi_read_wait_timeout(void *arg)
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 	struct fastcgi_body *body;
 
-	if (cd->request_ended)
-		return CGI_PROCESS_TERMINATED;
 	switch (cd->header.type) {
 		case FCGI_STDOUT:
 			return CGI_OUTPUT_READY;
@@ -4081,7 +4079,6 @@ static int fastcgi_read_wait_timeout(void *arg)
 					break;
 				case FCGI_END_REQUEST:
 					ret |= CGI_PROCESS_TERMINATED;
-					cd->request_ended = 1;
 					// Fall-through
 				case FCGI_BEGIN_REQUEST:
 				case FCGI_ABORT_REQUEST:
@@ -4118,8 +4115,6 @@ static int fastcgi_read(void *arg, char *buf, size_t sz)
 {
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
-	if (cd->request_ended)
-		return -1;
 	if (cd->body == NULL) {
 		if (cd->header.type != 0)
 			cd->body = fastcgi_read_body(cd->sock);
@@ -4152,8 +4147,6 @@ static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, si
 
 	outpos = 0;
 
-	if (cd->request_ended)
-		return -1;
 	if (cd->body == NULL) {
 		if (cd->header.type != 0)
 			cd->body = fastcgi_read_body(cd->sock);
@@ -4211,8 +4204,6 @@ static int fastcgi_done_wait(void *arg)
 {
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
-	if (cd->request_ended)
-		return 1;
 	return (!socket_check(cd->sock, NULL, NULL, /* timeout: */0));
 }
 
@@ -4661,7 +4652,6 @@ static BOOL exec_fastcgi(http_session_t *session)
 	// TODO handle stdin better
 	memset(&cd, 0, sizeof(cd));
 	cd.sock = sock;
-	cd.request_ended = 0;
 	fastcgi_write_in(&cd, session->req.post_data, session->req.post_len);
 	msg->head.len = 0;
 	msg->head.type = FCGI_STDIN;
@@ -6286,27 +6276,7 @@ void http_output_thread(void *arg)
 		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, (char*)&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
-#ifdef _WIN32
-#ifdef TCP_TIMESTAMPS
-				DWORD ts;
-				sl = sizeof(ts);
-				if (!getsockopt(session->socket, IPPROTO_TCP, TCP_TIMESTAMPS, (char *)&ts, &sl)) {
-					if (ts)
-						i -= 12;
-				}
-#endif
-#else
-#if (defined(TCP_INFO) && defined(TCPI_OPT_TIMESTAMPS))
-				struct tcp_info tcpi;
-
-				sl = sizeof(tcpi);
-				if (!getsockopt(session->socket, IPPROTO_TCP, TCP_INFO,&tcpi, &sl)) {
-					if (tcpi.tcpi_options & TCPI_OPT_TIMESTAMPS)
-						i -= 12;
-				}
-#endif
-#endif
-				obuf->highwater_mark=i;
+				obuf->highwater_mark=i-12;
 				lprintf(LOG_DEBUG,"%04d Autotuning outbuf highwater mark to %d based on MSS"
 					,session->socket,i);
 				mss=obuf->highwater_mark;
@@ -6764,7 +6734,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.715 $", "%*s %s", revision);
+	sscanf("$Revision: 1.710 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -7011,7 +6981,7 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(logstr,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, text, TRUE, logstr)) {
+		if(!load_cfg(&scfg, NULL, TRUE, logstr)) {
 			lprintf(LOG_CRIT,"!ERROR %s",logstr);
 			lprintf(LOG_CRIT,"!FAILED to load configuration files");
 			cleanup(1);
