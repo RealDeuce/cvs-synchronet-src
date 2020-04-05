@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.711 2020/04/05 20:29:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.712 2020/04/05 21:15:21 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4082,7 +4082,7 @@ static int fastcgi_read_wait_timeout(void *arg)
 					break;
 				case FCGI_END_REQUEST:
 					ret |= CGI_PROCESS_TERMINATED;
-					cd.request_ended = 1;
+					cd->request_ended = 1;
 					// Fall-through
 				case FCGI_BEGIN_REQUEST:
 				case FCGI_ABORT_REQUEST:
@@ -6745,7 +6745,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.711 $", "%*s %s", revision);
+	sscanf("$Revision: 1.712 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
