@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.713 2020/04/05 22:12:21 deuce Exp $ */
+/* $Id: websrvr.c,v 1.710 2020/04/05 10:01:23 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1293,6 +1293,8 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 		if (session->req.send_location) {
 			ret=-1;
+			session->req.send_content = FALSE;
+			send_entity = FALSE;
 			switch (session->req.send_location) {
 				case MOVED_PERM:
 					status_line=error_301;
@@ -4009,7 +4011,6 @@ struct fastcgi_data {
 	struct fastcgi_header header;
 	struct fastcgi_body *body;
 	size_t used;
-	int request_ended;
 };
 
 static struct fastcgi_body * fastcgi_read_body(SOCKET sock)
@@ -4046,8 +4047,6 @@ static int fastcgi_read_wait_timeout(void *arg)
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 	struct fastcgi_body *body;
 
-	if (cd->request_ended)
-		return CGI_PROCESS_TERMINATED;
 	switch (cd->header.type) {
 		case FCGI_STDOUT:
 			return CGI_OUTPUT_READY;
@@ -4080,7 +4079,6 @@ static int fastcgi_read_wait_timeout(void *arg)
 					break;
 				case FCGI_END_REQUEST:
 					ret |= CGI_PROCESS_TERMINATED;
-					cd->request_ended = 1;
 					// Fall-through
 				case FCGI_BEGIN_REQUEST:
 				case FCGI_ABORT_REQUEST:
@@ -4117,8 +4115,6 @@ static int fastcgi_read(void *arg, char *buf, size_t sz)
 {
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
-	if (cd->request_ended)
-		return -1;
 	if (cd->body == NULL) {
 		if (cd->header.type != 0)
 			cd->body = fastcgi_read_body(cd->sock);
@@ -4151,8 +4147,6 @@ static int fastcgi_readln_out(void *arg, char *buf, size_t bufsz, char *fbuf, si
 
 	outpos = 0;
 
-	if (cd->request_ended)
-		return -1;
 	if (cd->body == NULL) {
 		if (cd->header.type != 0)
 			cd->body = fastcgi_read_body(cd->sock);
@@ -4210,8 +4204,6 @@ static int fastcgi_done_wait(void *arg)
 {
 	struct fastcgi_data *cd = (struct fastcgi_data *)arg;
 
-	if (cd->request_ended)
-		return 1;
 	return (!socket_check(cd->sock, NULL, NULL, /* timeout: */0));
 }
 
@@ -4660,7 +4652,6 @@ static BOOL exec_fastcgi(http_session_t *session)
 	// TODO handle stdin better
 	memset(&cd, 0, sizeof(cd));
 	cd.sock = sock;
-	cd.request_ended = 0;
 	fastcgi_write_in(&cd, session->req.post_data, session->req.post_len);
 	msg->head.len = 0;
 	msg->head.type = FCGI_STDIN;
@@ -6743,7 +6734,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.713 $", "%*s %s", revision);
+	sscanf("$Revision: 1.710 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
