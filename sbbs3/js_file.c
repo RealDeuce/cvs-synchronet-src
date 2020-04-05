@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.192 2020/04/07 01:31:21 rswindell Exp $ */
+/* $Id: js_file.c,v 1.190 2020/04/03 07:47:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -313,7 +313,7 @@ js_raw_pollin(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&timeout))
 			return(JS_FALSE);
 	}
@@ -380,7 +380,7 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	} else
@@ -393,7 +393,6 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len = read(fileno(p->fp),buf,len);
-	dbprintf(FALSE, p, "read %u raw bytes",len);
 	if(len<0)
 		len=0;
 
@@ -406,6 +405,10 @@ js_raw_read(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+
+	rc=JS_SUSPENDREQUEST(cx);
+	dbprintf(FALSE, p, "read %u raw bytes",len);
+	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
@@ -435,7 +438,7 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	} else {
@@ -454,7 +457,6 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	rc=JS_SUSPENDREQUEST(cx);
 	len = fread(buf,1,len,p->fp);
-	dbprintf(FALSE, p, "read %u bytes",len);
 	if(len<0)
 		len=0;
 	buf[len]=0;
@@ -499,6 +501,10 @@ js_read(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
 
+	rc=JS_SUSPENDREQUEST(cx);
+	dbprintf(FALSE, p, "read %u bytes",len);
+	JS_RESUMEREQUEST(cx, rc);
+
 	return(JS_TRUE);
 }
 
@@ -523,7 +529,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	}
@@ -581,10 +587,10 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&size))
 			return(JS_FALSE);
-		if(argc>1 && !JSVAL_NULL_OR_VOID(argv[1])) {
+		if(argc>1) {
 			if(!JS_ValueToInt32(cx,argv[1],&count))
 				return(JS_FALSE);
 		}
@@ -1673,7 +1679,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_RESUMEREQUEST(cx, rc);
 	tlen=len;
-	if(argc>1 && !JSVAL_NULL_OR_VOID(argv[1])) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&i)) {
 			free(cp);
 			return(JS_FALSE);
@@ -1779,16 +1785,11 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	union {
-		uint8_t		*b;
-		uint16_t	*w;
-		uint32_t	*l;
-		int8_t		*sb;
-		int16_t		*sw;
-		int32_t		*sl;
-	} o;
+	BYTE		*b;
+	WORD		*w;
+	DWORD		*l;
 	size_t		wr=0;
-	int32		size=sizeof(int32_t);
+	int32		size=sizeof(DWORD);
 	jsuint		count=1;
 	void		*buffer;
 	private_t*	p;
@@ -1819,7 +1820,7 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 		if(!JS_ValueToNumber(cx,argv[0],&val))
 			return(JS_FALSE);
 	}
-	if(argc>1 && !JSVAL_NULL_OR_VOID(argv[1])) {
+	if(argc>1) {
 		if(!JS_ValueToInt32(cx,argv[1],&size))
 			return(JS_FALSE);
 	}
@@ -1836,34 +1837,27 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_FALSE);
 	}
-	o.b=buffer;
+	b=buffer;
+	w=buffer;
+	l=buffer;
 	if(array==NULL) {
 		switch(size) {
-			case sizeof(int8_t):
-				if(val < 0)
-					*o.sb=(int8_t)val;
-				else
-					*o.b=(uint8_t)val;
+			case sizeof(BYTE):
+				*b=(BYTE)val;
 				break;
-			case sizeof(int16_t):
-				if(val < 0)
-					*o.sw=(int16_t)val;
-				else
-					*o.w=(uint16_t)val;
+			case sizeof(WORD):
+				*w=(WORD)val;
 				if (p->network_byte_order)
-					*o.w = BE_SHORT(*o.w);
+					*w = BE_SHORT(*w);
 				else
-					*o.w = LE_SHORT(*o.w);
+					*w = LE_SHORT(*w);
 				break;
-			case sizeof(int32_t):
-				if(val < 0)
-					*o.sl=(int32_t)val;
-				else
-					*o.l=(uint32_t)val;
+			case sizeof(DWORD):
+				*l=(DWORD)val;
 				if (p->network_byte_order)
-					*o.l = BE_LONG(*o.l);
+					*l = BE_LONG(*l);
 				else
-					*o.l = LE_LONG(*o.l);
+					*l = LE_LONG(*l);
 				break;
 		}
 	}
@@ -1874,34 +1868,24 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToNumber(cx,elemval,&val))
 				goto end;
 			switch(size) {
-				case sizeof(int8_t):
-					if(val < 0)
-						*o.sb=(int8_t)val;
-					else
-						*o.b=(uint8_t)val;
-					o.b++;
+				case sizeof(BYTE):
+					*(b++)=(BYTE)val;
 					break;
-				case sizeof(int16_t):
-					if(val < 0)
-						*o.sw=(int16_t)val;
-					else
-						*o.w=(uint16_t)val;
+				case sizeof(WORD):
+					*(w)=(WORD)val;
 					if (p->network_byte_order)
-						*o.w = BE_SHORT(*o.w);
+						*w = BE_SHORT(*w);
 					else
-						*o.w = LE_SHORT(*o.w);
-					o.w++;
+						*w = LE_SHORT(*w);
+					w++;
 					break;
-				case sizeof(int32_t):
-					if(val < 0)
-						*o.sl=(int32_t)val;
-					else
-						*o.l=(uint32_t)val;
+				case sizeof(DWORD):
+					*(l)=(DWORD)val;
 					if (p->network_byte_order)
-						*o.l = BE_LONG(*o.l);
+						*l = BE_LONG(*l);
 					else
-						*o.l = LE_LONG(*o.l);
-					o.l++;
+						*l = LE_LONG(*l);
+					l++;
 					break;
 			}
 		}
@@ -2142,7 +2126,7 @@ js_truncate(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 	}
 
-	if(argc && !JSVAL_NULL_OR_VOID(argv[0])) {
+	if(argc) {
 		if(!JS_ValueToInt32(cx,argv[0],&len))
 			return(JS_FALSE);
 	}
