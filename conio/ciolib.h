@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.110 2020/04/02 22:59:27 deuce Exp $ */
+/* $Id: ciolib.h,v 1.111 2020/04/03 00:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -379,6 +379,7 @@ CIOLIBEXPORTVAR int ciolib_xlat;
 #define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
 
 CIOLIBEXPORTVAR int ciolib_reaper;
+CIOLIBEXPORTVAR char *ciolib_appname;
 
 #define _conio_kbhit()		kbhit()
 

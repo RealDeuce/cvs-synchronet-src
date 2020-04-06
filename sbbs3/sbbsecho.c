@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.153 2020/03/24 00:55:05 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.156 2020/04/03 22:20:23 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1558,8 +1558,13 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		if((fp=tmpfile())==NULL) {
 			lprintf(LOG_ERR,"ERROR line %d couldn't open tmpfile",__LINE__);
 		} else {
+			int longest = 0;
+			for(u = 0; area_list[u] != NULL; u++) {
+				int len = strlen(area_list[u]);
+				if(len > longest) longest = len;
+			}
 			for(u = 0; area_list[u] != NULL; u++)
-				fprintf(fp, "%-*s %s\r\n", FIDO_AREATAG_LEN, area_list[u], area_desc(area_list[u]));
+				fprintf(fp, "%-*s %s\r\n", longest, area_list[u], area_desc(area_list[u]));
 			file_to_netmail(fp,title,addr,to);
 			fclose(fp);
 		}
@@ -1966,8 +1971,7 @@ bool alter_config(nodecfg_t* nodecfg, const char* key, const char* value)
 	SAFEPRINTF2(section, "node:%s@%s", smb_faddrtoa(&nodecfg->addr,NULL), nodecfg->domain);
 	if(!iniSectionExists(ini, section))
 		SAFEPRINTF(section, "node:%s", smb_faddrtoa(&nodecfg->addr,NULL));
-	ini_style_t style = {  .key_prefix = "\t", .value_separator = " = " };
-	iniSetString(&ini, section, key, value, &style);
+	iniSetString(&ini, section, key, value, &sbbsecho_ini_style);
 	iniWriteFile(fp, ini);
 	iniCloseFile(fp);
 	iniFreeStringList(ini);
@@ -3009,11 +3013,16 @@ void cleanup(void)
 		if(fp == NULL) {
 			lprintf(LOG_ERR, "ERROR %d (%s) opening %s", errno, strerror(errno), cfg.badareafile);
 		} else {
+			int longest = 0;
+			for(int i=0; bad_areas[i] != NULL; i++) {
+				int len = strlen(bad_areas[i]);
+				if(len > longest) longest = len;
+			}
 			strListSortAlpha(bad_areas);
 			for(int i=0; bad_areas[i] != NULL; i++) {
 				p = bad_areas[i];
 //				lprintf(LOG_DEBUG, "Writing '%s' (%p) to %s", p, p, cfg.badareafile);
-				fprintf(fp, "%-*s %s\n", FIDO_AREATAG_LEN, p, area_desc(p));
+				fprintf(fp, "%-*s %s\n", longest, p, area_desc(p));
 			}
 			fclose(fp);
 		}
@@ -6037,7 +6046,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.153 $", "%*s %s", revision);
+	sscanf("$Revision: 3.156 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
