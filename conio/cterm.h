@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.60 2020/04/06 18:40:44 deuce Exp $ */
+/* $Id: cterm.h,v 1.59 2020/04/06 08:33:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -179,8 +179,7 @@ struct cterminal {
 	void				*apc_handler_data;
 
 	/* Mouse state change callback */
-	void (*mouse_state_change)(int parameter, int enable, void *cbdata);
-	void *mouse_state_change_cbdata;
+	void (*mouse_state_change)(int parameter, int enable);
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO

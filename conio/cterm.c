@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.259 2020/04/06 18:40:44 deuce Exp $ */
+/* $Id: cterm.c,v 1.258 2020/04/06 08:33:13 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1816,7 +1816,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									case 1007:
 									case 1015:
 										if (cterm->mouse_state_change)
-											cterm->mouse_state_change(seq->param_int[i], 1, cterm->mouse_state_change_cbdata);
+											cterm->mouse_state_change(seq->param_int[i], 1);
 										break;
 								}
 							}
@@ -1888,7 +1888,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									case 1007:
 									case 1015:
 										if (cterm->mouse_state_change)
-											cterm->mouse_state_change(seq->param_int[i], 0, cterm->mouse_state_change_cbdata);
+											cterm->mouse_state_change(seq->param_int[i], 0);
 										break;
 								}
 							}
@@ -3281,7 +3281,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.259 $";
+	char	*revision="$Revision: 1.258 $";
 	char *in;
 	char	*out;
 	int		i;
