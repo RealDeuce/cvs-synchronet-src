@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.180 2019/05/04 03:09:18 rswindell Exp $ */
+/* $Id: js_file.c,v 1.190 2020/04/03 07:47:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,6 +35,7 @@
  ****************************************************************************/
 
 #include "sbbs.h"
+#include "xpendian.h"
 #include "md5.h"
 #include "base64.h"
 #include "uucode.h"
@@ -55,7 +56,6 @@ typedef struct
 	char	name[MAX_PATH+1];
 	char	mode[4];
 	uchar	etx;
-	BOOL	external;	/* externally created, don't close */
 	BOOL	debug;
 	BOOL	rot13;
 	BOOL	yencoded;
@@ -80,7 +80,7 @@ static void dbprintf(BOOL error, private_t* p, char* fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
 
-	lprintf(LOG_DEBUG,"%04u File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
+	lprintf(LOG_DEBUG,"%04d File %s%s",p->fp ? fileno(p->fp) : 0,error ? "ERROR: ":"",sbuf);
 }
 
 /* Converts fopen() style 'mode' string into open() style 'flags' integer */
@@ -183,8 +183,9 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 				/* Remove (C11 standard) 'x'clusive mode char to avoid MSVC assertion: */
 				for(e=strchr(fdomode, 'x'); e ; e=strchr(e, 'x'))
 					memmove(e, e+1, strlen(e));
-				if((p->fp=fdopen(file,fdomode))==NULL)
-					close(file);
+				if((p->fp=fdopen(file,fdomode)) == NULL) {
+					JS_ReportWarning(cx, "fdopen(%s, %s) ERROR %d: %s", p->name, fdomode, errno, strerror(errno));
+				}
 			}
 			free(fdomode);
 		}
@@ -284,9 +285,9 @@ js_close(JSContext *cx, uintN argc, jsval *arglist)
 #endif
 		fclose(p->fp);
 
-	dbprintf(FALSE, p, "closed");
-
 	p->fp=NULL;
+	dbprintf(FALSE, p, "closed: %s", p->name);
+
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -533,11 +534,11 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 			return(JS_FALSE);
 	}
 
-	if((buf=malloc(len))==NULL)
+	if((buf=malloc(len + 1))==NULL)
 		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(fgets(buf,len,p->fp)!=NULL) {
+	if(fgets(buf,len + 1,p->fp)!=NULL) {
 		len=strlen(buf);
 		while(len>0 && (buf[len-1]=='\r' || buf[len-1]=='\n'))
 			len--;
@@ -620,9 +621,17 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 					JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(*b));
 					break;
 				case sizeof(WORD):
+					if (p->network_byte_order)
+						*w = BE_SHORT(*w);
+					else
+						*w = LE_SHORT(*w);
 					JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(*w));
 					break;
 				case sizeof(DWORD):
+					if (p->network_byte_order)
+						*l = BE_LONG(*l);
+					else
+						*l = LE_LONG(*l);
 					JS_SET_RVAL(cx, arglist, UINT_TO_JSVAL(*l));
 					break;
 			}
@@ -638,9 +647,17 @@ js_readbin(JSContext *cx, uintN argc, jsval *arglist)
 					v = INT_TO_JSVAL(*(b++));
 					break;
 				case sizeof(WORD):
+					if (p->network_byte_order)
+						*w = BE_SHORT(*w);
+					else
+						*w = LE_SHORT(*w);
 					v = INT_TO_JSVAL(*(w++));
 					break;
 				case sizeof(DWORD):
+					if (p->network_byte_order)
+						*l = BE_LONG(*l);
+					else
+						*l = LE_LONG(*l);
 					v=UINT_TO_JSVAL(*(l++));
 					break;
 			}
@@ -1830,9 +1847,17 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 				break;
 			case sizeof(WORD):
 				*w=(WORD)val;
+				if (p->network_byte_order)
+					*w = BE_SHORT(*w);
+				else
+					*w = LE_SHORT(*w);
 				break;
 			case sizeof(DWORD):
 				*l=(DWORD)val;
+				if (p->network_byte_order)
+					*l = BE_LONG(*l);
+				else
+					*l = LE_LONG(*l);
 				break;
 		}
 	}
@@ -1847,10 +1872,20 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 					*(b++)=(BYTE)val;
 					break;
 				case sizeof(WORD):
-					*(w++)=(WORD)val;
+					*(w)=(WORD)val;
+					if (p->network_byte_order)
+						*w = BE_SHORT(*w);
+					else
+						*w = LE_SHORT(*w);
+					w++;
 					break;
 				case sizeof(DWORD):
-					*(l++)=(DWORD)val;
+					*(l)=(DWORD)val;
+					if (p->network_byte_order)
+						*l = BE_LONG(*l);
+					else
+						*l = LE_LONG(*l);
+					l++;
 					break;
 			}
 		}
@@ -2417,7 +2452,7 @@ static JSBool js_file_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case FILE_PROP_ATTRIBUTES:
 			rc=JS_SUSPENDREQUEST(cx);
-			in=getfattr(p->name);
+			in=getfmode(p->name);
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=INT_TO_JSVAL(in);
 			break;
@@ -2616,7 +2651,7 @@ static const char* file_prop_desc[] = {
 	,"the current file position (offset in bytes), change value to seek within file"
 	,"last modified date/time (in time_t format)"
 	,"the current length of the file (in bytes)"
-	,"file mode/attributes"
+	,"file type/mode flags (i.e. <tt>struct stat.st_mode</tt> value, compatible with <tt>file_chmod()</tt>)"
 	,"set to <i>true</i> if binary data is to be written and read in Network Byte Order (big end first)"
 	,"set to <i>true</i> to enable automatic ROT13 translation of text"
 	,"set to <i>true</i> to enable automatic Unix-to-Unix encode and decode on <tt>read</tt> and <tt>write</tt> calls"
@@ -2752,7 +2787,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,310
 	},
 	{"writeln",			js_writeln,			0,	JSTYPE_BOOLEAN, JSDOCSTR("[text]")
-	,JSDOCSTR("write a line-feed terminated string to the file")
+	,JSDOCSTR("write a new-line terminated string (a line of text) to the file")
 	,310
 	},
 	{"writeBin",		js_writebin,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("value(s) [,bytes=<tt>4</tt>]")
@@ -2761,7 +2796,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 	,310
 	},
 	{"writeAll",		js_writeall,		0,	JSTYPE_BOOLEAN,	JSDOCSTR("array lines")
-	,JSDOCSTR("write an array of strings to file")
+	,JSDOCSTR("write an array of new-line terminated strings (lines of text) to the file")
 	,310
 	},
 	{"raw_write",		js_raw_write,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("text")
@@ -2826,7 +2861,7 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
 	},
-	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
+	{"iniSetAllObjects",js_iniSetAllObjects,1,	JSTYPE_BOOLEAN,	JSDOCSTR("object array [,name_property=<tt>\"name\"</tt>]")
 	,JSDOCSTR("write an array of objects to a .ini file, each object in its own section named "
 	"after the object's <i>name_property</i> (default: <tt>name</tt>)")
 	,312
@@ -2851,10 +2886,10 @@ static void js_finalize_file(JSContext *cx, JSObject *obj)
 	if((p=(private_t*)JS_GetPrivate(cx,obj))==NULL)
 		return;
 
-	if(p->external==JS_FALSE && p->fp!=NULL)
+	if(p->fp!=NULL)
 		fclose(p->fp);
 
-	dbprintf(FALSE, p, "closed: %s",p->name);
+	dbprintf(FALSE, p, "finalized: %s",p->name);
 
 	FREE_AND_NULL(p->ini_style.key_prefix);
 	FREE_AND_NULL(p->ini_style.section_separator);
@@ -2988,25 +3023,36 @@ JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *nam
 {
 	JSObject* obj;
 	private_t*	p;
-	FILE* fp = fdopen(fd, mode);
+	int newfd = dup(fd);
+	FILE* fp;
 
-	if(fp == NULL)
+	if (newfd == -1)
 		return NULL;
+
+	fp = fdopen(newfd, mode);
+	if(fp == NULL) {
+		close(newfd);
+		return NULL;
+	}
 
 	obj = JS_DefineObject(cx, parent, name, &js_file_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
 
-	if(obj==NULL)
+	if(obj==NULL) {
+		fclose(fp);
 		return(NULL);
+	}
 
-	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL)
+	if((p=(private_t*)calloc(1,sizeof(private_t)))==NULL) {
+		fclose(fp);
 		return(NULL);
+	}
 
 	p->fp=fp;
 	p->debug=JS_FALSE;
-	p->external=JS_TRUE;
 
 	if(!JS_SetPrivate(cx, obj, p)) {
+		fclose(fp);
 		dbprintf(TRUE, p, "JS_SetPrivate failed");
 		return(NULL);
 	}
