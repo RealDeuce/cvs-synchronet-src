@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.143 2020/04/16 23:39:16 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.142 2020/04/01 10:51:05 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -91,6 +91,7 @@ static struct bitmap_screen screen;
 struct video_stats vstat;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font[4];
+static unsigned char space=' ';
 static int force_redraws=0;
 static int update_pixels = 0;
 struct rectlist *free_rects;
@@ -968,6 +969,10 @@ int bitmap_setfont(int font, int force, int font_num)
 			/* Fall-through */
 		case 1:
 			current_font[0]=font;
+			if(font==36 /* ATARI */)
+				space=0;
+			else
+				space=' ';
 			break;
 		case 2:
 		case 3:
@@ -1006,7 +1011,7 @@ int bitmap_setfont(int font, int force, int font_num)
 							old++;
 						}
 						else {
-							new->ch=' ';
+							new->ch=space;
 							new->legacy_attr=attr;
 							new->font = font;
 							new->fg = ciolib_fg;
@@ -1015,7 +1020,7 @@ int bitmap_setfont(int font, int force, int font_num)
 						}
 					}
 					else {
-							new->ch=' ';
+							new->ch=space;
 							new->legacy_attr=attr;
 							new->font = font;
 							new->fg = ciolib_fg;
@@ -1159,7 +1164,7 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 void bitmap_clreol(void)
 {
 	int pos,x;
-	WORD fill=(cio_textinfo.attribute<<8)|' ';
+	WORD fill=(cio_textinfo.attribute<<8)|space;
 	struct vstat_vmem *vmem_ptr;
 	int row;
 
@@ -1180,7 +1185,7 @@ void bitmap_clreol(void)
 void bitmap_clrscr(void)
 {
 	int x,y;
-	WORD fill=(cio_textinfo.attribute<<8)|' ';
+	WORD fill=(cio_textinfo.attribute<<8)|space;
 	struct vstat_vmem *vmem_ptr;
 
 	pthread_mutex_lock(&blinker_lock);
