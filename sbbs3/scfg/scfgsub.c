@@ -1,4 +1,4 @@
-/* $Id: scfgsub.c,v 1.60 2020/04/07 05:30:03 rswindell Exp $ */
+/* $Id: scfgsub.c,v 1.59 2019/08/23 21:45:55 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1333,8 +1333,7 @@ void sub_cfg(uint grpnum)
 								;
 								uifc.input(WIN_MID|WIN_SAV,0,0,"FidoNet Address"
 									,str,25,K_EDIT);
-								if(str[0])
-									cfg.sub[i]->faddr=atofaddr(str);
+								cfg.sub[i]->faddr=atofaddr(str);
 								break;
 							case 8:
 								uifc.helpbuf=

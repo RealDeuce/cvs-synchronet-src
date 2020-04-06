@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.351 2020/04/07 20:53:30 deuce Exp $ */
+/* $Id: term.c,v 1.350 2020/04/06 19:53:11 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2358,6 +2358,7 @@ static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct m
 		return 6;
 	}
 	else {
+fprintf(stderr, "Button=%d, x=%d, y=%d, release=%d\n", button, x, y, release);
 		ret = snprintf(buf, bufsz, "\x1b[<%d;%d;%d%c", button, x, y, release ? 'm' : 'M');
 		if (ret > bufsz)
 			return 0;
