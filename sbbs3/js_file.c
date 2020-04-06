@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.196 2020/04/17 05:37:14 rswindell Exp $ */
+/* $Id: js_file.c,v 1.191 2020/04/06 05:21:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 #include "uucode.h"
 #include "yenc.h"
 #include "ini_file.h"
-#include <stdbool.h>
 
 #if !defined(__unix__)
 	#include <conio.h>		/* for kbhit() */
@@ -1197,7 +1196,6 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	named_string_t** list;
 	jsrefcount	rc;
-	bool		lowercase = false;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -1208,15 +1206,9 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	uintN argn = 0;
-	if(argc > argn && !JSVAL_IS_BOOLEAN(argv[argn]) && !JSVAL_NULL_OR_VOID(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], section, NULL);
+	if(argc>0 && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
+		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
 		HANDLE_PENDING(cx, section);
-		argn++;
-	}
-	if(argc > argn && JSVAL_IS_BOOLEAN(argv[argn])) {
-		lowercase = JSVAL_TO_BOOLEAN(argv[argn]);
-		argn++;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1224,14 +1216,14 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	FREE_AND_NULL(section);
 	JS_RESUMEREQUEST(cx, rc);
 
-	if(list==NULL)
+	if(list==NULL) {	/* New behavior at request of MCMLXXIX: return NULL if specified section doesn't exist */
+		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 		return(JS_TRUE);
+	}
 
     object = JS_NewObject(cx, NULL, NULL, obj);
 
     for(i=0;list && list[i];i++) {
-		if(lowercase)
-			strlwr(list[i]->name);
 		JS_DefineProperty(cx, object, list[i]->name
 			,get_value(cx,list[i]->value)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -1337,7 +1329,6 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	char*		sec_name;
 	char*		prefix=NULL;
 	char**		sec_list;
-	str_list_t	ini;
     jsint       i,k;
     jsval       val;
     JSObject*	array;
@@ -1345,7 +1336,6 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	named_string_t** key_list;
 	jsrefcount	rc;
-	bool		lowercase = false;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -1356,25 +1346,16 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	uintN argn = 0;
-	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], name, NULL);
-		HANDLE_PENDING(cx, name);
-		if(name == NULL) {
-			JS_ReportError(cx, "Invalid name argument");
-			return JS_FALSE;
-		}
-		argn++;
-	}
-	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], prefix, NULL);
-		argn++;
-	}
-	if(argc > argn && JSVAL_IS_BOOLEAN(argv[argn])) {
-		lowercase = JSVAL_TO_BOOLEAN(argv[argn]);
-		argn++;
+	if(argc)
+		JSVALUE_TO_MSTRING(cx, argv[0], name, NULL);
+	HANDLE_PENDING(cx, name);
+	if(name == NULL) {
+		JS_ReportError(cx, "Invalid NULL name property");
+		return JS_FALSE;
 	}
 
+	if(argc>1)
+		JSVALUE_TO_MSTRING(cx, argv[1], prefix, NULL);
 	if(JS_IsExceptionPending(cx)) {
 		FREE_AND_NULL(prefix);
 		if(name != name_def)
@@ -1385,35 +1366,82 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
     array = JS_NewArrayObject(cx, 0, NULL);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ini = iniReadFile(p->fp);
-	sec_list = iniGetSectionList(ini, prefix);
+	sec_list = iniReadSectionList(p->fp,prefix);
 	JS_RESUMEREQUEST(cx, rc);
     for(i=0;sec_list && sec_list[i];i++) {
 	    object = JS_NewObject(cx, NULL, NULL, obj);
+
 		sec_name=sec_list[i];
 		if(prefix!=NULL)
 			sec_name+=strlen(prefix);
-		if(lowercase)
-			strlwr(sec_name);
 		JS_DefineProperty(cx, object, name
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sec_name))
 			,NULL,NULL,JSPROP_ENUMERATE);
 
 		rc=JS_SUSPENDREQUEST(cx);
-		key_list = iniGetNamedStringList(ini,sec_list[i]);
+		key_list = iniReadNamedStringList(p->fp,sec_list[i]);
 		JS_RESUMEREQUEST(cx, rc);
-		for(k=0;key_list && key_list[k];k++) {
-			if(lowercase)
-				strlwr(key_list[k]->name);
+		for(k=0;key_list && key_list[k];k++)
 			JS_DefineProperty(cx, object, key_list[k]->name
 				,get_value(cx,key_list[k]->value)
 				,NULL,NULL,JSPROP_ENUMERATE);
-		}
 		rc=JS_SUSPENDREQUEST(cx);
 		iniFreeNamedStringList(key_list);
 		JS_RESUMEREQUEST(cx, rc);
 
 		val=OBJECT_TO_JSVAL(object);
+		/* exception here, Apr-4-2010:
+
+  2000007a()
+js_iniGetAllObjects(JSContext * 0x049383e0, JSObject * 0x049c76a8, unsigned int 0x00000001, long * 0x049c0490, long * 0x02c5c494) line 1064 + 24 bytes
+js_Invoke(JSContext * 0x049383e0, unsigned int 0x00000001, unsigned int 0x00000000) line 1375 + 23 bytes
+js_Interpret(JSContext * 0x049383e0, unsigned char * 0x031ab4b2, long * 0x02c5d6ac) line 3944 + 15 bytes
+js_Execute(JSContext * 0x049383e0, JSObject * 0x049b73e8, JSObject * 0x02f2a7e0, JSStackFrame * 0x00000000, unsigned int 0x00000000, long * 0x02c5d7bc) line 1633 + 19 bytes
+JS_ExecuteScript(JSContext * 0x049383e0, JSObject * 0x049b73e8, JSObject * 0x02f2a7e0, long * 0x02c5d7bc) line 4188 + 25 bytes
+sbbs_t::js_execfile(const char * 0x0226b59a, const char * 0x022060fa) line 668 + 39 bytes
+sbbs_t::external(const char * 0x0226b599, long 0x00000100, const char * 0x022060fa) line 413 + 30 bytes
+event_thread(void * 0x022622b8) line 2745 + 113 bytes
+_threadstart(void * 0x0227dab0) line 187 + 13 bytes
+
+
+and July-15-2010:
+
+ 	20000000()
+ 	js32.dll!JS_SetElement(JSContext * cx, JSObject * obj, long index, long * vp)  Line 3178 + 0x20 bytes	C
+>	sbbs.dll!js_iniGetAllObjects(JSContext * cx, JSObject * obj, unsigned int argc, long * argv, long * rval)  Line 1081 + 0x18 bytes	C
+ 	js32.dll!js_Invoke(JSContext * cx, unsigned int argc, unsigned int flags)  Line 1375 + 0x17 bytes	C
+ 	js32.dll!js_Interpret(JSContext * cx, unsigned char * pc, long * result)  Line 3944 + 0xf bytes	C
+ 	js32.dll!js_Execute(JSContext * cx, JSObject * chain, JSObject * script, JSStackFrame * down, unsigned int flags, long * result)  Line 1633 + 0x13 bytes	C
+ 	js32.dll!JS_ExecuteScript(JSContext * cx, JSObject * obj, JSObject * script, long * rval)  Line 4188 + 0x19 bytes	C
+ 	sbbs.dll!sbbs_t::js_execfile(const char * cmd, const char * startup_dir)  Line 686 + 0x27 bytes	C++
+ 	sbbs.dll!sbbs_t::external(const char * cmdline, long mode, const char * startup_dir)  Line 413 + 0x1e bytes	C++
+ 	sbbs.dll!event_thread(void * arg)  Line 2745 + 0x71 bytes	C++
+
+And July-22-2010:
+
+ 	js32.dll!JS_SetElement(JSContext * cx, JSObject * obj, long index, long * vp)  Line 3178 + 0x20 bytes	C
+>	sbbs.dll!js_iniGetAllObjects(JSContext * cx, JSObject * obj, unsigned int argc, long * argv, long * rval)  Line 1095 + 0x18 bytes	C
+ 	js32.dll!js_Invoke(JSContext * cx, unsigned int argc, unsigned int flags)  Line 1375 + 0x17 bytes	C
+ 	js32.dll!js_Interpret(JSContext * cx, unsigned char * pc, long * result)  Line 3944 + 0xf bytes	C
+ 	js32.dll!js_Execute(JSContext * cx, JSObject * chain, JSObject * script, JSStackFrame * down, unsigned int flags, long * result)  Line 1633 + 0x13 bytes	C
+ 	js32.dll!JS_ExecuteScript(JSContext * cx, JSObject * obj, JSObject * script, long * rval)  Line 4188 + 0x19 bytes	C
+ 	websrvr.dll!exec_ssjs(http_session_t * session, char * script)  Line 4638 + 0x24 bytes	C
+ 	websrvr.dll!respond(http_session_t * session)  Line 4684 + 0x12 bytes	C
+ 	websrvr.dll!http_session_thread(void * arg)  Line 5091 + 0xc bytes	C
+
+
+And Sept-17-2011:
+
+JS_SetElement(JSContext * 0x058b7138, JSObject * 0x0578cd78, long 2, long * 0x084cb338) line 3178 + 32 bytes
+js_iniGetAllObjects(JSContext * 0x058b7138, JSObject * 0x0578cd60, unsigned int 0, long * 0x063adfbc, long * 0x084cb460) line 1115 + 24 bytes
+js_Invoke(JSContext * 0x058b7138, unsigned int 0, unsigned int 0) line 1375 + 23 bytes
+js_Interpret(JSContext * 0x058b7138, unsigned char * 0x04e9298b, long * 0x084cc678) line 3944 + 15 bytes
+js_Execute(JSContext * 0x058b7138, JSObject * 0x057b4b48, JSScript * 0x04e92880, JSStackFrame * 0x00000000, unsigned int 0, long * 0x084cc860) line 1633 + 19 bytes
+JS_ExecuteScript(JSContext * 0x058b7138, JSObject * 0x057b4b48, JSScript * 0x04e92880, long * 0x084cc860) line 4188 + 25 bytes
+exec_ssjs(http_session_t * 0x084ce0f0, char * 0x084ce221) line 4644 + 36 bytes
+respond(http_session_t * 0x084ce0f0) line 4690 + 18 bytes
+http_session_thread(void * 0x00000000) line 5098 + 12 bytes
+  */
         if(!JS_SetElement(cx, array, i, &val))
 			break;
 	}
@@ -1422,7 +1450,6 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	if(name != name_def)
 		free(name);
 	iniFreeStringList(sec_list);
-	iniFreeStringList(ini);
 	JS_RESUMEREQUEST(cx, rc);
 
     JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(array));
@@ -1752,16 +1779,11 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
-	union {
-		uint8_t		*b;
-		uint16_t	*w;
-		uint32_t	*l;
-		int8_t		*sb;
-		int16_t		*sw;
-		int32_t		*sl;
-	} o;
+	BYTE		*b;
+	WORD		*w;
+	DWORD		*l;
 	size_t		wr=0;
-	int32		size=sizeof(int32_t);
+	int32		size=sizeof(DWORD);
 	jsuint		count=1;
 	void		*buffer;
 	private_t*	p;
@@ -1788,7 +1810,7 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 		else
 			array=NULL;
 	}
-	if(array==NULL) {
+	if(array==NULL && !JSVAL_NULL_OR_VOID(argv[0])) {
 		if(!JS_ValueToNumber(cx,argv[0],&val))
 			return(JS_FALSE);
 	}
@@ -1809,34 +1831,27 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_FALSE);
 	}
-	o.b=buffer;
+	b=buffer;
+	w=buffer;
+	l=buffer;
 	if(array==NULL) {
 		switch(size) {
-			case sizeof(int8_t):
-				if(val < 0)
-					*o.sb=(int8_t)val;
-				else
-					*o.b=(uint8_t)val;
+			case sizeof(BYTE):
+				*b=(BYTE)val;
 				break;
-			case sizeof(int16_t):
-				if(val < 0)
-					*o.sw=(int16_t)val;
-				else
-					*o.w=(uint16_t)val;
+			case sizeof(WORD):
+				*w=(WORD)val;
 				if (p->network_byte_order)
-					*o.w = BE_SHORT(*o.w);
+					*w = BE_SHORT(*w);
 				else
-					*o.w = LE_SHORT(*o.w);
+					*w = LE_SHORT(*w);
 				break;
-			case sizeof(int32_t):
-				if(val < 0)
-					*o.sl=(int32_t)val;
-				else
-					*o.l=(uint32_t)val;
+			case sizeof(DWORD):
+				*l=(DWORD)val;
 				if (p->network_byte_order)
-					*o.l = BE_LONG(*o.l);
+					*l = BE_LONG(*l);
 				else
-					*o.l = LE_LONG(*o.l);
+					*l = LE_LONG(*l);
 				break;
 		}
 	}
@@ -1847,34 +1862,24 @@ js_writebin(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToNumber(cx,elemval,&val))
 				goto end;
 			switch(size) {
-				case sizeof(int8_t):
-					if(val < 0)
-						*o.sb=(int8_t)val;
-					else
-						*o.b=(uint8_t)val;
-					o.b++;
+				case sizeof(BYTE):
+					*(b++)=(BYTE)val;
 					break;
-				case sizeof(int16_t):
-					if(val < 0)
-						*o.sw=(int16_t)val;
-					else
-						*o.w=(uint16_t)val;
+				case sizeof(WORD):
+					*(w)=(WORD)val;
 					if (p->network_byte_order)
-						*o.w = BE_SHORT(*o.w);
+						*w = BE_SHORT(*w);
 					else
-						*o.w = LE_SHORT(*o.w);
-					o.w++;
+						*w = LE_SHORT(*w);
+					w++;
 					break;
-				case sizeof(int32_t):
-					if(val < 0)
-						*o.sl=(int32_t)val;
-					else
-						*o.l=(uint32_t)val;
+				case sizeof(DWORD):
+					*(l)=(DWORD)val;
 					if (p->network_byte_order)
-						*o.l = BE_LONG(*o.l);
+						*l = BE_LONG(*l);
 					else
-						*o.l = LE_LONG(*o.l);
-					o.l++;
+						*l = LE_LONG(*l);
+					l++;
 					break;
 			}
 		}
@@ -2826,10 +2831,10 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"to set a key in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,312
 	},
-	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>] [lowercase=<tt>false</tt>]")
+	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
 	,JSDOCSTR("parse an entire section from a .ini file "
-		"and return all of its keys (optionally lowercased) and values as properties of an object. "
-		"if <i>section</i> is <tt>null</tt> or <tt>undefined</tt>, returns keys and values from the <i>root</i> section. "
+		"and return all of its keys and values as properties of an object. "
+		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section. "
 		"Returns <i>null</i> if the specified <i>section</i> does not exist in the file or the file has not been opened.")
 	,311
 	},
@@ -2841,11 +2846,11 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"If your intention is to <i>replace</i> an existing section, use the <tt>iniRemoveSection</tt> function first." )
 	,312
 	},
-	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>] [lowercase=<tt>false</tt>]")
+	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>]")
 	,JSDOCSTR("parse all sections from a .ini file and return all (non-<i>root</i>) sections "
-		"in an array of objects with each section's keys (optionally lowercased) as properties of each object. "
+		"in an array of objects with each section's keys as properties of each object. "
 		"<i>name_property</i> is the name of the property to create to contain the section's name "
-		"(optionally lowercased, default is <tt>\"name\"</tt>), "
+		"(default is <tt>\"name\"</tt>), "
 		"the optional <i>prefix</i> has the same use as in the <tt>iniGetSections</tt> method, "
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
