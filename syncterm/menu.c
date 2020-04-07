@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.62 2020/04/08 02:16:03 deuce Exp $ */
+/* $Id: menu.c,v 1.61 2018/04/18 06:51:24 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -29,7 +29,7 @@ void viewscroll(void)
 	x=wherex();
 	y=wherey();
 	uifcbail();
-	gettextinfo(&txtinfo);
+    gettextinfo(&txtinfo);
 	/* too large for alloca() */
 	scrollback=malloc((scrollback_buf==NULL?0:(term.width*sizeof(*scrollback)*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(*scrollback)));
 	if(scrollback==NULL)
