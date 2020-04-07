@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.159 2020/04/07 20:28:48 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.157 2020/04/07 02:54:11 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1551,7 +1551,7 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		}
 	}
 	strListSortAlpha(area_list);
-	if(strListIsEmpty(area_list))
+	if(!strListCount(area_list))
 		create_netmail(to, /* msg: */NULL, title, "None.", addr);
 	else {
 		FILE* fp;
@@ -2340,7 +2340,7 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 		while(*(p+l) && *(p+l)!='\r') l++;
 	}
 
-	if(!cmds && strListIsEmpty(add_area) && strListIsEmpty(del_area)) {
+	if(!cmds && !strListCount(add_area) && !strListCount(del_area)) {
 		create_netmail(name,/* msg: */NULL,"Area Management Request"
 			,"No commands to process.\r\nSend %HELP for help.\r\n"
 			,addr);
@@ -2349,7 +2349,7 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 		strListFree(&del_area);
 		return(body);
 	}
-	if(!strListIsEmpty(add_area) || !strListIsEmpty(del_area))
+	if(strListCount(add_area) || strListCount(del_area))
 		alter_areas(add_area,del_area,addr,name);
 	strListFree(&add_area);
 	strListFree(&del_area);
@@ -4191,12 +4191,6 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 	fidoaddr_t sysaddr;
 	unsigned pkts_written = 0;
 	char* rescanned_from = NULL;
-	char exceptions[128];
-	unsigned msg_seen = 0;
-	unsigned msg_path = 0;
-	unsigned msg_origin = 0;
-	unsigned pkt_origin = 0;
-	unsigned passive_node = 0;
 
 	if(!rescan)
 		rescanned_from = parse_control_line(fbuf, "RESCANNED ");
@@ -4204,30 +4198,20 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 	for(u=0; u<area.links; u++) {
 		if(faddr != NULL && memcmp(faddr,&area.link[u], sizeof(fidoaddr_t)) != 0)
 			continue;
-		if(check_psb(&seenbys, area.link[u])) {
-			msg_seen++;
+		if(check_psb(&seenbys, area.link[u]))
 			continue;
-		}
-		if(check_psb(&paths, area.link[u])) {
-			msg_path++;
+		if(check_psb(&paths, area.link[u]))
 			continue;
-		}
 		if(hdr->origzone == area.link[u].zone
 			&& hdr->orignet == area.link[u].net
 			&& hdr->orignode == area.link[u].node
-			&& hdr->origpoint == area.link[u].point) {
-			msg_origin++;
+			&& hdr->origpoint == area.link[u].point)
 			continue;	// Don't loop messages back to message originator
-		}
-		if(pkt_orig != NULL	&& memcmp(pkt_orig, &area.link[u], sizeof(*pkt_orig)) == 0) {
-			pkt_origin++;
+		if(pkt_orig != NULL	&& memcmp(pkt_orig, &area.link[u], sizeof(*pkt_orig)) == 0)
 			continue;	// Don't loop message back to packet originator
-		}
 		nodecfg_t* nodecfg = findnodecfg(&cfg, area.link[u],0);
-		if(nodecfg != NULL && nodecfg->passive) {
-			passive_node++;
+		if(nodecfg != NULL && nodecfg->passive)
 			continue;
-		}
 		if(rescanned_from != NULL) {
 			lprintf(LOG_DEBUG, "NOT EXPORTING (to %s) previously-rescanned message from: %s"
 				,smb_faddrtoa(&area.link[u], NULL), rescanned_from);
@@ -4249,27 +4233,10 @@ bool write_to_pkts(const char *fbuf, area_t area, const fidoaddr_t* faddr, const
 		pkts_written++;
 	}
 	free(rescanned_from);
-	str_list_t details = strListInit();
-	if(msg_seen)
-		strListAppendFormat(&details, "%u seen", msg_seen);
-	if(msg_path)
-		strListAppendFormat(&details, "%u path", msg_path);
-	if(msg_origin)
-		strListAppendFormat(&details, "%u origin", msg_origin);
-	if(pkt_origin)
-		strListAppendFormat(&details, "%u pkt-origin", pkt_origin);
-	if(passive_node)
-		strListAppendFormat(&details, "%u passive", passive_node);
-	strListJoin(details, exceptions, sizeof(exceptions), ", ");
-	if(*exceptions == '\0')
-		SAFECOPY(exceptions, "none");
-	lprintf(LOG_DEBUG, "Added %s message from %s (%s) to packets for %u links (exceptions: %s)"
-		,area.tag
+	lprintf(LOG_DEBUG, "Message from %s (%s) added to packets for %u links"
 		,hdr->from
 		,fmsghdr_srcaddr_str(hdr)
-		,pkts_written
-		,exceptions);
-
+		,pkts_written);
 	return pkts_written > 0;
 }
 
@@ -6087,7 +6054,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.159 $", "%*s %s", revision);
+	sscanf("$Revision: 3.157 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
