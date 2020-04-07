@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.183 2020/04/03 00:52:51 deuce Exp $ */
+/* $Id: ciolib.c,v 1.185 2020/04/04 04:26:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,6 +66,7 @@
 
 #include "bitmap_con.h"
 #include "ansi_cio.h"
+#include "syncicon64.h"
 
 CIOLIBEXPORT cioapi_t	cio_api;
 
@@ -455,6 +456,8 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 			cio_textinfo.normattr=LIGHTGRAY;
 			break;
 	}
+	ciolib_seticon(syncicon64, SYNCICON64_WIDTH);
+	ciolib_textattr(cio_textinfo.normattr);
 
 	_beginthread(ciolib_mouse_thread,0,NULL);
 	return(0);
@@ -845,6 +848,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_textmode(int mode)
 			cio_textinfo.normattr=LIGHTGRAY;
 			break;
 	}
+	ciolib_textattr(cio_textinfo.normattr);
 }
 
 /* Optional */
