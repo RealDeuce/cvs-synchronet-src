@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.48 2019/08/22 00:15:06 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.53 2020/04/03 21:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -86,6 +86,8 @@ void global_settings(void)
 			,cfg.strip_soft_cr ? "Yes":"No");
 		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Strip Outgoing Line Feeds "
 			,cfg.strip_lf ? "Yes":"No");
+		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Auto-detect UTF-8 Messages "
+			,cfg.auto_utf8 ? "Yes":"No");
 		snprintf(opt[i++],MAX_OPLN-1,"%-30s %-3.3s","Use Outboxes for Mail Files "
 			,cfg.use_outboxes ? "Yes":"No");
 
@@ -143,6 +145,11 @@ void global_settings(void)
 			"`Strip Outgoing Line Feeds` instructs SBBSecho to remove any Line Feed\n"
 			"    (ASCII 10) characters from the body text of `exported` EchoMail and\n"
 			"    NetMail messages.\n"
+			"\n"
+			"`Auto-detect UTF-8 Messages` instructs SBBSecho to treat incoming\n"
+			"    messages which lack a CHRS/CHARSET control line and contain valid\n"
+			"    UTF-8 character sequences in the message text, as UTF-8 encoded\n"
+			"    messages.\n"
 			"\n"
 			"`Use Outboxes for Mail Files` instructs SBBSecho to place outbound\n"
 			"    NetMail and EchoMail files into the configured `Outbox Directory`\n"
@@ -254,6 +261,16 @@ void global_settings(void)
 			}
 			case 8:
 			{
+				int k = !cfg.auto_utf8;
+				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+					,"Auto-detect incoming UTF-8 encoded messages",uifcYesNoOpts)) {
+					case 0:	cfg.auto_utf8 = true;	break;
+					case 1:	cfg.auto_utf8 = false;	break;
+				}
+				break;
+			}
+			case 9:
+			{
 				int k = !cfg.use_outboxes;
 				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
 					,"Use Outboxes for Outbound NetMail and EchoMail",uifcYesNoOpts)) {
@@ -262,35 +279,35 @@ void global_settings(void)
 				}
 				break;
 			}
-			case 9:
+			case 10:
 				duration_to_vstr(cfg.bsy_timeout, duration, sizeof(duration));
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "BSY Mutex File Timeout", duration, 10, K_EDIT) > 0)
 					cfg.bsy_timeout = (ulong)parse_duration(duration);
 				break;
 
-			case 10:
+			case 11:
 				duration_to_vstr(cfg.bso_lock_delay, duration, sizeof(duration));
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Delay Between BSO Lock Attempts", duration, 10, K_EDIT) > 0)
 					cfg.bso_lock_delay = (ulong)parse_duration(duration);
 				break;
 
-			case 11:
+			case 12:
 				sprintf(str, "%lu", cfg.bso_lock_attempts);
 				if(uifc.input(WIN_MID|WIN_SAV, 0, 0, "Maximum BSO Lock Attempts", str, 5, K_EDIT|K_NUMBER) > 0)
 					cfg.bso_lock_attempts = atoi(str);
 				break;
 
-			case 12:
+			case 13:
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Capabilities (BinkIT)", cfg.binkp_caps, sizeof(cfg.binkp_caps)-1, K_EDIT);
 				break;
 
-			case 13:
+			case 14:
 				uifc.input(WIN_MID|WIN_SAV,0,0
 					,"BinkP Sysop Name (BinkIT)", cfg.binkp_sysop, sizeof(cfg.binkp_sysop)-1, K_EDIT);
 				break;
 
-			case 14:
+			case 15:
 			{
 				int k = !cfg.binkp_plainAuthOnly;
 				strcpy(opt[0], "Plain-Password Only");
@@ -308,7 +325,7 @@ void global_settings(void)
 				break;
 			}
 
-			case 15:
+			case 16:
 			{
 				if(cfg.binkp_plainAuthOnly) {
 					uifc.msg("CRAM-MD5 authentication/encryption has been disabled globally");
@@ -428,6 +445,7 @@ void binkp_settings(nodecfg_t* node)
 		}
 		sprintf(opt[i++], "%-20s %s", "Authentication", auth);
 		sprintf(opt[i++], "%-20s %s", "Encryption", crypt);
+		sprintf(opt[i++], "%-20s %s", "Implicit TLS", node->binkp_tls ? "Yes" : "No");
 		sprintf(opt[i++], "%-20s %s", "Source Address", node->binkp_src);
 		opt[i][0]=0;
 		char title[128];
@@ -458,6 +476,9 @@ void binkp_settings(nodecfg_t* node)
 			"    With this setting set to `Required`, ~only~ BinkD-style-encrypted BinkP\n"
 			"    sessions will be supported.\n"
 			"    CRAM-MD5 authentication `must` be used when encrypting BinkP sessions.\n"
+			"\n"
+			"`Implicit TLS` defines whether or not to use `BINKPS` when connecting\n"
+			"    (outbound) with this linked node.\n"
 			"\n"
 			"`Source Address` allows you to override the source FTN address used\n"
 			"    with outgoing BinkP mailer sessions with this linked node.\n"
@@ -544,6 +565,14 @@ void binkp_settings(nodecfg_t* node)
 				}
 				break;
 			case 5:
+				k = !node->binkp_tls;
+				switch(uifc.list(WIN_MID|WIN_SAV,0,0,0,&k,0
+					,"Use BINKPS (Implicit TLS) Connections with This Node",uifcYesNoOpts)) {
+					case 0:	node->binkp_tls = true;		uifc.changes=TRUE; break;
+					case 1:	node->binkp_tls = false;	uifc.changes=TRUE; break;
+				}
+				break;
+			case 6:
 				uifc.helpbuf=
 				"~ Source Address ~\n\n"
 				"This is the FidoNet style address to use as the source address when\n"
@@ -576,8 +605,8 @@ int main(int argc, char **argv)
 	ZERO_VAR(savarcdef);
 	ZERO_VAR(savedomain);
 
-	fprintf(stderr,"\nSynchronet FidoNet Configuration  Version %u.%02u  Copyright %s "
-		"Rob Swindell\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR, __DATE__+7);
+	fprintf(stderr,"\nSynchronet FidoNet Configuration  Version %u.%02u  " COPYRIGHT_NOTICE
+		"\n\n",SBBSECHO_VERSION_MAJOR, SBBSECHO_VERSION_MINOR);
 
 	memset(&cfg,0,sizeof(cfg));
 	str[0]=0;
@@ -661,23 +690,12 @@ int main(int argc, char **argv)
 			SAFECOPY(str,argv[i]);
 	}
 	if(str[0]==0) {
-		p=getenv("SBBSCTRL");
-		if(!p) {
-			p=getenv("SBBSNODE");
-			if(!p) {
-				goto USAGE;
-			}
-			SAFECOPY(str,p);
-			backslash(str);
-			SAFECAT(str,"../ctrl/sbbsecho.ini");
-		}
-		else {
-			SAFECOPY(str,p);
-			backslash(str);
-			SAFECAT(str,"sbbsecho.ini");
-		}
+		SAFECOPY(cfg.cfgfile, get_ctrl_dir());
+		backslash(cfg.cfgfile);
+		SAFECAT(cfg.cfgfile, "sbbsecho.ini");
+	} else {
+		SAFECOPY(cfg.cfgfile,str);
 	}
-	SAFECOPY(cfg.cfgfile,str);
 
 	if(!sbbsecho_read_ini(&cfg)) {
 		fprintf(stderr, "ERROR %d (%s) reading %s\n", errno, strerror(errno), cfg.cfgfile);
@@ -719,6 +737,12 @@ int main(int argc, char **argv)
 	if(strlen(p) + strlen(str) + 4 > uifc.scrn_width)
 		p=getfname(cfg.cfgfile);
 	uifc.printf(uifc.scrn_width-(strlen(p)+1),1,uifc.bclr|(uifc.cclr<<4),p);
+
+	if(cfg.used_include && uifc.deny("%s uses !include, continue read only", getfname(p))) {
+		uifc.pop("Exiting");
+		uifc.bail();
+		exit(0);
+	}
 
 	/* Remember current menu item selections using these vars: */
 	int netmail_opt = 0;
@@ -785,7 +809,7 @@ int main(int argc, char **argv)
 		sprintf(opt[i++],"Paths and Filenames...");
 		sprintf(opt[i++],"Domains...");
 		sprintf(opt[i++],"EchoLists...");
-		if(uifc.changes)
+		if(uifc.changes && !cfg.used_include)
 			snprintf(opt[i++],MAX_OPLN-1,"Save Changes to %s", getfname(cfg.cfgfile));
 		opt[i][0]=0;
 		switch(uifc.list(WIN_ORG|WIN_MID|WIN_ACT|WIN_ESC,0,0,0,&dflt,0
@@ -2465,19 +2489,24 @@ int main(int argc, char **argv)
 				break;
 			case -1:
 				if(uifc.changes) {
-		uifc.helpbuf=
-		"~ Save Configuration File ~\n\n"
-		"Select `Yes` to save the config file, `No` to quit without saving,\n"
-		"or hit ~ ESC ~ to go back to the menu.\n\n";
-					i=0;
-					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
-					if(i==-1) break;
-					if(i == 0) {
-						uifc.pop("Writing config ...");
-						bool success = sbbsecho_write_ini(&cfg);
-						uifc.pop(NULL);
-						if(!success)
-							uifc.msg("Error saving configuration file");
+					if(cfg.used_include) {
+						if(uifc.msg("Changes made will not be saved"))
+							break;
+					} else {
+						uifc.helpbuf=
+							"~ Save Configuration File ~\n\n"
+							"Select `Yes` to save the config file, `No` to quit without saving,\n"
+							"or hit ~ ESC ~ to go back to the menu.\n\n";
+						i=0;
+						i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,0,"Save Config File",uifcYesNoOpts);
+						if(i==-1) break;
+						if(i == 0) {
+							uifc.pop("Writing config ...");
+							bool success = sbbsecho_write_ini(&cfg);
+							uifc.pop(NULL);
+							if(!success)
+								uifc.msg("Error saving configuration file");
+						}
 					}
 				}
 				uifc.pop("Exiting");
