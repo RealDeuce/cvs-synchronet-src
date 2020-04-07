@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.117 2020/04/12 18:28:36 rswindell Exp $ */
+/* $Id: scfg.c,v 1.115 2020/04/07 03:44:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -166,6 +166,7 @@ int main(int argc, char **argv)
     char    errormsg[MAX_PATH*2];
 	int 	i,j,main_dflt=0,chat_dflt=0;
 	char 	str[MAX_PATH+1];
+ 	char	exepath[MAX_PATH+1];
 	BOOL    door_mode=FALSE;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
 
@@ -268,9 +269,6 @@ int main(int argc, char **argv)
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
 							break;
-						case 'I':
-							ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
-							break;
 #endif
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
@@ -312,7 +310,6 @@ int main(int argc, char **argv)
 						"       X = X11 mode\n"
 						"       C = Curses mode\n"
 						"       F = Curses mode with forced IBM charset\n"
-						"       I = Curses mode with forced ASCII charset\n"
 #else
 						"       W = Win32 native mode\n"
 #endif
@@ -330,6 +327,12 @@ int main(int argc, char **argv)
 		else
 			SAFECOPY(cfg.ctrl_dir,argv[i]);
     }
+
+#ifdef _WIN32
+	FULLPATH(exepath,argv[0],sizeof(exepath));	/* Must do this before chdir */
+#else
+	exepath[0]=0;
+#endif
 
 	if(chdir(cfg.ctrl_dir)!=0) {
 		printf("!ERROR %d changing current directory to: %s\n"
