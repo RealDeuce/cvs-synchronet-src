@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.160 2020/04/22 03:25:34 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.158 2020/04/07 20:25:41 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1551,7 +1551,7 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		}
 	}
 	strListSortAlpha(area_list);
-	if(strListIsEmpty(area_list))
+	if(!strListCount(area_list))
 		create_netmail(to, /* msg: */NULL, title, "None.", addr);
 	else {
 		FILE* fp;
@@ -2340,7 +2340,7 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 		while(*(p+l) && *(p+l)!='\r') l++;
 	}
 
-	if(!cmds && strListIsEmpty(add_area) && strListIsEmpty(del_area)) {
+	if(!cmds && !strListCount(add_area) && !strListCount(del_area)) {
 		create_netmail(name,/* msg: */NULL,"Area Management Request"
 			,"No commands to process.\r\nSend %HELP for help.\r\n"
 			,addr);
@@ -2349,7 +2349,7 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 		strListFree(&del_area);
 		return(body);
 	}
-	if(!strListIsEmpty(add_area) || !strListIsEmpty(del_area))
+	if(strListCount(add_area) || strListCount(del_area))
 		alter_areas(add_area,del_area,addr,name);
 	strListFree(&add_area);
 	strListFree(&del_area);
@@ -4319,11 +4319,6 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, const char* info, const char* inbo
 			SAFECOPY(fname, getfname(hdr->subj));
 			SAFEPRINTF2(hdr->subj, "%s%s", inbound, fname);	/* Fix the file path in the subject */
 		}
-		const uint16_t remove_attrs = FIDO_CRASH | FIDO_LOCAL | FIDO_HOLD;
-		if(hdr->attr&remove_attrs) {
-			lprintf(LOG_DEBUG, "%s Removing attributes: %04hX", info, hdr->attr&remove_attrs);
-			hdr->attr &= ~remove_attrs;
-		}
 		(void)write(file,hdr,sizeof(fmsghdr_t));
 		(void)write(file,fmsgbuf,l+1); /* Write the '\0' terminator too */
 		close(file);
@@ -6092,7 +6087,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.160 $", "%*s %s", revision);
+	sscanf("$Revision: 3.158 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
