@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.47 2020/04/07 05:32:14 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.46 2020/04/07 03:44:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -152,8 +152,6 @@ uint getsub(void)
 		j=uifc.list(WIN_RHT|WIN_BOT|WIN_SAV,0,0,45,&sub_dflt,&sub_bar,str,opt);
 		if(j==-1)
 			continue;
-		sub_dflt++;
-		sub_bar++;
 		return(subnum[j]); 
 	}
 }
@@ -1084,7 +1082,7 @@ void qhub_sub_edit(uint num)
 		"not support ANSI escape sequences in messages (or you're not sure), set\n"
 		"this option to `Strip out`.\n"
 		;
-	unsigned last_conf_num = 0;
+
 	k=0;
 	while(1) {
 		unsigned opts = 0;
@@ -1126,15 +1124,10 @@ void qhub_sub_edit(uint num)
 			if((l=getsub())==-1)
 				continue;
 			uifc.helpbuf=qwk_conf_num_help;
-			if(last_conf_num)
-				SAFEPRINTF(str, "%u", last_conf_num + 1);
-			else
-				str[0]=0;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0
 				,"Conference Number on Hub"
-				,str,5,K_EDIT|K_NUMBER)<1)
+				,str,5,K_NUMBER)<1)
 				continue;
-			last_conf_num = atoi(str);
 			strcpy(opt[0],"Strip out");
 			strcpy(opt[1],"Leave in");
 			strcpy(opt[2],"Expand to ANSI");
@@ -1144,7 +1137,7 @@ void qhub_sub_edit(uint num)
 			if((m=uifc.list(WIN_MID|WIN_SAV,0,0,0,&m,0
 				,"Ctrl-A Codes",opt))==-1)
 				continue;
-			if(!new_qhub_sub(cfg.qhub[num], j, cfg.sub[l], last_conf_num))
+			if(!new_qhub_sub(cfg.qhub[num], j, cfg.sub[l], atoi(str)))
 				continue;
 			if(!m)
 				cfg.qhub[num]->mode[j]=QHUB_STRIP;
@@ -1153,8 +1146,6 @@ void qhub_sub_edit(uint num)
 			else
 				cfg.qhub[num]->mode[j]=QHUB_EXPCTLA;
 			uifc.changes=1;
-			k++;
-			bar++;
 			continue; 
 		}
 		if((j&MSK_ON)==MSK_DEL) {
