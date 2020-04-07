@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "global" object properties/methods for all servers */
 
-/* $Id: js_global.c,v 1.401 2019/09/17 05:29:55 deuce Exp $ */
+/* $Id: js_global.c,v 1.405 2020/03/11 18:08:35 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3668,7 +3668,7 @@ js_socket_select(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	JSObject*	inarray[3]={NULL, NULL, NULL};
-	int		inarray_cnt = 0;
+	jsuint		inarray_cnt = 0;
 	JSObject*	robj;
 	JSObject*	rarray;
 	BOOL		poll_for_write=FALSE;
@@ -4704,7 +4704,7 @@ static jsSyncMethodSpec js_global_functions[] = {
 	,310
 	},		
 	{"mkpath",			js_mkpath,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
-	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories)")
+	,JSDOCSTR("make a path to a directory (creating all necessary sub-directories). Returns true if the directory already exists.")
 	,315
 	},		
 	{"rmdir",			js_rmdir,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("path/directory")
