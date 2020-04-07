@@ -803,12 +803,14 @@ G_MODULE_EXPORT void save_user(GtkWidget *wiggy, gpointer data)
 {
 	GtkWidget	*w;
 	char		str[1024];
+	gboolean	b;
 	int			i;
 	FILE		*f;
 	GtkTextIter	start;
 	GtkTextIter	end;
 
 	/* Toolbar indicators */
+		b=user.misc&DELETED?TRUE:FALSE;
 		w=GTK_WIDGET(gtk_builder_get_object(builder, "bDelete"));
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the deleted toolbar widget\n");
@@ -822,6 +824,7 @@ G_MODULE_EXPORT void save_user(GtkWidget *wiggy, gpointer data)
 			}
 		}
 
+		b=user.misc&INACTIVE?TRUE:FALSE;
 		w=GTK_WIDGET(gtk_builder_get_object(builder, "bRemove"));
 		if(w==NULL)
 			fprintf(stderr,"Cannot get the removed toolbar widget\n");
