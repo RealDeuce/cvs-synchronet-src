@@ -1,7 +1,7 @@
 /* Synchronet real-time chat functions */
 // vi: tabstop=4
 
-/* $Id: chat.cpp,v 1.82 2020/04/21 20:04:18 rswindell Exp $ */
+/* $Id: chat.cpp,v 1.81 2019/08/20 03:09:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1354,14 +1354,9 @@ void sbbs_t::nodemsg()
 
 	if(nodemsg_inside>1)	/* nested once only */
 		return;
-	nodemsg_inside++;
-	if(cfg.privatemsg_mod[0] != '\0') {
-		exec_bin(cfg.privatemsg_mod, &main_csi);
-		nodemsg_inside--;
-		return;
-	}
 	sys_status|=SS_IN_CTRLP;
 	getnodedat(cfg.node_num,&savenode,0);
+	nodemsg_inside++;
 	wordwrap[0]=0;
 	while(online && !done) {
 		if(useron.rest&FLAG('C')) {
