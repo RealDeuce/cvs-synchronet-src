@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.28 2020/03/19 04:01:44 rswindell Exp $ */
+/* $Id: str_list.h,v 1.29 2020/04/07 19:56:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,7 +71,7 @@ DLLEXPORT char* DLLCALL		strListAppend(str_list_t*, const char* str, size_t inde
 DLLEXPORT size_t DLLCALL	strListAppendList(str_list_t*, const str_list_t append_list);
 
 /* Append a malloc'd formatted string to the end of the list */
-DLLEXPORT char* DLLCALL strListAppendFormat(str_list_t* list, const char* format, ...);
+DLLEXPORT char* DLLCALL		strListAppendFormat(str_list_t* list, const char* format, ...);
 
 /* Inserts a string into the list at a specific index */
 /* Pass a pointer to a string list, the string to add (insert) */
@@ -82,7 +82,7 @@ DLLEXPORT char* DLLCALL		strListInsert(str_list_t*, const char* str, size_t inde
 DLLEXPORT size_t DLLCALL	strListInsertList(str_list_t*, const str_list_t append_list, size_t index);
 
 /* Insert a malloc'd formatted string into the list */
-DLLEXPORT char* DLLCALL strListInsertFormat(str_list_t* list, size_t index, const char* format, ...);
+DLLEXPORT char* DLLCALL		strListInsertFormat(str_list_t* list, size_t index, const char* format, ...);
 
 /* Remove a string at a specific index */
 DLLEXPORT char* DLLCALL		strListRemove(str_list_t*, size_t index);
@@ -92,6 +92,9 @@ DLLEXPORT BOOL DLLCALL		strListDelete(str_list_t*, size_t index);
 
 /* Replace a string at a specific index */
 DLLEXPORT char* DLLCALL		strListReplace(const str_list_t, size_t index, const char* str);
+
+/* Return a single-string representation of the entire string list, joined with the specified separator */
+DLLEXPORT char* DLLCALL		strListJoin(const str_list_t, char* buf, size_t buflen, const char* separator);
 
 /* Call a modification callback function for each string in a list */
 /* and replace each string with the result of the modification callback. */
@@ -127,6 +130,7 @@ DLLEXPORT char* DLLCALL		strListCombine(str_list_t, char* buf, size_t maxlen, co
 
 /* Count the number of strings in the list and returns the count */
 DLLEXPORT size_t DLLCALL	strListCount(const str_list_t);
+DLLEXPORT BOOL	 DLLCALL	strListIsEmpty(const str_list_t);
 
 /* Returns the index of the specified str (by ptr compare) or -1 if not found */
 DLLEXPORT int DLLCALL		strListIndexOf(const str_list_t, const char* str);
