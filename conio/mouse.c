@@ -1,4 +1,4 @@
-/* $Id: mouse.c,v 1.46 2020/04/09 04:31:25 deuce Exp $ */
+/* $Id: mouse.c,v 1.45 2018/07/24 01:10:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,12 +427,6 @@ void ciolib_mouse_thread(void *data)
 		}
 
 		timeout_button=0;
-		for(but=1;but<=3;but++) {
-			if(state.button_state[but-1]==MOUSE_DRAGSTARTED &&
-			    (mouse_events & ((1<<CIOLIB_BUTTON_DRAG_START(but)) | (1<<CIOLIB_BUTTON_DRAG_MOVE(but)) | (1<<CIOLIB_BUTTON_DRAG_END(but)))) == 0)
-				state.button_state[but-1] = MOUSE_NOSTATE;
-		}
-
 		for(but=1;but<=3;but++) {
 			if(state.button_state[but-1]!=MOUSE_NOSTATE 
 					&& state.button_state[but-1]!=MOUSE_DRAGSTARTED 
