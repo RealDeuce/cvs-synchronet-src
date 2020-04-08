@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.57 2019/07/09 20:13:26 deuce Exp $ */
+/* $Id: cterm.h,v 1.60 2020/04/06 18:40:44 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -146,6 +146,8 @@ struct cterminal {
 	int					cursor;			// Current cursor mode (Normal or None)
 	char				*fg_tc_str;
 	char				*bg_tc_str;
+	int					*tabs;
+	int					tab_count;
 
 	/* Sixel state */
 	int					sixel;			// Sixel status
@@ -175,6 +177,10 @@ struct cterminal {
 	/* APC Handler */
 	void				(*apc_handler)(char *strbuf, size_t strlen, void *cbdata);
 	void				*apc_handler_data;
+
+	/* Mouse state change callback */
+	void (*mouse_state_change)(int parameter, int enable, void *cbdata);
+	void *mouse_state_change_cbdata;
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
