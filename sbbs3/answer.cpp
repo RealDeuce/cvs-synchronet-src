@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.109 2020/03/31 08:28:20 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.112 2020/04/08 02:34:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -103,8 +103,10 @@ bool sbbs_t::answer()
 			SAFECOPY(rlogin_pass, str);
 			/* Truncate terminal speed (e.g. "/57600") from terminal-type string 
 			   (but keep full terminal type/speed string in rlogin_term): */
-			truncstr(terminal,"/");	
-			useron.number=matchuser(&cfg, rlogin_name, /* sysop_alias: */FALSE);
+			truncstr(terminal,"/");
+			useron.number = 0;
+			if(rlogin_name[0])
+				useron.number=matchuser(&cfg, rlogin_name, /* sysop_alias: */FALSE);
 			if(useron.number) {
 				getuserdat(&cfg,&useron);
 				useron.misc&=~TERM_FLAGS;
@@ -115,10 +117,10 @@ bool sbbs_t::answer()
 						if(stricmp(tmp,useron.pass)) {
 							if(cfg.sys_misc&SM_ECHO_PW)
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
-									,0,useron.alias,tmp);
+									,useron.number,useron.alias,tmp);
 							else
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
-									,0,useron.alias);
+									,useron.number,useron.alias);
 							logline(LOG_NOTICE,"+!",str);
 							badlogin(useron.alias, tmp);
 							rioctl(IOFI);       /* flush input buffer */
@@ -138,18 +140,20 @@ bool sbbs_t::answer()
 									break;
 								}
 							}
-							else
+							else {
+								i = 0;
 								break;
+							}
 						}
 					}
 					if(i) {
 						if(stricmp(tmp,useron.pass)) {
 							if(cfg.sys_misc&SM_ECHO_PW)
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
-									,0,useron.alias,tmp);
+									,useron.number,useron.alias,tmp);
 							else
 								safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
-									,0,useron.alias);
+									,useron.number,useron.alias);
 							logline(LOG_NOTICE,"+!",str);
 							badlogin(useron.alias, tmp);
 							bputs(text[InvalidLogon]);
@@ -214,10 +218,10 @@ bool sbbs_t::answer()
 				if(stricmp(tmp,useron.pass)) {
 					if(cfg.sys_misc&SM_ECHO_PW)
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
-							,0,useron.alias,tmp);
+							,useron.number,useron.alias,tmp);
 					else
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
-							,0,useron.alias);
+							,useron.number,useron.alias);
 					logline(LOG_NOTICE,"+!",str);
 					badlogin(useron.alias, tmp);
 					rioctl(IOFI);       /* flush input buffer */
@@ -238,18 +242,20 @@ bool sbbs_t::answer()
 							break;
 						}
 					}
-					else
+					else {
+						i = 0;
 						break;
+					}
 				}
 			}
 			if(i) {
 				if(stricmp(tmp,useron.pass)) {
 					if(cfg.sys_misc&SM_ECHO_PW)
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt: '%s'"
-							,0,useron.alias,tmp);
+							,useron.number,useron.alias,tmp);
 					else
 						safe_snprintf(str,sizeof(str),"(%04u)  %-25s  FAILED Password attempt"
-							,0,useron.alias);
+							,useron.number,useron.alias);
 					logline(LOG_NOTICE,"+!",str);
 					badlogin(useron.alias, tmp);
 					bputs(text[InvalidLogon]);
