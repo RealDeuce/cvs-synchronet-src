@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.359 2020/04/09 05:48:11 deuce Exp $ */
+/* $Id: term.c,v 1.351 2020/04/07 20:53:30 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -51,71 +51,14 @@ static struct vmem_cell winbuf[(TRANSFER_WIN_WIDTH + 2) * (TRANSFER_WIN_HEIGHT +
 static struct text_info	trans_ti;
 static struct text_info	log_ti;
 
-enum mouse_modes {
-	MM_OFF,
-	MM_X10 = 9,
-	MM_NORMAL_TRACKING = 1000,
-	MM_HIGHLIGHT_TRACKING = 1001,
-	MM_BUTTON_EVENT_TRACKING = 1002,
-	MM_ANY_EVENT_TRACKING = 1003
-};
-
-struct mouse_state {
-	uint32_t flags;
-#define MS_FLAGS_SGR	(1<<0)
-#define MS_SGR_SET	(1006)
-	enum mouse_modes mode;
-};
-
-void setup_mouse_events(struct mouse_state *ms)
+void setup_mouse_events(void)
 {
 	ciomouse_setevents(0);
-	if (ms) {
-		switch(ms->mode) {
-			case MM_X10:
-				ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_1_CLICK);
-				ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
-				ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
-				ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
-				ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
-				ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
-				return;
-			case MM_NORMAL_TRACKING:
-				ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
-				ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
-				ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
-				return;
-			case MM_BUTTON_EVENT_TRACKING:
-				ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
-				ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
-				ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
-				ciomouse_addevent(CIOLIB_MOUSE_MOVE);
-				return;
-			case MM_ANY_EVENT_TRACKING:
-				ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
-				ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
-				ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
-				ciomouse_addevent(CIOLIB_MOUSE_MOVE);
-				return;
-			default:
-				break;
-		}
-	}
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
-	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
+	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 }
 
 #if defined(__BORLANDC__)
@@ -790,6 +733,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		SAFEPRINTF(str, "Invalid upload directory: %s", bbs->uldir);
 		uifcmsg(str, "An invalid `UploadPath` was specified in the `syncterm.lst` file");
 		uifcbail();
+		setup_mouse_events();
 		restorescreen(savscrn);
 		freescreen(savscrn);
 		gotoxy(txtinfo.curx, txtinfo.cury);
@@ -804,6 +748,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		restorescreen(savscrn);
 		freescreen(savscrn);
 		gotoxy(txtinfo.curx, txtinfo.cury);
+		setup_mouse_events();
 		return;
 	}
 	SAFECOPY(path,fpick.selected[0]);
@@ -814,6 +759,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		SAFEPRINTF2(str,"Error %d opening %s for read",errno,path);
 		uifcmsg("Error opening file",str);
 		uifcbail();
+		setup_mouse_events();
 		restorescreen(savscrn);
 		freescreen(savscrn);
 		gotoxy(txtinfo.curx, txtinfo.cury);
@@ -848,6 +794,7 @@ void begin_upload(struct bbslist *bbs, BOOL autozm, int lastch)
 		}
 	}
 	uifcbail();
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 	gotoxy(txtinfo.curx, txtinfo.cury);
@@ -903,6 +850,7 @@ void begin_download(struct bbslist *bbs)
 	}
 	hold_update=old_hold;
 	uifcbail();
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 	gotoxy(txtinfo.curx, txtinfo.cury);
@@ -1106,6 +1054,7 @@ BOOL zmodem_duplicate_callback(void *cbdata, void *zm_void)
 	}
 
 	uifcbail();
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 	gotoxy(txtinfo.curx, txtinfo.cury);
@@ -1491,6 +1440,7 @@ BOOL xmodem_duplicate(xmodem_t *xm, struct bbslist *bbs, char *path, size_t path
 	}
 
 	uifcbail();
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 	hold_update=old_hold;
@@ -1840,6 +1790,7 @@ void music_control(struct bbslist *bbs)
 	else
 		check_exit(FALSE);
 	uifcbail();
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 }
@@ -1903,6 +1854,7 @@ void font_control(struct bbslist *bbs)
 	}
 	uifcbail();
 	ciolib_xlat = enable_xlat;
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 }
@@ -2067,6 +2019,7 @@ void capture_control(struct bbslist *bbs)
 		}
 	}
 	uifcbail();
+	setup_mouse_events();
 	restorescreen(savscrn);
 	freescreen(savscrn);
 }
@@ -2269,61 +2222,86 @@ static void apc_handler(char *strbuf, size_t slen, void *apcd)
 	}
 }
 
+enum mouse_modes {
+	MM_OFF,
+	MM_X10 = 9,
+	MM_NORMAL_TRACKING = 1000,
+	MM_HIGHLIGHT_TRACKING = 1001,
+	MM_BUTTON_EVENT_TRACKING = 1002,
+	MM_ANY_EVENT_TRACKING = 1003
+};
+
+struct mouse_state {
+	uint32_t flags;
+#define MS_FLAGS_SGR	(1<<0)
+#define MS_SGR_SET	(1006)
+	enum mouse_modes mode;
+};
+
 void mouse_state_change(int type, int action, void *pms)
 {
 	struct mouse_state *ms = (struct mouse_state *)pms;
 
 	if (!action) {
 		if (type == ms->mode) {
+			setup_mouse_events();
 			ms->mode = MM_OFF;
-			setup_mouse_events(ms);
 		}
 		if (type == MS_SGR_SET) {
 			ms->flags &= ~MS_FLAGS_SGR;
 		}
 	}
 	else {
-		switch (type) {
-			case MM_X10:
-			case MM_NORMAL_TRACKING:
-			case MM_BUTTON_EVENT_TRACKING:
-			case MM_ANY_EVENT_TRACKING:
-				ms->mode = type;
-				setup_mouse_events(ms);
-				break;
-			case MS_SGR_SET:
-				ms->flags |= MS_FLAGS_SGR;
+		if (type == MM_X10) {
+			ciomouse_setevents(0);
+			ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
+			ms->mode = type;
+		}
+		if (type == MM_NORMAL_TRACKING) {
+			ciomouse_setevents(0);
+			ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
+			ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
+			ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
+			ms->mode = type;
+		}
+		if (type == MM_BUTTON_EVENT_TRACKING) {
+			ciomouse_setevents(0);
+			ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
+			ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
+			ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
+			ciomouse_addevent(CIOLIB_MOUSE_MOVE);
+			ms->mode = type;
+		}
+		if (type == MM_ANY_EVENT_TRACKING) {
+			ciomouse_setevents(0);
+			ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_1_RELEASE);
+			ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_2_RELEASE);
+			ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
+			ciomouse_addevent(CIOLIB_BUTTON_3_RELEASE);
+			ciomouse_addevent(CIOLIB_MOUSE_MOVE);
+			ms->mode = type;
+		}
+		if (type == MS_SGR_SET) {
+			ms->flags |= MS_FLAGS_SGR;
 		}
 	}
-}
-
-int mouse_state_query(int type, void *pms)
-{
-	struct mouse_state *ms = (struct mouse_state *)pms;
-
-	if (type == MS_SGR_SET)
-		return ms->flags & MS_FLAGS_SGR;
-	return type == ms->mode;
-}
-
-/* Win32 doesn't have ffs()... just use this everywhere. */
-static int
-my_ffs(int mask)
-{
-	int bit;
-
-	if (mask == 0)
-		return(0);
-	for (bit = 1; !(mask & 1); bit++)
-		mask = (unsigned int)mask >> 1;
-	return (bit);
 }
 
 static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct mouse_state *ms)
 {
 	int button;
-	int x = me->startx - cterm->x + 1;
-	int y = me->starty - cterm->y + 1;
+	int x = me->startx;
+	int y = me->starty;
 	int bit;
 	int ret;
 	bool release;
@@ -2334,10 +2312,11 @@ static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct m
 			if (ms->mode == MM_BUTTON_EVENT_TRACKING)
 				return 0;
 		}
-		bit = my_ffs(me->kbsm & me->bstate);
+		bit = ffs(me->kbsm & me->bstate);
 		if (bit == 0)
-			bit = 4;
+			bit = 1;
 		button = bit - 1;
+		button += 32;
 		release = false;
 	}
 	else {
@@ -2425,7 +2404,7 @@ BOOL doterm(struct bbslist *bbs)
 		speed = bbs->bpsrate;
 	log_level = bbs->xfer_loglevel;
 	conn_api.log_level = bbs->telnet_loglevel;
-	setup_mouse_events(NULL);
+	setup_mouse_events();
 	vc=realloc(scrollback_buf, term.width*sizeof(*vc)*settings.backlines);
 	if(vc != NULL) {
 		scrollback_buf=vc;
@@ -2443,8 +2422,6 @@ BOOL doterm(struct bbslist *bbs)
 	cterm->apc_handler_data = bbs;
 	cterm->mouse_state_change = mouse_state_change;
 	cterm->mouse_state_change_cbdata = &ms;
-	cterm->mouse_state_query = mouse_state_query;
-	cterm->mouse_state_query_cbdata = &ms;
 	scrollback_cols=term.width;
 	cterm->music_enable=bbs->music;
 	ch[1]=0;
@@ -2501,7 +2478,6 @@ BOOL doterm(struct bbslist *bbs)
 									zmodem_download(bbs);
 								else
 									begin_upload(bbs, TRUE, inch);
-								setup_mouse_events(&ms);
 								zrqbuf[0]=0;
 								remain=1;
 							}
@@ -2634,28 +2610,20 @@ BOOL doterm(struct bbslist *bbs)
 						case CIOLIB_BUTTON_1_DRAG_START:
 							mousedrag(scrollback_buf);
 							break;
-						case CIOLIB_BUTTON_1_CLICK:
-							conn_send(mouse_buf, fill_mevent(mouse_buf, sizeof(mouse_buf), &mevent, &ms), 0);
-							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
-							if (ms.mode == 9) {
-								conn_send(mouse_buf, fill_mevent(mouse_buf, sizeof(mouse_buf), &mevent, &ms), 0);
-							}
-							else {
-								p=(unsigned char *)getcliptext();
-								if(p!=NULL) {
-									for(p2=p; *p2; p2++) {
-										if(*p2=='\n') {
-											/* If previous char was not \r, send a \r */
-											if(p2==p || *(p2-1)!='\r')
-												conn_send("\r",1,0);
-										}
-										else
-											conn_send(p2,1,0);
+							p=(unsigned char *)getcliptext();
+							if(p!=NULL) {
+								for(p2=p; *p2; p2++) {
+									if(*p2=='\n') {
+										/* If previous char was not \r, send a \r */
+										if(p2==p || *(p2-1)!='\r')
+											conn_send("\r",1,0);
 									}
-									free(p);
+									else
+										conn_send(p2,1,0);
 								}
+								free(p);
 							}
 							break;
 					}
@@ -2663,21 +2631,17 @@ BOOL doterm(struct bbslist *bbs)
 					key = 0;
 					break;
 				case 0x3000:	/* ALT-B - Scrollback */
-					setup_mouse_events(NULL);
 					viewscroll();
-					setup_mouse_events(&ms);
 					showmouse();
 					key = 0;
 					break;
 				case 0x2e00:	/* ALT-C - Capture */
 					capture_control(bbs);
-					setup_mouse_events(&ms);
 					showmouse();
 					key = 0;
 					break;
 				case 0x2000:	/* ALT-D - Download */
 					begin_download(bbs);
-					setup_mouse_events(&ms);
 					showmouse();
 					key = 0;
 					break;
@@ -2691,7 +2655,7 @@ BOOL doterm(struct bbslist *bbs)
 						setfont(0, FALSE, 4);
 						show_bbslist(bbs->name, TRUE);
 						uifcbail();
-						setup_mouse_events(&ms);
+						setup_mouse_events();
 						restorescreen(savscrn);
 						freescreen(savscrn);
 						if(cterm->scrollback != scrollback_buf || cterm->backlines != settings.backlines) {
@@ -2706,7 +2670,6 @@ BOOL doterm(struct bbslist *bbs)
 					break;
 				case 0x2100:	/* ALT-F */
 					font_control(bbs);
-					setup_mouse_events(&ms);
 					showmouse();
 					key = 0;
 					break;
@@ -2731,13 +2694,11 @@ BOOL doterm(struct bbslist *bbs)
 					break;
 				case 0x3200:	/* ALT-M */
 					music_control(bbs);
-					setup_mouse_events(&ms);
 					showmouse();
 					key = 0;
 					break;
 				case 0x1600:	/* ALT-U - Upload */
 					begin_upload(bbs, FALSE, inch);
-					setup_mouse_events(&ms);
 					showmouse();
 					key = 0;
 					break;
@@ -2763,7 +2724,7 @@ BOOL doterm(struct bbslist *bbs)
 						setfont(0, FALSE, 4);
 						if(quitting || confirm("Disconnect... Are you sure?", "Selecting Yes closes the connection\n")) {
 							freescreen(savscrn);
-							setup_mouse_events(&ms);
+							setup_mouse_events();
 							cterm_clearscreen(cterm,cterm->attr);	/* Clear screen into scrollback */
 							scrollback_lines=cterm->backpos;
 							cterm_end(cterm);
@@ -2775,7 +2736,7 @@ BOOL doterm(struct bbslist *bbs)
 						}
 						restorescreen(savscrn);
 						freescreen(savscrn);
-						setup_mouse_events(&ms);
+						setup_mouse_events();
 						showmouse();
 					}
 					key = 0;
@@ -2860,7 +2821,7 @@ BOOL doterm(struct bbslist *bbs)
 							}
 							break;
 					}
-					setup_mouse_events(&ms);
+					setup_mouse_events();
 					showmouse();
 					gotoxy(i,j);
 					key = 0;
