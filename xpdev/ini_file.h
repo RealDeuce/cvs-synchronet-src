@@ -1,6 +1,6 @@
 /* Functions to parse ini (initialization / configuration) files */
 
-/* $Id: ini_file.h,v 1.59 2020/04/03 16:11:04 rswindell Exp $ */
+/* $Id: ini_file.h,v 1.60 2020/04/03 18:41:45 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -276,6 +276,8 @@ DLLEXPORT BOOL 			iniRemoveValue(str_list_t*, const char* section, const char* k
 DLLEXPORT BOOL 			iniRemoveSection(str_list_t*, const char* section);
 DLLEXPORT BOOL 			iniRemoveSections(str_list_t*, const char* prefix);
 DLLEXPORT BOOL 			iniRenameSection(str_list_t*, const char* section, const char* newname);
+
+DLLEXPORT BOOL 			iniHasInclude(const str_list_t);
 
 /*
  * Too handy to leave internal
