@@ -1,7 +1,7 @@
 /* Synchronet answer "caller" function */
 // vi: tabstop=4
 
-/* $Id: answer.cpp,v 1.111 2020/04/08 02:21:44 rswindell Exp $ */
+/* $Id: answer.cpp,v 1.112 2020/04/08 02:34:26 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -140,8 +140,10 @@ bool sbbs_t::answer()
 									break;
 								}
 							}
-							else
+							else {
+								i = 0;
 								break;
+							}
 						}
 					}
 					if(i) {
@@ -240,8 +242,10 @@ bool sbbs_t::answer()
 							break;
 						}
 					}
-					else
+					else {
+						i = 0;
 						break;
+					}
 				}
 			}
 			if(i) {
