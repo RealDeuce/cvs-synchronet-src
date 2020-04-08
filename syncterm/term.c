@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.359 2020/04/09 05:48:11 deuce Exp $ */
+/* $Id: term.c,v 1.354 2020/04/08 20:52:10 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -74,12 +74,8 @@ void setup_mouse_events(struct mouse_state *ms)
 		switch(ms->mode) {
 			case MM_X10:
 				ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
-				ciomouse_addevent(CIOLIB_BUTTON_1_CLICK);
-				ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
-				ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
-				ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
-				ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
-				ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
+				ciomouse_addevent(CIOLIB_BUTTON_2_PRESS);
+				ciomouse_addevent(CIOLIB_BUTTON_3_PRESS);
 				return;
 			case MM_NORMAL_TRACKING:
 				ciomouse_addevent(CIOLIB_BUTTON_1_PRESS);
@@ -114,8 +110,8 @@ void setup_mouse_events(struct mouse_state *ms)
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_START);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_MOVE);
 	ciomouse_addevent(CIOLIB_BUTTON_1_DRAG_END);
-	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 	ciomouse_addevent(CIOLIB_BUTTON_3_CLICK);
+	ciomouse_addevent(CIOLIB_BUTTON_2_CLICK);
 }
 
 #if defined(__BORLANDC__)
@@ -2306,19 +2302,6 @@ int mouse_state_query(int type, void *pms)
 	return type == ms->mode;
 }
 
-/* Win32 doesn't have ffs()... just use this everywhere. */
-static int
-my_ffs(int mask)
-{
-	int bit;
-
-	if (mask == 0)
-		return(0);
-	for (bit = 1; !(mask & 1); bit++)
-		mask = (unsigned int)mask >> 1;
-	return (bit);
-}
-
 static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct mouse_state *ms)
 {
 	int button;
@@ -2334,10 +2317,11 @@ static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct m
 			if (ms->mode == MM_BUTTON_EVENT_TRACKING)
 				return 0;
 		}
-		bit = my_ffs(me->kbsm & me->bstate);
+		bit = ffs(me->kbsm & me->bstate);
 		if (bit == 0)
-			bit = 4;
+			bit = 1;
 		button = bit - 1;
+		button += 32;
 		release = false;
 	}
 	else {
@@ -2634,28 +2618,20 @@ BOOL doterm(struct bbslist *bbs)
 						case CIOLIB_BUTTON_1_DRAG_START:
 							mousedrag(scrollback_buf);
 							break;
-						case CIOLIB_BUTTON_1_CLICK:
-							conn_send(mouse_buf, fill_mevent(mouse_buf, sizeof(mouse_buf), &mevent, &ms), 0);
-							break;
 						case CIOLIB_BUTTON_2_CLICK:
 						case CIOLIB_BUTTON_3_CLICK:
-							if (ms.mode == 9) {
-								conn_send(mouse_buf, fill_mevent(mouse_buf, sizeof(mouse_buf), &mevent, &ms), 0);
-							}
-							else {
-								p=(unsigned char *)getcliptext();
-								if(p!=NULL) {
-									for(p2=p; *p2; p2++) {
-										if(*p2=='\n') {
-											/* If previous char was not \r, send a \r */
-											if(p2==p || *(p2-1)!='\r')
-												conn_send("\r",1,0);
-										}
-										else
-											conn_send(p2,1,0);
+							p=(unsigned char *)getcliptext();
+							if(p!=NULL) {
+								for(p2=p; *p2; p2++) {
+									if(*p2=='\n') {
+										/* If previous char was not \r, send a \r */
+										if(p2==p || *(p2-1)!='\r')
+											conn_send("\r",1,0);
 									}
-									free(p);
+									else
+										conn_send(p2,1,0);
 								}
+								free(p);
 							}
 							break;
 					}
