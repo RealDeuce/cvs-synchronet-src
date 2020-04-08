@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.494 2019/08/31 22:23:54 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.496 2020/03/31 07:12:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2623,7 +2623,7 @@ static BOOL badlogin(SOCKET sock, CRYPT_SESSION sess, ulong* login_attempts, cha
 static char* ftp_tmpfname(char* fname, char* ext, SOCKET sock)
 {
 	safe_snprintf(fname,MAX_PATH,"%sSBBS_FTP.%x%x%x%lx.%s"
-		,scfg.temp_dir,getpid(),sock,rand(),clock(),ext);
+		,scfg.temp_dir,getpid(),sock,rand(),(ulong)clock(),ext);
 	return(fname);
 }
 
@@ -3142,6 +3142,7 @@ static void ctrl_thread(void* arg)
 	client.port=inet_addrport(&ftp.client_addr);
 	client.protocol="FTP";
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	client_on(sock,&client,FALSE /* update */);
 
 	if(startup->login_attempt.throttle
@@ -3408,6 +3409,7 @@ static void ctrl_thread(void* arg)
 				sprintf(str,"%s <%.32s>",user.alias,password);
 				client.user=str;
 			}
+			client.usernum = user.number;
 			client_on(sock,&client,TRUE /* update */);
 
 			lprintf(LOG_INFO,"%04d <%s> logged in (%u today, %u total)"
@@ -3898,8 +3900,8 @@ static void ctrl_thread(void* arg)
 					,(ip_addr>>16)&0xff
 					,(ip_addr>>8)&0xff
 					,ip_addr&0xff
-					,(port>>8)&0xff
-					,port&0xff
+					,(ushort)((port>>8)&0xff)
+					,(ushort)(port&0xff)
 					);
 			}
 			mode="passive";
@@ -5991,7 +5993,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.494 $", "%*s %s", revision);
+	sscanf("$Revision: 1.496 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
