@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.353 2020/04/08 09:56:27 deuce Exp $ */
+/* $Id: term.c,v 1.354 2020/04/08 20:52:10 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2305,8 +2305,8 @@ int mouse_state_query(int type, void *pms)
 static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct mouse_state *ms)
 {
 	int button;
-	int x = me->startx;
-	int y = me->starty;
+	int x = me->startx - cterm->x + 1;
+	int y = me->starty - cterm->y + 1;
 	int bit;
 	int ret;
 	bool release;
