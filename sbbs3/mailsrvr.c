@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.720 2020/03/31 07:12:55 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.721 2020/04/09 05:48:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -699,6 +699,8 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		return(0);
 
 	if((p = smb_get_hfield(msg, RFC822TO, NULL)) != NULL)
+		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field (MIME-Encoded) */
+	else if((p = msg->to_list) != NULL)
 		s=sockprintf(socket,prot,sess,"To: %s", p);	/* use original RFC822 header field */
 	else {
 		if(strchr(msg->to,'@')!=NULL || msg->to_net.addr==NULL)
@@ -5898,7 +5900,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.720 $", "%*s %s", revision);
+	sscanf("$Revision: 1.721 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
