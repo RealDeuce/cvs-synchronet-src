@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.358 2020/04/09 05:20:40 deuce Exp $ */
+/* $Id: term.c,v 1.359 2020/04/09 05:48:11 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2347,7 +2347,7 @@ static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct m
 	}
 	if (button < 0)
 		return 0;
-	if ((button > 11)
+	if (button > 11)
 		return 0;
 	if (button > 7)
 		button += 128;
