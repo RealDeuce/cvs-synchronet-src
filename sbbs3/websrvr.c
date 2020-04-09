@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.711 2020/04/05 20:29:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.713 2020/04/05 22:12:21 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1293,8 +1293,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 		if (session->req.send_location) {
 			ret=-1;
-			session->req.send_content = FALSE;
-			send_entity = FALSE;
 			switch (session->req.send_location) {
 				case MOVED_PERM:
 					status_line=error_301;
@@ -4082,7 +4080,7 @@ static int fastcgi_read_wait_timeout(void *arg)
 					break;
 				case FCGI_END_REQUEST:
 					ret |= CGI_PROCESS_TERMINATED;
-					cd.request_ended = 1;
+					cd->request_ended = 1;
 					// Fall-through
 				case FCGI_BEGIN_REQUEST:
 				case FCGI_ABORT_REQUEST:
@@ -6745,7 +6743,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.711 $", "%*s %s", revision);
+	sscanf("$Revision: 1.713 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
