@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.193 2020/04/24 08:01:33 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.191 2020/04/09 09:33:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2049,8 +2049,6 @@ js_qwk_sec(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
-	char*		section = "";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2058,11 +2056,9 @@ js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-	if(argc > 0) {
-		JSVALUE_TO_ASTRING(cx, argv[0], section, LEN_CODE + 1, NULL);
-	}
+
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->xtrn_sec(section);
+	sbbs->xtrn_sec();
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2500,8 +2496,6 @@ js_change_user(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 {
-	jsval *argv=JS_ARGV(cx, arglist);
-	char*		args="";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2510,11 +2504,8 @@ js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	if(argc > 0) {
-		JSVALUE_TO_ASTRING(cx, argv[0], args, LEN_CMD, NULL);
-	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->logonlist(args);
+	sbbs->logonlist();
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2707,69 +2698,38 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	smb_t*		resmb = NULL;
 	smbmsg_t*	remsg = NULL;
-	str_list_t	to_list = NULL;
 	smbmsg_t	msg;
 	jsrefcount	rc;
-	bool		error = false;
 
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
 	ZERO_VAR(msg);
-	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
  	if(!js_argc(cx, argc, 1))
 		return(JS_FALSE);
 
-	for(uintN i=0; i<argc && !error; i++) {
+	for(uintN i=0; i<argc; i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
-				error = true;
+				return JS_FALSE;
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
-			if((js_str = JS_ValueToString(cx, argv[i])) == NULL) {
-				error = true;
-				break;
-			}
-			if(to == NULL && to_list == NULL) {
+			js_str = JS_ValueToString(cx, argv[i]);
+			if(to == NULL) {
 				JSSTRING_TO_MSTRING(cx, js_str, to, NULL);
 			} else if(subj == NULL) {
 				JSSTRING_TO_MSTRING(cx, js_str, subj, NULL);
 			}
 		}
 		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
-			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL) {
-				error = true;
-				break;
-			}
-			jsuint len=0;
-			if(JS_GetArrayLength(cx, hdrobj, &len) && len > 0) { // to_list[]
-				to_list = strListInit();
-				for(jsuint j=0; j < len; j++) {
-					jsval		val;
-					if(!JS_GetElement(cx, hdrobj, j, &val)) {
-						error = true;
-						break;
-					}
-					if((js_str = JS_ValueToString(cx, val)) == NULL) {
-						error = true;
-						break;
-					}
-					char* cstr = NULL;
-					JSSTRING_TO_ASTRING(cx, js_str, cstr, 64, NULL);
-					if(cstr == NULL) {
-						error = true;
-						break;
-					}
-					strListPush(&to_list, cstr);
-				}
-				continue;
-			}
+			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
+				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
 				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
 					JS_ReportError(cx, "msg hdr object cannot be parsed");
-					error = true;
-					break;
+					return JS_FALSE;
 				}
 				remsg = &msg;
 			}
@@ -2777,10 +2737,8 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!error)
-		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->netmail(to, subj, mode, resmb, remsg, to_list)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->netmail(to, subj, mode, resmb, remsg)));
 	smb_freemsgmem(&msg);
-	strListFree(&to_list);
 	FREE_AND_NULL(subj);
 	FREE_AND_NULL(to);
 	JS_RESUMEREQUEST(cx, rc);
@@ -4234,8 +4192,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("enter the text files section")
 	,310
 	},
-	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("[section]")
-	,JSDOCSTR("enter the external programs section (or go directly to the specified <i>section</i>)")
+	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("enter the external programs section")
 	,310
 	},
 	{"xfer_policy",		js_xfer_policy,		0,	JSTYPE_VOID,	JSDOCSTR("")
@@ -4322,8 +4280,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("change to a different user")
 	,310
 	},
-	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("[arguments]")
-	,JSDOCSTR("display the logon list (optionally passing arguments to the logon list module)")
+	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("")
+	,JSDOCSTR("display the logon list")
 	,310
 	},
 	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>] [,loadmail_mode=<tt>0</tt>]")
@@ -4335,8 +4293,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("send private e-mail to a local user (<i>reply_header</i> added in v3.17c)")
 	,310
 	},
-	{"netmail",			js_netmail,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[string address or array of addresses] [,mode=<tt>WM_NONE</tt>] [,subject=<i>none</i>] [,object reply_header]")
-	,JSDOCSTR("send private netmail (<i>reply_header</i> added in v3.17c, <i>array of addresses</i> added in v3.18a)")
+	{"netmail",			js_netmail,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("address [,mode=<tt>WM_NONE</tt>] [,subject=<i>none</i>] [,object reply_header]")
+	,JSDOCSTR("send private netmail (<i>reply_header</i> added in v3.17c)")
 	,310
 	},
 	{"bulk_mail",		js_bulkmail,		0,	JSTYPE_VOID,	JSDOCSTR("[ars]")
