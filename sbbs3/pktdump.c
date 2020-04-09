@@ -1,6 +1,6 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.13 2020/04/09 09:27:37 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.14 2020/04/09 18:30:39 rswindell Exp $ */
 
 #include "fidodefs.h"
 #include "xpendian.h"	/* swap */
@@ -131,25 +131,46 @@ int pktdump(FILE* fp, const char* fname, FILE* out)
 
 		offset=ftell(fp);
 
+		if(fread(&pkdmsg.type, 1, sizeof(pkdmsg.type), fp) != sizeof(pkdmsg.type))
+			break;
+		if(pkdmsg.type == FIDO_PACKET_TERMINATOR)
+			continue;
+		if(pkdmsg.type != 2) {
+			printf("%s %06lX Corrupted Message Header (type: %04hX)\n"
+				,fname
+				,offset
+				,pkdmsg.type);
+			continue;
+		}
+
+		bool corrupted = false;
+		fseek(fp, offset, SEEK_SET);
 		/* Read fixed-length header fields (or final NULL byte) */
 		if(fread(&pkdmsg,sizeof(BYTE),sizeof(pkdmsg),fp)!=sizeof(pkdmsg))
 			break;
+		if(pkdmsg.time[0] == '\0' || pkdmsg.time[sizeof(pkdmsg.time) - 1] != '\0') {
+			printf("%s %06lX Corrupted Message Header (DateTime)\n"
+				,fname
+				,offset);
+			corrupted = true;
+		}
 
 		/* Read variable-length header fields */
 		freadstr(fp,to,sizeof(to));
 		freadstr(fp,from,sizeof(from));
 		freadstr(fp,subj,sizeof(subj));
-		if(pkdmsg.type != 2
+		if(!corrupted && (from[0] == '\0'
 			|| to[sizeof(to) - 1] != '\0'
 			|| from[sizeof(from) - 1] != '\0'
 			|| subj[sizeof(subj) - 1] != '\0'
-			|| from[0] == '\0'
-			|| pkdmsg.time[0] == '\0'
-			|| pkdmsg.time[sizeof(pkdmsg.time) - 1] != '\0'
-			) {
-			printf("%s %06lX Corrupted Message Header\n"
+			)) {
+			printf("%s %06lX Corrupted Message Header (variable portion)\n"
 				,fname
 				,offset);
+			corrupted = true;
+		}
+
+		if(corrupted) { // Seek to the end of the message body (hopefully)
 			while((ch = fgetc(fp)) != EOF && ch != 0)
 				;
 			continue;
@@ -208,7 +229,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.13 $", "%*s %s", revision);
+	sscanf("$Revision: 1.14 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
