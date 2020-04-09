@@ -1,4 +1,4 @@
-/* $Id: unbaja.c,v 1.47 2020/04/16 07:39:46 rswindell Exp $ */
+/* $Id: unbaja.c,v 1.46 2015/08/22 10:16:57 deuce Exp $ */
 
 #include <stdio.h>
 #include <string.h>
@@ -2131,8 +2131,8 @@ void decompile(FILE *bin, FILE *srcfile)
 				NONE("MSG_NEW_SCAN_SUB");
 			case CS_MSG_SET_GROUP:
 				NONE("MSG_SET_GROUP");
-			case CS_MSG_LIST:
-				NONE("MSG_LIST");
+			case CS_MSG_UNUSED4:
+				NONE("MSG_UNUSED4");
 			case CS_MSG_UNUSED3:
 				NONE("MSG_UNUSED3");
 			case CS_MSG_UNUSED2:
@@ -2329,7 +2329,7 @@ int main(int argc, char **argv)
 	char	cache_line[1024];
 	char	*crc,*good,*str;
 
-	sscanf("$Revision: 1.47 $", "%*s %s", revision);
+	sscanf("$Revision: 1.46 $", "%*s %s", revision);
 
 	printf("\nUNBAJA v%s-%s - Synchronet Baja Shell/Module De-compiler\n"
 		,revision, PLATFORM_DESC);
