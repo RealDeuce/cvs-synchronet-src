@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.359 2020/04/09 05:48:11 deuce Exp $ */
+/* $Id: term.c,v 1.356 2020/04/09 04:43:13 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2336,8 +2336,9 @@ static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct m
 		}
 		bit = my_ffs(me->kbsm & me->bstate);
 		if (bit == 0)
-			bit = 4;
+			bit = 1;
 		button = bit - 1;
+		button += 32;
 		release = false;
 	}
 	else {
