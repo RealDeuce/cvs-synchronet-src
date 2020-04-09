@@ -1,12 +1,14 @@
-/* Synchronet (oh, so old) data access routines */
+/* data.cpp */
 
-/* $Id: data.cpp,v 1.31 2018/06/10 08:53:13 rswindell Exp $ */
+/* Synchronet data access routines */
+
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,7 +47,7 @@
 /* Returns the number of the matched user or 0 if unsuccessful				*/
 /* Called from functions main_sec, useredit and readmailw					*/
 /****************************************************************************/
-uint sbbs_t::finduser(char *instr, bool silent_failure)
+uint sbbs_t::finduser(char *instr)
 {
 	int file,i;
 	char str[128],str2[256],str3[256],ynq[25],c,pass=1;
@@ -67,7 +69,9 @@ uint sbbs_t::finduser(char *instr, bool silent_failure)
 		errormsg(WHERE,ERR_OPEN,str3,O_RDONLY);
 		return(0); 
 	}
-	SAFEPRINTF(ynq,"%.3s",text[YNQP]);
+	SAFEPRINTF(ynq,"%.2s",text[YN]);
+	ynq[2]='Q';
+	ynq[3]=0;
 	length=(long)filelength(file);
 	while(pass<3) {
 		fseek(stream,0L,SEEK_SET);	/* seek to beginning for each pass */
@@ -93,11 +97,11 @@ uint sbbs_t::finduser(char *instr, bool silent_failure)
 					fclose(stream);
 					return(0); 
 				}
-				if(c==text[YNQP][0]) {
+				if(c==text[YN][0]) {
 					fclose(stream);
 					return((l/(LEN_ALIAS+2))+1); 
 				}
-				if(c==text[YNQP][2]) {
+				if(c=='Q') {
 					fclose(stream);
 					return(0); 
 				} 
@@ -105,8 +109,7 @@ uint sbbs_t::finduser(char *instr, bool silent_failure)
 		}
 		pass++; 
 	}
-	if(!silent_failure)
-		bputs(text[UnknownUser]);
+	bputs(text[UnknownUser]);
 	fclose(stream);
 	return(0);
 }
@@ -267,7 +270,7 @@ ulong sbbs_t::gettimeleft(bool handle_out_of_time)
 				&& !(useron.exempt&FLAG('E'))) {
 												/* set to expired values */
 				bputs(text[AccountHasExpired]);
-				SAFEPRINTF2(str,"%s #%u Expired",useron.alias,useron.number);
+				SAFEPRINTF(str,"%s Expired",useron.alias);
 				logentry("!%",str);
 				if(cfg.level_misc[useron.level]&LEVEL_EXPTOVAL
 					&& cfg.level_expireto[useron.level]<10) {

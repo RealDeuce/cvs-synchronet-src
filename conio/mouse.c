@@ -1,10 +1,10 @@
-/* $Id: mouse.c,v 1.46 2020/04/09 04:31:25 deuce Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -206,7 +206,7 @@ int CIOLIBCALL more_multies(int button, int clicks)
 	return(0);
 }
 
-void ciolib_mouse_thread(void *data)
+void CIOLIBCALL ciolib_mouse_thread(void *data)
 {
 	int	timedout;
 	int timeout_button=0;
@@ -427,12 +427,6 @@ void ciolib_mouse_thread(void *data)
 		}
 
 		timeout_button=0;
-		for(but=1;but<=3;but++) {
-			if(state.button_state[but-1]==MOUSE_DRAGSTARTED &&
-			    (mouse_events & ((1<<CIOLIB_BUTTON_DRAG_START(but)) | (1<<CIOLIB_BUTTON_DRAG_MOVE(but)) | (1<<CIOLIB_BUTTON_DRAG_END(but)))) == 0)
-				state.button_state[but-1] = MOUSE_NOSTATE;
-		}
-
 		for(but=1;but<=3;but++) {
 			if(state.button_state[but-1]!=MOUSE_NOSTATE 
 					&& state.button_state[but-1]!=MOUSE_DRAGSTARTED 

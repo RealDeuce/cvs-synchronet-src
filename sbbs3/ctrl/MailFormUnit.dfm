@@ -144,7 +144,7 @@ object MailForm: TMailForm
     Left = 0
     Top = 25
     Width = 464
-    Height = 86
+    Height = 87
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -153,7 +153,6 @@ object MailForm: TMailForm
     Font.Style = []
     HideScrollBars = False
     ParentFont = False
-    PopupMenu = MainForm.LogPopupMenu
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1

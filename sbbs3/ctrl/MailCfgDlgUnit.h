@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.h,v 1.22 2018/07/24 01:11:29 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -100,6 +100,7 @@ __published:
     TCheckBox *SendMailCheckBox;
     TLabel *DefaultUserLabel;
     TEdit *DefaultUserEdit;
+	TCheckBox *AllowRelayCheckBox;
 	TTabSheet *DNSBLTabSheet;
 	TButton *DNSBLServersButton;
 	TLabel *Label1;
@@ -150,12 +151,6 @@ __published:
     TEdit *MaxMsgsWaitingEdit;
     TLabel *ConnectTimeoutLabel;
     TEdit *ConnectTimeoutEdit;
-    TLabel *TLSSubPortLabel;
-    TEdit *TLSSubPortEdit;
-    TCheckBox *TLSSubPortCheckBox;
-    TLabel *TLSPOP3PortLabel;
-    TEdit *TLSPOP3PortEdit;
-    TCheckBox *TLSPOP3EnabledCheckBox;
     void __fastcall InboundSoundButtonClick(TObject *Sender);
     void __fastcall OutboundSoundButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
@@ -167,9 +162,9 @@ __published:
 	void __fastcall DNSBLRadioButtonClick(TObject *Sender);
 	void __fastcall DNSBLServersButtonClick(TObject *Sender);
 	void __fastcall DNSBLExemptionsButtonClick(TObject *Sender);
+	void __fastcall AllowRelayCheckBoxClick(TObject *Sender);
     void __fastcall RelayAuthRadioButtonClick(TObject *Sender);
     void __fastcall UseSubPortCheckBoxClick(TObject *Sender);
-    void __fastcall TLSSubPortCheckBoxClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TMailCfgDlg(TComponent* AOwner);

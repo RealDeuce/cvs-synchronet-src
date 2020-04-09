@@ -1,12 +1,14 @@
+/* login.cpp */
+
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.30 2020/03/31 08:28:20 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -36,43 +38,39 @@
 #include "sbbs.h"
 #include "cmdshell.h"
 
-char* sbbs_t::parse_login(char* str)
-{
-	sys_status &= ~(SS_QWKLOGON|SS_FASTLOGON);
-
-	if(*str == '*') {
-		sys_status |= SS_QWKLOGON;
-		return str + 1;
-	}
-
-	if(*str == '!') {
-		sys_status |= SS_FASTLOGON;
-		return str + 1;
-	}
-	return str;
-}
-
-int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const char* sys_pw)
+int sbbs_t::login(char *username, char *pw)
 {
 	char	str[128];
 	char 	tmp[512];
 	long	useron_misc=useron.misc;
 
 	useron.number=0;
-	username = parse_login(username);
+#if 0
+	if(cfg.node_dollars_per_call && noyes(text[AreYouSureQ]))
+		return(LOGIC_FALSE);
+#endif
 
-	if(!(cfg.node_misc&NM_NO_NUM) && isdigit((uchar)username[0])) {
-		useron.number=atoi(username);
+	SAFECOPY(str,username);
+
+	if(str[0]=='*') {
+		memmove(str,str+1,strlen(str));
+		qwklogon=1; 
+	}
+	else
+		qwklogon=0;
+
+	if(!(cfg.node_misc&NM_NO_NUM) && isdigit((uchar)str[0])) {
+		useron.number=atoi(str);
 		getuserdat(&cfg,&useron);
 		if(useron.number && useron.misc&(DELETED|INACTIVE))
 			useron.number=0; 
 	}
 
 	if(!useron.number) {
-		useron.number=matchuser(&cfg,username,FALSE);
-		if(!useron.number && (uchar)username[0]<0x7f && str[1]
-			&& isalpha(username[0]) && strchr(username,' ') && cfg.node_misc&NM_LOGON_R)
-			useron.number=userdatdupe(0,U_NAME,LEN_NAME,username);
+		useron.number=matchuser(&cfg,str,FALSE);
+		if(!useron.number && (uchar)str[0]<0x7f && str[1]
+			&& isalpha(str[0]) && strchr(str,' ') && cfg.node_misc&NM_LOGON_R)
+			useron.number=userdatdupe(0,U_NAME,LEN_NAME,str);
 		if(useron.number) {
 			getuserdat(&cfg,&useron);
 			if(useron.number && useron.misc&(DELETED|INACTIVE))
@@ -80,9 +78,9 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 	}
 
 	if(!useron.number) {
-		if((cfg.node_misc&NM_LOGON_P) && pw_prompt != NULL) {
-			SAFECOPY(useron.alias,username);
-			bputs(pw_prompt);
+		if(cfg.node_misc&NM_LOGON_P) {
+			SAFECOPY(useron.alias,str);
+			bputs(pw);
 			console|=CON_R_ECHOX;
 			getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
 			console&=~(CON_R_ECHOX|CON_L_ECHOX);
@@ -96,9 +94,8 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 					,0,useron.alias);
 			logline(LOG_NOTICE,"+!",tmp); 
 		} else {
-			badlogin(username, NULL);
 			bputs(text[UnknownUser]);
-			sprintf(tmp,"Unknown User '%s'",username);
+			sprintf(tmp,"Unknown User '%s'",str);
 			logline(LOG_NOTICE,"+!",tmp); 
 		}
 		useron.misc=useron_misc;
@@ -111,15 +108,10 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 	}
 
 	if(useron.pass[0] || REALSYSOP) {
-		if(user_pw != NULL)
-			SAFECOPY(str, user_pw);
-		else {
-			if(pw_prompt != NULL)
-				bputs(pw_prompt);
-			console |= CON_R_ECHOX;
-			getstr(str, LEN_PASS * 2, K_UPPER | K_LOWPRIO | K_TAB);
-			console &= ~(CON_R_ECHOX | CON_L_ECHOX);
-		}
+		bputs(pw);
+		console|=CON_R_ECHOX;
+		getstr(str,LEN_PASS*2,K_UPPER|K_LOWPRIO|K_TAB);
+		console&=~(CON_R_ECHOX|CON_L_ECHOX);
 		if(!online) {
 			useron.number=0;
 			return(LOGIC_FALSE); 
@@ -138,7 +130,7 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 			useron.misc=useron_misc;
 			return(LOGIC_FALSE); 
 		}
-		if(REALSYSOP && (cfg.sys_misc&SM_SYSPASSLOGIN) && !chksyspass(sys_pw)) {
+		if(REALSYSOP && !chksyspass()) {
 			bputs(text[InvalidLogon]);
 			useron.number=0;
 			useron.misc=useron_misc;
@@ -149,33 +141,18 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 	return(LOGIC_TRUE);
 }
 
-void sbbs_t::badlogin(char* user, char* passwd, const char* protocol, xp_sockaddr* addr, bool delay)
+void sbbs_t::badlogin(char* user, char* passwd)
 {
 	char reason[128];
-	char host_name[128];
 	ulong count;
 
-	if(protocol == NULL)
-		protocol = connection;
-	if(addr == NULL)
-		addr = &client_addr;
+	SAFEPRINTF(reason,"%s LOGIN", connection);
+	count=loginFailure(startup->login_attempt_list, &client_addr, connection, user, passwd);
+	if(startup->login_attempt_hack_threshold && count>=startup->login_attempt_hack_threshold)
+		::hacklog(&cfg, reason, user, passwd, client_name, &client_addr);
+	if(startup->login_attempt_filter_threshold && count>=startup->login_attempt_filter_threshold)
+		filter_ip(&cfg, connection, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS"
+			,client_name, inet_ntoa(client_addr.sin_addr), user, /* fname: */NULL);
 
-	SAFECOPY(host_name, STR_NO_HOSTNAME);
-	socklen_t addr_len = sizeof(*addr);
-	SAFEPRINTF(reason,"%s LOGIN", protocol);
-	count=loginFailure(startup->login_attempt_list, addr, protocol, user, passwd);
-	if(user!=NULL && startup->login_attempt.hack_threshold && count>=startup->login_attempt.hack_threshold) {
-		getnameinfo(&addr->addr, addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		::hacklog(&cfg, reason, user, passwd, host_name, addr);
-	}
-	if(startup->login_attempt.filter_threshold && count>=startup->login_attempt.filter_threshold) {
-		char ipaddr[INET6_ADDRSTRLEN];
-		inet_addrtop(addr, ipaddr, sizeof(ipaddr));
-		getnameinfo(&addr->addr, addr_len, host_name, sizeof(host_name), NULL, 0, NI_NAMEREQD);
-		SAFEPRINTF(reason, "- TOO MANY CONSECUTIVE FAILED LOGIN ATTEMPTS (%lu)", count);
-		filter_ip(&cfg, protocol, reason, host_name, ipaddr, user, /* fname: */NULL);
-	}
-
-	if(delay)
-		mswait(startup->login_attempt.delay);
+	mswait(startup->login_attempt_delay);
 }

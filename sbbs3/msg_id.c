@@ -1,12 +1,14 @@
+/* msg_id.c */
+
 /* Synchronet Message-ID generation routines */
 
-/* $Id: msg_id.c,v 1.14 2019/04/11 01:18:59 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -35,28 +37,14 @@
 
 #include "sbbs.h"
 
-static ulong msg_number(smbmsg_t* msg)
+static uint32_t msg_number(smbmsg_t* msg)
 {
 	if(msg->idx.number)
 		return(msg->idx.number);
 	return(msg->hdr.number);
 }
 
-uint32_t get_new_msg_number(smb_t* smb)
-{
-	BOOL locked = smb->locked;
-
-	if(!locked && smb_locksmbhdr(smb) != SMB_SUCCESS)
-		return 0;
-
-	if(smb_getstatus(smb)!=SMB_SUCCESS)
-		return 0;
-
-	if(!locked) smb_unlocksmbhdr(smb);
-	return smb->status.last_msg + 1;
-}
-
-static ulong msg_time(smbmsg_t* msg)
+static uint32_t msg_time(smbmsg_t* msg)
 {
 	if(msg->idx.time)
 		return(msg->idx.time);
@@ -70,22 +58,13 @@ static ulong msgid_serialno(smbmsg_t* msg)
 
 /****************************************************************************/
 /* Returns a FidoNet (FTS-9) message-ID										*/
-/* Returns NULL if the message is from FidoNet and doesn't have a MSGID		*/
-/* Pass NULL for msgid if (single-threaded) caller wishes to use static buf	*/
 /****************************************************************************/
 char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg, char* msgid, size_t maxlen)
 {
-	static char msgidbuf[256];
-	
-	if(msgid == NULL) {
-		msgid = msgidbuf;
-		maxlen = sizeof(msgidbuf);
+	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0) {
+		strncpy(msgid,msg->ftn_msgid,maxlen);
+		return(msg->ftn_msgid);
 	}
-	if(msg->ftn_msgid!=NULL && *msg->ftn_msgid!=0)
-		return msg->ftn_msgid;
-
-	if(msg->from_net.type == NET_FIDO)	// Don't generate a message-ID for imported FTN messages
-		return NULL;
 
 	safe_snprintf(msgid,maxlen
 		,"%lu.%s@%s %08lx"
@@ -95,7 +74,7 @@ char* DLLCALL ftn_msgid(sub_t *sub, smbmsg_t* msg, char* msgid, size_t maxlen)
 		,msgid_serialno(msg)
 		);
 
-	return msgid;
+	return(msgid);
 }
 
 /****************************************************************************/
@@ -137,114 +116,4 @@ char* DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, si
 			,host);
 
 	return(msgid);
-}
-
-/****************************************************************************/
-/* Get (or generate) the original message-ID for a reply message			*/
-/* Returns NULL if not a valid reply message								*/
-/****************************************************************************/
-char* DLLCALL get_replyid(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, char* msgid, size_t maxlen)
-{
-	smbmsg_t remsg;
-
-	if(msg->reply_id)
-		return msg->reply_id;
-	if(msg->hdr.thread_back == 0)
-		return NULL;
-
-	memset(&remsg, 0, sizeof(remsg));
-	remsg.hdr.number=msg->hdr.thread_back;
-	if(smb_getmsgidx(smb, &remsg) != SMB_SUCCESS)
-		return NULL;
-	if(smb_getmsghdr(smb, &remsg) != SMB_SUCCESS)
-		return NULL;
-	get_msgid(cfg, smb->subnum, &remsg, msgid, maxlen);
-	smb_freemsgmem(&remsg);
-
-	return msgid;
-}
-
-/****************************************************************************/
-/* Add auto-generated message-IDs to a message, if doesn't already have		*/
-/* The message base (smb) must be already opened							*/
-/****************************************************************************/
-BOOL DLLCALL add_msg_ids(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, smbmsg_t* remsg)
-{
-	char msg_id[256];
-
-	if(msg->hdr.number == 0)
-		msg->hdr.number = get_new_msg_number(smb);
-
- 	/* Generate FidoNet (FTS-9) MSGID (for messages posted to FTN sub-boards only) */
- 	if(msg->ftn_msgid == NULL && smb->subnum != INVALID_SUB && (cfg->sub[smb->subnum]->misc&SUB_FIDO)) {
- 		if(ftn_msgid(cfg->sub[smb->subnum], msg, msg_id, sizeof(msg_id)) != NULL) {
- 			if(smb_hfield_str(msg, FIDOMSGID, msg_id) != SMB_SUCCESS)
-				return FALSE;
-		}
- 	}
-
-	/* Generate Internet MSG-ID (for all messages) */
-	if(msg->id == NULL) {
- 		get_msgid(cfg, smb->subnum, msg, msg_id, sizeof(msg_id));
- 		if(smb_hfield_str(msg, RFC822MSGID, msg_id) != SMB_SUCCESS)
-			return FALSE;
-	}
-
-	/* Generate Reply-IDs (when appropriate) */
-	if(remsg != NULL) {
-		if(add_reply_ids(cfg, smb, msg, remsg) != TRUE)
-			return FALSE;
-	}
-
-	/* Generate FidoNet Program Identifier */
- 	if(msg->ftn_pid == NULL) {
-		if(smb_hfield_str(msg, FIDOPID, msg_program_id(msg_id, sizeof(msg_id))) != TRUE)
-			return FALSE;
-	}
-
-	return TRUE;	// Success
-}
-
-/****************************************************************************/
-/* Adds reply-IDs and does some reply/thread-linkage to a new message		*/
-/* Migrated from sbbs_t::postmsg()											*/
-/* The message base (smb) must be already opened successfully				*/
-/****************************************************************************/
-BOOL DLLCALL add_reply_ids(scfg_t* cfg, smb_t* smb, smbmsg_t* msg, smbmsg_t* remsg)
-{
-	char* p;
-	char replyid[256];
-
-	msg->hdr.thread_back = remsg->hdr.number;	/* needed for threading backward */
-
-	if((msg->hdr.thread_id = remsg->hdr.thread_id) == 0)
-		msg->hdr.thread_id = remsg->hdr.number;
-
-	/* Add RFC-822 Reply-ID (generate if necessary) */
-	if((p = get_replyid(cfg, smb, msg, replyid, sizeof(replyid))) != NULL) {
-		if(smb_hfield_str(msg, RFC822REPLYID, p) != SMB_SUCCESS)
-			return FALSE;
-	}
-
-	/* Add FidoNet Reply if original message has FidoNet MSGID */
-	if(remsg->ftn_msgid != NULL) {
-		if(smb_hfield_str(msg, FIDOREPLYID, remsg->ftn_msgid) != SMB_SUCCESS)
-			return FALSE;
-	}
-
-	return TRUE;	// Success
-}
-
-/****************************************************************************/
-/* FTN-compliant "Program Identifier"/PID									*/
-/****************************************************************************/
-char* DLLCALL msg_program_id(char* pid, size_t maxlen)
-{
-	char compiler[64];
-
-	DESCRIBE_COMPILER(compiler);
-	snprintf(pid, maxlen, "%.10s %s%c-%s  %s %s"
-		,VERSION_NOTICE,VERSION,REVISION,PLATFORM_DESC
-		,__DATE__,compiler);
-	return pid;
 }

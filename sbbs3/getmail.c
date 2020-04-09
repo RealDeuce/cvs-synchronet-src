@@ -1,12 +1,14 @@
+/* getmail.c */
+
 /* Synchronet DLL-exported mail-related routines */
 
-/* $Id: getmail.c,v 1.20 2018/12/30 04:33:48 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,28 +42,26 @@
 /* If sent is non-zero, it returns the number of mail sent by usernumber    */
 /* If usernumber is 0, it returns all mail on the system                    */
 /****************************************************************************/
-int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
+int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent)
 {
-    char    path[MAX_PATH+1];
+    char    str[128];
     int     i=0;
     long    l;
     idxrec_t idx;
 	smb_t	smb;
 
 	ZERO_VAR(smb);
-	SAFEPRINTF(smb.file,"%smail",cfg->data_dir);
-	smb.retry_time=1;	//cfg->smb_retry_time;
-	SAFEPRINTF(path,"%s.sid",smb.file);
-	l=(long)flength(path);
+	sprintf(smb.file,"%smail",cfg->data_dir);
+	smb.retry_time=cfg->smb_retry_time;
+	sprintf(str,"%s.sid",smb.file);
+	l=(long)flength(str);
 	if(l<(long)sizeof(idxrec_t))
 		return(0);
-	if(usernumber == 0 && attr == 0) 
+	if(!usernumber) 
 		return(l/sizeof(idxrec_t)); 	/* Total system e-mail */
 	smb.subnum=INVALID_SUB;
-
-	if(smb_open_fp(&smb,&smb.sid_fp,SH_DENYNO)!=0) 
+	if(smb_open(&smb)!=0) 
 		return(0); 
-
 	while(!smb_feof(smb.sid_fp)) {
 		if(smb_fread(&smb,&idx,sizeof(idx),smb.sid_fp) != sizeof(idx))
 			break;
@@ -69,11 +69,8 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
 			continue;
 		if(idx.attr&MSG_DELETE)
 			continue;
-		if((idx.attr&attr) != attr)
-			continue;
-		if(usernumber == 0
-			|| (!sent && idx.to==usernumber)
-			|| (sent && idx.from==usernumber))
+		if((!sent && idx.to==usernumber)
+		 || (sent && idx.from==usernumber))
 			i++; 
 	}
 	smb_close(&smb);
@@ -84,35 +81,40 @@ int DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr)
 /***************************/
 /* Delete file attachments */
 /***************************/
-BOOL DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
+void DLLCALL delfattach(scfg_t* cfg, smbmsg_t* msg)
 {
-    char dir[MAX_PATH+1];
-	char path[MAX_PATH+1];
-	char files[128];
+    char str[MAX_PATH+1];
+	char str2[MAX_PATH+1];
 	char *tp,*sp,*p;
 
-	if(msg->idx.to==0) 	/* netmail */
-		SAFEPRINTF2(dir, "%sfile/%04u.out", cfg->data_dir, msg->idx.from);
-	else
-		SAFEPRINTF2(dir, "%sfile/%04u.in", cfg->data_dir, msg->idx.to);
+	if(msg->idx.to==0) {	/* netmail */
+		sprintf(str,"%sfile/%04u.out/%s"
+			,cfg->data_dir,msg->idx.from,getfname(msg->subj));
+		remove(str);
+		sprintf(str,"%sfile/%04u.out"
+			,cfg->data_dir,msg->idx.from);
+		rmdir(str);
+		return;
+	}
 		
-	SAFECOPY(files, msg->subj);
-	tp=files;
+	strcpy(str,msg->subj);
+	tp=str;
 	while(1) {
 		p=strchr(tp,' ');
 		if(p) *p=0;
 		sp=strrchr(tp,'/');              /* sp is slash pointer */
 		if(!sp) sp=strrchr(tp,'\\');
 		if(sp) tp=sp+1;
-		SAFEPRINTF2(path, "%s/%s", dir, tp);
-		if(remove(path) != 0)
-			return FALSE;
+		sprintf(str2,"%sfile/%04u.in/%s"  /* str2 is path/fname */
+			,cfg->data_dir,msg->idx.to,tp);
+		remove(str2);
 		if(!p)
 			break;
 		tp=p+1; 
+
 	}
-	rmdir(dir);                     /* remove the dir if it's empty */
-	return TRUE;
+	sprintf(str,"%sfile/%04u.in",cfg->data_dir,msg->idx.to);
+	rmdir(str);                     /* remove the dir if it's empty */
 }
 
 /****************************************************************************/
@@ -152,33 +154,16 @@ mail_t* DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 			continue;					
 		if(mode&LM_UNREAD && idx.attr&MSG_READ)
 			continue;
-		if(mode&LM_NOSPAM && idx.attr&MSG_SPAM)
-			continue;
-		if(mode&LM_SPAMONLY && !(idx.attr&MSG_SPAM))
-			continue;
-		mail_t* np;
-		if((np = realloc(mail, sizeof(mail_t) * (l+1))) == NULL) {
-			free(mail);
+		if((mail=(mail_t *)realloc(mail,sizeof(mail_t)*(l+1)))
+			==NULL) {
 			smb_unlocksmbhdr(smb);
 			return(NULL); 
 		}
-		mail = np;
 		mail[l]=idx;
 		l++; 
 	}
 	smb_unlocksmbhdr(smb);
 	*msgs=l;
-	if(l && (mode&LM_REVERSE)) {
-		mail_t*	reversed = malloc(sizeof(mail_t) * l);
-		if(reversed == NULL) {
-			free(mail);
-			return NULL;
-		}
-		for(ulong n = 0; n < l; n++)
-			reversed[n] = mail[l - (n + 1)];
-		free(mail);
-		mail = reversed;
-	}
 	return(mail);
 }
 

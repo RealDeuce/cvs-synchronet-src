@@ -25,9 +25,9 @@ static scfg_t	cfg;
 static int togglechat(int on)
 {
     static int  org_act;
-	int nodefile = -1;
+	int nodefile;
 
-	if(getnodedat(&cfg,nodenum,&node,TRUE,&nodefile))
+	if(getnodedat(&cfg,nodenum,&node,&nodefile))
 		return(-1);
     if(on) {
         org_act=node.action;
@@ -39,7 +39,7 @@ static int togglechat(int on)
         node.action=org_act;
         node.misc&=~NODE_LCHAT;
     }
-	if(putnodedat(&cfg,nodenum,&node,TRUE,nodefile))
+	if(putnodedat(&cfg,nodenum,&node,nodefile))
 		return(-1);
     return(0);
 }
@@ -58,20 +58,20 @@ int chat_open(int node_num, char *ctrl_dir)
 
 	nodenum=node_num;
 
-	if(getnodedat(&cfg,nodenum,&node,FALSE,NULL))
+	if(getnodedat(&cfg,nodenum,&node,NULL))
 		return(-1);
 
 	username(&cfg,node.useron,usrname);
 
 	sprintf(outpath,"%slchat.dab",cfg.node_path[nodenum-1]);
 	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-		,DEFFILEMODE))==-1) {
+		,S_IREAD|S_IWRITE))==-1) {
 		return(-1);
 	}
 
 	sprintf(inpath,"%schat.dab",cfg.node_path[nodenum-1]);
 	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-		,DEFFILEMODE))==-1) {
+		,S_IREAD|S_IWRITE))==-1) {
 		close(out);
 		return(-1);
     }
@@ -100,7 +100,7 @@ int chat_check_remote(void)
 
 	now=time(NULL);
 	if(now!=last_nodechk) {
-		if(getnodedat(&cfg,nodenum,&node,FALSE,NULL)!=0)
+		if(getnodedat(&cfg,nodenum,&node,NULL)!=0)
 			return(-1);			/* Failed to read nodedat! */
 		last_nodechk=now;
 	}
@@ -132,15 +132,13 @@ int chat_read_byte(void)
 			in=-1;
 			return(-1);
 		case 0:
-			if(lseek(in,0,SEEK_SET)==-1)	/* Wrapped */
+			if(lseek(in,0,SEEK_SET)==-1);	/* Wrapped */
 				return(-1);
 			switch(read(in,&ch,1)) {
 				case -1:
 					close(in);
 					in=-1;
 					return(-1);
-				case 0:
-					return 0;
 			}
 			/* Fall-through */
 		case 1:

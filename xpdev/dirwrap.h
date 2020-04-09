@@ -1,13 +1,14 @@
-/* Directory system-call wrappers */
-// vi: tabstop=4
+/* dirwrap.h */
 
-/* $Id: dirwrap.h,v 1.55 2019/09/20 08:59:34 rswindell Exp $ */
+/* Directory system-call wrappers */
+
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -219,7 +220,6 @@ DLLEXPORT BOOL		DLLCALL fexist(const char *filespec);
 DLLEXPORT BOOL		DLLCALL fexistcase(char *filespec);	/* fixes upr/lwr case fname */
 DLLEXPORT off_t		DLLCALL flength(const char *filename);
 DLLEXPORT time_t	DLLCALL fdate(const char *filename);
-DLLEXPORT time_t	DLLCALL fcdate(const char* filename);
 DLLEXPORT int		DLLCALL setfdate(const char* filename, time_t t);
 DLLEXPORT BOOL		DLLCALL	isdir(const char *filename);
 DLLEXPORT BOOL		DLLCALL	isabspath(const char *filename);
@@ -227,14 +227,10 @@ DLLEXPORT BOOL		DLLCALL isfullpath(const char* filename);
 DLLEXPORT char*		DLLCALL getfname(const char* path);
 DLLEXPORT char*		DLLCALL getfext(const char* path);
 DLLEXPORT int		DLLCALL getfattr(const char* filename);
-DLLEXPORT int		DLLCALL getfmode(const char* filename);
-DLLEXPORT ulong		DLLCALL getfilecount(const char *path);
-DLLEXPORT char*		DLLCALL getdirname(const char* path);
 DLLEXPORT long		DLLCALL	getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only);
 DLLEXPORT ulong		DLLCALL getdisksize(const char* path, ulong unit);
 DLLEXPORT ulong		DLLCALL getfreediskspace(const char* path, ulong unit);
-DLLEXPORT uint64_t	DLLCALL getfilesizetotal(const char *path);
-DLLEXPORT long		DLLCALL delfiles(const char *inpath, const char *spec, size_t keep);
+DLLEXPORT ulong		DLLCALL delfiles(const char *inpath, const char *spec);
 DLLEXPORT char*		DLLCALL backslash(char* path);
 DLLEXPORT BOOL 		DLLCALL wildmatch(const char *fname, const char *spec, BOOL path);
 DLLEXPORT BOOL 		DLLCALL wildmatchi(const char *fname, const char *spec, BOOL path);

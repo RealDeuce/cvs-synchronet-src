@@ -2,13 +2,13 @@
 
 /* Synchronet client information to share with SBBSCTRL */
 
-/* $Id: client.h,v 1.10 2020/03/19 05:09:34 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,19 +39,18 @@
 #define _CLIENT_H
 
 #include "gen_defs.h"	/* WORD, DWORD */
-#include "sockwrap.h"	/* INET6_ADDRSTRLEN */
 #include <time.h>		/* time_t */
 
 /* Used for sbbsctrl->client window */
 typedef struct {
 	size_t		size;		/* size of this struct */
-	char		addr[128];	/* IP address */
-	char		host[256];	/* host name */
-	uint16_t	port;		/* TCP port number */
+	char		addr[16];	/* IP address */
+	char		host[64];	/* host name */
+	WORD		port;		/* TCP port number */
 	time32_t	time;		/* connect time */
 	const char*	protocol;	/* protocol description */
 	const char*	user;		/* user name */
-	uint32_t	usernum;	/* user number (authenticated when non-zero) */
+	char		pad[32];	/* padding for future expansion */
 } client_t;
 
 /* Used for ctrl/client.dab */

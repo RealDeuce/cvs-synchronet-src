@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id: baja.c,v 1.50 2018/06/30 02:51:12 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -3401,7 +3401,7 @@ char *usage=	"\n"
 				"       -o set output directory (e.g. -o/sbbs/exec)\n"
 				"       -i set include directory (e.g. -i/sbbs/exec)\n"
 				"       -q quiet mode (no banner)\n"
-				"       -p pause on error"
+				"       -p pause on error\n"
 				;
 
 int main(int argc, char **argv)
@@ -3412,13 +3412,7 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision: 1.50 $", "%*s %s", revision);
-
-	p = getenv("BAJAINCLUDE");
-	if(p != NULL) {
-		SAFECOPY(include_dir, p);
-		backslash(include_dir);
-	}
+	sscanf("$Revision$", "%*s %s", revision);
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
@@ -3449,16 +3443,16 @@ int main(int argc, char **argv)
 					break;
 				default:
 					printf(banner,PLATFORM_DESC,revision);
-					puts(usage);
+					printf(usage);
 					bail(1); }
 		else
-			sprintf(src,"%.*s",(int)(sizeof(src)-5),argv[i]);	/* leave room for '.src' to be appended */
+			sprintf(src,"%.*s",sizeof(src)-5,argv[i]);	/* leave room for '.src' to be appended */
 
 	if(show_banner)
 		printf(banner,PLATFORM_DESC,revision);
 
 	if(!src[0]) {
-		puts(usage);
+		printf(usage);
 		bail(1); 
 	}
 

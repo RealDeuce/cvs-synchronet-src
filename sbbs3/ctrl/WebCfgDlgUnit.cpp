@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: WebCfgDlgUnit.cpp,v 1.9 2019/01/12 23:48:32 rswindell Exp $ */
+/* $Id: WebCfgDlgUnit.cpp,v 1.5 2014/11/20 05:18:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,48 +55,50 @@ __fastcall TWebCfgDlg::TWebCfgDlg(TComponent* Owner)
 //---------------------------------------------------------------------------
 void __fastcall TWebCfgDlg::FormShow(TObject *Sender)
 {
-    char str[256];
+    char str[128];
+    char** p;
 
-    if(MainForm->web_startup.interfaces==NULL)
+    if(MainForm->web_startup.interface_addr==0)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
-        strListCombine(MainForm->web_startup.interfaces, str, sizeof(str)-1, ",");
+        sprintf(str,"%d.%d.%d.%d"
+            ,(MainForm->web_startup.interface_addr>>24)&0xff
+            ,(MainForm->web_startup.interface_addr>>16)&0xff
+            ,(MainForm->web_startup.interface_addr>>8)&0xff
+            ,MainForm->web_startup.interface_addr&0xff
+        );
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
-    if(MainForm->web_startup.tls_interfaces==NULL)
-        TlsInterfaceEdit->Text=NetworkInterfaceEdit->Text;
-    else {
-        strListCombine(MainForm->web_startup.tls_interfaces, str, sizeof(str)-1, ",");
-        TlsInterfaceEdit->Text=AnsiString(str);
-    }
-
     if(MainForm->web_startup.max_clients==0)
         MaxClientsEdit->Text="infinite";
     else
         MaxClientsEdit->Text=AnsiString((int)MainForm->web_startup.max_clients);
     MaxInactivityEdit->Text=AnsiString((int)MainForm->web_startup.max_inactivity);
 	PortEdit->Text=AnsiString((int)MainForm->web_startup.port);
-    TlsPortEdit->Text=AnsiString((int)MainForm->web_startup.tls_port);
     AutoStartCheckBox->Checked=MainForm->WebAutoStart;
-    if(MainForm->web_startup.options&WEB_OPT_ALLOW_TLS)
-        TlsEnableCheckBox->Checked = true;
-    else
-        TlsEnableCheckBox->Checked = false;
 
-    AuthTypesEdit->Text = AnsiString(MainForm->web_startup.default_auth_list);
     HtmlRootEdit->Text=AnsiString(MainForm->web_startup.root_dir);
     ErrorSubDirEdit->Text=AnsiString(MainForm->web_startup.error_dir);
     CGIDirEdit->Text=AnsiString(MainForm->web_startup.cgi_dir);
+    EmbeddedJsExtEdit->Text=AnsiString(MainForm->web_startup.js_ext);
     ServerSideJsExtEdit->Text=AnsiString(MainForm->web_startup.ssjs_ext);
 
     CGIContentEdit->Text=AnsiString(MainForm->web_startup.default_cgi_content);
     CGIMaxInactivityEdit->Text=AnsiString((int)MainForm->web_startup.max_cgi_inactivity);
 
-    strListCombine(MainForm->web_startup.index_file_name, str, sizeof(str)-1, ",");
-    IndexFileEdit->Text=AnsiString(str);
+    IndexFileEdit->Text.SetLength(0);
+    for(p=MainForm->web_startup.index_file_name;*p;p++) {
+        if(p!=MainForm->web_startup.index_file_name)
+            IndexFileEdit->Text=IndexFileEdit->Text+",";
+        IndexFileEdit->Text=IndexFileEdit->Text+AnsiString(*p);
+    }
 
-    strListCombine(MainForm->web_startup.cgi_ext, str, sizeof(str)-1, ",");
-    CGIExtEdit->Text=AnsiString(str);
+    CGIExtEdit->Text.SetLength(0);
+    for(p=MainForm->web_startup.cgi_ext;*p;p++) {
+        if(p!=MainForm->web_startup.cgi_ext)
+            CGIExtEdit->Text=CGIExtEdit->Text+",";
+        CGIExtEdit->Text=CGIExtEdit->Text+AnsiString(*p);
+    }
 
     CGICheckBox->Checked=!(MainForm->web_startup.options&WEB_OPT_NO_CGI);
 
@@ -117,33 +119,43 @@ void __fastcall TWebCfgDlg::FormShow(TObject *Sender)
     PageControl->ActivePage=GeneralTabSheet;
 
     CGICheckBoxClick(Sender);
-    TlsEnableCheckBoxClick(Sender);
 }
 //---------------------------------------------------------------------------
 void __fastcall TWebCfgDlg::OKBtnClick(TObject *Sender)
 {
-    iniFreeStringList(MainForm->web_startup.interfaces);
-    MainForm->web_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
-    iniFreeStringList(MainForm->web_startup.tls_interfaces);
-    MainForm->web_startup.tls_interfaces = strListSplitCopy(NULL, TlsInterfaceEdit->Text.c_str(), ",");
-    MainForm->web_startup.max_clients=MaxClientsEdit->Text.ToIntDef(10);
+    char    str[128],*p;
+    DWORD   addr;
+
+    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
+    p=str;
+    while(*p && *p<=' ') p++;
+    if(*p && isdigit(*p)) {
+        addr=atoi(p)<<24;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<16;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<8;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p);
+        MainForm->web_startup.interface_addr=addr;
+    } else
+        MainForm->web_startup.interface_addr=0;
+    MainForm->web_startup.max_clients=MaxClientsEdit->Text.ToIntDef(0);
     MainForm->web_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(WEB_DEFAULT_MAX_INACTIVITY);
     MainForm->web_startup.port=PortEdit->Text.ToIntDef(IPPORT_HTTP);
-    MainForm->web_startup.tls_port=TlsPortEdit->Text.ToIntDef(IPPORT_HTTPS);
     MainForm->WebAutoStart=AutoStartCheckBox->Checked;
-    if(TlsEnableCheckBox->Checked)
-        MainForm->web_startup.options |= WEB_OPT_ALLOW_TLS;
-    else
-        MainForm->web_startup.options &= ~WEB_OPT_ALLOW_TLS;
 
-    SAFECOPY(MainForm->web_startup.default_auth_list
-        ,AuthTypesEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.root_dir
         ,HtmlRootEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.error_dir
         ,ErrorSubDirEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.cgi_dir
         ,CGIDirEdit->Text.c_str());
+    SAFECOPY(MainForm->web_startup.js_ext
+        ,EmbeddedJsExtEdit->Text.c_str());
     SAFECOPY(MainForm->web_startup.ssjs_ext
         ,ServerSideJsExtEdit->Text.c_str());
 
@@ -270,17 +282,6 @@ void __fastcall TWebCfgDlg::CGICheckBoxClick(TObject *Sender)
     CGIMaxInactivityLabel->Enabled=enabled;
     CGIMaxInactivityEdit->Enabled=enabled;
     CGIEnvButton->Enabled=enabled;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TWebCfgDlg::TlsEnableCheckBoxClick(TObject *Sender)
-{
-    bool enabled = TlsEnableCheckBox->Checked;
-
-    TlsInterfaceEdit->Enabled = enabled;
-    TlsInterfaceLabel->Enabled = enabled;
-    TlsPortEdit->Enabled = enabled;
-    TlsPortLabel->Enabled = enabled;
 }
 //---------------------------------------------------------------------------
 

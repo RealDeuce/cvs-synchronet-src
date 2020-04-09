@@ -1,10 +1,10 @@
-/* $Id: win32cio.h,v 1.15 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -59,7 +59,6 @@ void	win32_resume(void);
 void win32_getcustomcursor(int *s, int *e, int *r, int *b, int *v);
 void win32_setcustomcursor(int s, int e, int r, int b, int v);
 int win32_getvideoflags(void);
-int win32_setpalette(uint32_t entry, uint16_t r, uint16_t g, uint16_t b);
 
 #ifdef __cplusplus
 }

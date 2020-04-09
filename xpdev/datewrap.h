@@ -2,13 +2,13 @@
 
 /* Wrappers for non-standard date and time functions */
 
-/* $Id: datewrap.h,v 1.28 2019/07/24 04:08:25 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -47,9 +47,8 @@ extern "C" {
 /* Return difference (in seconds) in time() result from standard (0 on success) */
 DLLEXPORT time_t		DLLCALL		checktime(void);
 
-/* Implementation of mktime()/timegm() that handles common tm element conversions for you */
+/* Implementation of mktime() that handles common tm element conversions for you */
 DLLEXPORT time_t		DLLCALL		sane_mktime(struct tm*);
-DLLEXPORT time_t		DLLCALL		sane_timegm(struct tm*);
 
 /* Legacy (32-bit time_t) versions of time() and mktime() */
 DLLEXPORT time32_t		DLLCALL		time32(time32_t* tp);
@@ -68,12 +67,8 @@ DLLEXPORT struct tm*	DLLCALL		localtime32(const time32_t* t, struct tm* tm);
 	DLLEXPORT struct tm*    DLLCALL		localtime_r(const time_t* t, struct tm* tm);
 	DLLEXPORT char*	        DLLCALL		ctime_r(const time_t *t, char *buf);
 	DLLEXPORT char*	        DLLCALL		asctime_r(const struct tm *tm, char *buf);
+	DLLEXPORT char*			DLLCALL		strtok_r(char *str, const char *delim, char **last);
 
-#endif
-
-/* Microsoft's equivalent of GLIBC/BSD timegm() */
-#if defined(_MSC_VER) || defined(__MINGW32__)
-	#define timegm _mkgmtime
 #endif
 
 /***********************************/
@@ -81,9 +76,6 @@ DLLEXPORT struct tm*	DLLCALL		localtime32(const time32_t* t, struct tm* tm);
 /***********************************/
 
 #if defined(__BORLANDC__)
-
-/* Borland C++ doesn't come with a timegm() or mkgmtime() equivalent */
-#define timegm	mktime
 
 #include <dos.h>
 

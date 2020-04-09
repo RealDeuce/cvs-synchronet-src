@@ -2,13 +2,13 @@
 
 /* Synchronet JavaScript "Client" Object */
 
-/* $Id: js_client.c,v 1.29 2020/03/19 06:08:27 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,20 +47,18 @@ enum {
 	,CLIENT_PROP_TIME		/* connect time */
 	,CLIENT_PROP_PROTOCOL	/* protocol description */
 	,CLIENT_PROP_USER		/* user name */
-	,CLIENT_PROP_USERNUM	/* user number */
 };
 
 #ifdef BUILD_JSDOCS
 	static char* client_prop_desc[] = {
-	"instance of <a href=#Socket>Socket class</a> representing client's TCP/IP connection"
-	,"client's IPv4 or IPv6 address"
+	 "client's IP address (in dotted-decimal format)"
 	,"client's host name (up to 64 characters)"
 	,"client's TCP or UDP port number"
 	,"date/time of initial connection (in time_t format)"
-	,"protocol/service name (e.g. 'Telnet', 'FTP', etc.)"
-	,"user's name/alias"
-	,"user's number (non-zero if logged in)"
+	,"protocol description (e.g. 'Telnet', 'FTP', etc.)"
+	,"user's name/alias (if logged in)"
 	/* this next one must be last */
+	,"instance of <a href=#Socket>Socket class</a> representing client's TCP/IP connection"
 	,NULL
 	};
 #endif
@@ -104,9 +102,6 @@ static JSBool js_client_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case CLIENT_PROP_USER:
 			p=client->user;
 			break;
-		case CLIENT_PROP_USERNUM:
-			val=client->usernum;
-			break;
 		default:
 			return(JS_TRUE);
 	}
@@ -131,7 +126,6 @@ static jsSyncPropertySpec js_client_properties[] = {
 	{	"connect_time"		,CLIENT_PROP_TIME	 	,CLIENT_PROP_FLAGS,		310},
 	{	"protocol"			,CLIENT_PROP_PROTOCOL 	,CLIENT_PROP_FLAGS,		310},
 	{	"user_name"			,CLIENT_PROP_USER	 	,CLIENT_PROP_FLAGS,		310},
-	{	"user_number"		,CLIENT_PROP_USERNUM	,CLIENT_PROP_FLAGS,		31702},
 	{0}
 };
 
@@ -176,7 +170,7 @@ static JSClass js_client_class = {
 };
 
 JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-										,const char* name, client_t* client, SOCKET sock, CRYPT_CONTEXT session)
+										,char* name, client_t* client, SOCKET sock)
 {
 	JSObject*	obj;
 
@@ -188,7 +182,7 @@ JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
 
 	JS_SetPrivate(cx, obj, client);	/* Store a pointer to client_t */
 
-	js_CreateSocketObject(cx, obj, "socket", sock, session);
+	js_CreateSocketObject(cx, obj, "socket", sock);
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,obj,"Represents a TCP/IP client session",310);

@@ -1,12 +1,14 @@
+/* uifcx.c */
+
 /* Standard I/O Implementation of UIFC (user interface) library */
 
-/* $Id: uifcx.c,v 1.40 2020/04/03 21:10:33 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -33,9 +35,6 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "genwrap.h"
-#include "gen_defs.h"
-#include "xpprintf.h"
 #include "uifc.h"
 
 #include <sys/types.h>
@@ -59,28 +58,9 @@ static int ulist(int mode, int left, int top, int width, int *dflt, int *bar
 	,char *title, char **option);
 static int uinput(int imode, int left, int top, char *prompt, char *str
 	,int len ,int kmode);
-static int umsg(char *str);
-static int umsgf(char *str, ...);
-static BOOL confirm(char *str, ...);
-static BOOL deny(char *str, ...);
+static void umsg(char *str);
 static void upop(char *str);
 static void sethelp(int line, char* file);
-
-/****************************************************************************/
-/****************************************************************************/
-static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
-{
-	va_list argptr;
-	char str[MAX_COLS + 1];
-	int i;
-
-	va_start(argptr, fmat);
-	vsprintf(str, fmat, argptr);
-	va_end(argptr);
-	i = printf("%s", str);
-	return(i);
-}
-
 
 /****************************************************************************/
 /* Initialization function, see uifc.h for details.							*/
@@ -88,23 +68,16 @@ static int uprintf(int x, int y, unsigned attr, char *fmat, ...)
 /****************************************************************************/
 int UIFCCALL uifcinix(uifcapi_t* uifcapi)
 {
-	static char* yesNoOpts[] = {"Yes", "No", NULL};
 
     if(uifcapi==NULL || uifcapi->size!=sizeof(uifcapi_t))
         return(-1);
 
     api=uifcapi;
 
-	if (api->yesNoOpts == NULL)
-		api->yesNoOpts = yesNoOpts; // Not currently used in this interface instance
-
     /* install function handlers */
     api->bail=uifcbail;
     api->scrn=uscrn;
     api->msg=umsg;
-	api->msgf=umsgf;
-	api->confirm=confirm;
-	api->deny=deny;
     api->pop=upop;
     api->list=ulist;
     api->input=uinput;
@@ -112,7 +85,6 @@ int UIFCCALL uifcinix(uifcapi_t* uifcapi)
     api->showhelp=help;
 	api->showbuf=NULL;
 	api->timedisplay=NULL;
-	api->printf = uprintf;
 
     setvbuf(stdin,NULL,_IONBF,0);
     setvbuf(stdout,NULL,_IONBF,0);
@@ -167,9 +139,10 @@ static int getstr(char* str, int maxlen)
 			str[len++]=ch;
 	}
     str[len]=0;	/* we need The Terminator */
-
+    
 	return(len);
 }
+	
 
 /****************************************************************************/
 /* Local utility function.													*/
@@ -188,6 +161,34 @@ static int which(char* prompt, int max)
             return(i-1);
     }
 }
+
+/****************************************************************************/
+/* Truncates white-space chars off end of 'str'								*/
+/****************************************************************************/
+static void truncsp(char *str)
+{
+	uint c;
+
+	c=strlen(str);
+	while(c && (uchar)str[c-1]<=' ') c--;
+	str[c]=0;
+}
+
+/****************************************************************************/
+/* Convert ASCIIZ string to upper case										*/
+/****************************************************************************/
+#if defined(__unix__) && !defined(__HAIKU__)
+static char* strupr(char* str)
+{
+	char*	p=str;
+
+	while(*p) {
+		*p=toupper(*p);
+		p++;
+	}
+	return(str);
+}
+#endif
 
 /****************************************************************************/
 /* General menu function, see uifc.h for details.							*/
@@ -238,11 +239,9 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 }
             }
             str[0]=0;
-            if(mode&WIN_COPY)
+            if(mode&WIN_GET)
                 strcat(str,", Copy");
-			if(mode&WIN_CUT)
-				strcat(str,", X-Cut");
-            if(mode&WIN_PASTE)
+            if(mode&WIN_PUT)
                 strcat(str,", Paste");
             if(mode&WIN_INS)
                 strcat(str,", Add");
@@ -252,7 +251,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
         }
         str[0]=0;
         getstr(str,sizeof(str)-1);
-
+        
         truncsp(str);
         i=atoi(str);
         if(i>0 && i<=opts) {
@@ -299,39 +298,30 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
                 if(opts==1)
                     return(MSK_DEL);
                 return(which("Delete",opts)|MSK_DEL);
-            case 'C':   /* Copy */
-				if(!(mode&WIN_COPY))
+            case 'C':   /* Copy/Get */
+				if(!(mode&WIN_GET))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
-        			return((i-1)|MSK_COPY);
+        			return((i-1)|MSK_GET);
                 if(opts==1)
-                    return(MSK_COPY);
-                return(which("Copy",opts)|MSK_COPY);
-            case 'X':   /* Cut */
-				if(!(mode&WIN_CUT))
+                    return(MSK_GET);
+                return(which("Copy",opts)|MSK_GET);
+            case 'P':   /* Paste/Put */
+				if(!(mode&WIN_PUT))
 					break;
 				if(!opts)
     				break;
                 if(i>0 && i<=opts)
-        			return((i-1)|MSK_CUT);
+        			return((i-1)|MSK_PUT);
                 if(opts==1)
-                    return(MSK_CUT);
-                return(which("Cut",opts)|MSK_CUT);
-            case 'P':   /* Paste */
-				if(!(mode&WIN_PASTE))
-					break;
-				if(!opts)
-    				break;
-                if(i>0 && i<=opts+1)
-        			return((i-1)|MSK_PASTE);
-                if(opts==1)
-                    return(MSK_PASTE);
-                return(which("Insert pasted item before",opts+1)|MSK_PASTE);
+                    return(MSK_PUT);
+                return(which("Paste",opts)|MSK_PUT);
         }
     }
 }
+
 
 /*************************************************************************/
 /* This function is a windowed input string input routine.               */
@@ -340,7 +330,7 @@ int uinput(int mode, int left, int top, char *prompt, char *outstr,
 	int max, int kmode)
 {
     char str[256];
-
+    
     while(1) {
         printf("%s (maxlen=%u): ",prompt,max);
 
@@ -354,62 +344,16 @@ int uinput(int mode, int left, int top, char *prompt, char *outstr,
 		api->changes=1;
     if(kmode&K_UPPER)	/* convert to uppercase? */
     	strupr(str);
-    strcpy(outstr,str);
+    strcpy(outstr,str);    
     return(strlen(outstr));
 }
 
 /****************************************************************************/
-/* Displays the message 'str' and waits for the user to hit ENTER           */
+/* Displays the message 'str' and waits for the user to select "OK"         */
 /****************************************************************************/
-int umsg(char *str)
+void umsg(char *str)
 {
-	int ch;
-	printf("%s\nHit enter to continue:",str);
-	ch = getchar();
-	return ch == '\r' || ch == '\n';
-}
-
-/* Same as above, using printf-style varargs */
-int umsgf(char* fmt, ...)
-{
-	int retval = -1;
-	va_list va;
-	char* buf = NULL;
-
-	va_start(va, fmt);
-	vasprintf(&buf, fmt, va);
-	va_end(va);
-	if(buf != NULL) {
-		retval = umsg(buf);
-		free(buf);
-	}
-	return retval;
-}
-
-BOOL confirm(char* fmt, ...)
-{
-	int ch;
-	va_list va;
-
-	va_start(va, fmt);
-	vprintf(fmt, va);
-	va_end(va);
-	printf(" (Y/n)? ");
-	ch = getchar();
-	return tolower(ch) != 'n' && ch != EOF;
-}
-
-BOOL deny(char* fmt, ...)
-{
-	int ch;
-	va_list va;
-
-	va_start(va, fmt);
-	vprintf(fmt, va);
-	va_end(va);
-	printf(" (N/y)? ");
-	ch = getchar();
-	return tolower(ch) != 'y';
+    printf("%s\n",str);
 }
 
 /****************************************************************************/
@@ -417,12 +361,10 @@ BOOL deny(char* fmt, ...)
 /****************************************************************************/
 void upop(char *str)
 {
-	static int len;
-
     if(str==NULL)
-        printf("\r%*s\r", len, "");
+        printf("\n");
     else
-        len = printf("\r%s\r", str) - 2;
+        printf("\r%-79s",str);
 }
 
 /****************************************************************************/
@@ -458,7 +400,7 @@ void help()
     printf("\n");
     if(!api->helpbuf) {
         if((fp=fopen(api->helpixbfile,"rb"))==NULL)
-            SAFEPRINTF(hbuf,"ERROR: Cannot open help index: %.128s"
+            sprintf(hbuf,"ERROR: Cannot open help index: %s"
                 ,api->helpixbfile);
         else {
             p=strrchr(helpfile,'/');
@@ -486,25 +428,24 @@ void help()
             }
             fclose(fp);
             if(l==-1L)
-                SAFEPRINTF3(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %.128s"
+                sprintf(hbuf,"ERROR: Cannot locate help key (%s:%u) in: %s"
                     ,p,helpline,api->helpixbfile);
             else {
                 if((fp=fopen(api->helpdatfile,"rb"))==NULL)
-                    SAFEPRINTF(hbuf,"ERROR: Cannot open help file: %.128s"
+                    sprintf(hbuf,"ERROR: Cannot open help file: %s"
                         ,api->helpdatfile);
                 else {
                     if(fseek(fp,l,SEEK_SET)!=0) {
-						SAFEPRINTF4(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %.128s"
+						sprintf(hbuf,"ERROR: Cannot seek to help key (%s:%u) at %ld in: %s"
 							,p,helpline,l,api->helpixbfile);
 					}
 					else {
 						if(fread(hbuf,1,HELPBUF_SIZE,fp)<1) {
-							SAFEPRINTF4(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %.128s"
+							sprintf(hbuf,"ERROR: Cannot read help key (%s:%u) at %ld in: %s"
 								,p,helpline,l,api->helpixbfile);
 						}
-						hbuf[HELPBUF_SIZE-1] = 0;
 					}
-					fclose(fp);
+					fclose(fp); 
 				}
 			}
 		}

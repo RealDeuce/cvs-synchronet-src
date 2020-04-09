@@ -2,13 +2,13 @@
 
 /* Hi-level command shell/module routines (functions) */
 
-/* $Id: execfunc.cpp,v 1.45 2019/02/20 05:43:18 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,9 +48,9 @@ int sbbs_t::exec_function(csi_t *csi)
 	long	l;
 	node_t	node;
 	struct	tm tm;
-	uint8_t	cmd = *(csi->ip++);
 
-	switch(cmd) {
+	switch(*(csi->ip++)) {
+
 
 		case CS_PRINTFILE_STR:
 			printfile(csi->str,P_NOATCODES);
@@ -181,38 +181,46 @@ int sbbs_t::exec_function(csi_t *csi)
 		case CS_MAIL_SEND:		 /* Send E-mail */
 			if(strchr(csi->str,'@')) {
 				i=1;
-				netmail(csi->str); 
+				netmail(csi->str,nulstr,0); 
 			}
 			else if((i=finduser(csi->str))!=0 
 				|| (cfg.msg_misc&MM_REALNAME && (i=userdatdupe(0,U_NAME,LEN_NAME,csi->str))!=0))
-				email(i);
+				email(i,nulstr,nulstr,WM_EMAIL);
 			csi->logic=!i;
 			return(0);
 		case CS_MAIL_SEND_FEEDBACK: 	  /* Feedback */
 			if((i=finduser(csi->str))!=0)
-				email(i,text[ReFeedback]);
+				email(i,text[ReFeedback],nulstr,WM_EMAIL);
 			csi->logic=!i;
 			return(0);
 		case CS_MAIL_SEND_NETMAIL:
-		case CS_MAIL_SEND_NETFILE:
-		{
 			bputs(text[EnterNetMailAddress]);
-			csi->logic=LOGIC_FALSE;
 			if(getstr(str,60,K_LINE)) {
-				if(netmail(str, NULL, cmd == CS_MAIL_SEND_NETFILE ? WM_FILE : WM_NONE)) {
-					csi->logic=LOGIC_TRUE; 
-				}
+				netmail(str,nulstr,0);
+				csi->logic=LOGIC_TRUE; 
 			}
+			else
+				csi->logic=LOGIC_FALSE;
 			return(0);
-		}
+
+		case CS_MAIL_SEND_NETFILE:
+			bputs(text[EnterNetMailAddress]);
+			if(getstr(str,60,K_LINE)) {
+				netmail(str,nulstr,WM_FILE);
+				csi->logic=LOGIC_TRUE; 
+			}
+			else
+				csi->logic=LOGIC_FALSE;
+			return(0);
+
 		case CS_MAIL_SEND_FILE:   /* Upload Attached File to E-mail */
 			if(strchr(csi->str,'@')) {
 				i=1;
-				netmail(csi->str,NULL,WM_FILE); 
+				netmail(csi->str,nulstr,WM_FILE); 
 			}
 			else if((i=finduser(csi->str))!=0
 				|| (cfg.msg_misc&MM_REALNAME && (i=userdatdupe(0,U_NAME,LEN_NAME,csi->str))!=0))
-				email(i,NULL,NULL,WM_FILE);
+				email(i,nulstr,nulstr,WM_EMAIL|WM_FILE);
 			csi->logic=!i;
 			return(0);
 		case CS_MAIL_SEND_BULK:

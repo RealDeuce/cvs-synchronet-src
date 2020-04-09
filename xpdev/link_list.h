@@ -1,12 +1,14 @@
+/* link_list.h */
+
 /* Double-Linked-list library */
 
-/* $Id: link_list.h,v 1.29 2019/08/02 02:36:28 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -87,7 +89,9 @@ typedef struct link_list {
 	long				refs;			/* reference counter (attached clients) */
 	long				locks;			/* recursive lock counter */
 #if defined(LINK_LIST_THREADSAFE)
+	pthread_mutex_t		mmutex;
 	pthread_mutex_t		mutex;
+	pthread_t			tid;
 	sem_t				sem;
 #endif
 } link_list_t;
@@ -110,7 +114,7 @@ DLLEXPORT BOOL	DLLCALL	listSemTryWaitBlock(link_list_t*, unsigned long timeout);
 #endif
 
 /* Lock/unlock linked lists (works best for mutex-protected lists) */
-/* Locks are recursive (e.g. must call Unlock for each call to Lock */
+/* Locks are recusive (e.g. must call Unlock for each call to Lock */
 DLLEXPORT BOOL	DLLCALL	listLock(link_list_t*);
 DLLEXPORT BOOL	DLLCALL	listUnlock(link_list_t*);
 DLLEXPORT BOOL	DLLCALL	listIsLocked(const link_list_t*);
@@ -139,13 +143,11 @@ DLLEXPORT link_list_t*	DLLCALL	listExtract(link_list_t* dest_list, const list_no
 
 /* Simple search functions returning found node or NULL on error */
 DLLEXPORT list_node_t*	DLLCALL	listNodeAt(link_list_t*, long index);
-/* Find a specific node by data or tag */
+/* Find a specific node by data */
 /* Pass length of 0 to search by data pointer rather than by data content comparison (memcmp) */
 DLLEXPORT list_node_t*	DLLCALL	listFindNode(link_list_t*, const void* data, size_t length);
 /* Find a specific node by its tag value */
 #define listFindTaggedNode(list, tag)	listFindNode(list, NULL, tag)
-/* Pass length of 0 to search by data pointer rather than by data content comparison (memcmp) */
-DLLEXPORT ulong			DLLCALL	listCountMatches(link_list_t*, const void* data, size_t length);
 
 /* Convenience functions */
 DLLEXPORT list_node_t*	DLLCALL	listFirstNode(link_list_t*);
@@ -204,12 +206,6 @@ DLLEXPORT void* DLLCALL listRemoveTaggedNode(link_list_t*, list_node_tag_t, BOOL
 
 /* Remove multiple nodes from list, returning the number of nodes removed */
 DLLEXPORT long	DLLCALL	listRemoveNodes(link_list_t*, list_node_t* /* NULL=first */, long count, BOOL free_data);
-
-/* Reverse the nodes in a list */
-DLLEXPORT void DLLCALL listReverse(link_list_t*);
-
-/* Return >= 0 (count of nodes) if list is valid, negative otherwise */
-DLLEXPORT long DLLCALL listVerify(link_list_t*);
 
 #if defined(__cplusplus)
 }

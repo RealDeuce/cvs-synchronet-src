@@ -2,13 +2,13 @@
 
 /* Program to add a user to a Synchronet user database */
 
-/* $Id: makeuser.c,v 1.11 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	time_t	now;
 	user_t	user;
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 
 	fprintf(stderr,"\nMAKEUSER v%s-%s - Adds User to Synchronet User Database\n"
 		,revision
@@ -105,7 +105,12 @@ int main(int argc, char **argv)
 	if(strcspn(argv[first_arg],"/\\")!=strlen(argv[first_arg]))
 		p=argv[first_arg++];
 	else
-		p = get_ctrl_dir();
+		p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\nSBBSCTRL environment variable not set.\n");
+		printf("\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+		exit(1); 
+	}
 
 	memset(&scfg,0,sizeof(scfg));
 	scfg.size=sizeof(scfg);

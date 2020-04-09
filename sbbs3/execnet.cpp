@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module TCP/IP Network functions */
 
-/* $Id: execnet.cpp,v 1.34 2019/08/04 17:49:51 deuce Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -42,7 +42,6 @@
 #define TIMEOUT_SOCK_LISTEN		30	/* seconds */
 #define TIMEOUT_FTP_RESPONSE	300	/* seconds */
 
-/* TODO: IPv6 */
 int sbbs_t::exec_net(csi_t* csi)
 {
 	char	str[512],rsp[512],buf[1025],ch,*p,**pp,**pp1,**pp2;
@@ -62,13 +61,13 @@ int sbbs_t::exec_net(csi_t* csi)
 				return(0);
 			if(lp!=NULL) {
 
-				SOCKET sock=open_socket(PF_INET, SOCK_STREAM, NULL);
+				SOCKET sock=open_socket(SOCK_STREAM, NULL);
 				if(sock!=INVALID_SOCKET) {
 
 					SOCKADDR_IN	addr;
 
 					memset(&addr,0,sizeof(addr));
-					addr.sin_addr.s_addr = htonl(startup->outgoing4.s_addr);
+					addr.sin_addr.s_addr = htonl(startup->telnet_interface);
 					addr.sin_family = AF_INET;
 
 					if((i=bind(sock, (struct sockaddr *) &addr, sizeof (addr)))!=0) {
@@ -193,11 +192,10 @@ int sbbs_t::exec_net(csi_t* csi)
 			if(w<1 || w>sizeof(buf)-1)
 				w=sizeof(buf)-1;
 
-			int rcv_count;
-			if((rcv_count=recv(*lp,buf,w
+			if((i=recv(*lp,buf,w
 				,*(csi->ip-13)==CS_SOCKET_PEEK ? MSG_PEEK : 0))>0) {
 				csi->logic=LOGIC_TRUE;
-				buf[rcv_count]=0;
+				buf[i]=0;
 				if(csi->etx) {
 					p=strchr(buf,csi->etx);
 					if(p) *p=0; 
@@ -546,16 +544,16 @@ SOCKET sbbs_t::ftp_data_sock(csi_t* csi, SOCKET ctrl_sock, SOCKADDR_IN* addr)
 		return(INVALID_SOCKET);
 	}
 
-	if((data_sock=open_socket(PF_INET, SOCK_STREAM, "ftp"))==INVALID_SOCKET) {
+	if((data_sock=open_socket(SOCK_STREAM, "ftp"))==INVALID_SOCKET) {
 		csi->socket_error=ERROR_VALUE;
 		return(INVALID_SOCKET);
 	}
 
 	memset(addr,0,sizeof(SOCKADDR_IN));
-	addr->sin_addr.s_addr = htonl(startup->outgoing4.s_addr);
+	addr->sin_addr.s_addr = htonl(startup->telnet_interface);
 	addr->sin_family = AF_INET;
 
-	if(bind(data_sock, (struct sockaddr *)addr,xp_sockaddr_len(addr))!= 0) {
+	if(bind(data_sock, (struct sockaddr *)addr,sizeof(SOCKADDR_IN))!= 0) {
 		csi->socket_error=ERROR_VALUE;
 		close_socket(data_sock);
 		return(INVALID_SOCKET);
@@ -647,25 +645,24 @@ bool sbbs_t::ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool d
 	BOOL		data_avail;
 	ulong		total=0;
 	SOCKET		data_sock;
-	union xp_sockaddr	addr;
+	SOCKADDR_IN	addr;
 	socklen_t	addr_len;
 	FILE*		fp=NULL;
 	struct timeval	tv;
 	fd_set			socket_set;
 
-	if((data_sock=ftp_data_sock(csi, ctrl_sock, &addr.in))==INVALID_SOCKET)
+	if((data_sock=ftp_data_sock(csi, ctrl_sock, &addr))==INVALID_SOCKET)
 		return(false);
 
 	if(csi->ftp_mode&CS_FTP_PASV) {
 
 #if 0	// Debug
 		bprintf("Connecting to %s:%hd\r\n"
-			,inet_ntoa(addr.in.sin_addr)
-			,ntohs(addr.in.sin_port));
+			,inet_ntoa(addr.sin_addr)
+			,ntohs(addr.sin_port));
 #endif
 
-		/* TODO: IPv6 */
-		if(connect(data_sock,&addr.addr,sizeof(SOCKADDR_IN))!=0) {
+		if(connect(data_sock,(struct sockaddr *)&addr,sizeof(addr))!=0) {
 			csi->socket_error=ERROR_VALUE;
 			close_socket(data_sock);
 			return(false);
@@ -702,7 +699,7 @@ bool sbbs_t::ftp_get(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest, bool d
 		SOCKET accept_sock;
 
 		addr_len=sizeof(addr);
-		if((accept_sock=accept_socket(data_sock,&addr,&addr_len))
+		if((accept_sock=accept_socket(data_sock,(struct sockaddr*)&addr,&addr_len))
 			==INVALID_SOCKET) {
 			csi->socket_error=ERROR_VALUE;
 			closesocket(data_sock);
@@ -773,7 +770,7 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 	int			result;
 	ulong		total=0;
 	SOCKET		data_sock;
-	union xp_sockaddr	addr;
+	SOCKADDR_IN	addr;
 	socklen_t	addr_len;
 	FILE*		fp=NULL;
 	bool		error=false;
@@ -785,7 +782,7 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 	if(!fexistcase(path))
 		return(false);
 
-	if((data_sock=ftp_data_sock(csi, ctrl_sock, &addr.in))==INVALID_SOCKET) {
+	if((data_sock=ftp_data_sock(csi, ctrl_sock, &addr))==INVALID_SOCKET) {
 		bprintf("ftp: failure, line %d",__LINE__);
 		return(false);
 	}
@@ -794,11 +791,11 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 
 #if 0	// Debug
 		bprintf("Connecting to %s:%hd\r\n"
-			,inet_ntoa(addr.in.sin_addr)
-			,ntohs(addr.in.sin_port));
+			,inet_ntoa(addr.sin_addr)
+			,ntohs(addr.sin_port));
 #endif
 
-		if(connect(data_sock,&addr.addr,sizeof(addr.in))!=0) {
+		if(connect(data_sock,(struct sockaddr *)&addr,sizeof(addr))!=0) {
 			bprintf("ftp: failure, line %d",__LINE__);
 			csi->socket_error=ERROR_VALUE;
 			close_socket(data_sock);
@@ -818,7 +815,6 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 		|| atoi(rsp)!=150 /* Open data connection */) {
 		bprintf("ftp: failure, line %d",__LINE__);
 		close_socket(data_sock);
-		fclose(fp);
 		return(false);
 	}
 
@@ -835,18 +831,16 @@ bool sbbs_t::ftp_put(csi_t* csi, SOCKET ctrl_sock, char* src, char* dest)
 		if(result<1) {
 			csi->socket_error=ERROR_VALUE;
 			closesocket(data_sock);
-			fclose(fp);
 			return(false);
 		}
 
 		SOCKET accept_sock;
 
 		addr_len=sizeof(addr);
-		if((accept_sock=accept_socket(data_sock,&addr,&addr_len))
+		if((accept_sock=accept_socket(data_sock,(struct sockaddr*)&addr,&addr_len))
 			==INVALID_SOCKET) {
 			csi->socket_error=ERROR_VALUE;
 			closesocket(data_sock);
-			fclose(fp);
 			return(false);
 		}
 

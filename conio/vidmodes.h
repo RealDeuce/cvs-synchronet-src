@@ -1,10 +1,10 @@
-/* $Id: vidmodes.h,v 1.32 2020/04/02 22:59:27 deuce Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -43,7 +43,7 @@
 
 #include "ciolib.h"
 
-#define TOTAL_DAC_SIZE	274
+#define TOTAL_DAC_SIZE	34
 
 /* Entry type for the DAC table. */
 struct dac_colors {
@@ -61,14 +61,6 @@ struct  video_params {
 	int curs_end;
 	int charheight;
 	int charwidth;
-	int	vmultiplier;
-	int	default_attr;
-	int	flags;
-};
-
-struct vstat_vmem {
-	unsigned refcount;
-	struct vmem_cell *vmem;
 };
 
 struct video_stats {
@@ -78,7 +70,7 @@ struct video_stats {
 	int curs_col;
 	int curs_start;
 	int curs_end;
-	int curs_blinks;
+	int curs_blink;
 	int curs_visible;
 	int default_curs_start;
 	int default_curs_end;
@@ -87,20 +79,13 @@ struct video_stats {
 	int charwidth;
 	int bright_background;
 	int blink;
-	int curs_blink;
 	int no_bright;
-	int no_blink;
 	int bright_altcharset;
-	int blink_altcharset;
 	int currattr;
 	int scaling;
-	int	vmultiplier;
-	int winwidth;
-	int winheight;
-	uint32_t flags;
-#define VIDMODES_FLAG_PALETTE_VMEM	1
-	uint32_t palette[16];
-	struct vstat_vmem *vmem;
+	struct dac_colors dac_colors[256];
+	unsigned char palette[16];
+	unsigned short *vmem;
 };
 
 enum {
@@ -111,9 +96,9 @@ enum {
 	,ATARI_PALETTE
 };
 
-extern struct video_params vparams[53];
+extern struct video_params vparams[49];
 #define NUMMODES      (sizeof(vparams) / sizeof(struct video_params))
-extern uint32_t palettes[5][16];
+extern unsigned char palettes[5][16];
 extern struct dac_colors dac_default[TOTAL_DAC_SIZE];
 extern char vga_font_bitmap[4096];
 extern char vga_font_bitmap14[3584];
@@ -123,8 +108,6 @@ extern char vga_font_bitmap8[2048];
 extern "C" {
 #endif
 int find_vmode(int mode);
-struct vstat_vmem *get_vmem(struct video_stats *vs);
-void release_vmem(struct vstat_vmem *vm);
 int load_vmode(struct video_stats *vs, int mode);
 #ifdef __cplusplus
 }

@@ -2,13 +2,13 @@
 
 /* Synchronet ring buffer routines */
 
-/* $Id: ringbuf.c,v 1.32 2019/08/26 23:37:52 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -165,7 +165,7 @@ DWORD RINGBUFCALL RingBufFree( RingBuf* rb )
 
 DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, const BYTE* src,  DWORD cnt )
 {
-	DWORD max, first, remain, fill_level;
+	DWORD max, first, remain;
 
 	if(cnt==0)
 		return(cnt);
@@ -180,9 +180,10 @@ DWORD RINGBUFCALL RingBufWrite( RingBuf* rb, const BYTE* src,  DWORD cnt )
     /* allowed to write at pEnd */
 	max = rb->pEnd - rb->pHead + 1;
 
-	fill_level = RINGBUF_FILL_LEVEL(rb);
-	if(fill_level + cnt > rb->size)
-		cnt = rb->size - fill_level;
+	/*
+	 * we assume the caller has checked that there is enough room. For this reason
+	 * we do not have to worry about head wrapping past the tail
+	 */
 
 	if( max >= cnt ) {
 		first = cnt;

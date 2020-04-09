@@ -2,13 +2,13 @@
 
 /* Synchronet file transfer-related command shell/module routines */
 
-/* $Id: execfile.cpp,v 1.16 2018/11/08 20:13:59 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -53,7 +53,10 @@ int sbbs_t::exec_file(csi_t *csi)
 			while(online) {
 				j=0;
 				if(usrlibs>1) {
-					if(!menu("libs", P_NOERROR)) {
+					sprintf(str,"%smenu/libs.*", cfg.text_dir);
+					if(fexist(str))
+						menu("libs");
+					else {
 						bputs(text[CfgLibLstHdr]);
 						for(i=0;i<usrlibs && !msgabort();i++) {
 							if(i==curlib)
@@ -75,8 +78,12 @@ int sbbs_t::exec_file(csi_t *csi)
 					else
 						j--; 
 				}
-				sprintf(str,"dirs%u",usrlib[j]+1);
-				if(!menu(str, P_NOERROR)) {
+				sprintf(str,"%smenu/dirs%u.*", cfg.text_dir, usrlib[j]+1);
+				if(fexist(str)) {
+					sprintf(str,"dirs%u",usrlib[j]+1);
+					menu(str); 
+				}
+				else {
 					CLS;
 					bprintf(text[DirLstHdr], cfg.lib[usrlib[j]]->lname);
 					for(i=0;i<usrdirs[j] && !msgabort();i++) {
@@ -195,7 +202,9 @@ int sbbs_t::exec_file(csi_t *csi)
 
 		case CS_FILE_SHOW_LIBRARIES:
 			if(!usrlibs) return(0);
-			if(menu("libs", P_NOERROR)) {
+			sprintf(str,"%smenu/libs.*", cfg.text_dir);
+			if(fexist(str)) {
+				menu("libs");
 				return(0); 
 			}
 			bputs(text[LibLstHdr]);
@@ -211,8 +220,10 @@ int sbbs_t::exec_file(csi_t *csi)
 
 		case CS_FILE_SHOW_DIRECTORIES:
 			if(!usrlibs) return(0);
-			sprintf(str,"dirs%u",usrlib[curlib]+1);
-			if(menu(str, P_NOERROR)) {
+			sprintf(str,"%smenu/dirs%u.*", cfg.text_dir, usrlib[curlib]+1);
+			if(fexist(str)) {
+				sprintf(str,"dirs%u",usrlib[curlib]+1);
+				menu(str);
 				return(0); 
 			}
 			CRLF;

@@ -21,7 +21,7 @@ ifeq ($(os),openbsd)
  CFLAGS += -DHAVE_VASPRINTF
 endif
 ifeq ($(os),win32)
- CFLAGS += -I${3RDP_ROOT}/win32.release/sdl2/include
+ CFLAGS += -I${SRC_ROOT}/../include/sdl
 endif
 
 ifneq ($(os),win32)
@@ -54,37 +54,44 @@ ifneq ($(os),win32)
 else
  NO_X			 :=  1
  CIOLIB-MT_CFLAGS        +=  -DDISABLE_X11=1
- ifdef USE_SDL
-  WITH_SDL := 1
- endif
 endif
 
 # Find SDL headers!
 ifdef USE_SDL
  ifndef WITH_SDL_AUDIO
   ifdef SDL_CONFIG
-   ifeq ($(shell command -v ${SDL_CONFIG} > /dev/null && if [ `${SDL_CONFIG} --version | sed -E 's/\..*$$//'` -ge 2 ] ; then echo 'YES' ; fi),YES)
-    WITH_SDL	:=	1
+   ifeq ($(shell ${SDL_CONFIG} --cflags > /dev/null 2>&1 && echo YES),YES)
+	WITH_SDL	:=	1
    endif
   else
    ifeq ($(os),darwin)
-    ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
+	ifeq ($(shell if [ -d /Library/Frameworks/SDL.framework ] ; then echo YES ; fi),YES)
      SDL_FRAMEWORK_PATH ?= /Library/Frameworks
-    endif
+	endif
     ifdef SDL_FRAMEWORK_PATH
      WITH_SDL	:=	1
      CIOLIB-MT_LDFLAGS += -Wl,-rpath,@executable_path/../Frameworks
     endif
    else
-    ifeq ($(shell command -v sdl2-config > /dev/null && sdl2-config --cflags > /dev/null 2>&1 && echo YES),YES)
-     SDL_CONFIG := sdl2-config
+	ifeq ($(shell sdl-config --cflags > /dev/null 2>&1 && echo YES),YES)
+     SDL_CONFIG := sdl-config
      WITH_SDL	:=	1
-    else
-     ifeq ($(shell command -v sdl-config > /dev/null && if [ `sdl-config --version | sed -E 's/\..*$$//'` -ge 2 ] ; then echo 'YES' ; fi),YES)
-      SDL_CONFIG := sdl-config
+	else
+     ifeq ($(shell sdl13-config --cflags > /dev/null 2>&1 && echo YES),YES)
+      SDL_CONFIG := sdl13-config
       WITH_SDL	:=	1
+     else
+      ifeq ($(shell sdl12-config --cflags > /dev/null 2>&1 && echo YES),YES)
+       SDL_CONFIG := sdl12-config
+       WITH_SDL	:=	1
+      else
+       ifeq ($(shell sdl11-config --cflags > /dev/null 2>&1 && echo YES),YES)
+    	SDL_CONFIG := sdl11-config
+    	WITH_SDL	:=	1
+       endif
+      endif
      endif
-    endif
+	endif
    endif
   endif
  endif
@@ -132,14 +139,6 @@ ifdef WITH_SDL
 	CIOLIB_CFLAGS	+=	-DWITH_SDL -DSTATIC_SDL
 	CIOLIB_CFLAGS	+=	-I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
 	CIOLIB_LIBS	+=	-F${SDL_FRAMEWORK_PATH} -framework SDL -framework Cocoa -framework Carbon -I${SDL_FRAMEWORK_PATH}/SDL.framework/Headers
-   else
-    ifeq ($(os),win32)
-     CIOLIB-MT_CFLAGS	+=	-DWITH_SDL
-     WITH_SDL	:=	1
-     CIOLIB_CFLAGS	+=	-DWITH_SDL
-     CIOLIB-MT_LIBS := -lmingw32 $(CIOLIB-MT_LIBS)
-     CIOLIB_LIBS := -lmingw32 $(CIOLIB_LIBS)
-    endif
    endif
   endif
  endif

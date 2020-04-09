@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: modem.c,v 1.30 2018/02/01 09:06:31 deuce Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 
@@ -31,7 +31,7 @@ void modem_input_thread(void *args)
 			monitor_dsr=FALSE;
 	}
 	while(com != COM_HANDLE_INVALID && !conn_api.terminate) {
-		rd=comReadBuf(com, (char *)conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
+		rd=comReadBuf(com, conn_api.rd_buf, conn_api.rd_buf_size, NULL, 100);
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -79,6 +79,8 @@ void modem_output_thread(void *args)
 				if(ret==COM_ERROR)
 					break;
 			}
+			if(ret==COM_ERROR) {
+			}
 		}
 		else
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
@@ -104,11 +106,7 @@ int modem_response(char *str, size_t maxlen, int timeout)
 	while(1){
 		/* Abort with keystroke */
 		if(kbhit()) {
-			switch(getch()) {
-				case 0:
-				case 0xe0:
-					getch();
-			}
+			getch();
 			return(1);
 		}
 
@@ -116,7 +114,7 @@ int modem_response(char *str, size_t maxlen, int timeout)
 			return(-1);
 		if(len >= maxlen)
 			return(-1);
-		if(!comReadByte(com, (unsigned char *)&ch)) {
+		if(!comReadByte(com, &ch)) {
 			YIELD();
 			continue;
 		}
@@ -317,7 +315,6 @@ int serial_close(void)
 int modem_close(void)
 {
 	time_t start;
-	char garbage[1024];
 
 	conn_api.terminate=1;
 
@@ -338,10 +335,8 @@ int modem_close(void)
 	}
 
 CLOSEIT:
-	while(conn_api.input_thread_running || conn_api.output_thread_running) {
-		conn_recv_upto(garbage, sizeof(garbage), 0);
+	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	}
 	comClose(com);
 
 	destroy_conn_buf(&conn_inbuf);

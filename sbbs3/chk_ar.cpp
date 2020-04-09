@@ -2,13 +2,13 @@
 
 /* Synchronet ARS checking routine */
 
-/* $Id: chk_ar.cpp,v 1.32 2020/03/19 18:50:51 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -88,10 +88,6 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 		artype=(**ptrptr);
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
-			case AR_PETSCII:
-			case AR_ASCII:
-			case AR_UTF8:
-			case AR_CP437:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -150,67 +146,19 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				}
 				break;
 			case AR_ANSI:
-				if(!term_supports(ANSI))
+				if(!(user->misc&ANSI))
 					result=_not;
 				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=ANSI; 
-				}
-				break;
-			case AR_PETSCII:
-				if((term_supports()&CHARSET_FLAGS) != CHARSET_PETSCII)
-					result=_not;
-				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=PETSCII; 
-				}
-				break;
-			case AR_ASCII:
-				if((term_supports()&CHARSET_FLAGS) != CHARSET_ASCII)
-					result=_not;
-				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=NO_EXASCII; 
-				}
-				break;
-			case AR_UTF8:
-				if((term_supports()&CHARSET_FLAGS) != CHARSET_UTF8)
-					result=_not;
-				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=UTF8; 
-				}
-				break;
-			case AR_CP437:
-				if((term_supports()&CHARSET_FLAGS) != CHARSET_CP437)
-					result=_not;
-				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=0; 
-				}
 				break;
 			case AR_RIP:
-				if(!term_supports(RIP))
+				if(!(user->misc&RIP))
 					result=_not;
 				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=RIP; 
-				}
 				break;
 			case AR_WIP:
-				if(!term_supports(WIP))
+				if(!(user->misc&WIP))
 					result=_not;
 				else result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=WIP; 
-				}
 				break;
 			case AR_OS2:
 				#ifndef __OS2__
@@ -219,13 +167,8 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 					result=!_not;
 				#endif
 				break;
-			case AR_DOS:	/* DOS program support */
+			case AR_DOS:
 				result=_not;
-				if(startup->options&BBS_OPT_NO_DOS)
-					break;
-				#if defined(_WIN32) || (defined(__linux__) && defined(USE_DOSEMU)) || defined(__FreeBSD__)
-					result=!_not;
-				#endif
 				break;
 			case AR_WIN32:
 				#ifndef _WIN32
@@ -688,45 +631,13 @@ bool sbbs_t::ar_exp(const uchar **ptrptr, user_t* user, client_t* client)
 				if(client!=NULL)
 					p=client->addr;
 				else
-					p=user->ipaddr;
+					p=user->note;
 				if(!findstr_in_string(p,(char*)*ptrptr))
 					result=_not;
 				else
 					result=!_not;
 				while(*(*ptrptr))
 					(*ptrptr)++;
-				break;
-			case AR_TERM:
-				if(!findstr_in_string(terminal, (char*)*ptrptr))
-					result=_not;
-				else
-					result=!_not;
-				while(*(*ptrptr))
-					(*ptrptr)++;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=0; 
-				}
-				break;
-			case AR_COLS:
-				if((equal && cols != (long)n) || (!equal && cols < (long)n))
-					result=_not;
-				else
-					result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=n; 
-				}
-				break;
-			case AR_ROWS:
-				if((equal && rows != (long)n) || (!equal && rows < (long)n))
-					result=_not;
-				else
-					result=!_not;
-				if(!result) {
-					noaccess_str=text[NoAccessTerminal];
-					noaccess_val=n; 
-				}
 				break;
 		}
 	}
@@ -831,7 +742,7 @@ uint sbbs_t::getusrsub(uint subnum)
 	ugrp = getusrgrp(subnum);
 	if(ugrp<=0)
 		return(0);
-	ugrp--;
+	
 	for(usub=0;usub<usrsubs[ugrp];usub++)
 		if(usrsub[ugrp][usub]==subnum)
 			break;
@@ -839,43 +750,9 @@ uint sbbs_t::getusrsub(uint subnum)
 	return(usub+1);
 }
 
-uint sbbs_t::getusrlib(uint dirnum)
-{
-	uint	ulib;
-
-	if(dirnum == INVALID_DIR)
-		return 0;
-
-	if(usrlibs <= 0)
-		return 0;
-
-	for(ulib=0; ulib < usrlibs; ulib++)
-		if(usrlib[ulib] == cfg.dir[dirnum]->lib)
-			break;
-
-	return ulib+1;
-}
-
-uint sbbs_t::getusrdir(uint dirnum)
-{
-	uint	udir;
-	uint	ulib;
-
-	ulib = getusrlib(dirnum);
-	if(ulib <= 0)
-		return 0;
-	ulib--;
-	for(udir=0; udir < usrdirs[ulib]; udir++)
-		if(usrdir[ulib][udir] == dirnum)
-			break;
-
-	return udir+1;
-}
-
-
 int sbbs_t::dir_op(uint dirnum)
 {
-	return(SYSOP || (cfg.dir[dirnum]->op_ar!=NULL && cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron,&client)));
+	return(SYSOP || (cfg.dir[dirnum]->op_ar[0] && chk_ar(cfg.dir[dirnum]->op_ar,&useron,&client)));
 }
 
 

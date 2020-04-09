@@ -1,12 +1,14 @@
+/* smbstr.c */
+
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.36 2019/07/30 10:20:21 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -38,7 +40,7 @@
 #include <genwrap.h> 		/* stricmp */
 #include "smblib.h"
 
-char* SMBCALL smb_hfieldtype(uint16_t type)
+char* SMBCALL smb_hfieldtype(ushort type)
 {
 	static char str[8];
 
@@ -63,14 +65,12 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case REPLYTONETTYPE:	return("Reply-ToNetType");
 		case REPLYTONETADDR:	return("Reply-ToNetAddr");
 		case REPLYTOEXT:		return("Reply-ToExt");
-		case REPLYTOLIST:		return("Reply-ToList");
 								
 		case RECIPIENT:			return("To");					/* RFC-compliant */
 		case RECIPIENTAGENT:	return("ToAgent");
 		case RECIPIENTNETTYPE:	return("ToNetType");
 		case RECIPIENTNETADDR:	return("ToNetAddr");
 		case RECIPIENTEXT:		return("ToExt");
-		case RECIPIENTLIST:		return("ToList");
 
 		case SUBJECT:			return("Subject");				/* RFC-compliant */
 		case SMB_SUMMARY:		return("Summary");
@@ -81,8 +81,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case SMB_PRIORITY:		return("Priority");
 		case SMB_COST:			return("Cost");
 		case SMB_EDITOR:		return("Editor");
-		case SMB_TAGS:			return("Tags");
-		case SMB_COLUMNS:		return("Columns");
 		case FORWARDED:			return("Forwarded");
 
 		/* All X-FTN-* are RFC-compliant */
@@ -95,7 +93,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case FIDOPID:			return("X-FTN-PID");
 		case FIDOFLAGS:			return("X-FTN-Flags");
 		case FIDOTID:			return("X-FTN-TID");
-		case FIDOCHARSET:		return("X-FTN-CHRS");
 
 		case RFC822HEADER:		return("OtherHeader");
 		case RFC822MSGID:		return("Message-ID");			/* RFC-compliant */
@@ -103,9 +100,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case RFC822TO:			return("RFC822To");
 		case RFC822FROM:		return("RFC822From");
 		case RFC822REPLYTO:		return("RFC822ReplyTo");
-		case RFC822CC:			return("RFC822Cc");	
-		case RFC822ORG:			return("RFC822Org");
-		case RFC822SUBJECT:		return("RFC822Subject");
 
 		case USENETPATH:		return("Path");					/* RFC-compliant */
 		case USENETNEWSGROUPS:	return("Newsgroups");			/* RFC-compliant */
@@ -117,8 +111,6 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 
 		case SMTPSYSMSG:		return("SMTPSysMsg");
 
-		case SMB_POLL_ANSWER:	return("PollAnswer");
-
 		case UNKNOWN:			return("UNKNOWN");
 		case UNKNOWNASCII:		return("UNKNOWNASCII");
 		case UNUSED:			return("UNUSED");
@@ -127,12 +119,12 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 	return(str);
 }
 
-uint16_t SMBCALL smb_hfieldtypelookup(const char* str)
+ushort SMBCALL smb_hfieldtypelookup(const char* str)
 {
-	uint16_t type;
+	ushort type;
 
 	if(isdigit(*str))
-		return((uint16_t)strtol(str,NULL,0));
+		return((ushort)strtol(str,NULL,0));
 
 	for(type=0;type<=UNUSED;type++)
 		if(stricmp(str,smb_hfieldtype(type))==0)
@@ -141,7 +133,7 @@ uint16_t SMBCALL smb_hfieldtypelookup(const char* str)
 	return(UNKNOWN);
 }
 
-char* SMBCALL smb_dfieldtype(uint16_t type)
+char* SMBCALL smb_dfieldtype(ushort type)
 {
 	static char str[8];
 
@@ -184,14 +176,14 @@ char* SMBCALL smb_hashsource(smbmsg_t* msg, int source)
 /****************************************************************************/
 /* Converts when_t.zone into ASCII format                                   */
 /****************************************************************************/
-char* SMBCALL smb_zonestr(int16_t zone, char* str)
+char* SMBCALL smb_zonestr(short zone, char* str)
 {
 	char*		plus;
     static char buf[32];
 
 	if(str==NULL)
 		str=buf;
-	switch((uint16_t)zone) {
+	switch((ushort)zone) {
 		case 0:     return("UTC");
 		case AST:   return("AST");
 		case EST:   return("EST");
@@ -218,12 +210,9 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case RIO:   return("RIO");
 		case FER:   return("FER");
 		case AZO:   return("AZO");
-		case WET:   return("WET");
-		case WEST:  return("WEST");
-		case CET:   return("CET");
-		case CEST:	return("CEST");
-		case EET:   return("EET");
-		case EEST:  return("EEST");
+		case LON:   return("LON");
+		case BER:   return("BER");
+		case ATH:   return("ATH");
 		case MOS:   return("MOS");
 		case DUB:   return("DUB");
 		case KAB:   return("KAB");
@@ -234,14 +223,10 @@ char* SMBCALL smb_zonestr(int16_t zone, char* str)
 		case BAN:   return("BAN");
 		case HON:   return("HON");
 		case TOK:   return("TOK");
-		case ACST:	return("ACST");
-		case ACDT:	return("ACDT");
-		case AEST:	return("AEST");
-		case AEDT:	return("AEDT");
+		case SYD:   return("SYD");
 		case NOU:   return("NOU");
-		case NZST:  return("NZST");
-		case NZDT:  return("NZDT");
-	}
+		case WEL:   return("WEL");
+		}
 
 	if(!OTHER_ZONE(zone)) {
 		if(zone&(WESTERN_ZONE|US_ZONE))	/* West of UTC? */
@@ -284,8 +269,7 @@ char* SMBCALL smb_faddrtoa(fidoaddr_t* addr, char* str)
 /****************************************************************************/
 fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 {
-	char*		p;
-	const char*	terminator;
+	char *p;
 	fidoaddr_t addr;
 	fidoaddr_t tmp_addr={1,1,1,0};	/* Default system address: 1:1/1.0 */
 
@@ -293,9 +277,7 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 		sys_addr=&tmp_addr;
 
 	ZERO_VAR(addr);
-	terminator = str;
-	FIND_WHITESPACE(terminator);
-	if((p=strchr(str,':'))!=NULL && p < terminator) {
+	if((p=strchr(str,':'))!=NULL) {
 		addr.zone=atoi(str);
 		addr.net=atoi(p+1); 
 	} else {
@@ -304,14 +286,14 @@ fidoaddr_t SMBCALL smb_atofaddr(const fidoaddr_t* sys_addr, const char *str)
 	}
 	if(addr.zone==0)              /* no such thing as zone 0 */
 		addr.zone=1;
-	if((p=strchr(str,'/'))!=NULL && p < terminator)
+	if((p=strchr(str,'/'))!=NULL)
 		addr.node=atoi(p+1);
 	else {
 		if(addr.zone==sys_addr->zone)
 			addr.net=sys_addr->net;
 		addr.node=atoi(str); 
 	}
-	if((p=strchr(str,'.'))!=NULL && p < terminator)
+	if((p=strchr(str,'.'))!=NULL)
 		addr.point=atoi(p+1);
 	return(addr);
 }
@@ -336,112 +318,37 @@ char* SMBCALL smb_netaddrstr(net_t* net, char* fidoaddr_buf)
 }
 
 /****************************************************************************/
-/* Returns net_type for passed e-mail address (e.g. "user@addr")			*/
-/* QWKnet and Internet addresses must have an '@'.							*/
-/* FidoNet addresses may be in form: "user@addr" or just "addr".			*/
+/* Returns net_type for passed e-mail address (i.e. "user@addr")			*/
 /****************************************************************************/
-enum smb_net_type SMBCALL smb_netaddr_type(const char* str)
+ushort SMBCALL smb_netaddr_type(const char* str)
 {
-	const char*	p;
+	char*	p;
+	char*	tp;
+	char*	firstdot;
+	char*	lastdot;
 
-	if((p=strchr(str,'@')) == NULL) {
-		p = str;
-		SKIP_WHITESPACE(p);
-		if(*p == 0)
-			return NET_NONE;
-		if(smb_get_net_type_by_addr(p) == NET_FIDO)
-			return NET_FIDO;
-		return NET_NONE;
-	}
-	else
-		p++;
+	if((p=strchr(str,'@'))==NULL)
+		return(NET_NONE);
+
+	p++;
 	SKIP_WHITESPACE(p);
 	if(*p==0)
 		return(NET_UNKNOWN);
 
-	return smb_get_net_type_by_addr(p);
-}
+	firstdot=strchr(p,'.');
+	lastdot=strrchr(p,'.');
 
-/****************************************************************************/
-/* Returns net_type for passed network address 								*/
-/* The only addresses expected with an '@' are Internet/SMTP addresses		*/
-/* Examples:																*/
-/*  ""					= NET_NONE											*/
-/*	"@"					= NET_NONE											*/
-/*	"VERT"				= NET_QWK											*/
-/*	"VERT/NIX"			= NET_QWK											*/
-/*	"1:103/705"			= NET_FIDO											*/
-/*	"705.0"				= NET_FIDO											*/
-/*	"705"				= NET_FIDO											*/
-/*	"192.168.1.0"		= NET_INTERNET										*/
-/*  "::1"				= NET_INTERNET										*/
-/*	"some.host"			= NET_INTERNET										*/
-/*	"someone@anywhere"	= NET_INTERNET										*/
-/*	"someone@some.host"	= NET_INTERNET										*/
-/****************************************************************************/
-enum smb_net_type SMBCALL smb_get_net_type_by_addr(const char* addr)
-{
-	const char*	p = addr;
-	const char*	tp;
+	if(isalpha(*p) && firstdot==NULL)
+		return(NET_QWK);
 
-	char* at = strchr(p,'@');
-	if(at != NULL)
-		p = at + 1;
-
-	if(*p == 0)
-		return NET_NONE;
-
-	char* dot = strchr(p,'.');
-	char* colon = strchr(p,':');
-	char* slash = strchr(p,'/');
-
-	if(at == NULL && isalpha(*p) && dot == NULL && colon == NULL)
-		return NET_QWK;
-
-	char last = 0;
-	for(tp = p; *tp != '\0'; tp++) {
-		last = *tp;
-		if(isdigit(*tp))
-			continue;
-		if(*tp == ':') {
-			if(tp != colon)
-				break;
-			if(dot != NULL && tp > dot)
-				break;
-			if(slash != NULL && tp > slash)
-				break;
-			continue;
-		}
-		if(*tp == '/') {
-			if(tp != slash)
-				break;
-			if(dot != NULL && tp > dot)
-				break;
-			continue;
-		}
-		if(*tp == '.') {
-			if(tp != dot)
-				break;
-			continue;
-		}
-		break;
+	for(tp=p;*tp;tp++) {
+		if(!isdigit(*tp) && *tp!=':' && *tp!='/' && *tp!='.')
+			break;
 	}
-	if(at == NULL && isdigit(*p) && *tp == '\0' && isdigit(last))
-		return NET_FIDO;
-	if(slash == NULL && (isalnum(*p) || p == colon))
-		return NET_INTERNET;
+	if(isdigit(*p) && *tp==0 && firstdot==lastdot)
+		return(NET_FIDO);
+	if(isalnum(*p))
+		return(NET_INTERNET);
 
-	return NET_UNKNOWN;
-}
-
-char* SMBCALL smb_nettype(enum smb_net_type type)
-{
-	switch(type) {
-		case NET_NONE:		return "NONE";
-		case NET_UNKNOWN:	return "UNKNOWN";
-		case NET_QWK:		return "QWKnet";
-		case NET_FIDO:		return "FidoNet";
-		case NET_INTERNET:	return "Internet";
-		default:			return "Unsupported net type";
-	}
+	return(NET_UNKNOWN);
 }

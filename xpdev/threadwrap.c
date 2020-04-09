@@ -2,13 +2,13 @@
 
 /* Thread-related cross-platform development wrappers */
 
-/* $Id: threadwrap.c,v 1.37 2019/02/18 04:04:11 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -44,7 +44,6 @@
 	#define _WIN32_WINNT 0x0400	/* Needed for TryEnterCriticalSection */
 #endif
 
-#include "genwrap.h"	/* SLEEP() */
 #include "threadwrap.h"	/* DLLCALL */
 
 /****************************************************************************/
@@ -112,7 +111,7 @@ pthread_mutex_t DLLCALL pthread_mutex_initializer_np(BOOL recursive)
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	if(recursive)
-#if defined(__linux__) && defined(PTHREAD_MUTEX_RECURSIVE_NP) && !defined(__USE_UNIX98)
+#if defined(__linux__) && !defined(__USE_UNIX98)
 		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE_NP);
 #else
 		pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
@@ -126,29 +125,6 @@ pthread_mutex_t DLLCALL pthread_mutex_initializer_np(BOOL recursive)
 }
 
 #if !defined(_POSIX_THREADS)
-
-int DLLCALL pthread_once(pthread_once_t *oc, void (*init)(void))
-{
-	if (oc == NULL || init == NULL)
-		return EINVAL;
-	switch(InterlockedCompareExchange(&(oc->state), 1, 0)) {
-		case 0:	// Never called
-			init();
-			InterlockedIncrement(&(oc->state));
-			return 0;
-		case 1:	// In init function
-			/* We may not need to use InterlockedCompareExchange() here,
-			 * but I hate marking things as volatile, and hate tight loops
-			 * testing things that aren't marked volatile.
-			 */
-			while(InterlockedCompareExchange(&(oc->state), 1, 0) != 2)
-				SLEEP(1);
-			return 0;
-		case 2:	// Done.
-			return 0;
-	}
-	return EINVAL;
-}
 
 int DLLCALL pthread_mutex_init(pthread_mutex_t* mutex, void* attr)
 {
@@ -261,42 +237,6 @@ uint64_t DLLCALL protected_uint64_adjust(protected_uint64_t* i, int64_t adjustme
 	uint64_t newval;
 	pthread_mutex_lock(&i->mutex);
 	newval = i->value += adjustment;
-	pthread_mutex_unlock(&i->mutex);
-	return newval;
-}
-
-int32_t DLLCALL protected_int32_set(protected_int32_t* i, int32_t val)
-{
-	int32_t	newval;
-	pthread_mutex_lock(&i->mutex);
-	newval = i->value = val;
-	pthread_mutex_unlock(&i->mutex);
-	return newval;
-}
-
-uint32_t DLLCALL protected_uint32_set(protected_uint32_t* i, uint32_t val)
-{
-	uint32_t newval;
-	pthread_mutex_lock(&i->mutex);
-	newval = i->value = val;
-	pthread_mutex_unlock(&i->mutex);
-	return newval;
-}
-
-int64_t DLLCALL protected_int64_set(protected_int64_t* i, int64_t val)
-{
-	int64_t	newval;
-	pthread_mutex_lock(&i->mutex);
-	newval = i->value = val;
-	pthread_mutex_unlock(&i->mutex);
-	return newval;
-}
-
-uint64_t DLLCALL protected_uint64_set(protected_uint64_t* i, uint64_t val)
-{
-	uint64_t newval;
-	pthread_mutex_lock(&i->mutex);
-	newval = i->value = val;
 	pthread_mutex_unlock(&i->mutex);
 	return newval;
 }

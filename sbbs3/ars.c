@@ -2,13 +2,13 @@
 
 /* Synchronet Access Requirement String (ARS) functions */
 
-/* $Id: ars.c,v 1.23 2020/03/19 18:50:51 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -364,34 +364,6 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 				artype=AR_ANSI;
 				i+=3; 
 			}
-			else if(!strnicmp(str+i,"PETSCII",7)) {
-				artype=AR_PETSCII;
-				i+=6; 
-			}
-			else if(!strnicmp(str+i,"ASCII",5)) {
-				artype=AR_ASCII;
-				i+=4; 
-			}
-			else if(!strnicmp(str+i,"UTF8",4)) {
-				artype=AR_UTF8;
-				i+=3; 
-			}
-			else if(!strnicmp(str+i,"CP437",5)) {
-				artype=AR_CP437;
-				i+=4; 
-			}
-			else if(!strnicmp(str+i,"TERM",4)) {
-				artype=AR_TERM;
-				i+=3; 
-			}
-			else if(!strnicmp(str+i,"COLS",4)) {
-				artype=AR_COLS;
-				i+=3; 
-			}
-			else if(!strnicmp(str+i,"ROWS",4)) {
-				artype=AR_ROWS;
-				i+=3; 
-			}
 			else if(!strnicmp(str+i,"UDFR",4)) {
 				artype=AR_UDFR;
 				i+=3; 
@@ -516,10 +488,6 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 					case AR_RIP:
 					case AR_WIP:
 					case AR_ANSI:
-					case AR_PETSCII:
-					case AR_ASCII:
-					case AR_UTF8:
-					case AR_CP437:
 					case AR_DOS:
 					case AR_OS2:
 					case AR_UNIX:
@@ -597,8 +565,6 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 				case AR_PCR:
 				case AR_UDR:
 				case AR_UDFR:
-				case AR_ROWS:
-				case AR_COLS:
 				case AR_NODE:
 				case AR_LEVEL:
 				case AR_TLEFT:
@@ -649,7 +615,6 @@ uchar* arstr(ushort* count, const char* str, scfg_t* cfg)
 			case AR_PROT:
 			case AR_HOST:
 			case AR_IP:
-			case AR_TERM:
 				/* String argument */
 				for(n=0;n<maxlen
 					&& str[i]
@@ -1118,8 +1083,6 @@ char *decompile_ars(uchar *ars, int len)
 			case AR_UDR:
 			case AR_UDFR:
 			case AR_NODE:
-			case AR_ROWS:
-			case AR_COLS:
 			case AR_LEVEL:
 			case AR_TLEFT:
 			case AR_TUSED:
@@ -1171,7 +1134,6 @@ char *decompile_ars(uchar *ars, int len)
 			case AR_PROT:
 			case AR_HOST:
 			case AR_IP:
-			case AR_TERM:
 				if(not)
 					*(out++)='!';
 				if(equals)

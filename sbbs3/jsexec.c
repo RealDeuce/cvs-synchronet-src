@@ -1,13 +1,14 @@
+/* jsexec.c */
+
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.212 2020/04/08 07:04:36 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -41,7 +42,6 @@
 #ifdef __unix__
 #define _WITH_GETLINE
 #include <signal.h>
-#include <termios.h>
 #endif
 
 #include "sbbs.h"
@@ -51,15 +51,8 @@
 #include "js_request.h"
 #include "jsdebug.h"
 
-#define DEFAULT_LOG_LEVEL	LOG_INFO
+#define DEFAULT_LOG_LEVEL	LOG_DEBUG	/* Display all LOG levels */
 #define DEFAULT_ERR_LOG_LVL	LOG_WARNING
-
-static const char*	strJavaScriptMaxBytes		="JavaScriptMaxBytes";
-static const char*	strJavaScriptContextStack	="JavaScriptContextStack";
-static const char*	strJavaScriptTimeLimit		="JavaScriptTimeLimit";
-static const char*	strJavaScriptGcInterval		="JavaScriptGcInterval";
-static const char*	strJavaScriptYieldInterval	="JavaScriptYieldInterval";
-static const char*	strJavaScriptLoadPath		="JavaScriptLoadPath";
 
 js_startup_t	startup;
 JSRuntime*	js_runtime;
@@ -84,24 +77,16 @@ BOOL		terminated=FALSE;
 BOOL		recycled;
 int			log_level=DEFAULT_LOG_LEVEL;
 int  		err_level=DEFAULT_ERR_LOG_LVL;
-long		umask_val = -1;
 pthread_mutex_t output_mutex;
 #if defined(__unix__)
 BOOL		daemonize=FALSE;
-struct termios	orig_term;
 #endif
 char		orig_cwd[MAX_PATH+1];
 BOOL		debugger=FALSE;
-#ifndef PROG_NAME
-#define PROG_NAME "JSexec"
-#endif
-#ifndef PROG_NAME_LC
-#define PROG_NAME_LC "jsexec"
-#endif
 
 void banner(FILE* fp)
 {
-	fprintf(fp,"\n" PROG_NAME " v%s%c-%s (rev %s)%s - "
+	fprintf(fp,"\nJSexec v%s%c-%s (rev %s)%s - "
 		"Execute Synchronet JavaScript Module\n"
 		,VERSION,REVISION
 		,PLATFORM_DESC
@@ -121,43 +106,34 @@ void usage(FILE* fp)
 {
 	banner(fp);
 
-	fprintf(fp,"\nusage: " PROG_NAME_LC " [-opts] [path]module[.js] [args]\n"
+	fprintf(fp,"\nusage: jsexec [-opts] [path]module[.js] [args]\n"
 		"\navailable opts:\n\n"
-#ifdef JSDOOR
-		"    -c<ctrl_dir>   specify path to CTRL directory\n"
-#else
-		"    -c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
-#endif
-		"    -C             do not change the current working directory (to CTRL dir)\n"
+		"\t-c<ctrl_dir>   specify path to Synchronet CTRL directory\n"
 #if defined(__unix__)
-		"    -d             run in background (daemonize)\n"
+		"\t-d             run in background (daemonize)\n"
 #endif
-		"    -m<bytes>      set maximum heap size (default=%u bytes)\n"
-		"    -s<bytes>      set context stack size (default=%u bytes)\n"
-		"    -t<limit>      set time limit (default=%u, 0=unlimited)\n"
-		"    -y<interval>   set yield interval (default=%u, 0=never)\n"
-		"    -g<interval>   set garbage collection interval (default=%u, 0=never)\n"
-#ifdef JSDOOR
-		"    -h[hostname]   use local or specified host name\n"
-#else
-		"    -h[hostname]   use local or specified host name (instead of SCFG value)\n"
-#endif
-		"    -u<mask>       set file creation permissions mask (in octal)\n"
-		"    -L<level>      set log level (default=%u)\n"
-		"    -E<level>      set error log level threshold (default=%u)\n"
-		"    -i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
-		"    -f             use non-buffered stream for console messages\n"
-		"    -a             append instead of overwriting message output files\n"
-		"    -e<filename>   send error messages to file in addition to stderr\n"
-		"    -o<filename>   send console messages to file instead of stdout\n"
-		"    -n             send status messages to %s instead of stderr\n"
-		"    -q             send console messages to %s instead of stdout\n"
-		"    -v             display version details and exit\n"
-		"    -x             disable auto-termination on local abort signal\n"
-		"    -l             loop until intentionally terminated\n"
-		"    -p             wait for keypress (pause) on exit\n"
-		"    -!             wait for keypress (pause) on error\n"
-		"    -D             debugs the script\n"
+		"\t-m<bytes>      set maximum heap size (default=%u bytes)\n"
+		"\t-s<bytes>      set context stack size (default=%u bytes)\n"
+		"\t-t<limit>      set time limit (default=%u, 0=unlimited)\n"
+		"\t-y<interval>   set yield interval (default=%u, 0=never)\n"
+		"\t-g<interval>   set garbage collection interval (default=%u, 0=never)\n"
+		"\t-h[hostname]   use local or specified host name (instead of SCFG value)\n"
+		"\t-u<mask>       set file creation permissions mask (in octal)\n"
+		"\t-L<level>      set log level (default=%u)\n"
+		"\t-E<level>      set error log level threshold (default=%u)\n"
+		"\t-i<path_list>  set load() comma-sep search path list (default=\"%s\")\n"
+		"\t-f             use non-buffered stream for console messages\n"
+		"\t-a             append instead of overwriting message output files\n"
+		"\t-e<filename>   send error messages to file in addition to stderr\n"
+		"\t-o<filename>   send console messages to file instead of stdout\n"
+		"\t-n             send status messages to %s instead of stderr\n"
+		"\t-q             send console messages to %s instead of stdout\n"
+		"\t-v             display version details and exit\n"
+		"\t-x             disable auto-termination on local abort signal\n"
+		"\t-l             loop until intentionally terminated\n"
+		"\t-p             wait for keypress (pause) on exit\n"
+		"\t-!             wait for keypress (pause) on error\n"
+		"\t-D             debugs the script\n"
 		,JAVASCRIPT_MAX_BYTES
 		,JAVASCRIPT_CONTEXT_STACK
 		,JAVASCRIPT_TIME_LIMIT
@@ -169,52 +145,6 @@ void usage(FILE* fp)
 		,_PATH_DEVNULL
 		,_PATH_DEVNULL
 		);
-}
-
-static void
-cooked_tty(void)
-{
-	if (isatty(fileno(stdin))) {
-#ifdef __unix__
-		tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
-#elif defined _WIN32
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), ENABLE_ECHO_INPUT
-		    | ENABLE_EXTENDED_FLAGS | ENABLE_INSERT_MODE | ENABLE_LINE_INPUT
-		    | ENABLE_MOUSE_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_QUICK_EDIT_MODE);
-#else
-		#warning "Can't cook the tty on this platform"
-#endif
-	}
-}
-
-#ifdef __unix__
-static void raw_input(struct termios *t)
-{
-#ifdef JSDOOR
-	t->c_iflag &= ~(IMAXBEL|IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-#else
-	t->c_iflag &= ~(IMAXBEL|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
-#endif
-}
-#endif
-
-static void
-raw_tty(void)
-{
-	if (isatty(fileno(stdin))) {
-#ifdef __unix__
-		struct termios term = orig_term;
-
-		raw_input(&term);
-		tcsetattr(fileno(stdin), TCSANOW, &term);
-#elif defined _WIN32
-		SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
-#else
-		#warning "Can't set the tty as raw on this platform"
-#endif
-	}
 }
 
 int mfprintf(FILE* fp, char *fmt, ...)
@@ -263,11 +193,11 @@ int lprintf(int level, const char *fmt, ...)
 
 	if(level<=err_level) {
 		ret=fprintf(errfp,"%s\n",sbuf);
-		if(errfp!=stderr)
+		if(errfp!=stderr && confp!=stdout)
 			ret=fprintf(statfp,"%s\n",sbuf);
 	}
-	if(level>err_level)
-		ret=fprintf(statfp,"%s\n",sbuf);
+	if(level>err_level || errfp!=stderr)
+		ret=fprintf(confp,"%s\n",sbuf);
 
 	pthread_mutex_unlock(&output_mutex);
     return(ret);
@@ -342,7 +272,6 @@ static int do_bail(int code)
 		lprintf(LOG_ERR,"!WSACleanup ERROR %d",ERROR_VALUE);
 #endif
 
-	cooked_tty();
 	if(pause_on_exit || (code && pause_on_error)) {
 		fprintf(statfp,"\nHit enter to continue...");
 		getchar();
@@ -385,13 +314,13 @@ js_log(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		lprintf(level,"%s",logstr);
 		JS_RESUMEREQUEST(cx, rc);
-		FREE_AND_NULL(logstr);
 	}
 
-	if(str==NULL)
+	if(logstr==NULL)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	free(logstr);
 
     return(JS_TRUE);
 }
@@ -444,9 +373,7 @@ js_readln(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	cooked_tty();
 	p=fgets(buf,len+1,stdin);
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	if(p!=NULL)
@@ -470,14 +397,13 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
     for (i = 0; i < argc; i++) {
-		if((str=JS_ValueToString(cx, argv[i]))==NULL)
+		if((str=JS_ValueToString(cx, argv[0]))==NULL)
 		    return(JS_FALSE);
 		JSSTRING_TO_RASTRING(cx, str, line, &line_sz, NULL);
 		if(line==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
 		fprintf(confp,"%s",line);
-		FREE_AND_NULL(line);
 		JS_RESUMEREQUEST(cx, rc);
 	}
 
@@ -485,6 +411,8 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 	else
 		JS_SET_RVAL(cx, arglist, STRING_TO_JSVAL(str));
+	if(line)
+		free(line);
     return(JS_TRUE);
 }
 
@@ -557,7 +485,7 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
-	char	 *	cstr = NULL;
+	char	 *	cstr;
 	char     *	p;
 	jsrefcount	rc;
 	char		instr[81]="y";
@@ -568,15 +496,13 @@ js_confirm(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx, cstr);
+	HANDLE_PENDING(cx);
 	if(cstr==NULL)
 		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
 	printf("%s (Y/n)? ", cstr);
 	free(cstr);
-	cooked_tty();
 	fgets(instr,sizeof(instr),stdin);
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	p=instr;
@@ -590,7 +516,7 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
     JSString *	str;
-	char	 *	cstr = NULL;
+	char	 *	cstr;
 	char     *	p;
 	jsrefcount	rc;
 	char		instr[81];
@@ -601,15 +527,13 @@ js_deny(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, str, cstr, NULL);
-	HANDLE_PENDING(cx, cstr);
+	HANDLE_PENDING(cx);
 	if(cstr==NULL)
 		return JS_TRUE;
 	rc=JS_SUSPENDREQUEST(cx);
 	printf("%s (N/y)? ", cstr);
 	free(cstr);
-	cooked_tty();
 	fgets(instr,sizeof(instr),stdin);
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	p=instr;
@@ -622,16 +546,16 @@ static JSBool
 js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char		instr[256];
+	char		instr[81];
     JSString *	str;
 	jsrefcount	rc;
-	char		*prstr = NULL;
+	char		*prstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && !JSVAL_IS_VOID(argv[0])) {
 		JSVALUE_TO_MSTRING(cx, argv[0], prstr, NULL);
-		HANDLE_PENDING(cx, prstr);
+		HANDLE_PENDING(cx);
 		if(prstr==NULL)
 			return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
@@ -642,18 +566,15 @@ js_prompt(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc>1) {
 		JSVALUE_TO_STRBUF(cx, argv[1], instr, sizeof(instr), NULL);
-		HANDLE_PENDING(cx, NULL);
+		HANDLE_PENDING(cx);
 	} else
 		instr[0]=0;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	cooked_tty();
 	if(!fgets(instr,sizeof(instr),stdin)) {
-		raw_tty();
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
-	raw_tty();
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((str=JS_NewStringCopyZ(cx, truncnl(instr)))==NULL)
@@ -667,12 +588,12 @@ static JSBool
 js_chdir(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		p = NULL;
+	char*		p;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx, p);
+	HANDLE_PENDING(cx);
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
 		return(JS_TRUE);
@@ -696,7 +617,7 @@ js_putenv(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(argc) {
 		JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-		HANDLE_PENDING(cx, p);
+		HANDLE_PENDING(cx);
 	}
 	if(p==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(-1));
@@ -813,7 +734,7 @@ static BOOL js_CreateEnvObject(JSContext* cx, JSObject* glob, char** env)
 	return(TRUE);
 }
 
-static BOOL js_init(char** env)
+static BOOL js_init(char** environ)
 {
 	memset(&startup,0,sizeof(startup));
 	SAFECOPY(startup.load_path, load_path_list);
@@ -831,9 +752,6 @@ static BOOL js_init(char** env)
 
     if((js_cx = JS_NewContext(js_runtime, js_cx_stack))==NULL)
 		return(FALSE);
-#ifdef JSDOOR
-	JS_SetOptions(js_cx, JSOPTION_JIT | JSOPTION_METHODJIT | JSOPTION_COMPILE_N_GO | JSOPTION_PROFILING);
-#endif
 	JS_BEGINREQUEST(js_cx);
 
 	JS_SetErrorReporter(js_cx, js_ErrorReporter);
@@ -842,7 +760,7 @@ static BOOL js_init(char** env)
 	if(!js_CreateCommonObjects(js_cx, &scfg, NULL, js_global_functions
 		,time(NULL), host_name, SOCKLIB_DESC	/* system */
 		,&cb,&startup						/* js */
-		,NULL,INVALID_SOCKET,-1					/* client */
+		,NULL,INVALID_SOCKET					/* client */
 		,NULL									/* server */
 		,&js_glob
 		)) {
@@ -851,7 +769,7 @@ static BOOL js_init(char** env)
 	}
 
 	/* Environment Object (associative array) */
-	if(!js_CreateEnvObject(js_cx, js_glob, env)) {
+	if(!js_CreateEnvObject(js_cx, js_glob, environ)) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -862,22 +780,6 @@ static BOOL js_init(char** env)
 	}
 
 	if(js_CreateConioObject(js_cx, js_glob)==NULL) {
-		JS_ENDREQUEST(js_cx);
-		return(FALSE);
-	}
-
-	/* STDIO objects */
-	if(!js_CreateFileObject(js_cx, js_glob, "stdout", STDOUT_FILENO, "w")) {
-		JS_ENDREQUEST(js_cx);
-		return(FALSE);
-	}
-
-	if(!js_CreateFileObject(js_cx, js_glob, "stdin", STDIN_FILENO, "r")) {
-		JS_ENDREQUEST(js_cx);
-		return(FALSE);
-	}
-
-	if(!js_CreateFileObject(js_cx, js_glob, "stderr", STDERR_FILENO, "w")) {
 		JS_ENDREQUEST(js_cx);
 		return(FALSE);
 	}
@@ -894,7 +796,7 @@ static const char* js_ext(const char* fname)
 
 void dbg_puts(const char *msg)
 {
-	fputs(msg, stderr);
+	fprintf(stderr, msg);
 }
 
 char *dbg_getline(void)
@@ -903,12 +805,8 @@ char *dbg_getline(void)
 	char	*line=NULL;
 	size_t	linecap=0;
 
-	cooked_tty();
-	if(getline(&line, &linecap, stdin)>=0) {
-		raw_tty();
+	if(getline(&line, &linecap, stdin)>=0)
 		return line;
-	}
-	raw_tty();
 	if(line)
 		free(line);
 	return NULL;
@@ -916,12 +814,8 @@ char *dbg_getline(void)
 	// I assume Windows sucks.
 	char	buf[1025];
 
-	cooked_tty();
-	if(fgets(buf,sizeof(buf),stdin)) {
-		raw_tty();
+	if(fgets(buf,sizeof(buf),stdin))
 		return strdup(buf);
-	}
-	raw_tty();
 	return NULL;
 #endif
 }
@@ -945,8 +839,6 @@ long js_exec(const char *fname, char** args)
 	int32		result=0;
 	long double	start;
 	long double	diff;
-	JSBool		exec_result;
-	BOOL		abort = FALSE;
 
 	if(fname!=NULL) {
 		if(isfullpath(fname)) {
@@ -988,11 +880,11 @@ long js_exec(const char *fname, char** args)
 	JS_DefineProperty(js_cx, js_glob, "argc", INT_TO_JSVAL(argc)
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	JS_DefineProperty(js_cx, js_glob, PROG_NAME_LC "_revision"
+	JS_DefineProperty(js_cx, js_glob, "jsexec_revision"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,revision))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
-	sprintf(rev_detail,PROG_NAME " %s%s  "
+	sprintf(rev_detail,"JSexec %s%s  "
 		"Compiled %s %s with %s"
 		,revision
 #ifdef _DEBUG
@@ -1003,7 +895,7 @@ long js_exec(const char *fname, char** args)
 		,__DATE__, __TIME__, compiler
 		);
 
-	JS_DefineProperty(js_cx, js_glob, PROG_NAME_LC "_revision_detail"
+	JS_DefineProperty(js_cx, js_glob, "jsexec_revision_detail"
 		,STRING_TO_JSVAL(JS_NewStringCopyZ(js_cx,rev_detail))
 		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
 
@@ -1026,10 +918,8 @@ long js_exec(const char *fname, char** args)
 			strcpy(line,"\n");	/* To keep line count correct */
 		len=strlen(line);
 		if((js_buf=realloc(js_buf,js_buflen+len))==NULL) {
-			lprintf(LOG_ERR,"!Error allocating %lu bytes of memory"
-				,(ulong)(js_buflen+len));
-			if(fp!=stdin)
-				fclose(fp);
+			lprintf(LOG_ERR,"!Error allocating %u bytes of memory"
+				,js_buflen+len);
 			return(-1);
 		}
 		memcpy(js_buf+js_buflen,line,len);
@@ -1050,28 +940,23 @@ long js_exec(const char *fname, char** args)
 			,path
 			,diff);
 
-	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd, js_glob);
+	js_PrepareToExecute(js_cx, js_glob, fname==NULL ? NULL : path, orig_cwd);
 	start=xp_timer();
 	if(debugger)
-		abort = debug_prompt(js_cx, js_script) == DEBUG_EXIT;
-	if (abort) {
-		result = EXIT_FAILURE;
-	} else {
-		exec_result = JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
-		JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
-		if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
-			char	*p;
+		debug_prompt(js_cx, js_script);
+	JS_ExecuteScript(js_cx, js_glob, js_script, &rval);
+	JS_GetProperty(js_cx, js_glob, "exit_code", &rval);
+	if(rval!=JSVAL_VOID && JSVAL_IS_NUMBER(rval)) {
+		char	*p;
 
-			JSVALUE_TO_MSTRING(js_cx, rval, p, NULL);
-			mfprintf(statfp,"Using JavaScript exit_code: %s",p);
-			free(p);
-			JS_ValueToInt32(js_cx,rval,&result);
-		} else if(!exec_result)
-			result = EXIT_FAILURE;
-		js_EvalOnExit(js_cx, js_glob, &cb);
-
-		JS_ReportPendingException(js_cx);
+		JSVALUE_TO_MSTRING(js_cx, rval, p, NULL);
+		mfprintf(statfp,"Using JavaScript exit_code: %s",p);
+		free(p);
+		JS_ValueToInt32(js_cx,rval,&result);
 	}
+	js_EvalOnExit(js_cx, js_glob, &cb);
+
+	JS_ReportPendingException(js_cx);
 
 	if((diff=xp_timer()-start) > 0)
 		mfprintf(statfp,"%s executed in %.2Lf seconds"
@@ -1127,31 +1012,12 @@ int parseLogLevel(const char* p)
 	return DEFAULT_LOG_LEVEL;
 }
 
-void get_ini_values(str_list_t ini, const char* section, js_callback_t* cb)
-{
-	log_level = iniGetLogLevel(ini, section, "LogLevel" , log_level);
-	err_level = iniGetLogLevel(ini, section, "ErrorLevel" , err_level);
-	debugger = iniGetBool(ini, section, "Debugger", debugger);
-	pause_on_exit = iniGetBool(ini, section, "PauseOnExit", pause_on_exit);
-	pause_on_error = iniGetBool(ini, section, "PauseOnError", pause_on_error);
-	umask_val = iniGetInteger(ini, section, "umask", umask_val);
-
-	js_max_bytes		= (ulong)iniGetBytes(ini, section, strJavaScriptMaxBytes	,/* unit: */1, js_max_bytes);
-	js_cx_stack			= (ulong)iniGetBytes(ini, section, strJavaScriptContextStack,/* unit: */1, js_cx_stack);
-	cb->limit			= iniGetInteger(ini, section, strJavaScriptTimeLimit		, cb->limit);
-	cb->gc_interval		= iniGetInteger(ini, section, strJavaScriptGcInterval		, cb->gc_interval);
-	cb->yield_interval	= iniGetInteger(ini, section, strJavaScriptYieldInterval	, cb->yield_interval);
-	cb->auto_terminate	= iniGetBool(ini, section, "AutoTerminate"					, cb->auto_terminate);
-}
-
 /*********************/
 /* Entry point (duh) */
 /*********************/
-int main(int argc, char **argv, char** env)
+int main(int argc, char **argv, char** environ)
 {
-#ifndef JSDOOR
 	char	error[512];
-#endif
 	char*	module=NULL;
 	char*	p;
 	char*	omode="w";
@@ -1160,10 +1026,6 @@ int main(int argc, char **argv, char** env)
 	ulong	exec_count=0;
 	BOOL	loop=FALSE;
 	BOOL	nonbuffered_con=FALSE;
-	BOOL	change_cwd=TRUE;
-	FILE*	fp;
-	char	ini_fname[MAX_PATH + 1];
-	str_list_t ini = NULL;
 
 	confp=stdout;
 	errfp=stderr;
@@ -1171,13 +1033,8 @@ int main(int argc, char **argv, char** env)
 		perror(_PATH_DEVNULL);
 		return(do_bail(-1));
 	}
-	if(isatty(fileno(stdin))) {
-#ifdef __unix__
-		tcgetattr(fileno(stdin), &orig_term);
-#endif
-		raw_tty();
+	if(isatty(fileno(stderr)))
 		statfp=stderr;
-	}
 	else	/* if redirected, don't send status messages to stderr */
 		statfp=nulfp;
 
@@ -1186,7 +1043,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.212 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1195,117 +1052,19 @@ int main(int argc, char **argv, char** env)
 	if(!winsock_startup())
 		return(do_bail(2));
 
-	SAFECOPY(ini_fname, argv[0]);
-	if((p = getfext(ini_fname)) != NULL)
-		*p = 0;
-	SAFECAT(ini_fname, ".ini");
-	if((fp = iniOpenFile(ini_fname, /* create: */FALSE)) != NULL) {
-		ini = iniReadFile(fp);
-		iniCloseFile(fp);
-	}
-	get_ini_values(ini, /* section (global): */NULL, &cb);
-
 	getcwd(orig_cwd, sizeof(orig_cwd));
 	backslash(orig_cwd);
-#ifdef JSDOOR
- 	SAFECOPY(scfg.ctrl_dir, orig_cwd);
-	prep_dir("", scfg.ctrl_dir, sizeof(scfg.ctrl_dir));
- 	SAFECOPY(scfg.exec_dir, orig_cwd);
-	prep_dir(scfg.ctrl_dir, scfg.exec_dir, sizeof(scfg.exec_dir));
- 	SAFECOPY(scfg.mods_dir, orig_cwd);
-	prep_dir(scfg.ctrl_dir, scfg.mods_dir, sizeof(scfg.mods_dir));
- 	SAFECOPY(scfg.data_dir, orig_cwd);
-	prep_dir(scfg.ctrl_dir, scfg.data_dir, sizeof(scfg.data_dir));
- 	SAFECOPY(scfg.text_dir, orig_cwd);
-	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
- 	SAFECOPY(scfg.logs_dir, orig_cwd);
-	prep_dir(scfg.ctrl_dir, scfg.text_dir, sizeof(scfg.text_dir));
- 	scfg.sys_misc = 0; /* SM_EURODATE and SM_MILITARY are used */
-	gethostname(host_name=host_name_buf,sizeof(host_name_buf));
-	statfp = nulfp;
-	errfp = fopen("error.log", "a");
-#endif
 
 	for(argn=1;argn<argc && module==NULL;argn++) {
 		if(argv[argn][0]=='-') {
 			p=argv[argn]+2;
 			switch(argv[argn][1]) {
-				/* These options require a parameter value */
-				case 'c':
-				case 'e':
-				case 'E':
-				case 'g':
-				case 'i':
-				case 'L':
-				case 'm':
-				case 'o':
-				case 's':
-				case 't':
-				case 'u':
-				case 'y':
-				{
-					char opt = argv[argn][1];
-					if(*p==0) {
-						if(argn + 1 >= argc) {
-							fprintf(errfp,"\n!Option requires a parameter value: %s\n", argv[argn]);
-							usage(errfp);
-							return(do_bail(1));
-						}
-						p=argv[++argn];
-					}
-					switch(opt) {
-						case 'c':
-							SAFECOPY(scfg.ctrl_dir,p);
-							break;
-						case 'E':
-							err_level=parseLogLevel(p);
-							break;
-						case 'e':
-							if (errfp != stderr)
-								fclose(errfp);
-							if((errfp=fopen(p,omode))==NULL) {
-								perror(p);
-								return(do_bail(1));
-							}
-							break;
-						case 'g':
-							cb.gc_interval=strtoul(p,NULL,0);
-							break;
-						case 'i':
-							load_path_list=p;
-							break;
-						case 'L':
-							log_level=parseLogLevel(p);
-							break;
-						case 'm':
-							js_max_bytes=(ulong)parse_byte_count(p, /* units: */1);
-							break;
-						case 'o':
-							if((confp=fopen(p,omode))==NULL) {
-								perror(p);
-								return(do_bail(1));
-							}
-							break;
-						case 's':
-							js_cx_stack=(ulong)parse_byte_count(p, /* units: */1);
-							break;
-						case 't':
-							cb.limit=strtoul(p,NULL,0);
-							break;
-						case 'u':
-							umask_val = strtol(p,NULL,8);
-							break;
-						case 'y':
-							cb.yield_interval=strtoul(p,NULL,0);
-							break;
-					}
-					break;
-				}
 				case 'a':
 					omode="a";
 					break;
-				case 'C':
-					change_cwd = FALSE;
+				case 'c':
+					if(*p==0) p=argv[++argn];
+					SAFECOPY(scfg.ctrl_dir,p);
 					break;
 #if defined(__unix__)
 				case 'd':
@@ -1315,8 +1074,23 @@ int main(int argc, char **argv, char** env)
 				case 'D':
 					debugger=TRUE;
 					break;
+				case 'E':
+					if(*p==0) p=argv[++argn];
+					err_level=parseLogLevel(p);
+					break;
+				case 'e':
+					if(*p==0) p=argv[++argn];
+					if((errfp=fopen(p,omode))==NULL) {
+						perror(p);
+						return(do_bail(1));
+					}
+					break;
 				case 'f':
 					nonbuffered_con=TRUE;
+					break;
+				case 'g':
+					if(*p==0) p=argv[++argn];
+					cb.gc_interval=strtoul(p,NULL,0);
 					break;
 				case 'h':
 					if(*p==0)
@@ -1324,11 +1098,30 @@ int main(int argc, char **argv, char** env)
 					else
 						host_name=p;
 					break;
+				case 'i':
+					if(*p==0) p=argv[++argn];
+					load_path_list=p;
+					break;
+				case 'L':
+					if(*p==0) p=argv[++argn];
+					log_level=parseLogLevel(p);
+					break;
 				case 'l':
 					loop=TRUE;
 					break;
+				case 'm':
+					if(*p==0) p=argv[++argn];
+					js_max_bytes=strtoul(p,NULL,0);
+					break;
 				case 'n':
 					statfp=nulfp;
+					break;
+				case 'o':
+					if(*p==0) p=argv[++argn];
+					if((confp=fopen(p,omode))==NULL) {
+						perror(p);
+						return(do_bail(1));
+					}
 					break;
 				case 'p':
 					pause_on_exit=TRUE;
@@ -1336,12 +1129,28 @@ int main(int argc, char **argv, char** env)
 				case 'q':
 					confp=nulfp;
 					break;
+				case 's':
+					if(*p==0) p=argv[++argn];
+					js_cx_stack=strtoul(p,NULL,0);
+					break;
+				case 't':
+					if(*p==0) p=argv[++argn];
+					cb.limit=strtoul(p,NULL,0);
+					break;
+				case 'u':
+					if(*p==0) p=argv[++argn];
+					umask(strtol(p,NULL,8));
+					break;
 				case 'v':
 					banner(statfp);
 					fprintf(statfp,"%s\n",(char *)JS_GetImplementationVersion());
 					return(do_bail(0));
 				case 'x':
 					cb.auto_terminate=FALSE;
+					break;
+				case 'y':
+					if(*p==0) p=argv[++argn];
+					cb.yield_interval=strtoul(p,NULL,0);
 					break;
 				case '!':
 					pause_on_error=TRUE;
@@ -1354,22 +1163,18 @@ int main(int argc, char **argv, char** env)
 			}
 			continue;
 		}
-		char ini_section[MAX_PATH + 1];
 		module=argv[argn];
-		SAFECOPY(ini_section, getfname(module));
-		if((p = getfext(ini_section)) != NULL)
-			*p = 0;
-		get_ini_values(ini, ini_section, &cb);
 	}
 
-#ifndef JSDOOR
 	if(scfg.ctrl_dir[0]==0) {
-		SAFECOPY(scfg.ctrl_dir, get_ctrl_dir());
+		if((p=getenv("SBBSCTRL"))==NULL) {
+			fprintf(errfp,"\nSBBSCTRL environment variable not set and -c option not specified.\n");
+			fprintf(errfp,"\nExample: SET SBBSCTRL=/sbbs/ctrl\n");
+			fprintf(errfp,"\n     or: %s -c /sbbs/ctrl [module]\n",argv[0]);
+			return(do_bail(1)); 
+		}
+		SAFECOPY(scfg.ctrl_dir,p);
 	}	
-#endif
-
-	if(umask_val >= 0)
-		umask(umask_val);
 
 	if(module==NULL && isatty(fileno(stdin))) {
 		fprintf(errfp,"\n!Module name not specified\n");
@@ -1379,15 +1184,7 @@ int main(int argc, char **argv, char** env)
 
 	banner(statfp);
 
-#ifdef JSDOOR
-	SAFECOPY(scfg.temp_dir,"./temp");
-	scfg.tls_certificate = -1;
-	strcpy(scfg.sys_pass, "ThisIsNotHowToDoSecurity");
-	strcpy(scfg.sys_name, "JSDoor");
-	strcpy(scfg.sys_inetaddr, "example.com");
-	scfg.prepped = TRUE;
-#else
-	if(change_cwd && chdir(scfg.ctrl_dir)!=0)
+	if(chdir(scfg.ctrl_dir)!=0)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
 
 	fprintf(statfp,"\nLoading configuration files from %s\n",scfg.ctrl_dir);
@@ -1396,7 +1193,6 @@ int main(int argc, char **argv, char** env)
 		return(do_bail(1));
 	}
 	SAFECOPY(scfg.temp_dir,"../temp");
-#endif
 	prep_dir(scfg.ctrl_dir, scfg.temp_dir, sizeof(scfg.temp_dir));
 
 	if(host_name==NULL)
@@ -1406,7 +1202,7 @@ int main(int argc, char **argv, char** env)
 	if(daemonize) {
 		fprintf(statfp,"\nRunning as daemon\n");
 		if(daemon(TRUE,FALSE))  { /* Daemonize, DON'T switch to / and DO close descriptors */
-			fprintf(statfp,"!ERROR %d (%s) running as daemon\n", errno, strerror(errno));
+			fprintf(statfp,"!ERROR %d running as daemon\n",errno);
 			daemonize=FALSE;
 		}
 	}
@@ -1426,11 +1222,8 @@ int main(int argc, char **argv, char** env)
 	SetConsoleCtrlHandler(ControlHandler, TRUE /* Add */);
 #elif defined(__unix__)
 	signal(SIGQUIT,break_handler);
-	siginterrupt(SIGQUIT, 1);
 	signal(SIGINT,break_handler);
-	siginterrupt(SIGINT, 1);
 	signal(SIGTERM,break_handler);
-	siginterrupt(SIGTERM, 1);
 
 	signal(SIGHUP,recycle_handler);
 
@@ -1449,7 +1242,7 @@ int main(int argc, char **argv, char** env)
 
 		recycled=FALSE;
 
-		if(!js_init(env)) {
+		if(!js_init(environ)) {
 			lprintf(LOG_ERR,"!JavaScript initialization failure");
 			return(do_bail(1));
 		}
@@ -1461,7 +1254,7 @@ int main(int argc, char **argv, char** env)
 		YIELD();
 
 		if(result)
-			lprintf(LOG_ERR,"!Module (%s) set exit_code: %ld", module, result);
+			lprintf(LOG_ERR,"!Module set exit_code: %ld", result);
 
 		fprintf(statfp,"\n");
 		fprintf(statfp,"JavaScript: Destroying context\n");
@@ -1471,7 +1264,6 @@ int main(int argc, char **argv, char** env)
 
 	} while((recycled || loop) && !terminated);
 
-	iniFreeStringList(ini);
 	return(do_bail(result));
 }
 

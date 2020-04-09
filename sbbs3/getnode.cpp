@@ -2,13 +2,13 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.54 2019/08/31 20:34:15 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -59,12 +59,10 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 
 	if(node!=&thisnode)
 		memset(node,0,sizeof(node_t));
-	SAFEPRINTF(str,"%snode.dab",cfg.ctrl_dir);
-	pthread_mutex_lock(&nodefile_mutex);
+	sprintf(str,"%snode.dab",cfg.ctrl_dir);
 	if(nodefile==-1) {
 		if((nodefile=nopen(str,O_RDWR|O_DENYNONE))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE);
-			pthread_mutex_unlock(&nodefile_mutex);
 			return(errno); 
 		}
 	}
@@ -81,7 +79,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		}
 		lseek(nodefile,(long)number*sizeof(node_t),SEEK_SET);
 		rd=read(nodefile,node,sizeof(node_t));
-		if(rd!=sizeof(node_t))
+		if(!lockit || rd!=sizeof(node_t))
 			unlock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 		if(rd==sizeof(node_t))
 			break;
@@ -96,12 +94,10 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 		if(nodefile!=-1)
 			close(nodefile);
 		nodefile=-1;
-		pthread_mutex_unlock(&nodefile_mutex);
 		return(-2);
 	}
-	pthread_mutex_unlock(&nodefile_mutex);
 	if(count>(LOOP_NODEDAB/2)) {
-		SAFEPRINTF2(str,"NODE.DAB (node %d) COLLISION - Count: %d"
+		sprintf(str,"NODE.DAB (node %d) COLLISION - Count: %d"
 			,number+1, count);
 		logline(LOG_WARNING,"!!",str); 
 	}
@@ -115,7 +111,7 @@ int sbbs_t::getnodedat(uint number, node_t *node, bool lockit)
 /* Assumes that getnodedat(node_num,&thisnode,0) was called right before it */
 /* is called.  																*/
 /****************************************************************************/
-void sbbs_t::nodesync(bool clearline)
+void sbbs_t::nodesync()
 {
 	char	str[256],today[32];
 	int		atr=curatr;
@@ -139,7 +135,6 @@ void sbbs_t::nodesync(bool clearline)
 			lprintf(LOG_ERR, "Node %d NODE STATUS FIXUP", cfg.node_num);
 			if(getnodedat(cfg.node_num,&thisnode,true)==0) {
 				thisnode.status=NODE_INUSE;
-				thisnode.useron=useron.number;
 				putnodedat(cfg.node_num,&thisnode); 
 			}
 		}
@@ -162,9 +157,9 @@ void sbbs_t::nodesync(bool clearline)
 		}
 		if(!(sys_status&SS_MOFF)) {
 			if(thisnode.misc&NODE_MSGW)
-				getsmsg(useron.number, clearline); 	/* getsmsg clears MSGW flag */
+				getsmsg(useron.number); 	/* getsmsg clears MSGW flag */
 			if(thisnode.misc&NODE_NMSG)
-				getnmsg(clearline);					/* getnmsg clears NMSG flag */
+				getnmsg();					/* getnmsg clears NMSG flag */
 		}
 	}
 
@@ -208,7 +203,7 @@ void sbbs_t::nodesync(bool clearline)
 /****************************************************************************/
 /* Prints short messages waiting for this node, if any...                   */
 /****************************************************************************/
-int sbbs_t::getnmsg(bool clearline)
+int sbbs_t::getnmsg()
 {
 	char	str[MAX_PATH+1], *buf;
 	int		file;
@@ -219,7 +214,7 @@ int sbbs_t::getnmsg(bool clearline)
 		putnodedat(cfg.node_num,&thisnode);
 	}
 
-	SAFEPRINTF2(str,"%smsgs/n%3.3u.msg",cfg.data_dir,cfg.node_num);
+	sprintf(str,"%smsgs/n%3.3u.msg",cfg.data_dir,cfg.node_num);
 	if(flength(str)<1L)
 		return(0);
 	if((file=nopen(str,O_RDWR))==-1) {
@@ -248,10 +243,10 @@ int sbbs_t::getnmsg(bool clearline)
 	close(file);
 	buf[length]=0;
 
-	if(clearline)
-		this->clearline();
-	else if(column)
+	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
+		|| sys_status&SS_IN_CTRLP) {
 		CRLF; 
+	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
@@ -271,7 +266,7 @@ int sbbs_t::getnodeext(uint number, char *ext)
 		return(-1); 
 	}
 
-	SAFEPRINTF(str,"%snode.exb",cfg.ctrl_dir);
+	sprintf(str,"%snode.exb",cfg.ctrl_dir);
 	if((node_ext=nopen(str,O_RDONLY|O_DENYNONE))==-1) {
 		memset(ext,0,128);
 		errormsg(WHERE,ERR_OPEN,str,O_RDONLY|O_DENYNONE);
@@ -299,7 +294,7 @@ int sbbs_t::getnodeext(uint number, char *ext)
 		return(-2);
 	}
 	if(count>(LOOP_NODEDAB/2)) {
-		SAFEPRINTF2(str,"NODE.EXB (node %d) COLLISION - Count: %d"
+		sprintf(str,"NODE.EXB (node %d) COLLISION - Count: %d"
 			,number+1, count);
 		logline("!!",str); 
 	}
@@ -310,9 +305,9 @@ int sbbs_t::getnodeext(uint number, char *ext)
 
 /****************************************************************************/
 /* Prints short messages waiting for 'usernumber', if any...                */
-/* then truncates the file.                                                 */
+/* then deletes them.                                                       */
 /****************************************************************************/
-int sbbs_t::getsmsg(int usernumber, bool clearline)
+int sbbs_t::getsmsg(int usernumber)
 {
 	char	str[MAX_PATH+1], *buf;
     int		file;
@@ -321,8 +316,6 @@ int sbbs_t::getsmsg(int usernumber, bool clearline)
 	int		i;
 
 	for(i=1;i<=cfg.sys_nodes;i++) {	/* clear msg waiting flag */
-		if(getnodedat(i,&node,false) != 0 || node.useron != usernumber)
-			continue;
 		if(getnodedat(i,&node,true)==0) {
 			if(node.useron==usernumber
 					&& (node.status==NODE_INUSE || node.status==NODE_QUIET)
@@ -332,7 +325,7 @@ int sbbs_t::getsmsg(int usernumber, bool clearline)
 		} 
 	}
 
-	SAFEPRINTF2(str,"%smsgs/%4.4u.msg",cfg.data_dir,usernumber);
+	sprintf(str,"%smsgs/%4.4u.msg",cfg.data_dir,usernumber);
 	if(flength(str)<1L)
 		return(0);
 	if((file=nopen(str,O_RDWR))==-1) {
@@ -355,12 +348,10 @@ int sbbs_t::getsmsg(int usernumber, bool clearline)
 	close(file);
 	buf[length]=0;
 	getnodedat(cfg.node_num,&thisnode,0);
-	if(clearline)
-		this->clearline();
-	else
-		if(column)
-			CRLF;
-	strip_invalid_attr(buf);
+	if(thisnode.action==NODE_MAIN || thisnode.action==NODE_XFER
+		|| sys_status&SS_IN_CTRLP) {
+		CRLF; 
+	}
 	putmsg(buf,P_NOATCODES);
 	free(buf);
 
@@ -380,7 +371,7 @@ int sbbs_t::whos_online(bool listself)
 	CRLF;
 	bputs(text[NodeLstHdr]);
 	for(j=0,i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
-		getnodedat(i,&node,false);
+		getnodedat(i,&node,0);
 		if(i==cfg.node_num) {
 			if(listself)
 				printnodedat(i,&node);
@@ -405,7 +396,7 @@ void sbbs_t::nodelist(void)
 	CRLF;
 	bputs(text[NodeLstHdr]);
 	for(int i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
-		getnodedat(i,&node,false);
+		getnodedat(i,&node,0);
 		printnodedat(i,&node); 
 	}
 }
@@ -454,10 +445,6 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 		case NODE_LOGON:
 			bputs(text[NodeStatusLogon]);
 			bputs(node_connection_desc(this, node->connection, tmp));
-			break;
-		case NODE_LOGOUT:
-			bprintf(text[NodeStatusLogout]
-				,(node->misc&NODE_ANON) && !SYSOP ? text[UNKNOWN_USER] : username(&cfg,node->useron,tmp));
 			break;
 		case NODE_EVENT_WAITING:
 			bputs(text[NodeStatusEventWaiting]);
@@ -660,21 +647,4 @@ void sbbs_t::printnodedat(uint number, node_t* node)
 	}
 	attr(LIGHTGRAY);
 	CRLF;
-}
-
-uint sbbs_t::count_nodes(bool self)
-{
-	uint count = 0;
-
-	for(int i=1; i<=cfg.sys_nodes && i<=cfg.sys_lastnode; i++) {
-	    node_t	node;
-		if(getnodedat(i, &node, false) != 0)
-			continue;
-		if(!self && i==cfg.node_num)
-			continue;
-		if(node.status != NODE_INUSE)
-			continue;
-		count++;
-	}
-	return count;
 }

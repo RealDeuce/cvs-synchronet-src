@@ -1,13 +1,14 @@
-/* Synchronet JavaScript "system" Object */
-// vi: tabstop=4
+/* js_system.c */
 
-/* $Id: js_system.c,v 1.179 2020/03/31 18:32:34 rswindell Exp $ */
+/* Synchronet JavaScript "system" Object */
+
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,28 +40,19 @@
 
 #ifdef JAVASCRIPT
 
-typedef struct {
-	scfg_t* cfg;
-	int nodefile;
-	int nodegets;
-} js_system_private_t;
-
-extern JSClass js_system_class;
-
-/* System Object Properties */
+/* System Object Properites */
 enum {
 	 SYS_PROP_NAME
 	,SYS_PROP_OP
 	,SYS_PROP_ID
 	,SYS_PROP_MISC
+	,SYS_PROP_PSNAME
+	,SYS_PROP_PSNUM
 	,SYS_PROP_INETADDR
 	,SYS_PROP_LOCATION
 	,SYS_PROP_TIMEZONE
 	,SYS_PROP_PWDAYS
-	,SYS_PROP_MINPWLEN
-	,SYS_PROP_MAXPWLEN
 	,SYS_PROP_DELDAYS
-	,SYS_PROP_AUTODEL
 
 	,SYS_PROP_LASTUSER
 	,SYS_PROP_LASTUSERON
@@ -128,18 +120,16 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
     jsint       tiny;
 	JSString*	js_str;
 	ulong		val;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
-	scfg_t* cfg = sys->cfg;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
 	switch(tiny) {
-#ifndef JSDOOR
 		case SYS_PROP_NAME:
 	        p=cfg->sys_name;
 			break;
@@ -151,6 +141,12 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SYS_PROP_MISC:
 			*vp=UINT_TO_JSVAL(cfg->sys_misc);
+			break;
+		case SYS_PROP_PSNAME:
+			p=cfg->sys_psname;
+			break;
+		case SYS_PROP_PSNUM:
+			*vp = INT_TO_JSVAL(cfg->sys_psnum);
 			break;
 		case SYS_PROP_INETADDR:
 			p=cfg->sys_inetaddr;
@@ -171,17 +167,8 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SYS_PROP_PWDAYS:
 			*vp = INT_TO_JSVAL(cfg->sys_pwdays);
 			break;
-		case SYS_PROP_MINPWLEN:
-			*vp = INT_TO_JSVAL(MIN_PASS_LEN);
-			break;
-		case SYS_PROP_MAXPWLEN:
-			*vp = INT_TO_JSVAL(LEN_PASS);
-			break;
 		case SYS_PROP_DELDAYS:
 			*vp = INT_TO_JSVAL(cfg->sys_deldays);
-			break;
-		case SYS_PROP_AUTODEL:
-			*vp = INT_TO_JSVAL(cfg->sys_autodel);
 			break;
 		case SYS_PROP_LASTUSER:
 			*vp = INT_TO_JSVAL(lastuser(cfg));
@@ -189,7 +176,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SYS_PROP_LASTUSERON:
 			p=lastuseron;
 			break;
-#endif
 		case SYS_PROP_FREEDISKSPACE:
 		case SYS_PROP_FREEDISKSPACEK:
 			rc=JS_SUSPENDREQUEST(cx);
@@ -200,7 +186,7 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			JS_RESUMEREQUEST(cx, rc);
 			*vp=DOUBLE_TO_JSVAL((double)val);
 			break;
-#ifndef JSDOOR
+
 		case SYS_PROP_NEW_PASS:
 			p=cfg->new_pass;
 			break;
@@ -279,7 +265,6 @@ static JSBool js_system_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 		case SYS_PROP_NODE_DIR:
 			p=cfg->node_dir;
 			break;
-#endif
 		case SYS_PROP_CTRL_DIR:
 			p=cfg->ctrl_dir;
 			break;
@@ -346,21 +331,19 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 {
 	jsval idval;
     jsint       tiny;
+	scfg_t*		cfg;
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
-#ifndef JSDOOR
 	switch(tiny) {
 		case SYS_PROP_MISC:
-			JS_ValueToInt32(cx, *vp, &sys->cfg->sys_misc);
+			JS_ValueToInt32(cx, *vp, &cfg->sys_misc);
 			break;
 	}
-#endif
 
 	return(TRUE);
 }
@@ -371,28 +354,24 @@ static JSBool js_system_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict
 static jsSyncPropertySpec js_system_properties[] = {
 /*		 name,						tinyid,				flags,				ver	*/
 
-#ifndef JSDOOR
 	{	"name",						SYS_PROP_NAME,		SYSOBJ_FLAGS,		310  },
 	{	"operator",					SYS_PROP_OP,		SYSOBJ_FLAGS,		310  },
 	{	"qwk_id",					SYS_PROP_ID,		SYSOBJ_FLAGS,		310  },
 	{	"settings",					SYS_PROP_MISC,		JSPROP_ENUMERATE,	310  },
+	{	"psname",					SYS_PROP_PSNAME,	SYSOBJ_FLAGS,		310  },
+	{	"psnum",					SYS_PROP_PSNUM,		SYSOBJ_FLAGS,		310  },
 	{	"inetaddr",					SYS_PROP_INETADDR,	JSPROP_READONLY,	310  },	/* alias */
 	{	"inet_addr",				SYS_PROP_INETADDR,	SYSOBJ_FLAGS,		311  },
 	{	"location",					SYS_PROP_LOCATION,	SYSOBJ_FLAGS,		310  },
 	{	"timezone",					SYS_PROP_TIMEZONE,	SYSOBJ_FLAGS,		310  },
 	{	"pwdays",					SYS_PROP_PWDAYS,	SYSOBJ_FLAGS,		310  },
-	{	"min_password_length",		SYS_PROP_MINPWLEN,	SYSOBJ_FLAGS,		31702  },
-	{	"max_password_length",		SYS_PROP_MAXPWLEN,	SYSOBJ_FLAGS,		31702  },
 	{	"deldays",					SYS_PROP_DELDAYS,	SYSOBJ_FLAGS,		310  },
-	{	"autodel",					SYS_PROP_AUTODEL,	SYSOBJ_FLAGS,		31702  },
 
 	{	"lastuser",					SYS_PROP_LASTUSER		,SYSOBJ_FLAGS,	311  },
 	{	"lastuseron",				SYS_PROP_LASTUSERON		,SYSOBJ_FLAGS,	310  },
-#endif
 	{	"freediskspace",			SYS_PROP_FREEDISKSPACE	,SYSOBJ_FLAGS,	310  },
 	{	"freediskspacek",			SYS_PROP_FREEDISKSPACEK	,SYSOBJ_FLAGS,	310  },
 
-#ifndef JSDOOR
 	{	"nodes",					SYS_PROP_NODES,		SYSOBJ_FLAGS,		310  },
 	{	"lastnode",					SYS_PROP_LASTNODE,	SYSOBJ_FLAGS,		310  },
 
@@ -424,7 +403,6 @@ static jsSyncPropertySpec js_system_properties[] = {
 
 	/* directories */
 	{	"node_dir",					SYS_PROP_NODE_DIR		,SYSOBJ_FLAGS,	310  },	
-#endif
 	{	"ctrl_dir",					SYS_PROP_CTRL_DIR		,SYSOBJ_FLAGS,	310  },	
 	{	"data_dir",					SYS_PROP_DATA_DIR		,SYSOBJ_FLAGS,	310  },	
 	{	"text_dir",					SYS_PROP_TEXT_DIR		,SYSOBJ_FLAGS,	310  },	
@@ -454,14 +432,13 @@ static char* sys_prop_desc[] = {
 	,"operator name"
 	,"system QWK-ID (for QWK packets)"
 	,"settings bitfield (see <tt>SYS_*</tt> in <tt>sbbsdefs.js</tt> for bit definitions)"
+	,"PostLink name"
+	,"PostLink system number"
 	,"Internet address (host or domain name)"
 	,"location (city, state)"
 	,"timezone (use <i>system.zonestr()</i> to get string representation)"
-	,"days between forced user password changes (<tt>0</tt>=<i>never</i>)"
-	,"minimum number of characters in user passwords"
-	,"maximum number of characters in user passwords"
-	,"days to preserve deleted user records, record will not be reused/overwritten during this period"
-	,"days of user inactivity before auto-deletion (<tt>0</tt>=<i>disabled</i>), N/A to P-exempt users"
+	,"days between forced password changes"
+	,"days to preserve deleted user records"
 
 	,"last user record number in user database (includes deleted and inactive user records)"
 	,"name of last user to logoff"
@@ -565,39 +542,30 @@ enum {
 	,SYSSTAT_PROP_TOTALMSGS
 	,SYSSTAT_PROP_TOTALMAIL
 	,SYSSTAT_PROP_FEEDBACK
-
-	,SYSSTAT_PROP_NODE_GETS
 };
 
-#ifndef JSDOOR
 static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
 	jsval idval;
     jsint       tiny;
+	scfg_t*		cfg;
 	stats_t		stats;
 	uint		i;
 	ulong		l;
 	jsrefcount	rc;
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)JS_GetPrivate(cx,obj))==NULL) {
-		JS_ReportError(cx, "JS_GetPrivate failure in %s", __FUNCTION__);
-		return JS_FALSE;
-	}
-	scfg_t* cfg = sys->cfg;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
     JS_IdToValue(cx, id, &idval);
     tiny = JSVAL_TO_INT(idval);
 
-	if(tiny < SYSSTAT_PROP_TOTALUSERS) {
-		rc=JS_SUSPENDREQUEST(cx);
-		if(!getstats(cfg, 0, &stats)) {
-			JS_RESUMEREQUEST(cx, rc);
-			JS_ReportError(cx, "getstats failure in %s", __FUNCTION__);
-			return JS_FALSE;
-		}
+	rc=JS_SUSPENDREQUEST(cx);
+	if(!getstats(cfg, 0, &stats)) {
 		JS_RESUMEREQUEST(cx, rc);
+		return(FALSE);
 	}
+	JS_RESUMEREQUEST(cx, rc);
 
 	switch(tiny) {
 		case SYSSTAT_PROP_LOGONS:
@@ -660,17 +628,13 @@ static JSBool js_sysstats_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			break;
 		case SYSSTAT_PROP_TOTALMAIL:
 			rc=JS_SUSPENDREQUEST(cx);
-			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */0, /* Sent: */FALSE, /* SPAM: */FALSE));
+			*vp = INT_TO_JSVAL(getmail(cfg, 0,0));
 			JS_RESUMEREQUEST(cx, rc);
 			break;
 		case SYSSTAT_PROP_FEEDBACK:
 			rc=JS_SUSPENDREQUEST(cx);
-			*vp = INT_TO_JSVAL(getmail(cfg, /* user: */1, /* Sent: */FALSE, /* SPAM: */FALSE));
+			*vp = INT_TO_JSVAL(getmail(cfg, 1,0));
 			JS_RESUMEREQUEST(cx, rc);
-			break;
-
-		case SYSSTAT_PROP_NODE_GETS:
-			*vp = INT_TO_JSVAL(sys->nodegets);
 			break;
 	}
 
@@ -699,11 +663,10 @@ static jsSyncPropertySpec js_sysstats_properties[] = {
 	{	"feedback_sent_today",		SYSSTAT_PROP_FTODAY,		SYSSTAT_FLAGS,	310 },
 	{	"total_users",				SYSSTAT_PROP_TOTALUSERS,	SYSSTAT_FLAGS,	310 },
 	{	"new_users_today",			SYSSTAT_PROP_NUSERS,		SYSSTAT_FLAGS,	310 },
-	{	"node_gets",				SYSSTAT_PROP_NODE_GETS,		JSPROP_READONLY, 31702 },
 	{0}
 };
 
-#if !defined(JSDOOR) && defined(BUILD_JSDOCS)
+#ifdef BUILD_JSDOCS
 static char* sysstat_prop_desc[] = {
 	 "total logons"
 	,"logons today"
@@ -737,7 +700,7 @@ static JSBool js_sysstats_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -773,13 +736,13 @@ js_alias(JSContext *cx, uintN argc, jsval *arglist)
 	char*		p;
 	char		buf[128];
 	JSString*	js_str;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
@@ -793,7 +756,7 @@ js_alias(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	p=alias(sys->cfg,p,buf);
+	p=alias(cfg,p,buf);
 	JS_RESUMEREQUEST(cx, rc);
 
 	if((js_str = JS_NewStringCopyZ(cx, p))==NULL)
@@ -811,20 +774,20 @@ js_username(JSContext *cx, uintN argc, jsval *arglist)
 	int32		val;
 	char		buf[128];
 	JSString*	js_str;
+	scfg_t*		cfg;
 	char*		cstr;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	val=0;
 	JS_ValueToInt32(cx,argv[0],&val);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	cstr=username(sys->cfg,val,buf);
+	cstr=username(cfg,val,buf);
 	JS_RESUMEREQUEST(cx, rc);
 	if((js_str = JS_NewStringCopyZ(cx, cstr))==NULL)
 		return(JS_FALSE);
@@ -840,14 +803,14 @@ js_matchuser(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
 	JSString*	js_str;
+	scfg_t*		cfg;
 	BOOL		sysop_alias=TRUE;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if((js_str=JS_ValueToString(cx, argv[0]))==NULL) {
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(0));
@@ -864,7 +827,7 @@ js_matchuser(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(matchuser(sys->cfg,p,sysop_alias)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(matchuser(cfg,p,sysop_alias)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
@@ -879,15 +842,15 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	int32		offset=0;
 	int32		usernumber=0;
 	int			len;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		match_next=FALSE;
 	int 		argnum=2;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&offset);
 	rc=JS_SUSPENDREQUEST(cx);
@@ -915,11 +878,10 @@ js_matchuserdata(JSContext *cx, uintN argc, jsval *arglist)
 	}
 	
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(sys->cfg,usernumber,offset,len,p,FALSE,match_next,NULL,NULL)));
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(userdatdupe(cfg,usernumber,offset,len,p,FALSE,match_next)));
 	JS_RESUMEREQUEST(cx, rc);
 	return(JS_TRUE);
 }
-#endif
 
 static JSBool
 js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
@@ -927,17 +889,17 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		can = NULL;
+	char*		can;
 	JSString*	js_str;
 	JSString*	js_can;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if((js_can=JS_ValueToString(cx, argv[0]))==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
@@ -950,7 +912,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_can, can, NULL);
-	HANDLE_PENDING(cx, can);
+	HANDLE_PENDING(cx);
 	if(can==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -958,7 +920,6 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 
 	JSSTRING_TO_MSTRING(cx, js_str, str, NULL);
 	if(JS_IsExceptionPending(cx)) {
-		FREE_AND_NULL(str);
 		free(can);
 		return JS_FALSE;
 	}
@@ -969,7 +930,7 @@ js_trashcan(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=trashcan(sys->cfg,str,can);
+	ret=trashcan(cfg,str,can);
 	free(can);
 	free(str);
 	JS_RESUMEREQUEST(cx, rc);
@@ -982,7 +943,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		str;
-	char*		fname = NULL;
+	char*		fname;
 	JSString*	js_str;
 	JSString*	js_fname;
 	jsrefcount	rc;
@@ -999,7 +960,7 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSSTRING_TO_MSTRING(cx, js_fname, fname, NULL);
-	HANDLE_PENDING(cx, fname);
+	HANDLE_PENDING(cx);
 	if(fname==NULL) {
 		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(JS_FALSE));
 		return(JS_TRUE);
@@ -1007,7 +968,6 @@ js_findstr(JSContext *cx, uintN argc, jsval *arglist)
 
 	JSSTRING_TO_MSTRING(cx, js_str, str, NULL);
 	if(JS_IsExceptionPending(cx)) {
-		FREE_AND_NULL(str);
 		free(fname);
 		return JS_FALSE;
 	}
@@ -1034,17 +994,17 @@ js_zonestr(JSContext *cx, uintN argc, jsval *arglist)
 	JSString*	js_str;
 	short		zone;
 	int32		val=0;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	char*		cstr;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if(argc<1)
-		zone=sys_timezone(sys->cfg);
+		zone=sys_timezone(cfg);
 	else {
 		JS_ValueToInt32(cx,argv[0],&val);
 		zone=(short)val;
@@ -1069,20 +1029,20 @@ js_timestr(JSContext *cx, uintN argc, jsval *arglist)
 	char		str[128];
 	jsdouble	ti;
 	JSString*	js_str;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if(argc<1)
 		ti=(jsdouble)time(NULL);	/* use current time */
 	else
 		JS_ValueToNumber(cx,argv[0],&ti);
 	rc=JS_SUSPENDREQUEST(cx);
-	timestr(sys->cfg,(time32_t)ti,str);
+	timestr(cfg,(time32_t)ti,str);
 	JS_RESUMEREQUEST(cx, rc);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
@@ -1100,25 +1060,25 @@ js_datestr(JSContext *cx, uintN argc, jsval *arglist)
 	char		str[128];
 	time32_t	t;
 	JSString*	js_str;
+	scfg_t*		cfg;
 	char		*p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if(argc<1)
 		t=time32(NULL);	/* use current time */
 	else {
 		if(JSVAL_IS_STRING(argv[0])) {	/* convert from string to time_t? */
 			JSVALUE_TO_ASTRING(cx, argv[0], p, 10, NULL);
-			JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL((double)dstrtounix(sys->cfg, p)));
+			JS_SET_RVAL(cx, arglist, DOUBLE_TO_JSVAL((double)dstrtounix(cfg, p)));
 			return(JS_TRUE);
 		}
 		JS_ValueToInt32(cx,argv[0],&t);
 	}
-	unixtodstr(sys->cfg,t,str);
+	unixtodstr(cfg,t,str);
 	if((js_str = JS_NewStringCopyZ(cx, str))==NULL)
 		return(JS_FALSE);
 
@@ -1148,14 +1108,13 @@ js_secondstr(JSContext *cx, uintN argc, jsval *arglist)
 	return(JS_TRUE);
 }
 
-#ifndef JSDOOR
 static JSBool
 js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		p=NULL;
+	char*		p;
 	char*		prot=NULL;
 	char*		action=NULL;
 	char*		reason=NULL;
@@ -1163,14 +1122,14 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 	char*		ip_addr=NULL;
 	char*		to=NULL;
 	char*		from=NULL;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	for(i=0;i<argc;i++) {
 		if(!JSVAL_IS_STRING(argv[i]))
@@ -1192,32 +1151,30 @@ js_spamlog(JSContext *cx, uintN argc, jsval *arglist)
 					free(to);
 				if(from)
 					free(from);
-				if(p)
-					free(p);
 				return JS_FALSE;
 			}
-			if(p==NULL)
-				continue;
-			if(prot==NULL)
-				prot=p;
-			else if(action==NULL)
-				action=p;
-			else if(reason==NULL)
-				reason=p;
-			else if(host==NULL)
-				host=p;
-			else if(ip_addr==NULL)
-				ip_addr=p;
-			else if(to==NULL)
-				to=p;
-			else if(from==NULL)
-				from=p;
-			else
-				free(p);
 		}
+		if(p==NULL)
+			continue;
+		if(prot==NULL)
+			prot=p;
+		else if(action==NULL)
+			action=p;
+		else if(reason==NULL)
+			reason=p;
+		else if(host==NULL)
+			host=p;
+		else if(ip_addr==NULL)
+			ip_addr=p;
+		else if(to==NULL)
+			to=p;
+		else if(from==NULL)
+			from=p;
+		else
+			free(p);
 	}
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=spamlog(sys->cfg,prot,action,reason,host,ip_addr,to,from);
+	ret=spamlog(cfg,prot,action,reason,host,ip_addr,to,from);
 	if(prot)
 		free(prot);
 	if(action)
@@ -1244,29 +1201,29 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	int32		i32=0;
-	char*		p=NULL;
+	char*		p;
 	char*		prot=NULL;
 	char*		user=NULL;
 	char*		text=NULL;
 	char*		host=NULL;
-	union xp_sockaddr	addr;
+	SOCKADDR_IN	addr;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	memset(&addr,0,sizeof(addr));
 	for(i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			JS_ValueToInt32(cx,argv[i],&i32);
-			if(addr.in.sin_addr.s_addr==0)
-				addr.in.sin_addr.s_addr=i32;
+			if(addr.sin_addr.s_addr==0)
+				addr.sin_addr.s_addr=i32;
 			else
-				addr.in.sin_port=(ushort)i32;
+				addr.sin_port=(ushort)i32;
 			continue;
 		}
 		if(!JSVAL_IS_STRING(argv[i]))
@@ -1282,8 +1239,6 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 					free(text);
 				if(host)
 					free(host);
-				if(p)
-					free(p);
 				return JS_FALSE;
 			}
 		}
@@ -1299,7 +1254,7 @@ js_hacklog(JSContext *cx, uintN argc, jsval *arglist)
 			host=p;
 	}
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=hacklog(sys->cfg,prot,user,text,host,&addr);
+	ret=hacklog(cfg,prot,user,text,host,&addr);
 	if(prot)
 		free(prot);
 	if(user)
@@ -1319,21 +1274,21 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
-	char*		p=NULL;
+	char*		p;
 	char*		prot=NULL;
 	char*		reason=NULL;
 	char*		host=NULL;
 	char*		ip_addr=NULL;
 	char*		from=NULL;
 	char*		fname=NULL;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	for(i=0;i<argc;i++) {
 		if(!JSVAL_IS_STRING(argv[i]))
@@ -1353,8 +1308,6 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 					free(from);
 				if(fname)
 					free(fname);
-				if(p)
-					free(p);
 				return JS_FALSE;
 			}
 		}
@@ -1374,7 +1327,7 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 			fname=p;
 	}
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=filter_ip(sys->cfg,prot,reason,host,ip_addr,from,fname);
+	ret=filter_ip(cfg,prot,reason,host,ip_addr,from,fname);
 	if(prot)
 		free(prot);
 	if(reason)
@@ -1393,54 +1346,6 @@ js_filter_ip(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
-js_get_node(JSContext *cx, uintN argc, jsval *arglist)
-{
-	JSObject*	obj=JS_THIS_OBJECT(cx, arglist);
-	JSObject*	nodeobj;
-	jsval*		argv=JS_ARGV(cx, arglist);
-	node_t		node = {0};
-	int32		node_num;
-	jsrefcount	rc;
-
-	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
-
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
-	scfg_t* cfg = sys->cfg;
-
-	node_num=cfg->node_num;
-	if(argc) 
-		JS_ValueToInt32(cx,argv[0],&node_num);
-	if(node_num<1)
-		node_num=1;
-
-	rc=JS_SUSPENDREQUEST(cx);
-
-	int retval = getnodedat(sys->cfg, node_num, &node, /* lockit: */FALSE, &sys->nodefile);
-	sys->nodegets++;
-	JS_RESUMEREQUEST(cx, rc);
-	if(retval != 0) {
-		JS_ReportError(cx, "getnodat(%d) returned %d", node_num, retval);
-		return JS_TRUE;
-	}
-	if((nodeobj = JS_NewObject(cx, NULL, NULL, obj)) == NULL) {
-		JS_ReportError(cx, "JS_NewObject failure");
-		return JS_TRUE;
-	}
-	JS_DefineProperty(cx, nodeobj, "status", INT_TO_JSVAL((int)node.status), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "errors", INT_TO_JSVAL((int)node.errors), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "action", INT_TO_JSVAL((int)node.action), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "useron", INT_TO_JSVAL((int)node.useron), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "connection", INT_TO_JSVAL((int)node.connection), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "misc", INT_TO_JSVAL((int)node.misc), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "aux", INT_TO_JSVAL((int)node.aux), NULL, NULL, JSPROP_ENUMERATE);
-	JS_DefineProperty(cx, nodeobj, "extaux", INT_TO_JSVAL((int)node.extaux), NULL, NULL, JSPROP_ENUMERATE);
-	JS_SET_RVAL(cx, arglist, OBJECT_TO_JSVAL(nodeobj));
-	return JS_TRUE;
-}
-
-static JSBool
 js_get_node_message(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
@@ -1448,14 +1353,13 @@ js_get_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	char*		buf;
 	int32		node_num;
 	JSString*	js_str;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
-	scfg_t* cfg = sys->cfg;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	node_num=cfg->node_num;
 	if(argc) 
@@ -1464,7 +1368,7 @@ js_get_node_message(JSContext *cx, uintN argc, jsval *arglist)
 		node_num=1;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	buf=getnmsg(sys->cfg,node_num);
+	buf=getnmsg(cfg,node_num);
 	JS_RESUMEREQUEST(cx, rc);
 	if(buf==NULL)
 		return(JS_TRUE);
@@ -1485,15 +1389,15 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		node=1;
 	JSString*	js_msg;
-	char*		msg = NULL;
+	char*		msg;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&node);
 	if(node<1)
@@ -1503,12 +1407,12 @@ js_put_node_message(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx, msg);
+	HANDLE_PENDING(cx)
 	if(msg==NULL) 
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=putnmsg(sys->cfg,node,msg)==0;
+	ret=putnmsg(cfg,node,msg)==0;
 	free(msg);
 	JS_RESUMEREQUEST(cx, rc);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(ret));
@@ -1524,20 +1428,20 @@ js_get_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	char*		buf;
 	int32		usernumber=1;
 	JSString*	js_str;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&usernumber);
 	if(usernumber<1)
 		usernumber=1;
 
 	rc=JS_SUSPENDREQUEST(cx);
-	buf=getsmsg(sys->cfg,usernumber);
+	buf=getsmsg(cfg,usernumber);
 	JS_RESUMEREQUEST(cx, rc);
 	if(buf==NULL)
 		return(JS_TRUE);
@@ -1558,15 +1462,15 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	int32		usernumber=1;
 	JSString*	js_msg;
-	char*		msg = NULL;
+	char*		msg;
+	scfg_t*		cfg;
 	jsrefcount	rc;
 	BOOL		ret;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	JS_ValueToInt32(cx,argv[0],&usernumber);
 	if(usernumber<1)
@@ -1576,12 +1480,12 @@ js_put_telegram(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSSTRING_TO_MSTRING(cx, js_msg, msg, NULL);
-	HANDLE_PENDING(cx, msg);
+	HANDLE_PENDING(cx);
 	if(msg==NULL)
 		return(JS_TRUE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	ret=putsmsg(sys->cfg,usernumber,msg)==0;
+	ret=putsmsg(cfg,usernumber,msg)==0;
 	free(msg);
 	JS_RESUMEREQUEST(cx, rc);
 	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(ret));
@@ -1597,20 +1501,16 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	char*		alias;
 	int			i;
 	uintN		n;
+	scfg_t*		cfg;
 	user_t		user;
 	JSObject*	userobj;
-	JSObject*	objarg;
-	JSClass*	cl;
 	jsrefcount	rc;
 	client_t*	client=NULL;
-	jsval		val;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
-	scfg_t* cfg = sys->cfg;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if(argc<1 || JSVAL_NULL_OR_VOID(argv[0])) {
 		JS_ReportError(cx,"Missing or invalid argument");
@@ -1629,25 +1529,18 @@ js_new_user(JSContext *cx, uintN argc, jsval *arglist)
 	memset(&user,0,sizeof(user));
 	for(n=0;n<argc;n++) {
 		if(JSVAL_IS_OBJECT(argv[n])) {
-			objarg = JSVAL_TO_OBJECT(argv[n]);
+			JSClass*	cl;
+			JSObject*	objarg = JSVAL_TO_OBJECT(argv[n]);
 			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0) {
 				client=JS_GetPrivate(cx,objarg);
 				continue;
 			}
 		}
 	}
-	// Find and use the global client object if possible...
-	if(client==NULL) {
-		if(JS_GetProperty(cx, JS_GetGlobalObject(cx), "client", &val) && !JSVAL_NULL_OR_VOID(val)) {
-			objarg = JSVAL_TO_OBJECT(val);
-			if((cl=JS_GetClass(cx,objarg))!=NULL && strcmp(cl->name,"Client")==0)
-				client=JS_GetPrivate(cx,objarg);
-		}
-	}
 	if(client!=NULL) {
 		SAFECOPY(user.modem,client->protocol);
 		SAFECOPY(user.comp,client->host);
-		SAFECOPY(user.ipaddr,client->addr);
+		SAFECOPY(user.note,client->addr);
 	}
 
 	user.sex=' ';
@@ -1709,45 +1602,39 @@ js_del_user(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
 	int32		n;
+	scfg_t*		cfg;
 	user_t		user;
 	char		str[128];
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	if(!JS_ValueToInt32(cx,argv[0],&n))
 		return(JS_FALSE);
 	user.number=n;
 	rc=JS_SUSPENDREQUEST(cx);
 	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);	/* fail, by default */
-	if(getuserdat(sys->cfg, &user)==0
-		&& putuserrec(sys->cfg,n,U_MISC,8,ultoa(user.misc|DELETED,str,16))==0
-		&& putusername(sys->cfg,n,nulstr)==0)
+	if(getuserdat(cfg, &user)==0
+		&& putuserrec(cfg,n,U_MISC,8,ultoa(user.misc|DELETED,str,16))==0
+		&& putusername(cfg,n,nulstr)==0)
 		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);	/* success */
 	JS_RESUMEREQUEST(cx, rc);
 	
 	return(JS_TRUE);
 }
-#endif
 
 static JSBool
-js_sys_exec(JSContext *cx, uintN argc, jsval *arglist)
+js_exec(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	jsrefcount	rc;
-	char	*cmd = NULL;
+	char	*cmd;
 	int		ret;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx, cmd);
+	HANDLE_PENDING(cx);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
-		return JS_FALSE;
-	}
-	if(*cmd == 0) {
-		free(cmd);
-		JS_ReportError(cx, "Missing or invalid argument");
 		return JS_FALSE;
 	}
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1764,7 +1651,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char		str[1024];
-	char*		cmd = NULL;
+	char*		cmd;
 	FILE*		fp;
 	jsint		line=0;
 	jsval		val;
@@ -1781,7 +1668,7 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cmd, NULL);
-	HANDLE_PENDING(cx, cmd);
+	HANDLE_PENDING(cx);
 	if(cmd==NULL) {
 		JS_ReportError(cx, "Illegal NULL command");
 		return JS_FALSE;
@@ -1816,22 +1703,21 @@ js_popen(JSContext *cx, uintN argc, jsval *arglist)
     return(JS_TRUE);
 }
 
-#ifndef JSDOOR
 static JSBool
 js_chksyspass(JSContext *cx, uintN argc, jsval *arglist)
 {
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
+	scfg_t*		cfg;
 	char		*pass;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	JSVALUE_TO_ASTRING(cx, argv[0], pass, LEN_PASS+2, NULL); // +2 is so overly long passwords fail.
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(stricmp(pass,sys->cfg->sys_pass)==0));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(stricmp(pass,cfg->sys_pass)==0));
 
 	return(JS_TRUE);
 }
@@ -1842,23 +1728,21 @@ js_chkname(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*	str;
+	scfg_t*	cfg;
 	jsrefcount	rc;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	JSVALUE_TO_ASTRING(cx, argv[0], str, (LEN_ALIAS > LEN_NAME)?LEN_ALIAS+2:LEN_NAME+2, NULL);
-
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+		return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(check_name(sys->cfg,str)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(check_name(cfg,str)));
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
 }
-#endif
 
 static JSBool 
 js_chkpid(JSContext *cx, uintN argc, jsval *arglist)
@@ -1904,7 +1788,6 @@ js_killpid(JSContext *cx, uintN argc, jsval *arglist)
 
 
 static jsSyncMethodSpec js_system_functions[] = {
-#ifndef JSDOOR
 	{"username",		js_username,		1,	JSTYPE_STRING,	JSDOCSTR("number")
 	,JSDOCSTR("returns name of user in specified user record <i>number</i>, or empty string if not found")
 	,311
@@ -1924,7 +1807,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"or record at which to begin searching if optional <i>match_next</i> is <tt>true</tt>")
 	,310
 	},
-#endif
 	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("basename, find_string")
 	,JSDOCSTR("search <tt>text/<i>basename</i>.can</tt> for pseudo-regexp")
 	,310
@@ -1952,7 +1834,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 	,JSDOCSTR("convert elapsed time in seconds into a string in <tt>hh:mm:ss</tt> format")
 	,310
 	},		
-#ifndef JSDOOR
 	{"spamlog",			js_spamlog,			6,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, action, reason, host, ip, to, from]")
 	,JSDOCSTR("log a suspected SPAM attempt")
 	,310
@@ -1964,12 +1845,7 @@ static jsSyncMethodSpec js_system_functions[] = {
 	{"filter_ip",		js_filter_ip,		4,	JSTYPE_BOOLEAN,	JSDOCSTR("[protocol, reason, host, ip, username, filename]")
 	,JSDOCSTR("add an IP address (with comment) to an IP filter file. If filename is not specified, the ip.can file is used")
 	,311
-	},
-	{"get_node",		js_get_node,		1,	JSTYPE_OBJECT,	JSDOCSTR("node_number")
-	,JSDOCSTR("read a node data record all at once (and leaving the record unlocked) "
-		"returning an object matching the elements of <tt>system.node_list</tt>")
-	,31702
-	},
+	},		
 	{"get_node_message",js_get_node_message,0,	JSTYPE_STRING,	JSDOCSTR("node_number")
 	,JSDOCSTR("read any messages waiting for the specified node and return in a single string")
 	,311
@@ -1989,16 +1865,14 @@ static jsSyncMethodSpec js_system_functions[] = {
 	{"newuser",			js_new_user,		1,	JSTYPE_ALIAS },
 	{"new_user",		js_new_user,		1,	JSTYPE_OBJECT,	JSDOCSTR("name/alias [,client object]")
 	,JSDOCSTR("creates a new user record, returns a new <a href=#User>User</a> object representing the new user account, on success.<br>"
-	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a.  As of 3.16c, the global "
-	"client object is used if the argument is omitted)")
+	"returns an numeric error code on failure (optional <i>client</i> object argument added in v3.15a)")
 	,310
 	},
 	{"del_user",		js_del_user,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("number")
 	,JSDOCSTR("delete the specified user account")
 	,316
 	},
-#endif
-	{"exec",			js_sys_exec,		0,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
+	{"exec",			js_exec,			1,	JSTYPE_NUMBER,	JSDOCSTR("command-line")
 	,JSDOCSTR("executes a native system/shell command-line, returns <i>0</i> on success")
 	,311
 	},
@@ -2007,7 +1881,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"(<b>only functional on UNIX systems</b>)")
 	,311
 	},
-#ifndef JSDOOR
 	{"check_syspass",	js_chksyspass,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("password")
 	,JSDOCSTR("compares the supplied <i>password</i> against the system password and returns <i>true</i> if it matches")
 	,311
@@ -2017,7 +1890,6 @@ static jsSyncMethodSpec js_system_functions[] = {
 		"returns <i>true</i> if it is valid")
 	,315
 	},
-#endif
 	{"check_pid",		js_chkpid,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("process-ID")
 	,JSDOCSTR("checks that the provided process ID is a valid executing process on the system, "
 		"returns <i>true</i> if it is valid")
@@ -2068,6 +1940,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	uint		node_num;
     jsint       tiny;
 	node_t		node;
+	scfg_t*		cfg;
 	JSObject*	sysobj;
 	JSObject*	node_list;
 	jsrefcount	rc;
@@ -2082,20 +1955,18 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	if((sysobj=JS_GetParent(cx, node_list))==NULL)
 		return(JS_FALSE);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,sysobj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
+		return(JS_FALSE);
 
-	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
-	if(getnodedat(sys->cfg, node_num, &node, /* lockit: */FALSE, &sys->nodefile)) {
+	if(getnodedat(cfg, node_num, &node, NULL)) {
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
 	JS_RESUMEREQUEST(cx, rc);
-	sys->nodegets++;
 	
     switch(tiny) {
 		case NODE_PROP_STATUS:
@@ -2123,7 +1994,7 @@ static JSBool js_node_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp=UINT_TO_JSVAL(node.extaux);
 			break;
 		case NODE_PROP_DIR:
-			if((js_str=JS_NewStringCopyZ(cx, sys->cfg->node_path[node_num-1]))==NULL)
+			if((js_str=JS_NewStringCopyZ(cx, cfg->node_path[node_num-1]))==NULL)
 				return(JS_FALSE);
 			*vp = STRING_TO_JSVAL(js_str);
 			break;
@@ -2135,9 +2006,11 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 {
 	jsval idval;
 	uint		node_num;
+	int			file;
 	jsint		val=0;
     jsint       tiny;
 	node_t		node;
+	scfg_t*		cfg;
 	JSObject*	sysobj;
 	JSObject*	node_list;
 	jsrefcount	rc;
@@ -2148,15 +2021,14 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 	if((sysobj=JS_GetParent(cx, node_list))==NULL)
 		return(JS_FALSE);
 
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)js_GetClassPrivate(cx,sysobj,&js_system_class))==NULL)
-		return JS_FALSE;
+	if((cfg=(scfg_t*)JS_GetPrivate(cx,sysobj))==NULL)
+		return(JS_FALSE);
 
-	node_num=(uintptr_t)JS_GetPrivate(cx,obj)>>1;
+	node_num=(uint)JS_GetPrivate(cx,obj)>>1;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&node,0,sizeof(node));
-	if(getnodedat(sys->cfg, node_num, &node, /* lockit: */TRUE, &sys->nodefile)) {
+	if(getnodedat(cfg, node_num, &node, &file)) {
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -2195,7 +2067,7 @@ static JSBool js_node_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, 
 			node.extaux=val;
 			break;
 	}
-	putnodedat(sys->cfg,node_num,&node, /* closeit: */FALSE, sys->nodefile);
+	putnodedat(cfg,node_num,&node,file);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2228,7 +2100,7 @@ static JSBool js_node_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -2319,12 +2191,11 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 	jsval		val;
 	char		str[256];
 	JSString*	js_str;
-	JSBool		ret;
-#ifndef JSDOOR
 	JSObject*	newobj;
 	JSObject*	nodeobj;
+	scfg_t* 	cfg;
 	uint		i;
-#endif
+	JSBool		ret;
 
 	if(id != JSID_VOID && id != JSID_EMPTY) {
 		jsval idval;
@@ -2332,7 +2203,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -2372,14 +2243,12 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 	LAZY_STRING("js_version", (char *)JS_GetImplementationVersion());
 	LAZY_STRING("os_version", os_version(str));
 
-#ifndef JSDOOR
 	/* fido_addr_list property */
 	if(name==NULL || strcmp(name, "fido_addr_list")==0) {
 		if(name) free(name);
 
-		js_system_private_t* sys;
-		if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-			return JS_FALSE;
+		if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+			return(JS_FALSE);
 
 		if((newobj=JS_NewArrayObject(cx, 0, NULL))==NULL)
 			return(JS_FALSE);
@@ -2391,8 +2260,8 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 			, NULL, NULL, JSPROP_ENUMERATE))
 			return(JS_FALSE);
 
-		for(i=0;i<sys->cfg->total_faddrs;i++) {
-			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,smb_faddrtoa(&sys->cfg->faddr[i],str)));
+		for(i=0;i<cfg->total_faddrs;i++) {
+			val=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,smb_faddrtoa(&cfg->faddr[i],str)));
 			JS_SetElement(cx, newobj, i, &val);
 		}
 		if(name) return(JS_TRUE);
@@ -2401,9 +2270,8 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 	if(name==NULL || strcmp(name, "stats")==0) {
 		if(name) free(name);
 
-		js_system_private_t* sys;
-		if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-			return JS_FALSE;
+		if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+			return(JS_FALSE);
 
 		newobj = JS_DefineObject(cx, obj, "stats", &js_sysstats_class, NULL
 			,JSPROP_ENUMERATE|JSPROP_READONLY);
@@ -2411,7 +2279,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		if(newobj==NULL)
 			return(JS_FALSE);
 
-		JS_SetPrivate(cx, newobj, sys);
+		JS_SetPrivate(cx, newobj, cfg);	/* Store a pointer to scfg_t */
 #ifdef BUILD_JSDOCS
 		js_DescribeSyncObject(cx,newobj,"System statistics",310);
 		js_CreateArrayOfStrings(cx, newobj, "_property_desc_list", sysstat_prop_desc, JSPROP_READONLY);
@@ -2423,9 +2291,8 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 	if(name==NULL || strcmp(name, "node_list")==0) {
 		if(name) free(name);
 
-		js_system_private_t* sys;
-		if((sys = (js_system_private_t*)js_GetClassPrivate(cx,obj,&js_system_class))==NULL)
-			return JS_FALSE;
+		if((cfg=(scfg_t*)JS_GetPrivate(cx,obj))==NULL)
+			return(JS_FALSE);
 
 		if((newobj=JS_NewArrayObject(cx, 0, NULL))==NULL) 
 			return(JS_FALSE);
@@ -2437,7 +2304,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 			, NULL, NULL, JSPROP_ENUMERATE))
 			return(JS_FALSE);
 
-		for(i=0;i<sys->cfg->sys_nodes && i<sys->cfg->sys_lastnode;i++) {
+		for(i=0;i<cfg->sys_nodes && i<cfg->sys_lastnode;i++) {
 
 			nodeobj = JS_NewObject(cx, &js_node_class, NULL, newobj);
 
@@ -2446,7 +2313,7 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 
 			/* Store node number */
 			/* We have to shift it to make it look like a pointer to JS. :-( */
-			if(!JS_SetPrivate(cx, nodeobj, (char*)(((uintptr_t)i+1)<<1)))
+			if(!JS_SetPrivate(cx, nodeobj, (char*)((i+1)<<1)))
 				return(JS_FALSE);
 
 	#ifdef BUILD_JSDOCS
@@ -2462,7 +2329,6 @@ static JSBool js_system_resolve(JSContext *cx, JSObject *obj, jsid id)
 		}
 		if(name) return(JS_TRUE);
 	}
-#endif
 
 	ret = js_SyncResolve(cx, obj, name, js_system_properties, js_system_functions, NULL, 0);
 	if(name) free(name);
@@ -2474,18 +2340,7 @@ static JSBool js_system_enumerate(JSContext *cx, JSObject *obj)
 	return(js_system_resolve(cx, obj, JSID_VOID));
 }
 
-static void js_system_finalize(JSContext *cx, JSObject *obj)
-{
-	js_system_private_t* sys;
-	if((sys = (js_system_private_t*)JS_GetPrivate(cx, obj)) == NULL)
-		return;
-
-	CLOSE_OPEN_FILE(sys->nodefile);
-	free(sys);
-	JS_SetPrivate(cx, obj, NULL);
-}
-
-JSClass js_system_class = {
+static JSClass js_system_class = {
      "System"				/* name			*/
     ,JSCLASS_HAS_PRIVATE	/* flags		*/
 	,JS_PropertyStub		/* addProperty	*/
@@ -2495,7 +2350,7 @@ JSClass js_system_class = {
 	,js_system_enumerate	/* enumerate	*/
 	,js_system_resolve		/* resolve		*/
 	,JS_ConvertStub			/* convert		*/
-	,js_system_finalize		/* finalize		*/
+	,JS_FinalizeStub		/* finalize		*/
 };
 
 JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
@@ -2508,28 +2363,20 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	sysobj = JS_DefineObject(cx, parent, "system", &js_system_class, NULL
 		,JSPROP_ENUMERATE|JSPROP_READONLY);
+
 	if(sysobj==NULL)
 		return(NULL);
 
-	js_system_private_t* sys;
-	if((sys = calloc(sizeof(*sys), 1)) == NULL)
-		return NULL;
-
-	sys->cfg = cfg;
-	sys->nodefile = -1;
-
-	if(!JS_SetPrivate(cx, sysobj, sys))
+	if(!JS_SetPrivate(cx, sysobj, cfg))	/* Store a pointer to scfg_t */
 		return(NULL);
 
 	/****************************/
 	/* static string properties */
-#ifndef JSDOOR
 	if((js_str=JS_NewStringCopyZ(cx, host_name))==NULL)
 		return(NULL);
 	val = STRING_TO_JSVAL(js_str);
 	if(!JS_SetProperty(cx, sysobj, "host_name", &val))
 		return(NULL);
-#endif
 
 	if((js_str=JS_NewStringCopyZ(cx, socklib_version(str, socklib_desc)))==NULL)
 		return(NULL);
@@ -2539,11 +2386,9 @@ JSObject* DLLCALL js_CreateSystemObject(JSContext* cx, JSObject* parent
 
 	/***********************/
 
-#ifndef JSDOOR
 	val=DOUBLE_TO_JSVAL((double)uptime);
 	if(!JS_SetProperty(cx, sysobj, "uptime", &val))
 		return(NULL);
-#endif
 
 #ifdef BUILD_JSDOCS
 	js_DescribeSyncObject(cx,sysobj,"Global system-related properties and methods",310);

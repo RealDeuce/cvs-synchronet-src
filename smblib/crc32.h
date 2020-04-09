@@ -2,13 +2,13 @@
 
 /* 32-bit CRC table and calculation macro */
 
-/* $Id: crc32.h,v 1.18 2019/03/22 21:29:12 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -48,7 +48,7 @@
 		#define CRCEXPORT	__declspec(dllexport)
 	#endif
 	#if defined(__BORLANDC__)
-		#define CRCCALL
+		#define CRCCALL __stdcall
 	#else
 		#define CRCCALL
 	#endif

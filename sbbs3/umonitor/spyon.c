@@ -2,13 +2,13 @@
 
 /* Synchronet for *nix node spy */
 
-/* $Id: spyon.c,v 1.15 2018/07/24 01:12:32 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -67,6 +67,8 @@ int spyon(char *sockname)  {
 	fd_set	rd;
 	BOOL	b;
 	int		retval=0;
+	char	ANSIbuf[32];
+	int		parsing=0;
 	int		telnet_strip=0;
 	struct text_info ti;
 	char *scrn;
@@ -148,7 +150,7 @@ int spyon(char *sockname)  {
 			/* Check for control keys */
 			switch(key)  {
 				case 0:		/* Extended keys */
-				case 0xe0:
+				case 0xff:
 					getch();
 					break;
 				case 3:	/* CTRL-C */

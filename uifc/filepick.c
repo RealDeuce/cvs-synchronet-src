@@ -16,13 +16,13 @@ enum {
 
 void drawfpwindow(uifcapi_t *api)
 {
-	struct vmem_cell lbuf[512];
+	char lbuf[1024];
 	int i;
 	int j;
 	int listheight=0;
 	int height;
 	int width;
-	struct vmem_cell shade[512];
+	char  shade[1024];
 
 	width=SCRN_RIGHT-SCRN_LEFT+1;
 
@@ -34,67 +34,78 @@ void drawfpwindow(uifcapi_t *api)
 	listheight=height-7;
 
         i=0;
-	set_vmem(&lbuf[i++], '\xc9', api->hclr|(api->bclr<<4), 0);
-	for(j=1;j<width-1;j++)
-		set_vmem(&lbuf[i++], '\xcd', api->hclr|(api->bclr<<4), 0);
+	lbuf[i++]='\xc9';
+	lbuf[i++]=api->hclr|(api->bclr<<4);
+	for(j=1;j<width-1;j++) {
+		lbuf[i++]='\xcd';
+		lbuf[i++]=api->hclr|(api->bclr<<4);
+	}
 	if(api->mode&UIFC_MOUSE && width>6) {
-		set_vmem(&lbuf[1], '[', api->hclr|(api->bclr<<4), 0);
-		set_vmem(&lbuf[2], '\xfe', api->lclr|(api->bclr<<4), 0);
-		set_vmem(&lbuf[3], ']', api->hclr|(api->bclr<<4), 0);
-		set_vmem(&lbuf[4], '[', api->hclr|(api->bclr<<4), 0);
-		set_vmem(&lbuf[5], '?', api->lclr|(api->bclr<<4), 0);
-		set_vmem(&lbuf[6], ']', api->hclr|(api->bclr<<4), 0);
+		lbuf[2]='[';
+		lbuf[3]=api->hclr|(api->bclr<<4);
+		lbuf[4]='\xfe';
+		lbuf[5]=api->lclr|(api->bclr<<4);
+		lbuf[6]=']';
+		lbuf[7]=api->hclr|(api->bclr<<4);
+		lbuf[8]='[';
+		lbuf[9]=api->hclr|(api->bclr<<4);
+		lbuf[10]='?';
+		lbuf[11]=api->lclr|(api->bclr<<4);
+		lbuf[12]=']';
+		lbuf[13]=api->hclr|(api->bclr<<4);
 		api->buttony=SCRN_TOP;
 		api->exitstart=SCRN_LEFT+1;
 		api->exitend=SCRN_LEFT+3;
 		api->helpstart=SCRN_LEFT+4;
 		api->helpend=SCRN_LEFT+6;
 	}
-	set_vmem(&lbuf[i++], '\xbb', api->hclr|(api->bclr<<4), 0);
-	vmem_puttext(SCRN_LEFT,SCRN_TOP,SCRN_LEFT+width-1,SCRN_TOP,lbuf);
-	set_vmem_attr(&lbuf[2], api->hclr|(api->bclr<<4));
-	set_vmem_attr(&lbuf[5], api->hclr|(api->bclr<<4));
-	for(j=1;j<7;j++)
-		lbuf[j].ch='\xcd';
-	lbuf[0].ch='\xc8';
-	lbuf[(width-1)].ch='\xbc';
-	vmem_puttext(SCRN_LEFT,SCRN_TOP+height-1
+	lbuf[i++]='\xbb';
+	lbuf[i]=api->hclr|(api->bclr<<4);
+	puttext(SCRN_LEFT,SCRN_TOP,SCRN_LEFT+width-1,SCRN_TOP,lbuf);
+	lbuf[5]=api->hclr|(api->bclr<<4);
+	lbuf[11]=api->hclr|(api->bclr<<4);
+	for(j=2;j<14;j+=2)
+		lbuf[j]='\xcd';
+	lbuf[0]='\xc8';
+	lbuf[(width-1)*2]='\xbc';
+	puttext(SCRN_LEFT,SCRN_TOP+height-1
 		,SCRN_LEFT+width-1,SCRN_TOP+height-1,lbuf);
-	lbuf[0].ch='\xcc';
-	lbuf[(width-1)].ch='\xb9';
-	lbuf[(width-1)/2].ch='\xcb';
-	vmem_puttext(SCRN_LEFT,SCRN_TOP+2,SCRN_LEFT+width-1,SCRN_TOP+2,lbuf);
-	lbuf[(width-1)/2].ch='\xca';
-	vmem_puttext(SCRN_LEFT,SCRN_TOP+3+listheight
+	lbuf[0]='\xcc';
+	lbuf[(width-1)*2]='\xb9';
+	lbuf[width-1]='\xcb';
+	puttext(SCRN_LEFT,SCRN_TOP+2,SCRN_LEFT+width-1,SCRN_TOP+2,lbuf);
+	lbuf[width-1]='\xca';
+	puttext(SCRN_LEFT,SCRN_TOP+3+listheight
 		,SCRN_LEFT+width-1,SCRN_TOP+3+listheight,lbuf);
-	lbuf[0].ch='\xba';
-	lbuf[(width-1)].ch='\xba';
-	for(j=1;j<(width-1);j++)
-		lbuf[j].ch=' ';
-	vmem_puttext(SCRN_LEFT,SCRN_TOP+1,
+	lbuf[0]='\xba';
+	lbuf[(width-1)*2]='\xba';
+	for(j=2;j<(width-1)*2;j+=2)
+		lbuf[j]=' ';
+	puttext(SCRN_LEFT,SCRN_TOP+1,
 		SCRN_LEFT+width-1,SCRN_TOP+1,lbuf);
-	vmem_puttext(SCRN_LEFT,SCRN_TOP+height-2,
+	puttext(SCRN_LEFT,SCRN_TOP+height-2,
 		SCRN_LEFT+width-1,SCRN_TOP+height-2,lbuf);
-	vmem_puttext(SCRN_LEFT,SCRN_TOP+height-3,
+	puttext(SCRN_LEFT,SCRN_TOP+height-3,
 		SCRN_LEFT+width-1,SCRN_TOP+height-3,lbuf);
-	lbuf[(width-1)/2].ch='\xba';
+	lbuf[width-1]='\xba';
 	for(j=0;j<listheight;j++)
-		vmem_puttext(SCRN_LEFT,SCRN_TOP+3+j
+		puttext(SCRN_LEFT,SCRN_TOP+3+j
 			,SCRN_LEFT+width-1,SCRN_TOP+3+j,lbuf);
+	
 
 	/* Shadow */
 	if(api->bclr==BLUE) {
-		vmem_gettext(SCRN_LEFT+width,SCRN_TOP+1,SCRN_LEFT+width+1
+		gettext(SCRN_LEFT+width,SCRN_TOP+1,SCRN_LEFT+width+1
 			,SCRN_TOP+(height-1),shade);
-		for(j=0;j<512;j++)
-			set_vmem_attr(&shade[j], DARKGRAY);
-		vmem_puttext(SCRN_LEFT+width,SCRN_TOP+1,SCRN_LEFT+width+1
+		for(j=1;j<1024;j+=2)
+			shade[j]=DARKGRAY;
+		puttext(SCRN_LEFT+width,SCRN_TOP+1,SCRN_LEFT+width+1
 			,SCRN_TOP+(height-1),shade);
-		vmem_gettext(SCRN_LEFT+2,SCRN_TOP+height,SCRN_LEFT+width+1
+		gettext(SCRN_LEFT+2,SCRN_TOP+height,SCRN_LEFT+width+1
 			,SCRN_TOP+height,shade);
-		for(j=0;j<width;j++)
-			set_vmem_attr(&shade[j], DARKGRAY);
-		vmem_puttext(SCRN_LEFT+2,SCRN_TOP+height,SCRN_LEFT+width+1
+		for(j=1;j<width*2;j+=2)
+			shade[j]=DARKGRAY;
+		puttext(SCRN_LEFT+2,SCRN_TOP+height,SCRN_LEFT+width+1
 			,SCRN_TOP+height,shade);
 	}
 }
@@ -137,6 +148,26 @@ char *insensitive_mask(char *mask)
 #endif
 }
 
+char *getdirname(char *path)
+{
+	char *p1;
+	char *p2;
+
+	p1=strrchr(path,'/');
+#ifdef _WIN32
+	p2=strrchr(path,'\\');
+	if(p2 > p1)
+		p1=p2;
+#endif
+	p2 = path;
+	if(p1 > path) {
+		for(p2=p1-1; p2>=path && !IS_PATH_DELIM(*p2); p2--);
+		if(IS_PATH_DELIM(*p2) && *(p2+1))
+			p2++;
+	}
+	return(p2);
+}
+
 char **get_file_opt_list(char **fns, int files, int dirsonly, int root)
 {
 	char **opts;
@@ -170,9 +201,7 @@ void display_current_path(uifcapi_t *api, char *path)
 	char	dpath[MAX_PATH+2];
 	size_t	width;
 	int height;
-#ifdef _WIN32
 	char	*p;
-#endif
 
 	height=api->scrn_len-3;
 	width=SCRN_RIGHT-SCRN_LEFT-3;
@@ -190,8 +219,6 @@ void display_current_path(uifcapi_t *api, char *path)
 		if(*p=='/')
 			*p='\\';
 	}
-	if (strncmp(dpath, "\\\\?\\", 4)==0)
-		memmove(dpath, dpath+4, strlen(dpath+3));
 #endif
 
 	api->printf(SCRN_LEFT+2, SCRN_TOP+height-2, api->lclr|(api->bclr<<4), "%-*s", width, dpath);
@@ -270,8 +297,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	int		listwidth;
 	char	**dir_list=NULL;
 	char	**file_list=NULL;
-	int		currfield;
-	int		lastfield;
+	int		currfield=DIR_LIST;
+	int		lastfield=DIR_LIST;
 	int		i;
 	int		root=0;						/* Is this the root of the file system? */
 										/* On *nix, this just means no .. on Win32,
@@ -304,11 +331,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	if((opts & UIFC_FP_MULTI)==UIFC_FP_MULTI && (opts & (UIFC_FP_ALLOWENTRY|UIFC_FP_OVERPROMPT|UIFC_FP_CREATPROMPT)))
 		return(-1);
 
-	if (opts & UIFC_FP_DIRSEL)
-		currfield = lastfield = DIR_LIST;
-	else
-		currfield = lastfield = FILE_LIST;
-
 	fp->files=0;
 	fp->selected=NULL;
 
@@ -325,7 +347,6 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 	else {
 		SAFECOPY(cmsk,msk);
 	}
-	sprintf(cfile,"%s%s",cpath,cmsk);
 	listwidth=SCRN_RIGHT-SCRN_LEFT+1;
 	listwidth-=listwidth%2;
 	listwidth-=3;
@@ -343,18 +364,8 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		hold_update = TRUE;
 		api->printf(SCRN_LEFT+8, SCRN_TOP+height-3, api->lclr|(api->bclr<<4), "%-*s", width-7, cmsk);
 		tmppath=strdup(cpath);
-		if(tmppath != NULL) {
-#ifdef _WIN32
-			if (tmppath[0] == 0 || (tmppath[5]==0 && tmppath[3]=='.' && tmppath[4]=='.' && tmppath[1]==':' && IS_PATH_DELIM(tmppath[2])))
-				strcpy(cpath, "\\\\?\\");
-			else if(strncmp(tmppath, "\\\\?\\", 4)==0 && tmppath[4])
-				strcpy(cpath, tmppath+4);
-			else
-#endif
-			{
-				FULLPATH(cpath,tmppath,sizeof(cpath));
-			}
-		}
+		if(tmppath != NULL)
+			FULLPATH(cpath,tmppath,sizeof(cpath));
 		FREE_AND_NULL(tmppath);
 
 #ifdef __unix__
@@ -382,52 +393,21 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 			root=TRUE;
 		else
 			root=FALSE;
+#else
+/* #error Need to do something about root paths (in get_file_opt_list() too!) */
 #endif
-
-#ifdef _WIN32
-		if (strcmp(cpath, "\\\\?\\")==0)
-			root = TRUE;
-		else
-			root = FALSE;
-#endif
-
-#ifdef _WIN32
-		// Hack together some hawtness
-		if (root) {
-			unsigned long drives = _getdrives();
-			int j;
-			char path[4];
-
-			memset(&dgl, 0, sizeof(dgl));
-			strcpy(path, "A:\\");
-			dgl.gl_pathv=malloc(sizeof(char *)*('Z'-'A'+2));
-			for (j=0; j<='Z'-'A'; j++) {
-				if(drives & (1<<j)) {
-					path[0]='A'+j;
-					dgl.gl_pathv[dgl.gl_pathc++]=strdup(path);
-				}
+		if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
+			if(lastpath==NULL) {
+				fp->files=0;
+				retval=-1;
+				goto cleanup;
 			}
-		}
-		else 
-#endif
-		{
-			if(glob(dglob, GLOB_MARK, NULL, &dgl)!=0 && !isdir(cpath)) {
-				if(lastpath==NULL) {
-					fp->files=0;
-					retval=-1;
-					goto cleanup;
-				}
-				hold_update=FALSE;
-				api->msg("Cannot read directory!");
-				if (api->exit_flags & UIFC_XF_QUIT) {
-					retval=fp->files=0;
-					goto cleanup;
-				}
-				SAFECOPY(cpath, lastpath);
-				FREE_AND_NULL(lastpath);
-				currfield=lastfield;
-				continue;
-			}
+			hold_update=FALSE;
+			api->msg("Cannot read directory!");
+			SAFECOPY(cpath, lastpath);
+			FREE_AND_NULL(lastpath);
+			currfield=lastfield;
+			continue;
 		}
 		if(glob(cglob, 0, NULL, &fgl)!=0)
 			fgl.gl_pathc=0;
@@ -450,12 +430,12 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 			hold_update = FALSE;
 			switch(currfield) {
 				case DIR_LIST:
-					i=api->list(WIN_DYN|WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE|WIN_REDRAW,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
+					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE,1,3,listwidth,&dircur,&dirbar,NULL,dir_list);
 					if(i==-1) {		/* ESC */
 						retval=fp->files=0;
 						goto cleanup;
 					}
-					if(i==-2-'\t' || i==-2-CIO_KEY_RIGHT)	/* TAB */
+					if(i==-2-'\t')	/* TAB */
 						fieldmove=1;
 					if(i==-3842)	/* Backtab */
 						fieldmove=-1;
@@ -470,7 +450,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					}
 					break;
 				case FILE_LIST:
-					i=api->list(WIN_DYN|WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE|WIN_REDRAW,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
+					i=api->list(WIN_NOBRDR|WIN_FIXEDHEIGHT|WIN_EXTKEYS|WIN_UNGETMOUSE,1+listwidth+1,3,listwidth,&filecur,&filebar,NULL,file_list);
 					if(i==-1) {
 						retval=fp->files=0;
 						goto cleanup;
@@ -498,7 +478,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					}
 					if(i==-2-'\t')
 						fieldmove=1;
-					if(i==-3842 || i==-2-CIO_KEY_LEFT)	/* Backtab */
+					if(i==-3842)	/* Backtab */
 						fieldmove=-1;
 					if(i==-2-CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
@@ -506,48 +486,24 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 				case CURRENT_PATH:
 					FREE_AND_NULL(tmplastpath);
 					tmplastpath=strdup(cpath);
-#ifdef _WIN32
-					if (strncmp(tmplastpath, "\\\\?\\", 4)==0)
-						memmove(tmplastpath, tmplastpath+4, strlen(tmplastpath+3));
-					if (strncmp(cfile, "\\\\?\\", 4)==0)
-						memmove(cfile, cfile+4, strlen(cfile+3));
-#endif
 					api->getstrxy(SCRN_LEFT+2, SCRN_TOP+height-2, width-1, cfile, sizeof(cfile)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
 					if(i==ESC) {
 						retval=fp->files=0;
 						goto cleanup;
 					}
 					if((opts & (UIFC_FP_FILEEXIST|UIFC_FP_PATHEXIST)) && !fexist(cfile)) {
-#ifdef _WIN32
-						if (cfile[0])	// Allow zero-length path to mean "Drive list"
-#endif
-						{
-							FREE_AND_NULL(tmplastpath);
-							api->msg("No such path/file!");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
-							continue;
-						}
+						FREE_AND_NULL(tmplastpath);
+						api->msg("No such path/file!");
+						continue;
 					}
-					if(isdir(cfile) && cfile[0])
+					if(isdir(cfile))
 						backslash(cfile);
 					_splitpath(cfile, drive, tdir, fname, ext);
 					sprintf(cpath,"%s%s",drive,tdir);
 					if(!isdir(cpath)) {
-#ifdef _WIN32
-						if (cfile[0] && strcmp(cfile, cmsk))	// Allow zero-length path to mean "Drive list"
-#endif
-						{
-							FREE_AND_NULL(tmplastpath);
-							api->msg("No such path!");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
-							continue;
-						}
+						FREE_AND_NULL(tmplastpath);
+						api->msg("No such path!");
+						continue;
 					}
 					if(i==CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
@@ -560,20 +516,16 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					sprintf(cfile,"%s%s%s%s",drive,tdir,fname,ext);
 					if(strchr(fname,'*') !=NULL || strchr(fname,'?') !=NULL
 						|| strchr(ext,'*') !=NULL || strchr(ext,'?') !=NULL
-						|| ((isdir(cfile) || cfile[0]==0) && !(opts & UIFC_FP_DIRSEL) && (i=='\r' || i=='\n'))
+						|| (isdir(cfile) && !(opts & UIFC_FP_DIRSEL) && (i=='\r' || i=='\n'))
 						|| (!isdir(cfile) && i!='\r' && i!='\n')) {
 						if(opts & UIFC_FP_MSKNOCHG) {
 							sprintf(cfile,"%s%s%s",drive,tdir,cmsk);
 							FREE_AND_NULL(tmplastpath);
 							api->msg("File mask cannot be changed");
-							if (api->exit_flags & UIFC_XF_QUIT) {
-								retval=fp->files=0;
-								goto cleanup;
-							}
 							continue;
 						}
 						else {
-							if((!isdir(cfile)) && cpath[0] != 0)
+							if(!isdir(cfile))
 								sprintf(cmsk, "%s%s", fname, ext);
 							reread=TRUE;
 						}
@@ -618,7 +570,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 						}
 					}
 					FREE_AND_NULL(tmplastpath);
-					if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && i!='\t' && i!=3840 && cpath[0]) {
+					if((opts & UIFC_FP_MULTI)!=UIFC_FP_MULTI && i!='\t' && i!=3840) {
 						retval=fp->files=1;
 						fp->selected=(char **)malloc(sizeof(char *));
 						if(fp->selected==NULL) {
@@ -641,8 +593,7 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 					api->getstrxy(SCRN_LEFT+8, SCRN_TOP+height-3, width-7, cmsk, sizeof(cmsk)-1, K_EDIT|K_TABEXIT|K_MOUSEEXIT, &i);
 					if(i==CIO_KEY_MOUSE)
 						currfield=mousetofield(currfield, opts, height, width, api->list_height, listwidth, &dircur, &dirbar, &filecur, &filebar);
-					if(i==ESC || i==CIO_KEY_QUIT || (api->exit_flags & UIFC_XF_QUIT)) {
-						FREE_AND_NULL(p);
+					if(i==ESC) {
 						retval=fp->files=0;
 						goto cleanup;
 					}
@@ -678,22 +629,12 @@ int filepick(uifcapi_t *api, char *title, struct file_pick *fp, char *dir, char 
 		free_opt_list(&dir_list);
 		if(finished) {
 			if((opts & UIFC_FP_OVERPROMPT) && fexist(cfile)) {
-				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0) {
-					if (api->exit_flags & UIFC_XF_QUIT) {
-						retval=fp->files=0;
-						goto cleanup;
-					}
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File exists, overwrite?", YesNo)!=0)
 					finished=FALSE;
-				}
 			}
 			if((opts & UIFC_FP_CREATPROMPT) && !fexist(cfile)) {
-				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0) {
-					if (api->exit_flags & UIFC_XF_QUIT) {
-						retval=fp->files=0;
-						goto cleanup;
-					}
+				if(api->list(WIN_MID|WIN_SAV, 0,0,0, &i, NULL, "File does not exist, create?", YesNo)!=0)
 					finished=FALSE;
-				}
 			}
 		}
 	}

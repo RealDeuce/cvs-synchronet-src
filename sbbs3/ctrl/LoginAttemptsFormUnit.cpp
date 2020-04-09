@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: LoginAttemptsFormUnit.cpp,v 1.9 2019/02/15 06:26:05 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,7 +47,6 @@
 #pragma resource "*.dfm"
 TLoginAttemptsForm *LoginAttemptsForm;
 extern link_list_t login_attempt_list;
-extern bool clearLoginAttemptList;
 
 //---------------------------------------------------------------------------
 __fastcall TLoginAttemptsForm::TLoginAttemptsForm(TComponent* Owner)
@@ -78,10 +77,8 @@ void __fastcall TLoginAttemptsForm::FillListView(TObject *Sender)
         Item=ListView->Items->Add();
         Item->Caption=AnsiString(attempt->count-attempt->dupes);
         Item->Data=(void*)attempt->time;
-        Item->SubItems->Add(attempt->dupes);
-		if(inet_addrtop(&attempt->addr, str, sizeof(str))==NULL)
-			strcpy(str, "<invalid address>");
-        Item->SubItems->Add(str);
+        Item->SubItems->Add(attempt->dupes);        
+        Item->SubItems->Add(inet_ntoa(attempt->addr));
         Item->SubItems->Add(attempt->prot);
         Item->SubItems->Add(attempt->user);
         Item->SubItems->Add(attempt->pass);
@@ -273,15 +270,6 @@ void __fastcall TLoginAttemptsForm::ResolveHostnameMenuItemClick(
         	break;
         ListItem=ListView->GetNextItem(ListItem,sdAll,State);
     }
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TLoginAttemptsForm::ClearListMenuItemClick(TObject *Sender)
-{
-    clearLoginAttemptList = true;
-    ListView->Items->BeginUpdate();
-    ListView->Items->Clear();
-    ListView->Items->EndUpdate();    
 }
 //---------------------------------------------------------------------------
 

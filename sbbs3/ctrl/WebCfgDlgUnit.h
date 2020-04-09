@@ -1,10 +1,10 @@
-/* $Id: WebCfgDlgUnit.h,v 1.5 2019/01/12 23:48:32 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -82,6 +82,8 @@ __published:	// IDE-managed Components
     TButton *ApplyBtn;
     TLabel *ErrorSubDirLabel;
     TLabel *ServerSideJsExtLabel;
+    TLabel *EmbeddedJsExtLabel;
+    TEdit *EmbeddedJsExtEdit;
     TCheckBox *VirtualHostsCheckBox;
     TEdit *LogBaseNameEdit;
     TLabel *LogBaseLabel;
@@ -100,14 +102,6 @@ __published:	// IDE-managed Components
     TEdit *CGIContentEdit;
     TButton *CGIEnvButton;
     TButton *WebHandlersButton;
-    TTabSheet *TlsTabSheet;
-    TCheckBox *TlsEnableCheckBox;
-    TEdit *TlsInterfaceEdit;
-    TLabel *TlsInterfaceLabel;
-    TLabel *TlsPortLabel;
-    TEdit *TlsPortEdit;
-    TLabel *AuthTypesLabel;
-    TEdit *AuthTypesEdit;
     void __fastcall FormShow(TObject *Sender);
     void __fastcall AnswerSoundButtonClick(TObject *Sender);
     void __fastcall HangupSoundButtonClick(TObject *Sender);
@@ -117,7 +111,6 @@ __published:	// IDE-managed Components
     void __fastcall CGIEnvButtonClick(TObject *Sender);
     void __fastcall WebHandlersButtonClick(TObject *Sender);
     void __fastcall CGICheckBoxClick(TObject *Sender);
-    void __fastcall TlsEnableCheckBoxClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TWebCfgDlg(TComponent* Owner);

@@ -84,7 +84,16 @@ int main(int argc, char **argv)
 			"or less\n");
 		return(0); }
 
-	p = get_ctrl_dir();
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\nSBBSCTRL environment variable not set.\n");
+#ifdef __unix__
+		printf("\nExample: export SBBSCTRL=/sbbs/ctrl\n");
+#else
+		printf("\nExample: SET SBBSCTRL=C:\\SBBS\\CTRL\n");
+#endif
+		return(1);
+	}
 
 	memset(&cfg,0,sizeof(cfg));
 	cfg.size=sizeof(cfg);

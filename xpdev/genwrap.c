@@ -1,13 +1,14 @@
+/* genwrap.c */
+
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.113 2019/09/10 19:57:37 deuce Exp $ */
-// vi: tabstop=4
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -42,7 +43,6 @@
 #include <errno.h>		/* errno */
 #include <ctype.h>		/* toupper/tolower */
 #include <limits.h>		/* CHAR_BIT */
-#include <math.h>		/* fmod */
 
 #if defined(__unix__)
 	#include <sys/ioctl.h>		/* ioctl() */
@@ -67,8 +67,7 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	va_start(argptr,fmt);
 	numchars= vsnprintf(dst,size,fmt,argptr);
 	va_end(argptr);
-	if (size > 0)
-		dst[size-1]=0;
+	dst[size-1]=0;
 #ifdef _MSC_VER
 	if(numchars==-1)
 		numchars=strlen(dst);
@@ -77,23 +76,6 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 		numchars=size-1;
 	return(numchars);
 }
-
-#ifdef _WIN32
-/****************************************************************************/
-/* Case insensitive version of strstr()	- currently heavy-handed			*/
-/****************************************************************************/
-char* DLLCALL strcasestr(const char* haystack, const char* needle)
-{
-	const char* p;
-	size_t len = strlen(needle);
-
-	for(p = haystack; *p != '\0'; p++) {
-		if(strnicmp(p, needle, len) == 0)
-			return (char*)p;
-	}
-	return NULL;
-}
-#endif
 
 /****************************************************************************/
 /* Return last character of string											*/
@@ -129,51 +111,25 @@ char DLLCALL c_unescape_char(char ch)
 }
 
 /****************************************************************************/
-/* Return character value of C-escaped (\) character literal sequence		*/
-/* supports \x## (hex) and \### sequences (for octal or decimal)			*/
+/* Return character value of C-escaped (\) character sequence				*/
+/* (supports \Xhh and \0ooo escape sequences)								*/
+/* This code currently has problems with sequences like: "\x01blue"			*/
 /****************************************************************************/
 char DLLCALL c_unescape_char_ptr(const char* str, char** endptr)
 {
 	char	ch;
 
-	if(*str == 'x') {
-		int digits = 0;		// \x## for hexadecimal character literals (only 2 digits supported)
-		++str;
-		ch = 0;
-		while(digits < 2 && isxdigit(*str)) {
-			ch *= 0x10;	
-			ch += HEX_CHAR_TO_INT(*str);
-			str++;
-			digits++;
-		}
-#ifdef C_UNESCAPE_OCTAL_SUPPORT
-	} else if(isodigit(*str)) {
-		int digits = 0;		// \### for octal character literals (only 3 digits supported)
-		ch = 0;
-		while(digits < 3 && isodigit(*str)) {
-			ch *= 8;
-			ch += OCT_CHAR_TO_INT(*str);
-			str++;
-			digits++;
-		}
-#else
-	} else if(isdigit(*str)) {
-		int digits = 0;		// \### for decimal charater literals (only 3 digits supported)
-		ch = 0;
-		while(digits < 3 && isdigit(*str)) {
-			ch *= 10;
-			ch += DEC_CHAR_TO_INT(*str);
-			str++;
-			digits++;
-		}
-#endif
-	 } else
+	if(toupper(*str)=='X')
+		ch=(char)strtol(++str,endptr,16);
+	else if(isdigit(*str))
+		ch=(char)strtol(++str,endptr,8);
+	else {
 		ch=c_unescape_char(*(str++));
+		if(endptr!=NULL)
+			*endptr=(char*)str;
+	}
 
-	if(endptr!=NULL)
-		*endptr=(char*)str;
-
-	return ch;
+	return(ch);
 }
 
 /****************************************************************************/
@@ -231,177 +187,12 @@ char* DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_
 		if((!ctrl_only || (uchar)*s < ' ') && (e=c_escape_char(*s))!=NULL) {
 			strncpy(d,e,maxlen-(d-dst));
 			d+=strlen(d);
-		} else if((uchar)*s < ' ') {
-			d += safe_snprintf(d, maxlen-(d-dst), "\\x%02X", *s);
 		} else *d++=*s;
 	}
 	*d=0;
 
 	return(dst);
 }
-
-/* Returns a byte count parsed from the 'str' argument, supporting power-of-2
- * short-hands (e.g. 'K' for kibibytes).
- * If 'unit' is specified (greater than 1), result is divided by this amount.
- * 
- * Moved from ini_file.c/parseBytes()
- */
-int64_t DLLCALL parse_byte_count(const char* str, ulong unit)
-{
-	char*	p=NULL;
-	double	bytes;
-
-	bytes=strtod(str,&p);
-	if(p!=NULL) {
-		SKIP_WHITESPACE(p);
-		switch(toupper(*p)) {
-			case 'E':
-				bytes*=1024;
-				/* fall-through */
-			case 'P':
-				bytes*=1024;
-				/* fall-through */
-			case 'T':
-				bytes*=1024;
-				/* fall-through */
-			case 'G':
-				bytes*=1024;
-				/* fall-through */
-			case 'M':
-				bytes*=1024;
-				/* fall-through */
-			case 'K':
-				bytes*=1024;
-				break;
-		}
-	}
-	return((int64_t)(unit>1 ? (bytes/unit):bytes));
-}
-
-static const double one_tebibyte = 1024.0*1024.0*1024.0*1024.0;
-static const double one_gibibyte = 1024.0*1024.0*1024.0;
-static const double one_mebibyte = 1024.0*1024.0;
-static const double one_kibibyte = 1024.0;
-
-/* Convert an exact byte count to a string with a floating point value
-   and a single letter multiplier/suffix.
-   For values evenly divisible by 1024, no suffix otherwise.
-*/
-char* DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size)
-{
-	if(bytes && fmod((double)bytes,one_tebibyte)==0)
-		safe_snprintf(str, size, "%gT",bytes/one_tebibyte);
-	else if(bytes && fmod((double)bytes,one_gibibyte)==0)
-		safe_snprintf(str, size, "%gG",bytes/one_gibibyte);
-	else if(bytes && fmod((double)bytes,one_mebibyte)==0)
-		safe_snprintf(str, size, "%gM",bytes/one_mebibyte);
-	else if(bytes && fmod((double)bytes,one_kibibyte)==0)
-		safe_snprintf(str, size, "%gK",bytes/one_kibibyte);
-	else
-		safe_snprintf(str, size, "%"PRIi64, bytes);
-
-	return str;
-}
-
-/* Convert a rounded byte count to a string with a floating point value
-   with a single decimal place and a single letter multiplier/suffix.
-   This function also appends 'B' for exact byte counts (< 1024).
-   'unit' is the smallest divisor used.
-*/
-char* DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit, int precision)
-{
-	if(bytes >= one_tebibyte)
-		safe_snprintf(str, size, "%1.*fT", precision, bytes/one_tebibyte);
-	else if(bytes >= one_gibibyte || unit == one_gibibyte)
-		safe_snprintf(str, size, "%1.*fG", precision, bytes/one_gibibyte);
-	else if(bytes >= one_mebibyte || unit == one_mebibyte)
-		safe_snprintf(str, size, "%1.*fM", precision, bytes/one_mebibyte);
-	else if(bytes >= one_kibibyte || unit == one_kibibyte)
-		safe_snprintf(str, size, "%1.*fK", precision, bytes/one_kibibyte);
-	else
-		safe_snprintf(str, size, "%"PRIi64"B", bytes);
-
-	return str;
-}
-
-
-/* Parse a duration string, default unit is in seconds */
-/* (Y)ears, (W)eeks, (D)ays, (H)ours, and (M)inutes */
-/* suffixes/multipliers are supported. */
-/* Return value is in seconds */
-double DLLCALL parse_duration(const char* str)
-{
-	char*	p=NULL;
-	double	t;
-
-	t=strtod(str,&p);
-	if(p!=NULL) {
-		SKIP_WHITESPACE(p);
-		switch(toupper(*p)) {
-			case 'Y':	t*=365.0*24.0*60.0*60.0; break;
-			case 'W':	t*=  7.0*24.0*60.0*60.0; break;
-			case 'D':	t*=		 24.0*60.0*60.0; break;
-			case 'H':	t*=			  60.0*60.0; break;
-			case 'M':	t*=				   60.0; break;
-		}
-	}
-	return t;
-}
-
-/* Convert a duration (in seconds) to a string
- * with a single letter multiplier/suffix: 
- * (Y)ears, (W)eeks, (D)ays, (H)ours, (M)inutes, or (S)econds
- */
-char* DLLCALL duration_to_str(double value, char* str, size_t size)
-{
-	if(value && fmod(value,365.0*24.0*60.0*60.0)==0)
-		safe_snprintf(str, size, "%gY",value/(365.0*24.0*60.0*60.0));
-	else if(value && fmod(value,7.0*24.0*60.0*60.0)==0)
-		safe_snprintf(str, size, "%gW",value/(7.0*24.0*60.0*60.0));
-	else if(value && fmod(value,24.0*60.0*60.0)==0)
-		safe_snprintf(str, size, "%gD",value/(24.0*60.0*60.0));
-	else if(value && fmod(value,60.0*60.0)==0)
-		safe_snprintf(str, size, "%gH",value/(60.0*60.0));
-	else if(value && fmod(value,60.0)==0)
-		safe_snprintf(str, size, "%gM",value/60.0);
-	else
-		safe_snprintf(str, size, "%gS",value);
-
-	return str;
-}
-
-/* Convert a duration (in seconds) to a verbose string
- * with a word clarifier / modifier: 
- * year[s], week[s], day[s], hour[s], minute[s] or second[s]
- */
-char* DLLCALL duration_to_vstr(double value, char* str, size_t size)
-{
-	if(value && fmod(value,365.0*24.0*60.0*60.0)==0) {
-		value /= (365.0*24.0*60.0*60.0);
-		safe_snprintf(str, size, "%g year%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,7.0*24.0*60.0*60.0)==0) {
-		value /= (7.0*24.0*60.0*60.0);
-		safe_snprintf(str, size, "%g week%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,24.0*60.0*60.0)==0) {
-		value /= (24.0*60.0*60.0);
-		safe_snprintf(str, size, "%g day%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,60.0*60.0)==0) {
-		value /= (60.0*60.0);
-		safe_snprintf(str, size, "%g hour%s", value, value == 1 ? "":"s");
-	}
-	else if(value && fmod(value,60.0)==0) {
-		value /= 60.0;
-		safe_snprintf(str, size, "%g minute%s", value, value == 1 ? "":"s");
-	}
-	else
-		safe_snprintf(str, size, "%g second%s", value, value == 1 ? "":"s");
-
-	return str;
-}
-
 
 /****************************************************************************/
 /* Convert ASCIIZ string to upper case										*/
@@ -629,11 +420,11 @@ char* DLLCALL os_version(char *str)
 		}
 	}
 
-	sprintf(str,"Windows %sVersion %lu.%lu"
+	sprintf(str,"Windows %sVersion %u.%u"
 			,winflavor
 			,winver.dwMajorVersion, winver.dwMinorVersion);
 	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %lu)", winver.dwBuildNumber);
+		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
 	if(winver.szCSDVersion[0])
 		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
 

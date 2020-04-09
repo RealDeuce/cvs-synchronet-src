@@ -2,13 +2,13 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.57 2018/11/04 23:55:08 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -85,7 +85,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					if(!pp || !*pp) {
 						lp=getintvar(csi,*(int32_t *)csi->ip);
 						if(lp)
-							bprintf("%d",*lp);
+							bprintf("%ld",*lp); 
 					}
 					else
 						putmsg(cmdstr(*pp,path,csi->str,buf)
@@ -107,25 +107,25 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					free(p);
 					return(0);
 				case SHOW_VARS:
-					bprintf("shell     str=(%p) %s\r\n"
+					bprintf("shell     str=(%08lX) %s\r\n"
 						,csi->str,csi->str);
 					for(i=0;i<csi->str_vars;i++)
-						bprintf("local  str[%d]=(%08X) (%p) %s\r\n"
+						bprintf("local  str[%d]=(%08lX) (%08lX) %s\r\n"
 							,i,csi->str_var_name[i]
 							,csi->str_var[i]
 							,csi->str_var[i]);
 					for(i=0;i<csi->int_vars;i++)
-						bprintf("local  int[%d]=(%08X) (%08X) %d\r\n"
+						bprintf("local  int[%d]=(%08lX) (%08lX) %ld\r\n"
 							,i,csi->int_var_name[i]
 							,csi->int_var[i]
 							,csi->int_var[i]);
 					for(i=0;i<global_str_vars;i++)
-						bprintf("global str[%d]=(%08X) (%p) %s\r\n"
+						bprintf("global str[%d]=(%08lX) (%08lX) %s\r\n"
 							,i,global_str_var_name[i]
 							,global_str_var[i]
 							,global_str_var[i]);
 					for(i=0;i<global_int_vars;i++)
-						bprintf("global int[%d]=(%08X) (%08X) %d\r\n"
+						bprintf("global int[%d]=(%08lX) (%08lX) %ld\r\n"
 							,i,global_int_var_name[i]
 							,global_int_var[i]
 							,global_int_var[i]);
@@ -138,7 +138,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->str_vars++;
 					csi->str_var=(char **)realloc(csi->str_var
 						,sizeof(char *)*csi->str_vars);
-					csi->str_var_name=(uint32_t *)realloc(csi->str_var_name
+					csi->str_var_name=(int32_t *)realloc(csi->str_var_name
 						,sizeof(int32_t)*csi->str_vars);
 					if(csi->str_var==NULL
 						|| csi->str_var_name==NULL) { /* REALLOC failed */
@@ -168,7 +168,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					csi->int_vars++;
 					csi->int_var=(int32_t *)realloc(csi->int_var
 						,sizeof(char *)*csi->int_vars);
-					csi->int_var_name=(uint32_t *)realloc(csi->int_var_name
+					csi->int_var_name=(int32_t *)realloc(csi->int_var_name
 						,sizeof(int32_t)*csi->int_vars);
 					if(csi->int_var==NULL
 						|| csi->int_var_name==NULL) { /* REALLOC failed */
@@ -198,7 +198,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					global_str_vars++;
 					global_str_var=(char **)realloc(global_str_var
 						,sizeof(char *)*global_str_vars);
-					global_str_var_name=(uint32_t *)realloc(global_str_var_name
+					global_str_var_name=(int32_t *)realloc(global_str_var_name
 						,sizeof(int32_t)*global_str_vars);
 					if(global_str_var==NULL
 						|| global_str_var_name==NULL) { /* REALLOC failed */
@@ -229,7 +229,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					global_int_vars++;
 					global_int_var=(int32_t *)realloc(global_int_var
 						,sizeof(char *)*global_int_vars);
-					global_int_var_name=(uint32_t *)realloc(global_int_var_name
+					global_int_var_name=(int32_t *)realloc(global_int_var_name
 						,sizeof(int32_t)*global_int_vars);
 					if(global_int_var==NULL
 						|| global_int_var_name==NULL) { /* REALLOC failed */

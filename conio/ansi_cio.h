@@ -1,10 +1,10 @@
-/* $Id: ansi_cio.h,v 1.11 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -68,7 +68,7 @@ void ansi_gettextinfo(struct text_info *info);
 void ansi_setcursortype(int type);
 int ansi_getch(void);
 int ansi_getche(void);
-void ansi_beep(void);
+int ansi_beep(void);
 void ansi_textmode(int mode);
 #ifdef __cplusplus
 }

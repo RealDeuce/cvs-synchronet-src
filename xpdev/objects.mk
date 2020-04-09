@@ -2,7 +2,7 @@
 
 # Make 'include file' listing object files for xpdev "wrappers"
 
-# $Id: objects.mk,v 1.19 2019/07/10 00:25:24 rswindell Exp $
+# $Id$
 
 # OBJODIR, SLASH, and OFILE must be pre-defined
 
@@ -21,7 +21,6 @@ OBJS	= \
 	$(OBJODIR)$(DIRSEP)semfile$(OFILE) \
 	$(OBJODIR)$(DIRSEP)str_list$(OFILE) \
 	$(OBJODIR)$(DIRSEP)strwrap$(OFILE) \
-	$(OBJODIR)$(DIRSEP)unicode$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xp_dl$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpbeep$(OFILE) \
 	$(OBJODIR)$(DIRSEP)xpdatetime$(OFILE) \
@@ -47,7 +46,6 @@ MTOBJS	= \
 	$(MTOBJODIR)$(DIRSEP)str_list$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)strwrap$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)threadwrap$(OFILE) \
-	$(MTOBJODIR)$(DIRSEP)unicode$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xp_dl$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpbeep$(OFILE) \
 	$(MTOBJODIR)$(DIRSEP)xpdatetime$(OFILE) \

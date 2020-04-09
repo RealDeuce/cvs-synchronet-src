@@ -2,13 +2,13 @@
 
 /* Converts Synchronet Ctrl-A codes into ANSI escape sequences */
 
-/* $Id: asc2ans.c,v 1.11 2019/01/11 11:47:56 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -39,13 +39,6 @@
 #include <ctype.h>		/* toupper */
 #include <string.h>		/* strcmp */
 
-#ifdef _WIN32
-	#include <Windows.h>	/* SetConsoleMode */
-	#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-	#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-	#endif
-#endif
-
 #define CTRL_A	'\1'
 #define ANSI	fprintf(out,"\x1b[")
 
@@ -53,7 +46,7 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.11 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet Ctrl-A-Code to ANSI-Terminal-Sequence Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.asc [outfile.ans] [[option] [...]]\n",prog);
@@ -95,19 +88,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-#ifdef _WIN32
-	if(out == stdout) {
-		DWORD conmode = 0;
-		if(GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &conmode)) {
-			SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), conmode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-		}
-	}
-#endif
-
 	while((ch=fgetc(in))!=EOF) {
 		if(ch==CTRL_A) { /* ctrl-a */
 			ch=fgetc(in);
-			if(ch==EOF || ch=='Z')	/* EOF */
+			if(ch==EOF || toupper(ch)=='Z')	/* EOF */
 				break;
 			if(ch>0x7f) {					/* move cursor right x columns */
 				int cnt=ch-0x7f;
@@ -134,15 +118,9 @@ int main(int argc, char **argv)
 				case ']':
 					fputc('\n',out);
 					break;
-				case 'J':				
-					ANSI;	
-					fprintf(out,"J");	/* clear to EOS */
-					break;
 				case 'L':
 					ANSI;	
 					fprintf(out,"2J");	/* clear screen */
-					/* fall-through */
-				case '`':
 					ANSI;	
 					fprintf(out,"H");	/* home cursor */
 					break;
@@ -223,9 +201,6 @@ int main(int argc, char **argv)
 				case '7':
 					ANSI;
 					fprintf(out,"47m");
-					break;
-				case 'Z':	/* Actually a lower-case 'z' */
-					fputc('\x1a',out);	/* Ctrl-Z (substitute) char */
 					break;
 				default:
 					if(!strip)

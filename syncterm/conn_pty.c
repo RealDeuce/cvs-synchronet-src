@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.31 2019/07/11 18:31:44 deuce Exp $ */
+/* $Id$ */
 
 #ifdef __unix__
 
@@ -389,49 +389,62 @@ int pty_connect(struct bbslist *bbs)
 {
 	struct winsize ws;
 	struct termios ts;
+	struct text_info ti;
 	char	*termcap;
-	int	cols, rows;
 
+	/* Init ti */
 	ts.c_iflag = TTYDEF_IFLAG;
 	ts.c_oflag = TTYDEF_OFLAG;
 	ts.c_lflag = TTYDEF_LFLAG;
 	ts.c_cflag = TTYDEF_CFLAG;
 	memcpy(ts.c_cc,ttydefchars,sizeof(ts.c_cc));
-	cfsetspeed(&ts, 115200);
 
-	get_term_size(bbs, &cols, &rows);
-	ws.ws_col = cols;
-	ws.ws_row = rows;
+	/* Horrible way to determine the screen size */
+	textmode(screen_to_ciolib(bbs->screen_mode));
+
+	gettextinfo(&ti);
+	if(ti.screenwidth < 80)
+		ws.ws_col=40;
+	else {
+		if(ti.screenwidth < 132)
+			ws.ws_col=80;
+		else
+			ws.ws_col=132;
+	}
+	ws.ws_row=ti.screenheight;
+	if(!bbs->nostatus)
+		ws.ws_row--;
+	if(ws.ws_row<24)
+		ws.ws_row=24;
 
 	child_pid = forkpty(&master, NULL, &ts, &ws);
 	switch(child_pid) {
 	case -1:
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	case 0:		/* Child */
 		setenv("TERM",settings.TERM,1);
 		termcap=xp_asprintf("syncterm|SyncTERM"
-			":am:da:mi:ms:ND:ut"
-			":co#%d:it#8:li#%d"
-			"%s"
-			":@7=\\E[K:AL=\\E[%%dL:DL=\\E[%%dM"
-			":DO=\\E[%%dB:F1=\\E[23~:F2=\\E[24~:IC=\\E[%%d@"
-			":ic=\\E[@"
-			":LE=\\E[%%dD:RA=\\E[7l:RI=\\E[%%dC:SA=\\E[?7h:SF=\\E[%%dS"
-			":SR=\\E[%%dT:UP=\\E[%%dA"
-			":ac=-\\030.^Y0\\333`\\004a\\260f\\370g\\361h\\261i\\025j\\331k\\277l\\332m\\300n\\305q\\304t\\303u\\264v\\301w\\302x\\263y\\363z\\362~\\371"
-			":al=\\E[L:bl=^G:bt=\\E[Z:cb=\\E[1K:cd=\\E[J:ce=\\E[K"
-			":ch=\\E[%%i%%dG:cl=\\E[2J:cm=\\E[%%i%%d;%%dH:cr=^M:cs=\\E[%%i%%d;%%dr"
-			":dc=\\E[P:dl=\\E[M:do=^J:ec=\\E[%%dX:ho=\\E[H"
-			":k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:k5=\\EOt:k6=\\E[17~"
-			":k7=\\E[18~:k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:kD=\\177:kI=\\E[@"
-			":kN=\\E[U:kP=\\E[V:kb=^H:kd=\\E[B:kh=\\E[H:kl=\\E[D:kr=\\E[C"
-			":ku=\\E[A:le=\\E[D:ll=\\E[255H:mb=\\E[5m:md=\\E[1m:me=\\E[m"
-			":nd=\\E[C:nw=^M^J:DC=\\E[%%dP"
-			":r1=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[m\\E[?s"
-			":rc=\\E[u"
-			":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:se=\\E[m:sr=\\E[T:ta=^I:up=\\E[A"
-			":ve=\\E[?25h:vi=\\E[?25l:",ws.ws_col,ws.ws_row
-				,cio_api.options & CONIO_OPT_PALETTE_SETTING ? ":Co#256:pa#32762:AB=\\E[48;5;%dm:AF=\\E[38;5;%dm" : ":Co#8:pa#64:AB=\\E[4%dm:AF=\\E[3%dm");
+				":am:mi:ms:ut"
+				":Co#8:co#%d:it#8:li#%d:pa#64"
+				":@7=\\E[K:AB=\\E[4%%dm:AF=\\E[3%%dm:AL=\\E[%%dL:DC=\\E[%%dP"
+				":DL=\\E[%%dM:DO=\\E[%%dB:F1=\\E[23~:F2=\\E[24~:IC=\\E[%%d@"
+				":LE=\\E[%%dD:RA=\\E[7l:RI=\\E[%%dC:SA=\\E[?7h:SF=\\E[%%dS"
+				":SR=\\E[%%dT:UP=\\E[%%dA:cs=\\E[%%i%%d;%%dr"
+				":ac=-\\030.^Y0\\333`\\004a\\260f\\370g\\361h\\261i\\025j\\331k\\277l\\332m\\300n\\305q\\304t\\303u\\264v\\301w\\302x\\263y\\363z\\362~\\371"
+				":al=\\E[L:bl=^G:bt=\\E[Z:cb=\\E[1K:cd=\\E[J:ce=\\E[K:cl=\\E[2J"
+				":cm=\\E[%%i%%d;%%dH:cr=^M:dc=\\E[P:dl=\\E[M:do=^J:ec=\\E[%%dX:ei="
+				":ho=\\E[H:ic=\\E[@:im="
+				":is=\\E[?7h\\E[?25h\\E[?31l\\E[?32l\\E[?33l\\E[*r\\E[ D\\E[0m\\E[?s"
+				":k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:k5=\\EOt:k6=\\E[17~"
+				":k7=\\E[18~:k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:kD=\\177:kI=\\E[@"
+				":kd=\\E[B:kN=\\E[U:kP=\\E[V:kb=^H:kh=\\E[H:kl=\\E[D:kr=\\E[C"
+				":ku=\\E[A:le=\\E[D:mb=\\E[5m:md=\\E[1m:me=\\E[0m:nd=\\E[C"
+				":nw=^M^J:rc=\\E[u"
+				":sc=\\E[s:sf=\\E[S:so=\\E[0;1;7m:sr=\\E[T:up=\\E[A:ve=\\E[?25h"
+				":vi=\\E[?25l:",ws.ws_col,ws.ws_row);
 		setenv("TERMCAP",termcap,1);
 		xp_asprintf_free(termcap);
 		termcap=xp_asprintf("%d",ws.ws_col);
@@ -442,22 +455,30 @@ int pty_connect(struct bbslist *bbs)
 		xp_asprintf_free(termcap);
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
-		else {
-			if (getenv("SHELL"))
-				execl(getenv("SHELL"), getenv("SHELL"), (char *)0);
-		}
+		else
+			execl(getenv("SHELL"), getenv("SHELL"), (char *)0);
 		exit(1);
 	}
 
-	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE))
+	if(!create_conn_buf(&conn_inbuf, BUFFER_SIZE)) {
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
+	}
 	if(!create_conn_buf(&conn_outbuf, BUFFER_SIZE)) {
 		destroy_conn_buf(&conn_inbuf);
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	}
 	if(!(conn_api.rd_buf=(unsigned char *)malloc(BUFFER_SIZE))) {
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	}
 	conn_api.rd_buf_size=BUFFER_SIZE;
@@ -465,6 +486,9 @@ int pty_connect(struct bbslist *bbs)
 		free(conn_api.rd_buf);
 		destroy_conn_buf(&conn_inbuf);
 		destroy_conn_buf(&conn_outbuf);
+		load_font_files();
+		textmode(ti.currmode);
+		settitle("SyncTERM");
 		return(-1);
 	}
 	conn_api.wr_buf_size=BUFFER_SIZE;
@@ -478,7 +502,6 @@ int pty_connect(struct bbslist *bbs)
 int pty_close(void)
 {
 	time_t	start;
-	char garbage[1024];
 
 	conn_api.terminate=1;
 	start=time(NULL);
@@ -492,10 +515,8 @@ int pty_close(void)
 	kill(child_pid, SIGKILL);
 	waitpid(child_pid, &status, 0);
 
-	while(conn_api.input_thread_running || conn_api.output_thread_running) {
-		conn_recv_upto(garbage, sizeof(garbage), 0);
+	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	}
 	destroy_conn_buf(&conn_inbuf);
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);

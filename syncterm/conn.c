@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn.c,v 1.77 2018/02/21 02:24:23 deuce Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 
@@ -44,8 +44,11 @@
 #include "conn_telnet.h"
 
 struct conn_api conn_api;
-char *conn_types_enum[]={"Unknown","RLogin","RLoginReversed","Telnet","Raw","SSH","Modem","Serial","Shell",NULL};
-char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial","Shell",NULL};
+char *conn_types[]={"Unknown","RLogin","RLogin Reversed","Telnet","Raw","SSH","Modem","Serial"
+#ifdef __unix__
+,"Shell"
+#endif
+,NULL};
 short unsigned int conn_ports[]={0,513,513,23,0,22,0,0
 #ifdef __unix__
 ,65535
@@ -117,9 +120,8 @@ size_t conn_buf_free(struct conn_buffer *buf)
  * leaving them in the buffer.  Returns the number of bytes
  * copied out of the buffer
  */
-size_t conn_buf_peek(struct conn_buffer *buf, void *voutbuf, size_t outlen)
+size_t conn_buf_peek(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
-	unsigned char *outbuf = (unsigned char *)voutbuf;
 	size_t copy_bytes;
 	size_t chunk;
 
@@ -143,9 +145,8 @@ size_t conn_buf_peek(struct conn_buffer *buf, void *voutbuf, size_t outlen)
  * removing them from the buffer.  Returns the number of
  * bytes removed from the buffer.
  */
-size_t conn_buf_get(struct conn_buffer *buf, void *voutbuf, size_t outlen)
+size_t conn_buf_get(struct conn_buffer *buf, unsigned char *outbuf, size_t outlen)
 {
-	unsigned char *outbuf = (unsigned char *)voutbuf;
 	size_t ret;
 	size_t atstart;
 
@@ -166,9 +167,8 @@ size_t conn_buf_get(struct conn_buffer *buf, void *voutbuf, size_t outlen)
  * Places up to outlen bytes from outbuf into the buffer
  * returns the number of bytes written into the buffer
  */
-size_t conn_buf_put(struct conn_buffer *buf, const void *voutbuf, size_t outlen)
+size_t conn_buf_put(struct conn_buffer *buf, const unsigned char *outbuf, size_t outlen)
 {
-	const unsigned char *outbuf = (unsigned char *)voutbuf;
 	size_t write_bytes;
 	size_t chunk;
 
@@ -263,9 +263,8 @@ BOOL conn_connected(void)
 	return(FALSE);
 }
 
-int conn_recv_upto(void *vbuffer, size_t buflen, unsigned timeout)
+int conn_recv_upto(char *buffer, size_t buflen, unsigned timeout)
 {
-	char *buffer = (char *)vbuffer;
 	size_t	found=0;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -276,9 +275,8 @@ int conn_recv_upto(void *vbuffer, size_t buflen, unsigned timeout)
 }
 
 
-int conn_recv(void *vbuffer, size_t buflen, unsigned timeout)
+int conn_recv(char *buffer, size_t buflen, unsigned timeout)
 {
-	char *buffer = (char *)vbuffer;
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -289,9 +287,8 @@ int conn_recv(void *vbuffer, size_t buflen, unsigned timeout)
 	return(found);
 }
 
-int conn_peek(void *vbuffer, size_t buflen)
+int conn_peek(char *buffer, size_t buflen)
 {
-	char *buffer = (char *)vbuffer;
 	size_t found;
 
 	pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -302,9 +299,8 @@ int conn_peek(void *vbuffer, size_t buflen)
 	return(found);
 }
 
-int conn_send(void *vbuffer, size_t buflen, unsigned int timeout)
+int conn_send(char *buffer, size_t buflen, unsigned int timeout)
 {
-	char *buffer = (char *)vbuffer;
 	size_t found;
 
 	pthread_mutex_lock(&(conn_outbuf.mutex));
@@ -317,8 +313,6 @@ int conn_send(void *vbuffer, size_t buflen, unsigned int timeout)
 
 int conn_connect(struct bbslist *bbs)
 {
-	char	str[64];
-
 	memset(&conn_api, 0, sizeof(conn_api));
 
 	switch(bbs->conn_type) {
@@ -337,8 +331,15 @@ int conn_connect(struct bbslist *bbs)
 			conn_api.connect=raw_connect;
 			conn_api.close=raw_close;
 			break;
-#ifndef WITHOUT_CRYPTLIB
 		case CONN_TYPE_SSH:
+#ifdef WITHOUT_CRYPTLIB
+			init_uifc(TRUE, TRUE);
+			uifcmsg("SSH inoperative",	"`Compiled without cryptlib`\n\n"
+					"This binary was compiled without Cryptlib,\n"
+					"which is required for SSH support."
+					);
+			return(-1);
+#else
 			conn_api.connect=ssh_connect;
 			conn_api.close=ssh_close;
 			break;
@@ -360,11 +361,6 @@ int conn_connect(struct bbslist *bbs)
 			break;
 #endif
 		default:
-			sprintf(str,"%s connections not supported.",conn_types[bbs->conn_type]);
-			uifcmsg(str,	"`Connection type not supported`\n\n"
-							"The connection type of this entry is not supported by this build.\n"
-							"Either the protocol was disabled at compile time, or is\n"
-							"unsupported on this plattform.");
 			conn_api.terminate=1;
 	}
 	if(conn_api.connect) {
@@ -404,12 +400,14 @@ enum failure_reason {
 	,FAILURE_CANT_CREATE
 	,FAILURE_CONNECT_ERROR
 	,FAILURE_ABORTED
+	,FAILURE_GENERAL
 	,FAILURE_DISCONNECTED
 };
 
 int conn_socket_connect(struct bbslist *bbs)
 {
 	SOCKET			sock=INVALID_SOCKET;
+	char			*p;
 	int				nonblock;
 	struct timeval	tv;
 	fd_set			wfd;
@@ -419,7 +417,6 @@ int conn_socket_connect(struct bbslist *bbs)
 	struct addrinfo	*res=NULL;
 	struct addrinfo	*cur;
 	char			portnum[6];
-	char str[LIST_ADDR_MAX+40];
 
 	uifc.pop("Looking up host");
 	memset(&hints, 0, sizeof(hints));
@@ -446,6 +443,7 @@ int conn_socket_connect(struct bbslist *bbs)
 	if(getaddrinfo(bbs->addr, portnum, &hints, &res)!=0) {
 		failcode=FAILURE_RESOLVE;
 		res=NULL;
+		goto connect_failed;
 	}
 	uifc.pop(NULL);
 	uifc.pop("Connecting...");
@@ -453,13 +451,12 @@ int conn_socket_connect(struct bbslist *bbs)
 	/* Drain the input buffer to avoid accidental cancel */
 	while(kbhit())
 		getch();
-
-	for(cur=res; cur && sock == INVALID_SOCKET && failcode == FAILURE_WHAT_FAILURE; cur=cur->ai_next) {
+	for(cur=res; cur && failcode==FAILURE_WHAT_FAILURE; cur=cur->ai_next) {
 		if(sock==INVALID_SOCKET) {
 			sock=socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
 			if(sock==INVALID_SOCKET) {
 				failcode=FAILURE_CANT_CREATE;
-				break;
+				goto connect_failed;
 			}
 			/* Set to non-blocking for the connect */
 			nonblock=-1;
@@ -486,8 +483,7 @@ int conn_socket_connect(struct bbslist *bbs)
 							case 0:
 								if(kbhit()) {
 									failcode=FAILURE_ABORTED;
-									closesocket(sock);
-									sock=INVALID_SOCKET;
+									goto connect_failed;
 								}
 								break;
 							case -1:
@@ -512,7 +508,6 @@ int conn_socket_connect(struct bbslist *bbs)
 						}
 					}
 
-connected:
 					break;
 				default:
 					closesocket(sock);
@@ -520,64 +515,79 @@ connected:
 					continue;
 			}
 		}
+		else
+			goto connected;
 	}
-	if (sock != INVALID_SOCKET) {
-		freeaddrinfo(res);
-		res=NULL;
-		nonblock=0;
-		ioctlsocket(sock, FIONBIO, &nonblock);
-		if(socket_check(sock, NULL, NULL, 0)) {
-			int keepalives = TRUE;
-			setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepalives, sizeof(keepalives));
-
-			uifc.pop(NULL);
-			return(sock);
-		}
-		failcode=FAILURE_DISCONNECTED;
-	}
-	if (failcode == FAILURE_WHAT_FAILURE)
+	if(!cur) {
 		failcode=FAILURE_CONNECT_ERROR;
+		goto connect_failed;
+	}
+	if(failcode != FAILURE_WHAT_FAILURE)
+		goto connect_failed;
 
+connected:
+	freeaddrinfo(res);
+	res=NULL;
+	nonblock=0;
+	ioctlsocket(sock, FIONBIO, &nonblock);
+	if(!socket_check(sock, NULL, NULL, 0)) {
+		failcode=FAILURE_DISCONNECTED;
+		goto connect_failed;
+	}
+
+	uifc.pop(NULL);
+	return(sock);
+
+connect_failed:
 	if(res)
 		freeaddrinfo(res);
-	uifc.pop(NULL);
-	conn_api.terminate=-1;
-	switch(failcode) {
-		case FAILURE_RESOLVE:
-			sprintf(str,"Cannot resolve %s!",bbs->addr);
-			uifcmsg(str,	"`Cannot Resolve Host`\n\n"
-							"The system is unable to resolve the hostname... double check the spelling.\n"
-							"If it's not an issue with your DNS settings, the issue is probobly\n"
-							"with the DNS settings of the system you are trying to contact.");
-			break;
-		case FAILURE_CANT_CREATE:
-			sprintf(str,"Cannot create socket (%d)!",ERROR_VALUE);
-			uifcmsg(str,
-							"`Unable to create socket`\n\n"
-							"Your system is either dangerously low on resources, or there\n"
-							"is a problem with your TCP/IP stack.");
-			break;
-		case FAILURE_CONNECT_ERROR:
-			sprintf(str,"Connect error (%d)!",ERROR_VALUE);
-			uifcmsg(str
-							,"`The connect call returned an error`\n\n"
-							 "The call to connect() returned an unexpected error code.");
-			break;
-		case FAILURE_ABORTED:
-			uifcmsg("Connection Aborted.",	"`Connection Aborted`\n\n"
-							"Connection to the remote system aborted by keystroke.");
-			break;
-		case FAILURE_DISCONNECTED:
-			sprintf(str,"Connect error (%d)!",ERROR_VALUE);
-			uifcmsg(str
-							,"`SyncTERM failed to connect`\n\n"
-							 "After connect() succeeded, the socket was in a disconnected state.");
-			break;
-	}
-	conn_close();
-	if (sock != INVALID_SOCKET)
+	{
+		char str[LIST_ADDR_MAX+40];
+
+		uifc.pop(NULL);
+		conn_api.terminate=-1;
+		switch(failcode) {
+			case FAILURE_RESOLVE:
+				sprintf(str,"Cannot resolve %s!",bbs->addr);
+				uifcmsg(str,	"`Cannot Resolve Host`\n\n"
+								"The system is unable to resolve the hostname... double check the spelling.\n"
+								"If it's not an issue with your DNS settings, the issue is probobly\n"
+								"with the DNS settings of the system you are trying to contact.");
+				break;
+			case FAILURE_CANT_CREATE:
+				sprintf(str,"Cannot create socket (%d)!",ERROR_VALUE);
+				uifcmsg(str,
+								"`Unable to create socket`\n\n"
+								"Your system is either dangerously low on resources, or there\n"
+								"is a problem with your TCP/IP stack.");
+				break;
+			case FAILURE_CONNECT_ERROR:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`The connect call returned an error`\n\n"
+								 "The call to connect() returned an unexpected error code.");
+				break;
+			case FAILURE_ABORTED:
+				uifcmsg("Connection Aborted.",	"`Connection Aborted`\n\n"
+								"Connection to the remote system aborted by keystroke.");
+				break;
+			case FAILURE_GENERAL:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`SyncTERM failed to connect`\n\n"
+								 "The call to select() returned an unexpected error code.");
+				break;
+			case FAILURE_DISCONNECTED:
+				sprintf(str,"Connect error (%d)!",ERROR_VALUE);
+				uifcmsg(str
+								,"`SyncTERM failed to connect`\n\n"
+								 "After connect() succeeded, the socket was in a disconnected state.");
+				break;
+		}
+		conn_close();
 		closesocket(sock);
-	return(INVALID_SOCKET);
+		return(INVALID_SOCKET);
+	}
 }
 
 void conn_binary_mode_on(void)

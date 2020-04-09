@@ -2,29 +2,9 @@
  * zmodem.h
  * zmodem constants
  * (C) Mattheij Computer Service 1994
- *
- *	Date: Thu, 19 Nov 2015 10:10:02 +0100
- *	From: Jacques Mattheij
- *	Subject: Re: zmodem license
- *	To: Stephen Hurd, Fernando Toledo
- *	CC: Rob Swindell
- *
- *	Hello there to all of you,
- *
- *	So, this email will then signify as the transfer of any and all rights I
- *	held up to this point with relation to the copyright of the zmodem
- *	package as released by me many years ago and all associated files to
- *	Stephen Hurd. Fernando Toledo and Rob Swindell are named as
- *	witnesses to this transfer.
- *
- *	...
- *
- *	best regards,
- *
- *	Jacques Mattheij
  */
 
-/* $Id: zmodem.h,v 1.55 2018/02/01 08:20:19 deuce Exp $ */
+/* $Id$ */
 
 #ifndef _ZMODEM_H
 #define _ZMODEM_H
@@ -336,7 +316,7 @@ void		zmodem_parse_zrinit(zmodem_t*);
 void		zmodem_parse_zfile_subpacket(zmodem_t* zm);
 int			zmodem_send_zfin(zmodem_t*);
 BOOL		zmodem_send_file(zmodem_t*, char* name, FILE* fp, BOOL request_init, time_t* start, uint64_t* bytes_sent);
-int			zmodem_recv_files(zmodem_t* zm, const char* download_dir, uint64_t* bytes_received);
+int			zmodem_recv_files(zmodem_t* zm, const char* download_dir, int64_t* bytes_received);
 int			zmodem_recv_init(zmodem_t* zm);
 unsigned	zmodem_recv_file_data(zmodem_t*, FILE*, int64_t offset);
 int			zmodem_recv_file_frame(zmodem_t* zm, FILE* fp);

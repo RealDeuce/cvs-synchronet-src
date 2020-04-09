@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MailCfgDlgUnit.cpp,v 1.34 2018/03/05 05:35:13 rswindell Exp $ */
+/* $Id: MailCfgDlgUnit.cpp,v 1.28 2014/11/20 05:18:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html		    *
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -73,12 +73,17 @@ void __fastcall TMailCfgDlg::OutboundSoundButtonClick(TObject *Sender)
 
 void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
 {
-    char str[256];
+    char str[128];
 
-    if(MainForm->mail_startup.interfaces==NULL)
+    if(MainForm->mail_startup.interface_addr==0)
         NetworkInterfaceEdit->Text="<ANY>";
     else {
-        strListCombine(MainForm->mail_startup.interfaces, str, sizeof(str)-1, ",");
+        sprintf(str,"%d.%d.%d.%d"
+            ,(MainForm->mail_startup.interface_addr>>24)&0xff
+            ,(MainForm->mail_startup.interface_addr>>16)&0xff
+            ,(MainForm->mail_startup.interface_addr>>8)&0xff
+            ,MainForm->mail_startup.interface_addr&0xff
+        );
         NetworkInterfaceEdit->Text=AnsiString(str);
     }
     MaxClientsEdit->Text=AnsiString(MainForm->mail_startup.max_clients);
@@ -90,7 +95,7 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     if(MainForm->mail_startup.max_msg_size == 0)
         MaxMsgSizeEdit->Text="N/A";
     else
-    	MaxMsgSizeEdit->Text=AnsiString(byte_count_to_str(MainForm->mail_startup.max_msg_size, str, sizeof(str)));
+    	MaxMsgSizeEdit->Text=AnsiString(MainForm->mail_startup.max_msg_size);
     if(MainForm->mail_startup.max_msgs_waiting == 0)
         MaxMsgsWaitingEdit->Text="N/A";
     else
@@ -105,7 +110,6 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     HostnameCheckBox->Checked
         =!(MainForm->mail_startup.options&MAIL_OPT_NO_HOST_LOOKUP);
     UseSubPortCheckBox->Checked=MainForm->mail_startup.options&MAIL_OPT_USE_SUBMISSION_PORT;
-    TLSSubPortCheckBox->Checked=MainForm->mail_startup.options&MAIL_OPT_TLS_SUBMISSION;
 
     DefCharsetEdit->Text=AnsiString(MainForm->mail_startup.default_charset);
     RelayServerEdit->Text=AnsiString(MainForm->mail_startup.relay_server);
@@ -113,9 +117,7 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     RelayAuthPassEdit->Text=AnsiString(MainForm->mail_startup.relay_pass);
     SMTPPortEdit->Text=AnsiString(MainForm->mail_startup.smtp_port);
     SubPortEdit->Text=AnsiString(MainForm->mail_startup.submission_port);
-    TLSSubPortEdit->Text=AnsiString(MainForm->mail_startup.submissions_port);
     POP3PortEdit->Text=AnsiString(MainForm->mail_startup.pop3_port);
-    TLSPOP3PortEdit->Text=AnsiString(MainForm->mail_startup.pop3s_port);
     RelayPortEdit->Text=AnsiString(MainForm->mail_startup.relay_port);
     if(isalnum(MainForm->mail_startup.dns_server[0]))
         DNSServerEdit->Text=AnsiString(MainForm->mail_startup.dns_server);
@@ -142,8 +144,6 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     	=!(MainForm->mail_startup.options&MAIL_OPT_NO_NOTIFY);
     POP3EnabledCheckBox->Checked=MainForm->mail_startup.options
         &MAIL_OPT_ALLOW_POP3;
-    TLSPOP3EnabledCheckBox->Checked=MainForm->mail_startup.options
-        &MAIL_OPT_TLS_POP3;
     POP3LogCheckBox->Checked=MainForm->mail_startup.options
         &MAIL_OPT_DEBUG_POP3;
     RelayRadioButton->Checked=MainForm->mail_startup.options
@@ -159,6 +159,8 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
     UserNumberCheckBox->Checked=MainForm->mail_startup.options
     	&MAIL_OPT_ALLOW_RX_BY_NUMBER;
 #endif
+    AllowRelayCheckBox->Checked=MainForm->mail_startup.options
+    	&MAIL_OPT_ALLOW_RELAY;
     AuthViaIpCheckBox->Checked=MainForm->mail_startup.options
     	&MAIL_OPT_SMTP_AUTH_VIA_IP;
     if(MainForm->mail_startup.options&MAIL_OPT_DNSBL_REFUSE)
@@ -186,8 +188,6 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_RX_BY_NUMBER);
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_SYSOP_ALIASES);
-    AdvancedCheckListBox->Checked[i++]
-        =(MainForm->mail_startup.options&MAIL_OPT_ALLOW_RELAY);
 
     AdvancedCheckListBox->Checked[i++]
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_CHKRECVHDRS);
@@ -195,16 +195,14 @@ void __fastcall TMailCfgDlg::FormShow(TObject *Sender)
         =(MainForm->mail_startup.options&MAIL_OPT_DNSBL_THROTTLE);
     AdvancedCheckListBox->Checked[i++]
         =!(MainForm->mail_startup.options&MAIL_OPT_NO_AUTO_EXEMPT);
-    AdvancedCheckListBox->Checked[i++]
-        =(MainForm->mail_startup.options&MAIL_OPT_KILL_READ_SPAM);
 
     DNSBLRadioButtonClick(Sender);
     DNSRadioButtonClick(Sender);
 	POP3EnabledCheckBoxClick(Sender);
     SendMailCheckBoxClick(Sender);
+    AllowRelayCheckBoxClick(Sender);
     RelayAuthRadioButtonClick(Sender);
     UseSubPortCheckBoxClick(Sender);
-    TLSSubPortCheckBoxClick(Sender);
     PageControl->ActivePage=GeneralTabSheet;
 }
 //---------------------------------------------------------------------------
@@ -218,19 +216,35 @@ static void setBit(unsigned long* l, long bit, bool yes)
 //---------------------------------------------------------------------------
 void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
 {
-    iniFreeStringList(MainForm->mail_startup.interfaces);
-    MainForm->mail_startup.interfaces = strListSplitCopy(NULL, NetworkInterfaceEdit->Text.c_str(), ",");
+    char    str[128],*p;
+    DWORD   addr;
+
+    SAFECOPY(str,NetworkInterfaceEdit->Text.c_str());
+    p=str;
+    while(*p && *p<=' ') p++;
+    if(*p && isdigit(*p)) {
+        addr=atoi(p)<<24;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<16;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p)<<8;
+        while(*p && *p!='.') p++;
+        if(*p=='.') p++;
+        addr|=atoi(p);
+        MainForm->mail_startup.interface_addr=addr;
+    } else
+        MainForm->mail_startup.interface_addr=0;
 
 	MainForm->mail_startup.smtp_port=SMTPPortEdit->Text.ToIntDef(IPPORT_SMTP);
    	MainForm->mail_startup.submission_port=SubPortEdit->Text.ToIntDef(IPPORT_SUBMISSION);
-    MainForm->mail_startup.submissions_port=TLSSubPortEdit->Text.ToIntDef(IPPORT_SUBMISSIONS);
     MainForm->mail_startup.pop3_port=POP3PortEdit->Text.ToIntDef(IPPORT_POP3);
-    MainForm->mail_startup.pop3s_port=TLSPOP3PortEdit->Text.ToIntDef(IPPORT_POP3S);
     MainForm->mail_startup.relay_port=RelayPortEdit->Text.ToIntDef(IPPORT_SMTP);
     MainForm->mail_startup.max_clients=MaxClientsEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_CLIENTS);
     MainForm->mail_startup.max_inactivity=MaxInactivityEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_INACTIVITY);
     MainForm->mail_startup.max_recipients=MaxRecipientsEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_RECIPIENTS);
-    MainForm->mail_startup.max_msg_size=parse_byte_count(MaxMsgSizeEdit->Text.c_str(), 1);
+    MainForm->mail_startup.max_msg_size=MaxMsgSizeEdit->Text.ToIntDef(0);
     MainForm->mail_startup.max_msgs_waiting=MaxMsgsWaitingEdit->Text.ToIntDef(0);
     MainForm->mail_startup.max_delivery_attempts=DeliveryAttemptsEdit->Text.ToIntDef(MAIL_DEFAULT_MAX_DELIVERY_ATTEMPTS);
     MainForm->mail_startup.rescan_frequency=RescanFreqEdit->Text.ToIntDef(MAIL_DEFAULT_RESCAN_FREQUENCY);
@@ -294,14 +308,14 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_POP3;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_ALLOW_POP3;
-	if(TLSPOP3EnabledCheckBox->Checked==true)
-    	MainForm->mail_startup.options|=MAIL_OPT_TLS_POP3;
-    else
-	    MainForm->mail_startup.options&=~MAIL_OPT_TLS_POP3;
 	if(POP3LogCheckBox->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_DEBUG_POP3;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_DEBUG_POP3;
+	if(AllowRelayCheckBox->Checked==true)
+    	MainForm->mail_startup.options|=MAIL_OPT_ALLOW_RELAY;
+    else
+	    MainForm->mail_startup.options&=~MAIL_OPT_ALLOW_RELAY;
 	if(AuthViaIpCheckBox->Checked==true)
     	MainForm->mail_startup.options|=MAIL_OPT_SMTP_AUTH_VIA_IP;
     else
@@ -310,10 +324,6 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     	MainForm->mail_startup.options|=MAIL_OPT_USE_SUBMISSION_PORT;
     else
 	    MainForm->mail_startup.options&=~MAIL_OPT_USE_SUBMISSION_PORT;
- 	if(TLSSubPortCheckBox->Checked==true)
-    	MainForm->mail_startup.options|=MAIL_OPT_TLS_SUBMISSION;
-    else
-	    MainForm->mail_startup.options&=~MAIL_OPT_TLS_SUBMISSION;
 
     /* DNSBL */
 	MainForm->mail_startup.options&=
@@ -356,9 +366,6 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
         ,MAIL_OPT_ALLOW_SYSOP_ALIASES
         ,AdvancedCheckListBox->Checked[i++]);
     setBit(&MainForm->mail_startup.options
-        ,MAIL_OPT_ALLOW_RELAY
-        ,AdvancedCheckListBox->Checked[i++]);
-    setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_DNSBL_CHKRECVHDRS
         ,AdvancedCheckListBox->Checked[i++]);
     setBit(&MainForm->mail_startup.options
@@ -367,9 +374,6 @@ void __fastcall TMailCfgDlg::OKBtnClick(TObject *Sender)
     setBit(&MainForm->mail_startup.options
         ,MAIL_OPT_NO_AUTO_EXEMPT
         ,!AdvancedCheckListBox->Checked[i++]);
-    setBit(&MainForm->mail_startup.options
-        ,MAIL_OPT_KILL_READ_SPAM
-        ,AdvancedCheckListBox->Checked[i++]);
 
     MainForm->MailAutoStart=AutoStartCheckBox->Checked;
     MainForm->MailLogFile=LogFileCheckBox->Checked;
@@ -406,15 +410,10 @@ void __fastcall TMailCfgDlg::POP3EnabledCheckBoxClick(TObject *Sender)
 {
 	POP3PortEdit->Enabled=POP3EnabledCheckBox->Checked;
     POP3PortLabel->Enabled=POP3EnabledCheckBox->Checked;
-	TLSPOP3PortEdit->Enabled=TLSPOP3EnabledCheckBox->Checked;
-    TLSPOP3PortLabel->Enabled=TLSPOP3EnabledCheckBox->Checked;
-
-    bool enabled = POP3EnabledCheckBox->Checked || TLSPOP3EnabledCheckBox->Checked;
-    
-    POP3SoundEdit->Enabled = enabled;
-    POP3SoundLabel->Enabled = enabled;
-    POP3SoundButton->Enabled = enabled;
-    POP3LogCheckBox->Enabled = enabled;
+    POP3SoundEdit->Enabled=POP3EnabledCheckBox->Checked;
+    POP3SoundLabel->Enabled=POP3EnabledCheckBox->Checked;
+    POP3SoundButton->Enabled=POP3EnabledCheckBox->Checked;
+    POP3LogCheckBox->Enabled=POP3EnabledCheckBox->Checked;
 }
 //---------------------------------------------------------------------------
 
@@ -462,7 +461,7 @@ void __fastcall TMailCfgDlg::DNSBLServersButtonClick(TObject *Sender)
     sprintf(filename,"%sdns_blacklist.cfg",MainForm->cfg.ctrl_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="DNS-Blacklist Services";
+    TextFileEditForm->Caption="Services Configuration";
 	TextFileEditForm->ShowModal();
     delete TextFileEditForm;
 }
@@ -476,11 +475,18 @@ void __fastcall TMailCfgDlg::DNSBLExemptionsButtonClick(TObject *Sender)
     sprintf(filename,"%sdnsbl_exempt.cfg",MainForm->cfg.ctrl_dir);
 	Application->CreateForm(__classid(TTextFileEditForm), &TextFileEditForm);
 	TextFileEditForm->Filename=AnsiString(filename);
-    TextFileEditForm->Caption="DNS-Blacklist Exemptions";
+    TextFileEditForm->Caption="Services Configuration";
 	TextFileEditForm->ShowModal();
     delete TextFileEditForm;
 }
 //---------------------------------------------------------------------------
+
+void __fastcall TMailCfgDlg::AllowRelayCheckBoxClick(TObject *Sender)
+{
+	AuthViaIpCheckBox->Enabled=AllowRelayCheckBox->Checked;
+}
+//---------------------------------------------------------------------------
+
 void __fastcall TMailCfgDlg::RelayAuthRadioButtonClick(TObject *Sender)
 {
     bool enabled = !RelayAuthNoneRadioButton->Checked;
@@ -500,16 +506,4 @@ void __fastcall TMailCfgDlg::UseSubPortCheckBoxClick(TObject *Sender)
     SubPortEdit->Enabled = enabled;
 }
 //---------------------------------------------------------------------------
-
-
-void __fastcall TMailCfgDlg::TLSSubPortCheckBoxClick(TObject *Sender)
-{
-    bool enabled = TLSSubPortCheckBox->Checked;
-
-    TLSSubPortLabel->Enabled = enabled;
-    TLSSubPortEdit->Enabled = enabled;
-
-}
-//---------------------------------------------------------------------------
-
 

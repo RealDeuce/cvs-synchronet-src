@@ -2,13 +2,13 @@
 
 /* Synchronet file upload-related routines */
 
-/* $Id: upload.cpp,v 1.63 2019/08/02 10:36:45 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,7 +69,8 @@ bool sbbs_t::uploadfile(file_t *f)
 		mv(tmp,path,0);
 	if(!fexistcase(path)) {
 		bprintf(text[FileNotReceived],f->name);
-		sprintf(str,"attempted to upload %s to %s %s (Not received)"
+		sprintf(str,"%s attempted to upload %s to %s %s (Not received)"
+			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 		logline(LOG_NOTICE,"U!",str);
@@ -99,7 +100,8 @@ bool sbbs_t::uploadfile(file_t *f)
 				fclose(stream); 
 			}
 			if(external(cmdstr(cfg.ftest[i]->cmd,path,f->desc,NULL),EX_OFFLINE)) {
-				sprintf(str,"attempted to upload %s to %s %s (%s Errors)"
+				sprintf(str,"%s attempted to upload %s to %s %s (%s Errors)"
+					,useron.alias
 					,f->name
 					,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname,cfg.ftest[i]->ext);
 				logline(LOG_NOTICE,"U!",str);
@@ -140,7 +142,8 @@ bool sbbs_t::uploadfile(file_t *f)
 	if((length=(long)flength(path))==0L) {
 		bprintf(text[FileZeroLength],f->name);
 		remove(path);
-		sprintf(str,"attempted to upload %s to %s %s (Zero length)"
+		sprintf(str,"%s attempted to upload %s to %s %s (Zero length)"
+			,useron.alias
 			,f->name
 			,cfg.lib[cfg.dir[f->dir]->lib]->sname,cfg.dir[f->dir]->sname);
 		logline(LOG_NOTICE,"U!",str);
@@ -210,7 +213,8 @@ bool sbbs_t::uploadfile(file_t *f)
 	if(f->misc&FM_EXTDESC)
 		putextdesc(&cfg,f->dir,f->datoffset,ext);
 
-	sprintf(str,"uploaded %s to %s %s"
+	sprintf(str,"%s uploaded %s to %s %s"
+		,useron.alias
 		,f->name,cfg.lib[cfg.dir[f->dir]->lib]->sname
 		,cfg.dir[f->dir]->sname);
 	if(cfg.dir[f->dir]->upload_sem[0])
@@ -340,7 +344,7 @@ bool sbbs_t::upload(uint dirnum)
 		p=strchr(str+i,',');
 		if(p!=NULL)
 			*p=0;
-		ch=(char)strlen(str+i);
+		ch=strlen(str+i);
 		if(!stricmp(tmp+9,str+i))
 			break; 
 	}
@@ -466,7 +470,7 @@ bool sbbs_t::upload(uint dirnum)
 	} else {
 		xfer_prot_menu(XFER_UPLOAD);
 		SYNC;
-		sprintf(keys,"%c",text[YNQP][2]);
+		strcpy(keys,"Q");
 		if(dirnum==cfg.user_dir || !cfg.max_batup)  /* no batch user to user xfers */
 			mnemonics(text[ProtocolOrQuit]);
 		else {
@@ -479,7 +483,7 @@ bool sbbs_t::upload(uint dirnum)
 				strcat(keys,tmp); 
 			}
 		ch=(char)getkeys(keys,0);
-		if(ch==text[YNQP][2] || (sys_status&SS_ABORT))
+		if(ch=='Q')
 			return(false);
 		if(ch=='B') {
 			if(batup_total>=cfg.max_batup)
@@ -586,7 +590,6 @@ bool sbbs_t::bulkupload(uint dirnum)
 		padfname(getfname(spath),str);
 
 		if(findfile(&cfg,f.dir,str)==0) {
-			f.misc=0;
 			strcpy(f.name,str);
 			f.cdt=(long)flength(spath);
 			bprintf(text[BulkUploadDescPrompt],f.name,f.cdt/1024);
@@ -605,7 +608,7 @@ bool sbbs_t::bulkupload(uint dirnum)
 	return(false);
 }
 
-bool sbbs_t::recvfile(char *fname, char prot, bool autohang)
+bool sbbs_t::recvfile(char *fname, char prot)
 {
 	char	keys[32];
 	char	ch;
@@ -617,21 +620,21 @@ bool sbbs_t::recvfile(char *fname, char prot, bool autohang)
 	else {
 		xfer_prot_menu(XFER_UPLOAD);
 		mnemonics(text[ProtocolOrQuit]);
-		sprintf(keys,"%c",text[YNQP][2]);
+		strcpy(keys,"Q");
 		for(i=0;i<cfg.total_prots;i++)
 			if(cfg.prot[i]->ulcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client))
 				sprintf(keys+strlen(keys),"%c",cfg.prot[i]->mnemonic);
 
 		ch=(char)getkeys(keys,0);
 
-		if(ch==text[YNQP][2] || sys_status&SS_ABORT)
+		if(ch=='Q' || sys_status&SS_ABORT)
 			return(false); 
 	}
 	for(i=0;i<cfg.total_prots;i++)
 		if(cfg.prot[i]->mnemonic==ch && chk_ar(cfg.prot[i]->ar,&useron,&client))
 			break;
 	if(i<cfg.total_prots) {
-		if(protocol(cfg.prot[i], XFER_UPLOAD, fname, fname, true, autohang)==0)
+		if(protocol(cfg.prot[i],XFER_UPLOAD,fname,fname,true)==0)
 			result=true;
 		autohangup(); 
 	}

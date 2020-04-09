@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.51 2020/03/23 00:02:04 rswindell Exp $
+# $Id$
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -14,7 +14,6 @@ SERVICES	= $(LIBODIR)$(DIRSEP)$(LIBPREFIX)services$(SOFILE)
 SBBSCON		= $(EXEODIR)$(DIRSEP)sbbs$(EXEFILE)
 SBBSMONO	= $(EXEODIR)$(DIRSEP)sbbsmono$(EXEFILE)
 JSEXEC		= $(EXEODIR)$(DIRSEP)jsexec$(EXEFILE)
-JSDOOR		= $(EXEODIR)$(DIRSEP)jsdoor$(EXEFILE)
 NODE		= $(EXEODIR)$(DIRSEP)node$(EXEFILE)
 BAJA		= $(EXEODIR)$(DIRSEP)baja$(EXEFILE)
 UNBAJA		= $(EXEODIR)$(DIRSEP)unbaja$(EXEFILE)
@@ -36,10 +35,6 @@ DELFILES	= $(EXEODIR)$(DIRSEP)delfiles$(EXEFILE)
 DUPEFIND	= $(EXEODIR)$(DIRSEP)dupefind$(EXEFILE)
 SMBACTIV	= $(EXEODIR)$(DIRSEP)smbactiv$(EXEFILE)
 DSTSEDIT	= $(EXEODIR)$(DIRSEP)dstsedit$(EXEFILE)
-READSAUCE	= $(EXEODIR)$(DIRSEP)readsauce$(EXEFILE)
-SHOWSTAT	= $(EXEODIR)$(DIRSEP)showstat$(EXEFILE)
-PKTDUMP		= $(EXEODIR)$(DIRSEP)pktdump$(EXEFILE)
-FMSGDUMP	= $(EXEODIR)$(DIRSEP)fmsgdump$(EXEFILE)
 
 UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(SMBUTIL) $(BAJA) $(NODE) \
@@ -48,10 +43,9 @@ UTILS		= $(FIXSMB) $(CHKSMB) \
 			  $(ANS2ASC) $(ASC2ANS)  $(UNBAJA) \
 			  $(QWKNODES) $(SLOG) $(ALLUSERS) \
 			  $(DELFILES) $(DUPEFIND) $(SMBACTIV) \
-			  $(SEXYZ) $(DSTSEDIT) $(READSAUCE) $(SHOWSTAT) \
-			  $(PKTDUMP) $(FMSGDUMP)
+			  $(SEXYZ) $(DSTSEDIT)
 
-all:	dlls utils console scfg uedit umonitor
+all:	dlls utils console
 
 console:	$(JS_DEPS) xpdev-mt smblib \
 		$(MTOBJODIR) $(LIBODIR) $(EXEODIR) \
@@ -70,48 +64,6 @@ mono:	xpdev-mt smblib \
 		$(MTOBJODIR) $(EXEODIR) \
 		$(SBBSMONO)
 
-.PHONY: scfg
-scfg:
-	$(MAKE) -C scfg $(MAKEFLAGS)
-
-.PHONY: uedit
-uedit:
-	$(MAKE) -C uedit $(MAKEFLAGS)
-
-.PHONY: umonitor
-umonitor:
-	$(MAKE) -C umonitor $(MAKEFLAGS)
-
-
-ifdef SBBSEXEC
-.PHONY: install
-install: all
-	install $(EXEODIR)/* $(SBBSEXEC)
-	install $(LIBODIR)/* $(SBBSEXEC)
-	install scfg/$(EXEODIR)/* $(SBBSEXEC)
-	install uedit/$(EXEODIR)/* $(SBBSEXEC)
-	install umonitor/$(EXEODIR)/* $(SBBSEXEC)
-
-.PHONY: symlinks
-symlinks: all
-	ln -sfr $(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr $(LIBODIR)/* $(SBBSEXEC)
-	ln -sfr scfg/$(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr uedit/$(EXEODIR)/* $(SBBSEXEC)
-	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
-endif
-
-ifeq ($(os),linux)
-.PHONY: setcap
-setcap: all
-	sudo setcap 'cap_net_bind_service=+ep' $(EXEODIR)/sbbs
-endif
-
-.PHONY: sexyz
-sexyz:	$(SEXYZ)
-
-.PHONY: jsdoor
-jsdoor: $(JS_DEPS) $(CRYPT_DEPS) $(XPDEV-MT_LIB) $(SMBLIB) $(UIFCLIB-MT) $(CIOLIB-MT) $(JSDOOR)
 
 # Library dependencies
 $(SBBS): 
@@ -122,7 +74,6 @@ $(SERVICES):
 $(SBBSCON): $(XPDEV-MT_LIB) $(SMBLIB)
 $(SBBSMONO): $(XPDEV-MT_LIB) $(SMBLIB)
 $(JSEXEC): $(XPDEV-MT_LIB) $(SMBLIB)
-$(JSDOOR): $(XPDEV-MT_LIB)
 $(NODE): $(XPDEV_LIB)
 $(BAJA): $(XPDEV_LIB) $(SMBLIB)
 $(UNBAJA): $(XPDEV_LIB)
@@ -144,5 +95,3 @@ $(DELFILES): $(XPDEV_LIB)
 $(DUPEFIND): $(XPDEV_LIB) $(SMBLIB)
 $(SMBACTIV): $(XPDEV_LIB) $(SMBLIB)
 $(DSTSEDIT): $(XPDEV_LIB)
-$(READSAUCE): $(XPDEV_LIB)
-$(SHOWSTAT): $(XPDEV_LIB)

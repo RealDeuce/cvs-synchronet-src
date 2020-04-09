@@ -2,13 +2,13 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.h,v 1.9 2019/08/22 01:40:21 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -58,14 +58,12 @@ typedef struct {
 
 #define MSG_QUEUE_MALLOC		(1<<0)	/* Queue allocated with malloc() */
 #define MSG_QUEUE_BIDIR			(1<<1)	/* Bi-directional message queue */
-#define MSG_QUEUE_ORPHAN		(1<<2)	/* Owner has detached */
 
 DLLEXPORT msg_queue_t*	DLLCALL msgQueueInit(msg_queue_t*, long flags);
 DLLEXPORT BOOL			DLLCALL msgQueueFree(msg_queue_t*);
 
 DLLEXPORT long			DLLCALL msgQueueAttach(msg_queue_t*);
 DLLEXPORT long			DLLCALL msgQueueDetach(msg_queue_t*);
-DLLEXPORT BOOL			DLLCALL msgQueueOwner(msg_queue_t*);
 
 /* Get/Set queue private data */
 DLLEXPORT void*			DLLCALL msgQueueSetPrivateData(msg_queue_t*, void*);

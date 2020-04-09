@@ -1,12 +1,14 @@
+/* ntsvcs.c */
+
 /* Synchronet BBS as a set of Windows NT Services */
 
-/* $Id: ntsvcs.c,v 1.51 2020/01/03 20:59:58 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -218,7 +220,17 @@ static void svc_ctrl_handler(sbbs_ntsvc_t* svc, DWORD dwCtrlCode)
 /* Service-specific control handler stub functions */
 static void WINAPI bbs_ctrl_handler(DWORD dwCtrlCode)
 {
-	svc_ctrl_handler(&bbs, dwCtrlCode);
+	switch(dwCtrlCode) {
+		case SERVICE_CONTROL_SYSOP_AVAILABLE:
+			bbs_startup.options|=BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		case SERVICE_CONTROL_SYSOP_UNAVAILABLE:
+			bbs_startup.options&=~BBS_OPT_SYSOP_AVAILABLE;
+			break;
+		default:
+			svc_ctrl_handler(&bbs, dwCtrlCode);
+			break;
+	}
 }
 
 static void WINAPI ftp_ctrl_handler(DWORD dwCtrlCode)
@@ -283,7 +295,6 @@ static int svc_lputs(void* p, int level, const char* str)
 	len = strlen(str);
 	SAFECOPY(msg.buf, str);
 	msg.level = level;
-	msg.repeated = 0;
 	GetLocalTime(&msg.time);
 
 	/* Mailslot Logging (for sbbsctrl) */
@@ -381,7 +392,7 @@ static void read_ini(sbbs_ntsvc_t* svc)
 	}
 
 	/* We call this function to set defaults, even if there's no .ini file */
-	sbbs_read_ini(fp, ini_file
+	sbbs_read_ini(fp 
 		,NULL	/* global_startup */
 		,NULL	,bbs_startup
 		,NULL	,ftp_startup 
@@ -1196,7 +1207,12 @@ int main(int argc, char** argv)
 
 	loginAttemptListInit(&login_attempt_list);
 
-	ctrl_dir = get_ctrl_dir();
+	ctrl_dir=getenv("SBBSCTRL");	/* read from environment variable */
+	if(ctrl_dir==NULL || ctrl_dir[0]==0) {
+		ctrl_dir="\\sbbs\\ctrl";		/* Not set? Use default */
+		printf("!SBBSCTRL environment variable not set, using default value: %s\n\n"
+			,ctrl_dir);
+	}
 
 	sbbs_get_ini_fname(ini_file, ctrl_dir, NULL /* auto-host_name */);
 
@@ -1235,7 +1251,6 @@ int main(int argc, char** argv)
 	web_startup.recycle=svc_recycle;
     web_startup.terminated=svc_terminated;
 	web_startup.clients=svc_clients;
-	web_startup.login_attempt_list=&login_attempt_list;
     strcpy(web_startup.ctrl_dir,ctrl_dir);
 
 	/* Initialize Mail Server startup structure */
@@ -1269,7 +1284,7 @@ int main(int argc, char** argv)
 	}
 
 	/* We call this function to set defaults, even if there's no .ini file */
-	sbbs_read_ini(fp, ini_file
+	sbbs_read_ini(fp 
 		,NULL	/* global_startup */
 		,&bbs.autostart			,NULL
 		,&ftp.autostart			,NULL
@@ -1283,7 +1298,7 @@ int main(int argc, char** argv)
 		fclose(fp);
 
 	if(chdir(ctrl_dir)!=0) {
-		sprintf(str,"!ERROR %d (%s) changing directory to: %s", errno, strerror(errno), ctrl_dir);
+		sprintf(str,"!ERROR %d changing directory to: %s", errno, ctrl_dir);
 		svc_lputs(NULL,LOG_ERR,str);
 	}
 

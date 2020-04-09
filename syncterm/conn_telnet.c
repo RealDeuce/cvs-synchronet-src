@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.17 2019/12/22 21:17:30 rswindell Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 
@@ -11,7 +11,6 @@
 
 #include "bbslist.h"
 #include "conn.h"
-#include "term.h"
 #include "uifcinit.h"
 
 #include "telnet_io.h"
@@ -30,7 +29,6 @@ void telnet_input_thread(void *args)
 	size_t	buffer;
 	char	rbuf[BUFFER_SIZE];
 	char	*buf;
-	struct bbslist *bbs = args;
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
@@ -58,7 +56,7 @@ void telnet_input_thread(void *args)
 				break;
 		}
 		if(rd>0)
-			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd, bbs);
+			buf=telnet_interpret(conn_api.rd_buf, rd, rbuf, &rd);
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -91,8 +89,7 @@ void telnet_output_thread(void *args)
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-			wr = telnet_expand(conn_api.wr_buf, wr, (BYTE *)ebuf, sizeof(ebuf)
-				,telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO, (uchar**)&buf);
+			buf=telnet_expand(conn_api.wr_buf, wr, ebuf, &wr);
 			sent=0;
 			while(sent < wr) {
 				FD_ZERO(&wds);
@@ -164,7 +161,7 @@ int telnet_connect(struct bbslist *bbs)
 	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 
 	_beginthread(telnet_output_thread, 0, NULL);
-	_beginthread(telnet_input_thread, 0, bbs);
+	_beginthread(telnet_input_thread, 0, NULL);
 
 	uifc.pop(NULL);
 
@@ -173,14 +170,10 @@ int telnet_connect(struct bbslist *bbs)
 
 int telnet_close(void)
 {
-	char	garbage[1024];
-
 	conn_api.terminate=1;
 	closesocket(telnet_sock);
-	while(conn_api.input_thread_running || conn_api.output_thread_running) {
-		conn_recv_upto(garbage, sizeof(garbage), 0);
+	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	}
 	destroy_conn_buf(&conn_inbuf);
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);

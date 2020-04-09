@@ -1,12 +1,14 @@
+/* rechocfg.C */
+
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.45 2020/04/03 22:20:23 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -49,23 +51,41 @@
 #include "sbbsecho.h"
 #include "filewrap.h"	/* O_DENYNONE */
 
+#ifdef __WATCOMC__
+	#include <mem.h>
+    #define O_DENYNONE SH_DENYNO
+#endif
+
+extern long misc;
+extern config_t cfg;
+
+/******************************************************************************
+ Here we take a string and put a terminator in place of the first TAB or SPACE
+******************************************************************************/
+char *cleanstr(char *instr)
+{
+	int i;
+
+	for(i=0;instr[i];i++)
+		if((uchar)instr[i]<=' ')
+			break;
+	instr[i]=0;
+	return(instr);
+}
+
 /****************************************************************************/
 /* Returns the FidoNet address kept in str as ASCII.                        */
-/* Supports wildcard of "ALL" in fields										*/
 /****************************************************************************/
-faddr_t atofaddr(const char *instr)
+faddr_t atofaddr(char *instr)
 {
 	char *p,str[51];
     faddr_t addr;
 
-	SAFECOPY(str, instr);
-	p=str;
-	FIND_WHITESPACE(p);
-	*p=0;
+	sprintf(str,"%.50s",instr);
+	cleanstr(str);
 	if(!stricmp(str,"ALL")) {
 		addr.zone=addr.net=addr.node=addr.point=0xffff;
-		return(addr);
-	}
+		return(addr); }
 	addr.zone=addr.net=addr.node=addr.point=0;
 	if((p=strchr(str,':'))!=NULL) {
 		if(!strnicmp(str,"ALL:",4))
@@ -76,12 +96,15 @@ faddr_t atofaddr(const char *instr)
 		if(!strnicmp(p,"ALL",3))
 			addr.net=0xffff;
 		else
-			addr.net=atoi(p);
-	}
+			addr.net=atoi(p); }
 	else {
-		addr.zone=1;
-		addr.net=atoi(str);
-	}
+	#ifdef SCFG
+		if(total_faddrs)
+			addr.zone=faddr[0].zone;
+		else
+	#endif
+			addr.zone=1;
+		addr.net=atoi(str); }
 	if(!addr.zone)              /* no such thing as zone 0 */
 		addr.zone=1;
 	if((p=strchr(str,'/'))!=NULL) {
@@ -89,572 +112,543 @@ faddr_t atofaddr(const char *instr)
 		if(!strnicmp(p,"ALL",3))
 			addr.node=0xffff;
 		else
-			addr.node=atoi(p);
-	}
+			addr.node=atoi(p); }
 	else {
-		if(!addr.net)
-			addr.net=1;
-		addr.node=atoi(str);
-	}
+		if(!addr.net) {
+	#ifdef SCFG
+			if(total_faddrs)
+				addr.net=faddr[0].net;
+			else
+	#endif
+				addr.net=1; }
+		addr.node=atoi(str); }
 	if((p=strchr(str,'.'))!=NULL) {
 		p++;
 		if(!strnicmp(p,"ALL",3))
 			addr.point=0xffff;
 		else
-			addr.point=atoi(p);
-	}
+			addr.point=atoi(p); }
 	return(addr);
-}
-
-/****************************************************************************/
-/* Returns an ASCII string for FidoNet address 'addr'                       */
-/* Supports wildcard of "ALL" in fields										*/
-/****************************************************************************/
-const char *faddrtoa(const faddr_t* addr)
-{
-    static char str[25];
-	char tmp[25];
-
-	str[0]=0;
-	if(addr->zone==0xffff)
-		strcpy(str,"ALL");
-	else if(addr->zone) {
-		sprintf(str,"%u:",addr->zone);
-		if(addr->net==0xffff)
-			strcat(str,"ALL");
-		else {
-			sprintf(tmp,"%u/",addr->net);
-			strcat(str,tmp);
-			if(addr->node==0xffff)
-				strcat(str,"ALL");
-			else {
-				sprintf(tmp,"%u",addr->node);
-				strcat(str,tmp);
-				if(addr->point==0xffff)
-					strcat(str,".ALL");
-				else if(addr->point) {
-					sprintf(tmp,".%u",addr->point);
-					strcat(str,tmp);
-				}
-			}
-		}
-	}
-	return(str);
-}
-
-bool faddr_contains_wildcard(const faddr_t* addr)
-{
-	return addr->zone==0xffff || addr->net==0xffff || addr->node==0xffff || addr->point==0xffff;
 }
 
 /******************************************************************************
  This function returns the number of the node in the SBBSECHO.CFG file which
  matches the address passed to it (or cfg.nodecfgs if no match).
  ******************************************************************************/
-int matchnode(sbbsecho_cfg_t* cfg, faddr_t addr, int exact)
+int matchnode(faddr_t addr, int exact)
 {
-	uint i;
+	int i;
 
 	if(exact!=2) {
-		for(i=0;i<cfg->nodecfgs;i++) 				/* Look for exact match */
-			if(!memcmp(&cfg->nodecfg[i].addr,&addr,sizeof(faddr_t)))
+		for(i=0;i<cfg.nodecfgs;i++) 				/* Look for exact match */
+			if(!memcmp(&cfg.nodecfg[i].faddr,&addr,sizeof(faddr_t)))
 				break;
-		if(exact || i<cfg->nodecfgs)
-			return(i);
-	}
+		if(exact || i<cfg.nodecfgs)
+			return(i); }
 
-	for(i=0;i<cfg->nodecfgs;i++) 					/* Look for point match */
-		if(cfg->nodecfg[i].addr.point==0xffff
-			&& addr.zone==cfg->nodecfg[i].addr.zone
-			&& addr.net==cfg->nodecfg[i].addr.net
-			&& addr.node==cfg->nodecfg[i].addr.node)
+	for(i=0;i<cfg.nodecfgs;i++) 					/* Look for point match */
+		if(cfg.nodecfg[i].faddr.point==0xffff
+			&& addr.zone==cfg.nodecfg[i].faddr.zone
+			&& addr.net==cfg.nodecfg[i].faddr.net
+			&& addr.node==cfg.nodecfg[i].faddr.node)
 			break;
-	if(i<cfg->nodecfgs)
+	if(i<cfg.nodecfgs)
 		return(i);
 
-	for(i=0;i<cfg->nodecfgs;i++) 					/* Look for node match */
-		if(cfg->nodecfg[i].addr.node==0xffff
-			&& addr.zone==cfg->nodecfg[i].addr.zone
-			&& addr.net==cfg->nodecfg[i].addr.net)
+	for(i=0;i<cfg.nodecfgs;i++) 					/* Look for node match */
+		if(cfg.nodecfg[i].faddr.node==0xffff
+			&& addr.zone==cfg.nodecfg[i].faddr.zone
+			&& addr.net==cfg.nodecfg[i].faddr.net)
 			break;
-	if(i<cfg->nodecfgs)
+	if(i<cfg.nodecfgs)
 		return(i);
 
-	for(i=0;i<cfg->nodecfgs;i++) 					/* Look for net match */
-		if(cfg->nodecfg[i].addr.net==0xffff
-			&& addr.zone==cfg->nodecfg[i].addr.zone)
+	for(i=0;i<cfg.nodecfgs;i++) 					/* Look for net match */
+		if(cfg.nodecfg[i].faddr.net==0xffff
+			&& addr.zone==cfg.nodecfg[i].faddr.zone)
 			break;
-	if(i<cfg->nodecfgs)
+	if(i<cfg.nodecfgs)
 		return(i);
 
-	for(i=0;i<cfg->nodecfgs;i++) 					/* Look for total wild */
-		if(cfg->nodecfg[i].addr.zone==0xffff)
+	for(i=0;i<cfg.nodecfgs;i++) 					/* Look for total wild */
+		if(cfg.nodecfg[i].faddr.zone==0xffff)
 			break;
 	return(i);
 }
 
-nodecfg_t* findnodecfg(sbbsecho_cfg_t* cfg, faddr_t addr, int exact)
+#define SKIPCTRLSP(p)	while(*p>0 && *p<=' ') p++
+#define SKIPCODE(p)		while(*p<0 || *p>' ') p++
+void read_echo_cfg()
 {
-	uint node = matchnode(cfg, addr, exact);
+	char *str = NULL;
+	size_t str_size;
+	char tmp[512],*p,*tp;
+	short attr=0;
+	int i,j,file;
+	FILE *stream;
+	faddr_t addr,route_addr;
 
-	if(node < cfg->nodecfgs)
-		return &cfg->nodecfg[node];
 
-	return NULL;
-}
+	/****** READ IN SBBSECHO.CFG FILE *******/
 
-void get_default_echocfg(sbbsecho_cfg_t* cfg)
-{
-	cfg->maxpktsize					= DFLT_PKT_SIZE;
-	cfg->maxbdlsize					= DFLT_BDL_SIZE;
-	cfg->badecho					= -1;
-	cfg->log_level					= LOG_INFO;
-	cfg->check_path					= true;
-	cfg->zone_blind					= false;
-	cfg->zone_blind_threshold		= 0xffff;
-	cfg->sysop_alias_list			= strListSplitCopy(NULL, "SYSOP", ",");
-	cfg->max_echomail_age			= 60*24*60*60;
-	cfg->bsy_timeout				= 12*60*60;
-	cfg->bso_lock_attempts			= 60;
-	cfg->bso_lock_delay				= 10;
-	cfg->delete_packets				= true;
-	cfg->delete_netmail				= true;
-	cfg->echomail_notify			= true;
-	cfg->kill_empty_netmail			= true;
-	cfg->strict_packet_passwords	= true;
-	cfg->relay_filtered_msgs		= false;
-	cfg->use_outboxes				= true;
-	cfg->umask						= 077;
-	cfg->areafile_backups			= 100;
-	cfg->cfgfile_backups			= 100;
-	cfg->auto_add_subs				= true;
-	cfg->auto_add_to_areafile		= true;
-	cfg->auto_utf8					= true;
-	cfg->strip_soft_cr				= true;
-	cfg->min_free_diskspace			= 10*1024*1024;
-}
+	printf("\nReading %s\n",cfg.cfgfile);
+	if((stream=fnopen(&file,cfg.cfgfile,O_RDONLY))==NULL) {
+		printf("Unable to open %s for read.\n",cfg.cfgfile);
+		bail(1); }
 
-char* pktTypeStringList[] = {"2+", "2e", "2.2", "2", NULL};		// Must match enum pkt_type
-char* mailStatusStringList[] = {"Normal", "Hold", "Crash", NULL};
+	cfg.maxpktsize=DFLT_PKT_SIZE;
+	cfg.maxbdlsize=DFLT_BDL_SIZE;
+	cfg.badecho=-1;
+	cfg.log=LOG_DEFAULTS;
+	cfg.log_level=LOG_INFO;
+	cfg.check_path=TRUE;
+	cfg.zone_blind=FALSE;
+	cfg.zone_blind_threshold=0xffff;
+	SAFECOPY(cfg.sysop_alias,"SYSOP");
 
-bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
-{
-	FILE*		fp;
-	str_list_t	ini;
-	char		value[INI_MAX_VALUE_LEN];
+	while(1) {
+		if(getdelim(&str,&str_size,'\n',stream)==-1)
+			break;
+		truncsp(str);
+		p=str;
+		SKIPCTRLSP(p);
+		if(*p==';')
+			continue;
+		sprintf(tmp,"%-.25s",p);
+		tp=strchr(tmp,' ');
+		if(tp)
+			*tp=0;                              /* Chop off at space */
+#if 0
+		strupr(tmp);                            /* Convert code to uppercase */
+#endif
+		SKIPCODE(p);                       /* Skip code */
+		SKIPCTRLSP(p);                /* Skip white space */
 
-	for(unsigned i = 0; i < cfg->domain_count; i++) {
-		FREE_AND_NULL(cfg->domain_list[i].zone_list);
-		cfg->domain_list[i].zone_count = 0;
-	}
-
-	get_default_echocfg(cfg);
-
-	if((fp=iniOpenFile(cfg->cfgfile, /* create: */false))==NULL)
-		return false;
-	ini = iniReadFile(fp);
-	iniCloseFile(fp);
-
-	/************************/
-	/* Global/root section: */
-	/************************/
-	iniFreeStringList(cfg->sysop_alias_list);
-	SAFECOPY(cfg->inbound		, iniGetString(ini, ROOT_SECTION, "Inbound"			,DEFAULT_INBOUND		, value));
-	SAFECOPY(cfg->secure_inbound, iniGetString(ini, ROOT_SECTION, "SecureInbound"	,DEFAULT_SECURE_INBOUND	, value));
-	SAFECOPY(cfg->outbound		, iniGetString(ini, ROOT_SECTION, "Outbound"		,DEFAULT_OUTBOUND		, value));
-	SAFECOPY(cfg->areafile		, iniGetString(ini, ROOT_SECTION, "AreaFile"		,DEFAULT_AREA_FILE		, value));
-	SAFECOPY(cfg->badareafile	, iniGetString(ini, ROOT_SECTION, "BadAreaFile"		,DEFAULT_BAD_AREA_FILE	, value));
-	SAFECOPY(cfg->echostats		, iniGetString(ini, ROOT_SECTION, "EchoStats"		,DEFAULT_ECHOSTATS_FILE	, value));
-	SAFECOPY(cfg->logfile		, iniGetString(ini, ROOT_SECTION, "LogFile"			,DEFAULT_LOG_FILE		, value));
-	SAFECOPY(cfg->logtime		, iniGetString(ini, ROOT_SECTION, "LogTimeFormat"	,DEFAULT_LOG_TIME_FMT	, value));
-	SAFECOPY(cfg->temp_dir		, iniGetString(ini, ROOT_SECTION, "TempDirectory"	,DEFAULT_TEMP_DIR		, value));
-	SAFECOPY(cfg->outgoing_sem	, iniGetString(ini, ROOT_SECTION, "OutgoingSemaphore",	"", value));
-	cfg->log_level				= iniGetLogLevel(ini, ROOT_SECTION, "LogLevel", cfg->log_level);
-	cfg->flo_mailer				= iniGetBool(ini, ROOT_SECTION, "BinkleyStyleOutbound", cfg->flo_mailer);
-	cfg->bsy_timeout			= (ulong)iniGetDuration(ini, ROOT_SECTION, "BsyTimeout", cfg->bsy_timeout);
-	cfg->bso_lock_attempts		= iniGetLongInt(ini, ROOT_SECTION, "BsoLockAttempts", cfg->bso_lock_attempts);
-	cfg->bso_lock_delay			= (ulong)iniGetDuration(ini, ROOT_SECTION, "BsoLockDelay", cfg->bso_lock_delay);
-	cfg->strict_packet_passwords= iniGetBool(ini, ROOT_SECTION, "StrictPacketPasswords", cfg->strict_packet_passwords);
-	cfg->relay_filtered_msgs	= iniGetBool(ini, ROOT_SECTION, "RelayFilteredMsgs", cfg->relay_filtered_msgs);
-	cfg->umask					= iniGetInteger(ini, ROOT_SECTION, "umask", cfg->umask);
-	cfg->areafile_backups		= iniGetInteger(ini, ROOT_SECTION, "AreaFileBackups", cfg->areafile_backups);
-	cfg->cfgfile_backups		= iniGetInteger(ini, ROOT_SECTION, "CfgFileBackups", cfg->cfgfile_backups);
-	cfg->min_free_diskspace		= iniGetBytes(ini, ROOT_SECTION, "MinFreeDiskSpace", 1, cfg->min_free_diskspace);
-	cfg->strip_lf				= iniGetBool(ini, ROOT_SECTION, "StripLineFeeds", cfg->strip_lf);
-	cfg->strip_soft_cr			= iniGetBool(ini, ROOT_SECTION, "StripSoftCRs", cfg->strip_soft_cr);
-	cfg->use_outboxes			= iniGetBool(ini, ROOT_SECTION, "UseOutboxes", cfg->use_outboxes);
-	cfg->auto_utf8				= iniGetBool(ini, ROOT_SECTION, "AutoUTF8", cfg->auto_utf8);
-
-	/* EchoMail options: */
-	cfg->maxbdlsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "BundleSize", 1, cfg->maxbdlsize);
-	cfg->maxpktsize				= (ulong)iniGetBytes(ini, ROOT_SECTION, "PacketSize", 1, cfg->maxpktsize);
-	cfg->check_path				= iniGetBool(ini, ROOT_SECTION, "CheckPathsForDupes", cfg->check_path);
-	cfg->secure_echomail		= iniGetBool(ini, ROOT_SECTION, "SecureEchomail", cfg->secure_echomail);
-	cfg->echomail_notify		= iniGetBool(ini, ROOT_SECTION, "EchomailNotify", cfg->echomail_notify);
-	cfg->convert_tear			= iniGetBool(ini, ROOT_SECTION, "ConvertTearLines", cfg->convert_tear);
-	cfg->trunc_bundles			= iniGetBool(ini, ROOT_SECTION, "TruncateBundles", cfg->trunc_bundles);
-	cfg->zone_blind				= iniGetBool(ini, ROOT_SECTION, "ZoneBlind", cfg->zone_blind);
-	cfg->zone_blind_threshold	= iniGetShortInt(ini, ROOT_SECTION, "ZoneBlindThreshold", cfg->zone_blind_threshold);
-	cfg->add_from_echolists_only= iniGetBool(ini, ROOT_SECTION, "AreaAddFromEcholistsOnly", cfg->add_from_echolists_only);
-	cfg->max_echomail_age		= (ulong)iniGetDuration(ini, ROOT_SECTION, "MaxEchomailAge", cfg->max_echomail_age);
-	SAFECOPY(cfg->areamgr,		  iniGetString(ini, ROOT_SECTION, "AreaManager", "SYSOP", value));
-	cfg->auto_add_subs			= iniGetBool(ini, ROOT_SECTION, "AutoAddSubs", cfg->auto_add_subs);
-	cfg->auto_add_to_areafile	= iniGetBool(ini, ROOT_SECTION, "AutoAddToAreaFile", cfg->auto_add_to_areafile);
-
-	/* NetMail options: */
-	SAFECOPY(cfg->default_recipient, iniGetString(ini, ROOT_SECTION, "DefaultRecipient", "", value));
-	cfg->sysop_alias_list			= iniGetStringList(ini, ROOT_SECTION, "SysopAliasList", ",", "SYSOP");
-	cfg->fuzzy_zone					= iniGetBool(ini, ROOT_SECTION, "FuzzyNetmailZones", cfg->fuzzy_zone);
-	cfg->ignore_netmail_dest_addr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailDestAddr", cfg->ignore_netmail_dest_addr);
-	cfg->ignore_netmail_sent_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailSentAttr", cfg->ignore_netmail_sent_attr);
-	cfg->ignore_netmail_kill_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailKillAttr", cfg->ignore_netmail_kill_attr);
-	cfg->ignore_netmail_recv_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailRecvAttr", cfg->ignore_netmail_recv_attr);
-	cfg->ignore_netmail_local_attr	= iniGetBool(ini, ROOT_SECTION, "IgnoreNetmailLocalAttr", cfg->ignore_netmail_local_attr);
-	cfg->kill_empty_netmail			= iniGetBool(ini, ROOT_SECTION, "KillEmptyNetmail", cfg->kill_empty_netmail);
-	cfg->delete_netmail				= iniGetBool(ini, ROOT_SECTION, "DeleteNetmail", cfg->delete_netmail);
-	cfg->delete_packets				= iniGetBool(ini, ROOT_SECTION, "DeletePackets", cfg->delete_packets);
-	cfg->max_netmail_age			= (ulong)iniGetDuration(ini, ROOT_SECTION, "MaxNetmailAge", cfg->max_netmail_age);
-
-	/* BinkP options: */
-	SAFECOPY(cfg->binkp_caps, iniGetString(ini, "BinkP", "Capabilities", "", value));
-	SAFECOPY(cfg->binkp_sysop, iniGetString(ini, "BinkP", "Sysop", "", value));
-	cfg->binkp_plainAuthOnly = iniGetBool(ini, "BinkP", "PlainAuthOnly", FALSE);
-	cfg->binkp_plainTextOnly = iniGetBool(ini, "BinkP", "PlainTextOnly", FALSE);
-
-	/******************/
-	/* Archive Types: */
-	/******************/
-	str_list_t archivelist = iniGetSectionList(ini, "archive:");
-	cfg->arcdefs = strListCount(archivelist);
-	if((cfg->arcdef = realloc(cfg->arcdef, sizeof(arcdef_t)*cfg->arcdefs)) == NULL) {
-		strListFree(&archivelist);
-		return false;
-	}
-	cfg->arcdefs = 0;
-	char* archive;
-	while((archive=strListRemove(&archivelist, 0)) != NULL) {
-		arcdef_t* arc = &cfg->arcdef[cfg->arcdefs++];
-		memset(arc, 0, sizeof(arcdef_t));
-		SAFECOPY(arc->name, truncsp(archive+8));
-		arc->byteloc = iniGetInteger(ini, archive, "SigOffset", 0);
-		SAFECOPY(arc->hexid, truncsp(iniGetString(ini, archive, "Sig", "", value)));
-		SAFECOPY(arc->pack, truncsp(iniGetString(ini, archive, "Pack", "", value)));
-		SAFECOPY(arc->unpack, truncsp(iniGetString(ini, archive, "Unpack", "", value)));
-	}
-	strListFree(&archivelist);
-
-	/****************/
-	/* Links/Nodes: */
-	/****************/
-	str_list_t nodelist = iniGetSectionList(ini, "node:");
-	cfg->nodecfgs = strListCount(nodelist);
-	if((cfg->nodecfg = realloc(cfg->nodecfg, sizeof(nodecfg_t)*cfg->nodecfgs)) == NULL) {
-		strListFree(&nodelist);
-		return false;
-	}
-	cfg->nodecfgs = 0;
-	char* node;
-	while((node=strListRemove(&nodelist, 0)) != NULL) {
-		nodecfg_t* ncfg = &cfg->nodecfg[cfg->nodecfgs++];
-		memset(ncfg, 0, sizeof(nodecfg_t));
-		ncfg->addr = atofaddr(node+5);
-		char* domain = strchr(node+5, '@');
-		if(domain != NULL)
-			SAFECOPY(ncfg->domain, domain + 1);
-		if(iniGetString(ini, node, "route", NULL, value) != NULL && value[0]) {
-			fidoaddr_t addr = atofaddr(value);
-			if(addr.zone != 0 && memcmp(&addr, &ncfg->addr, sizeof(addr)) != 0)
-				ncfg->route = addr;
+		if(!stricmp(tmp,"SYSOP_ALIAS")) {
+			SAFECOPY(cfg.sysop_alias, p);
+			continue;
 		}
-		if(iniGetString(ini, node, "LocalAddress", NULL, value) != NULL && value[0]) {
-			fidoaddr_t addr = atofaddr(value);
-			if(addr.zone != 0 && memcmp(&addr, &ncfg->addr, sizeof(addr)) != 0)
-				ncfg->local_addr = addr;
-		}
-		SAFECOPY(ncfg->password	, iniGetString(ini, node, "AreaFixPwd", "", value));
-		SAFECOPY(ncfg->pktpwd	, iniGetString(ini, node, "PacketPwd", "", value));
-		SAFECOPY(ncfg->sesspwd	, iniGetString(ini, node, "SessionPwd", "", value));
-		SAFECOPY(ncfg->ticpwd	, iniGetString(ini, node, "TicFilePwd", "", value));
-		SAFECOPY(ncfg->name		, iniGetString(ini, node, "Name", "", value));
-		SAFECOPY(ncfg->comment	, iniGetString(ini, node, "Comment", "", value));
-		if(!faddr_contains_wildcard(&ncfg->addr)) {
-			SAFECOPY(ncfg->inbox	, iniGetString(ini, node, "inbox", "", value));
-			SAFECOPY(ncfg->outbox	, iniGetString(ini, node, "outbox", "", value));
-			char		inbox[MAX_PATH + 1];
-			char		insec[MAX_PATH + 1];
-			char		inbound[MAX_PATH + 1];
-			char		outbox[MAX_PATH + 1];
-			char		outbound[MAX_PATH + 1];
-			FULLPATH(inbox, ncfg->inbox, sizeof(inbox))			, backslash(inbox);
-			FULLPATH(outbox, ncfg->outbox, sizeof(outbox))		, backslash(outbox);
-			FULLPATH(insec, cfg->secure_inbound, sizeof(insec))	, backslash(insec);
-			FULLPATH(inbound, cfg->inbound, sizeof(inbound))	, backslash(inbound);
-			FULLPATH(outbound, cfg->outbound, sizeof(outbound))	, backslash(outbound);
-			if (stricmp(inbound, inbox) == 0 || stricmp(insec, inbox) == 0)
-				ncfg->inbox[0] = 0;
-			if (stricmp(outbound, outbox) == 0)
-				ncfg->outbox[0] = 0;
-		}
-		ncfg->grphub			= iniGetStringList(ini, node, "GroupHub", ",", "");
-		ncfg->keys				= iniGetStringList(ini, node, "keys", ",", "");
-		ncfg->pkt_type			= iniGetEnum(ini, node, "PacketType", pktTypeStringList, ncfg->pkt_type);
-		ncfg->areafix			= iniGetBool(ini, node, "AreaFix", ncfg->password[0] ? true : false);
-		ncfg->send_notify		= iniGetBool(ini, node, "notify", ncfg->send_notify);
-		ncfg->passive			= iniGetBool(ini, node, "passive", ncfg->passive);
-		ncfg->direct			= iniGetBool(ini, node, "direct", ncfg->direct);
-		ncfg->status			= iniGetEnum(ini, node, "status", mailStatusStringList, ncfg->status);
-		char* archive = iniGetString(ini, node, "archive", "", value);
-		for(uint i=0; i<cfg->arcdefs; i++) {
-			if(stricmp(cfg->arcdef[i].name, archive) == 0) {
-				ncfg->archive = &cfg->arcdef[i];
-				break;
-			}
-		}
-		/* BinkP settings */
-		SAFECOPY(ncfg->binkp_src	, iniGetString(ini, node, "BinkpSourceAddress", "", value));
-		SAFECOPY(ncfg->binkp_host	, iniGetString(ini, node, "BinkpHost", "", value));
-		ncfg->binkp_port			= iniGetShortInt(ini, node, "BinkpPort", 24554);
-		ncfg->binkp_poll			= iniGetBool(ini, node, "BinkpPoll", FALSE);
-		ncfg->binkp_plainAuthOnly	= iniGetBool(ini, node, "BinkpPlainAuthOnly", FALSE);
-		ncfg->binkp_allowPlainAuth	= iniGetBool(ini, node, "BinkpAllowPlainAuth", FALSE);
-		ncfg->binkp_allowPlainText	= iniGetBool(ini, node, "BinkpAllowPlainText", TRUE);
-		ncfg->binkp_tls             = iniGetBool(ini, node, "BinkpTLS", FALSE);
-	}
-	strListFree(&nodelist);
+		if(!stricmp(tmp,"PACKER")) {             /* Archive Definition */
+			if((cfg.arcdef=(arcdef_t *)realloc(cfg.arcdef
+				,sizeof(arcdef_t)*(cfg.arcdefs+1)))==NULL) {
+				printf("\nError allocating %u bytes of memory for arcdef #%u.\n"
+					,sizeof(arcdef_t)*(cfg.arcdefs+1),cfg.arcdefs+1);
+				bail(1); }
+			SAFECOPY(cfg.arcdef[cfg.arcdefs].name,p);
+			tp=cfg.arcdef[cfg.arcdefs].name;
+			while(*tp && *tp>' ') tp++;
+			*tp=0;
+			SKIPCODE(p);
+			SKIPCTRLSP(p);
+			cfg.arcdef[cfg.arcdefs].byteloc=atoi(p);
+			SKIPCODE(p);
+			SKIPCTRLSP(p);
+			SAFECOPY(cfg.arcdef[cfg.arcdefs].hexid,p);
+			tp=cfg.arcdef[cfg.arcdefs].hexid;
+			SKIPCODE(tp);
+			*tp=0;
+			while((getdelim(&str,&str_size,'\n',stream) != -1) && strnicmp(str,"END",3)) {
+				p=str;
+				SKIPCTRLSP(p);
+				if(!strnicmp(p,"PACK ",5)) {
+					p+=5;
+					SKIPCTRLSP(p);
+					SAFECOPY(cfg.arcdef[cfg.arcdefs].pack,p);
+					truncsp(cfg.arcdef[cfg.arcdefs].pack);
+					continue; }
+				if(!strnicmp(p,"UNPACK ",7)) {
+					p+=7;
+					SKIPCTRLSP(p);
+					SAFECOPY(cfg.arcdef[cfg.arcdefs].unpack,p);
+					truncsp(cfg.arcdef[cfg.arcdefs].unpack); } }
+			++cfg.arcdefs;
+			continue; }
 
-	/**************/
-	/* EchoLists: */
-	/**************/
-	str_list_t echolists = iniGetSectionList(ini, "echolist:");
-	cfg->listcfgs = strListCount(echolists);
-	if((cfg->listcfg = realloc(cfg->listcfg, sizeof(echolist_t)*cfg->listcfgs)) == NULL) {
-		strListFree(&echolists);
-		return false;
-	}
-	cfg->listcfgs = 0;
-	char* echolist;
-	while((echolist=strListRemove(&echolists, 0)) != NULL) {
-		echolist_t* elist = &cfg->listcfg[cfg->listcfgs++];
-		memset(elist, 0, sizeof(echolist_t));
-		SAFECOPY(elist->listpath, echolist + 9);
-		elist->keys = iniGetStringList(ini, echolist, "keys", ",", "");
-		if(iniGetString(ini, echolist, "hub", "", value) != NULL && value[0])
-			elist->hub = atofaddr(value);
-		elist->forward = iniGetBool(ini, echolist, "fwd", false);
-		SAFECOPY(elist->password, iniGetString(ini,echolist, "pwd", "", value));
-		SAFECOPY(elist->areamgr, iniGetString(ini, echolist, "AreaMgr", FIDO_AREAMGR_NAME, value));
-	}
-	strListFree(&echolists);
+		if(!stricmp(tmp,"REGNUM"))
+			continue;
 
-	/***********/
-	/* Domains */
-	/***********/
-	str_list_t domains = iniGetSectionList(ini, "domain:");
-	cfg->domain_count = strListCount(domains);
-	if((cfg->domain_list = realloc(cfg->domain_list, sizeof(struct fido_domain)*cfg->domain_count)) == NULL) {
-		strListFree(&domains);
-		return false;
+		if(!stricmp(tmp,"NOPATHCHECK")) {
+			cfg.check_path=FALSE;
+			continue;
+		}
+
+		if(!stricmp(tmp,"ZONE_BLIND")) {
+			cfg.zone_blind=TRUE;
+			if(*p && isdigit(*p))	/* threshold specified (zones > this threshold will be treated normally/separately) */
+				cfg.zone_blind_threshold=atoi(p);
+			continue;
+		}
+
+		if(!stricmp(tmp,"NOTIFY")) {
+			cfg.notify=atoi(cleanstr(p));
+			continue; }
+
+		if(!stricmp(tmp,"LOG")) {
+			cleanstr(p);
+			if(!stricmp(p,"ALL"))
+				cfg.log=0xffffffffUL;
+			else if(!stricmp(p,"DEFAULT"))
+				cfg.log=LOG_DEFAULTS;
+			else if(!stricmp(p,"NONE"))
+				cfg.log=0L;
+			else
+				cfg.log=strtol(cleanstr(p),0,16);
+			continue; }
+
+		if(!stricmp(tmp,"LOG_LEVEL")) {
+			cfg.log_level=atoi(cleanstr(p));
+			continue; }
+
+		if(!stricmp(tmp,"NOSWAP")) {
+			continue; }
+
+		if(!stricmp(tmp,"SECURE_ECHOMAIL")) {
+			misc|=SECURE;
+			continue; }
+
+		if(!stricmp(tmp,"STRIP_LF")) {
+			misc|=STRIP_LF;
+			continue; }
+
+		if(!stricmp(tmp,"CONVERT_TEAR")) {
+			misc|=CONVERT_TEAR;
+			continue;
+		}
+
+		if(!stricmp(tmp,"STORE_SEENBY")) {
+			misc|=STORE_SEENBY;
+			continue; }
+
+		if(!stricmp(tmp,"STORE_PATH")) {
+			misc|=STORE_PATH;
+			continue; }
+
+		if(!stricmp(tmp,"STORE_KLUDGE")) {
+			misc|=STORE_KLUDGE;
+			continue; }
+
+		if(!stricmp(tmp,"FUZZY_ZONE")) {
+			misc|=FUZZY_ZONE;
+			continue; }
+
+		if(!stricmp(tmp,"TRUNC_BUNDLES")) {
+			misc|=TRUNC_BUNDLES;
+			continue; }
+
+		if(!stricmp(tmp,"FLO_MAILER")) {
+			misc|=FLO_MAILER;
+			continue; }
+
+		if(!stricmp(tmp,"ELIST_ONLY")) {
+			misc|=ELIST_ONLY;
+			continue; }
+
+		if(!stricmp(tmp,"KILL_EMPTY")) {
+			misc|=KILL_EMPTY_MAIL;
+			continue; }
+
+		if(!stricmp(tmp,"AREAFILE")) {
+			SAFECOPY(cfg.areafile,cleanstr(p));
+			continue; }
+
+		if(!stricmp(tmp,"LOGFILE")) {
+			SAFECOPY(cfg.logfile,cleanstr(p));
+			continue; }
+
+		if(!stricmp(tmp,"INBOUND")) {            /* Inbound directory */
+			SAFECOPY(cfg.inbound,cleanstr(p));
+			backslash(cfg.inbound);
+		continue; }
+
+		if(!stricmp(tmp,"SECURE_INBOUND")) {     /* Secure Inbound directory */
+			SAFECOPY(cfg.secure,cleanstr(p));
+			backslash(cfg.secure);
+			continue; }
+
+		if(!stricmp(tmp,"OUTBOUND")) {           /* Outbound directory */
+			SAFECOPY(cfg.outbound,cleanstr(p));
+			backslash(cfg.outbound);
+			continue; }
+
+		if(!stricmp(tmp,"ARCSIZE")) {            /* Maximum bundle size */
+			cfg.maxbdlsize=atol(p);
+			continue; }
+
+		if(!stricmp(tmp,"PKTSIZE")) {            /* Maximum packet size */
+			cfg.maxpktsize=atol(p);
+			continue; }
+
+		if(!stricmp(tmp,"USEPACKER")) {          /* Which packer to use */
+			if(!*p)
+				continue;
+			strcpy(str,p);
+			p=str;
+			SKIPCODE(p);
+			if(!*p)
+				continue;
+			*p=0;
+			p++;
+			for(i=0;i<cfg.arcdefs;i++)
+				if(!strnicmp(cfg.arcdef[i].name,str
+					,strlen(cfg.arcdef[i].name)))
+					break;
+			if(i==cfg.arcdefs)				/* i = number of arcdef til done */
+				i=0xffff;					/* Uncompressed type if not found */
+			while(*p) {
+				SKIPCTRLSP(p);
+				if(!*p)
+					break;
+				addr=atofaddr(p);
+				SKIPCODE(p);
+				j=matchnode(addr,1);
+				if(j==cfg.nodecfgs) {
+					cfg.nodecfgs++;
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+						,sizeof(nodecfg_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for nodecfg #%u.\n"
+							,j+1);
+						bail(1); }
+					memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
+					cfg.nodecfg[j].faddr=addr; }
+				cfg.nodecfg[j].arctype=i; } }
+
+		if(!stricmp(tmp,"PKTPWD")) {         /* Packet Password */
+			if(!*p)
+				continue;
+			addr=atofaddr(p);
+			SKIPCODE(p);         /* Skip address */
+			SKIPCTRLSP(p);        /* Find beginning of password */
+			j=matchnode(addr,1);
+			if(j==cfg.nodecfgs) {
+				cfg.nodecfgs++;
+				if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+					,sizeof(nodecfg_t)*(j+1)))==NULL) {
+					printf("\nError allocating memory for nodecfg #%u.\n"
+						,j+1);
+					bail(1); }
+				memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
+				cfg.nodecfg[j].faddr=addr; }
+			SAFECOPY(cfg.nodecfg[j].pktpwd,p); }
+
+		if(!stricmp(tmp,"PKTTYPE")) {            /* Packet Type to Use */
+			if(!*p)
+				continue;
+			strcpy(str,p);
+			p=str;
+			SKIPCODE(p);
+			*p=0;
+			p++;
+			while(*p) {
+				SKIPCTRLSP(p);
+				if(!*p)
+					break;
+				addr=atofaddr(p);
+				SKIPCODE(p);
+				j=matchnode(addr,1);
+				if(j==cfg.nodecfgs) {
+					cfg.nodecfgs++;
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+						,sizeof(nodecfg_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for nodecfg #%u.\n"
+							,j+1);
+						bail(1); }
+					memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
+					cfg.nodecfg[j].faddr=addr; }
+				if(!strcmp(str,"2+"))
+					cfg.nodecfg[j].pkt_type=PKT_TWO_PLUS;
+				else if(!strcmp(str,"2.2"))
+					cfg.nodecfg[j].pkt_type=PKT_TWO_TWO;
+				else if(!strcmp(str,"2"))
+					cfg.nodecfg[j].pkt_type=PKT_TWO; } }
+
+		if(!stricmp(tmp,"SEND_NOTIFY")) {    /* Nodes to send notify lists to */
+			while(*p) {
+				SKIPCTRLSP(p);
+				if(!*p)
+					break;
+				addr=atofaddr(p);
+				SKIPCODE(p);
+				j=matchnode(addr,1);
+				if(j==cfg.nodecfgs) {
+					cfg.nodecfgs++;
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+						,sizeof(nodecfg_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for nodecfg #%u.\n"
+							,j+1);
+						bail(1); }
+					memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
+					cfg.nodecfg[j].faddr=addr; }
+				cfg.nodecfg[j].attr|=SEND_NOTIFY; } }
+
+		if(!stricmp(tmp,"PASSIVE")
+			|| !stricmp(tmp,"HOLD")
+			|| !stricmp(tmp,"CRASH")
+			|| !stricmp(tmp,"DIRECT")) {         /* Set node attributes */
+			if(!stricmp(tmp,"PASSIVE"))
+				attr=ATTR_PASSIVE;
+			else if(!stricmp(tmp,"CRASH"))
+				attr=ATTR_CRASH;
+			else if(!stricmp(tmp,"HOLD"))
+				attr=ATTR_HOLD;
+			else if(!stricmp(tmp,"DIRECT"))
+				attr=ATTR_DIRECT;
+			while(*p) {
+				SKIPCTRLSP(p);
+				if(!*p)
+					break;
+				addr=atofaddr(p);
+				SKIPCODE(p);
+				j=matchnode(addr,1);
+				if(j==cfg.nodecfgs) {
+					cfg.nodecfgs++;
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+						,sizeof(nodecfg_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for nodecfg #%u.\n"
+							,j+1);
+						bail(1); }
+					memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
+					cfg.nodecfg[j].faddr=addr; }
+				cfg.nodecfg[j].attr|=attr; } }
+
+		if(!stricmp(tmp,"ROUTE_TO")) {
+			SKIPCTRLSP(p);
+			if(*p) {
+				route_addr=atofaddr(p);
+				SKIPCODE(p); }
+			while(*p) {
+				SKIPCTRLSP(p);
+				if(!*p)
+					break;
+				addr=atofaddr(p);
+				SKIPCODE(p);
+				j=matchnode(addr,1);
+				if(j==cfg.nodecfgs) {
+					cfg.nodecfgs++;
+					if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+						,sizeof(nodecfg_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for nodecfg #%u.\n"
+							,j+1);
+						bail(1); }
+					memset(&cfg.nodecfg[j],0,sizeof(nodecfg_t));
+					cfg.nodecfg[j].faddr=addr; }
+				cfg.nodecfg[j].route=route_addr; } }
+
+		if(!stricmp(tmp,"AREAFIX")) {            /* Areafix stuff here */
+			if(!*p)
+				continue;
+			addr=atofaddr(p);
+			i=matchnode(addr,1);
+			if(i==cfg.nodecfgs) {
+				cfg.nodecfgs++;
+				if((cfg.nodecfg=(nodecfg_t *)realloc(cfg.nodecfg
+					,sizeof(nodecfg_t)*(i+1)))==NULL) {
+					printf("\nError allocating memory for nodecfg #%u.\n"
+						,i+1);
+					bail(1); }
+				memset(&cfg.nodecfg[i],0,sizeof(nodecfg_t));
+				cfg.nodecfg[i].faddr=addr; }
+			cfg.nodecfg[i].flag=NULL;
+			SKIPCODE(p); 		/* Get to the end of the address */
+			SKIPCTRLSP(p);		/* Skip over whitespace chars */
+			tp=p;
+			SKIPCODE(p); 		/* Find end of password 	*/
+			*p=0;							/* and terminate the string */
+			++p;
+			SAFECOPY(cfg.nodecfg[i].password,tp);
+			SKIPCTRLSP(p);		/* Search for more chars */
+			if(!*p) 						/* Nothing else there */
+				continue;
+			while(*p) {
+				tp=p;
+				SKIPCODE(p); 	/* Find end of this flag */
+				*p=0;						/* and terminate it 	 */
+				++p;
+				for(j=0;j<cfg.nodecfg[i].numflags;j++)
+					if(!strnicmp(cfg.nodecfg[i].flag[j].flag,tp
+						,strlen(cfg.nodecfg[i].flag[j].flag)))
+						break;
+				if(j==cfg.nodecfg[i].numflags) {
+					if((cfg.nodecfg[i].flag=
+						(flag_t *)realloc(cfg.nodecfg[i].flag
+						,sizeof(flag_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for nodecfg #%u "
+							"flag #%u.\n",cfg.nodecfgs,j+1);
+						bail(1); }
+					cfg.nodecfg[i].numflags++;
+					SAFECOPY(cfg.nodecfg[i].flag[j].flag,tp); }
+				SKIPCTRLSP(p); } }
+
+		if(!stricmp(tmp,"ECHOLIST")) {           /* Echolists go here */
+			if((cfg.listcfg=(echolist_t *)realloc(cfg.listcfg
+				,sizeof(echolist_t)*(cfg.listcfgs+1)))==NULL) {
+				printf("\nError allocating memory for echolist cfg #%u.\n"
+					,cfg.listcfgs+1);
+				bail(1); }
+			memset(&cfg.listcfg[cfg.listcfgs],0,sizeof(echolist_t));
+			++cfg.listcfgs;
+			/* Need to forward requests? */
+			if(!strnicmp(p,"FORWARD ",8) || !strnicmp(p,"HUB ",4)) {
+				if(!strnicmp(p,"HUB ",4))
+					cfg.listcfg[cfg.listcfgs-1].misc|=NOFWD;
+				SKIPCODE(p);
+				SKIPCTRLSP(p);
+				if(*p)
+					cfg.listcfg[cfg.listcfgs-1].forward=atofaddr(p);
+				SKIPCODE(p);
+				SKIPCTRLSP(p);
+				if(*p && !(cfg.listcfg[cfg.listcfgs-1].misc&NOFWD)) {
+					tp=p;
+					SKIPCODE(p);
+					*p=0;
+					++p;
+					SKIPCTRLSP(p);
+					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].password,tp); } }
+			else
+				cfg.listcfg[cfg.listcfgs-1].misc|=NOFWD;
+			if(!*p)
+				continue;
+			tp=p;
+			SKIPCODE(p);
+			*p=0;
+			p++;
+
+			SAFECOPY(cfg.listcfg[cfg.listcfgs-1].listpath,tp);
+			cfg.listcfg[cfg.listcfgs-1].numflags=0;
+			cfg.listcfg[cfg.listcfgs-1].flag=NULL;
+			SKIPCTRLSP(p);		/* Skip over whitespace chars */
+			while(*p) {
+				tp=p;
+				SKIPCODE(p); 	/* Find end of this flag */
+				*p=0;						/* and terminate it 	 */
+				++p;
+				for(j=0;j<cfg.listcfg[cfg.listcfgs-1].numflags;j++)
+					if(!strnicmp(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,tp
+						,strlen(cfg.listcfg[cfg.listcfgs-1].flag[j].flag)))
+						break;
+				if(j==cfg.listcfg[cfg.listcfgs-1].numflags) {
+					if((cfg.listcfg[cfg.listcfgs-1].flag=
+						(flag_t *)realloc(cfg.listcfg[cfg.listcfgs-1].flag
+						,sizeof(flag_t)*(j+1)))==NULL) {
+						printf("\nError allocating memory for listcfg #%u "
+							"flag #%u.\n",cfg.listcfgs,j+1);
+						bail(1); }
+					cfg.listcfg[cfg.listcfgs-1].numflags++;
+					SAFECOPY(cfg.listcfg[cfg.listcfgs-1].flag[j].flag,tp); }
+				SKIPCTRLSP(p); } }
+
+		/* Message disabled why?  ToDo */
+		/* printf("Unrecognized line in SBBSECHO.CFG file.\n"); */
 	}
-	cfg->domain_count = 0;
-	char* domain;
-	while((domain = strListRemove(&domains, 0)) != NULL) {
-		struct fido_domain* dom = &cfg->domain_list[cfg->domain_count++];
-		memset(dom, 0, sizeof(*dom));
-		dom->zone_list = iniGetIntList(ini, domain, "Zones", &dom->zone_count, ",", NULL);
-		SAFECOPY(dom->name, domain + 7);
-		SAFECOPY(dom->root, iniGetString(ini, domain, "OutboundRoot", cfg->outbound, value));
-		SAFECOPY(dom->nodelist, iniGetString(ini, domain, "NodeList", "", value));
-		SAFECOPY(dom->dns_suffix, iniGetString(ini, domain, "DNSSuffix", "", value));
-	}
-	strListFree(&domains);
+	fclose(stream);
 
 	/* make sure we have some sane "maximum" size values here: */
-	if(cfg->maxpktsize<1024)
-		cfg->maxpktsize=DFLT_PKT_SIZE;
-	if(cfg->maxbdlsize<1024)
-		cfg->maxbdlsize=DFLT_BDL_SIZE;
+	if(cfg.maxpktsize<1024)
+		cfg.maxpktsize=DFLT_PKT_SIZE;
+	if(cfg.maxbdlsize<1024)
+		cfg.maxbdlsize=DFLT_BDL_SIZE;
 
-	cfg->used_include = iniHasInclude(ini);
-	strListFree(&ini);
-
-	return true;
+	if(str)
+		free(str);
+	printf("\n");
 }
 
-ini_style_t sbbsecho_ini_style = {  .value_separator = " = ", .section_separator = "" };
-
-bool sbbsecho_write_ini(sbbsecho_cfg_t* cfg)
-{
-	char section[128];
-	FILE* fp;
-	str_list_t	ini;
-
-	if(cfg->cfgfile_backups)
-		backup(cfg->cfgfile, cfg->cfgfile_backups, /* ren: */false);
-
-	if((fp=iniOpenFile(cfg->cfgfile, /* create: */true))==NULL)
-		return false;
-	ini = iniReadFile(fp);
-
-	ini_style_t* style = &sbbsecho_ini_style;
-
-	/************************/
-	/* Global/root section: */
-	/************************/
-	iniSetString(&ini,		ROOT_SECTION, "Inbound"					,cfg->inbound					,style);
-	iniSetString(&ini,		ROOT_SECTION, "SecureInbound"			,cfg->secure_inbound			,style);
-	iniSetString(&ini,		ROOT_SECTION, "Outbound"				,cfg->outbound					,style);
-	iniSetString(&ini,		ROOT_SECTION, "AreaFile"				,cfg->areafile					,style);
-	iniSetInteger(&ini,		ROOT_SECTION, "AreaFileBackups"			,cfg->areafile_backups			,style);
-	iniSetInteger(&ini,		ROOT_SECTION, "CfgFileBackups"			,cfg->cfgfile_backups			,style);
-	iniSetBytes(&ini,		ROOT_SECTION, "MinFreeDiskSpace"		,1,cfg->min_free_diskspace		,style);
-	iniSetString(&ini,		ROOT_SECTION, "BadAreaFile"				,cfg->badareafile				,style);
-	iniSetString(&ini,		ROOT_SECTION, "EchoStats"				,cfg->echostats					,style);
-	if(cfg->logfile[0])
-	iniSetString(&ini,		ROOT_SECTION, "LogFile"					,cfg->logfile					,style);
-	if(cfg->logtime[0])
-	iniSetString(&ini,		ROOT_SECTION, "LogTimeFormat"			,cfg->logtime					,style);
-	if(cfg->temp_dir[0])
-	iniSetString(&ini,		ROOT_SECTION, "TempDirectory"			,cfg->temp_dir					,style);
-	iniSetString(&ini,		ROOT_SECTION, "OutgoingSemaphore"		,cfg->outgoing_sem				,style);
-	iniSetBytes(&ini,		ROOT_SECTION, "BundleSize"				,1,cfg->maxbdlsize				,style);
-	iniSetBytes(&ini,		ROOT_SECTION, "PacketSize"				,1,cfg->maxpktsize				,style);
-	iniSetStringList(&ini,	ROOT_SECTION, "SysopAliasList", ","		,cfg->sysop_alias_list			,style);
-	iniSetBool(&ini,		ROOT_SECTION, "ZoneBlind"				,cfg->zone_blind				,style);
-	iniSetShortInt(&ini,	ROOT_SECTION, "ZoneBlindThreshold"		,cfg->zone_blind_threshold		,style);
-	iniSetLogLevel(&ini,	ROOT_SECTION, "LogLevel"				,cfg->log_level					,style);
-	iniSetBool(&ini,		ROOT_SECTION, "CheckPathsForDupes"		,cfg->check_path				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "StrictPacketPasswords"	,cfg->strict_packet_passwords	,style);
-	iniSetBool(&ini,		ROOT_SECTION, "SecureEchomail"			,cfg->secure_echomail			,style);
-	iniSetBool(&ini,		ROOT_SECTION, "EchomailNotify"			,cfg->echomail_notify			,style);
-	iniSetBool(&ini,		ROOT_SECTION, "StripLineFeeds"			,cfg->strip_lf					,style);
-	iniSetBool(&ini,		ROOT_SECTION, "StripSoftCRs"			,cfg->strip_soft_cr				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "UseOutboxes"				,cfg->use_outboxes				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "AutoUTF8"				,cfg->auto_utf8					,style);
-	iniSetBool(&ini,		ROOT_SECTION, "ConvertTearLines"		,cfg->convert_tear				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "FuzzyNetmailZones"		,cfg->fuzzy_zone				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "BinkleyStyleOutbound"	,cfg->flo_mailer				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "TruncateBundles"			,cfg->trunc_bundles				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "AreaAddFromEcholistsOnly",cfg->add_from_echolists_only	,style);
-	iniSetBool(&ini,		ROOT_SECTION, "AutoAddSubs"				,cfg->auto_add_subs				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "AutoAddToAreaFile"		,cfg->auto_add_to_areafile		,style);
-	iniSetDuration(&ini,	ROOT_SECTION, "BsyTimeout"				,cfg->bsy_timeout				,style);
-	iniSetDuration(&ini,	ROOT_SECTION, "BsoLockDelay"			,cfg->bso_lock_delay			,style);
-	iniSetLongInt(&ini,		ROOT_SECTION, "BsoLockAttempts"			,cfg->bso_lock_attempts			,style);
-	iniSetDuration(&ini,	ROOT_SECTION, "MaxEchomailAge"			,cfg->max_echomail_age			,style);
-	iniSetDuration(&ini,	ROOT_SECTION, "MaxNetmailAge"			,cfg->max_netmail_age			,style);
-	iniSetBool(&ini,		ROOT_SECTION, "RelayFilteredMsgs"		,cfg->relay_filtered_msgs		,style);
-	iniSetBool(&ini,		ROOT_SECTION, "KillEmptyNetmail",		cfg->kill_empty_netmail			,style);
-	iniSetBool(&ini,		ROOT_SECTION, "DeleteNetmail",			cfg->delete_netmail				,style);
-	iniSetBool(&ini,		ROOT_SECTION, "DeletePackets",			cfg->delete_packets				,style);
-
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailDestAddr"	,cfg->ignore_netmail_dest_addr	,style);
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailSentAttr"	,cfg->ignore_netmail_sent_attr	,style);
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailKillAttr"	,cfg->ignore_netmail_kill_attr	,style);
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailRecvAttr"	,cfg->ignore_netmail_recv_attr	,style);
-	iniSetBool(&ini,		ROOT_SECTION, "IgnoreNetmailLocalAttr"	,cfg->ignore_netmail_local_attr	,style);
-	iniSetString(&ini,		ROOT_SECTION, "DefaultRecipient"		,cfg->default_recipient			,style);
-
-	/******************/
-	/* BinkP Settings */
-	/******************/
-	iniSetString(&ini,		"BinkP"	,	"Capabilities"				,cfg->binkp_caps				,style);
-	iniSetString(&ini,		"BinkP"	,	"Sysop"						,cfg->binkp_sysop				,style);
-	iniSetBool(&ini,		"BinkP"	,	"PlainAuthOnly"				,cfg->binkp_plainAuthOnly		,style);
-	iniSetBool(&ini,		"BinkP"	,	"PlainTextOnly"				,cfg->binkp_plainTextOnly		,style);
-
-	/******************/
-	/* Archive Types: */
-	/******************/
-	iniRemoveSections(&ini, "archive:");
-	for(uint i=0; i<cfg->arcdefs; i++) {
-		arcdef_t* arc = &cfg->arcdef[i];
-		if(arc->name[0] == 0)
-			continue;
-		SAFEPRINTF(section,"archive:%s", arc->name);
-		iniSetString(&ini,	section,	"Sig"			,arc->hexid		,style);
-		iniSetInteger(&ini,	section,	"SigOffset"		,arc->byteloc	,style);
-		iniSetString(&ini,	section,	"Pack"			,arc->pack		,style);
-		iniSetString(&ini,	section,	"Unpack"		,arc->unpack	,style);
-	}
-
-	/****************/
-	/* Links/Nodes: */
-	/****************/
-	iniRemoveSections(&ini, "node:");
-	for(uint i=0; i<cfg->nodecfgs; i++) {
-		nodecfg_t*	node = &cfg->nodecfg[i];
-		SAFEPRINTF(section,"node:%s", faddrtoa(&node->addr));
-		if(node->domain[0])
-			sprintf(section + strlen(section), "@%s", node->domain);
-		iniSetString(&ini	,section,	"Name"			,node->name			,style);
-		iniSetString(&ini	,section,	"Comment"		,node->comment		,style);
-		iniSetString(&ini	,section,	"Archive"		,node->archive == SBBSECHO_ARCHIVE_NONE ? "None" : node->archive->name, style);
-		iniSetEnum(&ini		,section,	"PacketType"	,pktTypeStringList, node->pkt_type, style);
-		iniSetString(&ini	,section,	"PacketPwd"		,node->pktpwd		,style);
-		iniSetBool(&ini		,section,	"AreaFix"		,node->areafix		,style);
-		iniSetString(&ini	,section,	"AreaFixPwd"	,node->password		,style);
-		iniSetString(&ini	,section,	"SessionPwd"	,node->sesspwd		,style);
-		iniSetString(&ini	,section,	"TicFilePwd"	,node->ticpwd		,style);
-		iniSetString(&ini	,section,	"Inbox"			,node->inbox		,style);
-		iniSetString(&ini	,section,	"Outbox"		,node->outbox		,style);
-		iniSetBool(&ini		,section,	"Passive"		,node->passive		,style);
-		iniSetBool(&ini		,section,	"Direct"		,node->direct		,style);
-		iniSetBool(&ini		,section,	"Notify"		,node->send_notify	,style);
-		iniSetStringList(&ini,section,	"Keys", ","		,node->keys			,style);
-		iniSetEnum(&ini		,section,	"Status"		,mailStatusStringList, node->status, style);
-		if(node->route.zone)
-			iniSetString(&ini,section,	"Route"			,faddrtoa(&node->route), style);
-		else
-			iniRemoveKey(&ini,section,	"Route");
-		if(node->local_addr.zone)
-			iniSetString(&ini,section,	"LocalAddress"	,faddrtoa(&node->local_addr), style);
-		else
-			iniRemoveKey(&ini,section,	"LocalAddress");
-		iniSetStringList(&ini, section, "GroupHub", ","	,node->grphub		,style);
-		/* BinkP-related */
-		iniSetString(&ini	,section,	"BinkpHost"		,node->binkp_host	,style);
-		iniSetShortInt(&ini	,section,	"BinkpPort"		,node->binkp_port	,style);
-		iniSetBool(&ini		,section,	"BinkpPoll"		,node->binkp_poll	,style);
-		iniSetBool(&ini		,section,	"BinkpPlainAuthOnly",node->binkp_plainAuthOnly, style);
-		iniSetBool(&ini		,section,	"BinkpAllowPlainAuth",node->binkp_allowPlainAuth, style);
-		iniSetBool(&ini		,section,	"BinkpAllowPlainText",node->binkp_allowPlainText, style);
-		iniSetBool(&ini		,section,	"BinkpTLS",node->binkp_tls, style);
-		iniSetString(&ini	,section,	"BinkpSourceAddress",node->binkp_src, style);
-	}
-
-	/**************/
-	/* EchoLists: */
-	/**************/
-	iniRemoveSections(&ini, "echolist:");
-	for(uint i=0; i<cfg->listcfgs; i++) {
-		echolist_t* elist = &cfg->listcfg[i];
-		if(elist->listpath[0] == 0)
-			continue;
-		SAFEPRINTF(section,"echolist:%s", elist->listpath);
-		iniSetString(&ini	,section,	"Hub"		,faddrtoa(&elist->hub)				,style);
-		iniSetString(&ini	,section,	"AreaMgr"	,elist->areamgr						,style);
-		iniSetString(&ini	,section,	"Pwd"		,elist->password					,style);
-		iniSetBool(&ini		,section,	"Fwd"		,elist->forward						,style);
-		iniSetStringList(&ini,section,	"Keys", ","	,elist->keys						,style);
-	}
-
-	/* Domains */
-	iniRemoveSections(&ini, "domain:");
-	for(unsigned i=0; i < cfg->domain_count; i++) {
-		struct fido_domain* dom = &cfg->domain_list[i];
-		if(dom->name[0] == 0)
-			continue;
-		SAFEPRINTF(section, "domain:%s", dom->name);
-		iniSetIntList(&ini,	section,	"Zones", ",",	dom->zone_list, dom->zone_count, style);
-		iniSetString(&ini,	section,	"DNSSuffix",	dom->dns_suffix, style);
-		if(strcmp(cfg->outbound, dom->root) != 0)
-			iniSetString(&ini,	section,	"OutboundRoot",	dom->root, style);
-		iniSetString(&ini,	section,	"NodeList",		dom->nodelist, style);
-	}
-
-	iniWriteFile(fp, ini);
-	iniCloseFile(fp);
-
-	iniFreeStringList(ini);
-	return true;
-}

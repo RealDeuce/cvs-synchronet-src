@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.98 2020/03/31 22:51:33 deuce Exp $ */
+/* $Id$ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -12,7 +12,6 @@
 	#include <mmsystem.h>
 #elif defined(__unix__)
 	#include <fcntl.h>
-	#include <sys/ioctl.h>
 	#if SOUNDCARD_H_IN==1
 		#include <sys/soundcard.h>
 	#elif SOUNDCARD_H_IN==2
@@ -276,7 +275,7 @@ void DLLCALL makewave(double freq, unsigned char *wave, int samples, enum WAVE_S
 				wave[i]=128+((wave[i]-128)/((numcross-crossings)*(numcross-crossings)));
 			}
 			crossings=0;
-			for(i=samples-1; i>0; i--) {
+			for(i=samples; i>0; i--) {
 				if(((wave[i]<128 && wave[i-1]>=128) || (wave[i]>128 && wave[i-1]<=128)) && i>2) {
 					crossings++;
 					if(crossings>=numcross)
@@ -361,7 +360,7 @@ BOOL DLLCALL xptone_open(void)
 #ifdef WITH_PORTAUDIO
 	if(!portaudio_device_open_failed) {
 		if(pa_api==NULL) {
-			dll_handle dl=NULL;
+			dll_handle dl;
 			const char *libnames[]={"portaudio",NULL};
 			if(((pa_api=(struct portaudio_api_struct *)malloc(sizeof(struct portaudio_api_struct)))==NULL)
 					|| ((dl=xp_dlopen(libnames,RTLD_LAZY,0))==NULL)
@@ -372,7 +371,7 @@ BOOL DLLCALL xptone_open(void)
 					||
 						(
 							((pa_api->active=xp_dlsym(dl,Pa_StreamActive))==NULL)
-							&& ((pa_api->active=xp_dlsym(dl,Pa_IsStreamStopped))==NULL)
+							&& ((pa_api->active=xp_dlsym(dl,Pa_IsStreamActive))==NULL)
 						)
 					|| ((pa_api->stop=xp_dlsym(dl,Pa_StopStream))==NULL)
 					) {
@@ -428,9 +427,8 @@ BOOL DLLCALL xptone_open(void)
 
 #ifdef WITH_SDL_AUDIO
 	if(!sdl_device_open_failed) {
-		if(init_sdl_audio()==-1) {
+		if(init_sdl_audio()==-1)
 			sdl_device_open_failed=TRUE;
-		}
 		else {
 			spec.freq=22050;
 			spec.format=AUDIO_U8;
@@ -471,16 +469,15 @@ BOOL DLLCALL xptone_open(void)
 		wh[0].dwBufferLength=S_RATE*15/2+1;
 		wh[1].dwBufferLength=S_RATE*15/2+1;
 		handle_type=SOUND_DEVICE_WIN32;
-		if(!sound_device_open_failed) {
+		if(!sound_device_open_failed)
 			return(TRUE);
-		}
 	}
 #endif
 
 #ifdef USE_ALSA_SOUND
 	if(!alsa_device_open_failed) {
 		if(alsa_api==NULL) {
-			dll_handle dl=NULL;
+			dll_handle dl;
 			const char *libnames[]={"asound", NULL};
 			if(((alsa_api=(struct alsa_api_struct *)malloc(sizeof(struct alsa_api_struct)))==NULL)
 					|| ((dl=xp_dlopen(libnames,RTLD_LAZY,2))==NULL)
@@ -559,9 +556,8 @@ BOOL DLLCALL xptone_open(void)
 	if(sound_device_open_failed)
 		return(FALSE);
 	handle_type=SOUND_DEVICE_OSS;
-	if(!sound_device_open_failed) {
+	if(!sound_device_open_failed)
 		return(TRUE);
-	}
 #endif
 	return(FALSE);
 }
@@ -572,13 +568,10 @@ void DLLCALL xptone_complete(void)
 		return;
 #ifdef WITH_PORTAUDIO
 	else if(handle_type==SOUND_DEVICE_PORTAUDIO) {
-		while(pa_api->active(portaudio_stream) == 1)
+		while(pa_api->active(portaudio_stream))
 			SLEEP(1);
 		pa_api->stop(portaudio_stream);
-		if (pawave) {
-			free((void *)pawave);
-			pawave = NULL;
-		}
+		FREE_AND_NULL(pawave);
 	}
 #endif
 
@@ -673,7 +666,7 @@ BOOL DLLCALL xptone_close(void)
 #ifdef XPDEV_THREAD_SAFE
 void DLLCALL xp_play_sample_thread(void *data)
 {
-	BOOL			must_close;
+	BOOL			must_close=FALSE;
 	BOOL			posted_last=TRUE;
 	BOOL			waited=FALSE;
 	unsigned char	*sample=NULL;
@@ -687,7 +680,6 @@ void DLLCALL xp_play_sample_thread(void *data)
 	SetThreadName("Sample Play");
 	sample_thread_running=TRUE;
 	while(1) {
-		must_close = FALSE;
 		if(!waited) {
 			if(sem_wait(&sample_pending_sem)!=0)
 				goto error_return;
@@ -720,7 +712,6 @@ void DLLCALL xp_play_sample_thread(void *data)
 	#ifdef WITH_PORTAUDIO
 		if(handle_type==SOUND_DEVICE_PORTAUDIO) {
 			if(pa_api->ver >= 1899) {
-				pa_api->start(portaudio_stream);
 				pa_api->write(portaudio_stream, sample, this_sample_size);
 				FREE_AND_NULL(sample);
 			}
@@ -743,9 +734,7 @@ void DLLCALL xp_play_sample_thread(void *data)
 			sdl_audio_buf_pos=0;
 			sdl_audio_buf_len=this_sample_size;
 			sdl.UnlockAudio();
-			sdl.PauseAudio(FALSE);
 			sdl.SemWait(sdlToneDone);
-			sdl.PauseAudio(TRUE);
 		}
 	#endif
 
@@ -830,10 +819,6 @@ error_return:
 	sample_thread_running=FALSE;
 }
 
-/*
- * This MUST not return false after sample goes into the sample buffer in the background.
- * If it does, the caller won't be able to free() it.
- */
 BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t size, BOOL background)
 {
 	if(!sample_initialized) {
@@ -890,8 +875,8 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 #ifdef WITH_PORTAUDIO
 	if(handle_type==SOUND_DEVICE_PORTAUDIO) {
 		if(pa_api->ver >= 1899) {
-			pa_api->start(portaudio_stream);
 			pa_api->write(portaudio_stream, sample, sample_size);
+			free(sample);
 		}
 		else {
 			xptone_complete();
@@ -909,20 +894,11 @@ BOOL DLLCALL xp_play_sample(const unsigned char *sample, size_t sample_size, BOO
 #ifdef WITH_SDL_AUDIO
 	if(handle_type==SOUND_DEVICE_SDL) {
 		sdl.LockAudio();
-		swave=malloc(sample_size);
-		if (swave == NULL) {
-			sdl.UnlockAudio();
-			if(must_close)
-				xptone_close();
-			return FALSE;
-		}
-		memcpy(swave, sample, sample_size);
+		swave=sample;
 		sdl_audio_buf_pos=0;
 		sdl_audio_buf_len=sample_size;
 		sdl.UnlockAudio();
-		sdl.PauseAudio(FALSE);
 		sdl.SemWait(sdlToneDone);
-		sdl.PauseAudio(TRUE);
 		if(must_close)
 			xptone_close();
 		return TRUE;
@@ -1000,7 +976,6 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 {
 	unsigned char	*wave;
 	int samples;
-	BOOL ret;
 
 	wave=(unsigned char *)malloc(S_RATE*15/2+1);
 	if(!wave)
@@ -1020,17 +995,13 @@ BOOL DLLCALL xptone(double freq, DWORD duration, enum WAVE_SHAPE shape)
 			;
 		sample_len++;
 		while(samples > S_RATE*15/2) {
-			if(!xp_play_sample(wave, sample_len, TRUE)) {
-				free(wave);
+			if(!xp_play_sample(wave, sample_len, TRUE))
 				return FALSE;
-			}
 			samples -= sample_len;
 		}
 	}
 	makewave(freq,wave,samples,shape);
-	ret = xp_play_sample(wave, samples, FALSE);
-	free(wave);
-	return ret;
+	return(xp_play_sample(wave, samples, FALSE));
 }
 
 #ifdef __unix__

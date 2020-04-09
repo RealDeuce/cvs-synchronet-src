@@ -1,4 +1,4 @@
-/* $Id: qwknodes.c,v 1.24 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id$ */
 
 /* Synchronet QWKnet node list or route.dat file generator */
 
@@ -6,7 +6,7 @@
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -161,7 +161,8 @@ char *usage="\nusage: qwknodes [-opts] cmds"
 			"\n       a  =  append existing output files"
 			"\n       t  =  include tag lines in nodes.dat"
 			"\n       l  =  include local users in users.dat"
-			"\n       m# =  maximum message age set to # days";
+			"\n       m# =  maximum message age set to # days"
+			"\n";
 
 int main(int argc, char **argv)
 {
@@ -172,9 +173,10 @@ int main(int argc, char **argv)
 	FILE		*route,*users,*nodes;
 	time_t		now;
 	smbmsg_t	msg;
+	char		*ctrl_dir;
 	char		revision[16];
 
-	sscanf("$Revision: 1.24 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet QWKnet Node/Route/User List Generator v%s-%s\n"
 		,revision, PLATFORM_DESC);
@@ -204,7 +206,7 @@ int main(int argc, char **argv)
 								while(isdigit(argv[i][j+1])) j++;
 								break;
 							default:
-								puts(usage);
+								printf(usage);
 								return(1); 
 					}
 					j--;
@@ -219,12 +221,12 @@ int main(int argc, char **argv)
 					cmd|=NODES;
 					break;
 				default:
-					puts(usage);
+					printf(usage);
 					return(1); 
 		}
 
 	if(!cmd) {
-		puts(usage);
+		printf(usage);
 		return(1); 
 	}
 
@@ -252,7 +254,13 @@ int main(int argc, char **argv)
 		}
 
 	cfg.size=sizeof(cfg);
-	SAFECOPY(cfg.ctrl_dir, get_ctrl_dir());
+	ctrl_dir=getenv("SBBSCTRL");
+	if(ctrl_dir==NULL || ctrl_dir[0]==0) {
+		ctrl_dir="/sbbs/ctrl";          /* Not set? Use default */
+		printf("!SBBSCTRL environment variable not set, using default value: %s\n\n"
+				,ctrl_dir);
+	}
+	SAFECOPY(cfg.ctrl_dir, ctrl_dir);
 
 	if(!load_cfg(&cfg, NULL, TRUE, str)) {
 		printf("\7\n%s\n",str);

@@ -2,13 +2,13 @@
 
 /* Synchronet bulk e-mail functions */
 
-/* $Id: bulkmail.cpp,v 1.44 2019/07/08 00:59:25 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,13 +43,11 @@ bool sbbs_t::bulkmail(uchar *ar)
 	char		str[256],title[LEN_TITLE+1];
 	char		msgpath[MAX_PATH+1];
 	char*		msgbuf;
-	const char*	editor=NULL;
-	const char*	charset=NULL;
+	char*		editor=NULL;
 	char 		tmp[512];
 	int 		i,j,x;
 	long		msgs=0;
 	long		length;
-	long		wm_mode=WM_EMAIL;
 	FILE*		fp;
 	smb_t		smb;
 	smbmsg_t	msg;
@@ -62,16 +60,11 @@ bool sbbs_t::bulkmail(uchar *ar)
 	nodesync();
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
-		&& !noyes(text[AnonymousQ])) {
+		&& !noyes(text[AnonymousQ]))
 		msg.hdr.attr|=MSG_ANONYMOUS;
-		wm_mode|=WM_ANON;
-	}
 
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
-	if(!writemsg(msgpath,nulstr,title,wm_mode,INVALID_SUB,"Bulk Mailing"
-		,/* From: */useron.alias
-		,&editor
-		,&charset)) {
+	if(!writemsg(msgpath,nulstr,title,WM_EMAIL,INVALID_SUB,"Bulk Mailing",&editor)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
@@ -90,7 +83,6 @@ bool sbbs_t::bulkmail(uchar *ar)
 	CRLF;
 
 	if((msgbuf=(char*)malloc(length+1))==NULL) {
-		fclose(fp);
 		errormsg(WHERE,ERR_ALLOC,msgpath,length+1);
 		return(false);
 	}
@@ -113,11 +105,12 @@ bool sbbs_t::bulkmail(uchar *ar)
 	msg.hdr.when_written.time=time32(NULL);
 	msg.hdr.when_written.zone=sys_timezone(&cfg);
 
-	editor_info_to_msg(&msg, editor, charset);
+	if(editor!=NULL)
+		smb_hfield_str(&msg,SMB_EDITOR,editor);
 
 	memset(&smb,0,sizeof(smb));
 	smb.subnum=INVALID_SUB;	/* mail database */
-	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf, /* remsg: */NULL);
+	i=savemsg(&cfg, &smb, &msg, &client, startup->host_name, msgbuf);
 	free(msgbuf);
 	if(i!=0) {
 		smb_close(&smb);
@@ -207,15 +200,15 @@ int sbbs_t::bulkmailhdr(smb_t* smb, smbmsg_t* msg, uint usernum)
 		smb_hfield_str(&newmsg,RECIPIENTEXT,str);
 	}
 
-	j=smb_addmsghdr(smb,&newmsg,smb_storage_mode(&cfg, smb));
+	j=smb_addmsghdr(smb,&newmsg,SMB_SELFPACK);
 	smb_freemsgmem(&newmsg);
 	if(j!=SMB_SUCCESS)
 		return(j);
 
 	lncntr=0;
 	bprintf(text[Emailing],user.alias,usernum);
-	sprintf(str,"bulk-mailed %s #%d"
-		,user.alias,usernum);
+	sprintf(str,"%s bulk-mailed %s #%d"
+		,useron.alias,user.alias,usernum);
 	logline("E+",str);
 	useron.emails++;
 	logon_emails++;

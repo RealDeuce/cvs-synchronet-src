@@ -2,13 +2,13 @@
 
 /* Uni or Bi-directional FIFO message queue */
 
-/* $Id: msg_queue.c,v 1.15 2019/08/22 01:40:21 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -57,18 +57,10 @@ msg_queue_t* DLLCALL msgQueueInit(msg_queue_t* q, long flags)
 	q->owner_thread_id = pthread_self();
 
 	if(q->flags&MSG_QUEUE_BIDIR)
-		listInit(&q->in,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
-	listInit(&q->out,LINK_LIST_SEMAPHORE|LINK_LIST_MUTEX);
+		listInit(&q->in,LINK_LIST_SEMAPHORE);
+	listInit(&q->out,LINK_LIST_SEMAPHORE);
 
 	return(q);
-}
-
-BOOL DLLCALL msgQueueOwner(msg_queue_t* q)
-{
-	if(q==NULL)
-		return(FALSE);
-
-	return q->owner_thread_id == pthread_self();
 }
 
 BOOL DLLCALL msgQueueFree(msg_queue_t* q)
@@ -101,9 +93,6 @@ long DLLCALL msgQueueDetach(msg_queue_t* q)
 
 	if(q==NULL || q->refs<1)
 		return(-1);
-
-	if(msgQueueOwner(q))
-		q->flags |= MSG_QUEUE_ORPHAN;
 
 	if((refs=--q->refs)==0)
 		msgQueueFree(q);
@@ -215,7 +204,7 @@ void* DLLCALL msgQueuePeek(msg_queue_t* q, long timeout)
 #endif
 		;
 
-	return  listNodeData(listFirstNode(list));
+	return listNodeData(listFirstNode(list));
 }
 
 void* DLLCALL msgQueueFind(msg_queue_t* q, const void* data, size_t length)

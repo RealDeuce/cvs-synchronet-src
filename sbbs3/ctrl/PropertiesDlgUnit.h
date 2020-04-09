@@ -1,10 +1,10 @@
-/* $Id: PropertiesDlgUnit.h,v 1.20 2018/07/24 01:11:29 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -121,13 +121,8 @@ __published:
     TEdit *LoginAttemptThrottleEdit;
     TLabel *LoginAttemptHackThreshold;
     TEdit *LoginAttemptHackThresholdEdit;
-        TLabel *LoginAttemptTempBanThresholdLabel;
-        TEdit *LoginAttemptTempBanThresholdEdit;
-        TLabel *LoginAttemptTempBanDurationLabel;
-        TEdit *LoginAttemptTempBanDurationEdit;
-        TLabel *LoginAttemptFilterThresholdLabel;
-        TEdit *LoginAttemptFilterThresholdEdit;
-    TButton *HelpBtn;
+    TLabel *LoginAttemptFilterThresholdLabel;
+    TEdit *LoginAttemptFilterThresholdEdit;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TrayIconCheckBoxClick(TObject *Sender);
 	void __fastcall SourceComboBoxChange(TObject *Sender);
@@ -137,7 +132,6 @@ __published:
     void __fastcall LogLevelComboBoxChange(TObject *Sender);
     void __fastcall LogFontButtonClick(TObject *Sender);
     void __fastcall ErrorSoundButtonClick(TObject *Sender);
-    void __fastcall HelpBtnClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TPropertiesDlg(TComponent* AOwner);

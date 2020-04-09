@@ -2,13 +2,13 @@
 
 /* Network related wrapper functions */
 
-/* $Id: netwrap.c,v 1.8 2019/07/24 04:21:42 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -35,9 +35,9 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include "sockwrap.h"
 #include "genwrap.h"	/* truncsp */
 #include "netwrap.h"	/* verify prototypes */
+#include "sockwrap.h"
 
 #include <stdlib.h>		/* malloc() */
 #include <ctype.h>		/* isspace() */

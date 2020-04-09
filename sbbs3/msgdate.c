@@ -2,13 +2,13 @@
 
 /* Synchronet RFC822 message date/time string conversion routines */
 
-/* $Id: msgdate.c,v 1.7 2018/07/24 11:37:38 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -173,12 +173,4 @@ when_t DLLCALL rfc822date(char* date)
 	when.time=(uint32_t)mktime(&tm);
 
 	return(when);
-}
-
-BOOL DLLCALL newmsgs(smb_t* smb, time_t t)
-{
-	char index_fname[MAX_PATH + 1];
-
-	SAFEPRINTF(index_fname, "%s.sid", smb->file);
-	return fdate(index_fname) >= t;
 }

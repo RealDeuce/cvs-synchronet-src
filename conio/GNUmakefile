@@ -2,7 +2,7 @@ SRC_ROOT = ..
 # Cross platform/compiler definitions
 include $(SRC_ROOT)/build/Common.gmake	# defines clean and output directory rules
 
-CFLAGS += $(XPDEV-MT_CFLAGS) $(ENCODE_CFLAGS) $(CIOLIB-MT_CFLAGS)
+CFLAGS += $(XPDEV-MT_CFLAGS) $(CIOLIB-MT_CFLAGS)
 
 ifeq ($(os),win32)
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)SDL_win32_main$(OFILE)
@@ -21,9 +21,6 @@ endif
 
 ifdef WITH_SDL_AUDIO
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
- ifeq ($(os),darwin)
-  OBJS 	+=      $(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE)
- endif
  NEED_BITMAP := 1
 else
  ifdef WITH_SDL
@@ -31,7 +28,7 @@ else
   OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
   OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
   ifeq ($(os),darwin)
-   OBJS 	+=      $(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE)
+   OBJS 	+=      $(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE)
   endif
  endif
 endif
@@ -57,7 +54,7 @@ $(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR) $(OBJS)
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(OBJS) $(SHLIBOPTS) -o $@
 
 ifeq ($(os),darwin)
-$(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE): pasteboard.m
+$(MTOBJODIR)$(DIRSEP)SDLMain$(OFILE): SDLMain.m
 	@echo $(COMPILE_MSG) $<
 	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
 endif

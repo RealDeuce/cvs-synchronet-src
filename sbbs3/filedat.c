@@ -2,13 +2,13 @@
 
 /* Synchronet file database-related exported functions */
 
-/* $Id: filedat.c,v 1.40 2019/01/12 08:11:13 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -72,15 +72,18 @@ BOOL DLLCALL getfiledat(scfg_t* cfg, file_t* f)
 	getrec(buf,F_CDT,LEN_FCDT,str);
 	f->cdt=atol(str);
 
-	if(f->size == 0) {					// only read disk if f->size == 0
-		struct stat st;
-		getfilepath(cfg,f,str);
-		if(stat(str, &st) == 0) {
-			f->size = st.st_size;
-			f->date = (time32_t)st.st_mtime;
-		} else
-			f->size = -1;	// indicates file does not exist
-	}
+	if(!f->size) {					/* only read disk if this is null */
+			getfilepath(cfg,f,str);
+			if((f->size=(long)flength(str))>=0)
+				f->date=(time32_t)fdate(str);
+	/*
+			}
+		else {
+			f->size=f->cdt;
+			f->date=0; 
+			}
+	*/
+			}
 #if 0
 	if((f->size>0L) && cur_cps)
 		f->timetodl=(ushort)(f->size/(ulong)cur_cps);
@@ -161,6 +164,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	uchar	*ixbbuf,idx[3];
     int		i,file;
 	long	l,length;
+	time_t	now;
 	time_t	uldate;
 
 	/************************/
@@ -220,9 +224,9 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 	/*******************************************/
 	SAFEPRINTF2(str,"%s%s.dab",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_WRONLY|O_CREAT|O_BINARY,SH_DENYRW,DEFFILEMODE))!=-1) {
-		time32_t now=time32(NULL);
-		/* TODO: LE required */
-		write(file,&now,sizeof(time32_t));
+		now=time(NULL);
+		/* TODO: 32-bit *or* LE required */
+		write(file,&now,4);
 		close(file); 
 	}
 
@@ -248,7 +252,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 		}
 		if(lread(file,ixbbuf,length)!=length) {
 			close(file);
-			free(ixbbuf);
+			free((char *)ixbbuf);
 			return(FALSE); 
 		}
 	/************************************************/
@@ -259,7 +263,7 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 				for(i=0;i<12 && toupper(fname[i])==toupper(ixbbuf[l+i]);i++);
 				if(i==12) {     /* file already in directory index */
 					close(file);
-					free(ixbbuf);
+					free((char *)ixbbuf);
 					return(FALSE); 
 				}
 				if(cfg->dir[f->dir]->sort==SORT_NAME_A 
@@ -283,22 +287,22 @@ BOOL DLLCALL addfiledat(scfg_t* cfg, file_t* f)
 		lseek(file,l,SEEK_SET);
 		if(write(file,fname,11)!=11) {  /* Write filename to IXB file */
 			close(file);
-			free(ixbbuf);
+			free((char *)ixbbuf);
 			return(FALSE); 
 		}
 		if(write(file,idx,3)!=3) {  /* Write DAT offset into IXB file */
 			close(file);
-			free(ixbbuf);
+			free((char *)ixbbuf);
 			return(FALSE); 
 		}
 		write(file,&f->dateuled,4);
 		write(file,&f->datedled,4);              /* Write 0 for datedled */
 		if(lwrite(file,&ixbbuf[l],length-l)!=length-l) { /* Write rest of IXB */
 			close(file);
-			free(ixbbuf);
+			free((char *)ixbbuf);
 			return(FALSE); 
 		}
-		free(ixbbuf); 
+		free((char *)ixbbuf); 
 	}
 	else {              /* IXB file is empty... No files */
 		if(write(file,fname,11)!=11) {  /* Write filename it IXB file */
@@ -344,7 +348,7 @@ BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 	}
 	if(lread(file,ixbbuf,length)!=length) {
 		close(file);
-		free(ixbbuf);
+		free((char *)ixbbuf);
 		return(FALSE); 
 	}
 	close(file);
@@ -357,7 +361,7 @@ BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 			break; 
 	}
 	if(l>=length) {
-		free(ixbbuf);
+		free((char *)ixbbuf);
 		return(FALSE); 
 	}
 	l+=11;
@@ -366,7 +370,7 @@ BOOL DLLCALL getfileixb(scfg_t* cfg, file_t* f)
 		|((long)ixbbuf[l+5]<<16)|((long)ixbbuf[l+6]<<24);
 	f->datedled=ixbbuf[l+7]|((long)ixbbuf[l+8]<<8)
 		|((long)ixbbuf[l+9]<<16)|((long)ixbbuf[l+10]<<24);
-	free(ixbbuf);
+	free((char *)ixbbuf);
 	return(TRUE);
 }
 
@@ -451,12 +455,11 @@ BOOL DLLCALL removefiledat(scfg_t* cfg, file_t* f)
 	}
 	if(lread(file,ixbbuf,length)!=length) {
 		close(file);
-		free(ixbbuf);
+		free((char *)ixbbuf);
 		return(FALSE); 
 	}
 	close(file);
 	if((file=sopen(str,O_WRONLY|O_TRUNC|O_BINARY,SH_DENYRW))==-1) {
-		free(ixbbuf);
 		return(FALSE); 
 	}
 	for(l=0;l<length;l+=F_IXBSIZE) {
@@ -466,11 +469,11 @@ BOOL DLLCALL removefiledat(scfg_t* cfg, file_t* f)
 		if(stricmp(ixbname,fname))
 			if(lwrite(file,&ixbbuf[l],F_IXBSIZE)!=F_IXBSIZE) {
 				close(file);
-				free(ixbbuf);
+				free((char *)ixbbuf);
 				return(FALSE); 
 		} 
 	}
-	free(ixbbuf);
+	free((char *)ixbbuf);
 	close(file);
 	SAFEPRINTF2(str,"%s%s.dat",cfg->dir[f->dir]->data_dir,cfg->dir[f->dir]->code);
 	if((file=sopen(str,O_WRONLY|O_BINARY,SH_DENYRW))==-1) {
@@ -516,7 +519,7 @@ BOOL DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename)
 	}
 	if(lread(file,ixbbuf,length)!=length) {
 		close(file);
-		free(ixbbuf);
+		free((char *)ixbbuf);
 		return(FALSE); 
 	}
 	close(file);
@@ -525,7 +528,7 @@ BOOL DLLCALL findfile(scfg_t* cfg, uint dirnum, char *filename)
 			if(toupper(fname[i])!=toupper(ixbbuf[l+i])) break;
 		if(i==11) break; 
 	}
-	free(ixbbuf);
+	free((char *)ixbbuf);
 	if(l!=length)
 		return(TRUE);
 	return(FALSE);
@@ -721,7 +724,7 @@ int DLLCALL update_uldate(scfg_t* cfg, file_t* f)
 }
 
 /****************************************************************************/
-/* Returns full (case-corrected) path to specified file						*/
+/* Returns full path to specified file										*/
 /****************************************************************************/
 char* DLLCALL getfilepath(scfg_t* cfg, file_t* f, char* path)
 {
@@ -734,6 +737,6 @@ char* DLLCALL getfilepath(scfg_t* cfg, file_t* f, char* path)
 		safe_snprintf(path,MAX_PATH,"%s%s",f->altpath>0 && f->altpath<=cfg->altpaths 
 			? cfg->altpath[f->altpath-1] : cfg->dir[f->dir]->path
 			,fname);
-	fexistcase(path);
+
 	return(path);
 }

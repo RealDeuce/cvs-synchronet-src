@@ -2,13 +2,13 @@
 
 /* Synchronet text data access routines (exported) */
 
-/* $Id: dat_rec.h,v 1.5 2019/03/22 21:28:27 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2000 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -56,7 +56,7 @@
 			#define DLLEXPORT __declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL
+			#define DLLCALL __stdcall
 		#else
 			#define DLLCALL
 		#endif

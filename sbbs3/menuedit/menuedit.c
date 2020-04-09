@@ -2,13 +2,13 @@
 
 /* Synchronet Menu Editor		 										*/
 
-/* $Id: menuedit.c,v 1.6 2018/07/24 01:12:16 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -219,9 +219,9 @@ int main(int argc, char **argv)
 	glob_t	g;
 	size_t	gi;
 
-	sscanf("$Revision: 1.6 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 
-    printf("\r\nSynchronet Menu Editor (%s)  %s  Copyright "
+    printf("\r\nSynchronet Menu Editor (%s)  %s  Copyright 2004 "
         "Rob Swindell\r\n",PLATFORM_DESC,revision);
 
 	exec_dir[0]=0;

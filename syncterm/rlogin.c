@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: rlogin.c,v 1.35 2019/07/10 22:48:07 deuce Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 
@@ -156,16 +156,12 @@ int rlogin_connect(struct bbslist *bbs)
 		conn_send(ruser,strlen(ruser)+1,1000);
 		if(bbs->bpsrate) {
 			char	sbuf[30];
-			sprintf(sbuf, "%s/%d", get_emulation_str(get_emulation(bbs)), bbs->bpsrate);
+			sprintf(sbuf, "ansi-bbs/%d", bbs->bpsrate);
 
 			conn_send(sbuf, strlen(sbuf)+1,1000);
 		}
-		else {
-			char	sbuf[30];
-			sprintf(sbuf, "%s/115200", get_emulation_str(get_emulation(bbs)));
-
-			conn_send(sbuf, strlen(sbuf)+1,1000);
-		}
+		else
+			conn_send("ansi-bbs/115200",15,1000);
 	}
 
 	_beginthread(rlogin_output_thread, 0, NULL);
@@ -178,14 +174,10 @@ int rlogin_connect(struct bbslist *bbs)
 
 int rlogin_close(void)
 {
-	char garbage[1024];
-
 	conn_api.terminate=1;
 	closesocket(sock);
-	while(conn_api.input_thread_running || conn_api.output_thread_running) {
-		conn_recv_upto(garbage, sizeof(garbage), 0);
+	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	}
 	destroy_conn_buf(&conn_inbuf);
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);

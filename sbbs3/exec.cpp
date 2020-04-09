@@ -1,15 +1,14 @@
 /* exec.cpp */
-// vi: tabstop=4
 
 /* Synchronet command shell/module interpretter */
 
-/* $Id: exec.cpp,v 1.112 2019/10/24 20:54:30 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -40,7 +39,7 @@
 #include "cmdshell.h"
 #include "js_request.h"
 
-char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
+char ** sbbs_t::getstrvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -125,7 +124,7 @@ char ** sbbs_t::getstrvar(csi_t *bin, uint32_t name)
 	return((char **)&sysvar_p[sysvar_pi++]);
 }
 
-int32_t * sbbs_t::getintvar(csi_t *bin, uint32_t name)
+int32_t * sbbs_t::getintvar(csi_t *bin, int32_t name)
 {
 	uint i;
 
@@ -549,8 +548,7 @@ js_OperationCallback(JSContext *cx)
 		return(JS_FALSE);
 	}
 
-	if(sbbs->js_callback.auto_terminate && !sbbs->online 
-		&& ++sbbs->js_callback.offline_counter >= 10) {
+	if(sbbs->js_callback.auto_terminate && !sbbs->online) {
 		JS_ReportWarning(cx,"Disconnected");
 		sbbs->js_callback.counter=0;
 		JS_SetOperationCallback(cx, js_OperationCallback);
@@ -562,7 +560,14 @@ js_OperationCallback(JSContext *cx)
 	return ret;
 }
 
-long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope, JSContext* js_cx)
+static const char* js_ext(const char* fname)
+{
+	if(getfext(fname)==NULL)
+		return(".js");
+	return("");
+}
+
+long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* scope)
 {
 	char*		p;
 	char*		args=NULL;
@@ -572,13 +577,8 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 	char		path[MAX_PATH+1];
 	JSObject*	js_scope=scope;
 	JSObject*	js_script=NULL;
-	jsval		old_js_argv = JSVAL_VOID;
-	jsval		old_js_argc = JSVAL_VOID;
 	jsval		rval;
 	int32		result=0;
-
-	if(js_cx == NULL)
-		js_cx = this->js_cx;
 
 	if(js_cx==NULL) {
 		errormsg(WHERE,ERR_CHK,"JavaScript support",0);
@@ -596,15 +596,12 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 
 	path[0]=0;
 	if(strcspn(fname,"/\\")==strlen(fname)) {
-		const char* js_ext = "";
-		if(getfext(fname) == NULL)
-			js_ext = ".js";
 		if(startup_dir!=NULL && *startup_dir)
-			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext);
+			SAFEPRINTF3(path,"%s%s%s",startup_dir,fname,js_ext(fname));
 		if(path[0]==0 || !fexistcase(path)) {
-			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext);
+			SAFEPRINTF3(path,"%s%s%s",cfg.mods_dir,fname,js_ext(fname));
 			if(cfg.mods_dir[0]==0 || !fexistcase(path))
-				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext);
+				SAFEPRINTF3(path,"%s%s%s",cfg.exec_dir,fname,js_ext(fname));
 		}
 	} else
 		SAFECOPY(path,fname);
@@ -619,13 +616,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		js_scope=JS_NewObject(js_cx, NULL, NULL, js_glob);
 
 	if(js_scope!=NULL) {
-
-		if (scope != NULL) {
-			JS_GetProperty(js_cx, scope, "argv", &old_js_argv);
-			JS_AddValueRoot(js_cx, &old_js_argv);
-			JS_GetProperty(js_cx, scope, "argc", &old_js_argc);
-			JS_AddValueRoot(js_cx, &old_js_argc);
-		}
 
 		JSObject* argv=JS_NewArrayObject(js_cx, 0, NULL);
 
@@ -663,20 +653,6 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		JS_ReportPendingException(js_cx);	/* Added Feb-2-2006, rswindell */
 		JS_ENDREQUEST(js_cx);
 		errormsg(WHERE,"compiling",path,0);
-		if (scope != NULL) {
-			if (old_js_argv == JSVAL_VOID) {
-				JS_DeleteProperty(js_cx, scope, "argv");
-				JS_DeleteProperty(js_cx, scope, "argc");
-			}
-			else {
-				JS_DefineProperty(js_cx, scope, "argv", old_js_argv
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-				JS_DefineProperty(js_cx, scope, "argc", old_js_argc
-					,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			}
-			JS_RemoveValueRoot(js_cx, &old_js_argv);
-			JS_RemoveValueRoot(js_cx, &old_js_argc);
-		}
 		return -1;
 	}
 
@@ -689,10 +665,9 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 		JS_SetBranchCallback(js_cx, js_BranchCallback);
 #endif
 
-		js_PrepareToExecute(js_cx, js_glob, path, startup_dir, js_scope);
+		js_PrepareToExecute(js_cx, js_glob, path, startup_dir);
 	}
 	JS_ExecuteScript(js_cx, js_scope, js_script, &rval);
-	sys_status &=~ SS_ABORT;
 
 	if(scope==NULL) {
 		JS_GetProperty(js_cx, js_scope, "exit_code", &rval);
@@ -708,23 +683,10 @@ long sbbs_t::js_execfile(const char *cmd, const char* startup_dir, JSObject* sco
 
 	if(scope==NULL)
 		JS_ClearScope(js_cx, js_scope);
-	else {
-		if (old_js_argv == JSVAL_VOID) {
-			JS_DeleteProperty(js_cx, scope, "argv");
-			JS_DeleteProperty(js_cx, scope, "argc");
-		}
-		else {
-			JS_DefineProperty(js_cx, scope, "argv", old_js_argv
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-			JS_DefineProperty(js_cx, scope, "argc", old_js_argc
-				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-		}
-		JS_RemoveValueRoot(js_cx, &old_js_argv);
-		JS_RemoveValueRoot(js_cx, &old_js_argc);
-	}
+
+	JS_GC(js_cx);
 
 	JS_ENDREQUEST(js_cx);
-	JS_GC(js_cx);
 
 	return(result);
 }
@@ -740,8 +702,6 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 	int 	file;
     csi_t   bin;
 
-	if(cmdline == NULL || *cmdline == 0)
-		return -33;
 	SAFECOPY(mod,cmdline);
 	p=mod;
 	FIND_CHAR(p,' ');
@@ -791,12 +751,7 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 
 	memcpy(&bin,csi,sizeof(csi_t));
 	clearvars(&bin);
-	bin.length = filelength(file);
-	if(bin.length < 1) {
-		close(file);
-		errormsg(WHERE, ERR_LEN, str, bin.length);
-		return -1;
-	}
+	bin.length=(uint32_t)filelength(file);
 	if((bin.cs=(uchar *)malloc(bin.length))==NULL) {
 		close(file);
 		errormsg(WHERE,ERR_ALLOC,str,bin.length);
@@ -825,7 +780,6 @@ long sbbs_t::exec_bin(const char *cmdline, csi_t *csi, const char* startup_dir)
 	freevars(&bin);
 	free(bin.cs);
 	csi->logic=bin.logic;
-//	sys_status &=~ SS_ABORT;
 	return(bin.retval);
 }
 
@@ -1701,12 +1655,6 @@ int sbbs_t::exec(csi_t *csi)
 					case USER_STRING_MODEM:
 						sprintf(useron.modem,"%.*s",LEN_MODEM,csi->str);
 						putuserrec(&cfg,useron.number,U_MODEM,LEN_MODEM
-							,useron.phone);
-						csi->logic=LOGIC_TRUE;
-						break;
-					case USER_STRING_IPADDR:
-						sprintf(useron.ipaddr,"%.*s",LEN_IPADDR,csi->str);
-						putuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR
 							,useron.phone);
 						csi->logic=LOGIC_TRUE;
 						break;

@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: ssh.c,v 1.24 2019/07/11 18:31:45 deuce Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 
@@ -15,8 +15,6 @@
 #include "ciolib.h"
 
 #include "st_crypt.h"
-
-#include "syncterm.h"
 
 static SOCKET	sock;
 CRYPT_SESSION	ssh_session;
@@ -69,27 +67,27 @@ void ssh_input_thread(void *args)
 		}
 		if(rd == 0)
 			continue;
-
-		pthread_mutex_lock(&ssh_mutex);
-		status=cl.PopData(ssh_session, conn_api.rd_buf, conn_api.rd_buf_size, &rd);
-		pthread_mutex_unlock(&ssh_mutex);
-
-		if(cryptStatusError(status)) {
-			if(status==CRYPT_ERROR_COMPLETE || status == CRYPT_ERROR_READ) {	/* connection closed */
+		while(rd) {
+			pthread_mutex_lock(&ssh_mutex);
+			status=cl.PopData(ssh_session, conn_api.rd_buf, conn_api.rd_buf_size, &rd);
+			pthread_mutex_unlock(&ssh_mutex);
+			if(cryptStatusError(status)) {
+				if(status==CRYPT_ERROR_COMPLETE || status == CRYPT_ERROR_READ) {	/* connection closed */
+					ssh_active=FALSE;
+					break;
+				}
+				cryptlib_error_message(status, "recieving data");
 				ssh_active=FALSE;
 				break;
 			}
-			cryptlib_error_message(status, "recieving data");
-			ssh_active=FALSE;
-			break;
-		}
-		else {
-			buffered=0;
-			while(buffered < rd) {
-				pthread_mutex_lock(&(conn_inbuf.mutex));
-				buffer=conn_buf_wait_free(&conn_inbuf, rd-buffered, 100);
-				buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
-				pthread_mutex_unlock(&(conn_inbuf.mutex));
+			else {
+				buffered=0;
+				while(buffered < rd) {
+					pthread_mutex_lock(&(conn_inbuf.mutex));
+					buffer=conn_buf_wait_free(&conn_inbuf, rd-buffered, 100);
+					buffered+=conn_buf_put(&conn_inbuf, conn_api.rd_buf+buffered, buffer);
+					pthread_mutex_unlock(&(conn_inbuf.mutex));
+				}
 			}
 		}
 	}
@@ -146,7 +144,7 @@ int ssh_connect(struct bbslist *bbs)
 	char password[MAX_PASSWD_LEN+1];
 	char username[MAX_USER_LEN+1];
 	int	rows,cols;
-	const char *term;
+	struct text_info ti;
 
 	init_uifc(TRUE, TRUE);
 	pthread_mutex_init(&ssh_mutex, NULL);
@@ -236,10 +234,25 @@ int ssh_connect(struct bbslist *bbs)
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Type");
-	term = get_emulation_str(get_emulation(bbs));
-	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_SSH_TERMINAL, term, strlen(term));
+	status=cl.SetAttributeString(ssh_session, CRYPT_SESSINFO_SSH_TERMINAL, "syncterm", 8);
 
-	get_term_size(bbs, &cols, &rows);
+	/* Horrible way to determine the screen size */
+	textmode(screen_to_ciolib(bbs->screen_mode));
+
+	gettextinfo(&ti);
+	if(ti.screenwidth < 80)
+		cols=40;
+	else {
+		if(ti.screenwidth < 132)
+			cols=80;
+		else
+			cols=132;
+	}
+	rows=ti.screenheight;
+	if(!bbs->nostatus)
+		rows--;
+	if(rows<24)
+		rows=24;
 
 	uifc.pop(NULL);
 	uifc.pop("Setting Terminal Width");
@@ -250,8 +263,6 @@ int ssh_connect(struct bbslist *bbs)
 	uifc.pop("Setting Terminal Height");
 	/* Pass socket to cryptlib */
 	status=cl.SetAttribute(ssh_session, CRYPT_SESSINFO_SSH_HEIGHT, rows);
-
-	cl.SetAttribute(ssh_session, CRYPT_OPTION_NET_READTIMEOUT, 1);
 
 	/* Activate the session */
 	uifc.pop(NULL);
@@ -265,18 +276,6 @@ int ssh_connect(struct bbslist *bbs)
 	}
 
 	ssh_active=TRUE;
-	uifc.pop(NULL);
-
-	/* Clear ownership */
-	uifc.pop(NULL);
-	uifc.pop("Clearing Ownership");
-	status=cl.SetAttribute(ssh_session, CRYPT_PROPERTY_OWNER, CRYPT_UNUSED);
-	if(cryptStatusError(status)) {
-		cryptlib_error_message(status, "clearing session ownership");
-		conn_api.terminate=1;
-		uifc.pop(NULL);
-		return(-1);
-	}
 	uifc.pop(NULL);
 
 	create_conn_buf(&conn_inbuf, BUFFER_SIZE);
@@ -296,15 +295,11 @@ int ssh_connect(struct bbslist *bbs)
 
 int ssh_close(void)
 {
-	char garbage[1024];
-
 	conn_api.terminate=1;
 	ssh_active=FALSE;
 	cl.SetAttribute(ssh_session, CRYPT_SESSINFO_ACTIVE, 0);
-	while(conn_api.input_thread_running || conn_api.output_thread_running) {
-		conn_recv_upto(garbage, sizeof(garbage), 0);
+	while(conn_api.input_thread_running || conn_api.output_thread_running)
 		SLEEP(1);
-	}
 	cl.DestroySession(ssh_session);
 	closesocket(sock);
 	sock=INVALID_SOCKET;

@@ -1,13 +1,14 @@
+/* smbhash.c */
+
 /* Synchronet message base (SMB) hash-related functions */
 
-/* $Id: smbhash.c,v 1.36 2019/04/11 01:00:30 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -129,10 +130,8 @@ int SMBCALL smb_addhashes(smb_t* smb, hash_t** hashes, BOOL skip_marked)
 	size_t	h;
 
 	COUNT_LIST_ITEMS(hashes, h);
-	if(!h) { /* nothing to add */
-		smb_close_hash(smb);
+	if(!h)	/* nothing to add */
 		return(SMB_SUCCESS);
-	}
 
 	if((retval=smb_open_hash(smb))!=SMB_SUCCESS)
 		return(retval);
@@ -312,10 +311,10 @@ int SMBCALL smb_hashmsg(smb_t* smb, smbmsg_t* msg, const uchar* text, BOOL updat
 	if(smb_findhash(smb, hashes, &found, SMB_HASH_SOURCE_DUPE, update)==SMB_SUCCESS && !update) {
 		retval=SMB_DUPE_MSG;
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s duplicate %s: %s found in message #%lu", __FUNCTION__
+			,"duplicate %s: %s found in message #%lu"
 			,smb_hashsourcetype(found.source)
 			,smb_hashsource(msg,found.source)
-			,(ulong)found.number);
+			,found.number);
 	} else
 		if((retval=smb_addhashes(smb,hashes,/* skip_marked? */TRUE))==SMB_SUCCESS)
 			msg->flags|=MSG_FLAG_HASHED;

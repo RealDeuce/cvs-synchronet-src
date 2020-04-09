@@ -1,12 +1,14 @@
+/* inkey.cpp */
+
 /* Synchronet single key input function (no wait) */
 
-/* $Id: inkey.cpp,v 1.63 2019/10/24 20:54:30 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -34,7 +36,10 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "petdefs.h"
+
+#define LAST_STAT_LINE 16
+
+#define nosound()	
 
 int kbincom(sbbs_t* sbbs, unsigned long timeout)
 {
@@ -61,52 +66,21 @@ char sbbs_t::inkey(long mode, unsigned long timeout)
 	ch=kbincom(this,timeout); 
 
 	if(ch==0) {
+		// moved here from getkey() on AUG-29-2001
 		if(sys_status&SS_SYSPAGE) 
 			sbbs_beep(sbbs_random(800),100);
+#if 0
+		if(!(mode&K_GETSTR) || mode&K_LOWPRIO || cfg.node_misc&NM_LOWPRIO)
+			YIELD();
+#endif
 		return(0);
 	}
 
 	if(cfg.node_misc&NM_7BITONLY
-		&& (!(sys_status&SS_USERON) || term_supports(NO_EXASCII)))
+		&& (!(sys_status&SS_USERON) || useron.misc&NO_EXASCII))
 		ch&=0x7f; 
 
 	this->timeout=time(NULL);
-	long term = term_supports();
-	if(term&PETSCII) {
-		switch(ch) {
-			case PETSCII_HOME:
-				return TERM_KEY_HOME;
-			case PETSCII_CLEAR:
-				return TERM_KEY_END;
-			case PETSCII_INSERT:
-				return TERM_KEY_INSERT;
-			case PETSCII_DELETE:
-				return '\b';
-			case PETSCII_LEFT:
-				return TERM_KEY_LEFT;
-			case PETSCII_RIGHT:
-				return TERM_KEY_RIGHT;
-			case PETSCII_UP:
-				return TERM_KEY_UP;
-			case PETSCII_DOWN:
-				return TERM_KEY_DOWN;
-		}
-		if((ch&0xe0) == 0xc0)	/* "Codes $60-$7F are, actually, copies of codes $C0-$DF" */
-			ch = 0x60 | (ch&0x1f);
-		if(isalpha((unsigned char)ch))
-			ch ^= 0x20;	/* Swap upper/lower case */
-	}
-
-	if(term&SWAP_DELETE) {
-		switch(ch) {
-			case TERM_KEY_DELETE:
-				ch = '\b';
-				break;
-			case '\b':
-				ch = TERM_KEY_DELETE;
-				break;
-		}
-	}
 
 	/* Is this a control key */
 	if(ch<' ') {
@@ -127,17 +101,17 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 	char 	tmp[512];
 	uint	i,j;
 
-	if(ch==TERM_KEY_ABORT) {  /* Ctrl-C Abort */
+	if(ch==CTRL_C) {  /* Ctrl-C Abort */
 		sys_status|=SS_ABORT;
 		if(mode&K_SPIN) /* back space once if on spinning cursor */
 			backspace();
 		return(0); 
 	}
-	if(ch==CTRL_Z && !(mode&(K_MSG|K_GETSTR))
+	if(ch==CTRL_Z && !(mode&K_MSG|K_GETSTR)
 		&& action!=NODE_PCHT) {	 /* Ctrl-Z toggle raw input mode */
-		if(hotkey_inside&(1<<ch))
+		if(hotkey_inside>1)	/* only allow so much recursion */
 			return(0);
-		hotkey_inside |= (1<<ch);
+		hotkey_inside++;
 		if(mode&K_SPIN)
 			bputs("\b ");
 		SAVELINE;
@@ -153,7 +127,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 		CRLF;
 		RESTORELINE;
 		lncntr=0;
-		hotkey_inside &= ~(1<<ch);
+		hotkey_inside--;
 		if(action!=NODE_MAIN && action!=NODE_XFER)
 			return(CTRL_Z);
 		return(0); 
@@ -173,9 +147,9 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			if(cfg.hotkey[i]->key==ch)
 				break;
 		if(i<cfg.total_hotkeys) {
-			if(hotkey_inside&(1<<ch))
+			if(hotkey_inside>1)	/* only allow so much recursion */
 				return(0);
-			hotkey_inside |= (1<<ch);
+			hotkey_inside++;
 			if(mode&K_SPIN)
 				bputs("\b ");
 			if(!(sys_status&SS_SPLITP)) {
@@ -183,20 +157,16 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				attr(LIGHTGRAY);
 				CRLF; 
 			}
-			if(cfg.hotkey[i]->cmd[0]=='?') {
-				if(js_hotkey_cx == NULL) {
-					js_hotkey_cx = js_init(&js_hotkey_runtime, &js_hotkey_glob, "HotKey");
-					js_create_user_objects(js_hotkey_cx, js_hotkey_glob);
-				}
-				js_execfile(cmdstr(cfg.hotkey[i]->cmd+1,nulstr,nulstr,tmp), /* startup_dir: */NULL, /* scope: */js_hotkey_glob, js_hotkey_cx);
-			} else
-				external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,tmp),0);
+			if(cfg.hotkey[i]->cmd[0]=='?')
+				js_execfile(cmdstr(cfg.hotkey[i]->cmd+1,nulstr,nulstr,NULL), /* startup_dir: */NULL, /* scope: */js_glob);
+			else
+				external(cmdstr(cfg.hotkey[i]->cmd,nulstr,nulstr,NULL),0);
 			if(!(sys_status&SS_SPLITP)) {
 				CRLF;
 				RESTORELINE; 
 			}
 			lncntr=0;
-			hotkey_inside &= ~(1<<ch);
+			hotkey_inside--;
 			return(0);
 		}
 	}
@@ -207,10 +177,10 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			return(0); 
 		case CTRL_P:	/* Ctrl-P Private node-node comm */
 			if(!(sys_status&SS_USERON))
-				break;;
-			if(hotkey_inside&(1<<ch))
+				return(0);			 /* keep from being recursive */
+			if(hotkey_inside>1)	/* only allow so much recursion */
 				return(0);
-			hotkey_inside |= (1<<ch);
+			hotkey_inside++;
 			if(mode&K_SPIN)
 				bputs("\b ");
 			if(!(sys_status&SS_SPLITP)) {
@@ -226,15 +196,16 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				RESTORELINE; 
 			}
 			lncntr=0;
-			hotkey_inside &= ~(1<<ch);
+			hotkey_inside--;
 			return(0); 
 
 		case CTRL_U:	/* Ctrl-U Users online */
+			/* needs recursion checking */
 			if(!(sys_status&SS_USERON))
-				break;
-			if(hotkey_inside&(1<<ch))
 				return(0);
-			hotkey_inside |= (1<<ch);
+			if(hotkey_inside>1)	/* only allow so much recursion */
+				return(0);
+			hotkey_inside++;
 			if(mode&K_SPIN)
 				bputs("\b ");
 			if(!(sys_status&SS_SPLITP)) {
@@ -249,42 +220,40 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 				RESTORELINE; 
 			}
 			lncntr=0;
-			hotkey_inside &= ~(1<<ch);
+			hotkey_inside--;
 			return(0); 
 		case CTRL_T: /* Ctrl-T Time information */
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
-			if(hotkey_inside&(1<<ch))
 				return(0);
-			hotkey_inside |= (1<<ch);
+			if(hotkey_inside>1)	/* only allow so much recursion */
+				return(0);
+			hotkey_inside++;
 			if(mode&K_SPIN)
 				bputs("\b ");
 			SAVELINE;
 			attr(LIGHTGRAY);
 			now=time(NULL);
 			bprintf(text[TiLogon],timestr(logontime));
-			bprintf(text[TiNow],timestr(now),smb_zonestr(sys_timezone(&cfg),NULL));
+			bprintf(text[TiNow],timestr(now));
 			bprintf(text[TiTimeon]
 				,sectostr((uint)(now-logontime),tmp));
 			bprintf(text[TiTimeLeft]
 				,sectostr(timeleft,tmp));
-			if(sys_status&SS_EVENT)
-				bprintf(text[ReducedTime],timestr(event_time));
 			SYNC;
 			RESTORELINE;
 			lncntr=0;
-			hotkey_inside &= ~(1<<ch);
+			hotkey_inside--;
 			return(0); 
 		case CTRL_K:  /*  Ctrl-K Control key menu */
 			if(sys_status&SS_SPLITP)
 				return(ch);
 			if(!(sys_status&SS_USERON))
-				break;
-			if(hotkey_inside&(1<<ch))
 				return(0);
-			hotkey_inside |= (1<<ch);
+			if(hotkey_inside>1)	/* only allow so much recursion */
+				return(0);
+			hotkey_inside++;
 			if(mode&K_SPIN)
 				bputs("\b ");
 			SAVELINE;
@@ -297,7 +266,7 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 			ASYNC;
 			RESTORELINE;
 			lncntr=0;
-			hotkey_inside &= ~(1<<ch);
+			hotkey_inside--;
 			return(0); 
 		case ESC:
 			i=kbincom(this, (mode&K_GETSTR) ? 3000:1000);
@@ -321,42 +290,33 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 					j++;
 					continue;
 				}
-				if(ch!=';' && !isdigit((uchar)ch) && ch!='R') {    /* other ANSI */
-					str[i]=0;
+				if(ch!=';' && !isdigit(ch) && ch!='R') {    /* other ANSI */
 					switch(ch) {
 						case 'A':
-							return(TERM_KEY_UP);
+							return(0x1e);	/* ctrl-^ (up arrow) */
 						case 'B':
-							return(TERM_KEY_DOWN);
+							return(LF); 	/* ctrl-j (dn arrow) */
 						case 'C':
-							return(TERM_KEY_RIGHT);
+							return(CTRL_F);	/* ctrl-f (rt arrow) */
 						case 'D':
-							return(TERM_KEY_LEFT);
+							return(0x1d);	/* ctrl-] (lf arrow) */
 						case 'H':	/* ANSI:  home cursor */
-							return(TERM_KEY_HOME);
-						case 'V':
-							return TERM_KEY_PAGEUP;
-						case 'U':
-							return TERM_KEY_PAGEDN;
+							return(CTRL_B);	/* ctrl-b (beg line) */
 						case 'F':	/* Xterm: cursor preceding line */
 						case 'K':	/* ANSI:  clear-to-end-of-line */
-							return(TERM_KEY_END);
+							return(CTRL_E);	/* ctrl-e (end line) */
 						case '@':	/* ANSI/ECMA-048 INSERT */
-							return(TERM_KEY_INSERT);
+							return(CTRL_V);
 						case '~':	/* VT-220 (XP telnet.exe) */
 							switch(atoi(str)) {
 								case 1:
-									return(TERM_KEY_HOME);
+									return(CTRL_B);
 								case 2:
-									return(TERM_KEY_INSERT);
+									return(CTRL_V);
 								case 3:
-									return(TERM_KEY_DELETE);
+									return(DEL);
 								case 4:
-									return(TERM_KEY_END);
-								case 5:
-									return TERM_KEY_PAGEUP;
-								case 6:
-									return TERM_KEY_PAGEDN;
+									return(CTRL_E);
 							}
 							break;
 					}
@@ -374,8 +334,8 @@ char sbbs_t::handle_ctrlkey(char ch, long mode)
 							lprintf(LOG_DEBUG,"Node %d received ANSI cursor position report: %ux%u"
 								,cfg.node_num, x, y);
 							/* Sanity check the coordinates in the response: */
-							if(x >= TERM_COLS_MIN && x <= TERM_COLS_MAX) cols=x;
-							if(y >= TERM_ROWS_MIN && y <= TERM_ROWS_MAX) rows=y;
+							if(x>=40 && x<=255) cols=x; 
+							if(y>=10 && y<=255) rows=y;
 						}
 					}
 					return(0); 

@@ -2,13 +2,13 @@
 
 /* Deuce's vs[n]printf() replacement */
 
-/* $Id: xpprintf.h,v 1.17 2019/07/24 04:12:54 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -79,11 +79,6 @@ DLLEXPORT char* DLLCALL xp_asprintf_end(char *format, size_t *endlen);
 DLLEXPORT char* DLLCALL xp_asprintf(const char *format, ...);
 DLLEXPORT char* DLLCALL xp_vasprintf(const char *format, va_list va);
 DLLEXPORT int DLLCALL xp_printf_get_type(const char *format);
-#if defined(_MSC_VER) || defined(__MSVCRT__) || defined(__BORLANDC__)
-DLLEXPORT int DLLCALL vasprintf(char **strptr, const char *format, va_list va);
-DLLEXPORT int DLLCALL asprintf(char **strptr, const char *format, ...);
-#endif
-
 #if defined(__cplusplus)
 }
 #endif

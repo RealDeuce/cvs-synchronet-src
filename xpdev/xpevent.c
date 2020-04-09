@@ -2,13 +2,13 @@
 
 /* *nix emulation of Win32 *Event API */
 
-/* $Id: xpevent.c,v 1.17 2018/07/24 01:13:10 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -173,6 +173,7 @@ WaitForEvent(xpevent_t event, DWORD ms)
 		retval=WAIT_OBJECT_0;
 
 	while ((!(event->value)) || (event->verify!=NULL && !event->verify(event->cbdata))) {
+		retval=WAIT_FAILED;
 		event->nwaiters++;
 		switch(ms) {
 			case 0:

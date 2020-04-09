@@ -2,13 +2,13 @@
 
 /* Synchronet file contents display routines */
 
-/* $Id: viewfile.cpp,v 1.11 2018/07/24 01:11:08 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -55,6 +55,7 @@ int sbbs_t::viewfile(file_t* f, int ext)
 		else
 			viewfilecontents(f);
 		ASYNC;
+		CRLF;
 		sprintf(str,text[FileInfoPrompt],unpadfname(f->name,tmp));
 		mnemonics(str);
 		ch=(char)getkeys("BEVQ\r",0);

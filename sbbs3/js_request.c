@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gen_defs.h>
 
 #ifdef __unix__
 	#define XP_UNIX

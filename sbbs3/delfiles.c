@@ -2,13 +2,13 @@
 
 /* Program to delete expired files from a Synchronet file database */
 
-/* $Id: delfiles.c,v 1.13 2020/01/03 20:34:55 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2008 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -104,9 +104,8 @@ int main(int argc, char **argv)
 		"Filebase\n" ,DELFILES_VER, PLATFORM_DESC );
 
 	if(argc<2) {
-		printf("\n   usage: DELFILES [dir_code] [switches]\n");
+		printf("\n   usage: DELFILES <dir_code or * for ALL> [switches]\n");
 		printf("\nswitches: -LIB name All directories of specified library\n");
-		printf("          -ALL      Search all directories\n");
 		printf("          -NOT code Exclude specific directory\n");
 		printf("          -OFF      Remove files that are offline "
 			"(don't exist on disk)\n");
@@ -114,10 +113,17 @@ int main(int argc, char **argv)
 			"(don't exist in database)\n");
 		printf("          -RPT      Report findings only "
 			"(don't delete any files)\n");
-		return(0); 
-	}
+		return(0); }
 
-	p = get_ctrl_dir();
+	p=getenv("SBBSCTRL");
+	if(p==NULL) {
+		printf("\nSBBSCTRL environment variable not set.\n");
+	#ifdef __unix__
+		printf("\nExample: export SBBSCTRL=/sbbs/ctrl\n");
+	#else
+		printf("\nExample: SET SBBSCTRL=C:\\SBBS\\CTRL\n");
+	#endif
+		return(1); }
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.size=sizeof(cfg);
@@ -137,44 +143,35 @@ int main(int argc, char **argv)
 				break;
 		if(i>=cfg.total_dirs) {
 			printf("\nDirectory code '%s' not found.\n",argv[1]);
-			return(1); 
-		}
-		dirnum=i; 
-	}
+			return(1); }
+		dirnum=i; }
 	for(i=1;i<argc;i++) {
 		if(!stricmp(argv[i]+1,"LIB")) {
 			if(dirnum!=-1) {
 				printf("\nBoth directory code and /LIB parameters were used.\n");
-				return(1); 
-			}
+				return(1); }
 			i++;
 			if(i>=argc) {
 				printf("\nLibrary short name must follow /LIB parameter.\n");
-				return(1); 
-			}
+				return(1); }
 			strupr(argv[i]);
 			for(j=0;j<cfg.total_libs;j++)
 				if(!stricmp(cfg.lib[j]->sname,argv[i]))
 					break;
 			if(j>=cfg.total_libs) {
 				printf("\nLibrary short name '%s' not found.\n",argv[i]);
-				return(1); 
-			}
-			libnum=j; 
-		}
+				return(1); }
+			libnum=j; }
 		else if(!stricmp(argv[i]+1,"NOT")) {
 			if(nots>=MAX_NOTS) {
 				printf("\nMaximum number of /NOT options (%u) exceeded.\n"
 					,MAX_NOTS);
-				return(1); 
-			}
+				return(1); }
 			i++;
 			if(i>=argc) {
 				printf("\nDirectory internal code must follow /NOT parameter.\n");
-				return(1); 
-			}
-			sprintf(not[nots++],"%.8s",argv[i]); 
-		}
+				return(1); }
+			sprintf(not[nots++],"%.8s",argv[i]); }
 		else if(!stricmp(argv[i]+1,"OFF"))
 			misc|=OFFLINE;
 		else if(!stricmp(argv[i]+1,"NOL"))
@@ -184,15 +181,11 @@ int main(int argc, char **argv)
 		else if(!stricmp(argv[i]+1,"ALL")) {
 			if(dirnum!=-1) {
 				printf("\nBoth directory code and /ALL parameters were used.\n");
-				return(1); 
-			}
+				return(1); }
 			if(libnum!=-1) {
 				printf("\nBoth library name and /ALL parameters were used.\n");
-				return(1); 
-			}
-			misc|=ALL; 
-		} 
-	}
+				return(1); }
+			misc|=ALL; } }
 
 	for(i=0;i<cfg.total_dirs;i++) {
 		if(!(misc&ALL) && i!=dirnum && cfg.dir[i]->lib!=libnum)
@@ -220,10 +213,7 @@ int main(int argc, char **argv)
 						sprintf(str,"%s%s",tmp,gl.gl_pathv[j]);
 						printf("Removing %s (not in database)\n",gl.gl_pathv[j]);
 						if(!(misc&REPORT) && remove(str))
-							printf("Error removing %s\n",str); 
-					} 
-				} 
-			}
+							printf("Error removing %s\n",str); } } }
 			globfree(&gl);
 		}
 
@@ -238,19 +228,16 @@ int main(int argc, char **argv)
 		l=filelength(file);
 		if(!l) {
 			close(file);
-			continue; 
-		}
+			continue; }
 		if((ixbbuf=malloc(l))==NULL) {
 			close(file);
 			printf("\7ERR_ALLOC %s %lu\n",str,l);
-			continue; 
-		}
+			continue; }
 		if(read(file,ixbbuf,l)!=(int)l) {
 			close(file);
 			printf("\7ERR_READ %s %lu\n",str,l);
 			free((char *)ixbbuf);
-			continue; 
-		}
+			continue; }
 		close(file);
 
 		m=0L;
@@ -280,36 +267,29 @@ int main(int argc, char **argv)
 			if(cfg.dir[i]->maxage && cfg.dir[i]->misc&DIR_SINCEDL && workfile.datedled
 				&& (now-workfile.datedled)/86400L>cfg.dir[i]->maxage) {
 					printf("Deleting %s (%ld days since last download)\n",fname
-						,(long)(now-workfile.datedled)/86400L);
+						,(now-workfile.datedled)/86400L);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT)) {
 						removefiledat(&cfg, &workfile);
 						if(remove(str))
-							printf("Error removing %s\n",str); 
-					} 
-			}
+							printf("Error removing %s\n",str); } }
 			else if(cfg.dir[i]->maxage
 				&& !(workfile.datedled && cfg.dir[i]->misc&DIR_SINCEDL)
 				&& (now-workfile.dateuled)/86400L>cfg.dir[i]->maxage) {
 					printf("Deleting %s (uploaded %ld days ago)\n",fname
-						,(long)(now-workfile.dateuled)/86400L);
+						,(now-workfile.dateuled)/86400L);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT)) {
 						removefiledat(&cfg, &workfile);
 						if(remove(str))
-							printf("Error removing %s\n",str); 
-					} 
-			}
+							printf("Error removing %s\n",str); } }
 			else if(misc&OFFLINE && cfg.dir[i]->misc&DIR_FCHK && !fexist(str)) {
 					printf("Removing %s (doesn't exist)\n",fname);
 					getfiledat(&cfg, &workfile);
 					if(!(misc&REPORT))
-						removefiledat(&cfg, &workfile); 
-			} 
-		}
+						removefiledat(&cfg, &workfile); } }
 
-		free((char *)ixbbuf); 
-	}
+		free((char *)ixbbuf); }
 
 	return(0);
 }

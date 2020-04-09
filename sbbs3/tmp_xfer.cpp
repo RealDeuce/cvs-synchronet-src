@@ -1,15 +1,14 @@
 /* tmp_xfer.cpp */
 
 /* Synchronet temp directory file transfer routines */
-// vi: tabstop=4
 
-/* $Id: tmp_xfer.cpp,v 1.50 2019/02/17 06:21:44 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -129,8 +128,8 @@ void sbbs_t::temp_xfer()
 					break;
 				if(!checkfname(str))
 					break;
-				SAFEPRINTF2(tmp2,"added %s to %s"
-					,str,f.name);
+				SAFEPRINTF3(tmp2,"%s added %s to %s"
+					,useron.alias,str,f.name);
 				logline(nulstr,tmp2);
 				SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,str);
 				SAFEPRINTF2(str,"%s%s",cfg.temp_dir,f.name);
@@ -172,7 +171,7 @@ void sbbs_t::temp_xfer()
 				for(i=0;i<cfg.total_prots;i++)
 					if(cfg.prot[i]->dlcmd[0] && chk_ar(cfg.prot[i]->ar,&useron,&client)) {
 						sprintf(tmp,"%c",cfg.prot[i]->mnemonic);
-						SAFECAT(tmp2,tmp); 
+						strcat(tmp2,tmp); 
 					}
 				ungetkey(useron.prot);
 				ch=(char)getkeys(tmp2,0);
@@ -415,7 +414,7 @@ void sbbs_t::extract(uint dirnum)
 					errormsg(WHERE,ERR_EXEC,cmdstr(excmd,path,str,NULL),i);
 					return; 
 				}
-				SAFEPRINTF2(tmp,"extracted %s from %s", str,path);
+				SAFEPRINTF3(tmp,"%s extracted %s from %s",useron.alias,str,path);
 				logline(nulstr,tmp);
 				CRLF;
 				break;
@@ -440,17 +439,16 @@ ulong sbbs_t::create_filelist(const char *name, long mode)
 	uint	i,j,d;
 	ulong	l,k;
 
-	if(online == ON_REMOTE)
-		bprintf(text[CreatingFileList],name);
+	bprintf(text[CreatingFileList],name);
 	SAFEPRINTF2(str,"%s%s",cfg.temp_dir,name);
 	if((file=nopen(str,O_CREAT|O_WRONLY|O_APPEND))==-1) {
 		errormsg(WHERE,ERR_OPEN,str,O_CREAT|O_WRONLY|O_APPEND);
-		return(0);
+		return(0); 
 	}
 	k=0;
 	if(mode&FL_ULTIME) {
 		SAFEPRINTF(str,"New files since: %s\r\n",timestr(ns_time));
-		write(file,str,strlen(str));
+		write(file,str,strlen(str)); 
 	}
 	for(i=j=d=0;i<usrlibs;i++) {
 		for(j=0;j<usrdirs[i];j++,d++) {
@@ -464,23 +462,22 @@ ulong sbbs_t::create_filelist(const char *name, long mode)
 			l=listfiles(usrdir[i][j],nulstr,file,mode);
 			if((long)l==-1)
 				break;
-			k+=l;
+			k+=l; 
 		}
 		if(j<usrdirs[i])
-			break;
+			break; 
 	}
 	if(k>1) {
 		SAFEPRINTF(str,"\r\n%ld Files Listed.\r\n",k);
-		write(file,str,strlen(str));
+		write(file,str,strlen(str)); 
 	}
 	close(file);
 	if(k)
 		bprintf(text[CreatedFileList],name);
 	else {
-		if(online == ON_REMOTE)
-			bputs(text[NoFiles]);
+		bputs(text[NoFiles]);
 		SAFEPRINTF2(str,"%s%s",cfg.temp_dir,name);
-		remove(str);
+		remove(str); 
 	}
 	SAFECOPY(temp_file,name);
 	SAFECOPY(temp_uler,"File List");

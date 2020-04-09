@@ -1,12 +1,14 @@
+/* smbfile.c */
+
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.15 2019/04/11 01:00:30 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -121,7 +123,7 @@ size_t SMBCALL smb_fwrite(smb_t* smb, const void* buf, size_t bytes, FILE* fp)
 
 /****************************************************************************/
 /* Opens a non-shareable file (FILE*) associated with a message base		*/
-/* Retries for retry_time number of seconds									*/
+/* Retrys for retry_time number of seconds									*/
 /* Return 0 on success, non-zero otherwise									*/
 /****************************************************************************/
 int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
@@ -145,7 +147,7 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 		ext="hash";
 	else {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s opening %s: Illegal FILE* pointer argument: %p", __FUNCTION__
+			,"opening %s: Illegal FILE* pointer argument: %p"
 			,smb->file, fp);
 		return(SMB_ERR_OPEN);
 	}
@@ -156,11 +158,11 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 	SAFEPRINTF2(path,"%s.%s",smb->file,ext);
 
 	while(1) {
-		if((file=sopen(path,O_RDWR|O_CREAT|O_BINARY,share,DEFFILEMODE))!=-1)
+		if((file=sopen(path,O_RDWR|O_CREAT|O_BINARY,share,S_IREAD|S_IWRITE))!=-1)
 			break;
 		if(get_errno()!=EACCES && get_errno()!=EAGAIN) {
 			safe_snprintf(smb->last_error,sizeof(smb->last_error)
-				,"%s %d '%s' opening %s", __FUNCTION__
+				,"%d '%s' opening %s"
 				,get_errno(),STRERROR(get_errno()),path);
 			return(SMB_ERR_OPEN);
 		}
@@ -169,15 +171,15 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 		else
 			if(time(NULL)-start>=(time_t)smb->retry_time) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%s timeout opening %s (retry_time=%lu)", __FUNCTION__
-					,path, (ulong)smb->retry_time);
+					,"timeout opening %s (retry_time=%ld)"
+					,path,smb->retry_time);
 				return(SMB_ERR_TIMEOUT); 
 			}
 		SLEEP(smb->retry_delay);
 	}
 	if((*fp=fdopen(file,"r+b"))==NULL) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s %d '%s' fdopening %s (%d)", __FUNCTION__
+			,"%d '%s' fdopening %s (%d)"
 			,get_errno(),STRERROR(get_errno()),path,file);
 		close(file);
 		return(SMB_ERR_OPEN); 

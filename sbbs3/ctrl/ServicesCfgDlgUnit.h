@@ -10,10 +10,6 @@
 #include <ComCtrls.hpp>
 #include <Dialogs.hpp>
 #include "MainFormUnit.h"
-#include <CheckLst.hpp>
-#include <Menus.hpp>
-#include <Grids.hpp>
-#include <ValEdit.hpp>
 //---------------------------------------------------------------------------
 class TServicesCfgDlg : public TForm
 {
@@ -38,32 +34,13 @@ __published:	// IDE-managed Components
     TButton *CancelButton;
     TButton *ApplyButton;
     TOpenDialog *OpenDialog;
-    TTabSheet *ServicesTabSheet;
-    TCheckListBox *CheckListBox;
-    TValueListEditor *ValueListEditor;
-    TPopupMenu *ServicesCfgPopupMenu;
-    TMenuItem *ServiceAdd;
-    TMenuItem *ServiceRemove;
-    TValueListEditor *GlobalValueListEditor;
-    TLabel *GlobalSettingsLabel;
+	TButton *ServicesIniButton;
+    void __fastcall ServicesCfgButtonClick(TObject *Sender);
     void __fastcall FormShow(TObject *Sender);
     void __fastcall OKButtonClick(TObject *Sender);
     void __fastcall AnswerSoundButtonClick(TObject *Sender);
     void __fastcall HangupSoundButtonClick(TObject *Sender);
-    void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
-    void __fastcall CheckListBoxClick(TObject *Sender);
-    void __fastcall ValueListEditorValidate(TObject *Sender, int ACol,
-          int ARow, const AnsiString KeyName, const AnsiString KeyValue);
-    void __fastcall ServiceAddClick(TObject *Sender);
-    void __fastcall ServiceRemoveClick(TObject *Sender);
-    void __fastcall CheckListBoxKeyDown(TObject *Sender, WORD &Key,
-          TShiftState Shift);
-    void __fastcall GlobalValueListEditorValidate(TObject *Sender,
-          int ACol, int ARow, const AnsiString KeyName,
-          const AnsiString KeyValue);
 private:	// User declarations
-	char iniFilename[MAX_PATH+1];
-    str_list_t ini;
 public:		// User declarations
     __fastcall TServicesCfgDlg(TComponent* Owner);
 };

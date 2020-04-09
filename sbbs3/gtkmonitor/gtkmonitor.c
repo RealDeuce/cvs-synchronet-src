@@ -77,9 +77,7 @@ void refresh_events(void)
     /* Read .cfg files here */
 	free_cfg(&cfg);
     if(!load_cfg(&cfg, NULL, TRUE, str)) {
-		char error[256];
-		SAFEPRINTF(error, "ERROR Loading Configuration Files: %s", str);
-		display_message("Load Error",error,"gtk-dialog-error");
+		display_message("Load Error","Cannot load configuration data","gtk-dialog-error");
         return;
 	}
 
@@ -220,10 +218,10 @@ int refresh_data(gpointer data)
 			nodes++;
 		}
 
-		if((j=getnodedat(&cfg,i,&node,FALSE,NULL)))
+		if((j=getnodedat(&cfg,i,&node,NULL)))
 			sprintf(str,"Error reading node data (%d)!",j);
 		else
-			nodestatus(&cfg,&node,str,1023, i);
+			nodestatus(&cfg,&node,str,1023);
 		gtk_list_store_set(store, &curr, 1, str, -1);
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &curr);
 	}
@@ -260,7 +258,7 @@ int refresh_data(gpointer data)
 		gtk_tree_selection_selected_foreach(sel
 				,get_lastselected_node
 				,&i);
-		if((j=getnodedat(&cfg,i,&node,FALSE,NULL))) {
+		if((j=getnodedat(&cfg,i,&node,NULL))) {
 			sprintf(str,"Error reading node data (%d)!",j);
 			node.status=NODE_WFC;
 		}
@@ -380,7 +378,7 @@ gtk_widget_set_sensitive(w, TRUE);
 	if(w==NULL)
 		fprintf(stderr,"Cannot get email total widget\n");
 	else {
-		sprintf(str,"%s",getnumstr(str2,getmail(&cfg,0,0,0)));
+		sprintf(str,"%s",getnumstr(str2,getmail(&cfg,0,0)));
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
@@ -388,7 +386,7 @@ gtk_widget_set_sensitive(w, TRUE);
 	if(w==NULL)
 		fprintf(stderr,"Cannot get feedback total widget\n");
 	else {
-		sprintf(str,"%s",getnumstr(str2,getmail(&cfg,1,0,0)));
+		sprintf(str,"%s",getnumstr(str2,getmail(&cfg,1,0)));
 		gtk_entry_set_text(GTK_ENTRY(w),str);
 	}
 
@@ -443,11 +441,15 @@ gtk_widget_set_sensitive(w, TRUE);
 int read_config(void)
 {
 	char	ctrl_dir[MAX_PATH+1];
+	char	*p;
 
-	SAFECOPY(ctrl_dir, get_ctrl_dir());
+	p=getenv("SBBSCTRL");
+	if(p==NULL)
+		p="/sbbs/ctrl";
+	SAFECOPY(ctrl_dir, p);
 	prep_dir("",ctrl_dir,sizeof(ctrl_dir));
 	if(!isdir(ctrl_dir)) {
-		display_message("Environment Error","SBBSCTRL does not point to a directory","gtk-dialog-error");
+		display_message("Environment Errpr","SBBSCTRL does not point to a directory","gtk-dialog-error");
 		return(-1);
 	}
     memset(&cfg,0,sizeof(cfg));
@@ -467,6 +469,7 @@ int read_config(void)
 }
 
 int main(int argc, char *argv[]) {
+	GError* error = NULL;
 	GtkWindow*	xml;
 
     gtk_init(&argc, &argv);

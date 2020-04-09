@@ -1,12 +1,14 @@
+/* link_list.c */
+
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.64 2019/08/04 19:38:53 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -49,7 +51,7 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 		if((list=(link_list_t*)malloc(sizeof(link_list_t)))==NULL)
 			return(NULL);
 		flags |= LINK_LIST_MALLOC;
-	}
+	} 
 
 	memset(list,0,sizeof(link_list_t));
 
@@ -57,10 +59,11 @@ link_list_t* DLLCALL listInit(link_list_t* list, long flags)
 
 #if defined(LINK_LIST_THREADSAFE)
 	if(list->flags&LINK_LIST_MUTEX) {
-		list->mutex = pthread_mutex_initializer_np(/* recursive: */TRUE);
+		list->mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+		memset(&list->tid, 0xff, sizeof(list->tid));
 	}
 
-	if(list->flags&LINK_LIST_SEMAPHORE)
+	if(list->flags&LINK_LIST_SEMAPHORE) 
 		sem_init(&list->sem,0,0);
 #endif
 
@@ -126,8 +129,8 @@ BOOL DLLCALL listFree(link_list_t* list)
 
 #if defined(LINK_LIST_THREADSAFE)
 
-	if(list->flags&LINK_LIST_MUTEX) {
-		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY)
+	if(list->flags&LINK_LIST_MUTEX) { 
+		while(pthread_mutex_destroy((pthread_mutex_t*)&list->mutex)==EBUSY) 
 			SLEEP(1);
 		list->flags&=~LINK_LIST_MUTEX;
 	}
@@ -233,7 +236,7 @@ BOOL DLLCALL listSemTryWaitBlock(link_list_t* list, unsigned long timeout)
 
 BOOL DLLCALL listLock(link_list_t* list)
 {
-	int	ret=0;
+	BOOL	ret=TRUE;
 
 	if(list==NULL)
 		return(FALSE);
@@ -241,7 +244,7 @@ BOOL DLLCALL listLock(link_list_t* list)
 	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_lock(&list->mutex))==0)
 #endif
 		list->locks++;
-	return(ret==0);
+	return(ret);
 }
 
 BOOL DLLCALL listIsLocked(const link_list_t* list)
@@ -253,7 +256,7 @@ BOOL DLLCALL listIsLocked(const link_list_t* list)
 
 BOOL DLLCALL listUnlock(link_list_t* list)
 {
-	int	ret=0;
+	BOOL	ret=TRUE;
 
 	if(list==NULL)
 		return(FALSE);
@@ -261,7 +264,7 @@ BOOL DLLCALL listUnlock(link_list_t* list)
 	if((list->flags&LINK_LIST_MUTEX) && (ret=pthread_mutex_unlock(&list->mutex))==0)
 #endif
 		list->locks--;
-	return(ret==0);
+	return(ret);
 }
 
 long DLLCALL listCountNodes(link_list_t* list)
@@ -309,35 +312,6 @@ list_node_t* DLLCALL listFindNode(link_list_t* list, const void* data, size_t le
 
 	return(node);
 }
-
-ulong DLLCALL listCountMatches(link_list_t* list, const void* data, size_t length)
-{
-	list_node_t* node;
-	ulong matches = 0;
-
-	if(list==NULL)
-		return 0;
-
-	listLock(list);
-
-	for(node=list->first; node!=NULL; node=node->next) {
-		if(length==0) {
-			if(node->data!=data)
-				continue;
-		} else if(data==NULL) {
-			if(node->tag==(list_node_tag_t)length)
-				continue;
-		} else if(node->data==NULL || memcmp(node->data,data,length)!=0)
-			continue;
-		matches++;
-	}
-
-	listUnlock(list);
-
-	return matches;
-}
-
-#ifndef NO_STR_LIST_SUPPORT
 
 str_list_t DLLCALL listStringList(link_list_t* list)
 {
@@ -393,8 +367,6 @@ void* DLLCALL listFreeStringList(str_list_t list)
 	strListFree(&list);
 	return(list);
 }
-
-#endif	/* #ifndef NO_STR_LIST_SUPPORT */
 
 list_node_t* DLLCALL listFirstNode(link_list_t* list)
 {
@@ -649,8 +621,6 @@ list_node_t* DLLCALL listAddNodeString(link_list_t* list, const char* str, list_
 	return(node);
 }
 
-#ifndef NO_STR_LIST_SUPPORT
-
 long DLLCALL listAddStringList(link_list_t* list, str_list_t str_list, list_node_tag_t* tag, list_node_t* after)
 {
 	long			i;
@@ -665,8 +635,6 @@ long DLLCALL listAddStringList(link_list_t* list, str_list_t str_list, list_node
 
 	return(i);
 }
-
-#endif
 
 long DLLCALL listAddNodeList(link_list_t* list, const link_list_t* src, list_node_t* after)
 {
@@ -782,7 +750,7 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 		return(NULL);
 
 	listLock(list);
-
+		
 	if((node=listFindTaggedNode(list, tag)) != NULL)
 		data = list_remove_node(list, node, free_data);
 
@@ -793,7 +761,6 @@ void* DLLCALL listRemoveTaggedNode(link_list_t* list, list_node_tag_t tag, BOOL 
 
 long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOOL free_data)
 {
-	list_node_t	*next_node;
 	long count;
 
 	if(list==NULL)
@@ -803,17 +770,13 @@ long DLLCALL listRemoveNodes(link_list_t* list, list_node_t* node, long max, BOO
 
 	if(node==FIRST_NODE)
 		node=list->first;
-	if(node==LAST_NODE)
-		node=list->last;
 
-	for(count=0; node!=NULL && count<max; node=next_node, count++) {
-		next_node = node->next;
+	for(count=0; node!=NULL && count<max; node=node->next, count++)
 		if(listRemoveNode(list, node, free_data)==NULL)
 			break;
-	}
 
 	listUnlock(list);
-
+	
 	return(count);
 }
 
@@ -853,90 +816,6 @@ BOOL DLLCALL listSwapNodes(list_node_t* node1, list_node_t* node2)
 	return(TRUE);
 }
 
-static void list_update_prev(link_list_t* list)
-{
-	list_node_t* node;
-	list_node_t* prev = NULL;
-
-	if(list == NULL)
-		return;
-
-	node = list->first;
-	while(node != NULL) {
-		node->prev = prev;
-		prev = node;
-		node = node->next;
-	}
-}
-
-void DLLCALL listReverse(link_list_t* list)
-{
-	list_node_t* node;
-	list_node_t* prev;
-
-	if(list == NULL)
-		return;
-
-	node = list->first;
-
-	if(node == NULL)
-		return;
-
-	listLock(list);
-
-	list->last = list->first;
-
-	prev = NULL;
-	while(node != NULL) {
-		list_node_t* next = node->next;
-		node->next = prev;
-		prev = node;
-		node = next;
-	}
-
-	list->first = prev;
-
-	list_update_prev(list);
-
-	listUnlock(list);
-}
-
-long DLLCALL listVerify(link_list_t* list)
-{
-	list_node_t* node;
-	list_node_t* prev = NULL;
-	long result = 0;
-
-	if(list == NULL)
-		return -1;
-
-	listLock(list);
-
-	node = list->first;
-	while(node != NULL) {
-		if(node->list != list) {
-			result = -2;
-			break;
-		}
-		if(node->prev != prev) {
-			result = -3;
-			break;
-		}
-		prev = node;
-		node = node->next;
-		result++;
-	}
-	if(result >= 0 && list->last != prev)
-		result = -4;
-
-	if(result >= 0 && result != list->count)
-		result = -5;
-
-	listUnlock(list);
-
-	return result;
-}
-
 #if 0
 
 #include <stdio.h>	/* printf, sprintf */
@@ -944,40 +823,22 @@ long DLLCALL listVerify(link_list_t* list)
 int main(int arg, char** argv)
 {
 	int		i;
-	long	result;
 	char*	p;
 	char	str[32];
 	link_list_t list;
 
 	listInit(&list,0);
-	if((result = listVerify(&list)) < 0) {
-		fprintf(stderr, "line %d: listVerify() returned %ld\n", __LINE__, result);
-		return EXIT_FAILURE;
-	}
-
 	for(i=0; i<100; i++) {
 		sprintf(str,"%u",i);
 		listPushNodeString(&list,str);
 	}
-	if((result = listVerify(&list)) < 0) {
-		fprintf(stderr, "line %d: listVerify() returned %ld\n", __LINE__, result);
-		return EXIT_FAILURE;
-	}
-
-	listReverse(&list);
-	if((result = listVerify(&list)) < 0) {
-		fprintf(stderr, "line %d: listVerify() returned %ld\n", __LINE__, result);
-		return EXIT_FAILURE;
-	}
 
 	while((p=listShiftNode(&list))!=NULL)
 		printf("%d %s\n",listCountNodes(&list),p), free(p);
-	if((result = listVerify(&list)) < 0) {
-		fprintf(stderr, "line %d: listVerify() returned %ld\n", __LINE__, result);
-		return EXIT_FAILURE;
-	}
 
-	return EXIT_SUCCESS;
+	/* Yes, this test code leaks heap memory. :-) */
+	gets(str);
+	return 0;
 }
 
 #endif

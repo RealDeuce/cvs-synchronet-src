@@ -2,13 +2,13 @@
 
 /* Synchronet Indentification (RFC1413) functions */
 
-/* $Id: ident.c,v 1.16 2019/08/04 17:49:51 deuce Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -38,7 +38,7 @@
 #include "sbbs.h"
 #include "ident.h"
 
-BOOL identify(union xp_sockaddr *client_addr, u_short local_port, char* buf
+BOOL identify(SOCKADDR_IN* client_addr, u_short local_port, char* buf
 			   ,size_t maxlen, int timeout)
 {
 	char		req[128];
@@ -47,18 +47,16 @@ BOOL identify(union xp_sockaddr *client_addr, u_short local_port, char* buf
 	int			rd;
 	ulong		val;
 	SOCKET		sock=INVALID_SOCKET;
-	union xp_sockaddr	addr;
+	SOCKADDR_IN	addr;
 	struct timeval	tv;
 	fd_set			socket_set;
 	BOOL		success=FALSE;
 
-	if(client_addr->addr.sa_family != AF_INET && client_addr->addr.sa_family != AF_INET6)
-		return FALSE;
 	if(timeout<=0)
 		timeout=IDENT_DEFAULT_TIMEOUT;
 
 	do {
-		if((sock = open_socket(PF_INET, SOCK_STREAM, "ident")) == INVALID_SOCKET) {
+		if((sock = open_socket(SOCK_STREAM, "ident")) == INVALID_SOCKET) {
 			sprintf(buf,"ERROR %d creating socket",ERROR_VALUE);
 			break;
 		}
@@ -66,10 +64,10 @@ BOOL identify(union xp_sockaddr *client_addr, u_short local_port, char* buf
 		val=1;
 		ioctlsocket(sock,FIONBIO,&val);	
 
-		memcpy(&addr, client_addr, xp_sockaddr_len(client_addr));
-		inet_setaddrport(&addr, IPPORT_IDENT);
+		addr=*client_addr;
+		addr.sin_port=htons(IPPORT_IDENT);
 
-		result=connect(sock, &addr.addr, xp_sockaddr_len(&addr));
+		result=connect(sock, (struct sockaddr*)&addr, sizeof(addr));
 
 		if(result==SOCKET_ERROR
 			&& (ERROR_VALUE==EWOULDBLOCK || ERROR_VALUE==EINPROGRESS)) {
@@ -101,7 +99,7 @@ BOOL identify(union xp_sockaddr *client_addr, u_short local_port, char* buf
 			break;
 		}
 
-		sprintf(req,"%u,%u\r\n", inet_addrport(client_addr), local_port);
+		sprintf(req,"%u,%u\r\n", ntohs(client_addr->sin_port), local_port);
 		if(sendsocket(sock,req,strlen(req))!=(int)strlen(req)) {
 			sprintf(buf,"ERROR %d sending request",ERROR_VALUE);
 			break;

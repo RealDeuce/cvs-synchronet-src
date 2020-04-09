@@ -2,13 +2,13 @@
 
 /* Synchronet node information writing routines */
 
-/* $Id: putnode.cpp,v 1.22 2018/07/26 06:24:57 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,7 +69,7 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 				,getage(&cfg,useron.birth)
 				,useron.sex
 				,useron.comp
-				,useron.ipaddr
+				,useron.note
 				,unixtodstr(&cfg,useron.firston,firston)
 				,node->aux&0xff
 				,node->connection
@@ -81,16 +81,15 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 	}
 
 	sprintf(path,"%snode.dab",cfg.ctrl_dir);
-	pthread_mutex_lock(&nodefile_mutex);
 	if(nodefile==-1) {
 		if((nodefile=nopen(path,O_CREAT|O_RDWR|O_DENYNONE))==-1) {
 			errormsg(WHERE,ERR_OPEN,path,O_CREAT|O_RDWR|O_DENYNONE);
-			pthread_mutex_unlock(&nodefile_mutex);
 			return(errno); 
 		}
 	}
 
 	number--;	/* make zero based */
+	lock(nodefile,(long)number*sizeof(node_t),sizeof(node_t));
 	for(attempts=0;attempts<10;attempts++) {
 		lseek(nodefile,(long)number*sizeof(node_t),SEEK_SET);
 		wr=write(nodefile,node,sizeof(node_t));
@@ -104,7 +103,6 @@ int sbbs_t::putnodedat(uint number, node_t* node)
 		close(nodefile);
 		nodefile=-1;
 	}
-	pthread_mutex_unlock(&nodefile_mutex);
 
 	if(wr!=sizeof(node_t)) {
 		errno=wrerr;

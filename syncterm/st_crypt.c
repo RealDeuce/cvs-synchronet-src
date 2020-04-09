@@ -24,14 +24,29 @@ void exit_crypt()
 
 #else
 
+#ifdef __unix__
+/*
+ * cryptlib calls fork() to gather entropy.
+ * It then calls exit().
+ * This calls the atexit() handlers.
+ * SDL_Exit is in there...
+ * SDL doesn't exist in the forked child.
+ * This causes the child to spin FOREVER
+ * Eating your CPU.
+ * So, we will break exit(3).
+ */
+void exit(int code)
+{
+	_exit(code);
+}
+#endif
+
 struct crypt_funcs cl;
 
 int init_crypt(void)
 {
-#ifndef STATIC_CRYPTLIB
 	dll_handle	cryptlib;
-	const char *libnames[]={ "cl", "cl34", "cl33", "cl32", NULL };
-#endif
+	const char *libnames[]={ "cl", "cl33", "cl32", NULL };
 
 	if(crypt_loaded)
 		return(0);

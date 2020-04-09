@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: FtpCfgDlgUnit.h,v 1.8 2018/07/24 01:11:28 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2006 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -98,7 +98,7 @@ __published:
     TButton *HackAttemptSoundButton;
     TTabSheet *PasvTabSheet;
     TLabel *PasvIpLabel;
-    TEdit *PasvIPv4AddrEdit;
+    TEdit *PasvIpAddrEdit;
     TLabel *PasvPortLabel;
     TEdit *PasvPortLowEdit;
     TEdit *PasvPortHighEdit;

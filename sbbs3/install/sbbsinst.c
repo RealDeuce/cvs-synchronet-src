@@ -2,13 +2,13 @@
 
 /* Synchronet installation utility 										*/
 
-/* $Id: sbbsinst.c,v 1.100 2020/03/31 06:48:50 deuce Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -47,7 +47,6 @@
 /* XPDEV */
 #include "gen_defs.h"
 
-#include "md5.h"
 #include "ciolib.h"
 #include "uifc.h"
 #include "sbbs.h"
@@ -234,7 +233,7 @@ int main(int argc, char **argv)
 	params.use_dosemu=FALSE;
 #endif
 
-	sscanf("$Revision: 1.100 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 	umask(077);
 
     printf("\nSynchronet Installation %s-%s\n",revision,PLATFORM_DESC);

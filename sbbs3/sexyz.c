@@ -2,13 +2,13 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.10 2020/03/31 07:14:58 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,27 +37,7 @@
 
 /* 
  * ZMODEM code based on zmtx/zmrx v1.02 (C) Mattheij Computer Service 1994
- * by Jacques Mattheij
- *
- *	Date: Thu, 19 Nov 2015 10:10:02 +0100
- *	From: Jacques Mattheij
- *	Subject: Re: zmodem license
- *	To: Stephen Hurd, Fernando Toledo
- *	CC: Rob Swindell
- *
- *	Hello there to all of you,
- *
- *	So, this email will then signify as the transfer of any and all rights I
- *	held up to this point with relation to the copyright of the zmodem
- *	package as released by me many years ago and all associated files to
- *	Stephen Hurd. Fernando Toledo and Rob Swindell are named as
- *	witnesses to this transfer.
- *
- *	...
- *
- *	best regards,
- *
- *	Jacques Mattheij
+ * by Jacques Mattheij <jacquesm@hacktic.nl> 
  */
 
 #include <time.h>
@@ -188,11 +168,8 @@ static int lputs(void* unused, int level, const char* str)
 	int		ret;
 
 #if defined(_WIN32) && defined(_DEBUG)
-	if(log_level==LOG_DEBUG) {
-		char dbgstr[1024];
-		SAFEPRINTF(dbgstr, "SEXYZ: %s", str);
-		OutputDebugString(dbgstr);
-	}
+	if(log_level==LOG_DEBUG)
+		OutputDebugString(str);
 #endif
 
 	if(level>log_level)
@@ -473,6 +450,7 @@ static int recv_buffer(int timeout /* seconds */)
 #endif
 							FD_SET(sock,&socket_set);
 						tv.tv_sec=timeout;
+						timeout=0;
 						tv.tv_usec=0;
 						if((i=select(sock+1,&socket_set,NULL,NULL,&tv))<1) {
 							if(i==SOCKET_ERROR) {
@@ -482,10 +460,8 @@ static int recv_buffer(int timeout /* seconds */)
 							else
 								lprintf(LOG_WARNING,"Receive timeout (%u seconds)", timeout);
 						}
-						else {
-							timeout=0;
+						else
 							continue;
-						}
 					}
 					return 0;
 				default:
@@ -917,11 +893,12 @@ static int send_files(char** fname, uint fnames)
 {
 	char		path[MAX_PATH+1];
 	int			i;
+	uint		errors;
 	uint		fnum;
 	uint		cps;
 	glob_t		g;
 	int			gi;
-	BOOL		success=FALSE;
+	BOOL		success=TRUE;
 	uint64_t	fsize;
 	uint64_t	sent_bytes;
 	uint64_t	total_bytes=0;
@@ -981,6 +958,7 @@ static int send_files(char** fname, uint fnames)
 
 			fsize=filelength(fileno(fp));
 
+			errors=0;
 			startfile=time(NULL);
 
 			lprintf(LOG_INFO,"Sending %s (%"PRId64" KB) via %cMODEM"
@@ -1124,8 +1102,7 @@ static int receive_files(char** fname_list, int fnames)
 				for(errors=0;errors<=xm.max_errors && !xm.cancelled;errors++) {
 					xmodem_put_nak(&xm, /* expected_block: */ 0);
 					if(xmodem_get_block(&xm, block, /* expected_block: */ 0) == SUCCESS) {
-						if(!(mode&GMODE))
-							send_byte(NULL,ACK,10);
+						send_byte(NULL,ACK,10);
 						break; 
 					} 
 					if(errors+1>xm.max_errors/3 && mode&CRC && !(mode&GMODE)) {
@@ -1334,7 +1311,6 @@ static int receive_files(char** fname_list, int fnames)
 				if(fwrite(block,1,wr,fp)!=wr) {
 					lprintf(LOG_ERR,"ERROR %d writing %u bytes at file offset %"PRIu64
 						,errno, wr, (uint64_t)ftello(fp));
-					fclose(fp);
 					xmodem_cancel(&xm);
 					return(1); 
 				}
@@ -1414,7 +1390,6 @@ static int receive_files(char** fname_list, int fnames)
 
 void bail(int code)
 {
-	lprintf(LOG_DEBUG, "Exiting with error level %d", code);
 	if(pause_on_exit || (pause_on_abend && code!=0)) {
 		printf("Hit enter to continue...");
 		getchar();
@@ -1541,13 +1516,13 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.10 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
 		,revision
 		,PLATFORM_DESC
-		,&__DATE__[7]
+		,__DATE__+7
 		);
 
 	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected,NULL,flush);
@@ -1633,7 +1608,7 @@ int main(int argc, char **argv)
 	else if(outbuf_size > MAX_OUTBUF_SIZE)
 		outbuf_size = MAX_OUTBUF_SIZE;
 	
-	lprintf(LOG_DEBUG, "Output buffer size: %lu", outbuf_size);
+	fprintf(statfp,"Output buffer size: %lu\n", outbuf_size);
 	RingBufInit(&outbuf, outbuf_size);
 
 #if !defined(RINGBUF_EVENT)
@@ -1888,7 +1863,7 @@ int main(int argc, char **argv)
 	if(!stdio) {
 #endif
 		lprintf(LOG_DEBUG,"Setting TCP_NODELAY to %d",tcp_nodelay);
-		(void)setsockopt(sock,IPPROTO_TCP,TCP_NODELAY,(char*)&tcp_nodelay,sizeof(tcp_nodelay));
+		setsockopt(sock,IPPROTO_TCP,TCP_NODELAY,(char*)&tcp_nodelay,sizeof(tcp_nodelay));
 #ifdef __unix__
 	}
 #endif
@@ -1896,7 +1871,7 @@ int main(int argc, char **argv)
 	/* Set non-blocking mode */
 #ifdef __unix__
 	if(stdio) {
-		(void)fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
+		fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
 	}
 	else
 #endif
@@ -1912,7 +1887,6 @@ int main(int argc, char **argv)
 	}
 
 	if((dszlog=getenv("DSZLOG"))!=NULL) {
-		lprintf(LOG_DEBUG, "Logging to %s", dszlog);
 		if((logfp=fopen(dszlog,"w"))==NULL) {
 			lprintf(LOG_WARNING,"Error %d opening DSZLOG file: %s",errno,dszlog);
 			bail(-1); 
@@ -1959,8 +1933,9 @@ int main(int argc, char **argv)
 /*	sem_post(outbuf.sem);
 	sem_post(outbuf.highwater_sem); */
 
-	lprintf(LOG_INFO, "Exiting - Error level: %d, flows: %u, select_errors=%u"
+	fprintf(statfp,"Exiting - Error level: %d, flows: %u, select_errors=%u"
 		,retval, flows, select_errors);
+	fprintf(statfp,"\n");
 
 	bail(retval);
 	return retval;

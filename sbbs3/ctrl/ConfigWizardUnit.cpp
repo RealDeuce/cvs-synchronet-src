@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: ConfigWizardUnit.cpp,v 1.26 2018/11/06 01:49:51 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -69,9 +69,9 @@ short tz_val[]= {
     ,RIO
     ,FER
     ,AZO
-    ,WET
-    ,CET
-    ,EET
+    ,LON
+    ,BER
+    ,ATH
     ,MOS
     ,DUB
     ,KAB
@@ -82,10 +82,9 @@ short tz_val[]= {
     ,BAN
     ,HON
     ,TOK
-    ,ACST
-    ,AEST
+    ,SYD
     ,NOU
-    ,NZST
+    ,WEL
 };
 
 char* tz_str[]={
@@ -107,9 +106,9 @@ char* tz_str[]={
     ,"Rio de Janeiro"
     ,"Fernando de Noronha"
     ,"Azores"
-    ,"Western Europe (WET)"
-    ,"Central Europe (CET)"
-    ,"Eastern Europe (EET)"
+    ,"London"
+    ,"Berlin"
+    ,"Athens"
     ,"Moscow"
     ,"Dubai"
     ,"Kabul"
@@ -120,10 +119,9 @@ char* tz_str[]={
     ,"Bangkok"
     ,"Hong Kong"
     ,"Tokyo"
-    ,"Australian Central"
-    ,"Australian Eastern"
+    ,"Sydney"
     ,"Noumea"
-    ,"New Zealand"
+    ,"Wellington"
 };
 
 //---------------------------------------------------------------------------
@@ -189,8 +187,6 @@ void __fastcall TConfigWizard::FormShow(TObject *Sender)
                     break;
             }
 			scfg.sys_timezone=(-tz.Bias)|EASTERN_ZONE;
-			if(tzRet==TIME_ZONE_ID_DAYLIGHT)
-			   	scfg.sys_timezone|=DAYLIGHT;
         }
 #if 0
         /* Get DNS Server Address */

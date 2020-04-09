@@ -1,13 +1,14 @@
+/* genwrap.h */
+
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.h,v 1.117 2020/03/22 04:14:57 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -244,10 +245,6 @@ extern "C" {
 	#endif
 #endif
 
-#if defined(_WIN32)
-	DLLEXPORT char* DLLCALL strcasestr(const char* haystack, const char* needle);
-#endif
-
 /* Skip white-space chars at beginning of string */
 DLLEXPORT char*		DLLCALL skipsp(char* str);
 /* Truncate white-space chars off end of string */
@@ -280,7 +277,9 @@ DLLEXPORT int DLLCALL	get_errno(void);
 	#define SLEEP(x)		Sleep(x)
 	#define	popen			_popen
 	#define pclose			_pclose
-	#define tzname			_tzname
+	#if !(defined(_MSC_VER) || defined(__MSVCRT__))	/* Conflicts with latest (Windows 2003 R2) PlatformSDK include/time.h */
+		#define tzname			_tzname
+	#endif
 
 #elif defined(__OS2__)
 
@@ -295,9 +294,9 @@ DLLEXPORT int DLLCALL	get_errno(void);
 								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
 								pth_nap(tv); })
 	#else
-		#define SLEEP(x)		({	int sleep_msecs=x; struct timespec ts={0}; \
-								ts.tv_sec=(sleep_msecs/1000); ts.tv_nsec=((sleep_msecs%1000)*1000000); \
-								while(nanosleep(&ts, &ts) != 0 && errno==EINTR && x > 1); })
+		#define SLEEP(x)		({	int sleep_msecs=x; struct timeval tv; \
+								tv.tv_sec=(sleep_msecs/1000); tv.tv_usec=((sleep_msecs%1000)*1000); \
+								select(0,NULL,NULL,NULL,&tv); })
 	#endif
 
 	#define YIELD()			SLEEP(1)
@@ -359,11 +358,7 @@ DLLEXPORT long double  	DLLCALL	xp_timer(void);
 DLLEXPORT char*		DLLCALL os_version(char *str);
 DLLEXPORT char*		DLLCALL os_cmdshell(void);
 DLLEXPORT char*		DLLCALL	lastchar(const char* str);
-DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 3 , 4)));            // 1 is 'this'
-#endif
-;
+DLLEXPORT int		DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...);
 
 /* C string/char escape-sequence processing */
 DLLEXPORT char*		DLLCALL c_escape_str(const char* src, char* dst, size_t maxlen, BOOL ctrl_only);
@@ -371,14 +366,6 @@ DLLEXPORT char*		DLLCALL c_escape_char(char ch);
 DLLEXPORT char*		DLLCALL c_unescape_str(char* str);
 DLLEXPORT char		DLLCALL c_unescape_char_ptr(const char* str, char** endptr);
 DLLEXPORT char		DLLCALL c_unescape_char(char ch);
-
-/* Power-of-2 byte count string parser (e.g. "100K" returns 102400 if unit is 1) */
-DLLEXPORT int64_t	DLLCALL	parse_byte_count(const char*, ulong unit);
-DLLEXPORT double	DLLCALL parse_duration(const char*);
-DLLEXPORT char*		DLLCALL duration_to_str(double value, char* str, size_t size);
-DLLEXPORT char*		DLLCALL duration_to_vstr(double value, char* str, size_t size);
-DLLEXPORT char*		DLLCALL byte_count_to_str(int64_t bytes, char* str, size_t size);
-DLLEXPORT char*		DLLCALL byte_estimate_to_str(int64_t bytes, char* str, size_t size, ulong unit, int precision);
 
 /* Microsoft (e.g. DOS/Win32) real-time system clock API (ticks since process started) */
 typedef		clock_t				msclock_t;

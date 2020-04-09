@@ -2,13 +2,13 @@
 
 /* Synchronet "js" object, for internal JavaScript callback and GC control */
 
-/* $Id: js_internal.c,v 1.99 2020/03/29 23:40:57 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -64,7 +64,6 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 	jsval idval;
     jsint			tiny;
 	js_callback_t*	cb;
-	js_callback_t*	top_cb;
 
 	if((cb=(js_callback_t*)JS_GetPrivate(cx,obj))==NULL)
 		return(JS_FALSE);
@@ -77,16 +76,10 @@ static JSBool js_get(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 			*vp=STRING_TO_JSVAL(JS_NewStringCopyZ(cx,(char *)JS_GetImplementationVersion()));
 			break;
 		case PROP_TERMINATED:
-			for(top_cb=cb; top_cb->bg && top_cb->parent_cb; top_cb=top_cb->parent_cb) {
-				if(top_cb->terminated && *top_cb->terminated) {
-					*vp=BOOLEAN_TO_JSVAL(TRUE);
-					return JS_TRUE;
-				}
-			}
-			if(top_cb->terminated==NULL)
+			if(cb->terminated==NULL)
 				*vp=JSVAL_FALSE;
 			else
-				*vp=BOOLEAN_TO_JSVAL(*top_cb->terminated);
+				*vp=BOOLEAN_TO_JSVAL(*cb->terminated);
 			break;
 		case PROP_AUTO_TERMINATE:
 			*vp=BOOLEAN_TO_JSVAL(cb->auto_terminate);
@@ -218,7 +211,7 @@ static char* prop_desc[] = {
 #endif
 	,"global (top level) object - <small>READ ONLY</small>"
 	/* New properties go here... */
-	,"load() search path array.<br>For relative load paths (e.g. not beginning with '/' or '\\'), "
+	,"load() search path array.<br>For relative load paths (e.g. not beginning with '/' or '\'), "
 		"the path is assumed to be a sub-directory of the (configurable) mods or exec directories "
 		"and is searched accordingly. "
 		"So, by default, load(\"somefile.js\") will search in this order:<br>"
@@ -230,7 +223,6 @@ static char* prop_desc[] = {
 	,"JS filename executed (with no path)"
 	,"directory of executed JS file"
 	,"Either the configured startup directory in SCFG (for externals) or the cwd when jsexec is started"
-	,"global scope for this script"
 	,NULL
 };
 #endif
@@ -238,19 +230,14 @@ static char* prop_desc[] = {
 JSBool DLLCALL
 js_CommonOperationCallback(JSContext *cx, js_callback_t* cb)
 {
-	js_callback_t *top_cb;
-
 	cb->counter++;
 
 	/* Terminated? */
-	if(cb->auto_terminate) {
-		for(top_cb=cb; top_cb; top_cb=top_cb->parent_cb) {
-			if (top_cb->terminated!=NULL && *top_cb->terminated) {
-				JS_ReportWarning(cx,"Terminated");
-				cb->counter=0;
-				return(JS_FALSE);
-			}
-		}
+	if(cb->auto_terminate &&
+		(cb->terminated!=NULL && *cb->terminated)) {
+		JS_ReportWarning(cx,"Terminated");
+		cb->counter=0;
+		return(JS_FALSE);
 	}
 
 	/* Infinite loop? */
@@ -279,205 +266,6 @@ js_CommonOperationCallback(JSContext *cx, js_callback_t* cb)
     return(JS_TRUE);
 }
 
-// This is kind of halfway between js_execfile() in exec.cpp and js_load
-static int
-js_execfile(JSContext *cx, uintN argc, jsval *arglist)
-{
-	char*		cmd = NULL;
-	size_t		cmdlen;
-	size_t		pathlen;
-	char*		startup_dir = NULL;
-	uintN		arg=0;
-	char		path[MAX_PATH+1] = "";
-	JSObject*	scope = JS_GetScopeChain(cx);
-	JSObject*	js_scope = NULL;
-	JSObject*	pscope;
-	JSObject*	js_script=NULL;
-	JSObject*	nargv;
-	jsval		rval;
-	jsrefcount	rc;
-	uintN		i;
-	jsval		val;
-	JSObject *js_obj;
-	JSObject *pjs_obj;
-	js_callback_t *	js_callback;
-
-	if(argc<1) {
-		JS_ReportError(cx, "No filename passed");
-		return(JS_FALSE);
-	}
-
-	jsval *argv=JS_ARGV(cx, arglist);
-
-	if (!JSVAL_IS_STRING(argv[arg])) {
-		JS_ReportError(cx, "Invalid script name");
-		return(JS_FALSE);
-	}
-	JSVALUE_TO_MSTRING(cx, argv[arg++], cmd, NULL);
-	HANDLE_PENDING(cx, cmd);
-	if (cmd == NULL) {
-		JS_ReportError(cx, "Invalid NULL string");
-		return(JS_FALSE);
-	}
-
-	if (argc > arg) {
-		if (JSVAL_IS_STRING(argv[arg])) {
-			JSVALUE_TO_MSTRING(cx, argv[arg++], startup_dir, &cmdlen);
-			HANDLE_PENDING(cx, cmd);
-			if(startup_dir == NULL) {
-				free(cmd);
-				JS_ReportError(cx, "Invalid NULL string");
-				return(JS_FALSE);
-			}
-		}
-	}
-
-	if (argc > arg && JSVAL_IS_OBJECT(argv[arg])) {
-		js_scope = JSVAL_TO_OBJECT(argv[arg++]);
-		if (js_scope == scope) {
-			free(cmd);
-			free(startup_dir);
-			JS_ReportError(cx, "Invalid Scope");
-			return(JS_FALSE);
-		}
-	}
-	else {
-		free(cmd);
-		free(startup_dir);
-		JS_ReportError(cx, "Invalid Scope");
-		return(JS_FALSE);
-	}
-
-	pscope = scope;
-	while ((!JS_GetProperty(cx, pscope, "js", &val) || val==JSVAL_VOID || !JSVAL_IS_OBJECT(val)) && pscope != NULL) {
-		pscope = JS_GetParent(cx, pscope);
-		if (pscope == NULL) {
-			free(cmd);
-			free(startup_dir);
-			JS_ReportError(cx, "Walked to global, no js object!");
-			return JS_FALSE;
-		}
-	}
-	pjs_obj = JSVAL_TO_OBJECT(val);
-	js_callback = JS_GetPrivate(cx, pjs_obj);
-
-	if(isfullpath(cmd))
-		SAFECOPY(path,cmd);
-	else {
-		// If startup dir specified, check there first.
-		if (startup_dir) {
-			SAFECOPY(path, startup_dir);
-			backslash(path);
-			strncat(path, cmd, sizeof(path) - strlen(path) - 1);
-			rc=JS_SUSPENDREQUEST(cx);
-			if (!fexist(path))
-				*path = 0;
-			JS_RESUMEREQUEST(cx, rc);
-		}
-		// Then check js.exec_dir
-		/* if js.exec_dir is defined (location of executed script), search there first */
-		if (*path == 0) {
-			if(JS_GetProperty(cx, pjs_obj, "exec_dir", &val) && val!=JSVAL_VOID && JSVAL_IS_STRING(val)) {
-				JSVALUE_TO_STRBUF(cx, val, path, sizeof(path), &pathlen);
-				strncat(path, cmd, sizeof(path)-pathlen-1);
-				rc=JS_SUSPENDREQUEST(cx);
-				if(!fexistcase(path))
-					path[0]=0;
-				JS_RESUMEREQUEST(cx, rc);
-			}
-		}
-	}
-	free(cmd);
-
-	if(!fexistcase(path)) {
-		JS_ReportError(cx, "Script file (%s) does not exist", path);
-		free(startup_dir);
-		return JS_FALSE;
-	}
-
-	nargv=JS_NewArrayObject(cx, 0, NULL);
-
-	JS_DefineProperty(cx, js_scope, "argv", OBJECT_TO_JSVAL(nargv)
-		,NULL,NULL,JSPROP_READONLY|JSPROP_ENUMERATE);
-
-	uintN nargc = 0;
-	for(i=arg; i<argc; i++) {
-		JS_SetElement(cx, nargv, nargc, &argv[i]);
-		nargc++;
-	}
-
-	JS_DefineProperty(cx, js_scope, "argc", INT_TO_JSVAL(nargc)
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-
-	js_obj = js_CreateInternalJsObject(cx, js_scope, js_callback, NULL);
-	js_PrepareToExecute(cx, js_scope, path, startup_dir, js_scope);
-	free(startup_dir);
-	// Copy in the load_path_list...
-	if(pjs_obj != NULL) {
-		JSObject*	pload_path_list;
-		JSObject*	load_path_list;
-		uint32_t	plen;
-		uint32_t	pcnt;
-
-		if (JS_GetProperty(cx, pjs_obj, JAVASCRIPT_LOAD_PATH_LIST, &val) && val!=JSVAL_VOID && JSVAL_IS_OBJECT(val)) {
-			pload_path_list = JSVAL_TO_OBJECT(val);
-			if (!JS_IsArrayObject(cx, pload_path_list)) {
-				JS_ReportError(cx, "Weird js."JAVASCRIPT_LOAD_PATH_LIST" value");
-				return JS_FALSE;
-			}
-			if((load_path_list=JS_NewArrayObject(cx, 0, NULL))==NULL) {
-				JS_ReportError(cx, "Unable to create js."JAVASCRIPT_LOAD_PATH_LIST);
-				return JS_FALSE;
-			}
-			val = OBJECT_TO_JSVAL(load_path_list);
-			JS_SetProperty(cx, js_obj, JAVASCRIPT_LOAD_PATH_LIST, &val);
-			JS_GetArrayLength(cx, pload_path_list, &plen);
-			for (pcnt = 0; pcnt < plen; pcnt++) {
-				JS_GetElement(cx, pload_path_list, pcnt, &val);
-				JS_SetElement(cx, load_path_list, pcnt, &val);
-			}
-		}
-		else {
-			JS_ReportError(cx, "Unable to get parent js."JAVASCRIPT_LOAD_PATH_LIST" array.");
-			return JS_FALSE;
-		}
-	}
-	else {
-		JS_ReportError(cx, "Unable to get parent js object");
-		return JS_FALSE;
-	}
-
-	js_script=JS_CompileFile(cx, js_scope, path);
-
-	if(js_script == NULL) {
-		/* If the script fails to compile, it's not a fatal error
-		 * for the caller. */
-		if (JS_IsExceptionPending(cx)) {
-			JS_GetPendingException(cx, &rval);
-			JS_SET_RVAL(cx, arglist, rval);
-		}
-		JS_ClearPendingException(cx);
-		return(JS_TRUE);
-	}
-
-	JS_ExecuteScript(cx, js_scope, js_script, &rval);
-	if (JS_IsExceptionPending(cx)) {
-		JS_GetPendingException(cx, &rval);
-	}
-	else {
-		JS_GetProperty(cx, js_scope, "exit_code", &rval);
-	}
-	JS_SET_RVAL(cx, arglist, rval);
-	JS_ClearPendingException(cx);
-
-	js_EvalOnExit(cx, js_scope, js_callback);
-	JS_ReportPendingException(cx);
-	JS_DestroyScript(cx, js_script);
-	JS_GC(cx);
-
-	return JS_TRUE;
-}
-
 static JSClass eval_class = {
     "Global",  /* name */
     JSCLASS_GLOBAL_FLAGS,  /* flags */
@@ -491,7 +279,7 @@ static JSBool
 js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(parent_cx, arglist);
-	char*			buf = NULL;
+	char*			buf;
 	size_t			buflen;
 	JSString*		str;
     JSObject*		script;
@@ -507,7 +295,7 @@ js_eval(JSContext *parent_cx, uintN argc, jsval *arglist)
 	if((str=JS_ValueToString(parent_cx, argv[0]))==NULL)
 		return(JS_FALSE);
 	JSSTRING_TO_MSTRING(parent_cx, str, buf, &buflen);
-	HANDLE_PENDING(parent_cx, buf);
+	HANDLE_PENDING(parent_cx);
 	if(buf==NULL)
 		return(JS_TRUE);
 
@@ -575,10 +363,10 @@ static JSBool
 js_report_error(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char	*p = NULL;
+	char	*p;
 
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx, p);
+	HANDLE_PENDING(cx);
 	if(p==NULL)
 		JS_ReportError(cx,"NULL");
 	else {
@@ -603,7 +391,7 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 	global_private_t*	pd;
 	str_list_t	list;
 	str_list_t	oldlist;
-	char		*p = NULL;
+	char		*p;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
@@ -623,7 +411,7 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], p, NULL);
-	HANDLE_PENDING(cx, p);
+	HANDLE_PENDING(cx);
 	if(!p)
 		return JS_TRUE;
 	oldlist=list;
@@ -635,6 +423,7 @@ js_on_exit(JSContext *cx, uintN argc, jsval *arglist)
 		else
 			JS_SetPrivate(cx,scope,list);
 	}
+
 	return(JS_TRUE);
 }
 
@@ -712,17 +501,8 @@ static jsSyncMethodSpec js_functions[] = {
 	,316
 	},
 	{"flatten_string",	js_flatten,			1,	JSTYPE_VOID,	JSDOCSTR("[string]")
-	,JSDOCSTR("flatten a string, optimizing allocated memory used for concatenated strings")
+	,JSDOCSTR("flattens a string, optimizing allocated memory used for concatenated strings")
 	,316
-	},
-	{"exec",	js_execfile,			1,	JSTYPE_NUMBER,	JSDOCSTR("filename [, startup_dir], <i>object</i> scope [,...]")
-	,JSDOCSTR("execute a script within the specified scope.  The main difference between this method "
-	"and <tt>load()</tt> is that scripts called this way can call <tt>exit()</tt> without terminating the caller.  If it does, any "
-	"<tt>on_exit()</tt> handlers will be evaluated in scripts scope when the script exists. <br>"
-	"NOTE: to get a child of the current scope, you need to create an object in the current scope. "
-	"An anonymous object can be created using '<tt>new function(){}</tt>'. <br>"
-	"NOTE: Use <tt>js.exec.apply()</tt> if you need to pass a variable number of arguments to the executed script.")
-	,31702
 	},
 	{0}
 };
@@ -738,7 +518,7 @@ static JSBool js_internal_resolve(JSContext *cx, JSObject *obj, jsid id)
 		JS_IdToValue(cx, id, &idval);
 		if(JSVAL_IS_STRING(idval)) {
 			JSSTRING_TO_MSTRING(cx, JSVAL_TO_STRING(idval), name, NULL);
-			HANDLE_PENDING(cx, name);
+			HANDLE_PENDING(cx);
 		}
 	}
 
@@ -857,7 +637,7 @@ void msvc_invalid_parameter_handler(const wchar_t* expression,
 }
 #endif
 
-void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir, JSObject *scope)
+void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filename, const char* startup_dir)
 {
 	JSString*	str;
 	jsval		val;
@@ -887,11 +667,7 @@ void DLLCALL js_PrepareToExecute(JSContext *cx, JSObject *obj, const char *filen
 		if((str=JS_NewStringCopyZ(cx, startup_dir)) != NULL)
 			JS_DefineProperty(cx, js, "startup_dir", STRING_TO_JSVAL(str)
 				,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
-		JS_DefineProperty(cx, js, "scope", OBJECT_TO_JSVAL(scope)
-			,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY);
 	}
-	JS_DefineProperty(cx, scope, "exit_code", JSVAL_NULL
-		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_PERMANENT);
 #if defined(_MSC_VER)
 	_set_invalid_parameter_handler(msvc_invalid_parameter_handler);
 #endif

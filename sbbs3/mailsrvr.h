@@ -1,13 +1,14 @@
+/* mailsrvr.h */
+
 /* Synchronet Mail (SMTP/POP3/SendMail) server */
 
-/* $Id: mailsrvr.h,v 1.88 2019/03/22 21:28:27 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id: mailsrvr.h,v 1.72 2014/11/20 05:13:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -45,9 +46,7 @@ typedef struct {
 	DWORD	size;				/* sizeof(mail_startup_t) */
 	WORD	smtp_port;
 	WORD	pop3_port;
-	WORD	pop3s_port;
 	WORD	submission_port;
-	WORD	submissions_port;
 	WORD	max_clients;
 #define MAIL_DEFAULT_MAX_CLIENTS			10
 	WORD	max_inactivity;
@@ -62,10 +61,7 @@ typedef struct {
 	WORD	max_recipients;
 #define MAIL_DEFAULT_MAX_RECIPIENTS			100
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-	struct in_addr outgoing4;
-	struct in6_addr	outgoing6;
-    str_list_t   interfaces;
-    str_list_t   pop3_interfaces;
+    DWORD   interface_addr;
     DWORD	options;			/* See MAIL_OPT definitions */
     DWORD	max_msg_size;		/* Max msg size in bytes (0=unlimited) */
 #define MAIL_DEFAULT_MAX_MSG_SIZE			(20*1024*1024)	/* 20MB */
@@ -92,7 +88,6 @@ typedef struct {
 	/* Paths */
     char    ctrl_dir[128];
 	char    temp_dir[128];
-	char	ini_fname[128];
 
 	/* Strings */
     char	dns_server[128];
@@ -103,8 +98,6 @@ typedef struct {
 	char	outbound_sound[128];
     char	pop3_sound[128];
 	char	default_charset[128];
-	char	newmail_notice[256];
-	char	forward_notice[256];
 
 	/* Misc */
     char	host_name[128];
@@ -124,7 +117,10 @@ typedef struct {
 	js_startup_t js;
 
 	/* Login Attempt parameters */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
 
 } mail_startup_t;
@@ -134,10 +130,7 @@ typedef struct {
 static struct init_field mail_init_fields[] = { 
 	 OFFSET_AND_SIZE(mail_startup_t,smtp_port)
 	,OFFSET_AND_SIZE(mail_startup_t,pop3_port)
-	,OFFSET_AND_SIZE(mail_startup_t,pop3s_port)
-	,OFFSET_AND_SIZE(mail_startup_t,submission_port)
-	,OFFSET_AND_SIZE(mail_startup_t,submissions_port)
-	,OFFSET_AND_SIZE(mail_startup_t,interfaces)
+	,OFFSET_AND_SIZE(mail_startup_t,interface_addr)
 	,OFFSET_AND_SIZE(mail_startup_t,ctrl_dir)
 	,{ 0,0 }	/* terminator */
 };
@@ -171,9 +164,6 @@ static struct init_field mail_init_fields[] = {
 #define MAIL_OPT_RELAY_AUTH_CRAM_MD5	(1<<25)
 #define MAIL_OPT_NO_AUTO_EXEMPT			(1<<26)	/* Do not auto DNSBL-exempt recipient e-mail addresses */
 #define MAIL_OPT_NO_RECYCLE				(1<<27)	/* Disable recycling of server		*/
-#define MAIL_OPT_KILL_READ_SPAM			(1<<28)	/* Set the KILLREAD flag on SPAM msgs */
-#define MAIL_OPT_TLS_SUBMISSION			(1<<29)	/* Listen on the TLS "MSA" service port for mail submissions */
-#define MAIL_OPT_TLS_POP3				(1<<30)	/* POP3S */
 #define MAIL_OPT_MUTE					(1<<31)
 
 #define MAIL_OPT_RELAY_AUTH_MASK		(MAIL_OPT_RELAY_AUTH_PLAIN|MAIL_OPT_RELAY_AUTH_LOGIN|MAIL_OPT_RELAY_AUTH_CRAM_MD5)
@@ -212,9 +202,6 @@ static ini_bitdesc_t mail_options[] = {
 	{ MAIL_OPT_RELAY_AUTH_CRAM_MD5	,"RELAY_AUTH_CRAM_MD5"	},
 	{ MAIL_OPT_NO_AUTO_EXEMPT		,"NO_AUTO_EXEMPT"		},
 	{ MAIL_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
-	{ MAIL_OPT_KILL_READ_SPAM		,"KILL_READ_SPAM"		},
-	{ MAIL_OPT_TLS_SUBMISSION		,"TLS_SUBMISSION"		},
-	{ MAIL_OPT_TLS_POP3				,"TLS_POP3"				},
 	{ MAIL_OPT_MUTE					,"MUTE"					},
 	/* terminator */
 	{ 0 							,NULL					}
@@ -235,7 +222,7 @@ static ini_bitdesc_t mail_options[] = {
 		#define DLLEXPORT __declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL
+		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
 	#endif
@@ -251,22 +238,10 @@ extern "C" {
 DLLEXPORT void			DLLCALL mail_server(void* arg);
 DLLEXPORT void			DLLCALL mail_terminate(void);
 DLLEXPORT const	char*	DLLCALL mail_ver(void);
-
-/* for mxlookup.c: */
-void mail_open_socket(SOCKET sock, void* cb_protocol);
-int mail_close_socket(SOCKET *sock, int *sess);
 #ifdef __cplusplus
 }
 #endif
 
-#if defined(__GNUC__)   // passing an empty string to sockprintf() is expected/valid
-#pragma GCC diagnostic ignored "-Wformat-zero-length"
-#endif
-
-int sockprintf(SOCKET sock, const char* prot, int sess, char *fmt, ...)
-#if defined(__GNUC__)   // Catch printf-format errors 
-	__attribute__ ((format (printf, 4, 5)));
-#endif
-;
+int sockprintf(SOCKET sock, char *fmt, ...);
 
 #endif /* Don't add anything after this line */

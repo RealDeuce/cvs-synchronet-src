@@ -1,15 +1,14 @@
 /* sockopts.c */
-// vi: tabstop=4
 
 /* Set socket options based on contents of ctrl/sockopts.ini */
 
-/* $Id: sockopts.c,v 1.26 2019/01/12 22:44:08 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,7 +42,7 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, c
 {
 	char		cfgfile[MAX_PATH+1];
 	FILE*		fp;
-	int			type=0;		// Assignment is to silence Valgrind
+	int			type;
 	int			result=0;
 	str_list_t	list;
 	socklen_t	len;
@@ -65,14 +64,8 @@ int DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* protocol, c
 
 	result=iniGetSocketOptions(list,ROOT_SECTION,sock,error,errlen);
 
-	if(result==0) {
-		const char* section = (type==SOCK_STREAM) ? "tcp":"udp";
-		struct sockaddr sockaddr;
-		socklen_t len = sizeof(sockaddr);
-		if(getsockname(sock, &sockaddr, &len) == 0 && sockaddr.sa_family == PF_UNIX)
-			section = "unix";
-		result=iniGetSocketOptions(list,section,sock,error,errlen);
-	}
+	if(result==0)
+		result=iniGetSocketOptions(list,type==SOCK_STREAM ? "tcp":"udp",sock,error,errlen);
 	if(result==0 && protocol!=NULL && *protocol!=0)
 		result=iniGetSocketOptions(list,protocol,sock,error,errlen);
 

@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.57 2019/09/10 19:57:37 deuce Exp $ */
+/* $Id: sockwrap.h,v 1.52 2014/11/16 02:58:20 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -60,9 +60,6 @@
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
-#endif
-#ifndef MSG_WAITALL
-#define MSG_WAITALL 0x08
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -182,7 +179,6 @@ union xp_sockaddr {
 
 #define s_addr			S_un.S_addr
 #define sa_family_t		ushort
-typedef uint32_t                in_addr_t;
 
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
@@ -237,7 +233,6 @@ DLLEXPORT union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_socka
 DLLEXPORT const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size);
 DLLEXPORT uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr);
 DLLEXPORT void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
-DLLEXPORT BOOL DLLCALL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockaddr* addr2);
 
 #ifdef __cplusplus
 }
@@ -261,20 +256,12 @@ DLLEXPORT BOOL DLLCALL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockadd
 #ifndef IPPORT_POP3
 #define IPPORT_POP3			110
 #endif
-#ifndef IPPORT_POP3S
-#define IPPORT_POP3S			995
-#endif
 #ifndef IPPORT_IDENT
 #define IPPORT_IDENT		113
 #endif
 #ifndef IPPORT_SUBMISSION
 #define IPPORT_SUBMISSION	587
 #endif
-#ifndef IPPORT_SUBMISSIONS
-#define IPPORT_SUBMISSIONS	465
-#endif
-#ifndef IPPORT_BINKP
-#define IPPORT_BINKP		24554
-#endif
+
 
 #endif	/* Don't add anything after this line */

@@ -2,13 +2,13 @@
 
 /* Synchronet for *nix sysop chat routines */
 
-/* $Id: chat.c,v 1.21 2019/08/31 22:33:26 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2003 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -62,8 +62,8 @@ int togglechat(scfg_t *cfg, int node_num, node_t *node, int on)
 {
     static int  org_act;
 
-	int nodefile = -1;
-	if(getnodedat(cfg,node_num,node,TRUE,&nodefile)) {
+	int nodefile;
+	if(getnodedat(cfg,node_num,node,&nodefile)) {
 		return(FALSE);
 	}
     if(on) {
@@ -75,7 +75,7 @@ int togglechat(scfg_t *cfg, int node_num, node_t *node, int on)
         node->action=org_act;
         node->misc&=~NODE_LCHAT;
     }
-	putnodedat(cfg,node_num,node,TRUE,nodefile);
+	putnodedat(cfg,node_num,node,nodefile);
     return(TRUE);
 }
 
@@ -142,7 +142,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 		return(-1);
 	}
 
-	if(getnodedat(cfg,nodenum,node,FALSE,NULL))
+	if(getnodedat(cfg,nodenum,node,NULL))
 		return(-1);
 
 	username(cfg,node->useron,usrname);
@@ -152,12 +152,12 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 
 	sprintf(outpath,"%slchat.dab",cfg->node_path[nodenum-1]);
 	if((out=sopen(outpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-		,DEFFILEMODE))==-1)
+		,S_IREAD|S_IWRITE))==-1)
 		return(-1);
 
 	sprintf(inpath,"%schat.dab",cfg->node_path[nodenum-1]);
 	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,O_DENYNONE
-		,DEFFILEMODE))==-1) {
+		,S_IREAD|S_IWRITE))==-1) {
 		close(out);
 		return(-1);
     }
@@ -183,7 +183,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 			if(timecallback != NULL)
 				timecallback();
 
-			if(getnodedat(cfg,nodenum,node,FALSE,NULL)!=0)
+			if(getnodedat(cfg,nodenum,node,NULL)!=0)
 				break;
 			last_nodechk=now;
 		}
@@ -194,7 +194,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 					close(in);
 					in=-1;
 				}
-				if(ch==0 || ch=='\xe0') {		/* Special keys... eat 'em. */
+				if(ch==0 || ch==-1) {		/* Special keys... eat 'em. */
 					getch();
 				}
 			}
@@ -237,7 +237,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 			ch=getch();
 			switch(ch)  {
 				case 0:			/* Special Chars */
-				case '\xe0':
+				case -1:
 					ch=0;
 					getch();
 					break;
@@ -269,7 +269,7 @@ int chat(scfg_t *cfg, int nodenum, node_t *node, box_t *boxch, void(*timecallbac
 		close(out);
 	togglechat(cfg,nodenum,node,FALSE);
 	puttext(1,1,ti.screenwidth,ti.screenheight,buf);
-	window(ti.winleft,ti.wintop,ti.winright,ti.winbottom);
+	window(ti.winleft,ti.wintop,ti.winright,ti.wintop);
 	gotoxy(ti.curx,ti.cury);
 	textattr(ti.attribute);
 	return(0);

@@ -2,13 +2,13 @@
 
 /* Defines DLLEXPORT and DLLCALL for cross-platform development wrappers */
 
-/* $Id: wrapdll.h,v 1.8 2019/03/22 21:29:46 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -49,7 +49,7 @@
 		#define DLLEXPORT	__declspec(dllexport)
 	#endif
 	#if defined(__BORLANDC__)
-		#define DLLCALL
+		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
 	#endif

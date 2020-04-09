@@ -1,13 +1,14 @@
+/* file.cpp */
+
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.36 2019/08/12 06:24:08 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,13 +44,10 @@ void sbbs_t::fileinfo(file_t* f)
 {
 	char	ext[513];
 	char 	tmp[512];
-	char	tmp2[64];
 	char	path[MAX_PATH+1];
-	char	fname[MAX_PATH+1];
-	char*	real_fname;
+	char	fpath[MAX_PATH+1];
 	uint	i,j;
 
-	current_file = f;
 	for(i=0;i<usrlibs;i++)
 		if(usrlib[i]==cfg.dir[f->dir]->lib)
 			break;
@@ -58,17 +56,16 @@ void sbbs_t::fileinfo(file_t* f)
 			break;
 
 	getfilepath(&cfg,f,path);
-	real_fname = getfname(path);
-	unpadfname(f->name, fname);
 	bprintf(text[FiLib],i+1,cfg.lib[cfg.dir[f->dir]->lib]->lname);
 	bprintf(text[FiDir],j+1,cfg.dir[f->dir]->lname);
-	bprintf(text[FiFilename],fname);
-	if(strcmp(real_fname, fname) && strcmp(f->desc, real_fname))	/* Different "actual" filename */
-		bprintf(text[FiFilename], real_fname);
+	bprintf(text[FiFilename],getfname(path));
+	SAFECOPY(fpath,path);
+	fexistcase(fpath);
+	if(strcmp(path,fpath) && strcmp(f->desc,getfname(fpath)))	/* Different "actual" filename */
+		bprintf(text[FiFilename],getfname(fpath));
 
 	if(f->size!=-1L)
-		bprintf(text[FiFileSize],ultoac(f->size,tmp)
-			, byte_estimate_to_str(f->size, tmp2, sizeof(tmp2), /* units: */1024, /* precision: */1));
+		bprintf(text[FiFileSize],ultoac(f->size,tmp));
 	bprintf(text[FiCredits]
 		,(cfg.dir[f->dir]->misc&DIR_FREE || !f->cdt) ? "FREE" : ultoac(f->cdt,tmp));
 	bprintf(text[FiDescription],f->desc);
@@ -78,7 +75,7 @@ void sbbs_t::fileinfo(file_t* f)
 	bprintf(text[FiDateUled],timestr(f->dateuled));
 	bprintf(text[FiDateDled],f->datedled ? timestr(f->datedled) : "Never");
 	bprintf(text[FiTimesDled],f->timesdled);
-	if(f->size>0 && f->timetodl>0)
+	if(f->size!=-1L)
 		bprintf(text[FiTransferTime],sectostr(f->timetodl,tmp));
 	if(f->altpath) {
 		if(f->altpath<=cfg.altpaths) {
@@ -88,20 +85,21 @@ void sbbs_t::fileinfo(file_t* f)
 		else
 			bprintf(text[InvalidAlternatePathN],f->altpath); 
 	}
-	bputs(text[FileHdrDescSeparator]);
+	CRLF;
 	if(f->misc&FM_EXTDESC) {
 		getextdesc(&cfg,f->dir,f->datoffset,ext);
+		CRLF;
 		putmsg(ext,P_NOATCODES);
 		CRLF; 
 	}
 	if(f->size==-1L) {
 		bprintf(text[FileIsNotOnline],f->name);
 		if(SYSOP)
-			bprintf("%s\r\n",path);
+			bprintf("%s\r\n",fpath);
 	}
 	if(f->opencount)
 		bprintf(text[FileIsOpen],f->opencount,f->opencount>1 ? "s" : nulstr);
-	current_file = NULL;
+
 }
 
 
@@ -214,7 +212,6 @@ void sbbs_t::closefile(file_t* f)
 	}
 	close(file);
 	if((file=nopen(str1,O_WRONLY|O_TRUNC))==-1) {
-		free(buf);
 		errormsg(WHERE,ERR_OPEN,str1,O_WRONLY|O_TRUNC);
 		return; 
 	}
@@ -300,12 +297,4 @@ bool sbbs_t::checkfname(char *fname)
 		c++; 
 	}
 	return(true);
-}
-
-long sbbs_t::delfiles(const char *inpath, const char *spec, size_t keep)
-{
-	long result = ::delfiles(inpath, spec, keep);
-	if(result < 0)
-		errormsg(WHERE, ERR_REMOVE, inpath, result, spec);
-	return result;
 }

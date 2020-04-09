@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: NodeFormUnit.h,v 1.12 2019/08/31 22:25:08 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -91,11 +91,11 @@ __published:	// IDE-managed Components
     void __fastcall UserMsgButtonClick(TObject *Sender);
     void __fastcall RefreshMenuItemClick(TObject *Sender);
 private:	// User declarations
-	int file;
+
 public:		// User declarations
      __fastcall TNodeForm(TComponent* Owner);
-    int __fastcall getnodedat(int node_num, node_t* node, bool lockit);
-    int __fastcall putnodedat(int node_num, node_t* node);
+    int __fastcall getnodedat(int node_num, node_t* node, int* file);
+    int __fastcall putnodedat(int node_num, node_t* node, int file);
 
 };
 //---------------------------------------------------------------------------

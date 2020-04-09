@@ -9,16 +9,16 @@ object WebForm: TWebForm
   DragMode = dmAutomatic
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
+  Font.Height = -14
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 16
   object ToolBar: TToolBar
     Left = 0
     Top = 0
-    Width = 446
+    Width = 454
     Height = 25
     Caption = 'ToolBar'
     EdgeBorders = []
@@ -90,17 +90,16 @@ object WebForm: TWebForm
       TabOrder = 0
     end
     object ToolButton3: TToolButton
-      Left = 0
+      Left = 281
       Top = 0
       Width = 8
       Caption = 'ToolButton3'
       ImageIndex = 6
-      Wrap = True
       Style = tbsSeparator
     end
     object ProgressBar: TProgressBar
-      Left = 0
-      Top = 30
+      Left = 289
+      Top = 0
       Width = 75
       Height = 22
       Hint = 'Web Server Utilization'
@@ -111,16 +110,16 @@ object WebForm: TWebForm
       TabOrder = 1
     end
     object ToolButton4: TToolButton
-      Left = 75
-      Top = 30
+      Left = 364
+      Top = 0
       Width = 8
       Caption = 'ToolButton4'
       ImageIndex = 7
       Style = tbsSeparator
     end
     object LogLevelText: TStaticText
-      Left = 83
-      Top = 30
+      Left = 372
+      Top = 0
       Width = 75
       Height = 22
       Hint = 'Log Level'
@@ -129,8 +128,8 @@ object WebForm: TWebForm
       TabOrder = 2
     end
     object LogLevelUpDown: TUpDown
-      Left = 158
-      Top = 30
+      Left = 447
+      Top = 0
       Width = 16
       Height = 22
       Hint = 'Log Level Adjustment'
@@ -145,17 +144,16 @@ object WebForm: TWebForm
   object Log: TRichEdit
     Left = 0
     Top = 25
-    Width = 446
-    Height = 165
+    Width = 454
+    Height = 171
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -12
+    Font.Height = -14
     Font.Name = 'MS Sans Serif'
     Font.Style = []
     HideScrollBars = False
     ParentFont = False
-    PopupMenu = MainForm.LogPopupMenu
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 1

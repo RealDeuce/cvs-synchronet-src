@@ -1,13 +1,14 @@
-/* Synchronet BBS Node control program */
-// vi: tabstop=4
+/* node.c */
 
-/* $Id: node.c,v 1.33 2019/10/03 17:54:28 rswindell Exp $ */
+/* Synchronet BBS Node control program */
+
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -74,7 +75,6 @@ enum {
 
 char tmp[256];
 int nodefile;
-int nodeexb;
 
 #if defined(_WIN32)	/* Microsoft-supplied cls() routine - ugh! */
 
@@ -240,16 +240,6 @@ static char* node_connection_desc(ushort conn, char* str)
 	return str;
 }
 
-static char* extended_status(int num, char* str)
-{
-	if(nodeexb < 0)
-		return "No extended status file open";
-	lseek(nodeexb, num * 128, SEEK_SET);
-	read(nodeexb, str, 128);
-	str[127] = 0;
-	return str;
-}
-
 /****************************************************************************/
 /* Displays the information for node number 'number' contained in 'node'    */
 /****************************************************************************/
@@ -270,10 +260,7 @@ void printnodedat(int number, node_t node)
 			printf("Networking");
 			break;
 		case NODE_LOGON:
-			printf("At login prompt");
-			break;
-		case NODE_LOGOUT:
-			printf("User #%d logging out", node.useron);
+			printf("At logon prompt");
 			break;
 		case NODE_EVENT_WAITING:
 			printf("Waiting for all nodes to become inactive");
@@ -291,10 +278,6 @@ void printnodedat(int number, node_t node)
 			break;
 		case NODE_QUIET:
 		case NODE_INUSE:
-			if(node.misc&NODE_EXT) {
-				printf("%s", extended_status(number - 1, tmp));
-				break;
-			}
 			printf("User #%d",node.useron);
 			printf(" ");
 			switch(node.action) {
@@ -386,7 +369,7 @@ void printnodedat(int number, node_t node)
 					printf("performing sysop activities");
 					break;
 				default:
-					fputs(itoa(node.action,tmp,10),stdout);
+					printf(itoa(node.action,tmp,10));
 					break;  }
 			printf(" %s",node_connection_desc(node.connection,tmp));
 			if(node.action==NODE_DLNG) {
@@ -458,12 +441,12 @@ int main(int argc, char **argv)
 
 	char		revision[16];
 
-	sscanf("$Revision: 1.33 $", "%*s %s", revision);
+	sscanf("$Revision$", "%*s %s", revision);
 
 	printf("\nSynchronet Node Display/Control Utility v%s\n\n", revision);
 
 	if(sizeof(node_t)!=SIZEOF_NODE_T) {
-		printf("COMPILER ERROR: sizeof(node_t)=%" XP_PRIsize_t "u instead of %d\n"
+		printf("COMPILER ERROR: sizeof(node_t)=%u instead of %d\n"
 			,sizeof(node_t),SIZEOF_NODE_T);
 		return(-1);
 	}
@@ -482,8 +465,6 @@ int main(int argc, char **argv)
 		printf("nopage      = page disable\n");
 		printf("noalerts    = activity alerts disable\n");
 		printf("status=#    = set status value\n");
-		printf("              %d = Waiting for connection\n", NODE_WFC);
-		printf("              %d = Offline\n", NODE_OFFLINE);
 		printf("useron=#    = set useron number\n");
 		printf("action=#    = set action value\n");
 		printf("errors=#    = set error counter\n");
@@ -508,9 +489,6 @@ int main(int argc, char **argv)
 	if((nodefile=sopen(str,O_RDWR|O_BINARY,SH_DENYNO))==-1) {
 		printf("\7\nError %d opening %s.\n",errno,str);
 		exit(1); }
-
-	sprintf(str,"%snode.exb",ctrl_dir);
-	nodeexb=sopen(str,O_RDWR|O_BINARY,SH_DENYNO);
 
 	sys_nodes=filelength(nodefile)/sizeof(node_t);
 	if(!sys_nodes) {
@@ -551,28 +529,28 @@ int main(int argc, char **argv)
 				onoff=2;
 			else if(!strnicmp(argv[i],"STATUS=",7)) {
 				mode=MODE_STATUS;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"ERRORS=",7)) {
 				mode=MODE_ERRORS;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"USERON=",7)) {
 				mode=MODE_USERON;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"ACTION=",7)) {
 				mode=MODE_ACTION;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			else if(!strnicmp(argv[i],"CONN=",5)) {
 				mode=MODE_CONN;
-				value=strtoul(argv[i]+5, NULL, 0); }
+				value=atoi(argv[i]+5); }
 			else if(!strnicmp(argv[i],"MISC=",5)) {
 				mode=MODE_MISC;
-				value=strtoul(argv[i]+5, NULL, 0); }
+				value=atoi(argv[i]+5); }
 			else if(!strnicmp(argv[i],"AUX=",4)) {
 				mode=MODE_AUX;
-				value=strtoul(argv[i]+4, NULL, 0); }
+				value=atoi(argv[i]+4); }
 			else if(!strnicmp(argv[i],"EXTAUX=",7)) {
 				mode=MODE_EXTAUX;
-				value=strtoul(argv[i]+7, NULL, 0); }
+				value=atoi(argv[i]+7); }
 			}
 		if(mode!=MODE_LIST)
 			modify=1;
@@ -621,16 +599,16 @@ int main(int argc, char **argv)
 								node.action=(uchar)value;
 								break;
 							case MODE_USERON:
-								node.useron=(uint16_t)value;
+								node.useron=(uchar)value;
 								break;
 							case MODE_MISC:
-								node.misc=(uint16_t)value;
+								node.misc=(uchar)value;
 								break;
 							case MODE_CONN:
-								node.connection=(uint16_t)value;
+								node.connection=(uchar)value;
 								break;
 							case MODE_AUX:
-								node.aux=(uint16_t)value;
+								node.aux=(uchar)value;
 								break;
 							case MODE_EXTAUX:
 								node.extaux=value;

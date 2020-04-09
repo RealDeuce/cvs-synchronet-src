@@ -1,15 +1,14 @@
 /* ver.cpp */
-// vi: tabstop=4
 
 /* Synchronet version display */
 
-/* $Id: ver.cpp,v 1.31 2019/10/08 02:07:26 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2010 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -37,7 +36,6 @@
  ****************************************************************************/
 
 #include "sbbs.h"
-#include "ssl.h"
 
 const char* beta_version = " "; /* Space if non-beta, " beta" otherwise */
 
@@ -64,14 +62,13 @@ char* socklib_version(char* str, char* winsock_ver)
 
 #else
 	
-	strcpy(str,"");
+	strcpy(str,"No socket library version available");
 
 #endif
 
 	return(str);
 }
 
-#ifndef JSDOOR
 void sbbs_t::ver()
 {
 	char str[128],compiler[32];
@@ -107,20 +104,9 @@ void sbbs_t::ver()
 	}
 #endif
 
-#ifdef USE_CRYPTLIB
-	if(is_crypt_initialized()) {
-		int cl_major=0, cl_minor=0, cl_step=0;
-		int result;
-		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MAJORVERSION, &cl_major);
-		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_MINORVERSION, &cl_minor);
-		result = cryptGetAttribute(CRYPT_UNUSED, CRYPT_OPTION_INFO_STEPPING, &cl_step);
-		(void)result;
-		sprintf(str, "  cryptlib %u.%u.%u (%u)", cl_major, cl_minor, cl_step, CRYPTLIB_VERSION);
-		center(str);
-		CRLF;
-	}
-#endif
+	center(socklib_version(str,SOCKLIB_DESC));
+	CRLF;
 
 	center(os_version(str));
 }
-#endif
+

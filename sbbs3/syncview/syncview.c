@@ -18,22 +18,23 @@ void viewscroll(void)
 	int i;
 	struct	text_info txtinfo;
 
-	gettextinfo(&txtinfo);
+    gettextinfo(&txtinfo);
+	cterm->backpos+=cterm->height;
 	if(cterm->backpos>cterm->backlines) {
-		memmove(cterm->scrollback,cterm->scrollback+cterm->width,cterm->width*sizeof(*cterm->scrollback)*(cterm->backlines-1));
+		memmove(cterm->scrollback,cterm->scrollback+cterm->width*2*(cterm->backpos-cterm->backlines),cterm->width*2*(cterm->backlines-(cterm->backpos-cterm->backlines)));
 		cterm->backpos=cterm->backlines;
 	}
-	vmem_gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,cterm->scrollback+(cterm->backpos)*cterm->width);
+	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,cterm->scrollback+(cterm->backpos)*cterm->width*2);
 	top=cterm->backpos;
 	for(i=0;!i;) {
 		if(top<1)
 			top=1;
 		if(top>cterm->backpos)
 			top=cterm->backpos;
-		vmem_puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,cterm->scrollback+(txtinfo.screenwidth*top));
+		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,cterm->scrollback+(txtinfo.screenwidth*2*top));
 		key=getch();
 		switch(key) {
-			case 0xe0:
+			case 0xff:
 			case 0:
 				switch(key|getch()<<8) {
 					case CIO_KEY_UP:
@@ -99,7 +100,7 @@ int main(int argc, char **argv)
 	char	buf[BUF_SIZE*2];	/* Room for lfexpand */
 	int		len;
 	int		speed=0;
-	struct vmem_cell	*scrollbuf;
+	char	*scrollbuf;
 	char	*infile=NULL;
 	char	title[MAX_PATH+1];
 	int		expand=0;
@@ -131,7 +132,7 @@ int main(int argc, char **argv)
 
 	textmode(C80);
 	gettextinfo(&ti);
-	if((scrollbuf=malloc(SCROLL_LINES*ti.screenwidth*sizeof(*scrollbuf)))==NULL) {
+	if((scrollbuf=malloc(SCROLL_LINES*ti.screenwidth*2))==NULL) {
 		cprintf("Cannot allocate memory\n\n\rPress any key to exit.");
 		getch();
 		return(-1);
@@ -163,18 +164,11 @@ int main(int argc, char **argv)
 	if(ansi) {
 		puts("");
 		puts("END OF ANSI");
-		if(cterm->backpos>cterm->backlines) {
-			memmove(cterm->scrollback,cterm->scrollback+cterm->width,cterm->width*sizeof(*cterm->scrollback)*(cterm->backlines-1));
-			cterm->backpos=cterm->backlines;
-		}
-		vmem_gettext(1,1,ti.screenwidth,ti.screenheight,cterm->scrollback+(cterm->backpos)*cterm->width);
-		cterm->backpos += ti.screenheight;
+		gettext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
 		puttext_can_move=1;
 		puts("START OF SCREEN DUMP...");
-		for (i = 0; i < cterm->backpos; i += ti.screenheight) {
-			clrscr();
-			vmem_puttext(1,1,ti.screenwidth,cterm->backpos - i > ti.screenheight ? ti.screenheight : cterm->backpos - i,cterm->scrollback+(ti.screenwidth*i));
-		}
+		clrscr();
+		puttext(1,1,ti.screenwidth,ti.screenheight,scrollbuf);
 	}
 	else
 		viewscroll();

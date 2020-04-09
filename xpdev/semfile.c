@@ -1,12 +1,12 @@
 /* semfile.c */
 
-/* $Id: semfile.c,v 1.8 2019/07/24 04:11:23 rswindell Exp $ */
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2007 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -96,7 +96,6 @@ str_list_t DLLCALL semfile_list_init(const char* parent,
 	strListPush(&list,path);
 	SAFEPRINTF3(path,"%s%s.%s",parent,action,service);
 	strListPush(&list,path);
-#if !defined(NO_SOCKET_SUPPORT)
 	if(gethostname(hostname,sizeof(hostname))==0) {
 		SAFEPRINTF3(path,"%s%s.%s",parent,action,hostname);
 		strListPush(&list,path);
@@ -110,7 +109,7 @@ str_list_t DLLCALL semfile_list_init(const char* parent,
 			strListPush(&list,path);
 		}
 	}
-#endif
+
 	return(list);
 }
 
@@ -134,7 +133,7 @@ BOOL DLLCALL semfile_signal(const char* fname, const char* text)
 	if(text==NULL && gethostname(hostname,sizeof(hostname))==0)
 		text=hostname;
 #endif
-	if((file=open(fname,O_CREAT|O_WRONLY, DEFFILEMODE))<0)	/* use sopen instead? */
+	if((file=open(fname,O_CREAT|O_WRONLY,S_IREAD|S_IWRITE))<0)	/* use sopen instead? */
 		return(FALSE);
 	if(text!=NULL)
 		write(file,text,strlen(text));

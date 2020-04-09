@@ -1,13 +1,14 @@
+/* startup.h */
+
 /* Synchronet main/telnet server thread startup structure */
 
-/* $Id: startup.h,v 1.84 2019/03/22 21:28:27 rswindell Exp $ */
-// vi: tabstop=4
+/* $Id$ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
+ * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -57,30 +58,21 @@ typedef struct {
 	char	load_path[INI_MAX_VALUE_LEN];	/* additional (comma-separated) directories to search for load()ed scripts */
 } js_startup_t;
 
-/* Login Attempt parameters */
-struct login_attempt_settings {
-	ulong	delay;				/* in milliseconds */
-	ulong	throttle;			/* in milliseconds */
-	ulong	hack_threshold;
-	ulong	tempban_threshold;
-	ulong	tempban_duration;	/* in seconds */
-	ulong	filter_threshold;
-};
-
 typedef struct {
 
 	char	ctrl_dir[INI_MAX_VALUE_LEN];
 	char	temp_dir[INI_MAX_VALUE_LEN];
 	char	host_name[INI_MAX_VALUE_LEN];
 	ushort	sem_chk_freq;
-	struct in_addr		outgoing4;
-	struct in6_addr	outgoing6;
-	str_list_t		interfaces;
+	ulong	interface_addr;
 	int		log_level;
 	js_startup_t js;
 	uint	bind_retry_count;		/* Number of times to retry bind() calls */
 	uint	bind_retry_delay;		/* Time to wait between each bind() retry */
-	struct login_attempt_settings login_attempt;
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 
 } global_startup_t;
 
@@ -91,19 +83,14 @@ typedef struct {
     WORD	last_node;
 	WORD	telnet_port;
 	WORD	rlogin_port;
-	WORD	pet40_port;			// 40-column PETSCII terminal server
-	WORD	pet80_port;			// 80-column PETSCII terminal server
 	WORD	ssh_port;
-	WORD	ssh_connect_timeout;
 	WORD	outbuf_highwater_mark;	/* output block size control */
 	WORD	outbuf_drain_timeout;
 	WORD	sem_chk_freq;		/* semaphore file checking frequency (in seconds) */
-	struct in_addr outgoing4;
-	struct in6_addr	outgoing6;
-    str_list_t	telnet_interfaces;
+    uint32_t   telnet_interface;
     uint32_t	options;			/* See BBS_OPT definitions */
-    str_list_t	rlogin_interfaces;
-    str_list_t	ssh_interfaces;
+    DWORD	rlogin_interface;
+	DWORD	ssh_interface;
     RingBuf** node_spybuf;			/* Spy output buffer (each node)	*/
     RingBuf** node_inbuf;			/* User input buffer (each node)	*/
     sem_t**	node_spysem;			/* Spy output semaphore (each node)	*/
@@ -132,7 +119,6 @@ typedef struct {
     char	temp_dir[128];
 	char	answer_sound[128];
 	char	hangup_sound[128];
-	char	ini_fname[128];
 
 	/* Miscellaneous */
 	char	xtrn_term_ansi[32];		/* external ANSI terminal type (e.g. "ansi-bbs") */
@@ -147,13 +133,14 @@ typedef struct {
 	/* JavaScript operating parameters */
 	js_startup_t js;
 
-	struct login_attempt_settings login_attempt;
+	/* Login Attempt parameters */
+	ulong	login_attempt_delay;
+	ulong	login_attempt_throttle;
+	ulong	login_attempt_hack_threshold;
+	ulong	login_attempt_filter_threshold;
 	link_list_t* login_attempt_list;
-	uint	max_concurrent_connections;
 
 } bbs_startup_t;
-
-#define DEFAULT_SEM_CHK_FREQ	2
 
 /* startup options that requires re-initialization/recycle when changed */
 #define OFFSET_AND_SIZE(s, f)	{ offsetof(s,f), sizeof(((s *)0)->f) }
@@ -167,9 +154,8 @@ static struct init_field {
 	,OFFSET_AND_SIZE(bbs_startup_t,last_node)
 	,OFFSET_AND_SIZE(bbs_startup_t,telnet_port)
 	,OFFSET_AND_SIZE(bbs_startup_t,rlogin_port)
-	,OFFSET_AND_SIZE(bbs_startup_t,telnet_interfaces)
-	,OFFSET_AND_SIZE(bbs_startup_t,rlogin_interfaces)
-	,OFFSET_AND_SIZE(bbs_startup_t,ssh_interfaces)
+	,OFFSET_AND_SIZE(bbs_startup_t,telnet_interface)
+	,OFFSET_AND_SIZE(bbs_startup_t,rlogin_interface)
 	,OFFSET_AND_SIZE(bbs_startup_t,ctrl_dir)
 	,OFFSET_AND_SIZE(bbs_startup_t,temp_dir)
 	,{ 0,0 }	/* terminator */
@@ -179,7 +165,7 @@ static struct init_field {
 #define BBS_OPT_XTRN_MINIMIZED		(1<<1)	/* Run externals minimized			*/
 #define BBS_OPT_AUTO_LOGON			(1<<2)	/* Auto-logon via IP				*/
 #define BBS_OPT_DEBUG_TELNET		(1<<3)	/* Debug telnet commands			*/
-#define BBS_OPT_SYSOP_AVAILABLE		(1<<4)	/* Available for chat - DEPRECATED (controlled via semfile) */
+#define BBS_OPT_SYSOP_AVAILABLE		(1<<4)	/* Available for chat				*/
 #define BBS_OPT_ALLOW_RLOGIN		(1<<5)	/* Allow logins via BSD RLogin		*/
 #define BBS_OPT_USE_2ND_RLOGIN		(1<<6)	/* Use 2nd username in BSD RLogin - DEPRECATED (Always enabled)	*/
 #define BBS_OPT_NO_QWK_EVENTS		(1<<7)	/* Don't run QWK-related events		*/
@@ -189,7 +175,6 @@ static struct init_field {
 #define BBS_OPT_NO_HOST_LOOKUP		(1<<11)
 #define BBS_OPT_ALLOW_SSH			(1<<12)	/* Allow logins via BSD SSH			*/
 #define BBS_OPT_NO_DOS				(1<<13) /* Don't attempt to run 16-bit DOS programs */
-#define BBS_OPT_NO_NEWDAY_EVENTS	(1<<14)	/* Don't check for a new day in event thread */
 #define BBS_OPT_NO_RECYCLE			(1<<27)	/* Disable recycling of server		*/
 #define BBS_OPT_GET_IDENT			(1<<28)	/* Get Identity (RFC 1413)			*/
 #define BBS_OPT_NO_JAVASCRIPT		(1<<29)	/* JavaScript disabled				*/
@@ -214,7 +199,6 @@ static ini_bitdesc_t bbs_options[] = {
 	{ BBS_OPT_NO_SPY_SOCKETS		,"NO_SPY_SOCKETS"		},
 	{ BBS_OPT_ALLOW_SSH				,"ALLOW_SSH"			},
 	{ BBS_OPT_NO_DOS				,"NO_DOS"				},
-	{ BBS_OPT_NO_NEWDAY_EVENTS		,"NO_NEWDAY_EVENTS"		},
 	{ BBS_OPT_NO_RECYCLE			,"NO_RECYCLE"			},
 	{ BBS_OPT_GET_IDENT				,"GET_IDENT"			},
 	{ BBS_OPT_NO_JAVASCRIPT			,"NO_JAVASCRIPT"		},
@@ -243,7 +227,7 @@ extern "C" {
 		#define DLLEXPORT __declspec(dllimport)
 	#endif
 	#ifdef __BORLANDC__
-		#define DLLCALL
+		#define DLLCALL __stdcall
 	#else
 		#define DLLCALL
 	#endif
