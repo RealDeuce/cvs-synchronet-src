@@ -2,33 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "sbbs.h"
 #include "dirwrap.h"	// MAX_PATH
 #include "gen_defs.h"
-
-/****************************************************************************/
-/* Converts an ASCII Hex string into an ulong                               */
-/* by Steve Deppe (Ille Homine Albe)										*/
-/****************************************************************************/
-/* Copied from str_util.c */
-ulong ahtoul(char *str)
-{
-    ulong l,val=0;
-
-	while((l=(*str++)|0x20)!=0x20)
-		val=(l&0xf)+(l>>6&1)*9+val*16;
-	return(val);
-}
-
-void truncsp(char* str)
-{
-	char* cp=strchr(str, 0);
-	if(cp && cp > str) {
-		cp--;
-		while(cp > str && isspace(*cp)) {
-			*(cp--)=0;
-		}
-	}
-}
 
 /****************************************************************************/
 /* Reads special TEXT.DAT printf style text lines, splicing multiple lines, */
@@ -222,7 +198,7 @@ int main(int argc, char **argv)
 		perror(path);
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.14 2020/01/03 20:34:56 rswindell Exp $ */\n",text_js);
+	fputs("/* $Id: textgen.c,v 1.15 2020/01/04 22:58:14 rswindell Exp $ */\n",text_js);
 	fputs("\n",text_js);
 	fputs("/* Synchronet static text string constants */\n",text_js);
 	fputs("\n",text_js);
@@ -237,7 +213,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Can't open text_defaults.c!\n");
 		return(1);
 	}
-	fputs("/* $Id: textgen.c,v 1.14 2020/01/03 20:34:56 rswindell Exp $ */\n",text_defaults_c);
+	fputs("/* $Id: textgen.c,v 1.15 2020/01/04 22:58:14 rswindell Exp $ */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
 	fputs("/* Synchronet default text strings */\n",text_defaults_c);
 	fputs("\n",text_defaults_c);
