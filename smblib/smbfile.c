@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) FILE stream I/O routines */
 
-/* $Id: smbfile.c,v 1.16 2020/04/11 05:25:54 rswindell Exp $ */
+/* $Id: smbfile.c,v 1.15 2019/04/11 01:00:30 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,7 +98,7 @@ size_t SMBCALL smb_fread(smb_t* smb, void* buf, size_t bytes, FILE* fp)
 	while(1) {
 		if((ret=fread(buf,sizeof(char),bytes,fp))==bytes)
 			return(ret);
-		if(get_errno()!=EDEADLOCK && get_errno()!=EACCES)
+		if(get_errno()!=EDEADLOCK)
 			return(ret);
 		if(!start)
 			start=time(NULL);
@@ -182,7 +182,12 @@ int SMBCALL smb_open_fp(smb_t* smb, FILE** fp, int share)
 		close(file);
 		return(SMB_ERR_OPEN); 
 	}
-	setvbuf(*fp,NULL,_IOFBF, 2*1024);
+#if 0	/* This causes a noticeable performance hit when new-scanning subs */
+	if(fp==&smb->sid_fp)
+		setvbuf(*fp,NULL,_IONBF,0);	/* no buffering (cause of *.sid corruption?) */
+	else
+#endif
+		setvbuf(*fp,NULL,_IOFBF,2*1024);
 	return(SMB_SUCCESS);
 }
 
