@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.112 2020/04/12 17:50:45 deuce Exp $ */
+/* $Id: ciolib.h,v 1.111 2020/04/03 00:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,6 @@ enum {
 	 CIOLIB_MODE_AUTO
 	,CIOLIB_MODE_CURSES
 	,CIOLIB_MODE_CURSES_IBM
-	,CIOLIB_MODE_CURSES_ASCII
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
