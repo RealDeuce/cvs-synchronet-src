@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.497 2020/04/11 04:01:35 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.496 2020/03/31 07:12:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1132,6 +1132,52 @@ BOOL js_generate_index(JSContext* js_cx, JSObject* parent,
 
 #endif	/* ifdef JAVASCRIPT */
 
+BOOL upload_stats(ulong bytes)
+{
+	char	str[MAX_PATH+1];
+	int		file;
+	uint32_t	val;
+
+	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
+	if((file=nopen(str,O_RDWR))==-1) 
+		return(FALSE);
+
+	lseek(file,20L,SEEK_SET);   /* Skip timestamp, logons and logons today */
+	read(file,&val,4);        /* Uploads today         */
+	val++;
+	lseek(file,-4L,SEEK_CUR);
+	write(file,&val,4);
+	read(file,&val,4);        /* Upload bytes today    */
+	val+=bytes;
+	lseek(file,-4L,SEEK_CUR);
+	write(file,&val,4);
+	close(file);
+	return(TRUE);
+}
+
+BOOL download_stats(ulong bytes)
+{
+	char	str[MAX_PATH+1];
+	int		file;
+	uint32_t	val;
+
+	sprintf(str,"%sdsts.dab",scfg.ctrl_dir);
+	if((file=nopen(str,O_RDWR))==-1) 
+		return(FALSE);
+
+	lseek(file,28L,SEEK_SET);   /* Skip timestamp, logons and logons today */
+	read(file,&val,4);        /* Downloads today         */
+	val++;
+	lseek(file,-4L,SEEK_CUR);
+	write(file,&val,4);
+	read(file,&val,4);        /* Download bytes today    */
+	val+=bytes;
+	lseek(file,-4L,SEEK_CUR);
+	write(file,&val,4);
+	close(file);
+	return(TRUE);
+}
+
 void recverror(SOCKET socket, int rd, int line)
 {
 	if(rd==0) 
@@ -1585,7 +1631,7 @@ static void send_thread(void* arg)
 				}
 			}
 			if(!xfer.tmpfile && !xfer.delfile && !(scfg.dir[f.dir]->misc&DIR_NOSTAT))
-				inc_sys_download_stats(&scfg, 1, total);
+				download_stats(total);
 		}	
 
 		if(xfer.credits) {
@@ -1911,7 +1957,7 @@ static void receive_thread(void* arg)
 						,(ulong)(f.cdt*(scfg.dir[f.dir]->up_pct/100.0))); 
 			}
 			if(!(scfg.dir[f.dir]->misc&DIR_NOSTAT))
-				inc_sys_upload_stats(&scfg, 1, total);
+				upload_stats(total);
 		}
 		/* Send ACK */
 		sockprintf(xfer.ctrl_sock,sess,"226 Upload complete (%lu cps).",cps);
@@ -5947,7 +5993,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.497 $", "%*s %s", revision);
+	sscanf("$Revision: 1.496 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
