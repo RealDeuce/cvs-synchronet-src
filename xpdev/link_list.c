@@ -1,6 +1,6 @@
 /* Double-Linked-list library */
 
-/* $Id: link_list.c,v 1.63 2019/08/02 13:07:54 rswindell Exp $ */
+/* $Id: link_list.c,v 1.64 2019/08/04 19:38:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -903,6 +903,8 @@ void DLLCALL listReverse(link_list_t* list)
 
 long DLLCALL listVerify(link_list_t* list)
 {
+	list_node_t* node;
+	list_node_t* prev = NULL;
 	long result = 0;
 
 	if(list == NULL)
@@ -910,8 +912,7 @@ long DLLCALL listVerify(link_list_t* list)
 
 	listLock(list);
 
-	list_node_t* node = list->first;
-	list_node_t* prev = NULL;
+	node = list->first;
 	while(node != NULL) {
 		if(node->list != list) {
 			result = -2;
