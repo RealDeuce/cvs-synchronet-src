@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.227 2020/04/24 23:00:04 rswindell Exp $ */
+/* $Id: userdat.c,v 1.223 2020/03/31 01:17:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2222,24 +2222,13 @@ ulong adjustuserrec(scfg_t* cfg, int usernumber, int start, int length, long adj
 	for(c=0;c<length;c++)
 		if(str[c]==ETX || str[c]==CR) break;
 	str[c]=0;
-	if(length > 5) {
-		val = strtoul(str, NULL, 10);
-		if(adj<0L && val<(ulong)-adj)		/* don't go negative */
-			val=0;
-		else if(adj > 0 && val + adj < val)
-			val = ULONG_MAX;
-		else
-			val += (ulong)adj;
-	} else {
-		ushort sval = (ushort)strtoul(str, NULL, 10);
-		if(adj < 0L && sval < (ushort)-adj)		/* don't go negative */
-			sval = 0;
-		else if(adj > 0 && sval + adj < sval)
-			sval = USHRT_MAX;
-		else
-			sval += (ushort)adj;
-		val = sval;
-	}
+	val = strtoul(str, NULL, 10);
+	if(adj<0L && val<(ulong)-adj)		/* don't go negative */
+		val=0;
+	else if(adj > 0 && val + adj < val)
+		val = ULONG_MAX;
+	else
+		val += (ulong)adj;
 	lseek(file,(long)((long)(usernumber-1)*U_LEN)+start,SEEK_SET);
 	putrec(str,0,length,ultoa(val,tmp,10));
 	if(write(file,str,length)!=length) {
@@ -2315,80 +2304,6 @@ BOOL user_downloaded(scfg_t* cfg, user_t* user, int files, long bytes)
 
 	return(TRUE);
 }
-
-#ifdef SBBS
-BOOL user_downloaded_file(scfg_t* cfg, user_t* user, client_t* client,
-	uint dirnum, const char* filename, ulong bytes)
-{
-	file_t f = {{0}};
-
-	f.dir = dirnum;
-	padfname(getfname(filename), f.name);
-	if(!getfileixb(cfg, &f) || !getfiledat(cfg, &f))
-		return FALSE;
-
-	if(!bytes)
-		bytes = f.size;
-
-	f.timesdled++;
-	f.datedled=time32(NULL);
-	if(!putfiledat(cfg, &f) || !putfileixb(cfg, &f))
-		return FALSE;
-
-	/**************************/
-	/* Update Uploader's Info */
-	/**************************/
-	user_t uploader = {0};
-	uploader.number=matchuser(cfg, f.uler, TRUE /*sysop_alias*/);
-	if(uploader.number
-		&& uploader.number != user->number 
-		&& getuserdat(cfg, &uploader) == 0
-		&& uploader.firston < f.dateuled) {
-		ulong l = f.cdt;
-		if(!(cfg->dir[f.dir]->misc&DIR_CDTDL))	/* Don't give credits on d/l */
-			l=0;
-		ulong mod=(ulong)(l*(cfg->dir[f.dir]->dn_pct/100.0));
-		adjustuserrec(cfg, uploader.number, U_CDT, 10, mod);
-		if(cfg->text != NULL) {
-			char str[256];
-			char tmp[128];
-			char prefix[128]="";
-			ultoac(mod,tmp);
-			char username[64];
-			if(client != NULL && uploader.level >= SYSOP_LEVEL) {
-				if(client->host != NULL && strcmp(client->host, STR_NO_HOSTNAME) != 0)
-					SAFEPRINTF2(username,"%s [%s]", user->alias, client->host);
-				else
-					SAFEPRINTF2(username,"%s [%s]", user->alias, client->addr);
-			} else
-				SAFECOPY(username, user->alias);
-			if(strcmp(cfg->dir[f.dir]->code, "TEMP") == 0 || bytes < (ulong)f.size)
-				SAFECOPY(prefix, cfg->text[Partially]);
-			if(client != NULL) {
-				SAFECAT(prefix, client->protocol);
-				SAFECAT(prefix, "-");
-			}
-			/* Inform uploader of downloaded file */
-			SAFEPRINTF4(str, cfg->text[DownloadUserMsg]
-				,getfname(filename)
-				,prefix
-				,username, tmp);
-			putsmsg(cfg, uploader.number, str);
-		}
-	}
-	/****************************/
-	/* Update Downloader's Info */
-	/****************************/
-	user_downloaded(cfg, user, /* files: */1, bytes);
-	if(!is_download_free(cfg, f.dir, user, client))
-		subtract_cdt(cfg, user, f.cdt);
-
-	if(!(cfg->dir[f.dir]->misc&DIR_NOSTAT))
-		inc_sys_download_stats(cfg, /* files: */1, bytes);
-
-	return TRUE;
-}
-#endif
 
 BOOL user_uploaded(scfg_t* cfg, user_t* user, int files, long bytes)
 {
