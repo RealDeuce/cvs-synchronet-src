@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id: smbadd.c,v 1.45 2020/04/11 05:25:54 rswindell Exp $ */
+/* $Id: smbadd.c,v 1.44 2020/04/10 05:34:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -80,7 +80,15 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	/* try */
 	do {
 
-		if((retval = smb_getstatus(smb)) != SMB_SUCCESS)
+		while((retval=smb_getstatus(smb)) == SMB_ERR_READ) {
+			if(!start)
+				start=time(NULL);
+			else
+				if(time(NULL)-start>=(time_t)smb->retry_time)
+					break; 
+			SLEEP(smb->retry_delay);
+		}
+		if(retval != SMB_SUCCESS)
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
