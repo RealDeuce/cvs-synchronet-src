@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.249 2019/07/25 18:28:34 deuce Exp $ */
+/* $Id: uifc32.c,v 1.260 2020/04/10 08:57:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,8 @@
 	#define mswait(x) Sleep(x)
 #endif
 #include <genwrap.h>	// for alloca()
+#include <datewrap.h>	// localtime_r()
+#include "xpprintf.h"
 
 #include "ciolib.h"
 #include "uifc.h"
@@ -79,7 +81,10 @@ static int  ulist(int mode, int left, int top, int width, int *dflt, int *bar
 	,char *title, char **option);
 static int  uinput(int imode, int left, int top, char *prompt, char *str
 	,int len ,int kmode);
-static void umsg(char *str);
+static int  umsg(char *str);
+static int  umsgf(char *fmt, ...);
+static BOOL confirm(char *fmt, ...);
+static BOOL deny(char *fmt, ...);
 static void upop(char *str);
 static void sethelp(int line, char* file);
 static void showbuf(int mode, int left, int top, int width, int height, char *title
@@ -209,12 +214,18 @@ int UIFCCALL uifcini32(uifcapi_t* uifcapi)
 
     api=uifcapi;
     if (api->chars == NULL)
-	api->chars = &cp437_chars;
+		api->chars = &cp437_chars;
+
+	if (api->yesNoOpts == NULL)
+		api->yesNoOpts = uifcYesNoOpts;
 
     /* install function handlers */
     api->bail=uifcbail;
     api->scrn=uscrn;
     api->msg=umsg;
+	api->msgf=umsgf;
+	api->confirm=confirm;
+	api->deny=deny;
     api->pop=upop;
     api->list=ulist;
     api->input=uinput;
@@ -541,12 +552,20 @@ static void scroll_text(int x1, int y1, int x2, int y2, int down)
 static void timedisplay(BOOL force)
 {
 	static time_t savetime;
+	static int savemin;
 	time_t now;
+	struct tm gm;
+	int old_hold;
 
 	now=time(NULL);
-	if(force || difftime(now,savetime)>=60) {
+	localtime_r(&now, &gm);
+	if(force || savemin != gm.tm_min || difftime(now,savetime)>=60) {
+		old_hold=hold_update;
+		hold_update=FALSE;
 		uprintf(api->scrn_width-25,1,api->bclr|(api->cclr<<4),utimestr(&now));
+		hold_update=old_hold;
 		savetime=now;
+		savemin = gm.tm_min;
 	}
 }
 
@@ -587,7 +606,7 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 	, char *initial_title, char **option)
 {
 	struct vmem_cell *ptr, *win, shade[MAX_LINES*2], line[MAX_COLS];
-	char search[MAX_OPLN];
+	static char search[MAX_OPLN] = "";
 	int height,y;
 	int i,j,opts=0,s=0; /* s=search index into options */
 	int	is_redraw=0;
@@ -1080,6 +1099,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if((win=malloc((width+3)*(height+2)*sizeof(*win)))==NULL) {
 								cprintf("UIFC line %d: error allocating %u bytes."
 									,__LINE__,(width+3)*(height+2)*sizeof(*win));
+								if(!(api->mode&UIFC_NHM))
+									uifc_mouse_enable();
 								return(-1);
 							}
 							inactive_win(win, s_left+left, s_top+top, s_left+left+width-1, s_top+top+height-1, y, hbrdrsize, cclr, lclr, hclr, top);
@@ -1148,6 +1169,14 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_HOME;
 					break;
+				case CTRL_C:
+					if(!(api->mode&UIFC_NOCTRL))
+						gotkey=CIO_KEY_F(5);	/* copy */
+					break;
+				case CTRL_D:
+					if(!(api->mode&UIFC_NOCTRL))
+						gotkey=CIO_KEY_NPAGE;
+					break;
 				case CTRL_E:
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_END;
@@ -1156,25 +1185,17 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_PPAGE;
 					break;
-				case CTRL_D:
+				case CTRL_V:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_NPAGE;
-					break;
-				case CTRL_Z:
-					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_F(1);	/* help */
-					break;
-				case CTRL_C:
-					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_F(5);	/* copy */
+						gotkey=CIO_KEY_F(6);	/* paste */
 					break;
 				case CTRL_X:
 					if(!(api->mode&UIFC_NOCTRL))
 						gotkey=CIO_KEY_SHIFT_DC;	/* cut */
 					break;
-				case CTRL_V:
+				case CTRL_Z:
 					if(!(api->mode&UIFC_NOCTRL))
-						gotkey=CIO_KEY_F(6);	/* paste */
+						gotkey=CIO_KEY_F(1);	/* help */
 					break;
 				case CIO_KEY_ABORTED:
 					gotkey=ESC;
@@ -1690,6 +1711,82 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 								FREE_AND_NULL(sav[api->savnum].buf);
 							}
 							return(-1);
+						case CTRL_F:			/* find */
+						case CTRL_G:
+							if(/*!(api->mode&UIFC_NOCTRL)*/1) { // No no, *this* control key is fine!
+								if (gotkey == CTRL_G || api->input(WIN_MID|WIN_SAV, 0, 0, "Find", search, sizeof(search), K_EDIT) > 0) {
+									for (j = (*cur) + 1; j != *cur; j++, j = (j >= opts) ? 0 : j) {
+										if (strcasestr(option[j], search) != NULL) {
+											// Copy/pasted from search above.
+											if(y+(j-(*cur))+2>height+top) {
+												(*cur)=j;
+												gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
+												textattr(lclr|(bclr<<4));
+												putch(api->chars->up_arrow);	   /* put the up arrow */
+												if((*cur)==opts-1) {
+													gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
+													putch(' ');	/* delete the down arrow */
+												}
+												for(i=((*cur)+vbrdrsize+1)-height,j=0;i<(*cur)+1;i++,j++)
+													uprintf(s_left+left+lbrdrwidth+2,s_top+top+tbrdrwidth+j
+														,i==(*cur) ? lbclr
+															: lclr|(bclr<<4)
+														,"%-*.*s",width-hbrdrsize-2,width-hbrdrsize-2,option[i]);
+												y=top+height-bbrdrwidth-1;
+												if(bar)
+													(*bar)=optheight-vbrdrsize-1;
+												break;
+											}
+											if(y-((*cur)-j)<top+tbrdrwidth) {
+												(*cur)=j;
+												gotoxy(s_left+left+lbrdrwidth,s_top+top+tbrdrwidth);
+												textattr(lclr|(bclr<<4));
+												if(!(*cur))
+													putch(' ');    /* Delete the up arrow */
+												gotoxy(s_left+left+lbrdrwidth,s_top+top+height-bbrdrwidth-1);
+												putch(api->chars->down_arrow);	   /* put the down arrow */
+												uprintf(s_left+left+lbrdrwidth+2,s_top+top+tbrdrwidth
+													,lbclr
+													,"%-*.*s",width-hbrdrsize-2,width-hbrdrsize-2,option[(*cur)]);
+												for(i=1;i<height-vbrdrsize;i++) 	/* re-display options */
+													uprintf(s_left+left+lbrdrwidth+2,s_top+top+tbrdrwidth+i
+														,lclr|(bclr<<4)
+														,"%-*.*s",width-hbrdrsize-2,width-hbrdrsize-2
+														,option[(*cur)+i]);
+												y=top+tbrdrwidth;
+												if(bar)
+													(*bar)=0;
+												break;
+											}
+											vmem_gettext(s_left+lbrdrwidth+2+left,s_top+y
+												,s_left+left+width-rbrdrwidth-1,s_top+y,line);
+											for(i=0; i<width; i++)
+												set_vmem_attr(&line[i], lclr|(bclr<<4));
+											vmem_puttext(s_left+lbrdrwidth+2+left,s_top+y
+												,s_left+left+width-rbrdrwidth-1,s_top+y,line);
+											if((*cur)>j)
+												y-=(*cur)-j;
+											else
+												y+=j-(*cur);
+											if(bar) {
+												if((*cur)>j)
+													(*bar)-=(*cur)-j;
+												else
+													(*bar)+=j-(*cur);
+											}
+											(*cur)=j;
+											vmem_gettext(s_left+lbrdrwidth+2+left,s_top+y
+												,s_left+left+width-rbrdrwidth-1,s_top+y,line);
+											for(i=0; i < width; i++)
+												set_vmem_attr(&line[i], lbclr);
+											vmem_puttext(s_left+lbrdrwidth+2+left,s_top+y
+												,s_left+left+width-rbrdrwidth-1,s_top+y,line);
+											break;
+										}
+									}
+								}
+							}
+							break;
 						default:
 							if(mode&WIN_EXTKEYS)
 								return(-2-gotkey);
@@ -1866,16 +1963,69 @@ int uinput(int mode, int left, int top, char *inprompt, char *str,
 /****************************************************************************/
 /* Displays the message 'str' and waits for the user to select "OK"         */
 /****************************************************************************/
-void umsg(char *str)
+int  umsg(char *str)
 {
 	int i=0;
 	char *ok[2]={"OK",""};
 
 	if(api->mode&UIFC_INMSG)	/* non-cursive */
-		return;
+		return -1;
 	api->mode|=UIFC_INMSG;
-	ulist(WIN_SAV|WIN_MID,0,0,0,&i,0,str,ok);
+	i = ulist(WIN_SAV|WIN_MID,0,0,0,&i,0,str,ok);
 	api->mode&=~UIFC_INMSG;
+	return i;
+}
+
+/* Same as above, using printf-style varargs */
+int umsgf(char* fmt, ...)
+{
+	int retval = -1;
+	va_list va;
+	char* buf = NULL;
+
+	va_start(va, fmt);
+    vasprintf(&buf, fmt, va);
+    va_end(va);
+	if(buf != NULL) {
+		retval = umsg(buf);
+		free(buf);
+	}
+	return retval;
+}
+
+static int yesno(int dflt, char* fmt, va_list va)
+{
+	int retval;
+	char* buf = NULL;
+
+    vasprintf(&buf, fmt, va);
+	if(buf == NULL)
+		return dflt;
+	retval = ulist(WIN_SAV|WIN_MID,0,0,0,&dflt,0,buf,api->yesNoOpts);
+	free(buf);
+	return retval;
+}
+
+static BOOL confirm(char* fmt, ...)
+{
+	int retval;
+
+	va_list va;
+	va_start(va, fmt);
+	retval = yesno(0, fmt, va);
+	va_end(va);
+	return retval == 0;
+}
+
+static BOOL deny(char* fmt, ...)
+{
+	int retval;
+
+	va_list va;
+	va_start(va, fmt);
+	retval = yesno(1, fmt, va);
+	va_end(va);
+	return retval != 0;
 }
 
 /***************************************/
