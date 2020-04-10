@@ -20,7 +20,6 @@
 #endif
 
 #include "ciolib.h"
-#include "utf8_codepages.h"
 #include "vidmodes.h"
 #define BITMAP_CIOLIB_DRIVER
 #include "bitmap_con.h"
@@ -181,6 +180,301 @@ const struct sdl_keyvals sdl_keyval[] =
 	{0, 0, 0, 0, 0}	/** END **/
 };
 
+// Sorted by unicode codepoint...
+struct cp437map {
+	uint32_t	unicode;
+	uint8_t		cp437;
+};
+
+static struct cp437map cp437_table[] = {
+	{0x00A0, 255}, {0x00A1, 173}, {0x00A2, 155}, {0x00A3, 156},
+	{0x00A5, 157}, {0x00AA, 166}, {0x00AB, 174}, {0x00AC, 170},
+	{0x00B0, 248}, {0x00B1, 241}, {0x00B2, 253}, {0x00B5, 230},
+	{0x00B7, 250}, {0x00BA, 167}, {0x00BB, 175}, {0x00BC, 172},
+	{0x00BD, 171}, {0x00BF, 168}, {0x00C4, 142}, {0x00C5, 143},
+	{0x00C6, 146}, {0x00C7, 128}, {0x00C9, 144}, {0x00D1, 165},
+	{0x00D6, 153}, {0x00DC, 154}, {0x00DF, 225}, {0x00E0, 133},
+	{0x00E1, 160}, {0x00E2, 131}, {0x00E4, 132}, {0x00E5, 134},
+	{0x00E6, 145}, {0x00E7, 135}, {0x00E8, 138}, {0x00E9, 130},
+	{0x00EA, 136}, {0x00EB, 137}, {0x00EC, 141}, {0x00ED, 161},
+	{0x00EE, 140}, {0x00EF, 139}, {0x00F1, 164}, {0x00F2, 149},
+	{0x00F3, 162}, {0x00F4, 147}, {0x00F6, 148}, {0x00F7, 246},
+	{0x00F9, 151}, {0x00FA, 163}, {0x00FB, 150}, {0x00FC, 129},
+	{0x00FF, 152}, {0x0192, 159}, {0x0393, 226}, {0x0398, 233},
+	{0x03A3, 228}, {0x03A6, 232}, {0x03A9, 234}, {0x03B1, 224},
+	{0x03B4, 235}, {0x03B5, 238}, {0x03C0, 227}, {0x03C3, 229},
+	{0x03C4, 231}, {0x03C6, 237}, {0x207F, 252}, {0x20A7, 158},
+	{0x2219, 249}, {0x221A, 251}, {0x221E, 236}, {0x2229, 239},
+	{0x2248, 247}, {0x2261, 240}, {0x2264, 243}, {0x2265, 242},
+	{0x2310, 169}, {0x2320, 244}, {0x2321, 245}, {0x2500, 196},
+	{0x2502, 179}, {0x250C, 218}, {0x2510, 191}, {0x2514, 192},
+	{0x2518, 217}, {0x251C, 195}, {0x2524, 180}, {0x252C, 194},
+	{0x2534, 193}, {0x253C, 197}, {0x2550, 205}, {0x2551, 186},
+	{0x2552, 213}, {0x2553, 214}, {0x2554, 201}, {0x2555, 184},
+	{0x2556, 183}, {0x2557, 187}, {0x2558, 212}, {0x2559, 211},
+	{0x255A, 200}, {0x255B, 190}, {0x255C, 189}, {0x255D, 188},
+	{0x255E, 198}, {0x255F, 199}, {0x2560, 204}, {0x2561, 181},
+	{0x2562, 182}, {0x2563, 185}, {0x2564, 209}, {0x2565, 210},
+	{0x2566, 203}, {0x2567, 207}, {0x2568, 208}, {0x2569, 202},
+	{0x256A, 216}, {0x256B, 215}, {0x256C, 206}, {0x2580, 223},
+	{0x2584, 220}, {0x2588, 219}, {0x258C, 221}, {0x2590, 222},
+	{0x2591, 176}, {0x2592, 177}, {0x2593, 178}, {0x25A0, 254}
+};
+
+static uint32_t unicode_table[] = {
+	0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7, 
+	0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5, 
+	0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9, 
+	0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192, 
+	0x00E1, 0x00ED, 0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA, 
+	0x00BF, 0x2310, 0x00AC, 0x00BD, 0x00BC, 0x00A1, 0x00AB, 0x00BB, 
+	0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 
+	0x2555, 0x2563, 0x2551, 0x2557, 0x255D, 0x255C, 0x255B, 0x2510, 
+	0x2514, 0x2534, 0x252C, 0x251C, 0x2500, 0x253C, 0x255E, 0x255F, 
+	0x255A, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256C, 0x2567, 
+	0x2568, 0x2564, 0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256B, 
+	0x256A, 0x2518, 0x250C, 0x2588, 0x2584, 0x258C, 0x2590, 0x2580, 
+	0x03B1, 0x00DF, 0x0393, 0x03C0, 0x03A3, 0x03C3, 0x00B5, 0x03C4, 
+	0x03A6, 0x0398, 0x03A9, 0x03B4, 0x221E, 0x03C6, 0x03B5, 0x2229, 
+	0x2261, 0x00B1, 0x2265, 0x2264, 0x2320, 0x2321, 0x00F7, 0x2248, 
+	0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0
+};
+
+static int cmptab(const void *key, const void *entry)
+{
+	const uint32_t *pkey = key;
+	const struct cp437map *pentry = entry;
+
+	if (*pkey == pentry->unicode)
+		return 0;
+	if (*pkey < pentry->unicode)
+		return -1;
+	return 1;
+}
+
+static int write_cp(uint8_t *str, uint32_t cp)
+{
+	if (cp < 128) {
+		*str = cp;
+		return 1;
+	}
+	if (cp < 0x800) {
+		*(str++) = 0xc0 | (cp >> 6);
+		*(str++) = 0x80 | (cp & 0x3f);
+		return 2;
+	}
+	if (cp < 0x10000) {
+		*(str++) = 0xe0 | (cp >> 12);
+		*(str++) = 0x80 | ((cp >> 6) & 0x3f);
+		*(str++) = 0x80 | (cp & 0x3f);
+		return 3;
+	}
+	if (cp < 0x110000) {
+		*(str++) = 0xf0 | (cp >> 18);
+		*(str++) = 0x80 | ((cp >> 12) & 0x3f);
+		*(str++) = 0x80 | ((cp >> 6) & 0x3f);
+		*(str++) = 0x80 | (cp & 0x3f);
+		return 4;
+	}
+	return -1;
+}
+
+static int read_cp(const uint8_t *str, uint32_t *cp)
+{
+	int incode;
+	const uint8_t *p = str;
+
+	if (cp == NULL)
+		goto error;
+
+	if (str == NULL)
+		goto error;
+
+	if (*p & 0x80) {
+		if ((*p & 0xe0) == 0xc0) {
+			incode = 1;
+			*cp = *p & 0x1f;
+		}
+		else if ((*p & 0xf0) == 0xe0) {
+			incode = 2;
+			*cp = *p & 0x0f;
+		}
+		else if ((*p & 0xf8) == 0xf0) {
+			incode = 3;
+			*cp = *p & 0x07;
+		}
+		else
+			goto error;
+
+		while (incode) {
+			p++;
+			incode--;
+			if ((*p & 0x0c) != 0x0c)
+				goto error;
+			*cp <<= 6;
+			*cp |= (*p & 0x3f);
+		}
+	}
+	else {
+		*cp = *p;
+	}
+	return p - str + 1;
+
+error:
+	if (cp)
+		*cp = 0xffff;
+	return -1;
+}
+
+static int utf8_bytes(uint32_t cp)
+{
+	if (cp < 0x80)
+		return 1;
+	if (cp < 0x800)
+		return 2;
+	if (cp < 0x10000)
+		return 3;
+	if (cp < 0x11000)
+		return 4;
+	return -1;
+}
+
+uint8_t *cp437_to_utf8(const char *cp437str, size_t buflen, size_t *outlen)
+{
+	size_t needed = 0;
+	int cplen;
+	uint8_t *ret = NULL;
+	uint8_t *rp;
+	size_t idx;
+	uint8_t ch;
+
+	// Calculate the number of bytes needed
+	for (idx = 0; idx < buflen; idx++) {
+		ch = cp437str[idx];
+		if (ch == 0)
+			cplen += 4;
+		else if (ch < 128)
+			cplen++;
+		else
+			cplen = utf8_bytes(ch - 128);
+		if (cplen == -1)
+			goto error;
+		needed += cplen;
+	}
+
+	ret = malloc(needed + 1);
+	if (ret == NULL)
+		goto error;
+
+	rp = ret;
+	for (idx = 0; idx < buflen; idx++) {
+		ch = cp437str[idx];
+		if (ch == 0) {
+			*(rp++) = 0xef;
+			*(rp++) = 0xbf;
+			*(rp++) = 0xbe;
+			cplen = 0;
+		}
+		else if (ch < 128) {
+			*rp = ch;
+			cplen = 1;
+		}
+		else {
+			cplen = write_cp(rp, unicode_table[ch - 128]);
+			if (cplen < 1)
+				goto error;
+		}
+		rp += cplen;
+	}
+	*rp = 0;
+	return ret;
+
+error:
+	free(ret);
+	return NULL;
+}
+
+/*
+ * Converts UTF-8 to CP437, replacing unmapped characters with unmapped
+ * if unmapped is zero, unmapped characters are stripped.
+ * 
+ * Returns NULL if there are invalid sequences or codepoints.
+ * Does not normalize the unicode, just a simple mapping
+ * (TODO: Normalize into combined chars etc)
+ */
+char *utf8_to_cp437(const uint8_t *utf8str, char unmapped)
+{
+	const uint8_t *p;
+	char *rp;
+	size_t outlen = 0;
+	int incode = 0;
+	uint32_t codepoint;
+	char *ret = NULL;
+	struct cp437map *mapped;
+
+	// TODO: Normalize UTF-8...
+
+	// Calculate the number of code points and validate.
+	for (p = utf8str; *p; p++) {
+		if (incode) {
+			switch (*p & 0xc0) {
+				case 0xc0:
+					incode--;
+					if (incode == 0)
+						outlen++;
+					break;
+				default:
+					goto error;
+			}
+		}
+		else {
+			if (*p & 0x80) {
+				if ((*p & 0xe0) == 0xc0)
+					incode = 1;
+				else if ((*p & 0xf0) == 0xe0)
+					incode = 2;
+				else if ((*p & 0xf8) == 0xf0)
+					incode = 3;
+				else
+					goto error;
+			}
+			else
+				outlen++;
+		}
+	}
+	ret = malloc(outlen + 1);
+	if (ret == NULL)
+		goto error;
+	rp = ret;
+
+	// Fill the string...
+	while (*utf8str) {
+		utf8str += read_cp(utf8str, &codepoint);
+		if (codepoint == 0xffff || codepoint == 0xfffe)
+			goto error;
+		if (codepoint < 128)
+			*(rp++) = codepoint;
+		// Multiple representations...
+		else if (codepoint == 0xa6) 
+			*(rp++) = '|';
+		else {
+			mapped = bsearch(&codepoint, cp437_table, 
+			    sizeof(cp437_table) / sizeof(cp437_table[0]),
+			    sizeof(cp437_table[0]), cmptab);
+			if (mapped == NULL)
+				*(rp++) = unmapped;
+			else
+				*(rp++) = mapped->cp437;
+		}
+	}
+	*rp = 0;
+
+	return ret;
+error:
+	free(ret);
+	return NULL;
+}
+
 static void sdl_video_event_thread(void *data);
 
 static void sdl_user_func(int func, ...)
@@ -275,13 +569,17 @@ void exit_sdl_con(void)
 
 void sdl_copytext(const char *text, size_t buflen)
 {
-	sdl.SetClipboardText(text);
+	size_t outlen;
+	uint8_t *u8 = cp437_to_utf8(text, buflen, &outlen);
+	sdl.SetClipboardText((char *)u8);
+	free(u8);
 }
 
 char *sdl_getcliptext(void)
 {
 	uint8_t *u8 = (uint8_t *)sdl.GetClipboardText();
-	char *ret = strdup((char *)u8);
+	char *ret;
+	ret = utf8_to_cp437(u8, '?');
 	sdl.free(u8);
 	return ret;
 }
@@ -331,14 +629,10 @@ static int sdl_init_mode(int mode)
 	vstat.winwidth = ((double)cvstat.winwidth / (cvstat.cols * cvstat.charwidth)) * (vstat.cols * vstat.charwidth);
 	vstat.winheight = ((double)cvstat.winheight / (cvstat.rows * cvstat.charheight * cvstat.vmultiplier)) * (vstat.rows * vstat.charwidth * vstat.vmultiplier);
 	if (oldcols != vstat.cols) {
-		if (oldcols == 40) {
+		if (oldcols == 40)
 			vstat.winwidth /= 2;
-			vstat.winheight /= 2;
-		}
-		if (vstat.cols == 40) {
+		if (vstat.cols == 40)
 			vstat.winwidth *= 2;
-			vstat.winheight *= 2;
-		}
 	}
 	if (vstat.winwidth < vstat.charwidth * vstat.cols)
 		vstat.winwidth = vstat.charwidth * vstat.cols;
@@ -552,8 +846,6 @@ static void setup_surfaces_locked(void)
 	if (win == NULL) {
 		// SDL2: This is slow sometimes... not sure why.
 		if (sdl.CreateWindowAndRenderer(cvstat.winwidth, cvstat.winheight, flags, &win, &renderer) == 0) {
-			if (texture) 
-				sdl.DestroyTexture(texture);
 			sdl.RenderClear(renderer);
 			texture = sdl.CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, charwidth*cols, charheight*rows);
 		}
@@ -564,8 +856,6 @@ static void setup_surfaces_locked(void)
 	}
 	else {
 		sdl.SetWindowSize(win, cvstat.winwidth, cvstat.winheight);
-		if (texture) 
-			sdl.DestroyTexture(texture);
 		texture = sdl.CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, charwidth*cols, charheight*rows);
 	}
 	sdl.SetWindowMinimumSize(win, cvstat.charwidth * cvstat.cols, cvstat.charheight * cvstat.rows);
@@ -623,17 +913,277 @@ static void sdl_add_key(unsigned int keyval)
 	}
 }
 
+static unsigned int cp437_convert(unsigned int unicode)
+{
+	if(unicode < 0x80)
+		return(unicode);
+	switch(unicode) {
+		case 0x00c7:
+			return(0x80);
+		case 0x00fc:
+			return(0x81);
+		case 0x00e9:
+			return(0x82);
+		case 0x00e2:
+			return(0x83);
+		case 0x00e4:
+			return(0x84);
+		case 0x00e0:
+			return(0x85);
+		case 0x00e5:
+			return(0x86);
+		case 0x00e7:
+			return(0x87);
+		case 0x00ea:
+			return(0x88);
+		case 0x00eb:
+			return(0x89);
+		case 0x00e8:
+			return(0x8a);
+		case 0x00ef:
+			return(0x8b);
+		case 0x00ee:
+			return(0x8c);
+		case 0x00ec:
+			return(0x8d);
+		case 0x00c4:
+			return(0x8e);
+		case 0x00c5:
+			return(0x8f);
+		case 0x00c9:
+			return(0x90);
+		case 0x00e6:
+			return(0x91);
+		case 0x00c6:
+			return(0x92);
+		case 0x00f4:
+			return(0x93);
+		case 0x00f6:
+			return(0x94);
+		case 0x00f2:
+			return(0x95);
+		case 0x00fb:
+			return(0x96);
+		case 0x00f9:
+			return(0x97);
+		case 0x00ff:
+			return(0x98);
+		case 0x00d6:
+			return(0x99);
+		case 0x00dc:
+			return(0x9a);
+		case 0x00a2:
+			return(0x9b);
+		case 0x00a3:
+			return(0x9c);
+		case 0x00a5:
+			return(0x9d);
+		case 0x20a7:
+			return(0x9e);
+		case 0x0192:
+			return(0x9f);
+		case 0x00e1:
+			return(0xa0);
+		case 0x00ed:
+			return(0xa1);
+		case 0x00f3:
+			return(0xa2);
+		case 0x00fa:
+			return(0xa3);
+		case 0x00f1:
+			return(0xa4);
+		case 0x00d1:
+			return(0xa5);
+		case 0x00aa:
+			return(0xa6);
+		case 0x00ba:
+			return(0xa7);
+		case 0x00bf:
+			return(0xa8);
+		case 0x2310:
+			return(0xa9);
+		case 0x00ac:
+			return(0xaa);
+		case 0x00bd:
+			return(0xab);
+		case 0x00bc:
+			return(0xac);
+		case 0x00a1:
+			return(0xad);
+		case 0x00ab:
+			return(0xae);
+		case 0x00bb:
+			return(0xaf);
+		case 0x2591:
+			return(0xb0);
+		case 0x2592:
+			return(0xb1);
+		case 0x2593:
+			return(0xb2);
+		case 0x2502:
+			return(0xb3);
+		case 0x2524:
+			return(0xb4);
+		case 0x2561:
+			return(0xb5);
+		case 0x2562:
+			return(0xb6);
+		case 0x2556:
+			return(0xb7);
+		case 0x2555:
+			return(0xb8);
+		case 0x2563:
+			return(0xb9);
+		case 0x2551:
+			return(0xba);
+		case 0x2557:
+			return(0xbb);
+		case 0x255d:
+			return(0xbc);
+		case 0x255c:
+			return(0xbd);
+		case 0x255b:
+			return(0xbe);
+		case 0x2510:
+			return(0xbf);
+		case 0x2514:
+			return(0xc0);
+		case 0x2534:
+			return(0xc1);
+		case 0x252c:
+			return(0xc2);
+		case 0x251c:
+			return(0xc3);
+		case 0x2500:
+			return(0xc4);
+		case 0x253c:
+			return(0xc5);
+		case 0x255e:
+			return(0xc6);
+		case 0x255f:
+			return(0xc7);
+		case 0x255a:
+			return(0xc8);
+		case 0x2554:
+			return(0xc9);
+		case 0x2569:
+			return(0xca);
+		case 0x2566:
+			return(0xcb);
+		case 0x2560:
+			return(0xcc);
+		case 0x2550:
+			return(0xcd);
+		case 0x256c:
+			return(0xce);
+		case 0x2567:
+			return(0xcf);
+		case 0x2568:
+			return(0xd0);
+		case 0x2564:
+			return(0xd1);
+		case 0x2565:
+			return(0xd2);
+		case 0x2559:
+			return(0xd3);
+		case 0x2558:
+			return(0xd4);
+		case 0x2552:
+			return(0xd5);
+		case 0x2553:
+			return(0xd6);
+		case 0x256b:
+			return(0xd7);
+		case 0x256a:
+			return(0xd8);
+		case 0x2518:
+			return(0xd9);
+		case 0x250c:
+			return(0xda);
+		case 0x2588:
+			return(0xdb);
+		case 0x2584:
+			return(0xdc);
+		case 0x258c:
+			return(0xdd);
+		case 0x2590:
+			return(0xde);
+		case 0x2580:
+			return(0xdf);
+		case 0x03b1:
+			return(0xe0);
+		case 0x00df:
+			return(0xe1);
+		case 0x0393:
+			return(0xe2);
+		case 0x03c0:
+			return(0xe3);
+		case 0x03a3:
+			return(0xe4);
+		case 0x03c3:
+			return(0xe5);
+		case 0x00b5:
+			return(0xe6);
+		case 0x03c4:
+			return(0xe7);
+		case 0x03a6:
+			return(0xe8);
+		case 0x0398:
+			return(0xe9);
+		case 0x03a9:
+			return(0xea);
+		case 0x03b4:
+			return(0xeb);
+		case 0x221e:
+			return(0xec);
+		case 0x03c6:
+			return(0xed);
+		case 0x03b5:
+			return(0xee);
+		case 0x2229:
+			return(0xef);
+		case 0x2261:
+			return(0xf0);
+		case 0x00b1:
+			return(0xf1);
+		case 0x2265:
+			return(0xf2);
+		case 0x2264:
+			return(0xf3);
+		case 0x2320:
+			return(0xf4);
+		case 0x2321:
+			return(0xf5);
+		case 0x00f7:
+			return(0xf6);
+		case 0x2248:
+			return(0xf7);
+		case 0x00b0:
+			return(0xf8);
+		case 0x2219:
+			return(0xf9);
+		case 0x00b7:
+			return(0xfa);
+		case 0x221a:
+			return(0xfb);
+		case 0x207f:
+			return(0xfc);
+		case 0x00b2:
+			return(0xfd);
+		case 0x25a0:
+			return(0xfe);
+		case 0x00a0:
+			return(0xff);
+	}
+	return(0x01ffff);
+}
+
 /* Called from event thread only */
 static unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod)
 {
 	int expect;
 	int i;
 
-	/* We don't handle META */
-	if (mod & KMOD_GUI)
-		return(0x0001ffff);
-
-	/* Glah! */
 #ifdef __DARWIN__
 	if(keysym==0x7f && !(mod & KMOD_CTRL)) {
 		keysym=0x08;
@@ -641,77 +1191,159 @@ static unsigned int sdl_get_char_code(unsigned int keysym, unsigned int mod)
 	}
 #endif
 
-	/* Find the SDL keysym */
-	for(i=0;sdl_keyval[i].keysym;i++) {
-		if(sdl_keyval[i].keysym==keysym) {
-			/* KeySym found in table */
+	/*
+	 * No Unicode translation available.
+	 * Or there *IS* an SDL keysym.
+	 * Or ALT (GUI) pressed
+	 */
+	// SDL2: This needs to be replaced with... betterness.
+	if((keysym > SDLK_UNKNOWN) || (mod & (KMOD_GUI|KMOD_ALT))) {
 
-			/*
-			 * Using the modifiers, look up the expected scan code.
-			 */
-			if(mod & KMOD_CTRL)
-				expect=sdl_keyval[i].ctrl;
-			else if(mod & KMOD_SHIFT) {
-				if(mod & KMOD_CAPS)
-					expect=sdl_keyval[i].key;
-				else
-					expect=sdl_keyval[i].shift;
+		/* Find the SDL keysym */
+		for(i=0;sdl_keyval[i].keysym;i++) {
+			if(sdl_keyval[i].keysym==keysym) {
+				/* KeySym found in table */
+
+				/*
+				 * Using the modifiers, look up the expected scan code.
+				 * Under windows, this is what unicode will be set to
+				 * if the ALT key is not AltGr
+				 */
+
+				if(mod & KMOD_CTRL)
+					expect=sdl_keyval[i].ctrl;
+				else if(mod & KMOD_SHIFT) {
+					if(mod & KMOD_CAPS)
+						expect=sdl_keyval[i].key;
+					else
+						expect=sdl_keyval[i].shift;
+				}
+				else {
+					if(mod & KMOD_CAPS && (toupper(sdl_keyval[i].key) == sdl_keyval[i].shift))
+						expect=sdl_keyval[i].shift;
+					else
+						expect=sdl_keyval[i].key;
+				}
+
+				/*
+				 * Now handle the ALT case so that expect will
+				 * be what we expect to return
+				 */
+				if(mod & (KMOD_GUI|KMOD_ALT)) {
+
+					/* Yes, this is a "normal" ALT combo */
+					if(keysym==expect || keysym == 0)
+						return(sdl_keyval[i].alt);
+
+					/* AltGr apparently... translate unicode or give up */
+					return(cp437_convert(keysym));
+				}
+
+				/*
+				 * If the keysym is a keypad one
+				 * AND numlock is locked
+				 * AND none of Control, Shift, ALT, or GUI are pressed
+				 */
+				if(keysym >= SDLK_KP_0 && keysym <= SDLK_KP_EQUALS && 
+						(!(mod & (KMOD_CTRL|KMOD_SHIFT|KMOD_ALT|KMOD_GUI) ))) {
+#if defined(_WIN32)
+					/*
+					 * SDL2: Is this comment still true?
+					 * Apparently, Win32 SDL doesn't interpret keypad with numlock...
+					 * and doesn't know the state of numlock either...
+					 * So, do that here. *sigh*
+					 */
+
+					mod &= ~KMOD_NUM;	// Ignore "current" mod state
+					if (GetKeyState(VK_NUMLOCK) & 1)
+						mod |= KMOD_NUM;
+#endif
+					if (mod & KMOD_NUM) {
+						switch(keysym) {
+							case SDLK_KP_0:
+								return('0');
+							case SDLK_KP_1:
+								return('1');
+							case SDLK_KP_2:
+								return('2');
+							case SDLK_KP_3:
+								return('3');
+							case SDLK_KP_4:
+								return('4');
+							case SDLK_KP_5:
+								return('5');
+							case SDLK_KP_6:
+								return('6');
+							case SDLK_KP_7:
+								return('7');
+							case SDLK_KP_8:
+								return('8');
+							case SDLK_KP_9:
+								return('9');
+							case SDLK_KP_PERIOD:
+								return('.');
+							case SDLK_KP_DIVIDE:
+								return('/');
+							case SDLK_KP_MULTIPLY:
+								return('*');
+							case SDLK_KP_MINUS:
+								return('-');
+							case SDLK_KP_PLUS:
+								return('+');
+							case SDLK_KP_ENTER:
+								return('\r');
+							case SDLK_KP_EQUALS:
+								return('=');
+						}
+					}
+				}
+
+				/*
+				 * "Extended" keys are always right since we can't compare to unicode
+				 * This does *NOT* mean ALT-x, it means things like F1 and Print Screen
+				 */
+				if(sdl_keyval[i].key > 255)			/* Extended regular key */
+					return(expect);
+
+				/*
+				 * If there is no unicode translation available,
+				 * we *MUST* use our table since we have
+				 * no other data to use.  This is apparently
+				 * never true on OS X.
+				 */
+				if(!keysym)
+					return(expect);
+
+				/*
+				 * At this point, we no longer have a reason to distrust the
+				 * unicode mapping.  If we can coerce it into CP437, we will.
+				 * If we can't, just give up.
+				 */
+				return(cp437_convert(expect));
 			}
-			else {
-				if(mod & KMOD_CAPS && (toupper(sdl_keyval[i].key) == sdl_keyval[i].shift))
-					expect=sdl_keyval[i].shift;
-				else
-					expect=sdl_keyval[i].key;
-			}
-
-			/*
-			 * Now handle the ALT case so that expect will
-			 * be what we expect to return
-			 */
-			if(mod & KMOD_ALT) {
-				/* Yes, this is a "normal" ALT combo */
-				if(keysym==expect)
-					return(sdl_keyval[i].alt);
-
-				/* AltGr apparently... give up */
-				return(0x0001ffff);
-			}
-
-			return(expect);
 		}
 	}
 	/*
-	 * Well, we can't find it in our table, or it's a regular key.
+	 * Well, we can't find it in our table...
+	 * If there's a unicode character, use that if possible.
 	 */
-	if(keysym > 0 && keysym < 128) {
-		if (isalpha(keysym)) {
-			/*
-			 * If CAPS and SHIFT are not in the same state,
-			 * upper-case.
-			 */
-			if(!!(mod & KMOD_CAPS) != !!(mod & KMOD_SHIFT))
-				return toupper(keysym);
-		}
-		return keysym;
-	}
+	if(keysym)
+		return(cp437_convert(keysym));
+
+	/*
+	 * No unicode... perhaps it's ASCII?
+	 * Most likely, this would be a strangely
+	 * entered control character.
+	 *
+	 * If *any* modifier key is down though
+	 * we're not going to trust the keysym
+	 * value since we can't.
+	 */
+	if(keysym <= 127 && !(mod & (KMOD_GUI|KMOD_ALT|KMOD_CTRL|KMOD_SHIFT)))
+		return(keysym);
 
 	/* Give up.  It's not working out for us. */
 	return(0x0001ffff);
-}
-
-static void
-sdl_add_keys(uint8_t *utf8s)
-{
-	char *chars;
-	char *p;
-
-	chars = utf8_to_cp(getcodepage(), utf8s, '\x00', strlen((char *)utf8s), NULL);
-	if (chars) {
-		for (p = chars; *p; p++) {
-			sdl_add_key(*((uint8_t *)p));
-		}
-		free(chars);
-	}
 }
 
 /* Mouse event/keyboard thread */
@@ -755,8 +1387,7 @@ static int win_to_text_ypos(int winpos)
 static void sdl_video_event_thread(void *data)
 {
 	SDL_Event	ev;
-	int		old_w, old_h;
-	int		block_text = 0;
+	int			old_w, old_h;
 
 	pthread_mutex_lock(&vstatlock);
 	old_w = cvstat.winwidth;
@@ -778,71 +1409,55 @@ static void sdl_video_event_thread(void *data)
 		else {
 			switch (ev.type) {
 				case SDL_KEYDOWN:			/* Keypress */
-					if (ev.key.keysym.mod & (KMOD_CTRL|KMOD_ALT|KMOD_GUI)) {
-						block_text = 1;
-						if ((ev.key.keysym.mod & KMOD_ALT) &&
-						    (ev.key.keysym.sym == SDLK_LEFT ||
-						     ev.key.keysym.sym == SDLK_RIGHT ||
-						     ev.key.keysym.sym == SDLK_UP ||
-						     ev.key.keysym.sym == SDLK_DOWN)) {
-							int w, h;
-							pthread_mutex_lock(&vstatlock);
-							w = cvstat.winwidth;
-							h = cvstat.winheight;
-							switch(ev.key.keysym.sym) {
-								case SDLK_LEFT:
-									if (w % (cvstat.charwidth * cvstat.cols)) {
-										w = w - w % (cvstat.charwidth * cvstat.cols);
-									}
-									else {
-										w -= (cvstat.charwidth * cvstat.cols);
-										if (w < (cvstat.charwidth * cvstat.cols))
-											w = cvstat.charwidth * cvstat.cols;
-									}
-									break;
-								case SDLK_RIGHT:
-									w = (w - w % (cvstat.charwidth * cvstat.cols)) + (cvstat.charwidth * cvstat.cols);
-									break;
-								case SDLK_UP:
-									if (h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier)) {
-										h = h - h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
-									}
-									else {
-										h -= (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
-										if (h < (cvstat.charheight * cvstat.rows * cvstat.vmultiplier))
-											h = cvstat.charheight * cvstat.rows * cvstat.vmultiplier;
-									}
-									break;
-								case SDLK_DOWN:
-									h = (h - h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier)) + (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
-									break;
-							}
-							if (w > 16384 || h > 16384)
-								beep();
-							else {
-								cvstat.winwidth = w;
-								cvstat.winheight = h;
-							}
-							pthread_mutex_unlock(&vstatlock);
-							break;
+					if ((ev.key.keysym.mod & KMOD_ALT) &&
+					    (ev.key.keysym.sym == SDLK_LEFT ||
+					     ev.key.keysym.sym == SDLK_RIGHT ||
+					     ev.key.keysym.sym == SDLK_UP ||
+					     ev.key.keysym.sym == SDLK_DOWN)) {
+						int w, h;
+						pthread_mutex_lock(&vstatlock);
+						w = cvstat.winwidth;
+						h = cvstat.winheight;
+						switch(ev.key.keysym.sym) {
+							case SDLK_LEFT:
+								if (w % (cvstat.charwidth * cvstat.cols)) {
+									w = w - w % (cvstat.charwidth * cvstat.cols);
+								}
+								else {
+									w -= (cvstat.charwidth * cvstat.cols);
+									if (w < (cvstat.charwidth * cvstat.cols))
+										w = cvstat.charwidth * cvstat.cols;
+								}
+								break;
+							case SDLK_RIGHT:
+								w = (w - w % (cvstat.charwidth * cvstat.cols)) + (cvstat.charwidth * cvstat.cols);
+								break;
+							case SDLK_UP:
+								if (h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier)) {
+									h = h - h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
+								}
+								else {
+									h -= (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
+									if (h < (cvstat.charheight * cvstat.rows * cvstat.vmultiplier))
+										h = cvstat.charheight * cvstat.rows * cvstat.vmultiplier;
+								}
+								break;
+							case SDLK_DOWN:
+								h = (h - h % (cvstat.charheight * cvstat.rows * cvstat.vmultiplier)) + (cvstat.charheight * cvstat.rows * cvstat.vmultiplier);
+								break;
 						}
+						if (w > 16384 || h > 16384)
+							beep();
+						else {
+							cvstat.winwidth = w;
+							cvstat.winheight = h;
+						}
+						pthread_mutex_unlock(&vstatlock);
 					}
-					if (block_text || ev.key.keysym.sym < 0 || ev.key.keysym.sym > 128) {
+					else
 						sdl_add_key(sdl_get_char_code(ev.key.keysym.sym, ev.key.keysym.mod));
-					}
-					else if (!isprint(ev.key.keysym.sym)) {
-						uint8_t ch = cpchar_from_unicode_cpoint(getcodepage(), ev.key.keysym.sym, 0);
-						if (ch)
-							sdl_add_key(ch);
-					}
 					break;
-				case SDL_TEXTINPUT:
-					if (!block_text)
-						sdl_add_keys((uint8_t *)ev.text.text);
-					break;
-				case SDL_KEYUP:
-					if (!(ev.key.keysym.mod & (KMOD_CTRL|KMOD_ALT|KMOD_GUI)))
-						block_text = 0;
+				case SDL_KEYUP:				/* Ignored (handled in KEYDOWN event) */
 					break;
 				case SDL_MOUSEMOTION:
 					if(!ciolib_mouse_initialized)
@@ -908,7 +1523,7 @@ static void sdl_video_event_thread(void *data)
 								if (ev.window.event == SDL_WINDOWEVENT_RESIZED)
 									sdl.GetWindowSize(win, &cvstat.winwidth, &cvstat.winheight);
 								if (strcmp(newh, sdl.GetHint(SDL_HINT_RENDER_SCALE_QUALITY))) {
-									sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, newh);
+									sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, newh );
 									sdl.DestroyTexture(texture);
 									texture = sdl.CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, cvstat.charwidth*cvstat.cols, cvstat.charheight*cvstat.rows);
 									bitmap_drv_request_pixels();
@@ -1066,16 +1681,4 @@ int sdl_initciolib(int mode)
 	win_mutex=sdl.SDL_CreateMutex();
 	sdl_keylock=sdl.SDL_CreateMutex();
 	return(sdl_init(mode));
-}
-
-void
-sdl_beep(void)
-{
-        static unsigned char wave[2206];
-
-	if (wave[2205] == 0) {
-		xptone_makewave(440, wave, 2205, WAVE_SHAPE_SINE_SAW_HARM);
-		wave[2205] = 1;
-	}
-        xp_play_sample(wave, 2205, TRUE);
 }
