@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.257 2020/04/08 07:00:48 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.258 2020/04/09 09:33:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -894,6 +894,7 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define SCAN_MSGSONLY	(1<<6)	/* Do not do a new file scan even if the
 								 * user enabled Automatic New File Scan		*/
 #define SCAN_POLLS		(1<<7)	/* Scan for polls (only)					*/
+#define SCAN_INDEX		(1<<8)	// List the msg index or exec listmsgs_mod
 
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
