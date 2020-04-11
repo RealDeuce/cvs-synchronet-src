@@ -1,14 +1,12 @@
-/* sbbs.h */
-
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
-
-/* $Id: sbbs.h,v 1.408 2014/11/18 06:11:30 deuce Exp $ */
+// vi: tabstop=4
+/* $Id: sbbs.h,v 1.559 2020/04/11 04:01:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -107,8 +105,16 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 
 #if defined(JAVASCRIPT)
 #include "comio.h"			/* needed for COM_HANDLE definition only */
+#if __GNUC__ > 5
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+	#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
 #include <jsversion.h>
 #include <jsapi.h>
+#if __GNUC_ > 5
+	#pragma GCC diagnostic pop
+#endif
 #define JS_DestroyScript(cx,script)
 
 #define JSSTRING_TO_RASTRING(cx, str, ret, sizeptr, lenptr) \
@@ -127,8 +133,8 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 				*(sizeptr) = *JSSTSlenptr+1; \
 				if((JSSTStmpptr=(char *)realloc((ret), *(sizeptr)))==NULL) { \
 					JS_ReportError(cx, "Error reallocating %lu bytes at %s:%d", (*JSSTSlenptr)+1, getfname(__FILE__), __LINE__); \
+					if((ret) != NULL) free(ret); \
 					(ret)=NULL; \
-					free(ret); \
 				} \
 				else { \
 					(ret)=JSSTStmpptr; \
@@ -211,9 +217,12 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 	JSSTRING_TO_STRBUF((cx), JSVTSstr, (ret), (bufsize), lenptr); \
 }
 
-#define HANDLE_PENDING(cx) \
-	if(JS_IsExceptionPending(cx)) \
-		return JS_FALSE;
+#define HANDLE_PENDING(cx, p ) \
+	if(JS_IsExceptionPending(cx)) { \
+		if(p != NULL) \
+			free(p); \
+		return JS_FALSE; \
+	}
 
 #define JSSTRING_TO_ASTRING(cx, str, ret, maxsize, lenptr) \
 { \
@@ -264,10 +273,12 @@ extern int	thread_suid_broken;			/* NPTL is no longer broken */
 #include "filewrap.h"
 #include "datewrap.h"
 #include "sockwrap.h"
+#include "multisock.h"
 #include "eventwrap.h"
 #include "link_list.h"
 #include "msg_queue.h"
 #include "xpdatetime.h"
+#include "unicode_defs.h"
 
 /***********************/
 /* Synchronet-specific */
@@ -299,8 +310,8 @@ class sbbs_t
 
 public:
 
-	sbbs_t(ushort node_num, SOCKADDR_IN addr, const char* host_name, SOCKET
-		,scfg_t*, char* text[], client_t* client_info);
+	sbbs_t(ushort node_num, union xp_sockaddr *addr, size_t addr_len, const char* host_name, SOCKET
+		,scfg_t*, char* text[], client_t* client_info, bool is_event_thread = false);
 	~sbbs_t();
 
 	bbs_startup_t*	startup;
@@ -311,17 +322,20 @@ public:
 	client_t client;
 	SOCKET	client_socket;
 	SOCKET	client_socket_dup;
-	SOCKADDR_IN	client_addr;
+	union xp_sockaddr	client_addr;
 	char	client_name[128];
 	char	client_ident[128];
-	DWORD	local_addr;
+	char	client_ipaddr[INET6_ADDRSTRLEN];
+	char	local_addr[INET6_ADDRSTRLEN];
 #ifdef USE_CRYPTLIB
 	CRYPT_SESSION	ssh_session;
+#endif
+	int		session_channel;
 	bool	ssh_mode;
 	SOCKET	passthru_socket;
-    bool	passthru_output_thread_running;
-    bool	passthru_input_thread_running;
-#endif
+	bool	passthru_socket_active;
+	void	passthru_socket_activate(bool);
+    bool	passthru_thread_running;
 
 	scfg_t	cfg;
 
@@ -334,12 +348,14 @@ public:
     RingBuf	outbuf;
 	HANDLE	input_thread;
 	pthread_mutex_t	input_thread_mutex;
-	bool	input_thread_mutex_locked;	// by someone other than the input_thread
 	bool	input_thread_mutex_created;
 	pthread_mutex_t	ssh_mutex;
 	bool	ssh_mutex_created;
 
-	int 	outcom(uchar ch); 	   // send character
+	#define OUTCOM_RETRY_DELAY		80		// milliseconds
+	#define OUTCOM_RETRY_ATTEMPTS	1000	// 80 seconds
+	int 	_outcom(uchar ch); 	   // send character, without retry (on buffer flow condition)
+	int		outcom(uchar ch, int max_attempts = OUTCOM_RETRY_ATTEMPTS);		// send character, with retry
 	int 	incom(unsigned long timeout=0);		   // receive character
 
 	void	spymsg(const char *msg);		// send message to active spies
@@ -355,36 +371,52 @@ public:
     uchar	telnet_cmd[64];
     uint	telnet_cmdlen;
 	ulong	telnet_mode;
+	/* 	input_thread() writes to these variables: */
 	uchar	telnet_last_rxch;
 	char	telnet_location[128];
-	char	terminal[TELNET_TERM_MAXLEN+1];
+	char	telnet_terminal[TELNET_TERM_MAXLEN+1];
+	long 	telnet_rows;
+	long	telnet_cols;
+	long	telnet_speed;
+
 	xpevent_t	telnet_ack_event;
 
 	time_t	event_time;				// Time of next exclusive event
-	char*	event_code;				// Internal code of next exclusive event
+	const char*	event_code;				// Internal code of next exclusive event
+	bool	is_event_thread;
 	bool	event_thread_running;
     bool	output_thread_running;
     bool	input_thread_running;
+	bool	terminate_output_thread;
 
 #ifdef JAVASCRIPT
 
 	JSRuntime*		js_runtime;
 	JSContext*		js_cx;
 	JSObject*		js_glob;
+	JSRuntime*		js_hotkey_runtime;
+	JSContext*		js_hotkey_cx;
+	JSObject*		js_hotkey_glob;
 	js_callback_t	js_callback;
-	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope=NULL);
-	bool			js_init(ulong* stack_frame);
-	void			js_cleanup(const char* node);
-	void			js_create_user_objects(void);
+	long			js_execfile(const char *fname, const char* startup_dir, JSObject* scope = NULL, JSContext* cx = NULL);
+	JSContext*		js_init(JSRuntime**, JSObject**, const char* desc);
+	void			js_cleanup(void);
+	bool			js_create_user_objects(JSContext*, JSObject* glob);
 
 #endif
 
+	char	syspage_semfile[MAX_PATH+1];	/* Sysop page semaphore file */
 	char 	menu_dir[128];	/* Over-ride default menu dir */
 	char 	menu_file[128]; /* Over-ride menu file */
 
 	user_t	useron; 		/* User currently online */
 	node_t	thisnode;		/* Node information */
-	smb_t	smb;			/* Currently open message base */
+	smb_t	smb;			/* Currently active message base */
+	link_list_t smb_list;
+#define SMB_STACK_PUSH	true
+#define SMB_STACK_POP	false
+	int 	smb_stack(smb_t* smb, bool push);
+
 	char	rlogin_name[LEN_ALIAS+1];
 	char	rlogin_pass[LEN_PASS+1];
 	char	rlogin_term[TELNET_TERM_MAXLEN+1];	/* RLogin passed terminal type/speed (e.g. "xterm/57600") */
@@ -396,8 +428,8 @@ public:
 			*logfile_fp;
 
 	int 	nodefile;		/* File handle for node.dab */
+	pthread_mutex_t	nodefile_mutex;
 	int		node_ext;		/* File handle for node.exb */
-	int 	inputfile;		/* File handle to use for input */
 
 							/* Batch download queue */
 	char 	**batdn_name;	/* Filenames */
@@ -433,25 +465,28 @@ public:
 	ulong	dte_rate;		/* Current COM Port (DTE) Rate */
 	time_t 	timeout;		/* User inactivity timeout reference */
 	ulong 	timeleft_warn;	/* low timeleft warning flag */
-	uchar 	curatr; 		/* Current Text Attributes Always */
-	uchar	attr_stack[64];	/* Saved attributes (stack) */
+	uint	curatr; 		/* Current Text Attributes Always */
+	uint	attr_stack[64];	/* Saved attributes (stack) */
 	int 	attr_sp;		/* Attribute stack pointer */
 	long 	lncntr; 		/* Line Counter - for PAUSE */
-	long 	tos;			/* Top of Screen */
+	bool 	tos;			/* Cursor is currently at the Top of Screen */
+	bool	msghdr_tos;		/* Message header was displayed at Top of Screen */
 	long 	rows;			/* Current number of Rows for User */
 	long	cols;			/* Current number of Columns for User */
 	long	column;			/* Current column counter (for line counter) */
-	long 	autoterm;		/* Autodetected terminal type */
-	char 	slbuf[SAVE_LINES][LINE_BUFSIZE+1]; /* Saved for redisplay */
-	char 	slatr[SAVE_LINES];	/* Starting attribute of each line */
-	char 	slcuratr[SAVE_LINES];	/* Ending attribute of each line */
-	int 	slcnt;			/* Number of lines currently saved */
+	long	tabstop;		/* Current symmetric-tabstop (size) */
+	long	lastlinelen;	/* The previously displayed line length */
+	long 	autoterm;		/* Auto-detected terminal type */
+	char	terminal[TELNET_TERM_MAXLEN+1];	// <- answer() writes to this
+	long	cterm_version;	/* (MajorVer*1000) + MinorVer */
+	link_list_t savedlines;
 	char 	lbuf[LINE_BUFSIZE+1];/* Temp storage for each line output */
 	int		lbuflen;		/* Number of characters in line buffer */
-	char 	latr;			/* Starting attribute of line buffer */
+	uint	latr;			/* Starting attribute of line buffer */
 	ulong	console;		/* Defines current Console settings */
 	char 	wordwrap[81];	/* Word wrap buffer */
 	time_t	now,			/* Used to store current time in Unix format */
+			last_sysop_auth,/* Time sysop was last authenticated */
 			answertime, 	/* Time call was answered */
 			logontime,		/* Time user logged on */
 			starttime,		/* Time stamp to use for time left calcs */
@@ -509,14 +544,18 @@ public:
 	csi_t	main_csi;		/* Main Command Shell Image */
 
 	smbmsg_t*	current_msg;	/* For message header @-codes */
+	const char*	current_msg_subj;
+	const char*	current_msg_from;
+	const char*	current_msg_to;
+	file_t*		current_file;
 
 			/* Global command shell variables */
 	uint	global_str_vars;
 	char **	global_str_var;
-	int32_t *	global_str_var_name;
+	uint32_t *	global_str_var_name;
 	uint	global_int_vars;
 	int32_t *	global_int_var;
-	int32_t *	global_int_var_name;
+	uint32_t *	global_int_var_name;
 	char *	sysvar_p[MAX_SYSVARS];
 	uint	sysvar_pi;
 	int32_t	sysvar_l[MAX_SYSVARS];
@@ -541,8 +580,8 @@ public:
 	long	exec_bin(const char *mod, csi_t *csi, const char* startup_dir=NULL);
 	void	clearvars(csi_t *bin);
 	void	freevars(csi_t *bin);
-	char**	getstrvar(csi_t *bin, int32_t name);
-	int32_t*	getintvar(csi_t *bin, int32_t name);
+	char**	getstrvar(csi_t *bin, uint32_t name);
+	int32_t*	getintvar(csi_t *bin, uint32_t name);
 	char*	copystrvar(csi_t *csi, char *p, char *str);
 	void	skipto(csi_t *csi, uchar inst);
 	bool	ftp_cmd(csi_t* csi, SOCKET ctrl_sock, const char* cmdsrc, char* rsp);
@@ -565,12 +604,9 @@ public:
 
 	void	reset_logon_vars(void);
 
-	uint	finduser(char *str);
+	uint	finduser(char *str, bool silent_failure = false);
 
 	int 	sub_op(uint subnum);
-	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
-	time_t	getmsgtime(uint subnum, ulong ptr);
-	ulong	getmsgnum(uint subnum, time_t t);
 
 	int		dir_op(uint dirnum);
 	int		getuserxfers(int fromuser, int destuser, char *fname);
@@ -581,6 +617,8 @@ public:
 	void	getusrdirs(void);
 	uint	getusrsub(uint subnum);
 	uint	getusrgrp(uint subnum);
+	uint	getusrdir(uint dirnum);
+	uint	getusrlib(uint dirnum);
 
 	uint	userdatdupe(uint usernumber, uint offset, uint datlen, char *dat
 				,bool del=false, bool next=false);
@@ -588,8 +626,11 @@ public:
 	bool	gettimeleft_inside;
 
 	/* str.cpp */
-	char*	timestr(time_t intime);
+	char*	timestr(time_t);
+	char*	datestr(time_t);
     char	timestr_output[60];
+	char	datestr_output[60];
+	char*	age_of_posted_item(char* buf, size_t max, time_t);
 	void	userlist(long mode);
 	size_t	gettmplt(char *outstr, const char *tmplt, long mode);
 	void	sif(char *fname, char *answers, long len);	/* Synchronet Interface File */
@@ -611,80 +652,146 @@ public:
 
 	/* writemsg.cpp */
 	void	automsg(void);
-	bool	writemsg(const char *str, const char *top, char *title, long mode, uint subnum
-				,const char *dest, char** editor=NULL);
+	bool	writemsg(const char *str, const char *top, char *subj, long mode, uint subnum
+				,const char *to, const char* from, const char** editor=NULL, const char** charset=NULL);
 	char*	quotes_fname(int xedit, char* buf, size_t len);
 	char*	msg_tmp_fname(int xedit, char* fname, size_t len);
-	char	putmsg(const char *str, long mode);
+	char	putmsg(const char *str, long mode, long org_cols = 0);
 	bool	msgabort(void);
-	bool	email(int usernumber, const char *top, const char *title, long mode);
+	bool	email(int usernumber, const char *top = NULL, const char *title = NULL
+				, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 	void	forwardmail(smbmsg_t* msg, int usernum);
 	void	removeline(char *str, char *str2, char num, char skip);
 	ulong	msgeditor(char *buf, const char *top, char *title);
 	bool	editfile(char *path, bool msg=false);
-	int		loadmsg(smbmsg_t *msg, ulong number);
-	ushort	chmsgattr(ushort attr);
-	void	show_msgattr(ushort attr);
-	void	show_msghdr(smbmsg_t* msg);
-	void	show_msg(smbmsg_t* msg, long mode);
-	void	msgtotxt(smbmsg_t* msg, char *str, int header, int tails);
-	void	quotemsg(smbmsg_t* msg, int tails);
+	ushort	chmsgattr(smbmsg_t);
+	bool	quotemsg(smb_t*, smbmsg_t*, bool tails = false);
 	void	editmsg(smbmsg_t* msg, uint subnum);
-	void	editor_inf(int xeditnum, const char *dest, const char *title, long mode
-				,uint subnum);
+	void	editor_inf(int xeditnum, const char *to, const char* from, const char *subj, long mode
+				,uint subnum, const char* tagfile);
 	void	copyfattach(uint to, uint from, char *title);
 	bool	movemsg(smbmsg_t* msg, uint subnum);
 	int		process_edited_text(char* buf, FILE* stream, long mode, unsigned* lines, unsigned maxlines);
 	int		process_edited_file(const char* src, const char* dest, long mode, unsigned* lines, unsigned maxlines);
+	void	editor_info_to_msg(smbmsg_t*, const char* editor, const char* charset);
+	char	editor_details[128];
 
 	/* postmsg.cpp */
-	bool	postmsg(uint subnum, smbmsg_t* msg, long wm_mode);
+	bool	postmsg(uint subnum, long wm_mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 
 	/* mail.cpp */
 	int		delmail(uint usernumber,int which);
 	void	telluser(smbmsg_t* msg);
-	void	delallmail(uint usernumber, int which, bool permanent=true);
+	void	delallmail(uint usernumber, int which, bool permanent=true, long lm_mode = 0);
 
 	/* getmsg.cpp */
-	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num);
+	int		loadmsg(smbmsg_t *msg, ulong number);
+	void	show_msgattr(smbmsg_t*);
+	void	show_msghdr(smb_t*, smbmsg_t*, const char *subj = NULL, const char* from = NULL, const char* to = NULL);
+	bool	show_msg(smb_t*, smbmsg_t*, long p_mode = 0, post_t* post = NULL);
+	bool	msgtotxt(smb_t*, smbmsg_t*, const char *fname, bool header = true, ulong gettxt_mode = GETMSGTXT_ALL);
+	const char* msghdr_text(const smbmsg_t*, uint index);
+	char	msghdr_utf8_text[128];
+	const char* msghdr_field(const smbmsg_t*, const char* str, char* buf = NULL, bool can_utf8 = false);
+	char	msgghdr_field_cp437_str[128];
+	ulong	getlastmsg(uint subnum, uint32_t *ptr, time_t *t);
+	time_t	getmsgtime(uint subnum, ulong ptr);
+	ulong	getmsgnum(uint subnum, time_t t);
+	void	download_msg_attachments(smb_t*, smbmsg_t*, bool del);
 
 	/* readmail.cpp */
-	void	readmail(uint usernumber, int sent);
+	void	readmail(uint usernumber, int which, long lm_mode = 0);
+	bool	readmail_inside;
+	long	searchmail(mail_t*, long start, long msgss, int which, const char *search, const char* order);
 
 	/* bulkmail.cpp */
 	bool	bulkmail(uchar *ar);
 	int		bulkmailhdr(smb_t*, smbmsg_t*, uint usernum);
 
 	/* con_out.cpp */
-	int		bputs(const char *str);					/* BBS puts function */
+	size_t	bstrlen(const char *str, long mode = 0);
+	int		bputs(const char *str, long mode = 0);	/* BBS puts function */
 	int		rputs(const char *str, size_t len=0);	/* BBS raw puts function */
-	int		bprintf(const char *fmt, ...);			/* BBS printf function */
-	int		rprintf(const char *fmt, ...);			/* BBS raw printf function */
-	void	backspace(void);				/* Output a destructive backspace via outchar */
-	void	outchar(char ch);				/* Output a char - check echo and emu.  */
-	void	center(char *str);
+	int		bprintf(const char *fmt, ...)			/* BBS printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		bprintf(long mode, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this', 2 is 'mode'
+#endif
+	;
+	int		rprintf(const char *fmt, ...)			/* BBS raw printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	int		comprintf(const char *fmt, ...)			/* BBS direct-comm printf function */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));		// 1 is 'this'
+#endif
+	;
+	void	backspace(int count=1);			/* Output destructive backspace(s) via outchar */
+	int		outchar(char ch);				/* Output a char - check echo and emu.  */
+	int		outchar(enum unicode_codepoint, char cp437_fallback);
+	int		outchar(enum unicode_codepoint, const char* cp437_fallback = NULL);
+	void	inc_column(int count);
+	void	center(char *str, unsigned int columns = 0);
+	void	wide(const char*);
 	void	clearline(void);
 	void	cleartoeol(void);
+	void	cleartoeos(void);
 	void	cursor_home(void);
 	void	cursor_up(int count=1);
 	void	cursor_down(int count=1);
 	void	cursor_left(int count=1);
 	void	cursor_right(int count=1);
+	bool	cursor_xy(int x, int y);
+	void	carriage_return(int count=1);
+	void	line_feed(int count=1);
+	void	newline(int count=1);
 	long	term_supports(long cmp_flags=0);
+	const char* term_type(long term_supports = -1);
+	const char* term_charset(long term_supports = -1);
+	int		backfill(const char* str, float pct, int full_attr, int empty_attr);
+	void	progress(const char* str, int count, int total, int interval=1);
+	bool	saveline(void);
+	bool	restoreline(void);
+	int		petscii_to_ansibbs(unsigned char);
+	size_t	print_utf8_as_cp437(const char*, size_t);
+	int		attr(int);				/* Change text color/attributes */
+	void	ctrl_a(char);			/* Performs Ctrl-Ax attribute changes */
+	char*	auto_utf8(const char*, long* mode);
+	enum output_rate {
+		output_rate_unlimited,
+		output_rate_300 = 300,
+		output_rate_600 = 600,
+		output_rate_1200 = 1200,
+		output_rate_2400 = 2400,
+		output_rate_4800 = 4800,
+		output_rate_9600 = 9600,
+		output_rate_19200 = 19200,
+		output_rate_38400 = 38400,
+		output_rate_57600 = 57600,
+		output_rate_76800 = 76800,
+		output_rate_115200 = 115200,
+	} cur_output_rate;
+	void	set_output_rate(enum output_rate);
 
 	/* getstr.cpp */
 	size_t	getstr_offset;
-	size_t	getstr(char *str, size_t length, long mode);
+	size_t	getstr(char *str, size_t length, long mode, const str_list_t history = NULL);
 	long	getnum(ulong max, ulong dflt=0);
 	void	insert_indicator(void);
 
 	/* getkey.cpp */
 	char	getkey(long mode); 		/* Waits for a key hit local or remote  */
-	long	getkeys(const char *str, ulong max);
+	long	getkeys(const char *str, ulong max, long mode = K_UPPER);
 	void	ungetkey(char ch);		/* Places 'ch' into the input buffer    */
 	char	question[MAX_TEXTDAT_ITEM_LEN+1];
-	bool	yesno(const char *str);
-	bool	noyes(const char *str);
+	bool	yesno(const char *str, long mode = 0);
+	bool	noyes(const char *str, long mode = 0);
 	void	pause(void);
 	const char *	mnestr;
 	void	mnemonics(const char *str);
@@ -694,39 +801,42 @@ public:
 	char	handle_ctrlkey(char ch, long mode=0);
 
 	/* prntfile.cpp */
-	void	printfile(char *str, long mode);
-	void	printtail(char *str, int lines, long mode);
-	void	menu(const char *code);
+	bool	printfile(const char* fname, long mode, long org_cols = 0);
+	bool	printtail(const char* fname, int lines, long mode, long org_cols = 0);
+	bool	menu(const char *code, long mode = 0);
+	bool	menu_exists(const char *code, const char* ext=NULL, char* realpath=NULL);
 
 	int		uselect(int add, uint n, const char *title, const char *item, const uchar *ar);
 	uint	uselect_total, uselect_num[500];
 
+	long	mselect(const char *title, str_list_t list, unsigned max_selections, const char* item_fmt, const char* selected_str, const char* unselected_str, const char* prompt_fmt);
+
 	void	redrwstr(char *strin, int i, int l, long mode);
-	void	attr(int atr);				/* Change local and remote text attributes */
-	void	ctrl_a(char x);			/* Peforms the Ctrl-Ax attribute changes */
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
-	const char*	atcode(char* sp, char* str, size_t maxlen);
+	const char*	atcode(char* sp, char* str, size_t maxlen, long* pmode = NULL);
 
 	/* getnode.cpp */
-	int		getsmsg(int usernumber);
-	int		getnmsg(void);
+	int		getsmsg(int usernumber, bool clearline = false);
+	int		getnmsg(bool clearline = false);
 	int		whos_online(bool listself);/* Lists active nodes, returns active nodes */
 	void	nodelist(void);
 	int		getnodeext(uint number, char * str);
 	int		getnodedat(uint number, node_t * node, bool lock);
-	void	nodesync(void);
+	void	nodesync(bool clearline = false);
 	user_t	nodesync_user;
 	bool	nodesync_inside;
+	uint	count_nodes(bool self = true);
 
 	/* putnode.cpp */
 	int		putnodedat(uint number, node_t * node);
 	int		putnodeext(uint number, char * str);
 
 	/* login.ccp */
-	int		login(char *str, char *pw);
-	void	badlogin(char* user, char* passwd);
+	int		login(char *user_name, char *pw_prompt, const char* user_pw = NULL, const char* sys_pw = NULL);
+	void	badlogin(char* user, char* passwd, const char* protocol=NULL, xp_sockaddr* addr=NULL, bool delay=true);
+	char*	parse_login(char*);
 
 	/* answer.cpp */
 	bool	answer();
@@ -745,12 +855,17 @@ public:
 	int		text_sec(void);						/* Text sections */
 
 	/* readmsgs.cpp */
+	post_t* loadposts(uint32_t *posts, uint subnum, ulong ptr, long mode, ulong *unvalidated_num, uint32_t* visible=NULL);
 	int		scanposts(uint subnum, long mode, const char* find);	/* Scan sub-board */
+	bool	scanposts_inside;
 	long	listsub(uint subnum, long mode, long start, const char* search);
-	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts);
+	long	listmsgs(uint subnum, long mode, post_t* post, long start, long posts, bool reading = true);
 	long	searchposts(uint subnum, post_t* post, long start, long msgs, const char* find);
-	long	showposts_toyou(post_t* post, ulong start, long posts);
-	void	msghdr(smbmsg_t* msg);
+	long	showposts_toyou(uint subnum, post_t* post, ulong start, long posts, long mode=0);
+	void	show_thread(uint32_t msgnum, post_t* post, unsigned curmsg, int thread_depth = 0, uint64_t reply_mask = 0);
+	void	dump_msghdr(smbmsg_t*);
+	uchar	msg_listing_flag(uint subnum, smbmsg_t*, post_t*);
+	int64_t get_start_msgnum(smb_t*, int next=0);
 
 	/* chat.cpp */
 	void	chatsection(void);
@@ -771,15 +886,22 @@ public:
 	int		getnodetopage(int all, int telegram);
 
 	/* main.cpp */
+	int		lputs(int level, const char* str);
+	int		lprintf(int level, const char *fmt, ...)
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 3, 4)));		// 1 is 'this'
+#endif
+	;
 	void	printstatslog(uint node);
 	ulong	logonstats(void);
 	void	logoffstats(void);
 	int		nopen(char *str, int access);
 	int		mv(char *src, char *dest, char copy); /* fast file move/copy function */
-	bool	chksyspass(void);
+	bool	chksyspass(const char* sys_pw = NULL);
 	bool	chk_ar(const uchar * str, user_t* user, client_t* client); /* checks access requirements */
 	bool	ar_exp(const uchar ** ptrptr, user_t*, client_t*);
 	void	daily_maint(void);
+	bool	backup(const char* fname, int backup_level, bool rename);
 
 	/* upload.cpp */
 	bool	uploadfile(file_t* f);
@@ -791,14 +913,14 @@ public:
 	/* download.cpp */
 	void	downloadfile(file_t* f);
 	void	notdownloaded(ulong size, time_t start, time_t end);
-	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd);
+	int		protocol(prot_t* prot, enum XFER_TYPE, char *fpath, char *fspec, bool cd, bool autohangup=true);
 	const char*	protcmdline(prot_t* prot, enum XFER_TYPE type);
 	void	seqwait(uint devnum);
 	void	autohangup(void);
-	bool	checkdszlog(file_t*);
+	bool	checkdszlog(const char*);
 	bool	checkprotresult(prot_t*, int error, file_t*);
-	bool	sendfile(char* fname, char prot=0);
-	bool	recvfile(char* fname, char prot=0);
+	bool	sendfile(char* fname, char prot=0, const char* description = NULL, bool autohang=true);
+	bool	recvfile(char* fname, char prot=0, bool autohang=true);
 
 	/* file.cpp */
 	void	fileinfo(file_t* f);
@@ -810,6 +932,7 @@ public:
 	char *	getfilespec(char *str);
 	bool	checkfname(char *fname);
 	bool	addtobatdl(file_t* f);
+	long	delfiles(const char *inpath, const char *spec, size_t keep = 0);
 
 	/* listfile.cpp */
 	bool	listfile(const char *fname, const char *buf, uint dirnum
@@ -846,10 +969,11 @@ public:
 
 	/* xtrn.cpp */
 	int		external(const char* cmdline, long mode, const char* startup_dir=NULL);
+	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
 	int		xtrn_sec(void);					/* The external program section  */
-	void	xtrndat(char* name, char* dropdir, uchar type, ulong tleft
+	void	xtrndat(const char* name, const char* dropdir, uchar type, ulong tleft
 				,ulong misc);
 	bool	exec_xtrn(uint xtrnnum);			/* Executes online external program */
 	bool	user_event(user_event_t);			/* Executes user event(s) */
@@ -863,17 +987,14 @@ public:
 	void	logline(const char *code,const char *str); /* Writes 'str' on it's own line in log (LOG_INFO level) */
 	void	logline(int level, const char *code,const char *str);
 	void	logofflist(void);              /* List of users logon activity */
-	bool	syslog(const char* code, const char *entry);
 	bool	errormsg_inside;
-	void	errormsg(int line, const char *file, const char* action, const char *object
-				,ulong access, const char *extinfo=NULL);
+	void	errormsg(int line, const char* function, const char *source, const char* action, const char *object
+				,long access, const char *extinfo=NULL);
 	BOOL	hacklog(char* prot, char* text);
 
 	/* qwk.cpp */
-	bool	qwklogon;
 	ulong	qwkmail_last;
 	void	qwk_sec(void);
-	int		qwk_route(char *inaddr, char *fulladdr);
 	uint	total_qwknodes;
 	struct qwknode {
 		char	id[LEN_QWKID+1];
@@ -885,6 +1006,10 @@ public:
 	void	qwksetptr(uint subnum, char *buf, int reset);
 	void	qwkcfgline(char *buf,uint subnum);
 	int		set_qwk_flag(ulong flag);
+	uint	resolve_qwkconf(uint confnum, int hubnum=-1);
+	bool	qwk_vote(str_list_t ini, const char* section, smb_net_type_t, const char* qnet_id, uint confnum, int hubnum);
+	bool	qwk_voting(str_list_t* ini, long offset, smb_net_type_t, const char* qnet_id, uint confnum, int hubnum = -1);
+	void	qwk_handle_remaining_votes(str_list_t* ini, smb_net_type_t, const char* qnet_id, int hubnum = -1);
 
 	/* pack_qwk.cpp */
 	bool	pack_qwk(char *packet, ulong *msgcnt, bool prepack);
@@ -897,23 +1022,22 @@ public:
 
 	/* un_rep.cpp */
 	bool	unpack_rep(char* repfile=NULL);
-	uint	resolve_qwkconf(uint n);
 
 	/* msgtoqwk.cpp */
-	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, uint subnum, int conf, FILE* hdrs_dat);
+	ulong	msgtoqwk(smbmsg_t* msg, FILE *qwk_fp, long mode, smb_t*, int conf, FILE* hdrs_dat, FILE* voting_dat = NULL);
 
 	/* qwktomsg.cpp */
-	void	qwk_new_msg(smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
-	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, uint subnum
-				,uint touser, smbmsg_t* msg);
+	bool	qwk_new_msg(ulong confnum, smbmsg_t* msg, char* hdrblk, long offset, str_list_t headers, bool parse_sender_hfields);
+	bool	qwk_import_msg(FILE *qwk_fp, char *hdrblk, ulong blocks, char fromhub, smb_t*
+				,uint touser, smbmsg_t* msg, bool* dupe);
 
 	/* fido.cpp */
-	bool	netmail(const char *into, const char *subj, long mode);
-	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub);
+	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub = 0);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(const char *into, const char *subj, long mode);
-	bool	qnetmail(const char *into, const char *subj, long mode);
+	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 
 	/* useredit.cpp */
 	void	useredit(int usernumber);
@@ -927,6 +1051,7 @@ public:
 
 	/* scansubs.cpp */
 	void	scansubs(long mode);
+	bool	scansubs_inside;
 	void	scanallsubs(long mode);
 	void	new_scan_cfg(ulong misc);
 	void	new_scan_ptr_cfg(void);
@@ -964,7 +1089,7 @@ public:
 			#define DLLEXPORT	__declspec(dllimport)
 		#endif
 		#ifdef __BORLANDC__
-			#define DLLCALL __stdcall
+			#define DLLCALL
 		#else
 			#define DLLCALL
 		#endif
@@ -977,6 +1102,8 @@ public:
 #ifdef __cplusplus
 extern "C" {
 #endif
+	/* ansiterm.cpp */
+	DLLEXPORT char*		DLLCALL ansi_attr(int attr, int curattr, char* str, BOOL color);
 
 	/* main.cpp */
 	DLLEXPORT int		DLLCALL sbbs_random(int);
@@ -986,19 +1113,23 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
+	DLLEXPORT BOOL		DLLCALL inc_sys_upload_stats(scfg_t*, ulong files, ulong bytes);
+	DLLEXPORT BOOL		DLLCALL inc_sys_download_stats(scfg_t*, ulong files, ulong bytes);
 
 	/* getmail.c */
-	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent);
+	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
 	DLLEXPORT mail_t *	DLLCALL loadmail(smb_t* smb, uint32_t* msgs, uint usernumber
 										,int which, long mode);
 	DLLEXPORT void		DLLCALL freemail(mail_t* mail);
-	DLLEXPORT void		DLLCALL delfattach(scfg_t*, smbmsg_t*);
+	DLLEXPORT BOOL		DLLCALL delfattach(scfg_t*, smbmsg_t*);
 
 	/* postmsg.cpp */
-	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf);
+	DLLEXPORT int		DLLCALL savemsg(scfg_t*, smb_t*, smbmsg_t*, client_t*, const char* server, char* msgbuf, smbmsg_t* remsg);
+	DLLEXPORT int		DLLCALL votemsg(scfg_t*, smb_t*, smbmsg_t*, const char* msgfmt, const char* votefmt);
+	DLLEXPORT int		DLLCALL postpoll(scfg_t*, smb_t*, smbmsg_t*);
+	DLLEXPORT int		DLLCALL closepoll(scfg_t*, smb_t*, uint32_t msgnum, const char* username);
 	DLLEXPORT void		DLLCALL signal_sub_sem(scfg_t*, uint subnum);
 	DLLEXPORT int		DLLCALL msg_client_hfields(smbmsg_t*, client_t*);
-	DLLEXPORT char*		DLLCALL msg_program_id(char* pid);
 
 	/* filedat.c */
 	DLLEXPORT BOOL		DLLCALL getfileixb(scfg_t* cfg, file_t* f);
@@ -1019,49 +1150,65 @@ extern "C" {
 	DLLEXPORT int		DLLCALL update_uldate(scfg_t* cfg, file_t* f);
 
 	/* str_util.c */
-	DLLEXPORT char *	DLLCALL remove_ctrl_a(const char* instr, char* outstr);
-	DLLEXPORT char 		DLLCALL ctrl_a_to_ascii_char(char code);
-	DLLEXPORT char *	DLLCALL truncstr(char* str, const char* set);
-	DLLEXPORT char *	DLLCALL ascii_str(uchar* str);
-	DLLEXPORT char		DLLCALL exascii_to_ascii_char(uchar ch);
-	DLLEXPORT BOOL		DLLCALL findstr(const char *insearch, const char *fname);
-	DLLEXPORT BOOL		DLLCALL findstr_in_string(const char* insearchof, char* string);
-	DLLEXPORT BOOL		DLLCALL findstr_in_list(const char* insearchof, str_list_t list);
-	DLLEXPORT BOOL		DLLCALL trashcan(scfg_t* cfg, const char *insearch, const char *name);
-	DLLEXPORT char *	DLLCALL trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
-	DLLEXPORT str_list_t DLLCALL trashcan_list(scfg_t* cfg, const char* name);
-	DLLEXPORT char *	DLLCALL strip_exascii(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL strip_space(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL prep_file_desc(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL strip_ctrl(const char *str, char* dest);
-	DLLEXPORT char *	DLLCALL net_addr(net_t* net);
-	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_attr(char a);
-	DLLEXPORT BOOL		DLLCALL valid_ctrl_a_code(char a);
-	DLLEXPORT size_t	DLLCALL strip_invalid_attr(char *str);
-	DLLEXPORT char *	DLLCALL ultoac(ulong l,char *str);
-	DLLEXPORT char *	DLLCALL rot13(char* str);
-	DLLEXPORT uint32_t	DLLCALL str_to_bits(uint32_t currval, const char *str);
+	DLLEXPORT char *	remove_ctrl_a(const char* instr, char* outstr);
+	DLLEXPORT char 		ctrl_a_to_ascii_char(char code);
+	DLLEXPORT char *	truncstr(char* str, const char* set);
+	DLLEXPORT char *	ascii_str(uchar* str);
+	DLLEXPORT char		exascii_to_ascii_char(uchar ch);
+	DLLEXPORT BOOL		findstr(const char *insearch, const char *fname);
+	DLLEXPORT BOOL		findstr_in_string(const char* insearchof, char* string);
+	DLLEXPORT BOOL		findstr_in_list(const char* insearchof, str_list_t list);
+	DLLEXPORT str_list_t findstr_list(const char* fname);
+	DLLEXPORT BOOL		trashcan(scfg_t* cfg, const char *insearch, const char *name);
+	DLLEXPORT char *	trashcan_fname(scfg_t* cfg, const char *name, char* fname, size_t);
+	DLLEXPORT str_list_t trashcan_list(scfg_t* cfg, const char* name);
+	DLLEXPORT char *	strip_exascii(const char *str, char* dest);
+	DLLEXPORT char *	strip_space(const char *str, char* dest);
+	DLLEXPORT char *	prep_file_desc(const char *str, char* dest);
+	DLLEXPORT char *	strip_ctrl(const char *str, char* dest);
+	DLLEXPORT char *	strip_char(const char* str, char* dest, char);
+	DLLEXPORT char *	net_addr(net_t* net);
+	DLLEXPORT BOOL		valid_ctrl_a_attr(char a);
+	DLLEXPORT BOOL		valid_ctrl_a_code(char a);
+	DLLEXPORT size_t	strip_invalid_attr(char *str);
+	DLLEXPORT char *	ultoac(ulong l,char *str);
+	DLLEXPORT char *	rot13(char* str);
+	DLLEXPORT uint32_t	str_to_bits(uint32_t currval, const char *str);
+	DLLEXPORT BOOL		str_has_ctrl(const char*);
+	DLLEXPORT BOOL		str_is_ascii(const char*);
+	DLLEXPORT char *	utf8_to_cp437_str(char* str);
+	DLLEXPORT char *	subnewsgroupname(scfg_t*, sub_t*, char*, size_t);
+	DLLEXPORT char * 	get_ctrl_dir(void);
 
 	/* msg_id.c */
-	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t* sub, smbmsg_t* msg, char* msgid, size_t);
-	DLLEXPORT char *	DLLCALL get_msgid(scfg_t* cfg, uint subnum, smbmsg_t* msg, char* msgid, size_t);
-
+	DLLEXPORT char *	DLLCALL ftn_msgid(sub_t*, smbmsg_t*, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_msgid(scfg_t*, uint subnum, smbmsg_t*, char* msgid, size_t);
+	DLLEXPORT char *	DLLCALL get_replyid(scfg_t*, smb_t*, smbmsg_t*, char* msgid, size_t maxlen);
+	DLLEXPORT uint32_t	DLLCALL get_new_msg_number(smb_t*);
+	DLLEXPORT BOOL		DLLCALL add_msg_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
+	DLLEXPORT BOOL		DLLCALL add_reply_ids(scfg_t*, smb_t*, smbmsg_t*, smbmsg_t* remsg);
+	DLLEXPORT char*		DLLCALL msg_program_id(char* pid, size_t);
 
 	/* date_str.c */
 	DLLEXPORT char *	DLLCALL zonestr(short zone);
 	DLLEXPORT time32_t	DLLCALL dstrtounix(scfg_t*, const char *str);
 	DLLEXPORT char *	DLLCALL unixtodstr(scfg_t*, time32_t, char *str);
 	DLLEXPORT char *	DLLCALL sectostr(uint sec, char *str);
+	DLLEXPORT char *	DLLCALL seconds_to_str(uint, char*);
 	DLLEXPORT char *	DLLCALL hhmmtostr(scfg_t* cfg, struct tm* tm, char* str);
 	DLLEXPORT char *	DLLCALL timestr(scfg_t* cfg, time32_t intime, char* str);
+
+	/* msgdate.c */
 	DLLEXPORT when_t	DLLCALL rfc822date(char* p);
 	DLLEXPORT char *	DLLCALL msgdate(when_t when, char* buf);
+	DLLEXPORT BOOL		DLLCALL newmsgs(smb_t*, time_t);
 
 	/* load_cfg.c */
 	DLLEXPORT BOOL		DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error);
 	DLLEXPORT void		DLLCALL free_cfg(scfg_t* cfg);
 	DLLEXPORT void		DLLCALL free_text(char* text[]);
 	DLLEXPORT ushort	DLLCALL sys_timezone(scfg_t* cfg);
+	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
 
 	/* scfgsave.c */
 	DLLEXPORT BOOL		DLLCALL save_cfg(scfg_t* cfg, int backup_level);
@@ -1071,29 +1218,20 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL write_file_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_chat_cfg(scfg_t* cfg, int backup_level);
 	DLLEXPORT BOOL		DLLCALL write_xtrn_cfg(scfg_t* cfg, int backup_level);
-	DLLEXPORT BOOL		DLLCALL fcopy(char* src, char* dest);
-	DLLEXPORT BOOL		DLLCALL fcompare(char* fn1, char* fn2);
-	DLLEXPORT BOOL		DLLCALL backup(char *org, int backup_level, BOOL ren);
 	DLLEXPORT void		DLLCALL refresh_cfg(scfg_t* cfg);
-
-
-	/* scfglib1.c */
-	DLLEXPORT char *	DLLCALL prep_dir(const char* base, char* dir, size_t buflen);
+	DLLEXPORT int		DLLCALL smb_storage_mode(scfg_t*, smb_t*);
+	DLLEXPORT int		DLLCALL smb_open_sub(scfg_t*, smb_t*, unsigned int subnum);
 
 	/* logfile.cpp */
 	DLLEXPORT int		DLLCALL errorlog(scfg_t* cfg, const char* host, const char* text);
 
-	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, char* prot, char* user, char* text
-										,char* host, SOCKADDR_IN* addr);
+	DLLEXPORT BOOL		DLLCALL hacklog(scfg_t* cfg, const char* prot, const char* user, const char* text
+										,const char* host, union xp_sockaddr* addr);
 	DLLEXPORT BOOL		DLLCALL spamlog(scfg_t* cfg, char* prot, char* action, char* reason
 										,char* host, char* ip_addr, char* to, char* from);
 
 	/* data.cpp */
 	DLLEXPORT time_t	DLLCALL getnextevent(scfg_t* cfg, event_t* event);
-
-	/* data_ovl.cpp */
-	DLLEXPORT BOOL		DLLCALL getmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
-	DLLEXPORT BOOL		DLLCALL putmsgptrs(scfg_t* cfg, uint usernumber, subscan_t* subscan);
 
 	/* sockopt.c */
 	DLLEXPORT int		DLLCALL set_socket_options(scfg_t* cfg, SOCKET sock, const char* section
@@ -1103,12 +1241,18 @@ extern "C" {
 	DLLEXPORT char*		DLLCALL cmdstr(scfg_t* cfg, user_t* user, const char* instr
 									,const char* fpath, const char* fspec, char* cmd);
 
+	/* qwk.cpp */
+	DLLEXPORT int		qwk_route(scfg_t*, const char *inaddr, char *fulladdr, size_t maxlen);
+
+	/* con_out.cpp */
+	unsigned char		cp437_to_petscii(unsigned char);
+
 #ifdef JAVASCRIPT
 
 	typedef struct {
 		const char*		name;
 		JSNative        call;
-		uint8           nargs;
+		uint8_t         nargs;
 		int				type;		/* return type */
 		const char*		args;		/* arguments */
 		const char*		desc;		/* description */
@@ -1117,8 +1261,8 @@ extern "C" {
 
 	typedef struct {
 		const char      *name;
-		int8            tinyid;
-		uint8           flags;
+		int8_t          tinyid;
+		uint8_t         flags;
 		int				ver;		/* version added/modified */
 	} jsSyncPropertySpec;
 
@@ -1130,7 +1274,7 @@ extern "C" {
 	typedef struct {
 		char		version[128];
 		const char*	version_detail;
-		uint32_t*	interface_addr;
+		str_list_t*	interfaces;
 		uint32_t*	options;
 		uint32_t*	clients;
 	} js_server_props_t;
@@ -1153,12 +1297,33 @@ extern "C" {
 	/* main.cpp */
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncObject(JSContext* cx, JSObject* obj, const char*, int ver);
 	DLLEXPORT JSBool	DLLCALL js_DescribeSyncConstructor(JSContext* cx, JSObject* obj, const char*);
-	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*, BOOL append);
+	DLLEXPORT JSBool	DLLCALL js_DefineSyncMethods(JSContext* cx, JSObject* obj, jsSyncMethodSpec*);
 	DLLEXPORT JSBool	DLLCALL js_DefineSyncProperties(JSContext* cx, JSObject* obj, jsSyncPropertySpec*);
 	DLLEXPORT JSBool	DLLCALL js_SyncResolve(JSContext* cx, JSObject* obj, char *name, jsSyncPropertySpec* props, jsSyncMethodSpec* funcs, jsConstIntSpec* consts, int flags);
 	DLLEXPORT JSBool	DLLCALL js_DefineConstIntegers(JSContext* cx, JSObject* obj, jsConstIntSpec*, int flags);
 	DLLEXPORT JSBool	DLLCALL js_CreateArrayOfStrings(JSContext* cx, JSObject* parent
-														,const char* name, char* str[], uintN flags);
+														,const char* name, const char* str[], unsigned flags);
+	DLLEXPORT void*		DLLCALL js_GetClassPrivate(JSContext*, JSObject*, JSClass*);
+
+	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
+													,scfg_t* cfg				/* common */
+													,scfg_t* node_cfg			/* node-specific */
+													,jsSyncMethodSpec* methods	/* global */
+													,time_t uptime				/* system */
+													,char* host_name			/* system */
+													,char* socklib_desc			/* system */
+													,js_callback_t*				/* js */
+													,js_startup_t*				/* js */
+													,client_t* client			/* client */
+													,SOCKET client_socket		/* client */
+#ifdef USE_CRYPTLIB
+													,CRYPT_CONTEXT session		/* client */
+#else
+													,int unused
+#endif
+													,js_server_props_t* props	/* server */
+													,JSObject** glob
+													);
 
 	/* js_server.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateServerObject(JSContext* cx, JSObject* parent
@@ -1173,28 +1338,14 @@ extern "C" {
 		sem_t				bg_sem;
 		str_list_t			exit_func;
 	} global_private_t;
-	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, uintN argc, uintN min);
+	DLLEXPORT BOOL DLLCALL js_argc(JSContext *cx, unsigned argc, unsigned min);
 	DLLEXPORT BOOL DLLCALL js_CreateGlobalObject(JSContext* cx, scfg_t* cfg, jsSyncMethodSpec* methods, js_startup_t*, JSObject**);
-	DLLEXPORT BOOL	DLLCALL js_CreateCommonObjects(JSContext* cx
-													,scfg_t* cfg				/* common */
-													,scfg_t* node_cfg			/* node-specific */
-													,jsSyncMethodSpec* methods	/* global */
-													,time_t uptime				/* system */
-													,char* host_name			/* system */
-													,char* socklib_desc			/* system */
-													,js_callback_t*				/* js */
-													,js_startup_t*				/* js */
-													,client_t* client			/* client */
-													,SOCKET client_socket		/* client */
-													,js_server_props_t* props	/* server */
-													,JSObject** glob
-													);
 
 	/* js_internal.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateInternalJsObject(JSContext*, JSObject* parent, js_callback_t*, js_startup_t*);
 	DLLEXPORT JSBool	DLLCALL js_CommonOperationCallback(JSContext*, js_callback_t*);
 	DLLEXPORT void		DLLCALL js_EvalOnExit(JSContext*, JSObject*, js_callback_t*);
-	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir);
+	DLLEXPORT void		DLLCALL	js_PrepareToExecute(JSContext*, JSObject*, const char *filename, const char* startup_dir, JSObject *);
 	DLLEXPORT char*		DLLCALL js_getstring(JSContext *cx, JSString *str);
 
 	/* js_system.c */
@@ -1204,8 +1355,10 @@ extern "C" {
 													,char* socklib_desc);
 
 	/* js_client.c */
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateClientObject(JSContext* cx, JSObject* parent
-													,char* name, client_t* client, SOCKET sock);
+													,const char* name, client_t* client, SOCKET sock, CRYPT_CONTEXT session);
+#endif
 	/* js_user.c */
 	DLLEXPORT JSObject*	DLLCALL js_CreateUserClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT JSObject* DLLCALL js_CreateUserObject(JSContext* cx, JSObject* parent, scfg_t* cfg
@@ -1230,13 +1383,21 @@ extern "C" {
 	/* js_msgbase.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateMsgBaseClass(JSContext* cx, JSObject* parent, scfg_t* cfg);
 	DLLEXPORT BOOL		DLLCALL js_ParseMsgHeaderObject(JSContext* cx, JSObject* hdrobj, smbmsg_t*);
+	DLLEXPORT BOOL		DLLCALL js_GetMsgHeaderObjectPrivates(JSContext* cx, JSObject* hdrobj, smb_t**, smbmsg_t**, post_t**);
 
 	/* js_socket.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketClass(JSContext* cx, JSObject* parent);
+#ifdef USE_CRYPTLIB
 	DLLEXPORT JSObject* DLLCALL js_CreateSocketObject(JSContext* cx, JSObject* parent
-													,char *name, SOCKET sock);
+													,char *name, SOCKET sock, CRYPT_CONTEXT session);
+#endif
+	DLLEXPORT JSObject* DLLCALL js_CreateSocketObjectFromSet(JSContext* cx, JSObject* parent
+													,char *name, struct xpms_set *set);
+
 	DLLEXPORT void		DLLCALL js_timeval(JSContext* cx, jsval val, struct timeval* tv);
 	DLLEXPORT SOCKET	DLLCALL js_socket(JSContext *cx, jsval val);
+    DLLEXPORT SOCKET	DLLCALL js_socket_add(JSContext *cx, jsval val, fd_set *fds);
+	DLLEXPORT BOOL		DLLCALL js_socket_isset(JSContext *cx, jsval val, fd_set *fds);
 
 	/* js_queue.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateQueueClass(JSContext* cx, JSObject* parent);
@@ -1246,9 +1407,10 @@ extern "C" {
 
 	/* js_file.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateFileClass(JSContext* cx, JSObject* parent);
+	DLLEXPORT JSObject* DLLCALL js_CreateFileObject(JSContext* cx, JSObject* parent, char *name, int fd, const char* mode);
 
 	/* js_sprintf.c */
-	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, uintN argc, jsval *argv);
+	DLLEXPORT char*		DLLCALL js_sprintf(JSContext* cx, uint argn, unsigned argc, jsval *argv);
 	DLLEXPORT void		DLLCALL js_sprintf_free(char *);
 
 	/* js_console.cpp */
@@ -1270,10 +1432,15 @@ extern "C" {
 	/* js_cryptcon.c */
 	DLLEXPORT JSObject* DLLCALL js_CreateCryptContextClass(JSContext* cx, JSObject* parent);
 
+	/* js_cryptkeyset.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptKeysetClass(JSContext* cx, JSObject* parent);
+
+	/* js_cryptcert.c */
+	DLLEXPORT JSObject* DLLCALL js_CreateCryptCertClass(JSContext* cx, JSObject* parent);
+
 #endif
 
 /* str_util.c */
-size_t	bstrlen(const char *str);
 char*	backslashcolon(char *str);
 ulong	ahtoul(const char *str);	/* Converts ASCII hex to ulong */
 char *	hexplus(uint num, char *str); 	/* Hex plus for 3 digits up to 9000 */
@@ -1283,15 +1450,20 @@ int		strsame(const char *str1, const char *str2);	/* Compares number of same cha
 
 /* load_cfg.c */
 BOOL 	md(char *path);
+char*	prep_code(char *str, const char* prefix);
 
 #ifdef SBBS /* These aren't exported */
 
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
-	int 	lprintf(int level, const char *fmt, ...);	/* log output */
-	int 	eprintf(int level, const char *fmt, ...);	/* event log */
-	SOCKET	open_socket(int type, const char* protocol);
-	SOCKET	accept_socket(SOCKET s, SOCKADDR* addr, socklen_t* addrlen);
+	int 	lprintf(int level, const char *fmt, ...)	/* log output */
+#if defined(__GNUC__)   // Catch printf-format errors
+    __attribute__ ((format (printf, 2, 3)));
+#endif
+	;
+	void	call_socket_open_callback(BOOL open);
+	SOCKET	open_socket(int domain, int type, const char* protocol);
+	SOCKET	accept_socket(SOCKET s, union xp_sockaddr* addr, socklen_t* addrlen);
 	int		close_socket(SOCKET);
 	u_long	resolve_ip(char *addr);
 

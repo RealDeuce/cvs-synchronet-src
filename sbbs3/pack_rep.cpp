@@ -1,14 +1,12 @@
-/* pack_rep.cpp */
-
 /* Synchronet QWK reply (REP) packet creation routine */
 
-/* $Id$ */
+/* $Id: pack_rep.cpp,v 1.51 2020/04/11 04:01:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -60,6 +58,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	mail_t*		mail;
 	FILE*		rep;
 	FILE*		hdrs=NULL;
+	FILE*		voting=NULL;
 	DIR*		dir;
 	DIRENT*		dirent;
 	smbmsg_t	msg;
@@ -74,10 +73,10 @@ bool sbbs_t::pack_rep(uint hubnum)
 
 	SAFEPRINTF2(str,"%s%s.REP",cfg.data_dir,hubid_upper);
 	if(fexistcase(str)) {
-		eprintf(LOG_INFO,"Updating %s", str);
+		lprintf(LOG_INFO,"Updating %s", str);
 		external(cmdstr(cfg.qhub[hubnum]->unpack,str,ALLFILES,NULL),EX_OFFLINE);
 	} else
-		eprintf(LOG_INFO,"Creating %s", str);
+		lprintf(LOG_INFO,"Creating %s", str);
 	/*************************************************/
 	/* Create SYSID.MSG, write header and leave open */
 	/*************************************************/
@@ -94,13 +93,18 @@ bool sbbs_t::pack_rep(uint hubnum)
 	}
 	fseek(rep,0L,SEEK_END);
 
-	/* Always includes HEADERS.DAT in .REP packets which are only for QWKnet hubs */
-	/* And *usually* a Synchronet system */
-	SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
-	fexistcase(str);
-	if((hdrs=fopen(str,"a"))==NULL)
-		errormsg(WHERE,ERR_CREATE,str,0);
-
+	if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) {
+		SAFEPRINTF(str,"%sHEADERS.DAT",cfg.temp_dir);
+		fexistcase(str);
+		if((hdrs=fopen(str,"a"))==NULL)
+			errormsg(WHERE,ERR_CREATE,str,0);
+	}
+	if(!(cfg.qhub[hubnum]->misc&QHUB_NOVOTING)) {
+		SAFEPRINTF(str,"%sVOTING.DAT",cfg.temp_dir);
+		fexistcase(str);
+		if((voting=fopen(str,"a"))==NULL)
+			errormsg(WHERE,ERR_CREATE,str,0);
+	}
 	/*********************/
 	/* Pack new messages */
 	/*********************/
@@ -111,6 +115,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 		fclose(rep);
 		if(hdrs!=NULL)
 			fclose(hdrs);
+		if(voting!=NULL)
+			fclose(voting);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(false); 
 	}
@@ -122,7 +128,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	mail=loadmail(&smb,&mailmsgs,0,MAIL_YOUR,0);
 	packedmail=0;
 	if(mailmsgs) {
-		eprintf(LOG_INFO,"Packing NetMail for %s", cfg.qhub[hubnum]->id);
+		lprintf(LOG_INFO,"Packing NetMail for %s", cfg.qhub[hubnum]->id);
 		for(u=0;u<mailmsgs;u++) {
 	//		bprintf("\b\b\b\b\b%-5lu",u+1);
 
@@ -130,7 +136,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 			msg.idx=mail[u];
 			if(msg.idx.number>qwkmail_last)
 				qwkmail_last=msg.idx.number;
-			if(!loadmsg(&msg,mail[u].number))
+			if(loadmsg(&msg,mail[u].number) < 1)
 				continue;
 
 			SAFEPRINTF(str,"%s/",cfg.qhub[hubnum]->id);
@@ -142,20 +148,24 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; 
 			}
 
-			msgtoqwk(&msg,rep,QM_TO_QNET|QM_REP|A_LEAVE,INVALID_SUB,0,hdrs);
+			mode = QM_TO_QNET|QM_REP;
+			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT | QHUB_CTRL_A | QHUB_UTF8));
+			/* For an unclear reason, kludge lines (including @VIA and @TZ) were not included in NetMail previously */
+			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
+			msgtoqwk(&msg, rep, mode, &smb, /* confnum: */0, hdrs);
 			packedmail++;
 			smb_unlockmsghdr(&smb,&msg);
 			smb_freemsgmem(&msg); 
 			YIELD();	/* yield */
 		}
-		eprintf(LOG_INFO,"Packed %d NetMail messages",packedmail); 
+		lprintf(LOG_INFO,"Packed %ld NetMail messages",packedmail); 
 	}
 	smb_close(&smb);					/* Close the e-mail */
 	if(mailmsgs)
 		free(mail);
 
 	for(i=0;i<cfg.qhub[hubnum]->subs;i++) {
-		j=cfg.qhub[hubnum]->sub[i]; 			/* j now equals the real sub num */
+		j=cfg.qhub[hubnum]->sub[i]->subnum; 			/* j now equals the real sub num */
 		msgs=getlastmsg(j,&last,0);
 		lncntr=0;						/* defeat pause */
 		if(!msgs || last<=subscan[j].ptr) {
@@ -163,7 +173,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				subscan[j].ptr=last;
 				subscan[j].last=last; 
 			}
-			eprintf(LOG_INFO,remove_ctrl_a(text[NScanStatusFmt],tmp)
+			lprintf(LOG_INFO,remove_ctrl_a(text[NScanStatusFmt],tmp)
 				,cfg.grp[cfg.sub[j]->grp]->sname
 				,cfg.sub[j]->lname,0L,msgs);
 			continue; 
@@ -178,8 +188,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 			continue; 
 		}
 
-		post=loadposts(&posts,j,subscan[j].ptr,LP_BYSELF|LP_OTHERS|LP_PRIVATE|LP_REP,NULL);
-		eprintf(LOG_INFO,remove_ctrl_a(text[NScanStatusFmt],tmp)
+		post=loadposts(&posts,j,subscan[j].ptr,LP_BYSELF|LP_OTHERS|LP_PRIVATE|LP_REP|LP_VOTES|LP_POLLS,NULL);
+		lprintf(LOG_INFO,remove_ctrl_a(text[NScanStatusFmt],tmp)
 			,cfg.grp[cfg.sub[j]->grp]->sname
 			,cfg.sub[j]->lname,posts,msgs);
 		if(!posts)	{ /* no new messages */
@@ -188,14 +198,14 @@ bool sbbs_t::pack_rep(uint hubnum)
 		}
 
 		subscan[j].ptr=last;                   /* set pointer */
-		eprintf(LOG_INFO,"%s",remove_ctrl_a(text[QWKPackingSubboard],tmp));	/* ptr to last msg	*/
+		lprintf(LOG_INFO,"%s",remove_ctrl_a(text[QWKPackingSubboard],tmp));	/* ptr to last msg	*/
 		submsgs=0;
 		for(u=0;u<posts;u++) {
 	//		bprintf("\b\b\b\b\b%-5lu",u+1);
 
 			memset(&msg,0,sizeof(msg));
-			msg.idx=post[u];
-			if(!loadmsg(&msg,post[u].number))
+			msg.idx=post[u].idx;
+			if(loadmsg(&msg,post[u].idx.number) < 1)
 				continue;
 
 			if(msg.from_net.type && msg.from_net.type!=NET_QWK &&
@@ -212,12 +222,13 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue; 
 			}
 
-			mode=cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
-			if(mode&A_LEAVE) mode|=(QM_VIA|QM_TZ|QM_MSGID);
+			mode = cfg.qhub[hubnum]->mode[i]|QM_TO_QNET|QM_REP;
+			mode |= (cfg.qhub[hubnum]->misc&(QHUB_EXT | QHUB_CTRL_A | QHUB_UTF8));
+			if(!(cfg.qhub[hubnum]->misc&QHUB_NOHEADERS)) mode|=(QM_VIA|QM_TZ|QM_MSGID|QM_REPLYTO);
 			if(msg.from_net.type!=NET_QWK)
 				mode|=QM_TAGLINE;
 
-			msgtoqwk(&msg,rep,mode,j,cfg.qhub[hubnum]->conf[i],hdrs);
+			msgtoqwk(&msg, rep, mode, &smb, cfg.qhub[hubnum]->conf[i], hdrs, voting);
 
 			smb_freemsgmem(&msg);
 			smb_unlockmsghdr(&smb,&msg);
@@ -226,14 +237,19 @@ bool sbbs_t::pack_rep(uint hubnum)
 			if(!(u%50))
 				YIELD(); /* yield */
 		}
-		eprintf(LOG_INFO,remove_ctrl_a(text[QWKPackedSubboard],tmp),submsgs,msgcnt);
+		lprintf(LOG_INFO,remove_ctrl_a(text[QWKPackedSubboard],tmp),submsgs,msgcnt);
 		free(post);
 		smb_close(&smb); 
 		YIELD();	/* yield */
 	}
 
+	BOOL voting_data = FALSE;
 	if(hdrs!=NULL)
 		fclose(hdrs);
+	if(voting!=NULL) {
+		voting_data = ftell(voting);
+		fclose(voting);
+	}
 	fclose(rep);			/* close HUB_ID.MSG */
 	CRLF;
 							/* Look for extra files to send out */
@@ -244,7 +260,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 		if(isdir(str))
 			continue;
 		SAFEPRINTF2(tmp2,"%s%s",cfg.temp_dir,dirent->d_name);
-		eprintf(LOG_INFO,remove_ctrl_a(text[RetrievingFile],tmp),str);
+		lprintf(LOG_INFO,remove_ctrl_a(text[RetrievingFile],tmp),str);
 		if(!mv(str,tmp2,/* copy: */TRUE))
 			netfiles++;
 	}
@@ -253,8 +269,8 @@ bool sbbs_t::pack_rep(uint hubnum)
 	if(netfiles)
 		CRLF;
 
-	if(!msgcnt && !netfiles && !packedmail) {
-		eprintf(LOG_INFO,remove_ctrl_a(text[QWKNoNewMessages],tmp));
+	if(!msgcnt && !netfiles && !packedmail && !voting_data) {
+		lprintf(LOG_INFO, "%s", remove_ctrl_a(text[QWKNoNewMessages],tmp));
 		return(true);	// Changed from false Mar-11-2005 (needs to be true to save updated ptrs)
 	}
 
@@ -266,7 +282,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 	i=external(cmdstr(cfg.qhub[hubnum]->pack,str,tmp2,NULL)
 		,EX_OFFLINE|EX_WILDCARD);
 	if(!fexistcase(str)) {
-		eprintf(LOG_WARNING,"%s",remove_ctrl_a(text[QWKCompressionFailed],tmp));
+		lprintf(LOG_WARNING,"%s",remove_ctrl_a(text[QWKCompressionFailed],tmp));
 		if(i)
 			errormsg(WHERE,ERR_EXEC,cmdstr(cfg.qhub[hubnum]->pack,str,tmp2,NULL),i);
 		else
@@ -310,7 +326,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 				continue;
 			memset(&msg,0,sizeof(msg));
 			/* !IMPORTANT: search by number (do not initialize msg.idx.offset) */
-			if(!loadmsg(&msg,mail[u].number))
+			if(loadmsg(&msg,mail[u].number) < 1)
 				continue;
 
 			SAFEPRINTF(str,"%s/",cfg.qhub[hubnum]->id);
@@ -337,7 +353,7 @@ bool sbbs_t::pack_rep(uint hubnum)
 		smb_close(&smb);
 		if(mailmsgs)
 			free(mail); 
-		eprintf(LOG_INFO,"Deleted %d sent NetMail messages",deleted); 
+		lprintf(LOG_INFO,"Deleted %ld sent NetMail messages",deleted); 
 	}
 
 	return(true);
