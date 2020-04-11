@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "File" Object */
 // vi: tabstop=4
 
-/* $Id: js_file.c,v 1.195 2020/04/12 07:58:01 rswindell Exp $ */
+/* $Id: js_file.c,v 1.192 2020/04/07 01:31:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,7 +41,6 @@
 #include "uucode.h"
 #include "yenc.h"
 #include "ini_file.h"
-#include <stdbool.h>
 
 #if !defined(__unix__)
 	#include <conio.h>		/* for kbhit() */
@@ -1197,7 +1196,6 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	named_string_t** list;
 	jsrefcount	rc;
-	bool		lowercase = false;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -1208,15 +1206,9 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	uintN argn = 0;
-	if(argc > argn && !JSVAL_IS_BOOLEAN(argv[argn]) && !JSVAL_NULL_OR_VOID(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], section, NULL);
+	if(argc>0 && argv[0]!=JSVAL_VOID && argv[0]!=JSVAL_NULL) {
+		JSVALUE_TO_MSTRING(cx, argv[0], section, NULL);
 		HANDLE_PENDING(cx, section);
-		argn++;
-	}
-	if(argc > argn && JSVAL_IS_BOOLEAN(argv[argn])) {
-		lowercase = JSVAL_TO_BOOLEAN(argv[argn]);
-		argn++;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1224,14 +1216,14 @@ js_iniGetObject(JSContext *cx, uintN argc, jsval *arglist)
 	FREE_AND_NULL(section);
 	JS_RESUMEREQUEST(cx, rc);
 
-	if(list==NULL)
+	if(list==NULL) {	/* New behavior at request of MCMLXXIX: return NULL if specified section doesn't exist */
+		JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 		return(JS_TRUE);
+	}
 
     object = JS_NewObject(cx, NULL, NULL, obj);
 
     for(i=0;list && list[i];i++) {
-		if(lowercase)
-			strlwr(list[i]->name);
 		JS_DefineProperty(cx, object, list[i]->name
 			,get_value(cx,list[i]->value)
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -1344,7 +1336,6 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	private_t*	p;
 	named_string_t** key_list;
 	jsrefcount	rc;
-	bool		lowercase = false;
 
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
@@ -1355,25 +1346,16 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	if(p->fp==NULL)
 		return(JS_TRUE);
 
-	uintN argn = 0;
-	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], name, NULL);
-		HANDLE_PENDING(cx, name);
-		if(name == NULL) {
-			JS_ReportError(cx, "Invalid name argument");
-			return JS_FALSE;
-		}
-		argn++;
-	}
-	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
-		JSVALUE_TO_MSTRING(cx, argv[argn], prefix, NULL);
-		argn++;
-	}
-	if(argc > argn && JSVAL_IS_BOOLEAN(argv[argn])) {
-		lowercase = JSVAL_TO_BOOLEAN(argv[argn]);
-		argn++;
+	if(argc)
+		JSVALUE_TO_MSTRING(cx, argv[0], name, NULL);
+	HANDLE_PENDING(cx, name);
+	if(name == NULL) {
+		JS_ReportError(cx, "Invalid NULL name property");
+		return JS_FALSE;
 	}
 
+	if(argc>1)
+		JSVALUE_TO_MSTRING(cx, argv[1], prefix, NULL);
 	if(JS_IsExceptionPending(cx)) {
 		FREE_AND_NULL(prefix);
 		if(name != name_def)
@@ -1388,11 +1370,10 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
     for(i=0;sec_list && sec_list[i];i++) {
 	    object = JS_NewObject(cx, NULL, NULL, obj);
+
 		sec_name=sec_list[i];
 		if(prefix!=NULL)
 			sec_name+=strlen(prefix);
-		if(lowercase)
-			strlwr(sec_name);
 		JS_DefineProperty(cx, object, name
 			,STRING_TO_JSVAL(JS_NewStringCopyZ(cx,sec_name))
 			,NULL,NULL,JSPROP_ENUMERATE);
@@ -1400,13 +1381,10 @@ js_iniGetAllObjects(JSContext *cx, uintN argc, jsval *arglist)
 		rc=JS_SUSPENDREQUEST(cx);
 		key_list = iniReadNamedStringList(p->fp,sec_list[i]);
 		JS_RESUMEREQUEST(cx, rc);
-		for(k=0;key_list && key_list[k];k++) {
-			if(lowercase)
-				strlwr(key_list[k]->name);
+		for(k=0;key_list && key_list[k];k++)
 			JS_DefineProperty(cx, object, key_list[k]->name
 				,get_value(cx,key_list[k]->value)
 				,NULL,NULL,JSPROP_ENUMERATE);
-		}
 		rc=JS_SUSPENDREQUEST(cx);
 		iniFreeNamedStringList(key_list);
 		JS_RESUMEREQUEST(cx, rc);
@@ -2875,10 +2853,10 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"to set a key in the <i>root</i> section, pass <i>null</i> for <i>section</i>. ")
 	,312
 	},
-	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>] [lowercase=<tt>false</tt>]")
+	{"iniGetObject",	js_iniGetObject,	1,	JSTYPE_OBJECT,	JSDOCSTR("[section=<i>root</i>]")
 	,JSDOCSTR("parse an entire section from a .ini file "
-		"and return all of its keys (optionally lowercased) and values as properties of an object. "
-		"if <i>section</i> is <tt>null</tt> or <tt>undefined</tt>, returns keys and values from the <i>root</i> section. "
+		"and return all of its keys and values as properties of an object. "
+		"if <i>section</i> is undefined, returns keys and values from the <i>root</i> section. "
 		"Returns <i>null</i> if the specified <i>section</i> does not exist in the file or the file has not been opened.")
 	,311
 	},
@@ -2890,11 +2868,11 @@ static jsSyncMethodSpec js_file_functions[] = {
 		"If your intention is to <i>replace</i> an existing section, use the <tt>iniRemoveSection</tt> function first." )
 	,312
 	},
-	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>] [lowercase=<tt>false</tt>]")
+	{"iniGetAllObjects",js_iniGetAllObjects,1,	JSTYPE_ARRAY,	JSDOCSTR("[name_property] [,prefix=<i>none</i>]")
 	,JSDOCSTR("parse all sections from a .ini file and return all (non-<i>root</i>) sections "
-		"in an array of objects with each section's keys (optionally lowercased) as properties of each object. "
+		"in an array of objects with each section's keys as properties of each object. "
 		"<i>name_property</i> is the name of the property to create to contain the section's name "
-		"(optionally lowercased, default is <tt>\"name\"</tt>), "
+		"(default is <tt>\"name\"</tt>), "
 		"the optional <i>prefix</i> has the same use as in the <tt>iniGetSections</tt> method, "
 		"if a <i>prefix</i> is specified, it is removed from each section's name" )
 	,311
