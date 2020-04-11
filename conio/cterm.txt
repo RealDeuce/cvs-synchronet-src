@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.66 2020/04/13 01:53:30 deuce Exp $
+$Id: cterm.txt,v 1.64 2020/04/11 15:14:59 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -58,7 +58,10 @@ Control Codes:
 --------------
 
 Control codes are in the following format:
-ESC {'0' (ZERO) to '~'}
+ESC {SPACE to '/'}{'0' (ZERO) to '~'}
+	There may be multiple characters from the {SPACE to '/'} set
+	before the terminating '0' to '~'
+
 	Legal combinations which are not handled are silently dropped.
 
 ESC H	Set Tab
@@ -1021,7 +1024,6 @@ CSI Pn1 ; Pn2 s
 	Set Left and Right Margins
 	Defaults: Pn1 = 1
 	          Pn2 = last column on screen
-	If either Pn1 or Pn2 is zero, the current setting is retained.
 	Selects left and right margins, defining the scrolling region. Pn1 is
 	the column number of the first column in the scrolling region. Pn2 is
 	the column number of the right column.
