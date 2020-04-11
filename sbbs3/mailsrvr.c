@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.722 2020/04/12 06:06:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.721 2020/04/09 05:48:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -89,7 +89,6 @@ int dns_getmx(char* name, char* mx, char* mx2
 
 static mail_startup_t* startup=NULL;
 static scfg_t	scfg;
-static char*	text[TOTAL_TEXT];
 static struct xpms_set	*mail_set=NULL;
 static BOOL terminated=FALSE;
 static protected_uint32_t active_clients;
@@ -5901,7 +5900,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.722 $", "%*s %s", revision);
+	sscanf("$Revision: 1.721 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
@@ -6039,7 +6038,7 @@ void DLLCALL mail_server(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, text, TRUE, error)) {
+		if(!load_cfg(&scfg, NULL, TRUE, error)) {
 			lprintf(LOG_CRIT,"!ERROR %s",error);
 			lprintf(LOG_CRIT,"!Failed to load configuration files");
 			cleanup(1);
