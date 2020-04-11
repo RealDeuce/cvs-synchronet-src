@@ -2,7 +2,7 @@
 
 /* Synchronet ZMODEM Functions */
 
-/* $Id: zmodem.c,v 1.123 2019/02/01 10:50:08 rswindell Exp $ */
+/* $Id: zmodem.c,v 1.124 2019/08/25 03:05:34 rswindell Exp $ */
 
 /******************************************************************************/
 /* Project : Unite!       File : zmodem general        Version : 1.02         */
@@ -191,7 +191,7 @@ static char* frame_desc(int frame)
 				break;
 		}
 	} else
-		sprintf(str,"%d",frame);
+		return chr(frame);
 	return(str);
 }
 
@@ -1826,12 +1826,6 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 		lprintf(zm,LOG_INFO,"type : %d",type);
 #endif
 
-		if(type == ZSKIP) {
-			zm->file_skipped=TRUE;
-			lprintf(zm,LOG_WARNING,"File skipped by receiver");
-			return(TRUE);
-		}
-
 		if(type == ZCRC) {
 			if(zm->crc_request==0)
 				lprintf(zm,LOG_NOTICE,"Receiver requested CRC of entire file");
@@ -1840,6 +1834,12 @@ BOOL zmodem_send_file(zmodem_t* zm, char* fname, FILE* fp, BOOL request_init, ti
 					,zm->crc_request);
 			zmodem_send_pos_header(zm,ZCRC,fcrc32(fp,zm->crc_request),TRUE);
 			type = zmodem_recv_header(zm);
+		}
+
+		if(type == ZSKIP) {
+			zm->file_skipped=TRUE;
+			lprintf(zm,LOG_WARNING,"File skipped by receiver");
+			return(TRUE);
 		}
 
 		if(type == ZRPOS)
@@ -2305,7 +2305,7 @@ const char* zmodem_source(void)
 
 char* zmodem_ver(char *buf)
 {
-	sscanf("$Revision: 1.123 $", "%*s %s", buf);
+	sscanf("$Revision: 1.124 $", "%*s %s", buf);
 
 	return(buf);
 }

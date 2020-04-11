@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.33 2018/02/20 11:56:26 rswindell Exp $ */
+/* $Id: js_conio.c,v 1.37 2020/04/01 07:39:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -334,10 +334,6 @@ js_conio_init(JSContext *cx, uintN argc, jsval *arglist)
 			ciolib_mode=CIOLIB_MODE_SDL;
 		else if(!stricmp(mode,"SDL_FULLSCREEN"))
 			ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-		else if(!stricmp(mode,"SDL_YUV"))
-			ciolib_mode=CIOLIB_MODE_SDL_YUV;
-		else if(!stricmp(mode,"SDL_YUV_FULLSCREEN"))
-			ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
 		else {
 			JS_ReportError(cx, "Unhandled ciolib mode \"%s\"", mode);
 			return JS_FALSE;
@@ -483,7 +479,6 @@ js_conio_getfont(JSContext *cx, uintN argc, jsval *arglist)
 	if(argc==1 && JSVAL_IS_NUMBER(argv[0]) && JS_ValueToInt32(cx,argv[0],&fnum)) {
 		rc=JS_SUSPENDREQUEST(cx);
 		JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(getfont(fnum)));
-		JS_SET_RVAL(cx, arglist, JSVAL_TRUE);
 		JS_RESUMEREQUEST(cx, rc);
 		return(JS_TRUE);
 	}
@@ -1044,8 +1039,7 @@ static jsSyncMethodSpec js_functions[] = {
 				"<tr><td>\"CURSES_IBM\"</td><td>Use the curses terminal library and write extended ASCII characters directly as-is, assuming the terminal is using CP437. (*nix only)</td></tr><tr><td>"
 				"<tr><td>\"SDL\"</td><td>Use the SDL library for output.</td></tr><tr><td>"
 				"<tr><td>\"SDL_FULLSCREEN\"</td><td>Use the SDL library for output (fullscreen).</td></tr><tr><td>"
-				"<tr><td>\"SDL_YUV\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling.</td></tr><tr><td>"
-				"<tr><td>\"SDL_YUV\"</td><td>Use the SDL library for output using an overlay which allows hardware-based arbitrary scaling (fullscreen).</td></tr><tr><td></table>"
+				"</table>"
 			),315
 	},
 	{"suspend",			js_conio_suspend,		0
@@ -1220,7 +1214,7 @@ static char* conio_prop_desc[] = {
 	"Allows windows to scroll",
 	"Enables direct video writes (does nothing)",
 	"Do not update the screen when characters are printed",
-	"Calling puttext() (and some other things implemended using it) can move the cursor position",
+	"Calling puttext() (and some other things implemented using it) can move the cursor position",
 	"The current video mode",
 	"",
 	"Delay in MS after getting an escape character before assuming it is not part of a sequence.  For curses and ANSI modes",
@@ -1254,7 +1248,7 @@ JSObject* js_CreateConioObject(JSContext* cx, JSObject* parent)
 		return(NULL);
 
 #ifdef BUILD_JSDOCS
-	js_DescribeSyncObject(cx,obj,"CONIO Library Object",315);
+	js_DescribeSyncObject(cx,obj,"Console Input/Output Object (DOS conio library functionality for jsexec)",315);
 	js_CreateArrayOfStrings(cx, obj, "_property_desc_list", conio_prop_desc, JSPROP_READONLY);
 #endif
 
