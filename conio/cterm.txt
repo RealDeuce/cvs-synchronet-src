@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.65 2020/04/11 15:50:52 deuce Exp $
+$Id: cterm.txt,v 1.61 2020/04/11 11:35:32 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -58,7 +58,10 @@ Control Codes:
 --------------
 
 Control codes are in the following format:
-ESC {'0' (ZERO) to '~'}
+ESC {SPACE to '/'}{'0' (ZERO) to '~'}
+	There may be multiple characters from the {SPACE to '/'} set
+	before the terminating '0' to '~'
+
 	Legal combinations which are not handled are silently dropped.
 
 ESC H	Set Tab
@@ -210,10 +213,6 @@ ESC X	Start Of String
 	The string is currently ignored.
 
 ESC \	String Terminator
-
-ESC c	Reset Terminal
-	Resets all the terminal settings, clears the screen, and homes
-	the cursor.
 
 Control Sequences:
 ------------------
@@ -739,15 +738,6 @@ CSI ? Ps... h
 	1015 -  URXVT encoded extended coordinates
 	     (Not supported by SyncTERM)
 	     SOURCE: xterm
-
-CSI Pn j
-	Character Position Backward
-	Defaults: Pn = 1
-	Moves the cursor position left Pn columns from the current position.
-	Attempting to move past the screen boundaries stops the cursor
-	at the screen boundary.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI Pn k
 	Line Position Backward
