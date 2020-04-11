@@ -1,14 +1,12 @@
-/* smbadd.c */
-
 /* Synchronet message base (SMB) high-level "add message" function */
 
-/* $Id$ */
+/* $Id: smbadd.c,v 1.45 2020/04/11 05:25:54 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -40,6 +38,7 @@
 #include "smblib.h"
 #include "genwrap.h"
 #include "crc32.h"
+#include "lzh.h"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -60,10 +59,11 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	hash_t		found;
 	hash_t**	hashes=NULL;	/* This is a NULL-terminated list of hashes */
 	smbmsg_t	remsg;
+	time_t		start = 0;
 
 	if(!SMB_IS_OPEN(smb)) {
-		safe_snprintf(smb->last_error,sizeof(smb->last_error),"msgbase not open");
-		return(SMB_ERR_NOT_OPEN);
+		safe_snprintf(smb->last_error,sizeof(smb->last_error),"%s msgbase not open", __FUNCTION__);
+		return SMB_ERR_NOT_OPEN;
 	}
 
 	if(filelength(fileno(smb->shd_fp))<1) {	 /* Create it if it doesn't exist */
@@ -73,14 +73,14 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	}
 
 	if(!smb->locked && smb_locksmbhdr(smb)!=SMB_SUCCESS)
-		return(SMB_ERR_LOCK);
+		return SMB_ERR_LOCK;
 
 	msg->hdr.total_dfields = 0;
 
 	/* try */
 	do {
 
-		if((retval=smb_getstatus(smb))!=SMB_SUCCESS)
+		if((retval = smb_getstatus(smb)) != SMB_SUCCESS)
 			break;
 
 		msg->hdr.number=smb->status.last_msg+1;
@@ -90,10 +90,11 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 			if(smb_findhash(smb, hashes, &found, dupechk_hashes, /* mark? */FALSE)==SMB_SUCCESS) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"duplicate %s: %s found in message #%lu"
+					,"%s duplicate %s: %s found in message #%lu"
+					,__FUNCTION__
 					,smb_hashsourcetype(found.source)
 					,smb_hashsource(msg,found.source)
-					,found.number);
+					,(ulong)found.number);
 				retval=SMB_DUPE_MSG;
 				break;
 			}
@@ -142,7 +143,7 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 		if(length) {
 
 			if(length >= 0x80000000 || length < 0) {
-				sprintf(smb->last_error,"message length: 0x%"PRIXMAX,(intmax_t)length);
+				sprintf(smb->last_error,"%s message length: 0x%"PRIXMAX, __FUNCTION__, (intmax_t)length);
 				retval=SMB_ERR_DAT_LEN;
 				break;
 			}
@@ -178,8 +179,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				if(xlat!=XLAT_NONE) {	/* e.g. XLAT_LZH */
 					if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 						safe_snprintf(smb->last_error,sizeof(smb->last_error)
-							,"%d '%s' writing body xlat string"
-							,get_errno(),STRERROR(get_errno()));
+							,"%s writing body xlat string"
+							,__FUNCTION__);
 						retval=SMB_ERR_WRITE;
 						break;
 					}
@@ -188,8 +189,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				xlat=XLAT_NONE;	/* xlat string terminator */
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d '%s' writing body xlat terminator"
-						,get_errno(),STRERROR(get_errno()));
+						,"%s writing body xlat terminator"
+						,__FUNCTION__);
 					retval=SMB_ERR_WRITE;
 					break;
 				}
@@ -197,9 +198,9 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 
 				if(smb_fwrite(smb,body,bodylen,smb->sdt_fp)!=bodylen) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d '%s' writing body (%ld bytes)"
-						,get_errno(),STRERROR(get_errno())
-						,bodylen);
+						,"%s writing body (%ld bytes)"
+						,__FUNCTION__
+						,(long)bodylen);
 					retval=SMB_ERR_WRITE;
 					break;
 				}
@@ -212,17 +213,17 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 				xlat=XLAT_NONE;	/* xlat string terminator */
 				if(smb_fwrite(smb,&xlat,sizeof(xlat),smb->sdt_fp)!=sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d '%s' writing tail xlat terminator"
-						,get_errno(),STRERROR(get_errno()));
+						,"%s writing tail xlat terminator"
+						,__FUNCTION__);
 					retval=SMB_ERR_WRITE;
 					break;
 				}
 
 				if(smb_fwrite(smb,tail,taillen-sizeof(xlat),smb->sdt_fp)!=taillen-sizeof(xlat)) {
 					safe_snprintf(smb->last_error,sizeof(smb->last_error)
-						,"%d '%s' writing tail (%ld bytes)"
-						,get_errno(),STRERROR(get_errno())
-						,taillen-sizeof(xlat));
+						,"%s writing tail (%ld bytes)"
+						,__FUNCTION__
+						,(long)(taillen-sizeof(xlat)));
 					retval=SMB_ERR_WRITE;
 					break;
 				}
@@ -234,8 +235,8 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 			}
 			if(l%SDT_BLOCK_LEN) {
 				safe_snprintf(smb->last_error,sizeof(smb->last_error)
-					,"%d '%s' writing data padding"
-					,get_errno(),STRERROR(get_errno()));
+					,"%s writing data padding"
+					,__FUNCTION__);
 				retval=SMB_ERR_WRITE;
 				break;
 			}
@@ -318,4 +319,149 @@ int SMBCALL smb_addmsg(smb_t* smb, smbmsg_t* msg, int storage, long dupechk_hash
 	FREE_LIST(hashes,n);
 
 	return(retval);
+}
+
+int SMBCALL smb_addvote(smb_t* smb, smbmsg_t* msg, int storage)
+{
+	int			retval;
+
+	if(!SMB_IS_OPEN(smb)) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
+		return SMB_ERR_NOT_OPEN;
+	}
+
+	if(filelength(fileno(smb->shd_fp)) < 1) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s header file empty", __FUNCTION__);
+		return SMB_ERR_NOT_FOUND;
+	}
+
+	if(!(msg->hdr.attr&MSG_VOTE) || msg->hdr.attr&MSG_POLL) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s incorrect attr: %04hX", __FUNCTION__, msg->hdr.attr);
+		return SMB_ERR_HDR_ATTR;
+	}
+
+	if(msg->hdr.thread_back == 0) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s thread_back field missing", __FUNCTION__);
+		return SMB_ERR_HDR_FIELD;
+	}
+
+	msg->hdr.type = SMB_MSG_TYPE_BALLOT;
+
+	if(msg->hdr.when_imported.time == 0) {
+		msg->hdr.when_imported.time = (uint32_t)time(NULL);
+		msg->hdr.when_imported.zone = 0;
+	}
+	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
+		msg->hdr.when_written = msg->hdr.when_imported;
+
+	retval = smb_addmsghdr(smb, msg, storage);
+
+	return retval;
+}
+
+int SMBCALL smb_addpoll(smb_t* smb, smbmsg_t* msg, int storage)
+{
+	int			retval;
+
+	if(!SMB_IS_OPEN(smb)) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
+		return SMB_ERR_NOT_OPEN;
+	}
+
+	if(msg->subj == NULL) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error), "%s subject field missing", __FUNCTION__);
+		return SMB_ERR_HDR_FIELD;
+	}
+
+	if(smb_get_hfield(msg, SMB_POLL_ANSWER, NULL) == NULL) {
+		safe_snprintf(smb->last_error,sizeof(smb->last_error), "%s poll answers missing", __FUNCTION__);
+		return SMB_ERR_HDR_FIELD;
+	}
+
+	if(filelength(fileno(smb->shd_fp)) < 1) {	 /* Create it if it doesn't exist */
+		/* smb->status.max_crcs, max_msgs, max_age, and attr should be pre-initialized */
+		if((retval=smb_create(smb)) != SMB_SUCCESS) 
+			return retval;
+	}
+
+	msg->hdr.attr |= MSG_POLL;
+	msg->hdr.type = SMB_MSG_TYPE_POLL;
+
+	if(msg->hdr.when_imported.time == 0) {
+		msg->hdr.when_imported.time = (uint32_t)time(NULL);
+		msg->hdr.when_imported.zone = 0;
+	}
+	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
+		msg->hdr.when_written = msg->hdr.when_imported;
+
+	retval = smb_addmsghdr(smb, msg, storage);
+
+	return retval;
+}
+
+int SMBCALL smb_addpollclosure(smb_t* smb, smbmsg_t* msg, int storage)
+{
+	smbmsg_t	remsg;
+	int			retval;
+
+	if(!SMB_IS_OPEN(smb)) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s msgbase not open", __FUNCTION__);
+		return SMB_ERR_NOT_OPEN;
+	}
+
+	if(filelength(fileno(smb->shd_fp)) < 1) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s header file empty", __FUNCTION__);
+		return SMB_ERR_NOT_FOUND;
+	}
+
+	if(msg->hdr.thread_back == 0) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s thread_back field missing", __FUNCTION__);
+		return SMB_ERR_HDR_FIELD;
+	}
+
+	memset(&remsg, 0, sizeof(remsg));
+	remsg.hdr.number = msg->hdr.thread_back;
+	if((retval = smb_getmsgidx(smb, &remsg)) != SMB_SUCCESS)
+		return retval;
+	if((retval = smb_lockmsghdr(smb,&remsg)) != SMB_SUCCESS)
+		return retval;
+	if((retval = smb_getmsghdr(smb, &remsg)) != SMB_SUCCESS) {
+		smb_unlockmsghdr(smb, &remsg);
+		return retval;
+	}
+
+	if(remsg.hdr.auxattr&POLL_CLOSED) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s closed poll", __FUNCTION__);
+		smb_freemsgmem(&remsg);
+		smb_unlockmsghdr(smb, &remsg);
+		return SMB_CLOSED;
+	}
+
+	if(!smb_msg_is_from(&remsg, msg->from, msg->from_net.type, msg->from_net.addr)) {
+		safe_snprintf(smb->last_error, sizeof(smb->last_error), "%s wrong pollster", __FUNCTION__);
+		smb_freemsgmem(&remsg);
+		smb_unlockmsghdr(smb, &remsg);
+		return SMB_UNAUTHORIZED;
+	}
+
+	remsg.hdr.auxattr |= POLL_CLOSED;
+	retval = smb_putmsghdr(smb, &remsg);
+	smb_freemsgmem(&remsg);
+	smb_unlockmsghdr(smb, &remsg);
+	if(retval != SMB_SUCCESS)
+		return retval;
+
+	msg->hdr.attr |= MSG_POLL_CLOSURE;
+	msg->hdr.type = SMB_MSG_TYPE_POLL_CLOSURE;
+
+	if(msg->hdr.when_imported.time == 0) {
+		msg->hdr.when_imported.time = (uint32_t)time(NULL);
+		msg->hdr.when_imported.zone = 0;
+	}
+	if(msg->hdr.when_written.time == 0)	/* Uninitialized */
+		msg->hdr.when_written = msg->hdr.when_imported;
+
+	retval = smb_addmsghdr(smb, msg, storage);
+
+	return retval;
 }
