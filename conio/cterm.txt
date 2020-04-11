@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.65 2020/04/11 15:50:52 deuce Exp $
+$Id: cterm.txt,v 1.64 2020/04/11 15:14:59 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -58,7 +58,10 @@ Control Codes:
 --------------
 
 Control codes are in the following format:
-ESC {'0' (ZERO) to '~'}
+ESC {SPACE to '/'}{'0' (ZERO) to '~'}
+	There may be multiple characters from the {SPACE to '/'} set
+	before the terminating '0' to '~'
+
 	Legal combinations which are not handled are silently dropped.
 
 ESC H	Set Tab
