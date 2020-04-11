@@ -1,6 +1,6 @@
 /* FidoNet configuration utility 											*/
 
-/* $Id: echocfg.c,v 3.54 2020/04/12 00:08:43 rswindell Exp $ */
+/* $Id: echocfg.c,v 3.53 2020/04/03 21:22:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1068,10 +1068,7 @@ int main(int argc, char **argv)
 	"~ Domain ~\n\n"
 	"This is the domain portion of the 5D FTN address of this linked node\n"
 	"(e.g. '`fidonet`').  FTN domains are limited to 8 characters and must not\n"
-	"contain the characters '@' or '.'.\n"
-	"\n"
-	"This setting is currently not used by SBBSecho but is available and\n"
-	"managed here for 5D address use by BinkIT.";
+	"contain the characters '@' or '.'";
 								uifc.input(WIN_MID|WIN_SAV,0,0
 									,"Domain"
 									,cfg.nodecfg[i].domain, sizeof(cfg.nodecfg[i].domain)-1
