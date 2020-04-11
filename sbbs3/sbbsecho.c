@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.158 2020/04/07 20:25:41 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.159 2020/04/07 20:28:48 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1551,7 +1551,7 @@ void netmail_arealist(enum arealist_type type, fidoaddr_t addr, const char* to)
 		}
 	}
 	strListSortAlpha(area_list);
-	if(!strListCount(area_list))
+	if(strListIsEmpty(area_list))
 		create_netmail(to, /* msg: */NULL, title, "None.", addr);
 	else {
 		FILE* fp;
@@ -2340,7 +2340,7 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 		while(*(p+l) && *(p+l)!='\r') l++;
 	}
 
-	if(!cmds && !strListCount(add_area) && !strListCount(del_area)) {
+	if(!cmds && strListIsEmpty(add_area) && strListIsEmpty(del_area)) {
 		create_netmail(name,/* msg: */NULL,"Area Management Request"
 			,"No commands to process.\r\nSend %HELP for help.\r\n"
 			,addr);
@@ -2349,7 +2349,7 @@ char* process_areafix(fidoaddr_t addr, char* inbuf, const char* password, const 
 		strListFree(&del_area);
 		return(body);
 	}
-	if(strListCount(add_area) || strListCount(del_area))
+	if(!strListIsEmpty(add_area) || !strListIsEmpty(del_area))
 		alter_areas(add_area,del_area,addr,name);
 	strListFree(&add_area);
 	strListFree(&del_area);
@@ -6087,7 +6087,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.158 $", "%*s %s", revision);
+	sscanf("$Revision: 3.159 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
