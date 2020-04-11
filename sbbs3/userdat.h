@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.76 2020/04/12 08:02:53 rswindell Exp $ */
+/* $Id: userdat.h,v 1.75 2019/09/26 03:18:32 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -134,8 +134,6 @@ DLLEXPORT BOOL	initmsgptrs(scfg_t*, subscan_t*, unsigned days, void (*progress)(
 DLLEXPORT BOOL	user_posted_msg(scfg_t*, user_t*, int count);
 DLLEXPORT BOOL	user_sent_email(scfg_t*, user_t*, int count, BOOL feedback);
 DLLEXPORT BOOL	user_downloaded(scfg_t*, user_t*, int files, long bytes);
-DLLEXPORT BOOL	user_downloaded_file(scfg_t*, user_t*, client_t*, uint dirnum, const char* filename, ulong bytes);
-
 DLLEXPORT BOOL	user_uploaded(scfg_t*, user_t*, int files, long bytes);
 DLLEXPORT BOOL	user_adjust_credits(scfg_t*, user_t*, long amount);
 DLLEXPORT BOOL	user_adjust_minutes(scfg_t*, user_t*, long amount);
