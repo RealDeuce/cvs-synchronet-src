@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.43 2020/04/20 21:28:17 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.40 2019/07/11 08:25:52 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -20,25 +20,27 @@ static int uifc_initialized=0;
 #define WITH_BOT	(1<<2)
 
 static void (*bottomfunc)(int);
+int orig_ciolib_xlat;
 int orig_vidflags;
 int orig_x;
 int orig_y;
 uint32_t orig_palette[16];
 
-int
-init_uifc(BOOL scrn, BOOL bottom) {
+int	init_uifc(BOOL scrn, BOOL bottom) {
 	int	i;
 	struct	text_info txtinfo;
 	char	top[80];
 
-	gettextinfo(&txtinfo);
+    gettextinfo(&txtinfo);
 	if(!uifc_initialized) {
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
+		orig_ciolib_xlat = ciolib_xlat;
 		orig_vidflags = getvideoflags();
 		orig_x=wherex();
 		orig_y=wherey();
 		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
 		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
@@ -48,13 +50,6 @@ init_uifc(BOOL scrn, BOOL bottom) {
 		uifc_initialized=UIFC_INIT;
 		get_modepalette(orig_palette);
 		set_modepalette(palettes[COLOUR_PALETTE]);
-		if ((cio_api.options & (CONIO_OPT_EXTENDED_PALETTE | CONIO_OPT_PALETTE_SETTING)) == (CONIO_OPT_EXTENDED_PALETTE | CONIO_OPT_PALETTE_SETTING)) {
-			uifc.bclr=BLUE;
-			uifc.hclr=YELLOW;
-			uifc.lclr=WHITE;
-			uifc.cclr=CYAN;
-			uifc.lbclr=BLUE|(LIGHTGRAY<<4);	/* lightbar color */
-		}
 	}
 
 	if(scrn) {
@@ -90,6 +85,7 @@ void uifcbail(void)
 {
 	if(uifc_initialized) {
 		uifc.bail();
+		ciolib_xlat = orig_ciolib_xlat;
 		set_modepalette(orig_palette);
 		setvideoflags(orig_vidflags);
 		loadfont(NULL);
@@ -106,10 +102,6 @@ void uifcmsg(char *msg, char *helpbuf)
 	i=uifc_initialized;
 	if(!i)
 		savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -133,10 +125,6 @@ void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 	i=uifc_initialized;
 	if(!i)
 		savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -166,10 +154,6 @@ int confirm(char *msg, char *helpbuf)
 	i=uifc_initialized;
 	if(!i)
 		savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
