@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.62 2020/04/11 12:27:49 deuce Exp $
+$Id: cterm.txt,v 1.63 2020/04/11 13:37:38 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -742,6 +742,15 @@ CSI ? Ps... h
 	1015 -  URXVT encoded extended coordinates
 	     (Not supported by SyncTERM)
 	     SOURCE: xterm
+
+CSI Pn j
+	Character Position Backward
+	Defaults: Pn = 1
+	Moves the cursor position left Pn columns from the current position.
+	Attempting to move past the screen boundaries stops the cursor
+	at the screen boundary.
+
+	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
 CSI Pn k
 	Line Position Backward
