@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.265 2020/04/11 13:36:35 deuce Exp $ */
+/* $Id: cterm.c,v 1.266 2020/04/11 15:14:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1411,8 +1411,8 @@ static enum {
 	if (seq[0] == 0)
 		goto incomplete;
 
-	/* Check that it's part of C1 set */
-	if (seq[0] < 0x40 || seq[0] > 0x5f)
+	/* Check that it's part of C1 set or part of the Independent control functions */
+	if (seq[0] < 0x40 || seq[0] > 0x7e)
 		return SEQ_BROKEN;
 
 	/* Check if it's CSI */
@@ -1452,8 +1452,8 @@ static struct esc_seq *parse_sequence(const char *seq)
 		return ret;
 	ret->param_count = -1;
 
-	/* Check that it's part of C1 set */
-	if (seq[0] < 0x40 || seq[0] > 0x5f)
+	/* Check that it's part of C1 set or part of the Independent control functions */
+	if (seq[0] < 0x40 || seq[0] > 0x7e)
 		goto fail;
 
 	ret->c1_byte = seq[0];
@@ -2742,12 +2742,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					if(newspeed >= 0)
 						*speed = newspeed;
 				}
-				else if (strcmp(seq->ctrl_func, "!p") == 0) {
-					CLRSCR();
-					cterm_reset(cterm);
-					GOTOXY(TERM_MINX, TERM_MINY);
-				}
-				break;
 			}
 			else {
 				switch(seq->final_byte) {
@@ -3426,6 +3420,11 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 			cterm->strbufsize = 1024;
 			cterm->strbuflen = 0;
 			break;
+		case 'c':
+			CLRSCR();
+			cterm_reset(cterm);
+			GOTOXY(TERM_MINX, TERM_MINY);
+			break;
 		case '\\':
 			if (cterm->strbuf) {
 				if (cterm->strbufsize == cterm->strbuflen-1) {
@@ -3787,7 +3786,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.265 $";
+	char	*revision="$Revision: 1.266 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;

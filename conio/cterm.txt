@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.63 2020/04/11 13:37:38 deuce Exp $
+$Id: cterm.txt,v 1.64 2020/04/11 15:14:59 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -972,12 +972,6 @@ CSI = Ps n
 	the width of a character cell in pixels.
 
 	SOURCE: CTerm only.
-
-CSI ! p
-	NON-STANDARD EXTENSION.
-	Resets the terminal.  This is the same sequence used for a soft
-	reset in xterm and DEC standards, but performs the equivilent
-	of a hard reset in SyncTERM.
 
 CSI Pn1 ; Pn2 r
 	NON-STANDARD EXTENSION.
