@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.262 2020/04/11 12:27:49 deuce Exp $ */
+/* $Id: cterm.c,v 1.263 2020/04/11 12:34:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3294,7 +3294,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							WINDOW(col, row, max_col, max_row);
 						}
 						break;
-					case 's': /* ToDo?  Also set left/right margins! */
+					case 's':
 						if (cterm->extattr & CTERM_EXTATTR_DECLRMM) {
 							seq_default(seq, 0, ABS_MINX);
 							seq_default(seq, 1, ABS_MAXX);
@@ -3746,7 +3746,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.262 $";
+	char	*revision="$Revision: 1.263 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
