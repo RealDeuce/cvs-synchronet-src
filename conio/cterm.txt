@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.65 2020/04/11 15:50:52 deuce Exp $
+$Id: cterm.txt,v 1.63 2020/04/11 13:37:38 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -58,7 +58,10 @@ Control Codes:
 --------------
 
 Control codes are in the following format:
-ESC {'0' (ZERO) to '~'}
+ESC {SPACE to '/'}{'0' (ZERO) to '~'}
+	There may be multiple characters from the {SPACE to '/'} set
+	before the terminating '0' to '~'
+
 	Legal combinations which are not handled are silently dropped.
 
 ESC H	Set Tab
@@ -969,6 +972,12 @@ CSI = Ps n
 	the width of a character cell in pixels.
 
 	SOURCE: CTerm only.
+
+CSI ! p
+	NON-STANDARD EXTENSION.
+	Resets the terminal.  This is the same sequence used for a soft
+	reset in xterm and DEC standards, but performs the equivilent
+	of a hard reset in SyncTERM.
 
 CSI Pn1 ; Pn2 r
 	NON-STANDARD EXTENSION.
