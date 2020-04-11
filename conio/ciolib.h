@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.113 2020/04/13 01:53:30 deuce Exp $ */
+/* $Id: ciolib.h,v 1.111 2020/04/03 00:52:51 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,7 +73,6 @@ enum {
 	 CIOLIB_MODE_AUTO
 	,CIOLIB_MODE_CURSES
 	,CIOLIB_MODE_CURSES_IBM
-	,CIOLIB_MODE_CURSES_ASCII
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
@@ -646,10 +645,7 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
 #define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_SHIFT_F(x)((x<11)?((0x53+x) << 8):((0x7c+x) << 8))
-#define CIO_KEY_CTRL_F(x) ((x<11)?((0x67+x) << 8):((0x7e+x) << 8))
 #define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
-#define CIO_KEY_BACKTAB   (0x0f << 8)
 
 #define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
 #define CIO_KEY_QUIT	  0x7e00	// "F-15"
