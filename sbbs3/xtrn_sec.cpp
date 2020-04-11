@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.89 2020/04/23 02:40:19 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.88 2020/03/28 23:45:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,17 +41,12 @@
 /* This is the external programs (doors) section of the bbs                 */
 /* Return 1 if no externals available, 0 otherwise. 						*/
 /****************************************************************************/
-int sbbs_t::xtrn_sec(const char* section)
+int sbbs_t::xtrn_sec()
 {
 	char	str[MAX_PATH+1];
 	int		xsec;
 	uint	i,j,k,*usrxtrn,usrxtrns,*usrxsec,usrxsecs;
 	long	l;
-
-	if(cfg.xtrnsec_mod[0] != '\0') {
-		SAFEPRINTF2(str, "%s %s", cfg.xtrnsec_mod, section);
-		return exec_bin(str, &main_csi);
-	}
 
 	if(useron.rest&FLAG('X')) {
 		bputs(text[R_ExternalPrograms]);
