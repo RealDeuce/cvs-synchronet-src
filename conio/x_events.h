@@ -6,14 +6,6 @@
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 
-struct update_rect {
-	int	x;
-	int	y;
-	int	width;
-	int	height;
-	unsigned char *data;
-};
-
 enum x11_local_events {
 	 X11_LOCAL_SETMODE
 	,X11_LOCAL_SETNAME
@@ -31,7 +23,7 @@ struct x11_local_event {
 		int		mode;
 		char	name[81];
 		char	title[81];
-		struct	update_rect rect; 
+		struct	rectlist *rect;
 	} data;
 };
 
@@ -57,6 +49,7 @@ struct x11 {
 	Pixmap	(*XCreateBitmapFromData)	(Display*, Drawable, _Xconst char*, unsigned int, unsigned int);
 	Status	(*XAllocColor)	(Display*, Colormap, XColor*);
 	Display*(*XOpenDisplay)	(_Xconst char*);
+	int	(*XCloseDisplay)	(Display*);
 	Window	(*XCreateSimpleWindow)	(Display*, Window, int, int, unsigned int, unsigned int, unsigned int, unsigned long, unsigned long);
 	GC		(*XCreateGC)	(Display*, Drawable, unsigned long, XGCValues*);
 	int		(*XSelectInput)	(Display*, Window, long);
@@ -70,7 +63,7 @@ struct x11 {
 #ifndef XPutPixel
 	void	(*XPutPixel)	(XImage*,int,int,unsigned long);
 #endif
-	void	(*XPutImage)	(Display*, Drawable, GC, XImage *, int,int,int,int,unsigned int,unsigned int);
+	int	(*XPutImage)	(Display*, Drawable, GC, XImage *, int,int,int,int,unsigned int,unsigned int);
 #ifndef XDestroyImage
 	void	(*XDestroyImage)(XImage*);
 #endif
@@ -80,9 +73,15 @@ struct x11 {
 	Status	(*XGetWindowAttributes)	(Display*,Window,XWindowAttributes*);
 	XWMHints* (*XAllocWMHints) (void);
 	void	(*XSetWMProperties) (Display*, Window, XTextProperty*, XTextProperty*, char**, int, XSizeHints*, XWMHints*, XClassHint*);
+	Status	(*XSetWMProtocols) (Display*, Window, Atom *, int);
+	Atom	(*XInternAtom) (Display *, char *, Bool);
+	int		(*XFreeColors) (Display*, Colormap, unsigned long *, int, unsigned long);
+	XVisualInfo *(*XGetVisualInfo)(Display *display, long vinfo_mask, XVisualInfo *vinfo_template, int *nitems_return);
+	Window (*XCreateWindow)(Display *display, Window parent, int x, int y, unsigned int width, unsigned int height, unsigned int border_width, int depth, 
+                       unsigned int class, Visual *visual, unsigned long valuemask, XSetWindowAttributes *attributes);
+	Colormap (*XCreateColormap)(Display *display, Window w, Visual *visual, int alloc);
+	Atom utf8;
 };
-
-
 
 extern int local_pipe[2];			/* Used for passing local events */
 extern int key_pipe[2];			/* Used for passing keyboard events */
@@ -94,13 +93,18 @@ extern pthread_mutex_t	copybuf_mutex;
 extern char 	*pastebuf;
 extern sem_t	pastebuf_set;
 extern sem_t	pastebuf_used;
+extern Atom	copybuf_format;
+extern Atom	pastebuf_format;
 extern sem_t	init_complete;
 extern sem_t	mode_set;
+extern sem_t	event_thread_complete;
+extern int terminate;
 extern int x11_window_xpos;
 extern int x11_window_ypos;
 extern int x11_window_width;
 extern int x11_window_height;
 extern int x11_initialized;
+extern struct video_stats x_cvstat;
 
 void x11_event_thread(void *args);
 

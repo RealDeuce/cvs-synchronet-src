@@ -22,10 +22,12 @@
 #include "vidmodes.h"
 
 #include "ciolib.h"
+#define BITMAP_CIOLIB_DRIVER
 #include "bitmap_con.h"
 #include "link_list.h"
 #include "x_events.h"
 #include "x_cio.h"
+#include "utf8_codepages.h"
 
 /*
  * Exported variables 
@@ -48,28 +50,40 @@ int x11_window_ypos;
 int x11_window_width;
 int x11_window_height;
 int x11_initialized=0;
+sem_t	event_thread_complete;
+int	terminate = 0;
+Atom	copybuf_format;
+Atom	pastebuf_format;
+
 /*
  * Local variables
  */
 
 /* Sets the atom to be used for copy/paste operations */
 #define CONSOLE_CLIPBOARD	XA_PRIMARY
+static Atom WM_DELETE_WINDOW=0;
 
 static Display *dpy=NULL;
 static Window win;
 static Visual visual;
+static XImage *xim;
 static unsigned int depth=0;
 static int xfd;
 static unsigned long black;
 static unsigned long white;
 static int bitmap_width=0;
 static int bitmap_height=0;
+static int old_scaling = 0;
+struct video_stats x_cvstat;
+static unsigned long base_pixel;
+static int r_shift;
+static int g_shift;
+static int b_shift;
+static struct rectlist *last = NULL;
+
 
 /* Array of Graphics Contexts */
-static GC gca[sizeof(dac_default)/sizeof(struct dac_colors)];
-
-/* Array of pixel values to match all possible colours */
-static unsigned long pixel[sizeof(dac_default)/sizeof(struct dac_colors)];
+static GC gc;
 
 static WORD Ascii2Scan[] = {
  0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
@@ -187,28 +201,98 @@ static struct {
     {	0x8600, 0x5888, 0x8a00, 0x8c00 }, /* key 88 - F12 */
 };
 
+static void resize_xim(void)
+{
+	if (xim) {
+		if (bitmap_width*x_cvstat.scaling == xim->width
+		    && bitmap_height*x_cvstat.scaling*x_cvstat.vmultiplier == xim->height) {
+			return;
+		}
+#ifdef XDestroyImage
+		XDestroyImage(xim);
+#else
+		x11.XDestroyImage(xim);
+#endif
+	}
+	if (last) {
+		bitmap_drv_free_rect(last);
+		last = NULL;
+	}
+    xim=x11.XCreateImage(dpy,&visual,depth,ZPixmap,0,NULL,bitmap_width*x_cvstat.scaling,bitmap_height*x_cvstat.scaling*x_cvstat.vmultiplier,32,0);
+    xim->data=(char *)malloc(xim->bytes_per_line*xim->height);
+}
+
+/* Swiped from FreeBSD libc */
+static int
+my_fls(unsigned long mask)
+{
+        int bit;
+
+        if (mask == 0)
+                return (0);
+        for (bit = 1; mask != 1; bit++)
+                mask = mask >> 1;
+        return (bit);
+}
+
 /* Get a connection to the X server and create the window. */
 static int init_window()
 {
     XGCValues gcv;
-	XColor color;
     int i;
-	XWindowAttributes	attr;
 	XWMHints *wmhints;
+	int ret;
+	int best=-1;
+	int best_depth=0;
+	int best_cmap=0;
+	XVisualInfo template = {0};
+	XVisualInfo *vi;
 
 	dpy = x11.XOpenDisplay(NULL);
-    if (dpy == NULL) {
+	if (dpy == NULL) {
 		return(-1);
 	}
-    xfd = ConnectionNumber(dpy);
+	xfd = ConnectionNumber(dpy);
+	x11.utf8 = x11.XInternAtom(dpy, "UTF8_STRING", False);
+
+	template.screen = DefaultScreen(dpy);
+	template.class = TrueColor;
+	vi = x11.XGetVisualInfo(dpy, VisualScreenMask | VisualClassMask, &template, &ret);
+	for (i=0; i<ret; i++) {
+		if (vi[i].depth >= best_depth && vi[i].colormap_size >= best_cmap) {
+			best = i;
+			best_depth = vi[i].depth;
+		}
+	}
+	if (best != -1) {
+		visual = *vi[best].visual;
+		base_pixel = ULONG_MAX;
+		base_pixel &= ~visual.red_mask;
+		base_pixel &= ~visual.green_mask;
+		base_pixel &= ~visual.blue_mask;
+		r_shift = my_fls(visual.red_mask)-16;
+		g_shift = my_fls(visual.green_mask)-16;
+		b_shift = my_fls(visual.blue_mask)-16;
+	}
+	else {
+		fprintf(stderr, "Unable to find TrueColor visual\n");
+		x11.XFree(vi);
+		return -1;
+	}
+	x11.XFree(vi);
 
 	/* Allocate black and white */
 	black=BlackPixel(dpy, DefaultScreen(dpy));
 	white=WhitePixel(dpy, DefaultScreen(dpy));
 
     /* Create window, but defer setting a size and GC. */
-    win = x11.XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), 0, 0,
-			      640*vstat.scaling, 400*vstat.scaling, 2, black, black);
+	XSetWindowAttributes wa = {0};
+	wa.colormap = x11.XCreateColormap(dpy, DefaultRootWindow(dpy), &visual, AllocNone);
+	wa.background_pixel = black;
+	wa.border_pixel = black;
+	depth = best_depth;
+    win = x11.XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0,
+			      640*x_cvstat.scaling, 400*x_cvstat.scaling*x_cvstat.vmultiplier, 2, depth, InputOutput, &visual, CWColormap | CWBorderPixel | CWBackPixel, &wa);
 
 	wmhints=x11.XAllocWMHints();
 	if(wmhints) {
@@ -218,30 +302,21 @@ static int init_window()
 		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, NULL);
 	}
 
+	WM_DELETE_WINDOW = x11.XInternAtom(dpy, "WM_DELETE_WINDOW", False);
+
 	gcv.function = GXcopy;
     gcv.foreground = white;
     gcv.background = black;
 	gcv.graphics_exposures = False;
 
-	/* Get the pixel and GC values */
-	for(i=0; i<sizeof(dac_default)/sizeof(struct dac_colors); i++) {
-		color.red=dac_default[i].red << 8 | dac_default[i].red;
-		color.green=dac_default[i].green << 8 | dac_default[i].green;
-		color.blue=dac_default[i].blue << 8 | dac_default[i].blue;
-		if(x11.XAllocColor(dpy, DefaultColormap(dpy, DefaultScreen(dpy)), &color))
-			pixel[i]=color.pixel;
-		gcv.foreground=color.pixel;
-		gca[i]=x11.XCreateGC(dpy, win, GCFunction | GCForeground | GCBackground | GCGraphicsExposures, &gcv);
-	}
+	gc=x11.XCreateGC(dpy, win, GCFunction | GCForeground | GCBackground | GCGraphicsExposures, &gcv);
 
     x11.XSelectInput(dpy, win, KeyReleaseMask | KeyPressMask |
 		     ExposureMask | ButtonPressMask
 		     | ButtonReleaseMask | PointerMotionMask | StructureNotifyMask);
-	x11.XGetWindowAttributes(dpy,win,&attr);
-	memcpy(&visual,attr.visual,sizeof(visual));
 
     x11.XStoreName(dpy, win, "SyncConsole");
-	depth = DefaultDepth(dpy, DefaultScreen(dpy));
+	x11.XSetWMProtocols(dpy, win, &WM_DELETE_WINDOW, 1);
 
 	return(0);
 }
@@ -259,8 +334,8 @@ static void map_window()
 		exit(1);
 	}
 
-	sh->base_width = bitmap_width*vstat.scaling;
-	sh->base_height = bitmap_height*vstat.scaling;
+	sh->base_width = bitmap_width*x_cvstat.scaling;
+	sh->base_height = bitmap_height*x_cvstat.scaling*x_cvstat.vmultiplier;
 
     sh->min_width = sh->width_inc = sh->min_aspect.x = sh->max_aspect.x = bitmap_width;
     sh->min_height = sh->height_inc = sh->min_aspect.y = sh->max_aspect.y = bitmap_height;
@@ -271,25 +346,27 @@ static void map_window()
 
     x11.XFree(sh);
 
-	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
-
     return;
 }
 
 /* Resize the window. This function is called after a mode change. */
 static void resize_window()
 {
-    x11.XResizeWindow(dpy, win, bitmap_width*vstat.scaling, bitmap_height*vstat.scaling);
+    x11.XResizeWindow(dpy, win, bitmap_width*x_cvstat.scaling, bitmap_height*x_cvstat.scaling*x_cvstat.vmultiplier);
+    resize_xim();
+
     return;
 }
 
-static int init_mode(int mode)
+static void init_mode_internal(int mode)
 {
-    int oldcols=vstat.cols;
-	int oldwidth=bitmap_width;
-	int oldheight=bitmap_height;
+    int oldcols;
 
-	bitmap_init_mode(mode, &bitmap_width, &bitmap_height);
+	oldcols=x_cvstat.cols;
+
+	pthread_mutex_lock(&blinker_lock);
+	pthread_mutex_lock(&vstatlock);
+	bitmap_drv_init_mode(mode, &bitmap_width, &bitmap_height);
 
 	/* Deal with 40 col doubling */
 	if(oldcols != vstat.cols) {
@@ -298,15 +375,29 @@ static int init_mode(int mode)
 		if(vstat.cols == 40)
 			vstat.scaling *= 2;
 	}
-
 	if(vstat.scaling < 1)
 		vstat.scaling = 1;
+	if(vstat.vmultiplier < 1)
+		vstat.vmultiplier = 1;
 
+	x_cvstat = vstat;
+	pthread_mutex_unlock(&vstatlock);
+	pthread_mutex_unlock(&blinker_lock);
     map_window();
-    /* Resize window if necessary. */
-	if((!(bitmap_width == 0 && bitmap_height == 0)) && (oldwidth != bitmap_width || oldheight != bitmap_height))
+}
+
+static void check_scaling(void)
+{
+	if (old_scaling != x_cvstat.scaling) {
 		resize_window();
-	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
+		old_scaling = x_cvstat.scaling;
+	}
+}
+
+static int init_mode(int mode)
+{
+	init_mode_internal(mode);
+	bitmap_drv_request_pixels();
 
 	sem_post(&mode_set);
     return(0);
@@ -317,91 +408,98 @@ static int video_init()
     /* If we are running under X, get a connection to the X server and create
        an empty window of size (1, 1). It makes a couple of init functions a
        lot easier. */
-	if(vstat.scaling<1)
-		vstat.scaling=1;
+	if(x_cvstat.scaling<1)
+		x_setscaling(1);
+	if(x_cvstat.vmultiplier<1)
+		x_cvstat.vmultiplier=1;
     if(init_window())
 		return(-1);
 
-	bitmap_init(x11_drawrect, x11_flush);
+	bitmap_drv_init(x11_drawrect, x11_flush);
 
     /* Initialize mode 3 (text, 80x25, 16 colors) */
-    if(init_mode(3)) {
-		return(-1);
-	}
-
-	sem_wait(&mode_set);
+    init_mode_internal(3);
 
     return(0);
 }
 
-static void local_draw_rect(struct update_rect *rect)
+static void local_draw_rect(struct rectlist *rect)
 {
 	int x,y,xscale,yscale;
-	XImage *xim;
+	unsigned int r, g, b;
+	unsigned long pixel;
+	int cleft = rect->rect.width;
+	int cright = -1;
+	int ctop = rect->rect.height;
+	int cbottom = -1;
+	int idx;
 
-#if 0 /* Draw solid colour rectangles... */
-	int rectw, recth, rectc, y2;
-	for(y=0; y<rect->height; y++) {
-		for(x=0; x<rect->width; x++) {
-			rectc=rect->data[y*rect->width+x];
-
-			/* Already displayed? */
-			if(rectc == 255)
-				continue;
-
-			rectw=1;
-			recth=1;
-
-			/* Grow as wide as we can */
-			while(x+rectw < rect->width && rect->data[y*rect->width+x+rectw]==rectc)
-				rectw++;
-			
-			/* Now grow as tall as we can */
-			while(y+recth < rect->height && memcmp(rect->data+(y*rect->width+x), rect->data+((y+recth)*rect->width+x), rectw)==0)
-				recth++;
-
-			/* Mark pixels as drawn */
-			for(y2=0; y2<recth; y2++)
-				memset(rect->data+((y+y2)*rect->width+x),255,rectw);
-
-			/* Draw it */
-			x11.XFillRectangle(dpy, win, gca[rectc], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling, rectw*vstat.scaling, recth*vstat.scaling);
-		}
-	}
-#else
-#if 1	/* XImage */
-	xim=x11.XCreateImage(dpy,&visual,depth,ZPixmap,0,NULL,rect->width*vstat.scaling,rect->height*vstat.scaling,32,0);
-	xim->data=(char *)malloc(xim->bytes_per_line*rect->height*vstat.scaling);
-	for(y=0;y<rect->height;y++) {
-		for(x=0; x<rect->width; x++) {
-			for(yscale=0; yscale<vstat.scaling; yscale++) {
-				for(xscale=0; xscale<vstat.scaling; xscale++) {
+	if (bitmap_width != cleft || bitmap_height != ctop)
+		return;
+	/* TODO: Translate into local colour depth */
+	for(y=0;y<rect->rect.height;y++) {
+		idx = y*rect->rect.width;
+		for(x=0; x<rect->rect.width; x++) {
+			if (last) {
+				if (last->data[idx] != rect->data[idx]) {
+					if (x < cleft)
+						cleft = x;
+					if (x > cright)
+						cright = x;
+					if (y < ctop)
+						ctop = y;
+					if (y > cbottom)
+						cbottom = y;
+				}
+				else {
+					idx++;
+					continue;
+				}
+			}
+			for(yscale=0; yscale<x_cvstat.scaling*x_cvstat.vmultiplier; yscale++) {
+				for(xscale=0; xscale<x_cvstat.scaling; xscale++) {
+					r = rect->data[idx] >> 16 & 0xff;
+					g = rect->data[idx] >> 8 & 0xff;
+					b = rect->data[idx] & 0xff;
+					r = (r<<8)|r;
+					g = (g<<8)|g;
+					b = (b<<8)|b;
+					pixel = base_pixel;
+					if (r_shift >= 0)
+						pixel |= (r << r_shift) & visual.red_mask;
+					else
+						pixel |= (r >> (0-r_shift)) & visual.red_mask;
+					if (g_shift >= 0)
+						pixel |= (g << g_shift) & visual.green_mask;
+					else
+						pixel |= (g >> (0-g_shift)) & visual.green_mask;
+					if (b_shift >= 0)
+						pixel |= (b << b_shift) & visual.blue_mask;
+					else
+						pixel |= (b >> (0-b_shift)) & visual.blue_mask;
 #ifdef XPutPixel
-					XPutPixel(xim,x*vstat.scaling+xscale,y*vstat.scaling+yscale,pixel[rect->data[y*rect->width+x]]);
+					XPutPixel(xim,(x+rect->rect.x)*x_cvstat.scaling+xscale,(y+rect->rect.y)*x_cvstat.scaling*x_cvstat.vmultiplier+yscale,pixel);
 #else
-					x11.XPutPixel(xim,x*vstat.scaling+xscale,y*vstat.scaling+yscale,pixel[rect->data[y*rect->width+x]]);
+					x11.XPutPixel(xim,(x+rect->rect.x)*x_cvstat.scaling+xscale,(y+rect->rect.y)*x_cvstat.scaling*x_cvstat.vmultiplier+yscale,pixel);
 #endif
 				}
 			}
+			idx++;
+		}
+		/* This line was changed */
+		if (last && (((y & 0x1f) == 0x1f) || (y == rect->rect.height-1)) && cright >= 0) {
+			x11.XPutImage(dpy,win,gc,xim,cleft*x_cvstat.scaling,ctop*x_cvstat.scaling*x_cvstat.vmultiplier,cleft*x_cvstat.scaling,ctop*x_cvstat.scaling*x_cvstat.vmultiplier,(cright-cleft+1)*x_cvstat.scaling,(cbottom-ctop+1)*x_cvstat.scaling*x_cvstat.vmultiplier);
+			cleft = rect->rect.width;
+			cright = cbottom = -1;
+			ctop = rect->rect.height;
 		}
 	}
 
-	x11.XPutImage(dpy,win,gca[0],xim,0,0,rect->x*vstat.scaling,rect->y*vstat.scaling,rect->width*vstat.scaling,rect->height*vstat.scaling);
-#ifdef XDestroyImage
-	XDestroyImage(xim);
-#else
-	x11.XDestroyImage(xim);
-#endif
-
-#else	/* XFillRectangle */
-	for(y=0;y<rect->height;y++) {
-		for(x=0; x<rect->width; x++) {
-			x11.XFillRectangle(dpy, win, gca[rect->data[y*rect->width+x]], (rect->x+x)*vstat.scaling, (rect->y+y)*vstat.scaling, vstat.scaling, vstat.scaling);
-		}
-	}
-#endif
-#endif
-	free(rect->data);
+	if (last == NULL)
+		x11.XPutImage(dpy,win,gc,xim,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.x*x_cvstat.scaling,rect->rect.y*x_cvstat.scaling*x_cvstat.vmultiplier,rect->rect.width*x_cvstat.scaling,rect->rect.height*x_cvstat.scaling*x_cvstat.vmultiplier);
+	else
+		bitmap_drv_free_rect(last);
+	last = rect;
 }
 
 static void handle_resize_event(int width, int height)
@@ -410,8 +508,8 @@ static void handle_resize_event(int width, int height)
 	int newFSW=1;
 
 	// No change
-	if((width == vstat.charwidth * vstat.cols * vstat.scaling)
-			&& (height == vstat.charheight * vstat.rows * vstat.scaling))
+	if((width == x_cvstat.charwidth * x_cvstat.cols * x_cvstat.scaling)
+			&& (height == x_cvstat.charheight * x_cvstat.rows * x_cvstat.scaling*x_cvstat.vmultiplier))
 		return;
 
 	newFSH=width/bitmap_width;
@@ -421,45 +519,57 @@ static void handle_resize_event(int width, int height)
 	if(newFSH<1)
 		newFSH=1;
 	if(newFSH<newFSW)
-		vstat.scaling=newFSH;
+		x_setscaling(newFSH);
 	else
-		vstat.scaling=newFSW;
-	if(vstat.scaling > 16)
-		vstat.scaling=16;
+		x_setscaling(newFSW);
+	old_scaling = x_cvstat.scaling;
+	if(x_cvstat.scaling > 16)
+		x_setscaling(16);
 	/*
 	 * We only need to resize if the width/height are not even multiples
 	 * Otherwise, we can simply resend everything
 	 */
-	if((width % (vstat.charwidth * vstat.cols) != 0)
-			|| (height % (vstat.charheight * vstat.rows) != 0))
+	if((width % (x_cvstat.charwidth * x_cvstat.cols) != 0)
+			|| (height % (x_cvstat.charheight * x_cvstat.rows) != 0))
 		resize_window();
-	send_rectangle(0,0,bitmap_width,bitmap_height,TRUE);
+	bitmap_drv_request_pixels();
 }
 
-static void expose_rect(x,y,width,height)
+static void expose_rect(int x, int y, int width, int height)
 {
 	int sx,sy,ex,ey;
 
-	sx=x/vstat.scaling;
-	sy=y/vstat.scaling;
+	sx=x/x_cvstat.scaling;
+	sy=y/(x_cvstat.scaling*x_cvstat.vmultiplier);
 
 	ex=x+width-1;
 	ey=y+height-1;
-	if((ex+1)%vstat.scaling) {
-		ex += vstat.scaling-(ex%vstat.scaling);
+	if((ex+1)%x_cvstat.scaling) {
+		ex += x_cvstat.scaling-(ex%x_cvstat.scaling);
 	}
-	if((ey+1)%vstat.scaling) {
-		ey += vstat.scaling-(ey%vstat.scaling);
+	if((ey+1)%(x_cvstat.scaling*x_cvstat.vmultiplier)) {
+		ey += x_cvstat.scaling*x_cvstat.vmultiplier-(ey%(x_cvstat.scaling*x_cvstat.vmultiplier));
 	}
-	ex=ex/vstat.scaling;
-	ey=ey/vstat.scaling;
+	ex=ex/x_cvstat.scaling;
+	ey=ey/(x_cvstat.scaling*x_cvstat.vmultiplier);
 
-	send_rectangle(sx, sy, ex-sx+1, ey-sy+1, TRUE);
+	/* Since we're exposing, we *have* to redraw */
+	if (last) {
+		bitmap_drv_free_rect(last);
+		last = NULL;
+	}
+	bitmap_drv_request_some_pixels(sx, sy, ex-sx+1, ey-sy+1);
 }
 
 static int x11_event(XEvent *ev)
 {
 	switch (ev->type) {
+		case ClientMessage:
+			if (ev->xclient.format == 32 && ev->xclient.data.l[0] == WM_DELETE_WINDOW) {
+				uint16_t key=CIO_KEY_QUIT;
+				write(key_pipe[1], &key, 2);
+			}
+			break;
 		/* Graphics related events */
 		case ConfigureNotify:
 			x11_window_xpos=ev->xconfigure.x;
@@ -493,16 +603,24 @@ static int x11_event(XEvent *ev)
 			{
 				int format;
 				unsigned long len, bytes_left, dummy;
-				Atom type;
 
 				if(ev->xselection.selection != CONSOLE_CLIPBOARD)
 					break;
 				if(ev->xselection.requestor!=win)
 					break;
 				if(ev->xselection.property) {
-					x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, 0, 0, AnyPropertyType, &type, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
-					if(bytes_left > 0 && format==8)
-						x11.XGetWindowProperty(dpy, win, ev->xselection.property,0,bytes_left,0,AnyPropertyType,&type,&format,&len,&dummy,(unsigned char **)&pastebuf);
+					x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, 0, 0, AnyPropertyType, &pastebuf_format, &format, &len, &bytes_left, (unsigned char **)(&pastebuf));
+					if(bytes_left > 0 && format==8) {
+						x11.XGetWindowProperty(dpy, win, ev->xselection.property,0,bytes_left,0,AnyPropertyType,&pastebuf_format,&format,&len,&dummy,(unsigned char **)&pastebuf);
+						if (x11.utf8 && pastebuf_format == x11.utf8) {
+							char *opb = pastebuf;
+							pastebuf = (char *)utf8_to_cp437((uint8_t *)pastebuf, '?');
+							if (pastebuf == NULL)
+								pastebuf = opb;
+							else
+								x11.XFree(opb);
+						}
+					}
 					else
 						pastebuf=NULL;
 				}
@@ -512,7 +630,10 @@ static int x11_event(XEvent *ev)
 				/* Set paste buffer */
 				sem_post(&pastebuf_set);
 				sem_wait(&pastebuf_used);
-				x11.XFree(pastebuf);
+				if (x11.utf8 && pastebuf_format == x11.utf8)
+					free(pastebuf);
+				else
+					x11.XFree(pastebuf);
 				pastebuf=NULL;
 			}
 			break;
@@ -530,6 +651,15 @@ static int x11_event(XEvent *ev)
 					if(req->target==XA_STRING) {
 						x11.XChangeProperty(dpy, req->requestor, req->property, XA_STRING, 8, PropModeReplace, (unsigned char *)copybuf, strlen(copybuf));
 						respond.xselection.property=req->property;
+					}
+					else if(req->target == x11.utf8) {
+						uint8_t *utf8_str = cp437_to_utf8(copybuf, strlen(copybuf), NULL);
+						if (utf8_str == NULL)
+							respond.xselection.property=None;
+						else {
+							x11.XChangeProperty(dpy, req->requestor, req->property, x11.utf8, 8, PropModeReplace, utf8_str, strlen((char *)utf8_str));
+							respond.xselection.property=req->property;
+						}
 					}
 					else
 						respond.xselection.property=None;
@@ -550,20 +680,21 @@ static int x11_event(XEvent *ev)
 			{
 				XMotionEvent *me = (XMotionEvent *)ev;
 
-				me->x/=vstat.scaling;
-				me->x/=vstat.charwidth;
-				me->y/=vstat.scaling;
-				me->y/=vstat.charheight;
+				me->x/=x_cvstat.scaling;
+				me->x/=x_cvstat.charwidth;
+				me->y/=x_cvstat.scaling;
+				me->y/=x_cvstat.vmultiplier;
+				me->y/=x_cvstat.charheight;
 				me->x++;
 				me->y++;
 				if(me->x<1)
 					me->x=1;
 				if(me->y<1)
 					me->y=1;
-				if(me->x>vstat.cols)
-					me->x=vstat.cols;
-				if(me->y>vstat.rows+1)
-					me->y=vstat.rows+1;
+				if(me->x>x_cvstat.cols)
+					me->x=x_cvstat.cols;
+				if(me->y>x_cvstat.rows+1)
+					me->y=x_cvstat.rows+1;
 				ciomouse_gotevent(CIOLIB_MOUSE_MOVE,me->x,me->y);
 	    	}
 			break;
@@ -571,20 +702,21 @@ static int x11_event(XEvent *ev)
 			{
 				XButtonEvent *be = (XButtonEvent *)ev;
 
-				be->x/=vstat.scaling;
-				be->x/=vstat.charwidth;
-				be->y/=vstat.scaling;
-				be->y/=vstat.charheight;
+				be->x/=x_cvstat.scaling;
+				be->x/=x_cvstat.charwidth;
+				be->y/=x_cvstat.scaling;
+				be->y/=x_cvstat.vmultiplier;
+				be->y/=x_cvstat.charheight;
 				be->x++;
 				be->y++;
 				if(be->x<1)
 					be->x=1;
 				if(be->y<1)
 					be->y=1;
-				if(be->x>vstat.cols)
-					be->x=vstat.cols;
-				if(be->y>vstat.rows+1)
-					be->y=vstat.rows+1;
+				if(be->x>x_cvstat.cols)
+					be->x=x_cvstat.cols;
+				if(be->y>x_cvstat.rows+1)
+					be->y=x_cvstat.rows+1;
 				if (be->button <= 3) {
 					ciomouse_gotevent(CIOLIB_BUTTON_RELEASE(be->button),be->x,be->y);
 				}
@@ -594,20 +726,21 @@ static int x11_event(XEvent *ev)
 			{
 				XButtonEvent *be = (XButtonEvent *)ev;
 
-				be->x/=vstat.scaling;
-				be->x/=vstat.charwidth;
-				be->y/=vstat.scaling;
-				be->y/=vstat.charheight;
+				be->x/=x_cvstat.scaling;
+				be->x/=x_cvstat.charwidth;
+				be->y/=x_cvstat.scaling;
+				be->y/=x_cvstat.vmultiplier;
+				be->y/=x_cvstat.charheight;
 				be->x++;
 				be->y++;
 				if(be->x<1)
 					be->x=1;
 				if(be->y<1)
 					be->y=1;
-				if(be->x>vstat.cols)
-					be->x=vstat.cols;
-				if(be->y>vstat.rows+1)
-					be->y=vstat.rows+1;
+				if(be->x>x_cvstat.cols)
+					be->x=x_cvstat.cols;
+				if(be->y>x_cvstat.rows+1)
+					be->y=x_cvstat.rows+1;
 				if (be->button <= 3) {
 					ciomouse_gotevent(CIOLIB_BUTTON_PRESS(be->button),be->x,be->y);
 				}
@@ -619,11 +752,10 @@ static int x11_event(XEvent *ev)
 			{
 				static char buf[128];
 				KeySym ks;
-				int n;
 				int nlock = 0;
 				WORD scan = 0xffff;
 
-				n = x11.XLookupString((XKeyEvent *)ev, buf, sizeof(buf), &ks, 0);
+				x11.XLookupString((XKeyEvent *)ev, buf, sizeof(buf), &ks, 0);
 
 				switch (ks) {
 				
@@ -804,6 +936,30 @@ static int x11_event(XEvent *ev)
 	return(0);
 }
 
+static void x11_terminate_event_thread(void)
+{
+	terminate = 1;
+	sem_wait(&event_thread_complete);
+}
+
+static void readev(struct x11_local_event *lev)
+{
+	fd_set	rfd;
+	int ret;
+	int rcvd = 0;
+	char *buf = (char *)lev;
+
+	FD_ZERO(&rfd);
+	FD_SET(local_pipe[0], &rfd);
+
+	while (rcvd < sizeof(*lev)) {
+		select(local_pipe[0]+1, &rfd, NULL, NULL, NULL);
+		ret = read(local_pipe[0], buf+rcvd, sizeof(*lev) - rcvd);
+		if (ret > 0)
+			rcvd += ret;
+	}
+}
+
 void x11_event_thread(void *args)
 {
 	int x;
@@ -817,15 +973,20 @@ void x11_event_thread(void *args)
 		sem_post(&init_complete);
 		return;
 	}
-	x11_initialized=1;
-	sem_post(&init_complete);
+	sem_init(&event_thread_complete, 0, 0);
+	atexit(x11_terminate_event_thread);
 
 	if(local_pipe[0] > xfd)
 		high_fd=local_pipe[0];
 	else
 		high_fd=xfd;
 
-	for (;;) {
+	x11.XSync(dpy, False);
+	x11_initialized=1;
+	sem_post(&init_complete);
+	for (;!terminate;) {
+		check_scaling();
+
 		tv.tv_sec=0;
 		tv.tv_usec=54925; /* was 54925 (was also 10) */ 
 
@@ -858,13 +1019,19 @@ void x11_event_thread(void *args)
 				break;
 			default:
 				if (FD_ISSET(xfd, &fdset)) {
+					// This blocks for the event...
 					x11.XNextEvent(dpy, &ev);
 					x11_event(&ev);
+					// And this reads anything else from the queue.
+					while (QLength(dpy) > 0) {
+						x11.XNextEvent(dpy, &ev);
+						x11_event(&ev);
+					}
 				}
-				while(FD_ISSET(local_pipe[0], &fdset)) {
+				if(FD_ISSET(local_pipe[0], &fdset)) {
 					struct x11_local_event lev;
 
-					read(local_pipe[0], &lev, sizeof(lev));
+					readev(&lev);
 					switch(lev.type) {
 						case X11_LOCAL_SETMODE:
 							init_mode(lev.data.mode);
@@ -889,15 +1056,17 @@ void x11_event_thread(void *args)
 									/* Get your own primary selection */
 									if(copybuf==NULL)
 										pastebuf=NULL;
-									else
+									else {
 										pastebuf=strdup(copybuf);
+										pastebuf_format = copybuf_format;
+									}
 									/* Set paste buffer */
 									sem_post(&pastebuf_set);
 									sem_wait(&pastebuf_used);
 									FREE_AND_NULL(pastebuf);
 								}
 								else if(sowner!=None) {
-									x11.XConvertSelection(dpy, CONSOLE_CLIPBOARD, XA_STRING, XA_STRING, win, CurrentTime);
+									x11.XConvertSelection(dpy, CONSOLE_CLIPBOARD, x11.utf8 ? x11.utf8 : XA_STRING, x11.utf8 ? x11.utf8 : XA_STRING, win, CurrentTime);
 								}
 								else {
 									/* Set paste buffer */
@@ -908,7 +1077,7 @@ void x11_event_thread(void *args)
 							}
 							break;
 						case X11_LOCAL_DRAWRECT:
-							local_draw_rect(&lev.data.rect);
+							local_draw_rect(lev.data.rect);
 							break;
 						case X11_LOCAL_FLUSH:
 							x11.XFlush(dpy);
@@ -917,15 +1086,9 @@ void x11_event_thread(void *args)
 							x11.XBell(dpy, 100);
 							break;
 					}
-					tv.tv_sec=0;
-					tv.tv_usec=0;
-
-					FD_ZERO(&fdset);
-					FD_SET(local_pipe[0], &fdset);
-
-					if(select(local_pipe[0]+1, &fdset, 0, 0, &tv)!=1)
-						FD_ZERO(&fdset);
 				}
 		}
 	}
+	x11.XCloseDisplay(dpy);
+	sem_post(&event_thread_complete);
 }
