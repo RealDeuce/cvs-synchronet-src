@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.264 2020/04/11 12:51:23 deuce Exp $ */
+/* $Id: cterm.c,v 1.265 2020/04/11 13:36:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2797,6 +2797,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							i = TERM_MAXX;
 						GOTOXY(col, row);
 						break;
+					case 'j':	/* Character Position Backward */
 					case 'D':	/* Cursor Left */
 						seq_default(seq, 0, 1);
 						TERM_XY(&col, &row);
@@ -3093,8 +3094,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						break;
 					case 'i':	/* ToDo?  Media Copy (Printing) */
 						break;
-					case 'j':	/* TODO? Character Position Backward */
-						break;
+					// for case 'j': see case 'D':
 					// for case 'k': see case 'A':
 					case 'l':	/* TODO? Reset Mode */
 						break;
@@ -3314,7 +3314,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 					 * END OF STANDARD CONTROL FUNCTIONS
 					 * AFTER THIS IS ALL PRIVATE EXTENSIONS
 					 */
-					case 'p': /* ToDo?  ANSI keyboard reassignment, pointer mode, soft reset */
+					case 'p': /* ToDo?  ANSI keyboard reassignment, pointer mode */
 						break;
 					case 'q': /* ToDo?  VT100 keyboard lights, cursor style, protection */
 						break;
@@ -3787,7 +3787,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.264 $";
+	char	*revision="$Revision: 1.265 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
