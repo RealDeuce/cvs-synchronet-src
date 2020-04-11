@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.61 2020/04/11 11:35:32 deuce Exp $
+$Id: cterm.txt,v 1.62 2020/04/11 12:27:49 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -213,6 +213,10 @@ ESC X	Start Of String
 	The string is currently ignored.
 
 ESC \	String Terminator
+
+ESC c	Reset Terminal
+	Resets all the terminal settings, clears the screen, and homes
+	the cursor.
 
 Control Sequences:
 ------------------
@@ -959,6 +963,12 @@ CSI = Ps n
 	the width of a character cell in pixels.
 
 	SOURCE: CTerm only.
+
+CSI ! p
+	NON-STANDARD EXTENSION.
+	Resets the terminal.  This is the same sequence used for a soft
+	reset in xterm and DEC standards, but performs the equivilent
+	of a hard reset in SyncTERM.
 
 CSI Pn1 ; Pn2 r
 	NON-STANDARD EXTENSION.
