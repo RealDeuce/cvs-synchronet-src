@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.267 2020/04/11 15:50:52 deuce Exp $ */
+/* $Id: cterm.c,v 1.268 2020/04/11 16:33:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2953,16 +2953,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							for(j=0; j<seq->param_int[0]; j++)
 								scrolldown(cterm);
 							break;
-	#if 0
-						case 'U':	/* Next Page */
-							GETTEXTINFO(&ti);
-							cterm_clearscreen(cterm, ti.normattr);
-							if(cterm->extattr & CTERM_EXTATTR_ORIGINMODE)
-								GOTOXY(1,cterm->top_margin);
-							else
-								GOTOXY(1,1);
+						case 'U':	/* TODO? Next Page */
 							break;
-	#endif
 						case 'V':	/* TODO? Preceding Page */
 							break;
 						case 'W':	/* TODO? Cursor Tabulation Control */
@@ -3785,7 +3777,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.267 $";
+	char	*revision="$Revision: 1.268 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4023,14 +4015,11 @@ static void parse_sixel_intro(struct cterminal *cterm)
 		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->extattr & CTERM_EXTATTR_SXSCROLL) {
+			cterm->sx_x = cterm->sx_start_x *= vparams[vmode].charwidth;
+			cterm->sx_y = cterm->sx_start_y *= vparams[vmode].charwidth;
 			TERM_XY(&cterm->sx_start_x, &cterm->sx_start_y);
-			cterm->sx_start_x *= vparams[vmode].charwidth;
-			cterm->sx_start_y *= vparams[vmode].charwidth;
-			cterm->sx_x = cterm->sx_start_x;
-			cterm->sx_y = cterm->sx_start_y;
 		}
 		else {
-			// TODO: Why aren't these multipled by width/height?
 			cterm->sx_x = cterm->sx_left = cterm->sx_y = 0;
 			TERM_XY(&cterm->sx_start_x, &cterm->sx_start_y);
 		}
