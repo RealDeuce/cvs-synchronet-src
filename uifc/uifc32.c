@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.258 2020/04/10 08:40:30 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.261 2020/04/10 09:09:01 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1714,8 +1714,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 						case CTRL_F:			/* find */
 						case CTRL_G:
 							if(/*!(api->mode&UIFC_NOCTRL)*/1) { // No no, *this* control key is fine!
-								if (gotkey == CTRL_G || api->input(WIN_MID|WIN_SAV, 0, 0, "Find", search, sizeof(search), K_EDIT) > 0) {
-									for (j = (*cur) + 1; j != *cur; j++, j = option[j] == NULL ? 0 : j) {   /* a = search count */
+								if (gotkey == CTRL_G || api->input(WIN_MID|WIN_SAV, 0, 0, "Find", search, sizeof(search), K_EDIT|K_FIND) > 0) {
+									for (j = (*cur) + 1; j != *cur; j++, j = (j >= opts) ? 0 : j) {
 										if (strcasestr(option[j], search) != NULL) {
 											// Copy/pasted from search above.
 											if(y+(j-(*cur))+2>height+top) {
@@ -2370,12 +2370,12 @@ int ugetstr(int left, int top, int width, char *outstr, int max, long mode, int 
 	if(mode&K_EDIT)
 	{
 		truncspctrl(str);
-		if(strcmp(outstr,str))
+		if(!(mode&K_FIND) && strcmp(outstr,str))
 			api->changes=1;
 	}
 	else
 	{
-		if(j)
+		if(!(mode&K_FIND) && j)
 			api->changes=1;
 	}
 	strcpy(outstr,str);
