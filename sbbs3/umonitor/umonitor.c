@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.98 2020/04/12 20:23:00 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.97 2020/04/02 19:19:52 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -829,7 +829,7 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.98 $", "%*s %s", revision);
+	sscanf("$Revision: 1.97 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
 		"Rob Swindell\n",revision,PLATFORM_DESC,&__DATE__[7]);
@@ -913,13 +913,10 @@ int main(int argc, char** argv)  {
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is deprecated, use -if instead\n");
+							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
-							break;
-						case 'I':
-							ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
 							break;
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
@@ -933,20 +930,19 @@ int main(int argc, char** argv)  {
 					break;
 				default:
 USAGE:
-					printf("\nusage: %s [ctrl_dir] [options]\n"
+					printf("\nusage: %s [ctrl_dir] [options]\r\n"
 					         "options:\n\n"
 					         "-c  =  force color mode\n"
 					         "-e# =  set escape delay to #msec\n"
-					         "-iX =  set interface mode to X (default=auto) where X is one of:\n"
+					         "-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
 #ifdef __unix__
-					         "       X = X11 mode\n"
-					         "       C = Curses mode\n"
-					         "       F = Curses mode with forced IBM charset\n"
-							 "       I = Curses mode with forced ASCII charset\n"
+					         "       X = X11 mode\r\n"
+					         "       C = Curses mode\r\n"
+					         "       F = Curses mode with forced IBM charset\r\n"
 #else
-					         "       W = Win32 native mode\n"
+					         "       W = Win32 native mode\r\n"
 #endif
-					         "       A = ANSI mode\n"
+					         "       A = ANSI mode\r\n"
 					         "-l# =  set screen lines to #\n"
 					         "-s# =  set idle slsep to # milliseconds (defualt: %d)\n"
 					    ,argv[0]
