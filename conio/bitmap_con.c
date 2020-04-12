@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.141 2020/03/07 07:22:10 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.142 2020/04/01 10:51:05 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1548,8 +1548,8 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 	/* Initialize video memory with black background, white foreground */
 	for (i = 0; i < vstat.cols*vstat.rows; ++i) {
 		vstat.vmem->vmem[i].ch = 0;
-		vstat.vmem->vmem[i].legacy_attr = 7;
-		bitmap_attr2palette_locked(7, &vstat.vmem->vmem[i].fg, &vstat.vmem->vmem[i].bg);
+		vstat.vmem->vmem[i].legacy_attr = vstat.currattr;
+		bitmap_attr2palette_locked(vstat.currattr, &vstat.vmem->vmem[i].fg, &vstat.vmem->vmem[i].bg);
 	}
 
 	pthread_mutex_lock(&screen.screenlock);
@@ -1573,8 +1573,8 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 		current_font[i]=default_font;
 	bitmap_loadfont_locked(NULL);
 
-	cio_textinfo.attribute=7;
-	cio_textinfo.normattr=7;
+	cio_textinfo.attribute=vstat.currattr;
+	cio_textinfo.normattr=vstat.currattr;
 	cio_textinfo.currmode=mode;
 
 	if (vstat.rows > 0xff)
