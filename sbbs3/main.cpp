@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.778 2019/12/20 08:09:34 rswindell Exp $ */
+/* $Id: main.cpp,v 1.781 2020/04/11 04:01:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -252,21 +252,6 @@ int lprintf(int level, const char *fmt, ...)
 	sbuf[sizeof(sbuf)-1]=0;
     va_end(argptr);
     return(lputs(level,sbuf));
-}
-
-int eprintf(int level, const char *fmt, ...)
-{
-	va_list argptr;
-	char sbuf[1024];
-
-    va_start(argptr,fmt);
-    vsnprintf(sbuf,sizeof(sbuf),fmt,argptr);
-	sbuf[sizeof(sbuf)-1]=0;
-    va_end(argptr);
-
-	strip_ctrl(sbuf, sbuf);
-
-    return(eputs(level,truncsp(sbuf)));
 }
 
 /* Picks the right log callback function (event or term) based on the sbbs->cfg.node_num value */
@@ -931,7 +916,7 @@ js_write(JSContext *cx, uintN argc, jsval *arglist)
 		if(cstr==NULL)
 		    return(JS_FALSE);
 		rc=JS_SUSPENDREQUEST(cx);
-		if(!sbbs->online)
+		if(sbbs->online != ON_REMOTE)
 			sbbs->lputs(LOG_INFO, cstr);
 		else
 			sbbs->bputs(cstr);
@@ -1017,7 +1002,7 @@ js_printf(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!sbbs->online)
+	if(sbbs->online != ON_REMOTE)
 		sbbs->lputs(LOG_INFO, p);
 	else
 		sbbs->bputs(p);
@@ -1048,8 +1033,8 @@ js_alert(JSContext *cx, uintN argc, jsval *arglist)
 	    return(JS_FALSE);
 
 	rc=JS_SUSPENDREQUEST(cx);
-	if(!sbbs->online)
-		lputs(LOG_WARNING, cstr);
+	if(sbbs->online != ON_REMOTE)
+		sbbs->lputs(LOG_WARNING, cstr);
 	else {
 		sbbs->attr(sbbs->cfg.color[clr_err]);
 		sbbs->bputs(cstr);
@@ -2534,7 +2519,7 @@ void event_thread(void* arg)
 	struct tm	tm;
 	char		event_code[LEN_CODE+1];
 
-	eprintf(LOG_INFO,"BBS Events thread started");
+	sbbs->lprintf(LOG_INFO,"BBS Events thread started");
 
 	sbbs_srand();	/* Seed random number generator */
 
@@ -2544,7 +2529,7 @@ void event_thread(void* arg)
 #ifdef JAVASCRIPT
 	if(!(startup->options&BBS_OPT_NO_JAVASCRIPT)) {
 		if((sbbs->js_cx = sbbs->js_init(&sbbs->js_runtime, &sbbs->js_glob, "event")) == NULL) /* This must be done in the context of the events thread */
-			lprintf(LOG_ERR,"!JavaScript Initialization FAILURE");
+			sbbs->lprintf(LOG_ERR,"!JavaScript Initialization FAILURE");
 	}
 #endif
 
@@ -2556,7 +2541,7 @@ void event_thread(void* arg)
 		for(i=0;i<sbbs->cfg.total_events;i++) {
 			sbbs->cfg.event[i]->last=0;
 			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
-				eprintf(LOG_WARNING,"Initializing last run time for event: %s"
+				sbbs->lprintf(LOG_WARNING,"Initializing last run time for event: %s"
 					,sbbs->cfg.event[i]->code);
 				write(file,&sbbs->cfg.event[i]->last,sizeof(sbbs->cfg.event[i]->last));
 			} else {
@@ -2580,7 +2565,7 @@ void event_thread(void* arg)
 		for(i=0;i<sbbs->cfg.total_qhubs;i++) {
 			sbbs->cfg.qhub[i]->last=0;
 			if(filelength(file)<(long)(sizeof(time32_t)*(i+1))) {
-				eprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
+				sbbs->lprintf(LOG_WARNING,"Initializing last call-out time for QWKnet hub: %s"
 					,sbbs->cfg.qhub[i]->id);
 				write(file,&sbbs->cfg.qhub[i]->last,sizeof(sbbs->cfg.qhub[i]->last));
 			} else {
@@ -2824,7 +2809,7 @@ void event_thread(void* arg)
 						sbbs->logentry("!:","Run node daily event");
 						const char* cmd = sbbs->cmdstr(sbbs->cfg.node_daily,nulstr,nulstr,NULL);
 						int result = sbbs->external(cmd, EX_OFFLINE);
-						eprintf(result ? LOG_ERR : LOG_INFO, "Node daily event: '%s' returned %d", cmd, result);
+						sbbs->lprintf(result ? LOG_ERR : LOG_INFO, "Node daily event: '%s' returned %d", cmd, result);
 						sbbs->console&=~CON_L_ECHO;
 						sbbs->online=FALSE;
 					}
@@ -2846,7 +2831,7 @@ void event_thread(void* arg)
 				SAFEPRINTF2(str,"%sqnet/%s.now",sbbs->cfg.data_dir,sbbs->cfg.qhub[i]->id);
 				if(fexistcase(str)) {
 					SAFECOPY(str,sbbs->cfg.qhub[i]->id);
-					eprintf(LOG_INFO,"Semaphore signaled for QWK Network Hub: %s",strupr(str));
+					sbbs->lprintf(LOG_INFO,"Semaphore signaled for QWK Network Hub: %s",strupr(str));
 					sbbs->cfg.qhub[i]->last=-1;
 				}
 			}
@@ -2864,7 +2849,7 @@ void event_thread(void* arg)
 				SAFEPRINTF2(str,"%s%s.now",sbbs->cfg.data_dir,sbbs->cfg.event[i]->code);
 				if(fexistcase(str)) {
 					SAFECOPY(str,sbbs->cfg.event[i]->code);
-					eprintf(LOG_INFO,"Semaphore signaled for Timed Event: %s",strupr(str));
+					sbbs->lprintf(LOG_INFO,"Semaphore signaled for Timed Event: %s",strupr(str));
 					sbbs->cfg.event[i]->last=-1;
 				}
 			}
@@ -2884,7 +2869,7 @@ void event_thread(void* arg)
 				for(j=0;j<(int)g.gl_pathc;j++) {
 					SAFECOPY(str,g.gl_pathv[j]);
 					if(flength(str)>0) {	/* silently ignore 0-byte QWK packets */
-						eprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
+						sbbs->lprintf(LOG_DEBUG,"Inbound QWK Packet detected: %s", str);
 						sbbs->online=ON_LOCAL;
 						sbbs->console|=CON_L_ECHO;
 						if(sbbs->unpack_qwk(str,i)==false) {
@@ -2978,14 +2963,14 @@ void event_thread(void* arg)
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
 					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
-					eprintf(LOG_INFO,"QWK Network call-out: %s",sbbs->cfg.qhub[i]->id);
+					sbbs->lprintf(LOG_INFO,"Call-out: %s",sbbs->cfg.qhub[i]->id);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
 					int result = sbbs->external(
 						 sbbs->cmdstr(sbbs->cfg.qhub[i]->call
 							,sbbs->cfg.qhub[i]->id,sbbs->cfg.qhub[i]->id,NULL)
 						,EX_OFFLINE|EX_SH);	/* sh for Unix perl scripts */
-					eprintf(result ? LOG_ERR : LOG_INFO, "QWK Network call-out to: %s returned %d", sbbs->cfg.qhub[i]->id, result);
+					sbbs->lprintf(result ? LOG_ERR : LOG_INFO, "Call-out to: %s returned %d", sbbs->cfg.qhub[i]->id, result);
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
 				}
@@ -3028,7 +3013,7 @@ void event_thread(void* arg)
 					if(sbbs->cfg.node_num<1)
 						sbbs->cfg.node_num=1;
 					SAFECOPY(sbbs->cfg.node_dir, sbbs->cfg.node_path[sbbs->cfg.node_num-1]);
-					eprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name);
+					sbbs->lprintf(LOG_INFO,"PostLink Network call-out: %s",sbbs->cfg.phub[i]->name);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
 					sbbs->external(
@@ -3217,7 +3202,7 @@ void event_thread(void* arg)
 					ex_mode|=(sbbs->cfg.event[i]->misc&EX_NATIVE);
 					sbbs->online=ON_LOCAL;
 					sbbs->console|=CON_L_ECHO;
-					eprintf(LOG_INFO,"Running %s%stimed event: %s"
+					sbbs->lprintf(LOG_INFO,"Running %s%stimed event: %s"
 						,(ex_mode&EX_NATIVE)	? "native ":""
 						,(ex_mode&EX_BG)		? "background ":""
 						,event_code);
@@ -3228,7 +3213,7 @@ void event_thread(void* arg)
 								,ex_mode
 								,sbbs->cfg.event[i]->dir);
 						if(!(ex_mode&EX_BG))
-							eprintf(result ? LOG_ERR : LOG_INFO, "Timed event: %s returned %d", event_code, result);
+							sbbs->lprintf(result ? LOG_ERR : LOG_INFO, "Timed event: %s returned %d", event_code, result);
 					}
 					sbbs->console&=~CON_L_ECHO;
 					sbbs->online=FALSE;
@@ -3266,7 +3251,7 @@ void event_thread(void* arg)
 	sbbs->event_thread_running = false;
 
 	thread_down();
-	eprintf(LOG_INFO,"BBS Events thread terminated");
+	sbbs->lprintf(LOG_INFO,"BBS Events thread terminated");
 }
 
 
@@ -4825,7 +4810,7 @@ void sbbs_t::daily_maint(void)
 		lputs(LOG_INFO, "DAILY: Running system event");
 		const char* cmd = cmdstr(cfg.sys_daily,nulstr,nulstr,NULL);
 		int result = external(cmd, EX_OFFLINE);
-		eprintf(result ? LOG_ERR : LOG_INFO, "Daily event: '%s' returned %d", cmd, result);
+		lprintf(result ? LOG_ERR : LOG_INFO, "Daily event: '%s' returned %d", cmd, result);
 	}
 	status(STATUS_WFC);
 	lputs(LOG_INFO, "DAILY: System maintenance ended");
@@ -5645,6 +5630,7 @@ NO_SSH:
 		SAFECOPY(client.host,host_name);
 		client.port=inet_addrport(&client_addr);
 		client.user=STR_UNKNOWN_USER;
+		client.usernum = 0;
 		client_on(client_socket,&client,FALSE /* update */);
 
 		for(i=first_node;i<=last_node;i++) {
@@ -5776,7 +5762,15 @@ NO_SSH:
 				close_socket(tmp_sock);
 				goto NO_PASSTHRU;
 			}
-			lprintf(LOG_INFO,"Node %d passthru socket listening on port %u"
+
+			tmp_addr_len=sizeof(tmp_addr);
+			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
+				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
+					,new_node->cfg.node_num, ERROR_VALUE);
+				close_socket(tmp_sock);
+				goto NO_PASSTHRU;
+			}
+			lprintf(LOG_DEBUG,"Node %d passthru socket listening on port %u"
 				,new_node->cfg.node_num, htons(tmp_addr.sin_port));
 
     		new_node->passthru_socket = open_socket(PF_INET, SOCK_STREAM, "passthru");
@@ -5790,16 +5784,6 @@ NO_SSH:
 
 			lprintf(LOG_DEBUG,"Node %d passthru connect socket %d opened"
 				,new_node->cfg.node_num, new_node->passthru_socket);
-
-			tmp_addr_len=sizeof(tmp_addr);
-			if(getsockname(tmp_sock, (struct sockaddr *)&tmp_addr, &tmp_addr_len)) {
-				lprintf(LOG_ERR,"Node %d !ERROR %d getting passthru listener address"
-					,new_node->cfg.node_num, ERROR_VALUE);
-				close_socket(tmp_sock);
-				close_socket(new_node->passthru_socket);
-				new_node->passthru_socket=INVALID_SOCKET;
-				goto NO_PASSTHRU;
-			}
 
 			result = connect(new_node->passthru_socket, (struct sockaddr *)&tmp_addr, tmp_addr_len);
 
