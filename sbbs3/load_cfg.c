@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.80 2019/08/06 07:40:06 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.81 2020/04/12 06:06:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,6 +118,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 				,TOTAL_TEXT,fname);
 			return(FALSE); 
 		}
+		cfg->text = text;
 	}
 #endif
 
@@ -306,6 +307,9 @@ void DLLCALL free_cfg(scfg_t* cfg)
 	free_chat_cfg(cfg);
 	free_xtrn_cfg(cfg);
 	free_attr_cfg(cfg);
+
+	if(cfg->text != NULL)
+		free_text(cfg->text);
 }
 
 void DLLCALL free_text(char* text[])
