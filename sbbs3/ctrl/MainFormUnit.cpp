@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.211 2020/03/17 04:27:54 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.212 2020/03/17 05:47:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4013,4 +4013,46 @@ void __fastcall TMainForm::FidonetPollMenuItemClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
+
+void __fastcall TMainForm::FileMenuRunJSMenuItemClick(TObject *Sender)
+{
+	TOpenDialog* dlg=new TOpenDialog((TComponent*)Sender);
+
+    dlg->Options << ofNoChangeDir;
+    dlg->Filter = 	"JavaScript files (*.js)|*.js";
+    dlg->InitialDir=cfg.exec_dir;
+    if(dlg->Execute()==true) {
+    	char    cmdline[MAX_PATH+1];
+        SAFEPRINTF2(cmdline,"%sjsexec.exe -p %s"
+            ,MainForm->cfg.exec_dir
+            ,dlg->FileName.c_str()
+            );
+        STARTUPINFO startup_info={0};
+        PROCESS_INFORMATION process_info;
+        startup_info.cb=sizeof(startup_info);
+        startup_info.lpTitle = cmdline;
+    	if(!CreateProcess(
+    		NULL,			// pointer to name of executable module
+    		cmdline,        // pointer to command line string
+    		NULL,  			// process security attributes
+    		NULL,   		// thread security attributes
+    		FALSE, 			// handle inheritance flag
+    		0,              // creation flags
+            NULL,  			// pointer to new environment block
+    		cfg.ctrl_dir,	// pointer to current directory name
+    		&startup_info,  // pointer to STARTUPINFO
+    		&process_info  	// pointer to PROCESS_INFORMATION
+    		))
+           	Application->MessageBox(AnsiString("ERROR " + IntToStr(GetLastError()) +
+                " executing " + cmdline).c_str()
+                ,"ERROR"
+                ,MB_OK|MB_ICONEXCLAMATION);
+    	// Resource leak if you don't close these:
+    	CloseHandle(process_info.hThread);
+    	CloseHandle(process_info.hProcess);
+    }
+    delete dlg;
+
+}
+//---------------------------------------------------------------------------
 

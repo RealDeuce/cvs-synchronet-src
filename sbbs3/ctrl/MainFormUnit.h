@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.h,v 1.92 2020/03/17 04:27:55 rswindell Exp $ */
+/* $Id: MainFormUnit.h,v 1.93 2020/03/17 05:47:29 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -450,6 +450,7 @@ __published:	// IDE-managed Components
     void __fastcall RefreshLogClick(TObject *Sender);
     void __fastcall FidonetConfigureMenuItemClick(TObject *Sender);
     void __fastcall FidonetPollMenuItemClick(TObject *Sender);
+    void __fastcall FileMenuRunJSMenuItemClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
