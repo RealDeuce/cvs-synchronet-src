@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_telnet.c,v 1.13 2019/07/10 22:28:52 deuce Exp $ */
+/* $Id: conn_telnet.c,v 1.17 2019/12/22 21:17:30 rswindell Exp $ */
 
 #include <stdlib.h>
 
@@ -30,11 +30,10 @@ void telnet_input_thread(void *args)
 	size_t	buffer;
 	char	rbuf[BUFFER_SIZE];
 	char	*buf;
-	cterm_emulation_t emu = *(cterm_emulation_t *)args;
+	struct bbslist *bbs = args;
 
 	SetThreadName("Telnet Input");
 	conn_api.input_thread_running=1;
-	free(args);
 	while(telnet_sock != INVALID_SOCKET && !conn_api.terminate) {
 		FD_ZERO(&rds);
 		FD_SET(telnet_sock, &rds);
@@ -59,7 +58,7 @@ void telnet_input_thread(void *args)
 				break;
 		}
 		if(rd>0)
-			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd, emu);
+			buf=(char *)telnet_interpret(conn_api.rd_buf, rd, (BYTE *)rbuf, &rd, bbs);
 		buffered=0;
 		while(buffered < rd) {
 			pthread_mutex_lock(&(conn_inbuf.mutex));
@@ -92,7 +91,8 @@ void telnet_output_thread(void *args)
 		if(wr) {
 			wr=conn_buf_get(&conn_outbuf, conn_api.wr_buf, conn_api.wr_buf_size);
 			pthread_mutex_unlock(&(conn_outbuf.mutex));
-			buf=(char *)telnet_expand(conn_api.wr_buf, wr, (BYTE *)ebuf, &wr);
+			wr = telnet_expand(conn_api.wr_buf, wr, (BYTE *)ebuf, sizeof(ebuf)
+				,telnet_local_option[TELNET_BINARY_TX]!=TELNET_DO, (uchar**)&buf);
 			sent=0;
 			while(sent < wr) {
 				FD_ZERO(&wds);
@@ -130,8 +130,6 @@ void telnet_output_thread(void *args)
 
 int telnet_connect(struct bbslist *bbs)
 {
-	cterm_emulation_t *emu;
-
 	init_uifc(TRUE, TRUE);
 
 	telnet_log_level = bbs->telnet_loglevel;
@@ -165,10 +163,8 @@ int telnet_connect(struct bbslist *bbs)
 	memset(telnet_local_option,0,sizeof(telnet_local_option));
 	memset(telnet_remote_option,0,sizeof(telnet_remote_option));
 
-	emu = malloc(sizeof(cterm_emulation_t));
-	*emu = get_emulation(bbs);
 	_beginthread(telnet_output_thread, 0, NULL);
-	_beginthread(telnet_input_thread, 0, emu);
+	_beginthread(telnet_input_thread, 0, bbs);
 
 	uifc.pop(NULL);
 
