@@ -1,6 +1,6 @@
 /* Synchronet QWK packet-related functions */
 
-/* $Id: qwk.cpp,v 1.91 2019/08/31 22:38:33 rswindell Exp $ */
+/* $Id: qwk.cpp,v 1.92 2020/04/11 23:42:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1213,10 +1213,11 @@ bool sbbs_t::qwk_vote(str_list_t ini, const char* section, smb_net_type_t net_ty
 		if(result == SMB_DUPE_MSG)
 			lprintf(LOG_DEBUG, "Duplicate vote-msg (%s) from %s", msg.id, qnet_id);
 		else if(result != SMB_SUCCESS) {
-			if(hubnum >= 0)
+			if(hubnum >= 0) {
 				lprintf(LOG_DEBUG, "Error %s (%d) writing %s vote-msg (%s) to %s"
 					,smb.last_error, result, qnet_id, msg.id, smb.file);
-			else
+				result = SMB_SUCCESS; // ignore vote failures for old messages
+			} else
 				errormsg(WHERE, ERR_WRITE, smb.file, result, smb.last_error);
 		}
 	}
