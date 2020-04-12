@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.214 2020/04/12 06:09:58 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.213 2020/04/12 06:06:46 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -59,6 +59,7 @@ static const char*	strJavaScriptContextStack	="JavaScriptContextStack";
 static const char*	strJavaScriptTimeLimit		="JavaScriptTimeLimit";
 static const char*	strJavaScriptGcInterval		="JavaScriptGcInterval";
 static const char*	strJavaScriptYieldInterval	="JavaScriptYieldInterval";
+static const char*	strJavaScriptLoadPath		="JavaScriptLoadPath";
 
 js_startup_t	startup;
 JSRuntime*	js_runtime;
@@ -1186,7 +1187,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.214 $", "%*s %s", revision);
+	sscanf("$Revision: 1.213 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
