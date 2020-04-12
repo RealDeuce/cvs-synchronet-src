@@ -1,6 +1,6 @@
 /* Synchronet for *nix user editor */
 
-/* $Id: uedit.c,v 1.61 2020/01/09 05:40:35 rswindell Exp $ */
+/* $Id: uedit.c,v 1.63 2020/04/02 19:22:38 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1912,10 +1912,10 @@ int main(int argc, char** argv)  {
 	FILE*				fp;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.61 $", "%*s %s", revision);
+	sscanf("$Revision: 1.63 $", "%*s %s", revision);
 
     printf("\nSynchronet User Editor %s-%s  Copyright %s "
-        "Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
+        "Rob Swindell\n",revision,PLATFORM_DESC,&__DATE__[7]);
 
 	SAFECOPY(ctrl_dir, get_ctrl_dir());
 
@@ -2044,9 +2044,9 @@ int main(int argc, char** argv)  {
 		if((opt[i]=(char *)malloc(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
-	if((mopt=(char **)alloca(sizeof(char *)*4))==NULL)
-		allocfail(sizeof(char *)*4);
-	for(i=0;i<4;i++)
+	if((mopt=(char **)alloca(sizeof(char *)*5))==NULL)
+		allocfail(sizeof(char *)*5);
+	for(i=0;i<5;i++)
 		if((mopt[i]=(char *)alloca(MAX_OPLN))==NULL)
 			allocfail(MAX_OPLN);
 
