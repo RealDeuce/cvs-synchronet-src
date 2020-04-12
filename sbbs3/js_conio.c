@@ -2,7 +2,7 @@
 
 /* Synchronet "conio" (console IO) object */
 
-/* $Id: js_conio.c,v 1.38 2020/04/12 20:30:48 rswindell Exp $ */
+/* $Id: js_conio.c,v 1.37 2020/04/01 07:39:16 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -330,8 +330,6 @@ js_conio_init(JSContext *cx, uintN argc, jsval *arglist)
 			ciolib_mode=CIOLIB_MODE_CURSES;
 		else if(!stricmp(mode,"CURSES_IBM"))
 			ciolib_mode=CIOLIB_MODE_CURSES_IBM;
-		else if(!stricmp(mode,"CURSES_ACSCII"))
-			ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
 		else if(!stricmp(mode,"SDL"))
 			ciolib_mode=CIOLIB_MODE_SDL;
 		else if(!stricmp(mode,"SDL_FULLSCREEN"))
@@ -1039,7 +1037,6 @@ static jsSyncMethodSpec js_functions[] = {
 				"<tr><td>\"CONIO_FULLSCREEN\"</td><td>Use the native conio library and request full-screen (full-screen does not work on all versions of Windows) (Windows only)</td></tr><tr><td>"
 				"<tr><td>\"CURSES\"</td><td>Use the curses terminal library (*nix only)</td></tr><tr><td>"
 				"<tr><td>\"CURSES_IBM\"</td><td>Use the curses terminal library and write extended ASCII characters directly as-is, assuming the terminal is using CP437. (*nix only)</td></tr><tr><td>"
-				"<tr><td>\"CURSES_ASCII\"</td><td>Use the curses terminal library and write US-ASCII characters only. (*nix only)</td></tr><tr><td>"
 				"<tr><td>\"SDL\"</td><td>Use the SDL library for output.</td></tr><tr><td>"
 				"<tr><td>\"SDL_FULLSCREEN\"</td><td>Use the SDL library for output (fullscreen).</td></tr><tr><td>"
 				"</table>"

@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.48 2020/04/12 19:21:35 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.47 2020/04/12 19:09:27 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -769,8 +769,6 @@ int curs_initciolib(long inmode)
 	char *p;
 
 	setlocale(LC_ALL, "");
-	if (inmode == CIOLIB_MODE_AUTO)
-		inmode = CIOLIB_MODE_CURSES;
 	if (inmode == CIOLIB_MODE_CURSES) {
 		p = nl_langinfo(CODESET);
 		if (p == NULL)
