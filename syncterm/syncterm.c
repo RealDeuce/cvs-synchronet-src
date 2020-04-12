@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.223 2019/07/25 18:28:59 deuce Exp $ */
+/* $Id: syncterm.c,v 1.227 2020/04/12 18:25:38 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -67,10 +67,10 @@ char	*usage =
         "-e# =  set escape delay to #msec\n"
 		"-iX =  set interface mode to X (default=auto) where X is one of:\n"
 		"       S[W|F] = SDL surface mode W for windowed and F for fullscreen\n"
-		"       O[W|F] = SDL overlay mode (hardware scaled)\n"
 #ifdef __unix__
 		"       X = X11 mode\n"
 		"       C = Curses mode\n"
+		"       I = Curses mode with forced ASCII charset\n"
 		"       F = Curses mode with forced IBM charset\n"
 #else
 		"       W[F] = Win32 native mode, F for fullscreen\n"
@@ -726,8 +726,6 @@ char *output_types[]={
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,"SDL"
 	,"SDL Fullscreen"
-	,"SDL Overlay"
-	,"SDL Overlay Fullscreen"
 #endif
 ,NULL};
 int output_map[]={
@@ -747,8 +745,6 @@ int output_map[]={
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
-	,CIOLIB_MODE_SDL_YUV
-	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 #endif
 ,0};
 char *output_descrs[]={
@@ -761,8 +757,6 @@ char *output_descrs[]={
 	,"Win32 Console Fullscreen"
 	,"SDL"
 	,"SDL Fullscreen"
-	,"SDL Overlay"
-	,"SDL Overlay Fullscreen"
 ,NULL};
 
 char *output_enum[]={
@@ -775,8 +769,6 @@ char *output_enum[]={
 	,"WinConsoleFullscreen"
 	,"SDL"
 	,"SDLFullscreen"
-	,"SDLOverlay"
-	,"SDLOverlayFullscreen"
 ,NULL};
 
 BOOL check_exit(BOOL force)
@@ -1242,6 +1234,8 @@ void load_settings(struct syncterm_settings *set)
 	get_syncterm_filename(set->list_path, sizeof(set->list_path), SYNCTERM_PATH_LIST, FALSE);
 	iniReadString(inifile, "SyncTERM", "ListPath", set->list_path, set->list_path);
 	set->scaling_factor=iniReadInteger(inifile,"SyncTERM","ScalingFactor",0);
+	set->window_width=iniReadInteger(inifile,"SyncTERM","WindowWidth",0);
+	set->window_height=iniReadInteger(inifile,"SyncTERM","WindowHeight",0);
 
 	/* Modem settings */
 	iniReadString(inifile, "SyncTERM", "ModemInit", "AT&F&C1&D2", set->mdm.init_string);
@@ -1287,6 +1281,7 @@ int main(int argc, char **argv)
 	char	*last_bbs=NULL;
 	char	*p, *lp;
 	int	cvmode;
+	int	ww, wh, sf;
 	const char syncterm_termcap[]="\n# terminfo database entry for SyncTERM\n"
 				"syncterm|SyncTERM,\n"
 				"	am,bce,ccc,da,mir,msgr,ndscr,\n"	// sam?
@@ -1427,6 +1422,9 @@ int main(int argc, char **argv)
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
 							break;
+						case 'I':
+							ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
+							break;
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
 							break;
@@ -1446,17 +1444,6 @@ int main(int argc, char **argv)
 									break;
 								case 'F':
 									ciolib_mode=CIOLIB_MODE_SDL_FULLSCREEN;
-									break;
-							}
-							break;
-						case 'O':
-							switch(toupper(argv[i][3])) {
-								case 0:
-								case 'W':
-									ciolib_mode=CIOLIB_MODE_SDL_YUV;
-									break;
-								case 'F':
-									ciolib_mode=CIOLIB_MODE_SDL_YUV_FULLSCREEN;
 									break;
 							}
 							break;
@@ -1522,6 +1509,7 @@ int main(int argc, char **argv)
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
 	setscaling(settings.scaling_factor);
+	setwinsize(settings.window_width, settings.window_height);
 	textmode(text_mode);
 
     gettextinfo(&txtinfo);
@@ -1682,7 +1670,12 @@ int main(int argc, char **argv)
 	if (last_bbs)
 		free(last_bbs);
 	// Save changed settings
-	if(getscaling() > 0 && getscaling() != settings.scaling_factor) {
+	ww = wh = sf = -1;
+	get_window_info(&ww, &wh, NULL, NULL);
+	sf = getscaling();
+	if((sf > 0 && sf != settings.scaling_factor) ||
+	    (ww > 0 && ww != settings.window_width) ||
+	    (wh > 0 && wh != settings.window_height)) {
 		char	inipath[MAX_PATH+1];
 		FILE	*inifile;
 		str_list_t	inicontents;
@@ -1695,12 +1688,18 @@ int main(int argc, char **argv)
 		else {
 			inicontents=strListInit();
 		}
-		iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",getscaling(),&ini_style);
+		if (sf > 0 && sf != settings.scaling_factor)
+			iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
+		if (ww > 0 && ww != settings.window_width)
+			iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
+		if (wh > 0 && wh != settings.window_height)
+			iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
 		if((inifile=fopen(inipath,"w"))!=NULL) {
 			iniWriteFile(inifile,inicontents);
 			fclose(inifile);
 		}
 	}
+
 	uifcbail();
 #ifdef _WINSOCKAPI_
 	if(WSAInitialized && WSACleanup()!=0)
