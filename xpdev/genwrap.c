@@ -1,6 +1,6 @@
 /* General cross-platform development wrappers */
 
-/* $Id: genwrap.c,v 1.110 2019/05/06 00:31:20 rswindell Exp $ */
+/* $Id: genwrap.c,v 1.113 2019/09/10 19:57:37 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -78,26 +78,20 @@ int DLLCALL safe_snprintf(char *dst, size_t size, const char *fmt, ...)
 	return(numchars);
 }
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 /****************************************************************************/
 /* Case insensitive version of strstr()	- currently heavy-handed			*/
 /****************************************************************************/
 char* DLLCALL strcasestr(const char* haystack, const char* needle)
 {
-	char* p = NULL;
-	/* temporary performance hack begin (warning: different behavior from traditional strcasestr): */
-	if((p = strstr(haystack, needle)) != NULL)
-		return p;
-	char* h = strdup(haystack);
-	char* n = strdup(needle);
-	if(h != NULL && n != NULL)
-		p = strstr(strupr(h), strupr(n));
-	int offset = p - h;
-	FREE_AND_NULL(h);
-	FREE_AND_NULL(n);
-	if(p == NULL)
-		return NULL;
-	return (char*)haystack + offset;
+	const char* p;
+	size_t len = strlen(needle);
+
+	for(p = haystack; *p != '\0'; p++) {
+		if(strnicmp(p, needle, len) == 0)
+			return (char*)p;
+	}
+	return NULL;
 }
 #endif
 
@@ -635,11 +629,11 @@ char* DLLCALL os_version(char *str)
 		}
 	}
 
-	sprintf(str,"Windows %sVersion %u.%u"
+	sprintf(str,"Windows %sVersion %lu.%lu"
 			,winflavor
 			,winver.dwMajorVersion, winver.dwMinorVersion);
 	if(winver.dwBuildNumber)
-		sprintf(str+strlen(str), " (Build %u)", winver.dwBuildNumber);
+		sprintf(str+strlen(str), " (Build %lu)", winver.dwBuildNumber);
 	if(winver.szCSDVersion[0])
 		sprintf(str+strlen(str), " %s", winver.szCSDVersion);
 
