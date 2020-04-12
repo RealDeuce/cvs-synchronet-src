@@ -1,6 +1,6 @@
 /* Execute a Synchronet JavaScript module from the command-line */
 
-/* $Id: jsexec.c,v 1.212 2020/04/08 07:04:36 rswindell Exp $ */
+/* $Id: jsexec.c,v 1.214 2020/04/12 06:09:58 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -59,7 +59,6 @@ static const char*	strJavaScriptContextStack	="JavaScriptContextStack";
 static const char*	strJavaScriptTimeLimit		="JavaScriptTimeLimit";
 static const char*	strJavaScriptGcInterval		="JavaScriptGcInterval";
 static const char*	strJavaScriptYieldInterval	="JavaScriptYieldInterval";
-static const char*	strJavaScriptLoadPath		="JavaScriptLoadPath";
 
 js_startup_t	startup;
 JSRuntime*	js_runtime;
@@ -67,6 +66,7 @@ JSContext*	js_cx;
 JSObject*	js_glob;
 js_callback_t	cb;
 scfg_t		scfg;
+char*		text[TOTAL_TEXT];
 ulong		js_max_bytes=JAVASCRIPT_MAX_BYTES;
 ulong		js_cx_stack=JAVASCRIPT_CONTEXT_STACK;
 FILE*		confp;
@@ -1186,7 +1186,7 @@ int main(int argc, char **argv, char** env)
 	cb.gc_interval=JAVASCRIPT_GC_INTERVAL;
 	cb.auto_terminate=TRUE;
 
-	sscanf("$Revision: 1.212 $", "%*s %s", revision);
+	sscanf("$Revision: 1.214 $", "%*s %s", revision);
 	DESCRIBE_COMPILER(compiler);
 
 	memset(&scfg,0,sizeof(scfg));
@@ -1391,7 +1391,7 @@ int main(int argc, char **argv, char** env)
 		fprintf(errfp,"!ERROR changing directory to: %s\n", scfg.ctrl_dir);
 
 	fprintf(statfp,"\nLoading configuration files from %s\n",scfg.ctrl_dir);
-	if(!load_cfg(&scfg,NULL,TRUE,error)) {
+	if(!load_cfg(&scfg,text,TRUE,error)) {
 		fprintf(errfp,"!ERROR loading configuration files: %s\n",error);
 		return(do_bail(1));
 	}
