@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.48 2020/04/12 19:21:35 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.45 2020/04/12 17:50:45 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,13 +31,12 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#include <langinfo.h>
-#include <locale.h>
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <langinfo.h>
 
 #include "gen_defs.h"	/* xpdev, for BOOL/TRUE/FALSE */
 
@@ -431,203 +430,203 @@ int curs_gettext(int sx, int sy, int ex, int ey, void *fillbuf)
 			attr = cchar.attr;
 			thischar = ext_char = cchar.chars[0];
 			if(attr&WA_REVERSE) {
-				thischar=(thischar)-'A'+1;
+				thischar=(ext_char)-'A'+1;
 			}
 			else {
 				switch (mode) {
 					case CIOLIB_MODE_CURSES_ASCII:
 						/* likely ones */
 						if (attr & WA_ALTCHARSET) {
-							if (ext_char == (ACS_CKBOARD & A_CHARTEXT))
+							if (ext_char == ACS_CKBOARD)
 							{
 								thischar=176;
 							}
-							else if (ext_char == (ACS_BOARD & A_CHARTEXT))
+							else if (ext_char == ACS_BOARD)
 							{
 								thischar=177;
 							}
-							else if (ext_char == (ACS_BSSB & A_CHARTEXT))
+							else if (ext_char == ACS_BSSB)
 							{
 								thischar=218;
 							}
-							else if (ext_char == (ACS_SSBB & A_CHARTEXT))
+							else if (ext_char == ACS_SSBB)
 							{
 								thischar=192;
 							}
-							else if (ext_char == (ACS_BBSS & A_CHARTEXT))
+							else if (ext_char == ACS_BBSS)
 							{
 								thischar=191;
 							}
-							else if (ext_char == (ACS_SBBS & A_CHARTEXT))
+							else if (ext_char == ACS_SBBS)
 							{
 								thischar=217;
 							}
-							else if (ext_char == (ACS_SBSS & A_CHARTEXT))
+							else if (ext_char == ACS_SBSS)
 							{
 								thischar=180;
 							}
-							else if (ext_char == (ACS_SSSB & A_CHARTEXT))
+							else if (ext_char == ACS_SSSB)
 							{
 								thischar=195;
 							}
-							else if (ext_char == (ACS_SSBS & A_CHARTEXT))
+							else if (ext_char == ACS_SSBS)
 							{
 								thischar=193;
 							}
-							else if (ext_char == (ACS_BSSS & A_CHARTEXT))
+							else if (ext_char == ACS_BSSS)
 							{
 								thischar=194;
 							}
-							else if (ext_char == (ACS_BSBS & A_CHARTEXT))
+							else if (ext_char == ACS_BSBS)
 							{
 								thischar=196;
 							}
-							else if (ext_char == (ACS_SBSB & A_CHARTEXT))
+							else if (ext_char == ACS_SBSB)
 							{
 								thischar=179;
 							}
-							else if (ext_char == (ACS_SSSS & A_CHARTEXT))
+							else if (ext_char == ACS_SSSS)
 							{
 								thischar=197;
 							}
-							else if (ext_char == (ACS_BLOCK & A_CHARTEXT))
+							else if (ext_char == ACS_BLOCK)
 							{
 								thischar=219;
 							}
-							else if (ext_char == (ACS_UARROW & A_CHARTEXT))
+							else if (ext_char == ACS_UARROW)
 							{
 								thischar=30;
 							}
-							else if (ext_char == (ACS_DARROW & A_CHARTEXT))
+							else if (ext_char == ACS_DARROW)
 							{
 								thischar=31;
 							}
 
 							/* unlikely (Not in ncurses) */
-							else if (ext_char == (ACS_SBSD & A_CHARTEXT))
+							else if (ext_char == ACS_SBSD)
 							{
 								thischar=181;
 							}
-							else if (ext_char == (ACS_DBDS & A_CHARTEXT))
+							else if (ext_char == ACS_DBDS)
 							{
 								thischar=182;
 							}
-							else if (ext_char == (ACS_BBDS & A_CHARTEXT))
+							else if (ext_char == ACS_BBDS)
 							{
 								thischar=183;
 							}
-							else if (ext_char == (ACS_BBSD & A_CHARTEXT))
+							else if (ext_char == ACS_BBSD)
 							{
 								thischar=184;
 							}
-							else if (ext_char == (ACS_DBDD & A_CHARTEXT))
+							else if (ext_char == ACS_DBDD)
 							{
 								thischar=185;
 							}
-							else if (ext_char == (ACS_DBDB & A_CHARTEXT))
+							else if (ext_char == ACS_DBDB)
 							{
 								thischar=186;
 							}
-							else if (ext_char == (ACS_BBDD & A_CHARTEXT))
+							else if (ext_char == ACS_BBDD)
 							{
 								thischar=187;
 							}
-							else if (ext_char == (ACS_DBBD & A_CHARTEXT))
+							else if (ext_char == ACS_DBBD)
 							{
 								thischar=188;
 							}
-							else if (ext_char == (ACS_DBBS & A_CHARTEXT))
+							else if (ext_char == ACS_DBBS)
 							{
 								thischar=189;
 							}
-							else if (ext_char == (ACS_SBBD & A_CHARTEXT))
+							else if (ext_char == ACS_SBBD)
 							{
 								thischar=190;
 							}
-							else if (ext_char == (ACS_SDSB & A_CHARTEXT))
+							else if (ext_char == ACS_SDSB)
 							{
 								thischar=198;
 							}
-							else if (ext_char == (ACS_DSDB & A_CHARTEXT))
+							else if (ext_char == ACS_DSDB)
 							{
 								thischar=199;
 							}
-							else if (ext_char == (ACS_DDBB & A_CHARTEXT))
+							else if (ext_char == ACS_DDBB)
 							{
 								thischar=200;
 							}
-							else if (ext_char == (ACS_BDDB & A_CHARTEXT))
+							else if (ext_char == ACS_BDDB)
 							{
 								thischar=201;
 							}
-							else if (ext_char == (ACS_DDBD & A_CHARTEXT))
+							else if (ext_char == ACS_DDBD)
 							{
 								thischar=202;
 							}
-							else if (ext_char == (ACS_BDDD & A_CHARTEXT))
+							else if (ext_char == ACS_BDDD)
 							{
 								thischar=203;
 							}
-							else if (ext_char == (ACS_DDDB & A_CHARTEXT))
+							else if (ext_char == ACS_DDDB)
 							{
 								thischar=204;
 							}
-							else if (ext_char == (ACS_BDBD & A_CHARTEXT))
+							else if (ext_char == ACS_BDBD)
 							{
 								thischar=205;
 							}
-							else if (ext_char == (ACS_DDDD & A_CHARTEXT))
+							else if (ext_char == ACS_DDDD)
 							{
 								thischar=206;
 							}
-							else if (ext_char == (ACS_SDBD & A_CHARTEXT))
+							else if (ext_char == ACS_SDBD)
 							{
 								thischar=207;
 							}
-							else if (ext_char == (ACS_DSBS & A_CHARTEXT))
+							else if (ext_char == ACS_DSBS)
 							{
 								thischar=208;
 							}
-							else if (ext_char == (ACS_BDSD & A_CHARTEXT))
+							else if (ext_char == ACS_BDSD)
 							{
 								thischar=209;
 							}
-							else if (ext_char == (ACS_BSDS & A_CHARTEXT))
+							else if (ext_char == ACS_BSDS)
 							{
 								thischar=210;
 							}
-							else if (ext_char == (ACS_DSBB & A_CHARTEXT))
+							else if (ext_char == ACS_DSBB)
 							{
 								thischar=211;
 							}
-							else if (ext_char == (ACS_SDBB & A_CHARTEXT))
+							else if (ext_char == ACS_SDBB)
 							{
 								thischar=212;
 							}
-							else if (ext_char == (ACS_BDSB & A_CHARTEXT))
+							else if (ext_char == ACS_BDSB)
 							{
 								thischar=213;
 							}
-							else if (ext_char == (ACS_BSDB & A_CHARTEXT))
+							else if (ext_char == ACS_BSDB)
 							{
 								thischar=214;
 							}
-							else if (ext_char == (ACS_DSDS & A_CHARTEXT))
+							else if (ext_char == ACS_DSDS)
 							{
 								thischar=215;
 							}
-							else if (ext_char == (ACS_SDSD & A_CHARTEXT))
+							else if (ext_char == ACS_SDSD)
 							{
 								thischar=216;
 							}
 						}
 						break;
 					case CIOLIB_MODE_CURSES_IBM:
-						if (ext_char == (ACS_UARROW & A_CHARTEXT))
+						if (ext_char == ACS_UARROW)
 						{
 							thischar=30;
 						}
-						else if (ext_char == (ACS_DARROW & A_CHARTEXT))
+						else if (ext_char == ACS_DARROW)
 						{
 							thischar=31;
 						}
@@ -768,9 +767,6 @@ int curs_initciolib(long inmode)
 	short	fg, bg, pair=0;
 	char *p;
 
-	setlocale(LC_ALL, "");
-	if (inmode == CIOLIB_MODE_AUTO)
-		inmode = CIOLIB_MODE_CURSES;
 	if (inmode == CIOLIB_MODE_CURSES) {
 		p = nl_langinfo(CODESET);
 		if (p == NULL)
