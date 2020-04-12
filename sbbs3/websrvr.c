@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.713 2020/04/05 22:12:21 deuce Exp $ */
+/* $Id: websrvr.c,v 1.714 2020/04/12 06:06:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -95,6 +95,7 @@ static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
 static const char*	unknown=STR_UNKNOWN_USER;
+static char*		text[TOTAL_TEXT];
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -6743,7 +6744,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.713 $", "%*s %s", revision);
+	sscanf("$Revision: 1.714 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6990,7 +6991,7 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(logstr,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, NULL, TRUE, logstr)) {
+		if(!load_cfg(&scfg, text, TRUE, logstr)) {
 			lprintf(LOG_CRIT,"!ERROR %s",logstr);
 			lprintf(LOG_CRIT,"!FAILED to load configuration files");
 			cleanup(1);
