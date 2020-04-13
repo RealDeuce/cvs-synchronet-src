@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.230 2020/04/13 02:06:47 deuce Exp $ */
+/* $Id: syncterm.c,v 1.231 2020/04/13 02:11:24 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -714,6 +714,7 @@ char *output_types[]={
 #ifdef __unix__
 	,"Curses"
 	,"Curses on cp437 Device"
+	,"Curses using US-ASCII"
 #endif
 	,"ANSI"
 #if defined(__unix__) && !defined(NO_X)
@@ -751,6 +752,7 @@ char *output_descrs[]={
 	 "Autodetect"
 	,"Curses"
 	,"Curses on cp437 Device"
+	,"Curses using US-ASCII"
 	,"ANSI"
 	,"X11"
 	,"Win32 Console"
@@ -763,6 +765,7 @@ char *output_enum[]={
 	 "Autodetect"
 	,"Curses"
 	,"Curses437"
+	,"CursesAscii"
 	,"ANSI"
 	,"X11"
 	,"WinConsole"
