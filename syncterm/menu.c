@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id$ */
+/* $Id: menu.c,v 1.63 2020/04/13 23:39:10 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -19,59 +19,52 @@ void viewscroll(void)
 	int	top;
 	int key;
 	int i;
-	char	*scrollback;
+	struct vmem_cell	*scrollback;
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
+	int old_xlat=ciolib_xlat;
+	struct ciolib_screen *savscrn;
 
 	x=wherex();
 	y=wherey();
 	uifcbail();
-    gettextinfo(&txtinfo);
+	gettextinfo(&txtinfo);
 	/* too large for alloca() */
-	scrollback=(char *)malloc((scrollback_buf==NULL?0:(term.width*2*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*2));
+	scrollback=malloc((scrollback_buf==NULL?0:(term.width*sizeof(*scrollback)*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(*scrollback)));
 	if(scrollback==NULL)
 		return;
-	if(cterm->scrollback != NULL)
-		memcpy(scrollback,cterm->scrollback,term.width*2*settings.backlines);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
+	memcpy(scrollback,cterm->scrollback,term.width*sizeof(*scrollback)*settings.backlines);
+	vmem_gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width);
+	savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 	drawwin();
 	top=cterm->backpos;
 	gotoxy(1,1);
 	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
-	for(i=0;!i;) {
+	for(i=0;(!i) && (!quitting);) {
 		if(top<1)
 			top=1;
 		if(top>cterm->backpos)
 			top=cterm->backpos;
-		puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*2*top));
-		switch(cterm->emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		vmem_puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*top));
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
+		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
-		switch(cterm->emulation) {
-		case CTERM_EMULATION_ATASCII:
-			cputs("3crollback");
-			break;
-		case CTERM_EMULATION_PETASCII:
-			cputs("SCROLLBACK");
-			break;
-		default:
-			cputs("Scrollback");
-		}
+		cputs("Scrollback");
+		ciolib_xlat = old_xlat;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
-			case 0xff:
+			case 0xe0:
 			case 0:
 				switch(key|getch()<<8) {
+					case CIO_KEY_QUIT:
+						check_exit(TRUE);
+						break;
 					case CIO_KEY_MOUSE:
 						getmouse(&mevent);
 						switch(mevent.event) {
@@ -100,6 +93,7 @@ void viewscroll(void)
 										"~ H ~ or ~ Page Up ~    Scrolls up one screen\n"
 										"~ L ~ or ~ Page Down ~  Scrolls down one screen\n";
 						uifc.showhelp();
+						check_exit(FALSE);
 						uifcbail();
 						drawwin();
 						break;
@@ -126,9 +120,10 @@ void viewscroll(void)
 				break;
 		}
 	}
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,scrollback+(cterm->backpos)*cterm->width*2);
+	restorescreen(savscrn);
 	gotoxy(x,y);
 	free(scrollback);
+	freescreen(savscrn);
 	return;
 }
 
@@ -140,7 +135,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Send Login ("ALT_KEY_NAMEP"-L)"
 						,"Upload ("ALT_KEY_NAMEP"-U)"
 						,"Download ("ALT_KEY_NAMEP"-D)"
-						,"Change Output Rate ("ALT_KEY_NAMEP"-Up/"ALT_KEY_NAMEP"-Down)"
+						,"Change Output Rate (Ctrl-Up/Ctrl-Down)"
 						,"Change Log Level"
 						,"Capture Control ("ALT_KEY_NAMEP"-C)"
 						,"ANSI Music Control ("ALT_KEY_NAMEP"-M)"
@@ -155,12 +150,15 @@ int syncmenu(struct bbslist *bbs, int *speed)
 	int		opt=0;
 	int		i,j;
 	struct	text_info txtinfo;
-	char	*buf;
+	struct ciolib_screen *savscrn;
 	int		ret;
 
     gettextinfo(&txtinfo);
-	buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-	gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+    savscrn = savescreen();
+	setfont(0, FALSE, 1);
+	setfont(0, FALSE, 2);
+	setfont(0, FALSE, 3);
+	setfont(0, FALSE, 4);
 
 	if(cio_api.mode!=CIOLIB_MODE_CURSES
 			&& cio_api.mode!=CIOLIB_MODE_CURSES_IBM
@@ -168,32 +166,36 @@ int syncmenu(struct bbslist *bbs, int *speed)
 		opts[1]="Disconnect ("ALT_KEY_NAMEP"-H)";
 	}
 
-	for(ret=0;!ret;) {
+	for(ret=0;(!ret) && (!quitting);) {
 		init_uifc(FALSE, !(bbs->nostatus));
 		uifc.helpbuf=	"`Online Menu`\n\n"
 						"`Scrollback`     Allows to you to view the scrollback buffer\n"
 						"`Disconnect`     Disconnects the current connection\n"
 						"`Send Login`     Sends the username and password pair separated by CR\n"
-						"`Upload`         Initiates a file upload (ZMODEM or ASCII)\n"
-						"`Download`       Initiates a file download (ZMODEM)\n"
-						"`Log Level`      Changes the minimum log level for ZMODEM information\n"
+						"`Upload`         Initiates a file upload\n"
+						"`Download`       Initiates a file download\n"
 						"`Output Rate`    Changes the speed characters are output to the screen\n"
+						"`Log Level`      Changes the minimum log level for transfer information\n"
 						"`Capture`        Enables/Disables screen capture\n"
 						"`ANSI Music`     Enables/Disables ANSI Music\n"
 						"`Font`           Changes the current font (when supported)\n"
 						"`Doorway Mode`   Toggles the current DoorWay (keyboard input) setting\n"
 #ifndef WITHOUT_OOII
-						"`Operation Overkill ][ Mode`   Toggles the current Operation Overkill ][ setting\n"
+						"`Operation Overkill ][ Mode`\n"
+						"               Toggles the current Operation Overkill ][ setting\n"
 #endif
-						"`Exit`           Disconnects and closes Syncterm";
+						"`Exit`           Disconnects and closes Syncterm\n"
+						"`Edit Dialing Directory`\n"
+						"               Opens the directory/setting menu\n";
 		i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&opt,NULL,"SyncTERM Online Menu",opts);
 		switch(i) {
 			case -1:	/* Cancel */
+				check_exit(FALSE);
 				ret=1;
 				break;
 			case 0:		/* Scrollback */
 				uifcbail();
-				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				restorescreen(savscrn);
 				viewscroll();
 				break;
 			case 1:		/* Disconnect */
@@ -213,9 +215,10 @@ int syncmenu(struct bbslist *bbs, int *speed)
 				}
 				break;
 			case 5:		/* Output rate */
-				if(bbs->conn_type==CONN_TYPE_MODEM || bbs->conn_type==CONN_TYPE_SERIAL)
+				if(bbs->conn_type==CONN_TYPE_MODEM || bbs->conn_type==CONN_TYPE_SERIAL) {
 					uifcmsg("Not supported for this connection type"
 						,"Cannot change the display rate for Modem/Serial connections.");
+				}
 				else if(speed != NULL) {
 					j=get_rate_num(*speed);
 					uifc.helpbuf="`Output Rate`\n\n"
@@ -223,6 +226,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 							"data on the screen.  This rate is a maximum, not guaranteed to be attained\n"
 							"In general, you will only use this option for ANSI animations.";
 					i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Output Rate",rate_names);
+					if (i==-1)
+						check_exit(FALSE);
 					if(i>=0)
 						*speed = rates[i];
 				}
@@ -235,6 +240,8 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						"window.  For the selected log level, messages of that level and those above\n"
 						"it will be displayed.";
 				i=uifc.list(WIN_MID|WIN_SAV,0,0,0,&j,NULL,"Log Level",log_levels);
+				if (i==-1)
+					check_exit(FALSE);
 				if(i>=0)
 					log_level = j;
 				ret=6;
@@ -242,12 +249,14 @@ int syncmenu(struct bbslist *bbs, int *speed)
 			default:
 				ret=i;
 				uifcbail();
-				puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+				restorescreen(savscrn);
+				freescreen(savscrn);
 				return(ret);
 		}
 	}
 
 	uifcbail();
-	puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+	restorescreen(savscrn);
+	freescreen(savscrn);
 	return(ret);
 }
