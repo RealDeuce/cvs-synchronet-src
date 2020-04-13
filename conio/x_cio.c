@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.52 2020/04/14 18:40:49 deuce Exp $ */
+/* $Id: x_cio.c,v 1.51 2020/04/11 17:52:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -126,23 +126,6 @@ void x_settitle(const char *title)
 	ev.type=X11_LOCAL_SETTITLE;
 	SAFECOPY(ev.data.title, title);
 	write_event(&ev);
-}
-
-void x_seticon(const void *icon, unsigned long size)
-{
-	const uint32_t *icon32 = icon;
-	struct x11_local_event ev;
-	int i;
-
-	ev.data.icon_data = malloc((size*size + 2)*sizeof(ev.data.icon_data[0]));
-	if (ev.data.icon_data != NULL) {
-		ev.type=X11_LOCAL_SETICON;
-		for (i = 0; i < size*size; i++)
-			ev.data.icon_data[i + 2] = ((icon32[i] & 0xff000000))|((icon32[i] & 0x00ff0000) >> 16)|((icon32[i] & 0x0000ff00))|((icon32[i] & 0x000000ff)<<16);
-		ev.data.icon_data[0] = size;
-		ev.data.icon_data[1] = size;
-		write_event(&ev);
-	}
 }
 
 void x_copytext(const char *text, size_t buflen)
@@ -411,10 +394,6 @@ int x_init(void)
 		return(-1);
 	}
 	if((x11.XCreateColormap=xp_dlsym(dl,XCreateColormap))==NULL) {
-		xp_dlclose(dl);
-		return(-1);
-	}
-	if((x11.XAllocClassHint=xp_dlsym(dl,XAllocClassHint))==NULL) {
 		xp_dlclose(dl);
 		return(-1);
 	}
