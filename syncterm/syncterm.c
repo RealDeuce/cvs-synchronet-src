@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.232 2020/04/13 02:18:08 deuce Exp $ */
+/* $Id: syncterm.c,v 1.233 2020/04/13 02:29:00 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1316,7 +1316,7 @@ int main(int argc, char **argv)
 				"syncterm-bitmap|SyncTERM in Bitmap Mode,\n"
 				"	ccc,\n"
 				"	colors#256,pairs#65535,\n"
-				"	initc=\\E]4;%p1%d;rgb\\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\\E\\\\\n"
+				"	initc=\\E]4;%p1%d;rgb\\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\\E\\\\,\n"
 				"	setab=\\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m,\n"
 				"	setaf=\\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m,\n"
 				"syncterm-24|SyncTERM 80x25,\n"
