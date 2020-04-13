@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.271 2020/04/13 07:47:32 deuce Exp $ */
+/* $Id: cterm.c,v 1.272 2020/04/13 18:26:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1417,10 +1417,10 @@ static enum {
 	if (seq[0] < 0x40 || seq[0] > 0x7e)
 		return SEQ_BROKEN;
 
-	intermediate_len = strspn(&seq[1], " !\"#$%&'()*+,-./");
-	if (seq[1+intermediate_len] == 0)
+	intermediate_len = strspn(&seq[0], " !\"#$%&'()*+,-./");
+	if (seq[intermediate_len] == 0)
 		goto incomplete;
-	if (seq[1+intermediate_len] < 0x30 || seq[1+intermediate_len] > 0x7e)
+	if (seq[intermediate_len] < 0x30 || seq[intermediate_len] > 0x7e)
 		return SEQ_BROKEN;
 
 	/* Check if it's CSI */
@@ -3781,7 +3781,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.271 $";
+	char	*revision="$Revision: 1.272 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
