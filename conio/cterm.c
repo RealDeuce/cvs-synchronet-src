@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.270 2020/04/13 02:00:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.273 2020/04/13 22:04:36 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1202,7 +1202,9 @@ cterm_clearscreen(struct cterminal *cterm, char attr)
 
 struct esc_seq {
 	char c1_byte;			// Character after the ESC.  If '[', ctrl_func and param_str will be non-NULL.
-	char final_byte;		// Final Byte (or NULL if c1 function);
+					// For nF sequences (ESC I...I F), this will be NUL and ctrl_func will be
+					// non-NULL
+	char final_byte;		// Final Byte (or NUL if c1 function);
 	char *ctrl_func;		// Intermediate Bytes and Final Byte as NULL-terminated string.
 	char *param_str;		// The parameter bytes
 	int param_count;		// The number of parameters, or -1 if parameters were not parsed.
@@ -1414,13 +1416,10 @@ static enum {
 		goto incomplete;
 
 	/* Check that it's part of C1 set, part of the Independent control functions, or an nF sequence type (ECMA 35)*/
-	if (seq[0] < 0x40 || seq[0] > 0x7e)
-		return SEQ_BROKEN;
-
-	intermediate_len = strspn(&seq[1], " !\"#$%&'()*+,-./");
-	if (seq[1+intermediate_len] == 0)
+	intermediate_len = strspn(&seq[0], " !\"#$%&'()*+,-./");
+	if (seq[intermediate_len] == 0)
 		goto incomplete;
-	if (seq[1+intermediate_len] < 0x30 || seq[1+intermediate_len] > 0x7e)
+	if (seq[intermediate_len] < 0x30 || seq[intermediate_len] > 0x7e)
 		return SEQ_BROKEN;
 
 	/* Check if it's CSI */
@@ -1453,22 +1452,28 @@ incomplete:
 static struct esc_seq *parse_sequence(const char *seq)
 {
 	struct esc_seq *ret;
+	size_t intermediate_len;
 
 	ret = calloc(1, sizeof(struct esc_seq));
 	if (ret == NULL)
 		return ret;
 	ret->param_count = -1;
 
-	/* Check that it's part of C1 set or part of the Independent control functions */
-	if (seq[0] < 0x40 || seq[0] > 0x7e)
+	/* Check that it's part of C1 set, part of the Independent control functions, or an nF sequence type (ECMA 35)*/
+	intermediate_len = strspn(&seq[0], " !\"#$%&'()*+,-./");
+	if (seq[intermediate_len] == 0)
 		goto fail;
 
-	ret->c1_byte = seq[0];
+	/* Validate C1 final byte */
+	if (seq[intermediate_len] < 0x30 || seq[intermediate_len] > 0x7e)
+		goto fail;
+
+	if (intermediate_len == 0)
+		ret->c1_byte = seq[intermediate_len];
 
 	/* Check if it's CSI */
 	if (seq[0] == '[') {
 		size_t parameter_len;
-		size_t intermediate_len;
 
 		parameter_len = strspn(&seq[1], "0123456789:;<=>?");
 		ret->param_str = malloc(parameter_len + 1);
@@ -1502,6 +1507,13 @@ static struct esc_seq *parse_sequence(const char *seq)
 
 		if (!parse_parameters(ret))
 			goto fail;
+	}
+	else {
+		ret->ctrl_func = malloc(intermediate_len + 2);
+		if (!ret->ctrl_func)
+			goto fail;
+		memcpy(ret->ctrl_func, seq, intermediate_len + 1);
+		ret->ctrl_func[intermediate_len + 1] = 0;
 	}
 	return ret;
 
@@ -2793,7 +2805,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							TERM_XY(&col, &row);
 							col += seq->param_int[0];
 							if(col > TERM_MAXX)
-								i = TERM_MAXX;
+								col = TERM_MAXX;
 							GOTOXY(col, row);
 							break;
 						case 'j':	/* Character Position Backward */
@@ -2804,13 +2816,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							if(col < TERM_MINX)
 								col = TERM_MINX;
 							GOTOXY(col, row);
-							break;
-							seq_default(seq, 0, 1);
-							TERM_XY(&col, &row);
-							row += seq->param_int[0];
-							if(i>cterm->bottom_margin)
-								i=cterm->bottom_margin;
-							GOTOXY(1,i);
 							break;
 						// for case 'E' see case 'B'
 						// for case 'F' see case 'A'
@@ -3788,7 +3793,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.270 $";
+	char	*revision="$Revision: 1.273 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4026,9 +4031,9 @@ static void parse_sixel_intro(struct cterminal *cterm)
 		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->extattr & CTERM_EXTATTR_SXSCROLL) {
-			cterm->sx_x = cterm->sx_start_x *= vparams[vmode].charwidth;
-			cterm->sx_y = cterm->sx_start_y *= vparams[vmode].charwidth;
 			TERM_XY(&cterm->sx_start_x, &cterm->sx_start_y);
+			cterm->sx_left = cterm->sx_x = (cterm->sx_start_x - 1) * vparams[vmode].charwidth;
+			cterm->sx_y = (cterm->sx_start_y - 1) * vparams[vmode].charheight;
 		}
 		else {
 			cterm->sx_x = cterm->sx_left = cterm->sx_y = 0;
