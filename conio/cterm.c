@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.267 2020/04/11 15:50:52 deuce Exp $ */
+/* $Id: cterm.c,v 1.270 2020/04/13 02:00:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1405,20 +1405,27 @@ static enum {
 	SEQ_COMPLETE
 } legal_sequence(const char *seq, size_t max_len)
 {
+	size_t intermediate_len;
+
 	if (seq == NULL)
 		return SEQ_BROKEN;
 
 	if (seq[0] == 0)
 		goto incomplete;
 
-	/* Check that it's part of C1 set or part of the Independent control functions */
+	/* Check that it's part of C1 set, part of the Independent control functions, or an nF sequence type (ECMA 35)*/
 	if (seq[0] < 0x40 || seq[0] > 0x7e)
+		return SEQ_BROKEN;
+
+	intermediate_len = strspn(&seq[1], " !\"#$%&'()*+,-./");
+	if (seq[1+intermediate_len] == 0)
+		goto incomplete;
+	if (seq[1+intermediate_len] < 0x30 || seq[1+intermediate_len] > 0x7e)
 		return SEQ_BROKEN;
 
 	/* Check if it's CSI */
 	if (seq[0] == '[') {
 		size_t parameter_len;
-		size_t intermediate_len;
 
 		if (seq[1] >= '<' && seq[1] <= '?')
 			parameter_len = strspn(&seq[1], "0123456789:;<=>?");
@@ -2953,16 +2960,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							for(j=0; j<seq->param_int[0]; j++)
 								scrolldown(cterm);
 							break;
-	#if 0
-						case 'U':	/* Next Page */
-							GETTEXTINFO(&ti);
-							cterm_clearscreen(cterm, ti.normattr);
-							if(cterm->extattr & CTERM_EXTATTR_ORIGINMODE)
-								GOTOXY(1,cterm->top_margin);
-							else
-								GOTOXY(1,1);
+						case 'U':	/* TODO? Next Page */
 							break;
-	#endif
 						case 'V':	/* TODO? Preceding Page */
 							break;
 						case 'W':	/* TODO? Cursor Tabulation Control */
@@ -3332,7 +3331,11 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								seq_default(seq, 0, ABS_MINX);
 								seq_default(seq, 1, ABS_MAXX);
 								col = seq->param_int[0];
+								if (col == 0)
+									col = cterm->left_margin;
 								max_col = seq->param_int[1];
+								if (max_col == 0)
+									max_col = cterm->right_margin;
 								if(col >= ABS_MINX && max_col > col && max_col <= ABS_MAXX) {
 									cterm->left_margin = col;
 									cterm->right_margin = max_col;
@@ -3785,7 +3788,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.267 $";
+	char	*revision="$Revision: 1.270 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4023,14 +4026,11 @@ static void parse_sixel_intro(struct cterminal *cterm)
 		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->extattr & CTERM_EXTATTR_SXSCROLL) {
+			cterm->sx_x = cterm->sx_start_x *= vparams[vmode].charwidth;
+			cterm->sx_y = cterm->sx_start_y *= vparams[vmode].charwidth;
 			TERM_XY(&cterm->sx_start_x, &cterm->sx_start_y);
-			cterm->sx_start_x *= vparams[vmode].charwidth;
-			cterm->sx_start_y *= vparams[vmode].charwidth;
-			cterm->sx_x = cterm->sx_start_x;
-			cterm->sx_y = cterm->sx_start_y;
 		}
 		else {
-			// TODO: Why aren't these multipled by width/height?
 			cterm->sx_x = cterm->sx_left = cterm->sx_y = 0;
 			TERM_XY(&cterm->sx_start_x, &cterm->sx_start_y);
 		}
