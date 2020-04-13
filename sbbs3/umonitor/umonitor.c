@@ -1,6 +1,6 @@
 /* Synchronet for *nix node activity monitor */
 
-/* $Id: umonitor.c,v 1.95 2020/03/22 09:23:16 rswindell Exp $ */
+/* $Id: umonitor.c,v 1.98 2020/04/12 20:23:00 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -444,7 +444,7 @@ int view_logs(scfg_t *cfg)
 	localtime_r(&now,&tm);
 	now -= 60*60*24;
 	localtime_r(&now,&tm_yest);
-	const int num_opts = 11;
+	const int num_opts = 12;
 	if((opt=(char **)alloca(sizeof(char *)*(num_opts+1)))==NULL)
 		allocfail(sizeof(char *)*(num_opts+1));
 	for(i=0;i<(num_opts+1);i++)
@@ -460,6 +460,7 @@ int view_logs(scfg_t *cfg)
 	strcpy(opt[i++],"Spam log");
 	strcpy(opt[i++],"SBBSecho log");
 	strcpy(opt[i++],"EchoMail stats");
+	strcpy(opt[i++],"BinkP stats");
 	strcpy(opt[i++],"Bad Areas list");
 	strcpy(opt[i++],"Guru log");
 	strcpy(opt[i++],"Hack log");
@@ -474,7 +475,8 @@ int view_logs(scfg_t *cfg)
 	                "`Yesterday's log     : `View Yesterday's system activity.\n"
 	                "`Spam log            : `View the log of Spam E-Mail sent to the system.\n"
 	                "`SBBSecho log        : `View the FidoNet EchoMail program log.\n"
-	                "`EchoMail stats      : `view the EchoMail statistics.\n"
+	                "`EchoMail stats      : `view the FidoNet EchoMail statistics.\n"
+					"`Binkp stats         : `view the BinkP FidoNet mailer statistics.\n"
 	                "`Bad Areas list      : `view the list of unknown EchoMail areas.\n"
 	                "`Guru log            : `View the transcriptions of chats with the Guru.\n"
 	                "`Hack log            : `View the Hack attempt log.";
@@ -520,14 +522,18 @@ int view_logs(scfg_t *cfg)
 				view_log(str,"EchoMail Stats");
 				break;
 			case 8:
+				sprintf(str,"%sbinkstats.ini",cfg->data_dir);
+				view_log(str,"BinkP Stats");
+				break;
+			case 9:
 				sprintf(str,"%sbadareas.lst",cfg->data_dir);
 				view_log(str,"Bad Area List");
 				break;
-			case 9:
+			case 10:
 				sprintf(str,"%sguru.log",cfg->logs_dir);
 				view_log(str,"Guru Log");
 				break;
-			case 10:
+			case 11:
 				sprintf(str,"%shack.log",cfg->logs_dir);
 				view_log(str,"Hack Log");
 				break;
@@ -823,10 +829,10 @@ int main(int argc, char** argv)  {
 	FILE*				fp=NULL;
 	bbs_startup_t		bbs_startup;
 
-	sscanf("$Revision: 1.95 $", "%*s %s", revision);
+	sscanf("$Revision: 1.98 $", "%*s %s", revision);
 
 	printf("\nSynchronet UNIX Monitor %s-%s  Copyright %s "
-		"Rob Swindell\n",revision,PLATFORM_DESC,__DATE__+7);
+		"Rob Swindell\n",revision,PLATFORM_DESC,&__DATE__[7]);
 
 	SAFECOPY(ctrl_dir, get_ctrl_dir());
 	backslash(ctrl_dir);
@@ -907,10 +913,13 @@ int main(int argc, char** argv)  {
 							ciolib_mode=CIOLIB_MODE_CURSES;
 							break;
 						case 0:
-							printf("NOTICE: The -i option is deprecated, use -if instead\r\n");
+							printf("NOTICE: The -i option is deprecated, use -if instead\n");
 							SLEEP(2000);
 						case 'F':
 							ciolib_mode=CIOLIB_MODE_CURSES_IBM;
+							break;
+						case 'I':
+							ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
 							break;
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
@@ -924,19 +933,20 @@ int main(int argc, char** argv)  {
 					break;
 				default:
 USAGE:
-					printf("\nusage: %s [ctrl_dir] [options]\r\n"
+					printf("\nusage: %s [ctrl_dir] [options]\n"
 					         "options:\n\n"
 					         "-c  =  force color mode\n"
 					         "-e# =  set escape delay to #msec\n"
-					         "-iX =  set interface mode to X (default=auto) where X is one of:\r\n"
+					         "-iX =  set interface mode to X (default=auto) where X is one of:\n"
 #ifdef __unix__
-					         "       X = X11 mode\r\n"
-					         "       C = Curses mode\r\n"
-					         "       F = Curses mode with forced IBM charset\r\n"
+					         "       X = X11 mode\n"
+					         "       C = Curses mode\n"
+					         "       F = Curses mode with forced IBM charset\n"
+							 "       I = Curses mode with forced ASCII charset\n"
 #else
-					         "       W = Win32 native mode\r\n"
+					         "       W = Win32 native mode\n"
 #endif
-					         "       A = ANSI mode\r\n"
+					         "       A = ANSI mode\n"
 					         "-l# =  set screen lines to #\n"
 					         "-s# =  set idle slsep to # milliseconds (defualt: %d)\n"
 					    ,argv[0]
