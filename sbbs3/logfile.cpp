@@ -1,6 +1,6 @@
 /* Synchronet log file routines */
 
-/* $Id: logfile.cpp,v 1.66 2019/06/23 20:12:03 rswindell Exp $ */
+/* $Id: logfile.cpp,v 1.67 2020/04/11 04:01:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -252,14 +252,10 @@ void sbbs_t::errormsg(int line, const char* function, const char *src, const cha
 		,src, line, function, action, object, access
 		,extinfo==NULL ? "":"info="
 		,extinfo==NULL ? "":extinfo);
-	if(online==ON_LOCAL) {
-		if(useron.number)
-			eprintf(LOG_ERR, "<%s> %s", useron.alias, str);
-		else
-			eprintf(LOG_ERR, "%s", str);
-	} else {
+
+	lprintf(LOG_ERR, "!%s", str);
+	if(online == ON_REMOTE) {
 		int savatr=curatr;
-		lprintf(LOG_ERR, "!%s", str);
 		attr(cfg.color[clr_err]);
 		bprintf("\7\r\n!ERROR %s %s\r\n", action, object);   /* tell user about error */
 		bputs("\r\nThe sysop has been notified.\r\n");
