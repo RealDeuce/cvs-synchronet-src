@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.715 2020/04/13 23:21:38 deuce Exp $ */
+/* $Id: websrvr.c,v 1.714 2020/04/12 06:06:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -6286,27 +6286,7 @@ void http_output_thread(void *arg)
 		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, (char*)&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
-#ifdef _WIN32
-#ifdef TCP_TIMESTAMPS
-				DWORD ts;
-				sl = sizeof(ts);
-				if (!getsockopt(session->socket, IPPROTO_TCP, TCP_TIMESTAMPS, (char *)&ts, &sl)) {
-					if (ts)
-						i -= 12;
-				}
-#endif
-#else
-#if (defined(TCP_INFO) && defined(TCPI_OPT_TIMESTAMPS))
-				struct tcp_info tcpi;
-
-				sl = sizeof(tcpi);
-				if (!getsockopt(session->socket, IPPROTO_TCP, TCP_INFO,&tcpi, &sl)) {
-					if (tcpi.tcpi_options & TCPI_OPT_TIMESTAMPS)
-						i -= 12;
-				}
-#endif
-#endif
-				obuf->highwater_mark=i;
+				obuf->highwater_mark=i-12;
 				lprintf(LOG_DEBUG,"%04d Autotuning outbuf highwater mark to %d based on MSS"
 					,session->socket,i);
 				mss=obuf->highwater_mark;
@@ -6764,7 +6744,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.715 $", "%*s %s", revision);
+	sscanf("$Revision: 1.714 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
