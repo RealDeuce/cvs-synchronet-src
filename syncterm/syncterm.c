@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.235 2020/04/13 07:20:00 deuce Exp $ */
+/* $Id: syncterm.c,v 1.230 2020/04/13 02:06:47 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -714,7 +714,6 @@ char *output_types[]={
 #ifdef __unix__
 	,"Curses"
 	,"Curses on cp437 Device"
-	,"Curses using US-ASCII"
 #endif
 	,"ANSI"
 #if defined(__unix__) && !defined(NO_X)
@@ -752,7 +751,6 @@ char *output_descrs[]={
 	 "Autodetect"
 	,"Curses"
 	,"Curses on cp437 Device"
-	,"Curses using US-ASCII"
 	,"ANSI"
 	,"X11"
 	,"Win32 Console"
@@ -765,7 +763,6 @@ char *output_enum[]={
 	 "Autodetect"
 	,"Curses"
 	,"Curses437"
-	,"CursesAscii"
 	,"ANSI"
 	,"X11"
 	,"WinConsole"
@@ -1291,14 +1288,14 @@ int main(int argc, char **argv)
 				// smgtb=\\E[%i%p1%d;%p2%dr,
 				// shift/ctrl/alt Fx as extra keys?
 				// Booleans:
-				"	am,bce,da,ndscr,\n"	// sam is a printer capability
+				"	am,bce,da,mir,msgr,ndscr,\n"	// sam is a printer capability
 				// Numeric:
 				"	it#8,colors#8,pairs#64,\n"        
-				// Strings:
-				"	acsc=}\\234|\\330{\\322+\\020,\\021l\\332m\\300k\\277j\\331u\\264t\\303v\\301w\\302q\\304x\\263n\\305`^Da\\260f\\370g\\361~\\371.^Y-^Xh\\261i^U0\\333y\\363z\\362,\n"
+				// Strings:                                             |
+				"	acsc=l\\332m\\300k\\277j\\331u\\264t\\303v\\301w\\302q\\304x\\263n\\305`\\004a\\260f\\370g\\361~\\371.\\031-\\030h\\261i^U0\\333y\\363z\\362,\n"
 				"	cbt=\\E[Z,bel=^G,cr=^M,csr=\\E[%i%p1%d;%p2%dr,tbc=\\E[3g,\n"
 				"	mgc=\\E[69h\\E[s\\e[69l,clear=\\E[2J,csr=\\E[%i%p1%d;%p2%dr,el1=\\E[1K,\n"
-				"	el=\\E[K,ed=\\E[J,hpa=\\E[%i%p1%dG,cup=\\E[%i%p1%d;%p2%dH,cud1=^J,home=\\E[H,\n"
+				"	el=\\E[K,ed=\\E[J,pa=\\E[%i%p1%dG,cup=\\E[%i%p1%d;%p2%dH,cud1=^J,home=\\E[H,\n"
 				"	civis=\\E[?25l,cub1=\\E[D,cnorm=\\E[?25h,cuf1=\\E[C,ll=\\E[255H,cuu1=\\E[A,\n"
 				"	cvvis=\\E[?25h,dch1=\\E[P,dl1=\\E[M,smam=\\E[?7h,blink=\\E[5m,bold=\\E[1m,\n"
 				"	ech=\\E[%p1%dX,rmam=\\E[7l,sgr0=\\E[m,is1=\\Ec,ich1=\\E[@,il1=\\E[L,kbs=^H,\n"
@@ -1308,7 +1305,7 @@ int main(int argc, char **argv)
 				"	kpp=\\E[V,kcuf1=\\E[C,kcuu1=\\E[A,nel=^M^J,dch=\\E[%p1%dP,dl=\\E[%p1%dM,\n"
 				"	cud=\\E[%p1%dB,ich=\\E[%p1%d@,indn=\\E[%p1%dS,il=\\E[%p1%dL,cub=\\E[%p1%dD,\n"
 				"	cuf=\\E[%p1%dC,rin=\\E[%p1%dT,cuu=\\E[%p1%dA,rep=%p1%c\\E[%p2%{1}%-%db,\n"
-				"	rs1=\\E[c,rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,\n"
+				"	rs=\\E[c,rc=\\E[u,sc=\\E[s,ind=\\E[S,ri=\\E[T,\n"
 				"	sgr=\\E[0%?%p1%p6%|%t;1%;%?%p4%|%t;5%;%?%p1%p3%|%t;7%;%?%p7%|%t;8%;m,\n"
 				"	smglp=\\E[69h\\E[%{1}%p1%+%d;0s\\E[69l,smgrp=\\E[69h\\E[0;%{1}%p1%+%ds\\E[69l,\n"
 				"	hts=\\E[H,ht=\t,setab=\\E[4%p1%dm,setaf=\\E[3%p1%dm,\n"
@@ -1316,7 +1313,7 @@ int main(int argc, char **argv)
 				"syncterm-bitmap|SyncTERM in Bitmap Mode,\n"
 				"	ccc,\n"
 				"	colors#256,pairs#65535,\n"
-				"	initc=\\E]4;%p1%d;rgb\\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\\E\\\\,\n"
+				"	initc=\\E]4;%p1%d;rgb\\:%p2%{255}%*%{1000}%/%2.2X/%p3%{255}%*%{1000}%/%2.2X/%p4%{255}%*%{1000}%/%2.2X\\E\\\\\n"
 				"	setab=\\E[%?%p1%{8}%<%t4%p1%d%e%p1%{16}%<%t10%p1%{8}%-%d%e48;5;%p1%d%;m,\n"
 				"	setaf=\\E[%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m,\n"
 				"syncterm-24|SyncTERM 80x25,\n"
@@ -1367,26 +1364,26 @@ int main(int argc, char **argv)
 				"	cols#132,lines#59,use=syncterm,\n"
 				"syncterm-60-w|SyncTERM 132x60 No Status Line,\n"
 				"	cols#132,lines#60,use=syncterm,\n"
-				"syncterm-24-bitmap|SyncTERM 80x25,\n"
-				"	lines#24,use=syncterm-bitmap,\n"
-				"syncterm-25-bitmap|SyncTERM No Status Line,\n"
-				"	lines#25,use=syncterm-bitmap,\n"
-				"syncterm-27-bitmap|SyncTERM 80x28 With Status,\n"
-				"	lines#27,use=syncterm-bitmap,\n"
-				"syncterm-28-bitmap|SyncTERM 80x28 No Status Line,\n"
-				"	lines#28,use=syncterm-bitmap,\n"
-				"syncterm-42-bitmap|SyncTERM 80x23,\n"
-				"	lines#42,use=syncterm-bitmap,\n"
-				"syncterm-43-bitmap|SyncTERM 80x23 No Status Line,\n"
-				"	lines#43,use=syncterm-bitmap,\n"
-				"syncterm-49-bitmap|SyncTERM 80x50,\n"
-				"	lines#49,use=syncterm-bitmap,\n"
-				"syncterm-50-bitmap|SyncTERM 80x50 No Status Line,\n"
-				"	lines#50,use=syncterm-bitmap,\n"
-				"syncterm-59-bitmap|SyncTERM 80x60,\n"
-				"	lines#59,use=syncterm-bitmap,\n"
-				"syncterm-60-bitmap|SyncTERM 80x60 No Status Line,\n"
-				"	lines#60,use=syncterm-bitmap,\n"
+				"syncterm-24|SyncTERM 80x25,\n"
+				"	lines#24,use=syncterm,\n"
+				"syncterm-25|SyncTERM No Status Line,\n"
+				"	lines#25,use=syncterm,\n"
+				"syncterm-27|SyncTERM 80x28 With Status,\n"
+				"	lines#27,use=syncterm,\n"
+				"syncterm-28|SyncTERM 80x28 No Status Line,\n"
+				"	lines#28,use=syncterm,\n"
+				"syncterm-42|SyncTERM 80x23,\n"
+				"	lines#42,use=syncterm,\n"
+				"syncterm-43|SyncTERM 80x23 No Status Line,\n"
+				"	lines#43,use=syncterm,\n"
+				"syncterm-49|SyncTERM 80x50,\n"
+				"	lines#49,use=syncterm,\n"
+				"syncterm-50|SyncTERM 80x50 No Status Line,\n"
+				"	lines#50,use=syncterm,\n"
+				"syncterm-59|SyncTERM 80x60,\n"
+				"	lines#59,use=syncterm,\n"
+				"syncterm-60|SyncTERM 80x60 No Status Line,\n"
+				"	lines#60,use=syncterm,\n"
 				"syncterm-w-bitmap|SyncTERM Wide,\n"
 				"	cols#132,use=syncterm-bitmap,\n"
 				"syncterm-25-w-bitmap|SyncTERM No Status Line,\n"
@@ -1731,37 +1728,33 @@ int main(int argc, char **argv)
 	if (last_bbs)
 		free(last_bbs);
 	// Save changed settings
-	gettextinfo(&txtinfo);
-	// Only save window info if we're in the startup mode...
-	if (txtinfo.currmode == settings.startup_mode || (settings.startup_mode == SCREEN_MODE_CURRENT && txtinfo.currmode == C80)) {
-		ww = wh = sf = -1;
-		get_window_info(&ww, &wh, NULL, NULL);
-		sf = getscaling();
-		if((sf > 0 && sf != settings.scaling_factor) ||
-		    (ww > 0 && ww != settings.window_width) ||
-		    (wh > 0 && wh != settings.window_height)) {
-			char	inipath[MAX_PATH+1];
-			FILE	*inifile;
-			str_list_t	inicontents;
+	ww = wh = sf = -1;
+	get_window_info(&ww, &wh, NULL, NULL);
+	sf = getscaling();
+	if((sf > 0 && sf != settings.scaling_factor) ||
+	    (ww > 0 && ww != settings.window_width) ||
+	    (wh > 0 && wh != settings.window_height)) {
+		char	inipath[MAX_PATH+1];
+		FILE	*inifile;
+		str_list_t	inicontents;
 
-			get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
-			if((inifile=fopen(inipath,"r"))!=NULL) {
-				inicontents=iniReadFile(inifile);
-				fclose(inifile);
-			}
-			else {
-				inicontents=strListInit();
-			}
-			if (sf > 0 && sf != settings.scaling_factor)
-				iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
-			if (ww > 0 && ww != settings.window_width)
-				iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
-			if (wh > 0 && wh != settings.window_height)
-				iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
-			if((inifile=fopen(inipath,"w"))!=NULL) {
-				iniWriteFile(inifile,inicontents);
-				fclose(inifile);
-			}
+		get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
+		if((inifile=fopen(inipath,"r"))!=NULL) {
+			inicontents=iniReadFile(inifile);
+			fclose(inifile);
+		}
+		else {
+			inicontents=strListInit();
+		}
+		if (sf > 0 && sf != settings.scaling_factor)
+			iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
+		if (ww > 0 && ww != settings.window_width)
+			iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
+		if (wh > 0 && wh != settings.window_height)
+			iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
+		if((inifile=fopen(inipath,"w"))!=NULL) {
+			iniWriteFile(inifile,inicontents);
+			fclose(inifile);
 		}
 	}
 
