@@ -1,6 +1,6 @@
 /* Synchronet single-key console functions */
 
-/* $Id: getkey.cpp,v 1.58 2020/03/01 23:55:47 rswindell Exp $ */
+/* $Id: getkey.cpp,v 1.59 2020/04/06 02:41:31 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -379,12 +379,16 @@ bool sbbs_t::yesno(const char *str, long mode)
 		if(ch==text[YNQP][0] || ch==CR) {
 			if(bputs(text[Yes], mode) && !(mode&P_NOCRLF))
 				CRLF;
+			if(!(mode&P_SAVEATR))
+				attr(LIGHTGRAY);
 			lncntr=0;
 			return(true); 
 		}
 		if(ch==text[YNQP][1]) {
 			if(bputs(text[No], mode) && !(mode&P_NOCRLF))
 				CRLF;
+			if(!(mode&P_SAVEATR))
+				attr(LIGHTGRAY);
 			lncntr=0;
 			return(false); 
 		} 
@@ -413,12 +417,16 @@ bool sbbs_t::noyes(const char *str, long mode)
 		if(ch==text[YNQP][1] || ch==CR) {
 			if(bputs(text[No], mode) && !(mode&P_NOCRLF))
 				CRLF;
+			if(!(mode&P_SAVEATR))
+				attr(LIGHTGRAY);
 			lncntr=0;
 			return(true); 
 		}
 		if(ch==text[YNQP][0]) {
 			if(bputs(text[Yes], mode) && !(mode&P_NOCRLF))
 				CRLF;
+			if(!(mode&P_SAVEATR))
+				attr(LIGHTGRAY);
 			lncntr=0;
 			return(false); 
 		} 
