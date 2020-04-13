@@ -1,7 +1,7 @@
 /* Synchronet public message reading function */
 // vi: tabstop=4
 
-/* $Id: readmsgs.cpp,v 1.128 2020/03/19 08:12:53 rswindell Exp $ */
+/* $Id: readmsgs.cpp,v 1.130 2020/04/11 05:18:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -64,7 +64,7 @@ long sbbs_t::listmsgs(uint subnum, long mode, post_t *post, long start, long pos
 {
 	smbmsg_t msg;
 	long listed=0;
-	
+
 	for(long i = start; i<posts && !msgabort(); i++) {
 		if(mode&SCAN_NEW && post[i].idx.number<=subscan[subnum].ptr)
 			continue;
@@ -776,16 +776,17 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			lncntr--;
 		bprintf(text[ReadingSub],ugrp,cfg.grp[cfg.sub[subnum]->grp]->sname
 			,usub,cfg.sub[subnum]->sname,smb.curmsg+1,smb.msgs);
-		sprintf(str,"ABCDEFHILMNPQRTUVY?*<>[]{}-+()\b");
+		sprintf(str,"ABCDEFHILMNPQRTUVY?*<>[]{}-+()\b%c%c%c%c"
+			,TERM_KEY_LEFT
+			,TERM_KEY_RIGHT
+			,TERM_KEY_HOME
+			,TERM_KEY_END
+			);
 		if(thread_mode)
-			sprintf(str+strlen(str),"%c%c%c%c%c%c"
-				,TERM_KEY_LEFT
-				,TERM_KEY_RIGHT
+			sprintf(str+strlen(str),"%c%c"
 				,TERM_KEY_UP
-				,TERM_KEY_DOWN
-				,TERM_KEY_HOME
-				,TERM_KEY_END
-				);
+				,TERM_KEY_DOWN);
+
 		if(sub_op(subnum))
 			strcat(str,"O");
 		do_find=true;
@@ -1362,6 +1363,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				break;
 			case TERM_KEY_HOME:	/* Home */
 			{
+				if(!thread_mode) {
+					smb.curmsg = 0;
+					newline();
+					break;
+				}
 				uint32_t first = smb_first_in_thread(&smb, &msg, NULL);
 				if(first <= 0) {
 					bputs(text[NoMessagesFound]);
@@ -1375,6 +1381,11 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 			}
 			case TERM_KEY_END:	/* End */
 			{
+				if(!thread_mode) {
+					smb.curmsg = smb.msgs -1;
+					newline();
+					break;
+				}
 				uint32_t last = smb_last_in_thread(&smb, &msg);
 				if(last <= 0) {
 					bputs(text[NoMessagesFound]);
@@ -1410,6 +1421,14 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				do_find=false;
 				break;
 			case TERM_KEY_RIGHT:	/* Right-arrow */
+				if(!thread_mode) {
+					if(smb.curmsg<smb.msgs-1)
+						smb.curmsg++;
+					else
+						done=1;
+					newline();
+					break;
+				}
                 l=msg.hdr.thread_first;
                 if(!l) l=msg.hdr.thread_next;
                 if(!l) {
@@ -1428,8 +1447,13 @@ int sbbs_t::scanposts(uint subnum, long mode, const char *find)
 				}
 				do_find=false;
 				break;
-			case '(':   /* Thread backwards */
 			case TERM_KEY_LEFT:	/* left arrow */
+				if(!thread_mode) {
+					if(smb.curmsg>0) smb.curmsg--;
+					newline();
+					break;
+				}
+			case '(':   /* Thread backwards */
 				if(!msg.hdr.thread_back) {
 					domsg=0;
 					outchar('\a');
@@ -1614,6 +1638,13 @@ long sbbs_t::listsub(uint subnum, long mode, long start, const char* search)
 	long	displayed = 0;
 	long	lp_mode = LP_BYSELF;
 	post_t	*post;
+
+	if((mode&SCAN_INDEX) && cfg.listmsgs_mod[0]) {
+		char cmdline[256];
+
+		safe_snprintf(cmdline, sizeof(cmdline), "%s %s %ld", cfg.listmsgs_mod, cfg.sub[subnum]->code, mode);
+		return exec_bin(cmdline, &main_csi);
+	}
 
 	if((i=smb_stack(&smb,SMB_STACK_PUSH))!=0) {
 		errormsg(WHERE,ERR_OPEN,cfg.sub[subnum]->code,i);
