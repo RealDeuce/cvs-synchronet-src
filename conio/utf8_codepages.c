@@ -213,9 +213,9 @@ cp437_to_utf8(const char *cp437str, size_t buflen, size_t *outlen)
 	for (idx = 0; idx < buflen; idx++) {
 		ch = cp437str[idx];
 		if (ch == 0)
-			cplen = 4;
+			cplen += 4;
 		else if (ch < 128)
-			cplen = 1;
+			cplen++;
 		else
 			cplen = utf8_bytes(ch - 128);
 		if (cplen == -1)
