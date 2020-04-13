@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.270 2020/04/13 02:00:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.271 2020/04/13 07:47:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2793,7 +2793,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							TERM_XY(&col, &row);
 							col += seq->param_int[0];
 							if(col > TERM_MAXX)
-								i = TERM_MAXX;
+								col = TERM_MAXX;
 							GOTOXY(col, row);
 							break;
 						case 'j':	/* Character Position Backward */
@@ -2804,13 +2804,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							if(col < TERM_MINX)
 								col = TERM_MINX;
 							GOTOXY(col, row);
-							break;
-							seq_default(seq, 0, 1);
-							TERM_XY(&col, &row);
-							row += seq->param_int[0];
-							if(i>cterm->bottom_margin)
-								i=cterm->bottom_margin;
-							GOTOXY(1,i);
 							break;
 						// for case 'E' see case 'B'
 						// for case 'F' see case 'A'
@@ -3788,7 +3781,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.270 $";
+	char	*revision="$Revision: 1.271 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
