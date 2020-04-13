@@ -1,7 +1,7 @@
 /* Synchronet configuration structure (scfg_t) definition */
 // vi: tabstop=4
 
-/* $Id: scfgdefs.h,v 1.48 2019/05/09 21:14:20 rswindell Exp $ */
+/* $Id: scfgdefs.h,v 1.55 2020/04/12 06:06:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -68,6 +68,8 @@ typedef struct {							/* Message sub board info */
 	uint32_t	misc,						/* Miscellaneous flags */
 				maxmsgs,					/* Max number of messages allowed */
 				maxcrcs;					/* Max number of CRCs to keep */
+	int32_t		pmode;						/* printfile()/putmsg() mode flags */
+	int32_t		n_pmode;					/* set of negated pmode flags */
 	faddr_t		faddr;						/* FidoNet address */
 
 } sub_t;
@@ -593,9 +595,11 @@ typedef struct
 	char			logout_mod[LEN_MODNAME+1];			/* Logout module */
 	char			sync_mod[LEN_MODNAME+1];			/* Synchronization module */
 	char			expire_mod[LEN_MODNAME+1];			/* User expiration module */
+	char			textsec_mod[LEN_MODNAME+1];			/* Text section module */
 	char			readmail_mod[LEN_CMD+1];	/* Reading mail module */
 	char			scanposts_mod[LEN_CMD+1];	/* Scanning posts (in a single sub) module */
 	char			scansubs_mod[LEN_CMD+1];	/* Scanning sub-boards module */
+	char			listmsgs_mod[LEN_CMD+1];	/* Listing messages module */
 	char			scfg_cmd[LEN_CMD+1];	/* SCFG command line - unused! */
 	uchar			smb_retry_time; 		/* Seconds to retry on SMBs */
 	uint16_t		sec_warn;				/* Seconds before inactivity warning */
@@ -610,7 +614,9 @@ typedef struct
 
 	uint16_t		user_backup_level;
 	uint16_t		mail_backup_level;
+	char**			text;
 
+	// Run-time state information (not configuration)
 	int				tls_certificate;
 
 } scfg_t;
