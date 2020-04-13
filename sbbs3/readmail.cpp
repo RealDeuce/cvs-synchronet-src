@@ -2,7 +2,7 @@
 
 /* Synchronet private mail reading function */
 
-/* $Id: readmail.cpp,v 1.96 2019/08/08 18:30:41 rswindell Exp $ */
+/* $Id: readmail.cpp,v 1.99 2020/04/11 05:18:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -299,7 +299,11 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 			bprintf(text[ReadingAllMail],smb.curmsg+1,smb.msgs);
 		else
 			bprintf(text[ReadingMail],smb.curmsg+1,smb.msgs);
-		sprintf(str,"ADFLNQRT?<>[]{}()-+/!");
+		sprintf(str,"ADFLNQRT?<>[]{}()-+/!%c%c%c%c"
+			,TERM_KEY_LEFT
+			,TERM_KEY_RIGHT
+			,TERM_KEY_HOME
+			,TERM_KEY_END);
 		if(SYSOP)
 			strcat(str,"CUSPH");
 		if(which == MAIL_YOUR)
@@ -465,10 +469,18 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 				break;
 			case 'H':
 				domsg=0;
-				msghdr(&msg);
+				dump_msghdr(&msg);
 				break;
 			case 'L':     /* List mail */
 				domsg=0;
+				if(cfg.listmsgs_mod[0]) {
+					char cmdline[256];
+
+					safe_snprintf(cmdline, sizeof(cmdline), "%s %s %d %u %lu", cfg.listmsgs_mod, "mail", which, usernumber, lm_mode);
+					exec_bin(cmdline, &main_csi);
+					break;
+				}
+
 				bprintf(text[StartWithN],(long)smb.curmsg+1);
 				if((i=getnum(smb.msgs))>0)
 					i--;
@@ -620,11 +632,23 @@ void sbbs_t::readmail(uint usernumber, int which, long lm_mode)
 					}
 				}
 				break;
+			case TERM_KEY_HOME:
+				smb.curmsg = 0;
+				newline();
+				break;
+			case TERM_KEY_END:
+				smb.curmsg = smb.msgs - 1;
+				newline();
+				break;
+			case TERM_KEY_RIGHT:
+				newline();
 			case 0:
 			case '+':
 				if(smb.curmsg<smb.msgs-1) smb.curmsg++;
 				else done=1;
 				break;
+			case TERM_KEY_LEFT:
+				newline();
 			case '-':
 				if(smb.curmsg>0) smb.curmsg--;
 				break;
