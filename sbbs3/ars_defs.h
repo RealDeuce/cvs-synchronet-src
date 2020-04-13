@@ -2,7 +2,7 @@
 
 /* Synchronet Access Requirement Strings (ARS) constants */
 
-/* $Id: ars_defs.h,v 1.14 2018/10/22 04:18:04 rswindell Exp $ */
+/* $Id: ars_defs.h,v 1.15 2020/03/19 18:50:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -128,6 +128,9 @@ enum {                              /* Access requirement binaries */
 	,AR_COLS
 	,AR_ROWS
 	,AR_PETSCII
+	,AR_ASCII
+	,AR_UTF8
+	,AR_CP437
     };
 
 #endif		/* Don't add anything after this line */
