@@ -1,3 +1,87 @@
+Version 1.1
+-----------
+Don't wait for keypress after file transfer completes
+Fix Windows bug with the transfer path
+Add BinaryText screenshot capabilities to Capture Control menu
+Fix logging on Windows
+Range check screen width and height, clamp at 255 rows/cols
+Add CSI = 1 n and CSI = 2 n ANSI commands (see cterm.txt for details)
+Fix CSI ? s and CSI ? n
+Update to Cryptlib 3.4.5
+Ignore unsupported APC, DCS, OSC, PM, and SOS strings
+Add support for the palette redefinition/reset OSC commands from xterm
+Use XTerm 256-color palette
+Support XTerm style palette color selection
+Support Sixel graphics
+RLogin using the "current" speed was missing a terminating NUL
+Added CSI < Ps c command for extended attributes
+Added CSI ? Ps1 ; Ps2 S to query graphics canvas size
+Add a new ANSI compliant DCS command for font loading
+Support bright background mode in curses when in xterm 88 or 256 color mode
+Added support for cached font assets
+Support for XTerm and TundraDraw/PabloDraw 24-bit color modes
+Some PETSCII keyboard changes
+Add support for DECRQSS
+Terminal type is now sent as "syncterm", "PETSCII", or "ATASCII"
+Menus are now always in cp437, and there is no shadow corruption
+Added CSI Pn SP @ to shift the screen left
+Added CSI Pn SP A to shift the screen right
+Added CSI Pn b to repeat a character multiple times
+Added CSI Pn d to change rows
+Added CSI Pn a as an alias to CSI Pn C
+Added CSI Pn ` as an alias to CSI Pn G
+Added ESC H to set a tabstop
+Added CSI Pn g to clear tabs
+Added CSI 2 $ w to request a tab report
+Added ESC M as a reverse linefeed
+Added CSI Pn e as an alias to CSI Pn B
+Added CSI Pn Y to move a specified numer of tab stops
+Added CSI Pn SP c to remove a specific tab stop
+Added CSI Pn k as an alias to CSI Pn A
+Support for a "Custom" video mode added
+X/Ymodem progress on Win32 fixed
+Enable SSH CTR modes
+Fix directory title to reflect changes to list size
+Update to SDL2 
+Allow snapping to scale using ALT-<arrow-key> in SDL mode
+Support XTerm style mouse reporting (except drag and keyboard modbits)
+CTRL-F/CTRL-G will now search the listing
+Support changing left/right margins the same way xterm does
+Implement ESC c to reset the terminal
+Implement Character Position Barckward
+Add UTF-8 copy/paste support
+Use Unicode in curses mode to allow full cp437 emulation
+Add -iI for forced ASCII curses mode
+Send sequences for backtab, shift/alt/ctrl + Function key
+
+Version 1.0
+-----------
+New ability to use the blink attribute to select alternate font
+Fixes for user font management
+Help text cleanup
+Handle the close window button gracefully
+Allow left/right to switch dir/file columns in file picker
+Allow case-only changes to directory entries
+Translate copies from non-ASCII screens screen modes to ASCII
+Add copy/paste support back into OS X builds using Pasteboard
+Don't conditionally compile shell support, just treat it as disabled
+Support Commodore and Atari fonts when not using their native emulation
+Properly save/restore the RLogin Reversed connection mode
+Properly save/restore the C128 (80col) and Atari XEP80 modes
+Fix separator character in status bar with fonts that don't support lines
+No longer switch font to CP437 when displaying menus
+Workaround SDL bug when resizing on X11
+Fix the "black window" Overlay issue
+Add Topaz and Micro Knight (non-Plus) Amiga fonts
+Fix Function keys with Caps Lock in SDL mode
+Windows console mode resize fixes
+SSH stability fixes
+Paginate help output
+Statically link Cryptlib
+Varous crashes at startup and during resize fixed
+Don't add "SyncTERM" to the end of the Windows Download path
+Fix NumLock behaviour on Windows
+
 Version 0.9.5
 -------------
 Fix handling of ESC[m
