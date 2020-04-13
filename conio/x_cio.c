@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.50 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: x_cio.c,v 1.51 2020/04/11 17:52:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,6 +139,7 @@ void x_copytext(const char *text, size_t buflen)
 	if(copybuf) {
 		ev.type=X11_LOCAL_COPY;
 		write_event(&ev);
+		copybuf_format = XA_STRING;
 	}
 	pthread_mutex_unlock(&copybuf_mutex);
 	return;

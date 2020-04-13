@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.101 2019/03/22 21:28:10 rswindell Exp $ */
+/* $Id: ciolib.h,v 1.114 2020/04/13 02:00:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -73,14 +73,13 @@ enum {
 	 CIOLIB_MODE_AUTO
 	,CIOLIB_MODE_CURSES
 	,CIOLIB_MODE_CURSES_IBM
+	,CIOLIB_MODE_CURSES_ASCII
 	,CIOLIB_MODE_ANSI
 	,CIOLIB_MODE_X
 	,CIOLIB_MODE_CONIO
 	,CIOLIB_MODE_CONIO_FULLSCREEN
 	,CIOLIB_MODE_SDL
 	,CIOLIB_MODE_SDL_FULLSCREEN
-	,CIOLIB_MODE_SDL_YUV
-	,CIOLIB_MODE_SDL_YUV_FULLSCREEN
 };
 
 #if defined(_WIN32)	/* presumably, Win32 */
@@ -202,6 +201,9 @@ enum text_modes
 	VESA_132X43	= 213,
 	VESA_132X50	= 206,
 	VESA_132X60	= 196,
+
+	/* Custom Mode */
+	CIOLIB_MODE_CUSTOM = 255,	// Last mode... if it's over 255, text_info can't hold it.
 };
 
 #define COLOR_MODE	C80
@@ -258,24 +260,23 @@ struct ciolib_pixels {
 	uint32_t	height;
 };
 
-struct ciolib_screen {
-	uint32_t		fg_colour;
-	uint32_t		bg_colour;
-	int			flags;
-	int			fonts[5];
-	struct ciolib_pixels	*pixels;
-	void			*vmem;
-	uint32_t		*foreground;
-	uint32_t		*background;
-	struct text_info	text_info;
-};
-
 struct vmem_cell {
 	uint8_t legacy_attr;
 	uint8_t ch;
 	uint8_t font;
 	uint32_t fg;	// RGB 00RRGGBB High bit indicates palette colour
 	uint32_t bg;	// RGB 00RRGGBB High bit indicates palette colour
+};
+
+struct ciolib_screen {
+	uint32_t		fg_colour;
+	uint32_t		bg_colour;
+	int			flags;
+	int			fonts[5];
+	struct ciolib_pixels	*pixels;
+	struct vmem_cell	*vmem;
+	struct text_info	text_info;
+	uint32_t		palette[16];
 };
 
 #define CONIO_FIRST_FREE_FONT	43
@@ -363,6 +364,8 @@ typedef struct {
 	uint32_t	(*map_rgb)(uint16_t r, uint16_t g, uint16_t b);
 	void	(*replace_font)(uint8_t id, char *name, void *data, size_t size);
 	int	(*checkfont)(int font_num);
+	void	(*setwinsize)	(int width, int height);
+	void	(*setwinposition)	(int x, int y);
 } cioapi_t;
 
 CIOLIBEXPORTVAR cioapi_t cio_api;
@@ -377,6 +380,7 @@ CIOLIBEXPORTVAR int ciolib_xlat;
 #define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
 
 CIOLIBEXPORTVAR int ciolib_reaper;
+CIOLIBEXPORTVAR char *ciolib_appname;
 
 #define _conio_kbhit()		kbhit()
 
@@ -454,6 +458,10 @@ CIOLIBEXPORT uint32_t CIOLIBCALL ciolib_map_rgb(uint16_t r, uint16_t g, uint16_t
 CIOLIBEXPORT void CIOLIBCALL ciolib_replace_font(uint8_t id, char *name, void *data, size_t size);
 CIOLIBEXPORT int CIOLIBCALL ciolib_attrfont(uint8_t attr);
 CIOLIBEXPORT int CIOLIBCALL ciolib_checkfont(int font_num);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch, uint8_t attr, uint8_t font);
+CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
+CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -533,16 +541,22 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define replace_font(a,b,c,d)	ciolib_replace_font(a,b,c,d)
 	#define attrfont(a)				ciolib_attrfont(a)
 	#define checkfont(a)			ciolib_checkfont(a)
+	#define set_vmem(a, b, c, d)		ciolib_set_vmem(a, b, c, d)
+	#define set_vmem_attr(a, b)		ciolib_set_vmem_attr(a, b)
+	#define setwinsize(a,b)			ciolib_setwinsize(a,b)
+	#define setwinposition(a,b)		ciolib_setwinposition(a,b)
 #endif
 
 #ifdef WITH_SDL
 	#include <gen_defs.h>
 	#include <SDL.h>
 
+#ifdef _WIN32
 	#ifdef main
 		#undef main
 	#endif
-	#define	main	CIOLIB_main
+	#define main	CIOLIB_main
+#endif
 #endif
 
 #define CIOLIB_BUTTON_1	1
@@ -632,7 +646,10 @@ CIOLIBEXPORT int CIOLIBCALL ciomouse_delevent(int event);
 #define CIO_KEY_RIGHT     (0x4d << 8)
 #define CIO_KEY_PPAGE     (0x49 << 8)
 #define CIO_KEY_NPAGE     (0x51 << 8)
-#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67+x) << 8):((0x80+x) << 8))
+#define CIO_KEY_SHIFT_F(x)((x<11)?((0x53 + x) << 8):((0x7c + x) << 8))
+#define CIO_KEY_CTRL_F(x) ((x<11)?((0x5d + x) << 8):((0x7e + x) << 8))
+#define CIO_KEY_ALT_F(x)  ((x<11)?((0x67 + x) << 8):((0x80 + x) << 8))
+#define CIO_KEY_BACKTAB   (0x0f << 8)
 
 #define CIO_KEY_MOUSE     0x7d00	// This is the right mouse on Schneider/Amstrad PC1512 PC keyboards "F-14"
 #define CIO_KEY_QUIT	  0x7e00	// "F-15"
