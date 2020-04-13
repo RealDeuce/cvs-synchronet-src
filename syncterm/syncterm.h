@@ -59,6 +59,11 @@ struct syncterm_settings {
 	int		scaling_factor;
 	int		xfer_failure_keypress_timeout;	/* wait for user acknowledgement via keypress, in seconds */
 	int		xfer_success_keypress_timeout;	/* wait for user acknowledgement via keypress, in seconds */
+	int		custom_cols;
+	int		custom_rows;
+	int		custom_fontheight;
+	int		window_width;
+	int		window_height;
 };
 
 extern char *inpath;
