@@ -3,7 +3,7 @@
 
 /* Synchronet external program support routines */
 
-/* $Id: xtrn.cpp,v 1.258 2020/03/25 00:38:05 rswindell Exp $ */
+/* $Id: xtrn.cpp,v 1.259 2020/03/28 23:30:44 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1903,7 +1903,7 @@ char* sbbs_t::cmdstr(const char *instr, const char *fpath, const char *fspec, ch
                 case 'R':   /* Rows */
                     strncat(cmd,ultoa(rows,str,10), avail);
                     break;
-                case 'S':   /* File Spec (or Baja command str) */
+                case 'S':   /* File Spec (or Baja command str) or startup-directory */
                     strncat(cmd, fspec, avail);
                     break;
                 case 'T':   /* Time left in seconds */
