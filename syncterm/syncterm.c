@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.234 2020/04/13 06:50:01 deuce Exp $ */
+/* $Id: syncterm.c,v 1.235 2020/04/13 07:20:00 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1731,33 +1731,37 @@ int main(int argc, char **argv)
 	if (last_bbs)
 		free(last_bbs);
 	// Save changed settings
-	ww = wh = sf = -1;
-	get_window_info(&ww, &wh, NULL, NULL);
-	sf = getscaling();
-	if((sf > 0 && sf != settings.scaling_factor) ||
-	    (ww > 0 && ww != settings.window_width) ||
-	    (wh > 0 && wh != settings.window_height)) {
-		char	inipath[MAX_PATH+1];
-		FILE	*inifile;
-		str_list_t	inicontents;
+	gettextinfo(&txtinfo);
+	// Only save window info if we're in the startup mode...
+	if (txtinfo.currmode == settings.startup_mode || (settings.startup_mode == SCREEN_MODE_CURRENT && txtinfo.currmode == C80)) {
+		ww = wh = sf = -1;
+		get_window_info(&ww, &wh, NULL, NULL);
+		sf = getscaling();
+		if((sf > 0 && sf != settings.scaling_factor) ||
+		    (ww > 0 && ww != settings.window_width) ||
+		    (wh > 0 && wh != settings.window_height)) {
+			char	inipath[MAX_PATH+1];
+			FILE	*inifile;
+			str_list_t	inicontents;
 
-		get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
-		if((inifile=fopen(inipath,"r"))!=NULL) {
-			inicontents=iniReadFile(inifile);
-			fclose(inifile);
-		}
-		else {
-			inicontents=strListInit();
-		}
-		if (sf > 0 && sf != settings.scaling_factor)
-			iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
-		if (ww > 0 && ww != settings.window_width)
-			iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
-		if (wh > 0 && wh != settings.window_height)
-			iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
-		if((inifile=fopen(inipath,"w"))!=NULL) {
-			iniWriteFile(inifile,inicontents);
-			fclose(inifile);
+			get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
+			if((inifile=fopen(inipath,"r"))!=NULL) {
+				inicontents=iniReadFile(inifile);
+				fclose(inifile);
+			}
+			else {
+				inicontents=strListInit();
+			}
+			if (sf > 0 && sf != settings.scaling_factor)
+				iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
+			if (ww > 0 && ww != settings.window_width)
+				iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
+			if (wh > 0 && wh != settings.window_height)
+				iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
+			if((inifile=fopen(inipath,"w"))!=NULL) {
+				iniWriteFile(inifile,inicontents);
+				fclose(inifile);
+			}
 		}
 	}
 
