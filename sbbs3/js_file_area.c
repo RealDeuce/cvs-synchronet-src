@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "File Area" Object */
 
-/* $Id: js_file_area.c,v 1.54 2018/02/20 11:25:55 rswindell Exp $ */
+/* $Id: js_file_area.c,v 1.55 2020/04/13 05:56:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,7 +87,7 @@ static char* dir_prop_desc[] = {
 	,"directory link (for HTML index)"
 	,"user has sufficient access to upload files"
 	,"user has sufficient access to download files"
-	,"user is exempt from download credit costs"
+	,"user is exempt from download credit costs (or the directory is configured for free downloads)"
 	,"user has operator access to this directory"
 	,"directory is for offline storage <i>(introduced in v3.14)</i>"
 	,"directory is for uploads only <i>(introduced in v3.14)</i>"

@@ -1,6 +1,6 @@
 /* Synchronet initialization (.ini) file routines */
 
-/* $Id: sbbs_ini.h,v 1.12 2016/11/28 02:59:08 rswindell Exp $ */
+/* $Id: sbbs_ini.h,v 1.13 2019/07/24 04:41:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,12 +36,12 @@
 #ifndef _SBBS_INI_H
 #define _SBBS_INI_H
 
+#include "ini_file.h"
 #include "startup.h"	/* bbs_startup_t */
 #include "ftpsrvr.h"	/* ftp_startup_t */
 #include "mailsrvr.h"	/* mail_startup_t */
 #include "services.h"	/* services_startup_t */
 #include "websrvr.h"	/* services_startup_t */
-#include "ini_file.h"
 #include "scfgdefs.h"   /* scfg_t */
 
 #if defined(__cplusplus)
