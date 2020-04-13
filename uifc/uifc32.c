@@ -1,7 +1,7 @@
 /* Curses implementation of UIFC (user interface) library based on uifc.c */
 // vi: tabstop=4
 
-/* $Id: uifc32.c,v 1.261 2020/04/10 09:09:01 rswindell Exp $ */
+/* $Id: uifc32.c,v 1.262 2020/04/13 07:21:23 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1716,6 +1716,8 @@ int ulist(int mode, int left, int top, int width, int *cur, int *bar
 							if(/*!(api->mode&UIFC_NOCTRL)*/1) { // No no, *this* control key is fine!
 								if (gotkey == CTRL_G || api->input(WIN_MID|WIN_SAV, 0, 0, "Find", search, sizeof(search), K_EDIT|K_FIND) > 0) {
 									for (j = (*cur) + 1; j != *cur; j++, j = (j >= opts) ? 0 : j) {
+										if (option[j] == NULL || j >= opts)
+											continue;
 										if (strcasestr(option[j], search) != NULL) {
 											// Copy/pasted from search above.
 											if(y+(j-(*cur))+2>height+top) {

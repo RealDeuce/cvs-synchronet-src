@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.185 2020/04/04 04:26:08 deuce Exp $ */
+/* $Id: ciolib.c,v 1.186 2020/04/12 18:24:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -413,6 +413,7 @@ CIOLIBEXPORT int CIOLIBCALL initciolib(int mode)
 #else
 		case CIOLIB_MODE_CURSES:
 		case CIOLIB_MODE_CURSES_IBM:
+		case CIOLIB_MODE_CURSES_ASCII:
 			try_curses_init(mode);
 			break;
 
