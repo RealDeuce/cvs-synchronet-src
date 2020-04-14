@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.274 2020/04/14 12:03:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.275 2020/04/14 13:41:04 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3793,7 +3793,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.274 $";
+	char	*revision="$Revision: 1.275 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4769,8 +4769,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 										/* CGTerm does nothing there... we */
 										/* Erase under cursor. */
 								TERM_XY(&x, &y);
-								l=WHEREX();
-								k=WHEREY();
 								if (x <= TERM_MAXX) {
 									sx = x;
 									sy = y;
