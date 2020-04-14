@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.207 2020/04/14 08:22:54 rswindell Exp $ */
+/* $Id: smblib.c,v 1.208 2020/04/14 08:50:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1211,15 +1211,11 @@ int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* da
 	msg->total_hfields++;
 	msg->hfield[i].type=type;
 	msg->hfield[i].length=(uint16_t)length;
-	if(length) {
-		if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
-			return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
-		memset(msg->hfield_dat[i],0,length+1);
-		memcpy(msg->hfield_dat[i],data,length); 
-		set_convenience_ptr(msg,type,msg->hfield_dat[i]);
-	}
-	else
-		msg->hfield_dat[i]=NULL;
+	if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
+		return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
+	memset(msg->hfield_dat[i],0,length+1);
+	memcpy(msg->hfield_dat[i],data,length); 
+	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return(SMB_SUCCESS);
 }
