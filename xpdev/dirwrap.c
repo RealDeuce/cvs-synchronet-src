@@ -1,14 +1,13 @@
-/* dirwrap.c */
-
 /* Directory-related system-call wrappers */
+// vi: tabstop=4
 
-/* $Id$ */
+/* $Id: dirwrap.c,v 1.112 2020/04/14 11:56:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -85,6 +84,10 @@
 #include "genwrap.h"	/* strupr/strlwr */
 #include "dirwrap.h"	/* DLLCALL */
 
+#if !defined(S_ISDIR)
+	#define S_ISDIR(x)	((x)&S_IFDIR)
+#endif
+
 /****************************************************************************/
 /* Return the filename portion of a full pathname							*/
 /****************************************************************************/
@@ -105,7 +108,26 @@ char* DLLCALL getfname(const char* path)
 }
 
 /****************************************************************************/
-/* Return a pointer to a file's extesion (beginning with '.')				*/
+/* Return the filename or last directory portion of a full pathname			*/
+/* A directory pathname is expected to end in a '/'							*/
+/****************************************************************************/
+char* DLLCALL getdirname(const char* path)
+{
+	char* last = lastchar(path);
+	if(*last == '/') {
+		if(last == path)
+			return last;
+		for(last--; last >= path; last--) {
+			if(IS_PATH_DELIM(*last))
+				return last + 1;
+		}
+		return (char*)path;
+	}
+	return getfname(path);
+}
+
+/****************************************************************************/
+/* Return a pointer to a file's extension/suffix (beginning with '.')		*/
 /****************************************************************************/
 char* DLLCALL getfext(const char* path)
 {
@@ -130,16 +152,16 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 	ext[0]=0;
 	drive[0]=0;			/* no drive letters on Unix */
 
-	strcpy(dir,path);	/* Optional directory path, including trailing slash. */
+	snprintf(dir, MAX_PATH+1, "%s", path);	/* Optional directory path, including trailing slash. */
 	p=getfname(dir);
-	strcpy(fname,p);	/* Base filename (no extension) */
+	snprintf(fname, MAX_PATH+1, "%s", p);	/* Base filename (no extension) */
 	if(p==dir)
 		dir[0]=0;		/* no directory specified in path */
 	else
 		*p=0;			/* truncate dir at filename */
 	p=getfext(fname);
 	if(p!=NULL) {
-		strcpy(ext,p);	/* Optional filename extension, including leading period (.) */
+		snprintf(ext, MAX_PATH+1, "%s", p);	/* Optional filename extension, including leading period (.) */
 		*p=0;
 	}
 }
@@ -153,7 +175,7 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 static int __cdecl glob_compare( const void *arg1, const void *arg2 )
 {
    /* Compare all of both strings: */
-   return stricmp( * ( char** ) arg1, * ( char** ) arg2 );
+   return strcmp( * ( char** ) arg1, * ( char** ) arg2 );
 }
 
 #if defined(__BORLANDC__)
@@ -249,7 +271,7 @@ int	DLLCALL	glob(const char *pattern, int flags, void* unused, glob_t* glob)
 			SAFECOPY(path,pattern);
 			p=getfname(path);
 			*p=0;
-			strcat(path,ff.name);
+			SAFECAT(path,ff.name);
 
 			if((glob->gl_pathv[glob->gl_pathc]=(char*)malloc(strlen(path)+2))==NULL) {
 				globfree(glob);
@@ -300,6 +322,10 @@ void DLLCALL globfree(glob_t* glob)
 
 #endif /* !defined(__unix__) */
 
+/****************************************************************************/
+/* Returns number of files and/or sub-directories in directory (path)		*/
+/* Similar, but not identical, to getfilecount()							*/
+/****************************************************************************/
 long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only)
 {
 	char		match[MAX_PATH+1];
@@ -312,8 +338,9 @@ long DLLCALL getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only
 
 	SAFECOPY(match,path);
 	backslash(match);
-	strcat(match,ALLFILES);
-	glob(match,GLOB_MARK,NULL,&g);
+	SAFECAT(match,ALLFILES);
+	if (glob(match,GLOB_MARK,NULL,&g) != 0)
+		return 0;
 	if(include_subdirs && !subdir_only)
 		count=g.gl_pathc;
 	else
@@ -386,14 +413,24 @@ void DLLCALL rewinddir(DIR* dir)
 #endif /* defined(_MSC_VER) */
 
 /****************************************************************************/
+/* Returns the creation time of the file 'filename' in time_t format		*/
+/****************************************************************************/
+time_t DLLCALL fcdate(const char* filename)
+{
+	struct stat st;
+
+	if(stat(filename, &st) != 0)
+		return -1;
+
+	return st.st_ctime;
+}
+
+/****************************************************************************/
 /* Returns the time/date of the file in 'filename' in time_t (unix) format  */
 /****************************************************************************/
 time_t DLLCALL fdate(const char* filename)
 {
 	struct stat st;
-
-	if(access(filename,0)==-1)
-		return(-1);
 
 	if(stat(filename, &st)!=0)
 		return(-1);
@@ -427,9 +464,6 @@ off_t DLLCALL flength(const char *filename)
 	long	handle;
 	struct _finddata_t f;
 
-	if(access((char*)filename,0)==-1)
-		return(-1);
-
 	if((handle=_findfirst((char*)filename,&f))==-1)
 		return(-1);
 
@@ -441,9 +475,6 @@ off_t DLLCALL flength(const char *filename)
 
 	struct stat st;
 
-	if(access(filename,0)==-1)
-		return(-1);
-
 	if(stat(filename, &st)!=0)
 		return(-1);
 
@@ -454,17 +485,21 @@ off_t DLLCALL flength(const char *filename)
 
 
 /****************************************************************************/
-/* Checks the file system for the existence of one or more files.			*/
+/* Checks the file system for the existence of a file.						*/
 /* Returns TRUE if it exists, FALSE if it doesn't.                          */
-/* 'filespec' may *NOT* contain wildcards!									*/
+/* 'filename' may *NOT* contain wildcards!									*/
 /****************************************************************************/
 static BOOL fnameexist(const char *filename)
 {
-	if(access(filename,0)==-1)
-		return(FALSE);
-	if(!isdir(filename))
-		return(TRUE);
-	return(FALSE);
+	struct stat st;
+
+	if(stat(filename, &st) != 0)
+		return FALSE;
+
+	if(S_ISDIR(st.st_mode))
+		return FALSE;
+
+	return TRUE;
 }
 
 /****************************************************************************/
@@ -541,7 +576,7 @@ BOOL DLLCALL fexistcase(char *path)
 	long	handle;
 	struct _finddata_t f;
 
-	if(access(path,0)==-1 && !strchr(path,'*') && !strchr(path,'?'))
+	if(access(path, F_OK)==-1 && !strchr(path,'*') && !strchr(path,'?'))
 		return(FALSE);
 
 	if((handle=_findfirst((char*)path,&f))==-1)
@@ -611,10 +646,6 @@ BOOL DLLCALL fexistcase(char *path)
 #endif
 }
 
-#if !defined(S_ISDIR)
-	#define S_ISDIR(x)	((x)&S_IFDIR)
-#endif
-
 /****************************************************************************/
 /* Returns TRUE if the filename specified is a directory					*/
 /****************************************************************************/
@@ -645,7 +676,8 @@ BOOL DLLCALL isdir(const char *filename)
 }
 
 /****************************************************************************/
-/* Returns the attributes (mode) for specified 'filename'					*/
+/* Returns the attributes (mode) for specified 'filename' or -1 on failure.	*/
+/* The return value on Windows is *not* compatible with chmod().			*/
 /****************************************************************************/
 int DLLCALL getfattr(const char* filename)
 {
@@ -671,6 +703,21 @@ int DLLCALL getfattr(const char* filename)
 #endif
 }
 
+/****************************************************************************/
+/* Returns the mode / type flags for specified 'filename'					*/
+/* The return value *is* compatible with chmod(), or -1 upon failure.		*/
+/****************************************************************************/
+int DLLCALL getfmode(const char* filename)
+{
+	struct stat st;
+
+	if(stat(filename, &st) != 0)
+		return -1;
+
+	return st.st_mode;
+}
+
+
 #ifdef __unix__
 int removecase(const char *path)
 {
@@ -694,18 +741,22 @@ int removecase(const char *path)
 	}
 	*p=0;
 
-	return(delfiles(inpath,fname)?-1:0);
+	return(delfiles(inpath,fname,0) >=1 ? 0 : -1);
 }
 #endif
 
 /****************************************************************************/
 /* Deletes all files in dir 'path' that match file spec 'spec'              */
+/* Optionally, keep the last so many files (sorted by name)                 */
+/* Returns number of files deleted or negative on error						*/
 /****************************************************************************/
-ulong DLLCALL delfiles(const char *inpath, const char *spec)
+long DLLCALL delfiles(const char *inpath, const char *spec, size_t keep)
 {
 	char	*path;
 	char	lastch;
-    uint	i,files=0;
+	size_t	i;
+    ulong	files = 0;
+	long	errors = 0;
 	glob_t	g;
 	size_t	inpath_len=strlen(inpath);
 
@@ -715,7 +766,7 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 		lastch=inpath[inpath_len-1];
 	path=(char *)malloc(inpath_len+1/*Delim*/+strlen(spec)+1/*Terminator*/);
 	if(path==NULL)
-		return 0;
+		return -1;
 	if(!IS_PATH_DELIM(lastch) && lastch)
 		sprintf(path,"%s%c",inpath,PATH_DELIM);
 	else
@@ -723,15 +774,77 @@ ulong DLLCALL delfiles(const char *inpath, const char *spec)
 	strcat(path,spec);
 	glob(path,0,NULL,&g);
 	free(path);
-	for(i=0;i<g.gl_pathc;i++) {
+	if(keep >= g.gl_pathc)
+		return 0;
+	for(i = 0; i < g.gl_pathc && files < g.gl_pathc - keep; i++) {
 		if(isdir(g.gl_pathv[i]))
 			continue;
-		CHMOD(g.gl_pathv[i],S_IWRITE);	/* Incase it's been marked RDONLY */
+		CHMOD(g.gl_pathv[i],S_IWRITE);	/* In case it's been marked RDONLY */
 		if(remove(g.gl_pathv[i])==0)
 			files++;
+		else
+			errors++;
 	}
 	globfree(&g);
-	return(files);
+	if(errors)
+		return -errors;
+	return files;
+}
+
+/****************************************************************************/
+/* Returns number of files matching 'inpath'								*/
+/* Similar, but not identical, to getdirsize(), e.g. subdirs never counted	*/
+/****************************************************************************/
+ulong DLLCALL getfilecount(const char *inpath)
+{
+	char path[MAX_PATH+1];
+	glob_t	g;
+	uint	gi;
+	ulong	count = 0;
+
+	SAFECOPY(path, inpath);
+	if(isdir(path))
+		backslash(path);
+	if(IS_PATH_DELIM(*lastchar(path)))
+		SAFECAT(path, ALLFILES);
+	if(glob(path, GLOB_MARK, NULL, &g))
+		return 0;
+	for(gi = 0; gi < g.gl_pathc; ++gi) {
+		if(*lastchar(g.gl_pathv[gi]) == '/')
+			continue;
+		count++;
+	}
+	globfree(&g);
+	return count;
+}
+
+/****************************************************************************/
+/* Returns number of bytes used by file(s) matching 'inpath'				*/
+/****************************************************************************/
+uint64_t DLLCALL getfilesizetotal(const char *inpath)
+{
+	char path[MAX_PATH+1];
+	glob_t	g;
+	uint	gi;
+	off_t	size;
+	uint64_t total = 0;
+
+	SAFECOPY(path, inpath);
+	if(isdir(path))
+		backslash(path);
+	if(IS_PATH_DELIM(*lastchar(path)))
+		SAFECAT(path, ALLFILES);
+	if(glob(path, GLOB_MARK, NULL, &g))
+		return 0;
+	for(gi = 0; gi < g.gl_pathc; ++gi) {
+		if(*lastchar(g.gl_pathv[gi]) == '/')
+			continue;
+		size = flength(g.gl_pathv[gi]);
+		if(size >= 1)
+			total += size;
+	}
+	globfree(&g);
+	return total;
 }
 
 /****************************************************************************/
@@ -841,7 +954,7 @@ static ulong getdiskspace(const char* path, ulong unit, BOOL freespace)
 	struct statfs fs;
 	unsigned long blocks;
 
-    if (statfs(path, &fs) < 0)
+	if(statfs(path, &fs) < 0)
     	return 0;
 
 	if(freespace)
@@ -872,7 +985,7 @@ ulong DLLCALL getdisksize(const char* path, ulong unit)
 }
 
 /****************************************************************************/
-/* Resolves //, /./, and /../ in a path. Should work indetically to Windows */
+/* Resolves //, /./, and /../ in a path. Should work identically to Windows */
 /****************************************************************************/
 #if defined(__unix__)
 char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
@@ -923,8 +1036,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 	if(sb.st_mode&S_IFDIR)
 		strcat(target,"/"); */
 
-	for(;*out;out++)  {
-		while(*out=='/')  {
+	for(;*out;out++) {
+		while(*out=='/') {
 			if(*(out+1)=='/')
 				memmove(out,out+1,strlen(out));
 			else if(*(out+1)=='.' && (*(out+2)=='/' || *(out+2)==0))
@@ -941,6 +1054,8 @@ char * DLLCALL _fullpath(char *target, const char *path, size_t size)  {
 				out++;
 			}
 		}
+		if (!*out)
+			break;
 	}
 	return(target);
 }
@@ -984,7 +1099,7 @@ BOOL DLLCALL isfullpath(const char* filename)
 {
 	return(filename[0]=='/'
 #ifdef WIN32
-		|| filename[0]=='\\' || filename[1]==':'
+		|| filename[0]=='\\' || (isalpha(filename[0]) && filename[1]==':')
 #endif
 		);
 }
@@ -1093,7 +1208,7 @@ int DLLCALL mkpath(const char* path)
 			break;
 		tp=p;
 		FIND_CHARSET(tp,sep);
-		safe_snprintf(dir,sizeof(dir),"%.*s",tp-path, path);
+		safe_snprintf(dir,sizeof(dir),"%.*s", (int)(tp-path), path);
 		if(!isdir(dir)) {
 			if((result=MKDIR(dir))!=0)
 				break;
