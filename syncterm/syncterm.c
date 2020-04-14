@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.233 2020/04/13 02:29:00 deuce Exp $ */
+/* $Id: syncterm.c,v 1.235 2020/04/13 07:20:00 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1291,11 +1291,11 @@ int main(int argc, char **argv)
 				// smgtb=\\E[%i%p1%d;%p2%dr,
 				// shift/ctrl/alt Fx as extra keys?
 				// Booleans:
-				"	am,bce,da,mir,msgr,ndscr,\n"	// sam is a printer capability
+				"	am,bce,da,ndscr,\n"	// sam is a printer capability
 				// Numeric:
 				"	it#8,colors#8,pairs#64,\n"        
 				// Strings:
-				"	acsc=l\\332m\\300k\\277j\\331u\\264t\\303v\\301w\\302q\\304x\\263n\\305`\\004a\\260f\\370g\\361~\\371.\\031-\\030h\\261i^U0\\333y\\363z\\362,\n"
+				"	acsc=}\\234|\\330{\\322+\\020,\\021l\\332m\\300k\\277j\\331u\\264t\\303v\\301w\\302q\\304x\\263n\\305`^Da\\260f\\370g\\361~\\371.^Y-^Xh\\261i^U0\\333y\\363z\\362,\n"
 				"	cbt=\\E[Z,bel=^G,cr=^M,csr=\\E[%i%p1%d;%p2%dr,tbc=\\E[3g,\n"
 				"	mgc=\\E[69h\\E[s\\e[69l,clear=\\E[2J,csr=\\E[%i%p1%d;%p2%dr,el1=\\E[1K,\n"
 				"	el=\\E[K,ed=\\E[J,hpa=\\E[%i%p1%dG,cup=\\E[%i%p1%d;%p2%dH,cud1=^J,home=\\E[H,\n"
@@ -1731,33 +1731,37 @@ int main(int argc, char **argv)
 	if (last_bbs)
 		free(last_bbs);
 	// Save changed settings
-	ww = wh = sf = -1;
-	get_window_info(&ww, &wh, NULL, NULL);
-	sf = getscaling();
-	if((sf > 0 && sf != settings.scaling_factor) ||
-	    (ww > 0 && ww != settings.window_width) ||
-	    (wh > 0 && wh != settings.window_height)) {
-		char	inipath[MAX_PATH+1];
-		FILE	*inifile;
-		str_list_t	inicontents;
+	gettextinfo(&txtinfo);
+	// Only save window info if we're in the startup mode...
+	if (txtinfo.currmode == settings.startup_mode || (settings.startup_mode == SCREEN_MODE_CURRENT && txtinfo.currmode == C80)) {
+		ww = wh = sf = -1;
+		get_window_info(&ww, &wh, NULL, NULL);
+		sf = getscaling();
+		if((sf > 0 && sf != settings.scaling_factor) ||
+		    (ww > 0 && ww != settings.window_width) ||
+		    (wh > 0 && wh != settings.window_height)) {
+			char	inipath[MAX_PATH+1];
+			FILE	*inifile;
+			str_list_t	inicontents;
 
-		get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
-		if((inifile=fopen(inipath,"r"))!=NULL) {
-			inicontents=iniReadFile(inifile);
-			fclose(inifile);
-		}
-		else {
-			inicontents=strListInit();
-		}
-		if (sf > 0 && sf != settings.scaling_factor)
-			iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
-		if (ww > 0 && ww != settings.window_width)
-			iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
-		if (wh > 0 && wh != settings.window_height)
-			iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
-		if((inifile=fopen(inipath,"w"))!=NULL) {
-			iniWriteFile(inifile,inicontents);
-			fclose(inifile);
+			get_syncterm_filename(inipath, sizeof(inipath), SYNCTERM_PATH_INI, FALSE);
+			if((inifile=fopen(inipath,"r"))!=NULL) {
+				inicontents=iniReadFile(inifile);
+				fclose(inifile);
+			}
+			else {
+				inicontents=strListInit();
+			}
+			if (sf > 0 && sf != settings.scaling_factor)
+				iniSetInteger(&inicontents,"SyncTERM","ScalingFactor",sf,&ini_style);
+			if (ww > 0 && ww != settings.window_width)
+				iniSetInteger(&inicontents,"SyncTERM","WindowWidth",ww,&ini_style);
+			if (wh > 0 && wh != settings.window_height)
+				iniSetInteger(&inicontents,"SyncTERM","WindowHeight",wh,&ini_style);
+			if((inifile=fopen(inipath,"w"))!=NULL) {
+				iniWriteFile(inifile,inicontents);
+				fclose(inifile);
+			}
 		}
 	}
 
