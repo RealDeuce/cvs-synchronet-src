@@ -1,7 +1,7 @@
 /* Synchronet user create/post public message routine */
 // vi: tabstop=4
 
-/* $Id: postmsg.cpp,v 1.131 2020/04/15 02:27:10 rswindell Exp $ */
+/* $Id: postmsg.cpp,v 1.130 2020/03/19 05:09:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -57,6 +57,9 @@ int msgbase_open(scfg_t* cfg, smb_t* smb, unsigned int subnum, int* storage, lon
 
 	if(smb->status.max_crcs==0)	/* no CRC checking means no body text dupe checking */
 		*dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
+
+	if(filelength(fileno(smb->shd_fp)) < 1) /* MsgBase doesn't exist yet, create it */
+		i=smb_create(smb);
 
 	*storage=smb_storage_mode(cfg, smb);
 
