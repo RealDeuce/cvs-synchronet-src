@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.63 2020/04/14 16:31:22 deuce Exp $ */
+/* $Id: cterm.h,v 1.62 2020/04/11 11:35:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -197,22 +197,6 @@ struct cterminal {
 	void *mouse_state_change_cbdata;
 	int (*mouse_state_query)(int parameter, void *cbdata);
 	void *mouse_state_query_cbdata;
-
-	/* Macros */
-	char *macros[64];
-	size_t macro_lens[64];
-	uint64_t in_macro;
-	int macro;
-#define MACRO_INACTIVE	0
-#define MACRO_POSSIBLE	1
-#define MACRO_STARTED	2
-	int macro_num;
-	int macro_del;
-#define MACRO_DELETE_OLD	0
-#define MACRO_DELETE_ALL	1
-	int macro_encoding;
-#define MACRO_ENCODING_ASCII	0
-#define MACRO_ENCODING_HEX	1
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
