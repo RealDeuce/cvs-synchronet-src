@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.272 2020/04/13 18:26:38 deuce Exp $ */
+/* $Id: cterm.c,v 1.276 2020/04/14 16:31:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1202,7 +1202,9 @@ cterm_clearscreen(struct cterminal *cterm, char attr)
 
 struct esc_seq {
 	char c1_byte;			// Character after the ESC.  If '[', ctrl_func and param_str will be non-NULL.
-	char final_byte;		// Final Byte (or NULL if c1 function);
+					// For nF sequences (ESC I...I F), this will be NUL and ctrl_func will be
+					// non-NULL
+	char final_byte;		// Final Byte (or NUL if c1 function);
 	char *ctrl_func;		// Intermediate Bytes and Final Byte as NULL-terminated string.
 	char *param_str;		// The parameter bytes
 	int param_count;		// The number of parameters, or -1 if parameters were not parsed.
@@ -1414,9 +1416,6 @@ static enum {
 		goto incomplete;
 
 	/* Check that it's part of C1 set, part of the Independent control functions, or an nF sequence type (ECMA 35)*/
-	if (seq[0] < 0x40 || seq[0] > 0x7e)
-		return SEQ_BROKEN;
-
 	intermediate_len = strspn(&seq[0], " !\"#$%&'()*+,-./");
 	if (seq[intermediate_len] == 0)
 		goto incomplete;
@@ -1453,22 +1452,28 @@ incomplete:
 static struct esc_seq *parse_sequence(const char *seq)
 {
 	struct esc_seq *ret;
+	size_t intermediate_len;
 
 	ret = calloc(1, sizeof(struct esc_seq));
 	if (ret == NULL)
 		return ret;
 	ret->param_count = -1;
 
-	/* Check that it's part of C1 set or part of the Independent control functions */
-	if (seq[0] < 0x40 || seq[0] > 0x7e)
+	/* Check that it's part of C1 set, part of the Independent control functions, or an nF sequence type (ECMA 35)*/
+	intermediate_len = strspn(&seq[0], " !\"#$%&'()*+,-./");
+	if (seq[intermediate_len] == 0)
 		goto fail;
 
-	ret->c1_byte = seq[0];
+	/* Validate C1 final byte */
+	if (seq[intermediate_len] < 0x30 || seq[intermediate_len] > 0x7e)
+		goto fail;
+
+	if (intermediate_len == 0)
+		ret->c1_byte = seq[intermediate_len];
 
 	/* Check if it's CSI */
 	if (seq[0] == '[') {
 		size_t parameter_len;
-		size_t intermediate_len;
 
 		parameter_len = strspn(&seq[1], "0123456789:;<=>?");
 		ret->param_str = malloc(parameter_len + 1);
@@ -1502,6 +1507,13 @@ static struct esc_seq *parse_sequence(const char *seq)
 
 		if (!parse_parameters(ret))
 			goto fail;
+	}
+	else {
+		ret->ctrl_func = malloc(intermediate_len + 2);
+		if (!ret->ctrl_func)
+			goto fail;
+		memcpy(ret->ctrl_func, seq, intermediate_len + 1);
+		ret->ctrl_func[intermediate_len + 1] = 0;
 	}
 	return ret;
 
@@ -1754,6 +1766,201 @@ all_done:
 		FREE_AND_NULL(cterm->sx_pixels->pixels);
 	FREE_AND_NULL(cterm->sx_pixels);
 	FREE_AND_NULL(cterm->sx_mask);
+}
+
+static int
+is_hex(char ch)
+{
+	if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))
+		return 1;
+	return 0;
+}
+
+static int
+get_hexstrlen(char *str, char *end)
+{
+	int ret = 0;
+
+	for (;str <= end; str++) {
+		if (is_hex(*str)) {
+			if (str == end)
+				return -1;
+			if (!is_hex(*(str+1)))
+				return -1;
+			ret++;
+			str++;
+		}
+		else
+			return ret;
+	}
+	return ret;
+}
+
+static int
+nibble_val(char ch)
+{
+	if (ch >= '0' && ch <= '9')
+		return ch - '0';
+	if (ch >= 'a' && ch <= 'f')
+		return (ch - 'a') + 10;
+	if (ch >= 'A' && ch <= 'F')
+		return (ch - 'A') + 10;
+	return -1;
+}
+
+static void
+get_hexstr(char *str, char *end, char *out)
+{
+	for (;str <= end; str++) {
+		if (is_hex(*str)) {
+			if (str == end)
+				return;
+			if (!is_hex(*(str+1)))
+				return;
+			*(out++) = nibble_val(*str) << 4 | nibble_val(*(str + 1));
+			str++;
+		}
+		else
+			return;
+	}
+}
+
+static void parse_macro_string(struct cterminal *cterm, bool finish)
+{
+	char *p = cterm->strbuf;
+	char *end;
+	int i;
+
+	if (cterm->strbuflen == 0) {
+		if (finish)
+			goto all_done;
+		return;
+	}
+
+	end = p+cterm->strbuflen-1;
+
+	if (*end >= '\x08' && *end <= '\x0d') {
+		cterm->strbuflen--;
+		if (finish)
+			goto all_done;
+		return;
+	}
+	if (cterm->macro_encoding == MACRO_ENCODING_ASCII) {
+		if ((*end >= ' ' && *end <= '\x7e') || (*end >= '\xa0' && *end <= '\xff')) {
+			if (finish)
+				goto all_done;
+			return;
+		}
+	}
+	if (cterm->macro_encoding == MACRO_ENCODING_HEX &&
+	    (is_hex(*end) || (*end == '!') || (*end == ';'))) {
+		if (finish)
+			goto all_done;
+		return;
+	}
+
+	cterm->macro = MACRO_INACTIVE;
+	return;
+
+all_done:
+	if (cterm->macro_del == MACRO_DELETE_ALL) {
+		for (i = 0; i < (sizeof(cterm->macros) / sizeof(cterm->macros[0])); i++) {
+			FREE_AND_NULL(cterm->macros[i]);
+			cterm->macro_lens[i] = 0;
+		}
+	}
+	else {
+		FREE_AND_NULL(cterm->macros[cterm->macro_num]);
+		cterm->macro_lens[cterm->macro_num] = 0;
+	}
+	if (cterm->strbuflen == 0)
+		return;
+	if (cterm->macro_encoding == MACRO_ENCODING_ASCII) {
+		cterm->macros[cterm->macro_num] = malloc(cterm->strbuflen + 1);
+		if (cterm->macros[cterm->macro_num]) {
+			cterm->macro_lens[cterm->macro_num] = cterm->strbuflen;
+			memcpy(cterm->macros[cterm->macro_num], cterm->strbuf, cterm->strbuflen);
+			cterm->macros[cterm->macro_num][cterm->strbuflen] = 0;
+		}
+	}
+	else {
+		// Hex string...
+		int plen;
+		unsigned long ul;
+		size_t mlen = 0;
+		char *out;
+
+		// First, calculate the required length...
+		for (p = cterm->strbuf; p <= end;) {
+			if (*p == '!') {
+				if (p == end)
+					return;
+				p++;
+				if (p == end)
+					return;
+				if (*p == ';')
+					ul = 1;
+				else {
+					if (memchr(p, ';', cterm->strbuflen - (p - cterm->strbuf)) == NULL)
+						return;
+					ul = strtoul(p, &p, 10);
+					if (*p != ';')
+						return;
+					if (ul == ULONG_MAX)
+						return;
+					p++;
+				}
+				plen = get_hexstrlen(p, end);
+				p += plen * 2;
+				if (plen == -1)
+					return;
+				mlen += ul * plen;
+				if (p <= end) {
+					if (*p == ';')
+						p++;
+					else
+						return;
+				}
+			}
+			else {
+				plen = get_hexstrlen(p, end);
+				if (plen == -1)
+					return;
+				p += plen * 2;
+				mlen += plen;
+			}
+		}
+		cterm->macros[cterm->macro_num] = malloc(mlen + 1);
+		if (cterm->macros[cterm->macro_num] == NULL)
+			return;
+		cterm->macro_lens[cterm->macro_num] = mlen;
+		out = cterm->macros[cterm->macro_num];
+		for (p = cterm->strbuf; p <= end;) {
+			if (*p == '!') {
+				p++;
+				if (*p == ';')
+					ul = 1;
+				else {
+					ul = strtoul(p, &p, 10);
+					p++;
+				}
+				plen = get_hexstrlen(p, end);
+				for (i = 0; i < ul; i++) {
+					get_hexstr(p, end, out);
+					out += plen;
+				}
+				p += plen * 2;
+				if (p <= end && *p == ';')
+					p++;
+			}
+			else {
+				plen = get_hexstrlen(p, end);
+				get_hexstr(p, end, out);
+				out += plen;
+				p += plen * 2;
+			}
+		}
+	}
 }
 
 static void save_extended_colour_seq(struct cterminal *cterm, int fg, struct esc_seq *seq, int seqoff, int count)
@@ -2175,6 +2382,12 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 										vmode = find_vmode(ti.currmode);
 										if (vmode != -1)
 											sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
+										break;
+									}
+									case 62: /* Query macro space available */
+									{
+										// Just fake it as int16_max
+										strcpy(tmp, "\x1b[32767*{");
 										break;
 									}
 								}
@@ -2746,6 +2959,19 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						}
 						if(newspeed >= 0)
 							*speed = newspeed;
+					}
+					else if (strcmp(seq->ctrl_func, "*z") == 0) {
+						if (seq->param_int[0] >= 0 && seq->param_int[0] <= 63) {
+							if (cterm->macros[seq->param_int[0]]) {
+								if ((cterm->in_macro & (1<<seq->param_int[0])) == 0) {
+									cterm->escbuf[0]=0;
+									cterm->sequence=0;
+									cterm->in_macro |= (1<<seq->param_int[0]);
+									cterm_write(cterm, cterm->macros[seq->param_int[0]], cterm->macro_lens[seq->param_int[0]], retbuf + strlen(retbuf), retsize - strlen(retbuf), speed);
+									cterm->in_macro &= ~(1<<seq->param_int[0]);
+								}
+							}
+						}
 					}
 				}
 				else {
@@ -3386,7 +3612,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				TERM_XY(&col, &row);
 				row++;
 				if(row > TERM_MAXY)
-					i = TERM_MAXY;
+					row = TERM_MAXY;
 				GOTOXY(col, row);
 				break;
 			case 'H':
@@ -3396,12 +3622,13 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				TERM_XY(&col, &row);
 				row--;
 				if(row < TERM_MINY)
-					i = TERM_MINY;
+					row = TERM_MINY;
 				GOTOXY(col, row);
 				break;
 			case 'P':	// Device Control String - DCS
 				cterm->string = CTERM_STRING_DCS;
 				cterm->sixel = SIXEL_POSSIBLE;
+				cterm->macro = MACRO_POSSIBLE;
 				FREE_AND_NULL(cterm->strbuf);
 				cterm->strbuf = malloc(1024);
 				cterm->strbufsize = 1024;
@@ -3441,6 +3668,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 						case CTERM_STRING_DCS:
 							if (cterm->sixel == SIXEL_STARTED)
 								parse_sixel_string(cterm, true);
+							else if (cterm->macro == MACRO_STARTED)
+								parse_macro_string(cterm, true);
 							else {
 								if (strncmp(cterm->strbuf, "CTerm:Font:", 11) == 0) {
 									cterm->font_slot = strtoul(cterm->strbuf+11, &p, 10);
@@ -3759,6 +3988,10 @@ cterm_reset(struct cterminal *cterm)
 	cterm->sx_width = 0;
 	cterm->sx_height = 0;
 	FREE_AND_NULL(cterm->sx_mask);
+	for (i = 0; i < (sizeof(cterm->macros) / sizeof(cterm->macros[0])); i++) {
+		FREE_AND_NULL(cterm->macros[i]);
+		cterm->macro_lens[i] = 0;
+	}
 	wx = TERM_MINX;
 	wy = TERM_MINY;
 	ww = TERM_MAXX;
@@ -3777,11 +4010,12 @@ cterm_reset(struct cterminal *cterm)
 	/* Set up a shadow palette */
 	for (i=0; i < sizeof(dac_default)/sizeof(struct dac_colors); i++)
 		setpalette(i+16, dac_default[i].red << 8 | dac_default[i].red, dac_default[i].green << 8 | dac_default[i].green, dac_default[i].blue << 8 | dac_default[i].blue);
+
 }
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.272 $";
+	char	*revision="$Revision: 1.276 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4019,9 +4253,9 @@ static void parse_sixel_intro(struct cterminal *cterm)
 		}
 		attr2palette(ti.attribute, &cterm->sx_fg, &cterm->sx_bg);
 		if (cterm->extattr & CTERM_EXTATTR_SXSCROLL) {
-			cterm->sx_x = cterm->sx_start_x *= vparams[vmode].charwidth;
-			cterm->sx_y = cterm->sx_start_y *= vparams[vmode].charwidth;
 			TERM_XY(&cterm->sx_start_x, &cterm->sx_start_y);
+			cterm->sx_left = cterm->sx_x = (cterm->sx_start_x - 1) * vparams[vmode].charwidth;
+			cterm->sx_y = (cterm->sx_start_y - 1) * vparams[vmode].charheight;
 		}
 		else {
 			cterm->sx_x = cterm->sx_left = cterm->sx_y = 0;
@@ -4076,6 +4310,68 @@ static void parse_sixel_intro(struct cterminal *cterm)
 		cterm->sixel = SIXEL_INACTIVE;
 }
 
+static void parse_macro_intro(struct cterminal *cterm)
+{
+	size_t i;
+
+	if (cterm->macro != MACRO_POSSIBLE)
+		return;
+
+	i = strspn(cterm->strbuf, "0123456789;");
+
+	if (i >= cterm->strbuflen)
+		return;
+
+	if (cterm->strbuf[i] != '!') {
+		cterm->macro = MACRO_INACTIVE;
+		return;
+	}
+	i++;
+	if (i >= cterm->strbuflen)
+		return;
+
+	if (cterm->strbuf[i] == 'z') {
+		char *p;
+		unsigned long res;
+
+		// Parse parameters...
+		cterm->macro_num = -1;
+		cterm->macro_del = MACRO_DELETE_OLD;
+		cterm->macro_encoding = MACRO_ENCODING_ASCII;
+		res = strtoul(cterm->strbuf, &p, 10);
+		if (res != ULONG_MAX)
+			cterm->macro_num = res;
+		if (*p == ';') {
+			p++;
+			res = strtoul(p, &p, 10);
+			if (res != ULONG_MAX)
+				cterm->macro_del = res;
+			else
+				cterm->macro_del = -1;
+		}
+		if (*p == ';') {
+			p++;
+			res = strtoul(p, &p, 10);
+			if (res != ULONG_MAX)
+				cterm->macro_encoding = res;
+			else
+				cterm->macro_encoding = -1;
+		}
+		if (cterm->macro_num < 0 || cterm->macro_num > 63)
+			cterm->macro = MACRO_INACTIVE;
+		else if (cterm->macro_del < 0 || cterm->macro_del > 1)
+			cterm->macro = MACRO_INACTIVE;
+		else if (cterm->macro_encoding < 0 || cterm->macro_encoding > 1)
+			cterm->macro = MACRO_INACTIVE;
+		else {
+			cterm->macro = MACRO_STARTED;
+			cterm->strbuflen = 0;
+		}
+	}
+	else if (cterm->strbuf[i] != 'z')
+		cterm->macro = MACRO_INACTIVE;
+}
+
 #define ustrlen(s)	strlen((const char *)s)
 #define uctputs(c, p)	ctputs(c, (char *)p)
 #define ustrcat(b, s)	strcat((char *)b, (const char *)s)
@@ -4085,7 +4381,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 	const unsigned char *buf = (unsigned char *)vbuf;
 	unsigned char ch[2];
 	unsigned char prn[BUFSIZE];
-	int i, j, k, l, x, y, mx, my;
+	int i, j, k, x, y, mx, my;
 	int sx, sy, ex, ey;
 	struct text_info	ti;
 	int	olddmc;
@@ -4189,6 +4485,14 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 											break;
 										case SIXEL_POSSIBLE:
 											parse_sixel_intro(cterm);
+											break;
+									}
+									switch(cterm->macro) {
+										case MACRO_STARTED:
+											parse_macro_string(cterm, false);
+											break;
+										case MACRO_POSSIBLE:
+											parse_macro_intro(cterm);
 											break;
 									}
 									if (cterm->strbuflen == cterm->strbufsize) {
@@ -4757,8 +5061,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 										/* CGTerm does nothing there... we */
 										/* Erase under cursor. */
 								TERM_XY(&x, &y);
-								l=WHEREX();
-								k=WHEREY();
 								if (x <= TERM_MAXX) {
 									sx = x;
 									sy = y;

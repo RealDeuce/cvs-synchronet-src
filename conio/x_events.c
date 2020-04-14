@@ -241,6 +241,7 @@ static int init_window()
     XGCValues gcv;
     int i;
 	XWMHints *wmhints;
+	XClassHint *classhints;
 	int ret;
 	int best=-1;
 	int best_depth=0;
@@ -295,13 +296,19 @@ static int init_window()
     win = x11.XCreateWindow(dpy, DefaultRootWindow(dpy), 0, 0,
 			      640*x_cvstat.scaling, 400*x_cvstat.scaling*x_cvstat.vmultiplier, 2, depth, InputOutput, &visual, CWColormap | CWBorderPixel | CWBackPixel, &wa);
 
+	classhints=x11.XAllocClassHint();
+	if (classhints)
+		classhints->res_name = classhints->res_class = "CIOLIB";
 	wmhints=x11.XAllocWMHints();
 	if(wmhints) {
 		wmhints->initial_state=NormalState;
-		wmhints->flags = (StateHint | IconPixmapHint | IconMaskHint | InputHint);
+		wmhints->flags = (StateHint/* | IconPixmapHint | IconMaskHint*/ | InputHint);
 		wmhints->input = True;
-		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, NULL);
+		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, classhints);
+		x11.XFree(wmhints);
 	}
+	if (classhints)
+		x11.XFree(classhints);
 
 	WM_DELETE_WINDOW = x11.XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 
@@ -361,7 +368,7 @@ static void resize_window()
 
 static void init_mode_internal(int mode)
 {
-    int oldcols;
+	int oldcols;
 
 	oldcols=x_cvstat.cols;
 
@@ -384,7 +391,7 @@ static void init_mode_internal(int mode)
 	x_cvstat = vstat;
 	pthread_mutex_unlock(&vstatlock);
 	pthread_mutex_unlock(&blinker_lock);
-    map_window();
+	map_window();
 }
 
 static void check_scaling(void)
@@ -398,10 +405,11 @@ static void check_scaling(void)
 static int init_mode(int mode)
 {
 	init_mode_internal(mode);
+	resize_window();
 	bitmap_drv_request_pixels();
 
 	sem_post(&mode_set);
-    return(0);
+	return(0);
 }
 
 static int video_init()
@@ -526,13 +534,19 @@ static void handle_resize_event(int width, int height)
 	old_scaling = x_cvstat.scaling;
 	if(x_cvstat.scaling > 16)
 		x_setscaling(16);
+
 	/*
-	 * We only need to resize if the width/height are not even multiples
+	 * We only need to resize if the width/height are not even multiples,
+	 * or if the two axis don't scale the same way.
 	 * Otherwise, we can simply resend everything
 	 */
-	if((width % (x_cvstat.charwidth * x_cvstat.cols) != 0)
+	if (newFSH != newFSW)
+		resize_window();
+	else if((width % (x_cvstat.charwidth * x_cvstat.cols) != 0)
 			|| (height % (x_cvstat.charheight * x_cvstat.rows) != 0))
 		resize_window();
+	else
+		resize_xim();
 	bitmap_drv_request_pixels();
 }
 
@@ -579,12 +593,12 @@ static int x11_event(XEvent *ev)
 			x11_window_height=ev->xconfigure.height;
 			handle_resize_event(ev->xconfigure.width, ev->xconfigure.height);
 			break;
-        case NoExpose:
-                break;
-        case GraphicsExpose:
+		case NoExpose:
+			break;
+		case GraphicsExpose:
 			expose_rect(ev->xgraphicsexpose.x, ev->xgraphicsexpose.y, ev->xgraphicsexpose.width, ev->xgraphicsexpose.height);
 			break;
-        case Expose:
+		case Expose:
 			expose_rect(ev->xexpose.x, ev->xexpose.y, ev->xexpose.width, ev->xexpose.height);
 			break;
 
@@ -1096,6 +1110,15 @@ void x11_event_thread(void *args)
 						case X11_LOCAL_BEEP:
 							x11.XBell(dpy, 100);
 							break;
+						case X11_LOCAL_SETICON: {
+							Atom wmicon = x11.XInternAtom(dpy, "_NET_WM_ICON", False);
+							if (wmicon) {
+								x11.XChangeProperty(dpy, win, wmicon, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)lev.data.icon_data, lev.data.icon_data[0] * lev.data.icon_data[1] + 2);
+								x11.XFlush(dpy);
+							}
+							free(lev.data.icon_data);
+							break;
+						}
 					}
 				}
 		}
