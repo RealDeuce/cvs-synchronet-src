@@ -1,4 +1,4 @@
-/* $Id: scfgnet.c,v 1.42 2019/02/21 23:37:05 rswindell Exp $ */
+/* $Id: scfgnet.c,v 1.47 2020/04/07 05:32:14 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -152,6 +152,8 @@ uint getsub(void)
 		j=uifc.list(WIN_RHT|WIN_BOT|WIN_SAV,0,0,45,&sub_dflt,&sub_bar,str,opt);
 		if(j==-1)
 			continue;
+		sub_dflt++;
+		sub_bar++;
 		return(subnum[j]); 
 	}
 }
@@ -823,6 +825,7 @@ void qhub_edit(int num)
 		sprintf(opt[i++],"%-27.27s%s","Include Kludge Lines", cfg.qhub[num]->misc&QHUB_NOKLUDGES ? "No":"Yes");
 		sprintf(opt[i++],"%-27.27s%s","Include VOTING.DAT File", cfg.qhub[num]->misc&QHUB_NOVOTING ? "No":"Yes");
 		sprintf(opt[i++],"%-27.27s%s","Include HEADERS.DAT File", cfg.qhub[num]->misc&QHUB_NOHEADERS ? "No":"Yes");
+		sprintf(opt[i++],"%-27.27s%s","Include UTF-8 Characters", cfg.qhub[num]->misc&QHUB_UTF8 ? "Yes":"No");
 		sprintf(opt[i++],"%-27.27s%s","Extended (QWKE) Packets", cfg.qhub[num]->misc&QHUB_EXT ? "Yes":"No");
 		sprintf(opt[i++],"%-27.27s%s","Exported Ctrl-A Codes"
 			,cfg.qhub[num]->misc&QHUB_EXPCTLA ? "Expand" : cfg.qhub[num]->misc&QHUB_RETCTLA ? "Leave in" : "Strip");
@@ -1026,10 +1029,14 @@ void qhub_edit(int num)
 				uifc.changes=1;
 				break;
 			case 10:
-				cfg.qhub[num]->misc^=QHUB_EXT;
+				cfg.qhub[num]->misc^=QHUB_UTF8;
 				uifc.changes=1;
 				break;
 			case 11:
+				cfg.qhub[num]->misc^=QHUB_EXT;
+				uifc.changes=1;
+				break;
+			case 12:
 				i = cfg.qhub[num]->misc&QHUB_CTRL_A;
 				i++;
 				if(i == QHUB_CTRL_A) i = 0;
@@ -1037,10 +1044,10 @@ void qhub_edit(int num)
 				cfg.qhub[num]->misc |= i;
 				uifc.changes=1;
 				break;
-			case 12:
+			case 13:
 				import_qwk_conferences(num);
 				break;
-			case 13:
+			case 14:
 				qhub_sub_edit(num);
 				break; 
 		} 
@@ -1077,7 +1084,7 @@ void qhub_sub_edit(uint num)
 		"not support ANSI escape sequences in messages (or you're not sure), set\n"
 		"this option to `Strip out`.\n"
 		;
-
+	unsigned last_conf_num = 0;
 	k=0;
 	while(1) {
 		unsigned opts = 0;
@@ -1119,10 +1126,15 @@ void qhub_sub_edit(uint num)
 			if((l=getsub())==-1)
 				continue;
 			uifc.helpbuf=qwk_conf_num_help;
+			if(last_conf_num)
+				SAFEPRINTF(str, "%u", last_conf_num + 1);
+			else
+				str[0]=0;
 			if(uifc.input(WIN_MID|WIN_SAV,0,0
 				,"Conference Number on Hub"
-				,str,5,K_NUMBER)<1)
+				,str,5,K_EDIT|K_NUMBER)<1)
 				continue;
+			last_conf_num = atoi(str);
 			strcpy(opt[0],"Strip out");
 			strcpy(opt[1],"Leave in");
 			strcpy(opt[2],"Expand to ANSI");
@@ -1132,7 +1144,7 @@ void qhub_sub_edit(uint num)
 			if((m=uifc.list(WIN_MID|WIN_SAV,0,0,0,&m,0
 				,"Ctrl-A Codes",opt))==-1)
 				continue;
-			if(!new_qhub_sub(cfg.qhub[num], j, cfg.sub[l], atoi(str)))
+			if(!new_qhub_sub(cfg.qhub[num], j, cfg.sub[l], last_conf_num))
 				continue;
 			if(!m)
 				cfg.qhub[num]->mode[j]=QHUB_STRIP;
@@ -1141,6 +1153,8 @@ void qhub_sub_edit(uint num)
 			else
 				cfg.qhub[num]->mode[j]=QHUB_EXPCTLA;
 			uifc.changes=1;
+			k++;
+			bar++;
 			continue; 
 		}
 		if((j&MSK_ON)==MSK_DEL) {
@@ -1256,7 +1270,7 @@ BOOL import_qwk_conferences(uint qhubnum)
 	}
 	uifc.pop("Importing Areas...");
 	long added = 0;
-	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], &added);
+	long ported = import_msg_areas(IMPORT_LIST_TYPE_QWK_CONTROL_DAT, fp, grpnum, min_confnum, max_confnum, cfg.qhub[qhubnum], /* pkt_orig */NULL, /* faddr: */NULL, /* misc: */0, &added);
 	fclose(fp);
 	uifc.pop(NULL);
 	if(ported < 0)
