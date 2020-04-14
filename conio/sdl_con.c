@@ -335,14 +335,10 @@ static int sdl_init_mode(int mode)
 	vstat.winwidth = ((double)cvstat.winwidth / (cvstat.cols * cvstat.charwidth)) * (vstat.cols * vstat.charwidth);
 	vstat.winheight = ((double)cvstat.winheight / (cvstat.rows * cvstat.charheight * cvstat.vmultiplier)) * (vstat.rows * vstat.charwidth * vstat.vmultiplier);
 	if (oldcols != vstat.cols) {
-		if (oldcols == 40) {
+		if (oldcols == 40)
 			vstat.winwidth /= 2;
-			vstat.winheight /= 2;
-		}
-		if (vstat.cols == 40) {
+		if (vstat.cols == 40)
 			vstat.winwidth *= 2;
-			vstat.winheight *= 2;
-		}
 	}
 	if (vstat.winwidth < vstat.charwidth * vstat.cols)
 		vstat.winwidth = vstat.charwidth * vstat.cols;
@@ -1395,16 +1391,4 @@ int sdl_initciolib(int mode)
 	win_mutex=sdl.SDL_CreateMutex();
 	sdl_keylock=sdl.SDL_CreateMutex();
 	return(sdl_init(mode));
-}
-
-void
-sdl_beep(void)
-{
-        static unsigned char wave[2206];
-
-	if (wave[2205] == 0) {
-		xptone_makewave(440, wave, 2205, WAVE_SHAPE_SINE_SAW_HARM);
-		wave[2205] = 1;
-	}
-        xp_play_sample(wave, 2205, TRUE);
 }
