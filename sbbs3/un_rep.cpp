@@ -1,7 +1,7 @@
 /* Synchronet QWK replay (REP) packet unpacking routine */
 // vi: tabstop=4
 
-/* $Id: un_rep.cpp,v 1.76 2019/08/07 03:19:34 rswindell Exp $ */
+/* $Id: un_rep.cpp,v 1.79 2019/08/29 02:24:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -69,6 +69,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	str_list_t	host_can=NULL;
 	str_list_t	subject_can=NULL;
 	str_list_t	twit_list=NULL;
+	link_list_t user_list={0};
 	const char* hostname;
 	const char* AttemptedToUploadREPpacket="Attempted to upload REP packet";
 
@@ -196,8 +197,10 @@ bool sbbs_t::unpack_rep(char* repfile)
 		long confnum = atol((char *)block+1);
 		if(blocks<2) {
 			if(block[0] == 'V' && blocks == 1 && voting != NULL) {	/* VOTING DATA */
-				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias, confnum))
+				if(!qwk_voting(&voting, l, (useron.rest&FLAG('Q')) ? NET_QWK : NET_NONE, /* QWKnet ID : */useron.alias, confnum)) {
+					lprintf(LOG_WARNING, "QWK vote failure, offset %ld of %s", l, getfname(msg_fname));
 					errors++;
+				}
 				continue;
 			}
 			lprintf(LOG_WARNING
@@ -553,7 +556,15 @@ bool sbbs_t::unpack_rep(char* repfile)
 				SAFEPRINTF2(str,"posted QWK message on %s %s"
 					,cfg.grp[cfg.sub[n]->grp]->sname,cfg.sub[n]->lname);
 				signal_sub_sem(&cfg,n);
-				logline("P+",str); 
+				logline("P+",str);
+				int destuser = lookup_user(&cfg, &user_list, msg.to);
+				if(destuser > 0) {
+					SAFEPRINTF4(str, text[MsgPostedToYouVia]
+						,msg.from
+						,(useron.rest&FLAG('Q')) ? useron.alias : "QWK"
+						,cfg.grp[cfg.sub[n]->grp]->sname, cfg.sub[n]->lname);
+					putsmsg(&cfg, destuser, str);
+				}
 				if(!(useron.rest&FLAG('Q')))
 					user_event(EVENT_POST);
 				tmsgs++;
@@ -579,6 +590,7 @@ bool sbbs_t::unpack_rep(char* repfile)
 	strListFree(&host_can);
 	strListFree(&subject_can);
 	strListFree(&twit_list);
+	listFree(&user_list);
 
 	if(lastsub!=INVALID_SUB)
 		smb_close(&smb);

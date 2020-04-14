@@ -1,7 +1,7 @@
 /* Synchronet JavaScript "User" Object */
 // vi: tabstop=4
 
-/* $Id: js_user.c,v 1.112 2019/08/18 04:27:47 deuce Exp $ */
+/* $Id: js_user.c,v 1.117 2020/04/12 08:02:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1079,6 +1079,8 @@ js_downloaded_file(JSContext *cx, uintN argc, jsval *arglist)
 	int32	bytes=0;
 	jsrefcount	rc;
 	scfg_t*		scfg;
+	uint dirnum=INVALID_DIR;
+	char*	fname = NULL;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
@@ -1087,19 +1089,37 @@ js_downloaded_file(JSContext *cx, uintN argc, jsval *arglist)
 	if((p=(private_t*)js_GetClassPrivate(cx, obj, &js_user_class))==NULL)
 		return JS_FALSE;
 
-	if(argc) {
-		if(!JS_ValueToInt32(cx, argv[0], &bytes))
-			return JS_FALSE;
+	uintN argn = 0;
+	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
+		char	*p;
+		JSSTRING_TO_ASTRING(cx, JSVAL_TO_STRING(argv[argn]), p, LEN_EXTCODE+2, NULL);
+		for(dirnum = 0; dirnum < scfg->total_dirs; dirnum++)
+			if(!stricmp(scfg->dir[dirnum]->code,p))
+				break;
+		argn++;
 	}
-	if(argc>1) {
-		if(!JS_ValueToInt32(cx, argv[1], &files))
+	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
+		JSSTRING_TO_ASTRING(cx, JSVAL_TO_STRING(argv[argn]), fname, MAX_PATH + 1, NULL);
+		argn++;
+	}
+	if(argc > argn && JSVAL_IS_NUMBER(argv[argn])) {
+		if(!JS_ValueToInt32(cx, argv[argn], &bytes))
 			return JS_FALSE;
+		argn++;
+	}
+	if(argc > argn && JSVAL_IS_NUMBER(argv[argn])) {
+		if(!JS_ValueToInt32(cx, argv[argn], &files))
+			return JS_FALSE;
+		argn++;
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
 	js_getuserdat(scfg,p);
-
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_downloaded(scfg, p->user, files, bytes)));
+	if(fname != NULL && dirnum != INVALID_DIR && dirnum < scfg->total_dirs) {
+		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_downloaded_file(scfg, p->user, p->client, dirnum, fname, bytes)));
+	} else {
+		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(user_downloaded(scfg, p->user, files, bytes)));
+	}
 	JS_RESUMEREQUEST(cx, rc);
 
 	return JS_TRUE;
@@ -1212,7 +1232,7 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 	int32	start_time=0;
 	jsrefcount	rc;
 	scfg_t*		scfg;
-	ulong		tl;
+	time_t		tl;
 
 	scfg=JS_GetRuntimePrivate(JS_GetRuntime(cx));
 
@@ -1239,7 +1259,8 @@ js_get_time_left(JSContext *cx, uintN argc, jsval *arglist)
 
 static jsSyncMethodSpec js_user_functions[] = {
 	{"compare_ars",		js_chk_ar,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("string ars")
-	,JSDOCSTR("Verify user meets access requirements string")
+	,JSDOCSTR("Verify user meets access requirements string<br>"
+		"Note: For the current user of the terminal server, use <tt>bbs.compare_ars()</tt> instead.")
 	,310
 	},		
 	{"adjust_credits",	js_adjust_credits,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("count")
@@ -1262,14 +1283,16 @@ static jsSyncMethodSpec js_user_functions[] = {
 	,JSDOCSTR("Adjust user's files/bytes-uploaded statistics")
 	,314
 	},		
-	{"downloaded_file",	js_downloaded_file,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("[bytes] [,files]")
-	,JSDOCSTR("Adjust user's files/bytes-downloaded statistics")
-	,314
+	{"downloaded_file",	js_downloaded_file,	1,	JSTYPE_BOOLEAN,	JSDOCSTR("[dir-code] [file path | name] [bytes] [,file-count]")
+	,JSDOCSTR("Handle the full or partial successful download of a file.<br>"
+		"Adjust user's files/bytes-downloaded statistics and credits, file's stats, system's stats, and uploader's stats and credits.")
+	,31800
 	},
 	{"get_time_left",	js_get_time_left,	1,	JSTYPE_NUMBER,	JSDOCSTR("start_time")
 	,JSDOCSTR("Returns the user's available remaining time online, in seconds,<br>"
 	"based on the passed <i>start_time</i> value (in time_t format)<br>"
-	"Note: this method does not account for pending forced timed events")
+	"Note: this method does not account for pending forced timed events"
+	"Note: for the pre-defined user object on the BBS, you almost certainly want bbs.get_time_left() instead.")
 	,31401
 	},
 	{0}
