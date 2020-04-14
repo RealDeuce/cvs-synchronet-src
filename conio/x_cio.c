@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.53 2020/04/14 20:19:16 deuce Exp $ */
+/* $Id: x_cio.c,v 1.52 2020/04/14 18:40:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -415,10 +415,6 @@ int x_init(void)
 		return(-1);
 	}
 	if((x11.XAllocClassHint=xp_dlsym(dl,XAllocClassHint))==NULL) {
-		xp_dlclose(dl);
-		return(-1);
-	}
-	if((x11.XSetForeground=xp_dlsym(dl,XSetForeground))==NULL) {
 		xp_dlclose(dl);
 		return(-1);
 	}
