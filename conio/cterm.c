@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.273 2020/04/13 22:04:36 deuce Exp $ */
+/* $Id: cterm.c,v 1.274 2020/04/14 12:03:38 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3398,7 +3398,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				TERM_XY(&col, &row);
 				row++;
 				if(row > TERM_MAXY)
-					i = TERM_MAXY;
+					row = TERM_MAXY;
 				GOTOXY(col, row);
 				break;
 			case 'H':
@@ -3408,7 +3408,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 				TERM_XY(&col, &row);
 				row--;
 				if(row < TERM_MINY)
-					i = TERM_MINY;
+					row = TERM_MINY;
 				GOTOXY(col, row);
 				break;
 			case 'P':	// Device Control String - DCS
@@ -3793,7 +3793,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.273 $";
+	char	*revision="$Revision: 1.274 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
