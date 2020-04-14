@@ -1,4 +1,4 @@
-/* $Id: x_cio.h,v 1.25 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: x_cio.h,v 1.26 2020/04/14 18:40:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -75,6 +75,7 @@ void x11_drawrect(struct rectlist *data);
 void x11_flush(void);
 void x_setscaling(int newval);
 int x_getscaling(void);
+void x_seticon(const void *icon, unsigned long size);
 #ifdef __cplusplus
 }
 #endif
