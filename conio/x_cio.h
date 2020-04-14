@@ -1,10 +1,10 @@
-/* $Id$ */
+/* $Id: x_cio.h,v 1.26 2020/04/14 18:40:49 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2004 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -40,6 +40,7 @@
 #endif
 
 #include "ciolib.h"
+#include "bitmap_con.h"
 #include "x_events.h"
 
 #ifdef __cplusplus
@@ -60,7 +61,7 @@ void x_gettextinfo(struct text_info *info);
 void x_setcursortype(int type);
 int x_getch(void);
 int x_getche(void);
-int x_beep(void);
+void x_beep(void);
 void x_textmode(int mode);
 void x_setname(const char *name);
 void x_settitle(const char *title);
@@ -70,8 +71,11 @@ int x_setfont(int font, int force);
 int x_getfont(void);
 int x_loadfont(char *filename);
 int x_get_window_info(int *width, int *height, int *xpos, int *ypos);
-void x11_drawrect(int xoffset,int yoffset,int width,int height,unsigned char *data);
+void x11_drawrect(struct rectlist *data);
 void x11_flush(void);
+void x_setscaling(int newval);
+int x_getscaling(void);
+void x_seticon(const void *icon, unsigned long size);
 #ifdef __cplusplus
 }
 #endif
