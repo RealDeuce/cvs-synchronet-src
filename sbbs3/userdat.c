@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.225 2020/04/13 05:05:08 rswindell Exp $ */
+/* $Id: userdat.c,v 1.226 2020/04/14 08:57:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2327,7 +2327,7 @@ BOOL user_downloaded_file(scfg_t* cfg, user_t* user, client_t* client,
 	/**************************/
 	/* Update Uploader's Info */
 	/**************************/
-	user_t uploader = {{0}};
+	user_t uploader = {0};
 	uploader.number=matchuser(cfg, f.uler, TRUE /*sysop_alias*/);
 	if(uploader.number
 		&& uploader.number != user->number 
