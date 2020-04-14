@@ -1,6 +1,6 @@
 /* Synchronet configuration load routines (exported) */
 
-/* $Id: load_cfg.c,v 1.76 2019/05/09 21:14:19 rswindell Exp $ */
+/* $Id: load_cfg.c,v 1.81 2020/04/12 06:06:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -118,6 +118,7 @@ BOOL DLLCALL load_cfg(scfg_t* cfg, char* text[], BOOL prep, char* error)
 				,TOTAL_TEXT,fname);
 			return(FALSE); 
 		}
+		cfg->text = text;
 	}
 #endif
 
@@ -198,12 +199,12 @@ void prep_cfg(scfg_t* cfg)
 
 		strlwr(cfg->dir[i]->code); 		/* data filenames are all lowercase */
 
-		if(!cfg->dir[i]->path[0])		/* no file storage path specified */
-            sprintf(cfg->dir[i]->path,"%s%s/",cfg->dir[i]->data_dir,cfg->dir[i]->code);
-		else if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
+		if(!cfg->dir[i]->path[0])
+			SAFECOPY(cfg->dir[i]->path, cfg->dir[i]->code);
+		if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
 			prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 		else
-			prep_dir(cfg->ctrl_dir, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
+			prep_dir(cfg->dir[i]->data_dir, cfg->dir[i]->path, sizeof(cfg->dir[i]->path));
 
 		prep_path(cfg->dir[i]->upload_sem);
 	}
@@ -223,14 +224,26 @@ void prep_cfg(scfg_t* cfg)
 			char* tp = lastchar(p);
 			if(*tp != '/')
 				continue;
-			*tp = 0;
+			*tp = 0; // Remove trailing slash
+			char* dirname = getfname(p);
+			int j;
+			for(j = 0; j < cfg->total_dirs; j++) {
+				if(cfg->dir[j]->lib != i)
+					continue;
+				if(stricmp(cfg->dir[j]->code, dirname) == 0)
+					break;
+				if(stricmp(cfg->dir[j]->code_suffix, dirname) == 0)
+					break;
+			}
+			if(j < cfg->total_dirs)	// duplicate
+				continue;
 			dir_t dir;
 			memset(&dir, 0, sizeof(dir));
 			dir.lib = i;
 			dir.misc = DIR_FILES;
 			SAFECOPY(dir.path, p);
 			backslash(dir.path);
-			SAFECOPY(dir.lname, getfname(p));
+			SAFECOPY(dir.lname, dirname);
 			SAFECOPY(dir.sname, dir.lname);
 			char code_suffix[LEN_EXTCODE+1];
 			SAFECOPY(code_suffix, dir.lname);
@@ -294,6 +307,9 @@ void DLLCALL free_cfg(scfg_t* cfg)
 	free_chat_cfg(cfg);
 	free_xtrn_cfg(cfg);
 	free_attr_cfg(cfg);
+
+	if(cfg->text != NULL)
+		free_text(cfg->text);
 }
 
 void DLLCALL free_text(char* text[])
