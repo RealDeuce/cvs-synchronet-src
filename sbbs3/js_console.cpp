@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.143 2020/03/02 02:39:25 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.145 2020/04/06 20:10:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -700,7 +700,8 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 	char		key[2];
 	uintN		i;
 	int32		val;
-	uint32		maxnum = 0;
+	uint32		maxnum = ~0;
+	bool		maxnum_specified = false;
 	long		mode = K_UPPER;
 	sbbs_t*		sbbs;
     JSString*	js_str=NULL;
@@ -716,9 +717,10 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!JS_ValueToInt32(cx, argv[i], &val))
 				return JS_FALSE;
-			if(maxnum == 0)
+			if(!maxnum_specified) {
+				maxnum_specified = true;
 				maxnum = val;
-			else
+			} else
 				mode = val;
 			continue;
 		}
@@ -729,9 +731,6 @@ js_getkeys(JSContext *cx, uintN argc, jsval *arglist)
 				return JS_FALSE;
 		}
 	}
-
-	if(maxnum == 0)
-		maxnum = ~0;
 
 	rc=JS_SUSPENDREQUEST(cx);
 	val=sbbs->getkeys(cstr, maxnum, mode);
@@ -860,7 +859,7 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
-	if(JSVAL_IS_NUMBER(argv[1])) {
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[1])) {
 		if(!JS_ValueToInt32(cx, argv[1], &mode))
 			return JS_FALSE;
 	}
@@ -892,7 +891,7 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
-	if(JSVAL_IS_NUMBER(argv[1])) {
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[1])) {
 		if(!JS_ValueToInt32(cx, argv[1], &mode))
 			return JS_FALSE;
 	}
@@ -1986,11 +1985,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("put one or more characters in the keyboard input buffer")
 	,310
 	},
-	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	{"yesno",			js_yesno,			2, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
 	,JSDOCSTR("YES/no question - returns <i>true</i> if 'yes' is selected")
 	,310
 	},
-	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	{"noyes",			js_noyes,			2, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
 	,JSDOCSTR("NO/yes question - returns <i>true</i> if 'no' is selected")
 	,310
 	},
