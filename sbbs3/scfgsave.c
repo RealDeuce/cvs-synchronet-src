@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.93 2020/04/15 02:27:39 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.92 2020/04/15 02:12:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1151,7 +1151,7 @@ int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 	}
 	smb->retry_time = cfg->smb_retry_time;
 	if((retval = smb_open(smb)) == SMB_SUCCESS) {
-		if(smb_fgetlength(smb->shd_fp) < sizeof(smbhdr_t) + sizeof(smb->status)) {
+		if(filelength(fileno(smb->shd_fp)) < sizeof(smbhdr_t) + sizeof(smb->status)) {
 			if((retval = smb_create(smb)) != SMB_SUCCESS)
 				smb_close(smb);
 		}
