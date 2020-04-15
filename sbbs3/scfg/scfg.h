@@ -1,4 +1,4 @@
-/* $Id: scfg.h,v 1.31 2019/11/30 23:26:20 rswindell Exp $ */
+/* $Id: scfg.h,v 1.34 2020/04/07 03:44:17 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -82,7 +82,8 @@ enum import_list_type {
 	IMPORT_LIST_TYPE_SBBSECHO_AREAS_BBS,
 	IMPORT_LIST_TYPE_BACKBONE_NA,
 	IMPORT_LIST_TYPE_BAD_AREAS,
-	IMPORT_LIST_TYPE_NEWSGROUPS,
+	IMPORT_LIST_TYPE_ECHOSTATS,
+	IMPORT_LIST_TYPE_NEWSGROUPS
 };
 
 /************/
@@ -164,7 +165,8 @@ BOOL save_file_cfg(scfg_t*, int);
 BOOL save_chat_cfg(scfg_t*, int);	
 BOOL save_xtrn_cfg(scfg_t*, int);
 
-long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum, qhub_t*, long* added);
+long import_msg_areas(enum import_list_type, FILE*, unsigned grpnum, int min_confnum, int max_confnum
+	, qhub_t*, const char* pkt_orig, faddr_t* faddr, uint32_t misc, long* added);
 
 /* Prepare a string to be used as an internal code; Note: use the return value, Luke */
 char* prep_code(char *str, const char* prefix);
