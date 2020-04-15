@@ -1,6 +1,6 @@
 /* Synchronet JavaScript "MsgBase" Object */
 
-/* $Id: js_msgbase.c,v 1.258 2020/04/06 05:18:01 rswindell Exp $ */
+/* $Id: js_msgbase.c,v 1.259 2020/04/15 02:27:10 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -111,12 +111,6 @@ js_open(JSContext *cx, uintN argc, jsval *arglist)
 	if((p->smb_result = smb_open_sub(scfg, &(p->smb), p->smb.subnum)) != SMB_SUCCESS) {
 		JS_RESUMEREQUEST(cx, rc);
 		return JS_TRUE;
-	}
-	if(filelength(fileno(p->smb.shd_fp)) < 1) { /* MsgBase doesn't exist yet, create it */
-		if((p->smb_result = smb_create(&(p->smb))) != SMB_SUCCESS) {
-			JS_RESUMEREQUEST(cx, rc);
-			return JS_TRUE;
-		}
 	}
 	JS_RESUMEREQUEST(cx, rc);
 
