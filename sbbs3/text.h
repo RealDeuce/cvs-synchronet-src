@@ -342,7 +342,7 @@ enum {
 	,HappyBirthday
 	,TimeToChangePw
 	,NewPasswordQ
-	,NewPassword
+	,NewPasswordPromptFmt
 	,VerifyPassword
 	,Wrong
 	,PasswordChanged
@@ -839,6 +839,7 @@ enum {
 	,LoggingOn
 	,QWKSettingsUtf8
 	,MsgPostedToYouVia
+	,Unlimited
 
 	,TOTAL_TEXT
 };
