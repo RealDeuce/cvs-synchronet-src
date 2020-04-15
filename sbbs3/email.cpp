@@ -2,13 +2,13 @@
 
 /* Synchronet email function - for sending private e-mail */
 
-/* $Id$ */
+/* $Id: email.cpp,v 1.79 2020/04/15 02:27:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2012 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -43,16 +43,16 @@
 /* of message.                                                              */
 /* Called from functions main_sec, newuser, readmail and scanposts			*/
 /****************************************************************************/
-bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
+bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode, smb_t* resmb, smbmsg_t* remsg)
 {
-	char		str[256],str2[256],msgpath[256],title[LEN_TITLE+1],ch
+	char		str[256],str2[256],msgpath[256],ch
 				,buf[SDT_BLOCK_LEN];
 	char 		tmp[512];
-	char		pid[128];
-	char*		editor=NULL;
-	ushort		msgattr=0;
+	char		title[LEN_TITLE+1] = "";
+	const char*	editor=NULL;
+	const char*	charset=NULL;
+	uint16_t	msgattr=0;
 	uint16_t	xlat=XLAT_NONE;
-	ushort		nettype;
 	int 		i,j,x,file;
 	long		l;
 	long		length;
@@ -62,13 +62,15 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	node_t		node;
 	smbmsg_t	msg;
 
-	SAFECOPY(title,subj);
+	if(subj != NULL)
+		SAFECOPY(title, subj);
+	if(remsg != NULL && title[0] == 0)
+		SAFECOPY(title, remsg->subj);
 
 	if(useron.etoday>=cfg.level_emailperday[useron.level] && !SYSOP && !(useron.exempt&FLAG('M'))) {
 		bputs(text[TooManyEmailsToday]);
 		return(false); 
 	}
-
 	if(usernumber==1 && useron.rest&FLAG('S')
 		&& (cfg.node_valuser!=1 || useron.fbacks || useron.emails)) { /* ! val fback */
 		bprintf(text[R_Feedback],cfg.sys_op);
@@ -89,11 +91,15 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		bputs(text[UnknownUser]);
 		return(false); 
 	}
-	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET)) {
+	if((l&NETMAIL) && (cfg.sys_misc&SM_FWDTONET) && !(mode & WM_NOFWD)) {
 		getuserrec(&cfg,usernumber,U_NETMAIL,LEN_NETMAIL,str);
 		bprintf(text[UserNetMail],str);
 		if((mode & WM_FORCEFWD) || text[ForwardMailQ][0]==0 || yesno(text[ForwardMailQ])) /* Forward to netmail address */
-			return(netmail(str,subj,mode));
+			return(netmail(str, subj, mode, resmb, remsg));
+	}
+	if(sys_status&SS_ABORT) {
+		bputs(text[Aborted]);
+		return false;
 	}
 	bprintf(text[Emailing],username(&cfg,usernumber,tmp),usernumber);
 	action=NODE_SMAL;
@@ -107,24 +113,37 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	}
 
 	if(cfg.sys_misc&SM_ANON_EM && useron.exempt&FLAG('A')
-		&& !noyes(text[AnonymousQ]))
+		&& !noyes(text[AnonymousQ])) {
 		msgattr|=MSG_ANONYMOUS;
+		mode|=WM_ANON;
+	}
 
 	if(cfg.sys_misc&SM_DELREADM)
 		msgattr|=MSG_KILLREAD;
 
+	if(remsg != NULL && resmb != NULL && !(mode&WM_QUOTE)) {
+		if(quotemsg(resmb, remsg, /* include tails: */true))
+			mode |= WM_QUOTE;
+	}
+
 	msg_tmp_fname(useron.xedit, msgpath, sizeof(msgpath));
 	username(&cfg,usernumber,str2);
-	if(!writemsg(msgpath,top,title,mode,INVALID_SUB,str2,&editor)) {
+	if(!writemsg(msgpath,top, /* subj: */title,WM_EMAIL|mode,INVALID_SUB,/* to: */str2,/* from: */useron.alias, &editor, &charset)) {
 		bputs(text[Aborted]);
 		return(false); 
 	}
 
-	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM))
+	if(mode&WM_FILE && !SYSOP && !(cfg.sys_misc&SM_FILE_EM)) {
+		bputs(text[EmailFilesNotAllowed]);
 		mode&=~WM_FILE;
-
+	}
 
 	if(mode&WM_FILE) {
+		if(!checkfname(title)) {
+			bputs(text[BadFilename]);
+			remove(msgpath);
+			return(false);
+		}
 		sprintf(str2,"%sfile/%04u.in", cfg.data_dir,usernumber);
 		MKDIR(str2);
 		sprintf(str2,"%sfile/%04u.in/%s", cfg.data_dir,usernumber,title);
@@ -133,28 +152,26 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 			remove(msgpath);
 			return(false); 
 		}
-		{ /* Remote */
-			xfer_prot_menu(XFER_UPLOAD);
-			mnemonics(text[ProtocolOrQuit]);
-			strcpy(str,"Q");
-			for(x=0;x<cfg.total_prots;x++)
-				if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
-					sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
-					strcat(str,tmp); 
-				}
-			ch=(char)getkeys(str,0);
-			if(ch=='Q' || sys_status&SS_ABORT) {
-				bputs(text[Aborted]);
-				remove(msgpath);
-				return(false); 
+		xfer_prot_menu(XFER_UPLOAD);
+		mnemonics(text[ProtocolOrQuit]);
+		sprintf(str,"%c",text[YNQP][2]);
+		for(x=0;x<cfg.total_prots;x++)
+			if(cfg.prot[x]->ulcmd[0] && chk_ar(cfg.prot[x]->ar,&useron,&client)) {
+				sprintf(tmp,"%c",cfg.prot[x]->mnemonic);
+				SAFECAT(str,tmp); 
 			}
-			for(x=0;x<cfg.total_prots;x++)
-				if(cfg.prot[x]->ulcmd[0] && cfg.prot[x]->mnemonic==ch
-					&& chk_ar(cfg.prot[x]->ar,&useron,&client))
-					break;
-			if(x<cfg.total_prots)	/* This should be always */
-				protocol(cfg.prot[x],XFER_UPLOAD,str2,nulstr,true); 
+		ch=(char)getkeys(str,0);
+		if(ch==text[YNQP][2] || sys_status&SS_ABORT) {
+			bputs(text[Aborted]);
+			remove(msgpath);
+			return(false); 
 		}
+		for(x=0;x<cfg.total_prots;x++)
+			if(cfg.prot[x]->ulcmd[0] && cfg.prot[x]->mnemonic==ch
+				&& chk_ar(cfg.prot[x]->ar,&useron,&client))
+				break;
+		if(x<cfg.total_prots)	/* This should be always */
+			protocol(cfg.prot[x],XFER_UPLOAD,str2,nulstr,true); 
 		safe_snprintf(tmp,sizeof(tmp),"%s%s",cfg.temp_dir,title);
 		if(!fexistcase(str2) && fexistcase(tmp))
 			mv(tmp,str2,0);
@@ -174,26 +191,11 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		errormsg(WHERE,ERR_OPEN,"MAIL",i);
 		return(false); 
 	}
-	sprintf(smb.file,"%smail", cfg.data_dir);
-	smb.retry_time=cfg.smb_retry_time;
-	smb.subnum=INVALID_SUB;
-	if((i=smb_open(&smb))!=0) {
+
+	if((i=smb_open_sub(&cfg, &smb, INVALID_SUB))!=0) {
 		smb_stack(&smb,SMB_STACK_POP);
 		errormsg(WHERE,ERR_OPEN,smb.file,i,smb.last_error);
 		return(false); 
-	}
-
-	if(smb_fgetlength(smb.shd_fp)<1) {	 /* Create it if it doesn't exist */
-		smb.status.max_crcs=cfg.mail_maxcrcs;
-		smb.status.max_age=cfg.mail_maxage;
-		smb.status.max_msgs=0;
-		smb.status.attr=SMB_EMAIL;
-		if((i=smb_create(&smb))!=0) {
-			smb_close(&smb);
-			smb_stack(&smb,SMB_STACK_POP);
-			errormsg(WHERE,ERR_CREATE,smb.file,i,smb.last_error);
-			return(false); 
-		} 
 	}
 
 	if((i=smb_locksmbhdr(&smb))!=0) {
@@ -262,7 +264,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	msg.hdr.version=smb_ver();
 	msg.hdr.attr=msgattr;
 	if(mode&WM_FILE)
-		msg.hdr.auxattr|=MSG_FILEATTACH;
+		msg.hdr.auxattr |= (MSG_FILEATTACH | MSG_KILLFILE);
 	msg.hdr.when_written.time=msg.hdr.when_imported.time=time32(NULL);
 	msg.hdr.when_written.zone=msg.hdr.when_imported.zone=sys_timezone(&cfg);
 
@@ -296,11 +298,7 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 	if(useron.misc&NETMAIL) {
 		if(useron.rest&FLAG('G'))
 			smb_hfield_str(&msg,REPLYTO,useron.name);
-		nettype=smb_netaddr_type(useron.netmail);
-		if(nettype!=NET_NONE && nettype!=NET_UNKNOWN) {
-			smb_hfield(&msg,REPLYTONETTYPE,sizeof(nettype),&nettype);
-			smb_hfield_str(&msg,REPLYTONETADDR,useron.netmail);
-		}
+		smb_hfield_netaddr(&msg,REPLYTONETADDR,useron.netmail,NULL);
 	}
 
 	/* Security logging */
@@ -309,15 +307,13 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 
 	smb_hfield_str(&msg,SUBJECT,title);
 
-	/* Generate FidoNet Program Identifier */
-	smb_hfield_str(&msg,FIDOPID,msg_program_id(pid));
+	add_msg_ids(&cfg, &smb, &msg, remsg);
 
-	if(editor!=NULL)
-		smb_hfield_str(&msg,SMB_EDITOR,editor);
+	editor_info_to_msg(&msg, editor, charset);
 
 	smb_dfield(&msg,TEXT_BODY,length);
 
-	i=smb_addmsghdr(&smb,&msg,SMB_SELFPACK); // calls smb_unlocksmbhdr() 
+	i=smb_addmsghdr(&smb,&msg,smb_storage_mode(&cfg, &smb)); // calls smb_unlocksmbhdr() 
 	smb_close(&smb);
 	smb_stack(&smb,SMB_STACK_POP);
 
@@ -334,8 +330,8 @@ bool sbbs_t::email(int usernumber, const char *top, const char *subj, long mode)
 		logon_emails++;
 	user_sent_email(&cfg, &useron, 1, usernumber==1);
 	bprintf(text[Emailed],username(&cfg,usernumber,tmp),usernumber);
-	safe_snprintf(str,sizeof(str),"%s sent e-mail to %s #%d"
-		,useron.alias,username(&cfg,usernumber,tmp),usernumber);
+	safe_snprintf(str,sizeof(str),"sent e-mail to %s #%d"
+		,username(&cfg,usernumber,tmp),usernumber);
 	logline("E+",str);
 	if(mode&WM_FILE && online==ON_REMOTE)
 		autohangup();
