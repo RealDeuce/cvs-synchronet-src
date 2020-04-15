@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.363 2020/04/16 16:55:40 deuce Exp $ */
+/* $Id: term.c,v 1.362 2020/04/15 16:23:53 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -181,7 +181,7 @@ void mousedrag(struct vmem_cell *scrollback)
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						newcopybuf=realloc(copybuf, (endpos-startpos+4+lines*2)*4);
+						newcopybuf=realloc(copybuf, endpos-startpos+4+lines*2);
 						if (newcopybuf)
 							copybuf = newcopybuf;
 						else
@@ -189,15 +189,8 @@ void mousedrag(struct vmem_cell *scrollback)
 						outpos=0;
 						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
-							size_t outlen;
-							uint8_t *utf8str;
-
-							utf8str = cp_to_utf8(conio_fontdata[screen[pos].font].cp, (char *)&screen[pos].ch, 1, &outlen);
-							if (utf8str == NULL)
-								continue;
-							memcpy(copybuf + outpos, utf8str, outlen);
-							outpos += outlen;
-							if(screen[pos].ch != ' ' && screen[pos].ch)
+							copybuf[outpos++]=tscreen[pos*2];
+							if(tscreen[pos*2]!=' ' && tscreen[pos*2])
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
