@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.331 2019/08/09 00:49:19 rswindell Exp $ */
+/* $Id: services.c,v 1.333 2020/04/12 06:06:47 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -71,6 +71,7 @@
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
+static char*	text[TOTAL_TEXT];
 static volatile BOOL	terminated=FALSE;
 static time_t	uptime=0;
 static ulong	served=0;
@@ -442,6 +443,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(client->client!=NULL) {
 		client->client->user=client->user.alias;
+		client->client->usernum = client->user.number;
 		client_on(client->socket,client->client,TRUE /* update */);
 	}
 
@@ -621,6 +623,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	client.protocol=service_client->service->protocol;
 	client.time=time32(NULL);
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -1085,6 +1088,7 @@ static void js_service_thread(void* arg)
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	service_client.client=&client;
 
 	/* Initialize client display */
@@ -1435,6 +1439,7 @@ static void native_service_thread(void* arg)
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1665,7 +1670,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.331 $", "%*s %s", revision);
+	sscanf("$Revision: 1.333 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1811,7 +1816,7 @@ void DLLCALL services_thread(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, NULL, TRUE, error)) {
+		if(!load_cfg(&scfg, text, TRUE, error)) {
 			lprintf(LOG_CRIT,"!ERROR %s",error);
 			lprintf(LOG_CRIT,"!Failed to load configuration files");
 			cleanup(1);
