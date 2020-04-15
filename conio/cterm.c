@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.276 2020/04/14 16:31:21 deuce Exp $ */
+/* $Id: cterm.c,v 1.277 2020/04/15 17:46:50 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2961,7 +2961,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							*speed = newspeed;
 					}
 					else if (strcmp(seq->ctrl_func, "*z") == 0) {
-						if (seq->param_int[0] >= 0 && seq->param_int[0] <= 63) {
+						if (seq->param_count > 0 && seq->param_int[0] <= 63) {
 							if (cterm->macros[seq->param_int[0]]) {
 								if ((cterm->in_macro & (1<<seq->param_int[0])) == 0) {
 									cterm->escbuf[0]=0;
@@ -4015,7 +4015,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.276 $";
+	char	*revision="$Revision: 1.277 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
