@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.185 2019/05/04 03:03:05 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.191 2020/04/09 09:33:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -793,7 +793,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
 {
 	jsval idval;
 	char*		p=NULL;
-	int32		val=0;
+	uint32		val=0;
     jsint       tiny;
 	JSString*	js_str;
 	sbbs_t*		sbbs;
@@ -805,7 +805,7 @@ static JSBool js_bbs_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, j
     tiny = JSVAL_TO_INT(idval);
 
 	if(JSVAL_IS_NUMBER(*vp) || JSVAL_IS_BOOLEAN(*vp)) {
-		if(!JS_ValueToInt32(cx, *vp, &val))
+		if(!JS_ValueToECMAUint32(cx, *vp, &val))
 			return(JS_FALSE);
 	}
 	else if(JSVAL_IS_STRING(*vp)) {
@@ -1120,8 +1120,8 @@ static uint get_subnum(JSContext* cx, sbbs_t* sbbs, jsval *argv, int argc, int p
 			if(!stricmp(sbbs->cfg.sub[subnum]->code,p))
 				break;
 	} else if(argc>pos && JSVAL_IS_NUMBER(argv[pos])) {
-		int32 i;
-		if(!JS_ValueToInt32(cx,argv[pos],&i))
+		uint32 i;
+		if(!JS_ValueToECMAUint32(cx,argv[pos],&i))
 			return JS_FALSE;
 		subnum = i;
 	}
@@ -1146,8 +1146,8 @@ static uint get_dirnum(JSContext* cx, sbbs_t* sbbs, jsval val, bool dflt)
 				if(!stricmp(sbbs->cfg.dir[dirnum]->code,p))
 					break;
 		} else if(JSVAL_IS_NUMBER(val)) {
-			int32 i;
-			if(!JS_ValueToInt32(cx,val,&i))
+			uint32 i;
+			if(!JS_ValueToECMAUint32(cx,val,&i))
 				return JS_FALSE;
 			dirnum = i;
 		}
@@ -1275,7 +1275,7 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	uintN		i;
 	sbbs_t*		sbbs;
-	int32		mode=0;
+	uint32		mode=0;
     JSString*	cmd;
 	JSString*	startup_dir=NULL;
 	char*		p_startup_dir=NULL;
@@ -1295,7 +1295,7 @@ js_exec(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
 		else if(JSVAL_IS_STRING(argv[i]))
@@ -1327,7 +1327,7 @@ static JSBool
 js_exec_xtrn(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		i=0;
+	uint32		i=0;
 	char*		code;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -1347,7 +1347,7 @@ js_exec_xtrn(JSContext *cx, uintN argc, jsval *arglist)
 				if(!stricmp(sbbs->cfg.xtrn[i]->code,code))
 					break;
 		} else if(JSVAL_IS_NUMBER(argv[0])) {
-			if(!JS_ValueToInt32(cx,argv[0],&i))
+			if(!JS_ValueToECMAUint32(cx,argv[0],&i))
 				return JS_FALSE;
 		}
 	}
@@ -1367,7 +1367,7 @@ static JSBool
 js_user_event(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		i=0;
+	uint32		i=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -1377,7 +1377,7 @@ js_user_event(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&i))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&i))
 			return JS_FALSE;
 	}
 	rc=JS_SUSPENDREQUEST(cx);
@@ -1440,7 +1440,7 @@ static JSBool
 js_text(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		i=0;
+	uint32		i=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
@@ -1449,7 +1449,7 @@ js_text(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&i))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&i))
 			return JS_FALSE;
 	}
 	i--;
@@ -1471,7 +1471,7 @@ js_replace_text(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		p;
-	int32		i=0;
+	uint32		i=0;
 	int			len;
 	sbbs_t*		sbbs;
 
@@ -1484,7 +1484,7 @@ js_replace_text(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&i))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&i))
 			return JS_FALSE;
 	}
 	i--;
@@ -1516,7 +1516,7 @@ static JSBool
 js_revert_text(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		i=0;
+	uint32		i=0;
 	sbbs_t*		sbbs;
 
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
@@ -1525,7 +1525,7 @@ js_revert_text(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&i))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&i))
 			return JS_FALSE;
 	}
 	i--;
@@ -2150,6 +2150,8 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	char		prot=0;
+	char*		desc=NULL;
+	bool		autohang = true;
 	char*		p;
 	jsrefcount	rc;
 	char*		cstr;
@@ -2166,14 +2168,24 @@ js_sendfile(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_ASTRING(cx, argv[1], p, 2, NULL);
 		if(p!=NULL)
 			prot=*p;
+		uintN argn = 2;
+		if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
+			JSVALUE_TO_MSTRING(cx, argv[argn], desc, NULL);
+			argn++;
+		}
+		if(argc > argn && JSVAL_IS_BOOLEAN(argv[argn])) {
+			autohang = JSVAL_TO_BOOLEAN(argv[argn]);
+			argn++;
+		}
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->sendfile(cstr,prot)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->sendfile(cstr, prot, desc, autohang)));
 	free(cstr);
+	FREE_AND_NULL(desc);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2185,6 +2197,7 @@ js_recvfile(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	sbbs_t*		sbbs;
 	char		prot=0;
+	bool		autohang = true;
 	char*		p;
 	char*		cstr;
 	jsrefcount	rc;
@@ -2201,13 +2214,15 @@ js_recvfile(JSContext *cx, uintN argc, jsval *arglist)
 		JSVALUE_TO_ASTRING(cx, argv[1], p, 2, NULL);
  		if(p!=NULL)
 			prot=*p;
+		if(argc > 2)
+			autohang = JSVAL_TO_BOOLEAN(argv[2]);
 	}
 
 	JSVALUE_TO_MSTRING(cx, argv[0], cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->recvfile(cstr,prot)));
+	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->recvfile(cstr, prot, autohang)));
 	free(cstr);
 	JS_RESUMEREQUEST(cx, rc);
 
@@ -2389,7 +2404,7 @@ static JSBool
 js_node_stats(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		node_num=0;
+	uint32		node_num=0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2399,7 +2414,7 @@ js_node_stats(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&node_num))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&node_num))
 			return JS_FALSE;
 	}
 
@@ -2414,7 +2429,7 @@ static JSBool
 js_userlist(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=UL_ALL;
+	uint32		mode=UL_ALL;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2424,7 +2439,7 @@ js_userlist(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc>0 && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&mode))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&mode))
 			return JS_FALSE;
 	}
 
@@ -2563,9 +2578,9 @@ static JSBool
 js_readmail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		readwhich=MAIL_YOUR;
-	int32		usernumber;
-	int32		lm_mode = 0;
+	uint32		readwhich=MAIL_YOUR;
+	uint32		usernumber;
+	uint32		lm_mode = 0;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2576,15 +2591,15 @@ js_readmail(JSContext *cx, uintN argc, jsval *arglist)
 
 	usernumber=sbbs->useron.number;
 	if(argc>0 && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&readwhich))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&readwhich))
 			return JS_FALSE;
 	}
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
-		if(!JS_ValueToInt32(cx,argv[1],&usernumber))
+		if(!JS_ValueToECMAUint32(cx,argv[1],&usernumber))
 			return JS_FALSE;
 	}
 	if(argc>2 && JSVAL_IS_NUMBER(argv[2])) {
-		if(!JS_ValueToInt32(cx, argv[2], &lm_mode))
+		if(!JS_ValueToECMAUint32(cx, argv[2], &lm_mode))
 			return JS_FALSE;
 	}
 
@@ -2599,8 +2614,8 @@ static JSBool
 js_email(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		usernumber=1;
-	int32		mode=WM_EMAIL;
+	uint32		usernumber=1;
+	uint32		mode=WM_EMAIL;
 	const char	*def="";
 	char*		top=(char *)def;
 	char*		subj=(char *)def;
@@ -2623,24 +2638,26 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&usernumber))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&usernumber))
 			return JS_FALSE;
 	}
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
 		else if(JSVAL_IS_STRING(argv[i]) && js_top==NULL)
 			js_top=JS_ValueToString(cx,argv[i]);
 		else if(JSVAL_IS_STRING(argv[i]))
 			js_subj=JS_ValueToString(cx,argv[i]);
-		else if(JSVAL_IS_OBJECT(argv[i])) {
+		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
 			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -2673,7 +2690,7 @@ static JSBool
 js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=0;
+	uint32		mode=0;
 	char*		to = NULL;
 	char*		subj = NULL;
 	JSString*	js_str;
@@ -2695,7 +2712,7 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=0; i<argc; i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
@@ -2706,12 +2723,14 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 				JSSTRING_TO_MSTRING(cx, js_str, subj, NULL);
 			}
 		}
-		else if(JSVAL_IS_OBJECT(argv[i])) {
+		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
 			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -2842,7 +2861,7 @@ js_telnet_gate(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		addr;
-	int32		mode=0;
+	uint32		mode=0;
 	JSString*	js_addr;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -2863,7 +2882,7 @@ js_telnet_gate(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	if(argc>1 && JSVAL_IS_NUMBER(argv[1])) {
-		if(!JS_ValueToInt32(cx,argv[1],&mode)) {
+		if(!JS_ValueToECMAUint32(cx,argv[1],&mode)) {
 			free(addr);
 			return JS_FALSE;
 		}
@@ -2887,7 +2906,7 @@ js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
 	char*		server_user_name=NULL;
 	char*		term_type=NULL;
 	bool		fail = false;
-	int32		mode = 0;
+	uint32		mode = 0;
 	JSString*	js_str;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -2922,7 +2941,7 @@ js_rlogin_gate(JSContext *cx, uintN argc, jsval *arglist)
 				JSSTRING_TO_MSTRING(cx, js_str, term_type, NULL);
 			}
 		} else if(JSVAL_IS_NUMBER(argv[argn])) {
-			if(!JS_ValueToInt32(cx,argv[argn],&mode)) {
+			if(!JS_ValueToECMAUint32(cx,argv[argn],&mode)) {
 				fail = true;
 				break;
 			}
@@ -3402,7 +3421,7 @@ static JSBool
 js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=0;
+	uint32		mode=0;
 	const char	*def=ALLFILES;
 	char*		afspec=NULL;
 	char*		fspec=(char *)def;
@@ -3426,7 +3445,7 @@ js_listfiles(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode)) {
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode)) {
 				if(fspec != def)
 					FREE_AND_NULL(fspec);
 				return JS_FALSE;
@@ -3459,7 +3478,7 @@ static JSBool
 js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=FI_INFO;
+	uint32		mode=FI_INFO;
 	const char	*def=ALLFILES;
 	char*		fspec=(char *)def;
 	char		buf[MAX_PATH+1];
@@ -3482,7 +3501,7 @@ js_listfileinfo(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
@@ -3507,7 +3526,7 @@ static JSBool
 js_post_msg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=0;
+	uint32		mode=0;
 	uint		subnum;
 	uintN		n;
 	JSObject*	hdrobj;
@@ -3531,15 +3550,17 @@ js_post_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(n=1; n<argc; n++) {
 		if(JSVAL_IS_NUMBER(argv[n])) {
-			if(!JS_ValueToInt32(cx,argv[n],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[n],&mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_OBJECT(argv[n])) {
+		else if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -3557,7 +3578,7 @@ static JSBool
 js_show_msg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		p_mode = 0;
+	uint32		p_mode = 0;
 	uintN		n;
 	JSObject*	hdrobj;
 	sbbs_t*		sbbs;
@@ -3573,13 +3594,14 @@ js_show_msg(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(n=0; n<argc; n++) {
 		if(JSVAL_IS_NUMBER(argv[n])) {
-			if(!JS_ValueToInt32(cx, argv[n], &p_mode))
+			if(!JS_ValueToECMAUint32(cx, argv[n], &p_mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_OBJECT(argv[n])) {
+		else if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, &post)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		}
@@ -3614,10 +3636,13 @@ js_show_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	for(n=0; n<argc; n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
-			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
+			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL) {
+				JS_ReportError(cx, "invalid object argument");
 				return JS_FALSE;
+			}
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_STRING(argv[n])) {
@@ -3662,10 +3687,11 @@ js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	for(n=0; n<argc; n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_BOOLEAN(argv[n])) {
@@ -3683,10 +3709,44 @@ js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
 }
 
 static JSBool
+js_change_msg_attr(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	JSObject*	hdrobj;
+	sbbs_t*		sbbs;
+	smbmsg_t*	msg = NULL;
+	jsrefcount	rc;
+
+	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
+		return(JS_FALSE);
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc < 1 || !JSVAL_IS_OBJECT(argv[0]) || JSVAL_IS_NULL(argv[0]))
+		return JS_TRUE;
+
+	if((hdrobj=JSVAL_TO_OBJECT(argv[0]))==NULL)
+		return JS_FALSE;
+	if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, NULL, &msg, NULL)) {
+		JS_ReportError(cx, "msg hdr object lacks privates");
+		return JS_FALSE;
+	}
+	if(msg == NULL)
+		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	int32 attr = sbbs->chmsgattr(*msg);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(attr));
+	return JS_TRUE;
+}
+
+static JSBool
 js_msgscan_cfg(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=SUB_CFG_NSCAN;
+	uint32		mode=SUB_CFG_NSCAN;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -3696,7 +3756,7 @@ js_msgscan_cfg(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		if(!JS_ValueToInt32(cx,argv[0],&mode))
+		if(!JS_ValueToECMAUint32(cx,argv[0],&mode))
 			return JS_FALSE;
 	}
 
@@ -3752,7 +3812,7 @@ static JSBool
 js_scansubs(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=SCAN_NEW;
+	uint32		mode=SCAN_NEW;
 	BOOL		all=FALSE;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -3764,7 +3824,7 @@ js_scansubs(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
 		else if(JSVAL_IS_BOOLEAN(argv[i]))
@@ -3785,7 +3845,7 @@ static JSBool
 js_scandirs(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	int32		mode=0;
+	uint32		mode=0;
 	BOOL		all=FALSE;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -3797,7 +3857,7 @@ js_scandirs(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=0;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode))
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
 				return JS_FALSE;
 		}
 		else if(JSVAL_IS_BOOLEAN(argv[i]))
@@ -3820,7 +3880,7 @@ js_scanposts(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	const char	*def="";
 	char*		find=(char *)def;
-	int32		mode=0;
+	uint32		mode=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
@@ -3839,7 +3899,7 @@ js_scanposts(JSContext *cx, uintN argc, jsval *arglist)
 
 	for(uintN i=1;i<argc;i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
-			if(!JS_ValueToInt32(cx,argv[i],&mode)) {
+			if(!JS_ValueToECMAUint32(cx,argv[i],&mode)) {
 				if(find != def)
 					free(find);
 				return JS_FALSE;
@@ -3869,8 +3929,8 @@ js_listmsgs(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	const char	*def="";
 	char*		find=(char *)def;
-	int32		mode=0;
-	int32		start=0;
+	uint32		mode=SCAN_INDEX;
+	uint32		start=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
 	uintN		argn=0;
@@ -3889,11 +3949,11 @@ js_listmsgs(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_TRUE);
 
 	if(argc > argn && JSVAL_IS_NUMBER(argv[argn])) {
-		if(!JS_ValueToInt32(cx,argv[argn++],&mode))
+		if(!JS_ValueToECMAUint32(cx,argv[argn++],&mode))
 			return JS_FALSE;
 	}
 	if(argc > argn && JSVAL_IS_NUMBER(argv[argn])) {
-		if(!JS_ValueToInt32(cx,argv[argn++],&start))
+		if(!JS_ValueToECMAUint32(cx,argv[argn++],&start))
 			return JS_FALSE;
 	}
 	if(argc > argn && JSVAL_IS_STRING(argv[argn])) {
@@ -3925,8 +3985,8 @@ js_getnstime(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_NULL);
 
 	if(argc && JSVAL_IS_NUMBER(argv[0])) {
-		int32 i;
-		if(!JS_ValueToInt32(cx,argv[0],&i))
+		uint32 i;
+		if(!JS_ValueToECMAUint32(cx,argv[0],&i))
 			return JS_FALSE;
 		t = i;
 	}
@@ -4152,14 +4212,19 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("add file list to batch download queue")
 	,310
 	},
-	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol]")
+	{"send_file",		js_sendfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol] [,description] [,autohang=true]")
 	,JSDOCSTR("send specified filename (complete path) to user via user-prompted "
-		"(or optionally specified) protocol")
+		"(or optionally specified) protocol.<br>"
+		"The optional <i>description</i> string is used for logging purposes.<br>"
+		"When <i>autohang=true</i>, disconnect after transfer based on user's default setting."
+	)
 	,314
 	},
-	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol]")
-	,JSDOCSTR("received specified filename (complete path) frome user via user-prompted "
-		"(or optionally specified) protocol")
+	{"receive_file",	js_recvfile,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("filename [,protocol] [,autohang=true]")
+	,JSDOCSTR("received specified filename (complete path) from user via user-prompted "
+		"(or optionally specified) protocol.<br>"
+		"When <i>autohang=true</i>, disconnect after transfer based on user's default setting."
+	)
 	,314
 	},
 	{"temp_xfer",		js_temp_xfer,		0,	JSTYPE_VOID,	JSDOCSTR("")
@@ -4266,19 +4331,23 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 		"will be used for the in-reply-to header fields.")
 	,313
 	},
-	{"show_msg",		js_show_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[object header] [,mode=<tt>P_NONE</tt>] ")
+	{"show_msg",		js_show_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("object header [,mode=<tt>P_NONE</tt>] ")
 	,JSDOCSTR("show a message's header and body (text) with optional print <i>mode</i> (bitfield)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
 	,31702
 	},
-	{"show_msg_header",	js_show_msg_header,	1,	JSTYPE_VOID,	JSDOCSTR("[object header] [,subject] [,from] [,to]")
+	{"show_msg_header",	js_show_msg_header,	1,	JSTYPE_VOID,	JSDOCSTR("object header [,subject] [,from] [,to]")
 	,JSDOCSTR("show a message's header (only)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
 	,31702
 	},
-	{"download_msg_attachments", js_download_msg_attachments, 1, JSTYPE_VOID, JSDOCSTR("[object header]")
+	{"download_msg_attachments", js_download_msg_attachments, 1, JSTYPE_VOID, JSDOCSTR("object header")
 	,JSDOCSTR("prompt the user to download each of the message's file attachments (if there are any)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
+	,31702
+	},
+	{"change_msg_attr", js_change_msg_attr, 1, JSTYPE_NUMBER, JSDOCSTR("object header")
+	,JSDOCSTR("prompt the user to modify the specified message header attributes")
 	,31702
 	},
 	{"cfg_msg_scan",	js_msgscan_cfg,		0,	JSTYPE_VOID,	JSDOCSTR("[type=<tt>SCAN_CFG_NEW</tt>]")
@@ -4308,7 +4377,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 		"optionally search for 'find' string (AKA scan_posts)")
 	,310
 	},
-	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_READ</tt>] [,message_number=<tt>0</tt>] [,find]")
+	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_INDEX</tt>] [,message_number=<tt>0</tt>] [,find]")
 	,JSDOCSTR("list messages in the specified message sub-board (number or internal code), "
 		"optionally search for 'find' string, returns number of messages listed")
 	,314
@@ -4336,7 +4405,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},
 	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("base_filename, search_string")
-	,JSDOCSTR("search file for psuedo-regexp (search string) in trashcan file (text/base_filename.can)")
+	,JSDOCSTR("search file for pseudo-regexp (search string) in trashcan file (text/base_filename.can)")
 	,310
 	},
 	/* xtrn programs/modules */
