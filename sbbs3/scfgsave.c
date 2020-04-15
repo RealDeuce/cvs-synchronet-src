@@ -1,6 +1,6 @@
 /* Synchronet configuration file save routines */
 
-/* $Id: scfgsave.c,v 1.83 2019/07/14 10:02:47 rswindell Exp $ */
+/* $Id: scfgsave.c,v 1.93 2020/04/15 02:27:39 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -271,10 +271,11 @@ BOOL DLLCALL write_main_cfg(scfg_t* cfg, int backup_level)
 	put_str(cfg->readmail_mod, stream);
 	put_str(cfg->scanposts_mod, stream);
 	put_str(cfg->scansubs_mod, stream);
+	put_str(cfg->listmsgs_mod, stream);
+	put_str(cfg->textsec_mod,stream);
 
-	put_int(c,stream);
 	n=0;
-	for(i=0;i<62;i++)
+	for(i=0;i<26;i++)
 		put_int(n,stream);
 	n=0xffff;
 	for(i=0;i<254;i++)
@@ -444,9 +445,11 @@ BOOL DLLCALL write_msgs_cfg(scfg_t* cfg, int backup_level)
 			put_str(cfg->sub[i]->mod_arstr,stream);
 			put_int(cfg->sub[i]->qwkconf,stream);
 			c=0;
-			put_int(c,stream);
+			put_int(c,stream); // unused
+			put_int(cfg->sub[i]->pmode,stream);
+			put_int(cfg->sub[i]->n_pmode,stream);
 			n=0;
-			for(k=0;k<26;k++)
+			for(k=0;k<22;k++)
 				put_int(n,stream);
 
 			if(all_msghdr || (cfg->sub[i]->misc&SUB_HDRMOD && !no_msghdr)) {
@@ -810,12 +813,12 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				put_str(cfg->dir[i]->lname, stream);
 				put_str(cfg->dir[i]->sname, stream);
 				put_str(cfg->dir[i]->code_suffix, stream);
-#if 1
+
 				if (cfg->dir[i]->data_dir[0]) {
 					backslash(cfg->dir[i]->data_dir);
 					md(cfg->dir[i]->data_dir);
 				}
-#endif
+
 				put_str(cfg->dir[i]->data_dir, stream);
 				put_str(cfg->dir[i]->arstr, stream);
 				put_str(cfg->dir[i]->ul_arstr, stream);
@@ -827,23 +830,20 @@ BOOL DLLCALL write_file_cfg(scfg_t* cfg, int backup_level)
 				if (cfg->dir[i]->misc&DIR_FCHK) {
 					SAFECOPY(path, cfg->dir[i]->path);
 					if (!path[0]) {		/* no file storage path specified */
-						if(cfg->dir[i]->data_dir[0])
-							SAFECOPY(path, cfg->dir[i]->data_dir);
-						else
-							SAFECOPY(path, cfg->data_dir);
-						backslash(path);
-						SAFEPRINTF2(str, "%s%s"
+						SAFEPRINTF2(path, "%s%s"
 							, cfg->lib[cfg->dir[i]->lib]->code_prefix
 							, cfg->dir[i]->code_suffix);
-						strlwr(str);
-						SAFECAT(path,str);
+						strlwr(path);
 					}
-					else if (cfg->lib[cfg->dir[i]->lib]->parent_path[0]) {
-						SAFECOPY(path, cfg->lib[cfg->dir[i]->lib]->parent_path);
-						backslash(path);
-						SAFECAT(path, cfg->dir[i]->path);
+					if(cfg->lib[cfg->dir[i]->lib]->parent_path[0])
+						prep_dir(cfg->lib[cfg->dir[i]->lib]->parent_path, path, sizeof(path));
+					else {
+						if(cfg->dir[i]->data_dir[0])
+							SAFECOPY(str, cfg->dir[i]->data_dir);
+						else
+							SAFEPRINTF(str, "%sdirs", cfg->data_dir);
+						prep_dir(str, path, sizeof(path));
 					}
-					prep_dir(cfg->ctrl_dir, path, sizeof(path));
 					mkpath(path);
 				}
 
@@ -1097,16 +1097,17 @@ void DLLCALL refresh_cfg(scfg_t* cfg)
 {
 	char	str[MAX_PATH+1];
     int		i;
-	int		file;
+	int		file = -1;
     node_t	node;
     
     for(i=0;i<cfg->sys_nodes;i++) {
-       	if(getnodedat(cfg,i+1,&node,&file)!=0)
+       	if(getnodedat(cfg,i+1,&node, /* lockit: */TRUE, &file)!=0)
 			continue;
         node.misc|=NODE_RRUN;
-        if(putnodedat(cfg,i+1,&node,file))
+        if(putnodedat(cfg,i+1,&node, /* closeit: */FALSE, file))
             break;
     }
+	CLOSE_OPEN_FILE(file);
 
 	SAFEPRINTF(str,"%srecycle",cfg->ctrl_dir);		ftouch(str);
 }
@@ -1126,6 +1127,8 @@ int DLLCALL smb_storage_mode(scfg_t* cfg, smb_t* smb)
 	return SMB_SELFPACK;
 }
 
+/* Open Synchronet Message Base and create, if necessary (e.g. first time opened) */
+/* If return value is not SMB_SUCCESS, sub-board is not left open */
 int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 {
 	int retval;
@@ -1147,8 +1150,13 @@ int DLLCALL smb_open_sub(scfg_t* cfg, smb_t* smb, unsigned int subnum)
 		smb->status.attr		= cfg->sub[subnum]->misc&SUB_HYPER ? SMB_HYPERALLOC :0;
 	}
 	smb->retry_time = cfg->smb_retry_time;
-	if((retval = smb_open(smb)) == SMB_SUCCESS)
-		smb->subnum = subnum;
+	if((retval = smb_open(smb)) == SMB_SUCCESS) {
+		if(smb_fgetlength(smb->shd_fp) < sizeof(smbhdr_t) + sizeof(smb->status)) {
+			if((retval = smb_create(smb)) != SMB_SUCCESS)
+				smb_close(smb);
+		}
+		if(retval == SMB_SUCCESS)
+			smb->subnum = subnum;
+	}
 	return retval;
 }
-
