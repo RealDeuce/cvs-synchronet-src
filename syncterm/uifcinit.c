@@ -1,11 +1,12 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id$ */
+/* $Id: uifcinit.c,v 1.41 2020/04/15 21:51:30 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
 
 #include <ciolib.h>
+#include <vidmodes.h>
 #include <uifc.h>
 
 #include "uifcinit.h"
@@ -13,33 +14,50 @@
 
 uifcapi_t uifc; /* User Interface (UIFC) Library API */
 static int uifc_initialized=0;
-int uifc_old_font=0;
 
 #define UIFC_INIT	(1<<0)
 #define WITH_SCRN	(1<<1)
 #define WITH_BOT	(1<<2)
 
 static void (*bottomfunc)(int);
+int orig_ciolib_xlat;
+int orig_vidflags;
+int orig_x;
+int orig_y;
+uint32_t orig_palette[16];
 
-int	init_uifc(BOOL scrn, BOOL bottom) {
+int
+init_uifc(BOOL scrn, BOOL bottom) {
 	int	i;
 	struct	text_info txtinfo;
 	char	top[80];
 
-    gettextinfo(&txtinfo);
+	gettextinfo(&txtinfo);
 	if(!uifc_initialized) {
-		/* Get old font... */
-		uifc_old_font=getfont();
-		if(uifc_old_font >= 32 && uifc_old_font <= 36)
-			setfont(0, FALSE,1);
 		/* Set scrn_len to 0 to prevent textmode() call */
 		uifc.scrn_len=0;
+		orig_ciolib_xlat = ciolib_xlat;
+		orig_vidflags = getvideoflags();
+		orig_x=wherex();
+		orig_y=wherey();
+		setvideoflags(orig_vidflags&(CIOLIB_VIDEO_NOBLINK|CIOLIB_VIDEO_BGBRIGHT));
+		ciolib_xlat = CIOLIB_XLAT_CHARS;
+		uifc.chars = NULL;
 		if((i=uifcini32(&uifc))!=0) {
 			fprintf(stderr,"uifc library init returned error %d\n",i);
 			return(-1);
 		}
 		bottomfunc=uifc.bottomline;
 		uifc_initialized=UIFC_INIT;
+		get_modepalette(orig_palette);
+		set_modepalette(palettes[COLOUR_PALETTE]);
+		if ((cio_api.options & (CONIO_OPT_EXTENDED_PALETTE | CONIO_OPT_PALETTE_SETTING)) == (CONIO_OPT_EXTENDED_PALETTE | CONIO_OPT_PALETTE_SETTING)) {
+			uifc.bclr=BLUE;
+			uifc.hclr=YELLOW;
+			uifc.lclr=WHITE;
+			uifc.cclr=CYAN;
+			uifc.lbclr=BLUE|(LIGHTGRAY<<4);	/* lightbar color */
+		}
 	}
 
 	if(scrn) {
@@ -75,8 +93,11 @@ void uifcbail(void)
 {
 	if(uifc_initialized) {
 		uifc.bail();
-		if(uifc_old_font != getfont())
-			setfont(uifc_old_font, FALSE,1);
+		ciolib_xlat = orig_ciolib_xlat;
+		set_modepalette(orig_palette);
+		setvideoflags(orig_vidflags);
+		loadfont(NULL);
+		gotoxy(orig_x, orig_y);
 	}
 	uifc_initialized=0;
 }
@@ -84,58 +105,53 @@ void uifcbail(void)
 void uifcmsg(char *msg, char *helpbuf)
 {
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
+	struct ciolib_screen *savscrn;
 
-    gettextinfo(&txtinfo);
 	i=uifc_initialized;
-	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	}
+	if(!i)
+		savscrn = savescreen();
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
 		uifc.msg(msg);
+		check_exit(FALSE);
 	}
 	else
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		restorescreen(savscrn);
+		freescreen(savscrn);
 	}
 }
 
 void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 {
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
+	struct ciolib_screen *savscrn;
 
-    gettextinfo(&txtinfo);
 	i=uifc_initialized;
-	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	}
+	if(!i)
+		savscrn = savescreen();
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
 		uifc.input(WIN_MID|WIN_SAV, 0, 0, title, msg, len, mode);
+		check_exit(FALSE);
 	}
 	else
 		fprintf(stderr,"%s\n",msg);
 	if(!i) {
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		restorescreen(savscrn);
+		freescreen(savscrn);
 	}
 }
 
 int confirm(char *msg, char *helpbuf)
 {
 	int i;
-	char	*buf;
-	struct	text_info txtinfo;
+	struct ciolib_screen *savscrn;
 	char	*options[] = {
 				 "Yes"
 				,"No"
@@ -143,21 +159,21 @@ int confirm(char *msg, char *helpbuf)
 	int		ret=TRUE;
 	int		copt=0;
 
-    gettextinfo(&txtinfo);
 	i=uifc_initialized;
-	if(!i) {
-		buf=(char *)alloca(txtinfo.screenheight*txtinfo.screenwidth*2);
-		gettext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
-	}
+	if(!i)
+		savscrn = savescreen();
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
-		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,msg,options)!=0)
+		if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&copt,NULL,msg,options)!=0) {
+			check_exit(FALSE);
 			ret=FALSE;
+		}
 	}
 	if(!i) {
 		uifcbail();
-		puttext(1,1,txtinfo.screenwidth,txtinfo.screenheight,buf);
+		restorescreen(savscrn);
+		freescreen(savscrn);
 	}
 	return(ret);
 }
