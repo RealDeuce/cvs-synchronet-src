@@ -2,7 +2,7 @@
 
 /* Synchronet message-related command shell/module routines */
 
-/* $Id: execmsg.cpp,v 1.12 2020/04/16 07:39:46 rswindell Exp $ */
+/* $Id: execmsg.cpp,v 1.11 2018/10/26 03:33:14 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -328,10 +328,7 @@ int sbbs_t::exec_msg(csi_t *csi)
 			return(0);
 		case CS_MSG_YOUR_SCAN_ALL:
 			scanallsubs(SCAN_TOYOU);
-			return(0);
-		case CS_MSG_LIST:
-			listsub(usrsub[curgrp][cursub[curgrp]], SCAN_INDEX, /* start: */0, /* search: */NULL);
-			return(0);
+			return(0); 
 	}
 	errormsg(WHERE,ERR_CHK,"shell function",*(csi->ip-1));
 	return(0);
