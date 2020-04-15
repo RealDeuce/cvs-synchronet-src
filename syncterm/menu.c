@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.61 2018/04/18 06:51:24 deuce Exp $ */
+/* $Id: menu.c,v 1.63 2020/04/13 23:39:10 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
@@ -29,7 +29,7 @@ void viewscroll(void)
 	x=wherex();
 	y=wherey();
 	uifcbail();
-    gettextinfo(&txtinfo);
+	gettextinfo(&txtinfo);
 	/* too large for alloca() */
 	scrollback=malloc((scrollback_buf==NULL?0:(term.width*sizeof(*scrollback)*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(*scrollback)));
 	if(scrollback==NULL)
@@ -135,7 +135,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Send Login ("ALT_KEY_NAMEP"-L)"
 						,"Upload ("ALT_KEY_NAMEP"-U)"
 						,"Download ("ALT_KEY_NAMEP"-D)"
-						,"Change Output Rate ("ALT_KEY_NAMEP"-Up/"ALT_KEY_NAMEP"-Down)"
+						,"Change Output Rate (Ctrl-Up/Ctrl-Down)"
 						,"Change Log Level"
 						,"Capture Control ("ALT_KEY_NAMEP"-C)"
 						,"ANSI Music Control ("ALT_KEY_NAMEP"-M)"

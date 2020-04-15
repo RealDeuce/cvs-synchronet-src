@@ -1257,10 +1257,12 @@ custom_mode_adjusted(int *cur, char **opt)
 	uifcbail();
 	textmode(0);
 	cvmode = find_vmode(ti.currmode);
-	vparams[cvmode].cols = settings.custom_cols;
-	vparams[cvmode].rows = settings.custom_rows;
-	vparams[cvmode].charheight = settings.custom_fontheight;
-	textmode(ti.currmode);
+	if (cvmode >= 0) {
+		vparams[cvmode].cols = settings.custom_cols;
+		vparams[cvmode].rows = settings.custom_rows;
+		vparams[cvmode].charheight = settings.custom_fontheight;
+		textmode(ti.currmode);
+	}
 	init_uifc(TRUE, TRUE);
 
 	// Draw BBS List
@@ -1426,13 +1428,6 @@ void change_settings(int connected)
 								"        This output mode allows switching to full-screen mode but is\n"
 								"        otherwise identical to X11 mode.\n\n"
 								"~ SDL Fullscreen ~\n"
-								"        As above, but starts in full-screen mode rather than a window\n\n"
-								"~ SDL Overlay ~\n"
-								"        The most resource intensive mode.  However, unlike the other\n"
-								"        graphical modes, this window can be scaled to any size and,\n"
-								"        when switched to full screen, will always use the entire\n"
-								"        display.\n\n"
-								"~ SDL Overlay Fullscreen ~\n"
 								"        As above, but starts in full-screen mode rather than a window\n\n"
 #endif
 								;
