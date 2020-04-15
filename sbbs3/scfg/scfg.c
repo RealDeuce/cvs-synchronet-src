@@ -1,6 +1,6 @@
 /* Synchronet configuration utility 										*/
 
-/* $Id: scfg.c,v 1.112 2020/03/31 06:05:59 rswindell Exp $ */
+/* $Id: scfg.c,v 1.117 2020/04/12 18:28:36 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -166,7 +166,6 @@ int main(int argc, char **argv)
     char    errormsg[MAX_PATH*2];
 	int 	i,j,main_dflt=0,chat_dflt=0;
 	char 	str[MAX_PATH+1];
- 	char	exepath[MAX_PATH+1];
 	BOOL    door_mode=FALSE;
 	int		ciolib_mode=CIOLIB_MODE_AUTO;
 
@@ -185,21 +184,26 @@ int main(int argc, char **argv)
 	const char* grpname = NULL;
 	unsigned int grpnum = 0;
 	faddr_t faddr = {0};
+	uint32_t misc = 0;
 	for(i=1;i<argc;i++) {
         if(argv[i][0]=='-'
 #ifndef __unix__
             || argv[i][0]=='/'
 #endif
             ) {
-			if(strncmp(argv[i]+1, "import=", 7) == 0) {
+			if(strncmp(argv[i], "-import=", 8) == 0) {
 				import = argv[i] + 8;
 				continue;
 			}
-			if(strncmp(argv[i]+1, "faddr=", 6) == 0) {
-				faddr = atofaddr(argv[i] + 6);
+			if(strncmp(argv[i], "-faddr=", 7) == 0) {
+				faddr = atofaddr(argv[i] + 7);
 				continue;
 			}
-			if(strcmp(argv[i]+1, "insert") == 0) {
+			if(strncmp(argv[i], "-misc=", 6) == 0) {
+				misc = strtoul(argv[i] + 7, NULL, 0);
+				continue;
+			}
+			if(strcmp(argv[i], "-insert") == 0) {
 				uifc.insert_mode = TRUE;
 				continue;
 			}
@@ -264,6 +268,9 @@ int main(int argc, char **argv)
 						case 'X':
 							ciolib_mode=CIOLIB_MODE_X;
 							break;
+						case 'I':
+							ciolib_mode=CIOLIB_MODE_CURSES_ASCII;
+							break;
 #endif
 						case 'W':
 							ciolib_mode=CIOLIB_MODE_CONIO;
@@ -298,12 +305,14 @@ int main(int argc, char **argv)
                         "-e# =  set escape delay to #msec\n"
 						"-import=<filename> = import a message area list file\n"
 						"-faddr=<addr> = specify your FTN address for imported subs\n"
+						"-misc=<value> = specify option flags for imported subs\n"
 						"-g# =  set group number (or name) to import into\n"
 						"-iX =  set interface mode to X (default=auto) where X is one of:\n"
 #ifdef __unix__
 						"       X = X11 mode\n"
 						"       C = Curses mode\n"
 						"       F = Curses mode with forced IBM charset\n"
+						"       I = Curses mode with forced ASCII charset\n"
 #else
 						"       W = Win32 native mode\n"
 #endif
@@ -321,12 +330,6 @@ int main(int argc, char **argv)
 		else
 			SAFECOPY(cfg.ctrl_dir,argv[i]);
     }
-
-#ifdef _WIN32
-	FULLPATH(exepath,argv[0],sizeof(exepath));	/* Must do this before chdir */
-#else
-	exepath[0]=0;
-#endif
 
 	if(chdir(cfg.ctrl_dir)!=0) {
 		printf("!ERROR %d changing current directory to: %s\n"
@@ -379,7 +382,7 @@ int main(int argc, char **argv)
 			case msgbase:
 			{
 				enum import_list_type list_type = determine_msg_list_type(fname);
-				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, /* pkt_orig: */NULL, &faddr, &added);
+				ported = import_msg_areas(list_type, fp, grpnum, 1, 99999, /* qhub: */NULL, /* pkt_orig: */NULL, &faddr, misc, &added);
 				break;
 			}
 			case filebase:
@@ -431,26 +434,13 @@ int main(int argc, char **argv)
 		if((mopt[i]=(char *)malloc(64))==NULL)
 			allocfail(64);
 
-	if((p=getenv("SBBSEXEC"))!=NULL)
-		SAFECOPY(str,p);
-	else {
-		SAFECOPY(str,exepath);
-		p=strrchr(str,'/');
-		if(p==NULL)
-			p=strrchr(str,'\\');
-		if(p!=NULL)
-			*p=0;
-		else 
-	   		sprintf(str,"%s../exec",cfg.ctrl_dir);
-	}
-
-	sprintf(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
+	SAFEPRINTF2(str,"Synchronet for %s v%s",PLATFORM_DESC,VERSION);
 	if(uifc.scrn(str)) {
 		printf(" USCRN (len=%d) failed!\n",uifc.scrn_len+1);
 		bail(1);
 	}
 
-	sprintf(str,"%smain.cnf",cfg.ctrl_dir);
+	SAFEPRINTF(str,"%smain.cnf",cfg.ctrl_dir);
 	if(!fexist(str)) {
 		sprintf(errormsg,"Main configuration file (%s) missing!",str);
 		uifc.msg(errormsg);
