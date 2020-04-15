@@ -1,11 +1,10 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.64 2020/04/15 21:51:30 deuce Exp $ */
+/* $Id: menu.c,v 1.63 2020/04/13 23:39:10 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
-#include <vidmodes.h>
 
 #include "cterm.h"
 #include "term.h"
@@ -44,7 +43,6 @@ void viewscroll(void)
 	setfont(0, FALSE, 4);
 	drawwin();
 	top=cterm->backpos;
-	set_modepalette(palettes[COLOUR_PALETTE]);
 	gotoxy(1,1);
 	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
 	for(i=0;(!i) && (!quitting);) {
