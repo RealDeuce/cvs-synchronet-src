@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.360 2020/04/13 01:55:22 deuce Exp $ */
+/* $Id: term.c,v 1.362 2020/04/15 16:23:53 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2865,7 +2865,7 @@ BOOL doterm(struct bbslist *bbs)
 					gotoxy(i,j);
 					key = 0;
 					break;
-				case 0x9800:	/* ALT-Up */
+				case 0x8d00:	/* CTRL-Up */
 					if(bbs->conn_type != CONN_TYPE_SERIAL) {
 						if(speed)
 							speed=rates[get_rate_num(speed)+1];
@@ -2874,7 +2874,7 @@ BOOL doterm(struct bbslist *bbs)
 						key = 0;
 					}
 					break;
-				case 0xa000:	/* ALT-Down */
+				case 0x9100:	/* CTRL-Down */
 					if(bbs->conn_type != CONN_TYPE_SERIAL) {
 						i=get_rate_num(speed);
 						if(i==0)
@@ -2923,10 +2923,7 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<123) {
+							if(key<123) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
