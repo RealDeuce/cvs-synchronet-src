@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.186 2020/04/12 18:24:50 deuce Exp $ */
+/* $Id: ciolib.c,v 1.188 2020/04/15 15:19:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -195,6 +195,7 @@ static int try_sdl_init(int mode)
 		cio_api.set_modepalette=bitmap_set_modepalette;
 		cio_api.map_rgb = bitmap_map_rgb;
 		cio_api.replace_font = bitmap_replace_font;
+		cio_api.beep = sdl_beep;
 		return(1);
 	}
 	return(0);
@@ -242,6 +243,7 @@ static int try_x_init(int mode)
 		cio_api.get_window_info=x_get_window_info;
 		cio_api.setscaling=x_setscaling;
 		cio_api.getscaling=x_getscaling;
+		cio_api.seticon=x_seticon;
 		cio_api.setpalette=bitmap_setpalette;
 		cio_api.attr2palette=bitmap_attr2palette;
 		cio_api.setpixel=bitmap_setpixel;

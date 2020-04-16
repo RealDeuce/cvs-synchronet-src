@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.361 2020/04/13 23:39:10 deuce Exp $ */
+/* $Id: term.c,v 1.362 2020/04/15 16:23:53 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2923,10 +2923,7 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<123) {
+							if(key<123) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
