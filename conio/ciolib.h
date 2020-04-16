@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.114 2020/04/13 02:00:38 deuce Exp $ */
+/* $Id: ciolib.h,v 1.115 2020/04/16 16:55:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -36,6 +36,7 @@
 
 #include <string.h>	/* size_t */
 #include "gen_defs.h"
+#include "utf8_codepages.h"
 
 #ifdef CIOLIBEXPORT
         #undef CIOLIBEXPORT
@@ -250,6 +251,7 @@ struct conio_font_data_struct {
         char 	*eight_by_eight;
         char	*put_xlat;
         char 	*desc;
+        enum ciolib_codepage cp;
 };
 
 CIOLIBEXPORTVAR struct conio_font_data_struct conio_fontdata[257];
