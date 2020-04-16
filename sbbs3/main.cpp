@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.781 2020/04/11 04:01:35 rswindell Exp $ */
+/* $Id: main.cpp,v 1.782 2020/04/13 23:21:38 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -2297,6 +2297,26 @@ void output_thread(void* arg)
 			&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
+#ifdef _WIN32
+#ifdef TCP_TIMESTAMPS
+				DWORD ts;
+				sl = sizeof(ts);
+				if (!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_TIMESTAMPS, (char *)&ts, &sl)) {
+					if (ts)
+						i -= 12;
+				}
+#endif
+#else
+#if (defined(TCP_INFO) && defined(TCPI_OPT_TIMESTAMPS))
+				struct tcp_info tcpi;
+
+				sl = sizeof(tcpi);
+				if (!getsockopt(sbbs->client_socket, IPPROTO_TCP, TCP_INFO,&tcpi, &sl)) {
+					if (tcpi.tcpi_options & TCPI_OPT_TIMESTAMPS)
+						i -= 12;
+				}
+#endif
+#endif
 				sbbs->outbuf.highwater_mark=i;
 				lprintf(LOG_DEBUG,"Autotuning outbuf highwater mark to %d based on MSS",i);
 				mss=sbbs->outbuf.highwater_mark;
