@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.276 2020/04/14 16:31:21 deuce Exp $ */
+/* $Id: cterm.c,v 1.278 2020/04/15 18:35:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2961,7 +2961,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							*speed = newspeed;
 					}
 					else if (strcmp(seq->ctrl_func, "*z") == 0) {
-						if (seq->param_int[0] >= 0 && seq->param_int[0] <= 63) {
+						if (seq->param_count > 0 && seq->param_int[0] <= 63) {
 							if (cterm->macros[seq->param_int[0]]) {
 								if ((cterm->in_macro & (1<<seq->param_int[0])) == 0) {
 									cterm->escbuf[0]=0;
@@ -4015,7 +4015,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.276 $";
+	char	*revision="$Revision: 1.278 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4698,12 +4698,12 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 									GOTOXY(x, y);
 									break;
 								case 155:	/* Return */
-									TERM_XY(&x, &y);
+									TERM_XY(NULL, &y);
 									if (y == TERM_MAXY)
 										scrollup(cterm);
 									else
 										y++;
-									GOTOXY(x, y);
+									GOTOXY(1, y);
 									break;
 								case 156:	/* Delete Line */
 									dellines(cterm, 1);
