@@ -2,26 +2,8 @@
 #include <stdlib.h>
 #include "utf8_codepages.h"
 
-struct ciolib_cpmap {
-	uint32_t	unicode;
-	uint8_t		cpchar;
-};
-
-struct codepage_def {
-	char name[32];
-	enum ciolib_codepage cp;
-	uint8_t *(*to_utf8)(const char *cp437str, size_t buflen, size_t *outlen, struct codepage_def *cpdef);
-	char *(*utf8_to)(const uint8_t *utf8str, char unmapped, size_t buflen, size_t *outlen, struct codepage_def *cpdef);
-	uint8_t (*from_unicode_cpoint)(uint32_t cpoint, char unmapped, struct codepage_def *cpdef);
-	uint8_t (*from_unicode_cpoint_ext)(uint32_t cpoint, char unmapped, struct codepage_def *cpdef);
-	struct ciolib_cpmap *cp_table;
-	size_t cp_table_sz;
-	uint32_t *cp_unicode_table;
-	uint32_t *cp_ext_unicode_table;
-};
-
 // Sorted by unicode codepoint...
-static struct ciolib_cpmap cp437_table[160] = {
+struct cp437map cp437_table[160] = {
 	{0x0000, 0},   {0x00A0, 255}, {0x00A1, 173}, {0x00A2, 155},
 	{0x00A3, 156}, {0x00A5, 157}, {0x00A7, 21},  {0x00AA, 166},
 	{0x00AB, 174}, {0x00AC, 170}, {0x00B0, 248}, {0x00B1, 241},
@@ -64,14 +46,14 @@ static struct ciolib_cpmap cp437_table[160] = {
 	{0x2665, 3},   {0x2666, 4},   {0x266A, 13},  {0x266B, 14},
 };
 
-static uint32_t cp437_ext_table[32] = {
+uint32_t cp437_ext_table[32] = {
 	0x0000, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022,
 	0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C,
 	0x25BA, 0x25C4, 0x2195, 0x203C, 0x00B6, 0x00A7, 0x25AC, 0x21A8,
 	0x2191, 0x2193, 0x2192, 0x2190, 0x221F, 0x2194, 0x25B2, 0x25BC
 };
 
-static uint32_t cp437_unicode_table[128] = {
+uint32_t cp437_unicode_table[128] = {
 	0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7, 
 	0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5, 
 	0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9, 
@@ -90,73 +72,11 @@ static uint32_t cp437_unicode_table[128] = {
 	0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0
 };
 
-static struct ciolib_cpmap cp1251_table[159] = {
-	{0x00a0, 160}, {0x00a4, 164}, {0x00a6, 166}, {0x00a7,  21},
-	{0x00a7, 167}, {0x00a9, 169}, {0x00ab, 171}, {0x00ac, 172},
-	{0x00ad, 173}, {0x00ae, 174}, {0x00b0, 176}, {0x00b1, 177},
-	{0x00b5, 181}, {0x00b6,  20}, {0x00b6, 182}, {0x00b7, 183},
-	{0x00bb, 187}, {0x0401, 168}, {0x0402, 128}, {0x0403, 129},
-	{0x0404, 170}, {0x0405, 189}, {0x0406, 178}, {0x0407, 175},
-	{0x0408, 163}, {0x0409, 138}, {0x040a, 140}, {0x040b, 142},
-	{0x040c, 141}, {0x040e, 161}, {0x040f, 143}, {0x0410, 192},
-	{0x0411, 193}, {0x0412, 194}, {0x0413, 195}, {0x0414, 196},
-	{0x0415, 197}, {0x0416, 198}, {0x0417, 199}, {0x0418, 200},
-	{0x0419, 201}, {0x041a, 202}, {0x041b, 203}, {0x041c, 204},
-	{0x041d, 205}, {0x041e, 206}, {0x041f, 207}, {0x0420, 208},
-	{0x0421, 209}, {0x0422, 210}, {0x0423, 211}, {0x0424, 212},
-	{0x0425, 213}, {0x0426, 214}, {0x0427, 215}, {0x0428, 216},
-	{0x0429, 217}, {0x042a, 218}, {0x042b, 219}, {0x042c, 220},
-	{0x042d, 221}, {0x042e, 222}, {0x042f, 223}, {0x0430, 224},
-	{0x0431, 225}, {0x0432, 226}, {0x0433, 227}, {0x0434, 228},
-	{0x0435, 229}, {0x0436, 230}, {0x0437, 231}, {0x0438, 232},
-	{0x0439, 233}, {0x043a, 234}, {0x043b, 235}, {0x043c, 236},
-	{0x043d, 237}, {0x043e, 238}, {0x043f, 239}, {0x0440, 240},
-	{0x0441, 241}, {0x0442, 242}, {0x0443, 243}, {0x0444, 244},
-	{0x0445, 245}, {0x0446, 246}, {0x0447, 247}, {0x0448, 248},
-	{0x0449, 249}, {0x044a, 250}, {0x044b, 251}, {0x044c, 252},
-	{0x044d, 253}, {0x044e, 254}, {0x044f, 255}, {0x0451, 184},
-	{0x0452, 144}, {0x0453, 131}, {0x0454, 186}, {0x0455, 190},
-	{0x0456, 179}, {0x0457, 191}, {0x0458, 188}, {0x0459, 154},
-	{0x045a, 156}, {0x045b, 158}, {0x045c, 157}, {0x045e, 162},
-	{0x045f, 159}, {0x0490, 165}, {0x0491, 180}, {0x2013, 150},
-	{0x2014, 151}, {0x2018, 145}, {0x2019, 146}, {0x201a, 130},
-	{0x201c, 147}, {0x201d, 148}, {0x201e, 132}, {0x2020, 134},
-	{0x2021, 135}, {0x2022, 149}, {0x2022,   7}, {0x2026, 133},
-	{0x2030, 137}, {0x2039, 139}, {0x203a, 155}, {0x203c,  19},
-	{0x20ac, 136}, {0x2116, 185}, {0x2122, 153}, {0x2190,  27},
-	{0x2191,  24}, {0x2192,  26}, {0x2193,  25}, {0x2194,  29},
-	{0x2195,  18}, {0x21a8,  23}, {0x221f,  28}, {0x25ac,  22},
-	{0x25b2,  30}, {0x25ba,  16}, {0x25bc,  31}, {0x25c4,  17},
-	{0x25cb,   9}, {0x25d8,   8}, {0x25d9,  10}, {0x263a,   1},
-	{0x263b,   2}, {0x263c,  15}, {0x2640,  12}, {0x2642,  11},
-	{0x2660,   6}, {0x2663,   5}, {0x2665,   3}, {0x2666,   4},
-	{0x266a,  13}, {0x266b,  14}, {0xfffd, 152}
-};
-
-static uint32_t cp1251_unicode_table[128] = {
-	0x0402, 0x0403, 0x201a, 0x0453, 0x201e, 0x2026, 0x2020, 0x2021,
-	0x20ac, 0x2030, 0x0409, 0x2039, 0x040a, 0x040c, 0x040b, 0x040f,
-	0x0452, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
-	0xfffd, 0x2122, 0x0459, 0x203a, 0x045a, 0x045c, 0x045b, 0x045f,
-	0x00a0, 0x040e, 0x045e, 0x0408, 0x00a4, 0x0490, 0x00a6, 0x00a7,
-	0x0401, 0x00a9, 0x0404, 0x00ab, 0x00ac, 0x00ad, 0x00ae, 0x0407,
-	0x00b0, 0x00b1, 0x0406, 0x0456, 0x0491, 0x00b5, 0x00b6, 0x00b7,
-	0x0451, 0x2116, 0x0454, 0x00bb, 0x0458, 0x0405, 0x0455, 0x0457,
-	0x0410, 0x0411, 0x0412, 0x0413, 0x0414, 0x0415, 0x0416, 0x0417,
-	0x0418, 0x0419, 0x041a, 0x041b, 0x041c, 0x041d, 0x041e, 0x041f,
-	0x0420, 0x0421, 0x0422, 0x0423, 0x0424, 0x0425, 0x0426, 0x0427,
-	0x0428, 0x0429, 0x042a, 0x042b, 0x042c, 0x042d, 0x042e, 0x042f,
-	0x0430, 0x0431, 0x0432, 0x0433, 0x0434, 0x0435, 0x0436, 0x0437,
-	0x0438, 0x0439, 0x043a, 0x043b, 0x043c, 0x043d, 0x043e, 0x043f,
-	0x0440, 0x0441, 0x0442, 0x0443, 0x0444, 0x0445, 0x0446, 0x0447,
-	0x0448, 0x0449, 0x044a, 0x044b, 0x044c, 0x044d, 0x044e, 0x044f
-};
-
 static int
 cmptab(const void *key, const void *entry)
 {
 	const uint32_t *pkey = key;
-	const struct ciolib_cpmap *pentry = entry;
+	const struct cp437map *pentry = entry;
 
 	if (*pkey == pentry->unicode)
 		return 0;
@@ -165,26 +85,28 @@ cmptab(const void *key, const void *entry)
 	return 1;
 }
 
-static uint8_t
-cptable_from_unicode_cpoint(uint32_t cpoint, char unmapped, struct codepage_def *cpdef)
+uint8_t
+cp437_from_unicode_cp(uint32_t cp, char unmapped)
 {
-	struct ciolib_cpmap *mapped;
+	struct cp437map *mapped;
 
-	if (cpoint < 128)
-		return cpoint;
-	mapped = bsearch(&cpoint, cpdef->cp_table, cpdef->cp_table_sz, sizeof(cpdef->cp_table[0]), cmptab);
+	if (cp < 128)
+		return cp;
+	mapped = bsearch(&cp, cp437_table, 
+	    sizeof(cp437_table) / sizeof(cp437_table[0]),
+	    sizeof(cp437_table[0]), cmptab);
 	if (mapped == NULL)
 		return unmapped;
-	return mapped->cpchar;
+	return mapped->cp437;
 }
 
-static uint8_t
-cptable_from_unicode_cpoint_ext(uint32_t cpoint, char unmapped, struct codepage_def *cpdef)
+uint8_t
+cp437_from_unicode_cp_ext(uint32_t cp, char unmapped)
 {
-	if (cpoint < 32) {
-		return cpdef->cp_ext_unicode_table[cpoint];
+	if (cp < 32) {
+		return cp437_ext_table[cp];
 	}
-	return cptable_from_unicode_cpoint(cpoint, unmapped, cpdef);
+	return cp437_from_unicode_cp(cp, unmapped);
 }
 
 static int
@@ -277,8 +199,8 @@ utf8_bytes(uint32_t cp)
 	return -1;
 }
 
-static uint8_t *
-cpstr_to_utf8(const char *cpstr, size_t buflen, size_t *outlen, struct codepage_def *cpdef)
+uint8_t *
+cp437_to_utf8(const char *cp437str, size_t buflen, size_t *outlen)
 {
 	size_t needed = 0;
 	int cplen;
@@ -289,7 +211,7 @@ cpstr_to_utf8(const char *cpstr, size_t buflen, size_t *outlen, struct codepage_
 
 	// Calculate the number of bytes needed
 	for (idx = 0; idx < buflen; idx++) {
-		ch = cpstr[idx];
+		ch = cp437str[idx];
 		if (ch == 0)
 			cplen = 4;
 		else if (ch < 128)
@@ -307,7 +229,7 @@ cpstr_to_utf8(const char *cpstr, size_t buflen, size_t *outlen, struct codepage_
 
 	rp = ret;
 	for (idx = 0; idx < buflen; idx++) {
-		ch = cpstr[idx];
+		ch = cp437str[idx];
 		if (ch == 0) {
 			*(rp++) = 0xef;
 			*(rp++) = 0xbf;
@@ -319,15 +241,13 @@ cpstr_to_utf8(const char *cpstr, size_t buflen, size_t *outlen, struct codepage_
 			cplen = 1;
 		}
 		else {
-			cplen = write_cp(rp, cpdef->cp_unicode_table[ch - 128]);
+			cplen = write_cp(rp, cp437_unicode_table[ch - 128]);
 			if (cplen < 1)
 				goto error;
 		}
 		rp += cplen;
 	}
 	*rp = 0;
-	if (outlen)
-		*outlen = rp - ret;
 	return ret;
 
 error:
@@ -343,12 +263,12 @@ error:
  * Does not normalize the unicode, just a simple mapping
  * (TODO: Normalize into combined chars etc)
  */
-static char *
-utf8_to_cpstr(const uint8_t *utf8str, char unmapped, size_t inlen, size_t *outlen, struct codepage_def *cpdef)
+char *
+utf8_to_cp437(const uint8_t *utf8str, char unmapped)
 {
-	size_t idx;
+	const uint8_t *p;
 	char *rp;
-	size_t outsz = 0;
+	size_t outlen = 0;
 	int incode = 0;
 	uint32_t codepoint;
 	char *ret = NULL;
@@ -356,41 +276,41 @@ utf8_to_cpstr(const uint8_t *utf8str, char unmapped, size_t inlen, size_t *outle
 	// TODO: Normalize UTF-8...
 
 	// Calculate the number of code points and validate.
-	for (idx = 0; idx < inlen; idx++) {
+	for (p = utf8str; *p; p++) {
 		if (incode) {
-			switch (utf8str[idx] & 0xc0) {
+			switch (*p & 0xc0) {
 				case 0x80:
 					incode--;
 					if (incode == 0)
-						outsz++;
+						outlen++;
 					break;
 				default:
 					goto error;
 			}
 		}
 		else {
-			if (utf8str[idx] & 0x80) {
-				if ((utf8str[idx] & 0xe0) == 0xc0)
+			if (*p & 0x80) {
+				if ((*p & 0xe0) == 0xc0)
 					incode = 1;
-				else if ((utf8str[idx] & 0xf0) == 0xe0)
+				else if ((*p & 0xf0) == 0xe0)
 					incode = 2;
-				else if ((utf8str[idx] & 0xf8) == 0xf0)
+				else if ((*p & 0xf8) == 0xf0)
 					incode = 3;
 				else
 					goto error;
 			}
 			else
-				outsz++;
+				outlen++;
 		}
 	}
-	ret = malloc(outsz + 1);
+	ret = malloc(outlen + 1);
 	if (ret == NULL)
 		goto error;
 	rp = ret;
 
 	// Fill the string...
-	for (idx = 0; idx < inlen; idx++) {
-		utf8str += read_cp(&utf8str[idx], &codepoint);
+	while (*utf8str) {
+		utf8str += read_cp(utf8str, &codepoint);
 		if (codepoint == 0xffff || codepoint == 0xfffe)
 			goto error;
 		if (codepoint < 128)
@@ -399,56 +319,13 @@ utf8_to_cpstr(const uint8_t *utf8str, char unmapped, size_t inlen, size_t *outle
 		else if (codepoint == 0xa6) 
 			*(rp++) = '|';
 		else {
-			*(rp++) = cptable_from_unicode_cpoint(codepoint, unmapped, cpdef);
+			*(rp++) = cp437_from_unicode_cp(codepoint, unmapped);
 		}
 	}
 	*rp = 0;
-	if (outlen)
-		*outlen = rp - ret;
 
 	return ret;
 error:
 	free(ret);
 	return NULL;
-}
-
-struct codepage_def ciolib_cp[CIOLIB_CP_COUNT] = {
-	{"CP437", CIOLIB_CP437, cpstr_to_utf8, utf8_to_cpstr, cptable_from_unicode_cpoint, cptable_from_unicode_cpoint_ext, 
-		cp437_table, sizeof(cp437_table) / sizeof(cp437_table[0]),
-		cp437_unicode_table, cp437_ext_table},
-	{"CP1251", CIOLIB_CP1251, cpstr_to_utf8, utf8_to_cpstr, cptable_from_unicode_cpoint, cptable_from_unicode_cpoint_ext, 
-		cp1251_table, sizeof(cp1251_table) / sizeof(cp1251_table[0]),
-		cp1251_unicode_table, cp437_ext_table},
-};
-
-uint8_t *cp_to_utf8(enum ciolib_codepage cp, const char *cpstr, size_t buflen, size_t *outlen)
-{
-	if (cp < 0 || cp >= CIOLIB_CP_COUNT)
-		return NULL;
-
-	return ciolib_cp[cp].to_utf8(cpstr, buflen, outlen, &ciolib_cp[cp]);
-}
-
-char *utf8_to_cp(enum ciolib_codepage cp, const uint8_t *utf8str, char unmapped, size_t buflen, size_t *outlen)
-{
-	if (cp < 0 || cp >= CIOLIB_CP_COUNT)
-		return NULL;
-
-	return ciolib_cp[cp].utf8_to(utf8str, unmapped, buflen, outlen, &ciolib_cp[cp]);
-}
-
-uint8_t cp_from_unicode_cp(enum ciolib_codepage cp, uint32_t cpoint, char unmapped)
-{
-	if (cp < 0 || cp >= CIOLIB_CP_COUNT)
-		return unmapped;
-
-	return ciolib_cp[cp].from_unicode_cpoint(cpoint, unmapped, &ciolib_cp[cp]);
-}
-
-uint8_t cp_from_unicode_cp_ext(enum ciolib_codepage cp, uint32_t cpoint, char unmapped)
-{
-	if (cp < 0 || cp >= CIOLIB_CP_COUNT)
-		return unmapped;
-
-	return ciolib_cp[cp].from_unicode_cpoint_ext(cpoint, unmapped, &ciolib_cp[cp]);
 }
