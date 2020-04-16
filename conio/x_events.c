@@ -8,7 +8,6 @@
 
 #include <fcntl.h>
 #include <limits.h>
-#include <locale.h>
 #include <stdio.h>
 
 #include <X11/Xlib.h>
@@ -68,8 +67,6 @@ static Display *dpy=NULL;
 static Window win;
 static Visual visual;
 static XImage *xim;
-static XIM im;
-static XIC ic;
 static unsigned int depth=0;
 static int xfd;
 static unsigned long black;
@@ -83,6 +80,7 @@ static int r_shift;
 static int g_shift;
 static int b_shift;
 static struct rectlist *last = NULL;
+
 
 /* Array of Graphics Contexts */
 static GC gc;
@@ -309,13 +307,6 @@ static int init_window()
 		x11.XSetWMProperties(dpy, win, NULL, NULL, 0, 0, NULL, wmhints, classhints);
 		x11.XFree(wmhints);
 	}
-	im = x11.XOpenIM(dpy, NULL, "CIOLIB", "CIOLIB");
-	if (im != NULL) {
-		ic = x11.XCreateIC(im, XNClientWindow, win, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, NULL);
-		if (ic)
-			x11.XSetICFocus(ic);
-	}
-
 	if (classhints)
 		x11.XFree(classhints);
 
@@ -623,8 +614,6 @@ static void expose_rect(int x, int y, int width, int height)
 
 static int x11_event(XEvent *ev)
 {
-	if (x11.XFilterEvent(ev, win))
-		return 0;
 	switch (ev->type) {
 		case ClientMessage:
 			if (ev->xclient.format == 32 && ev->xclient.data.l[0] == WM_DELETE_WINDOW) {
@@ -676,7 +665,7 @@ static int x11_event(XEvent *ev)
 						x11.XGetWindowProperty(dpy, win, ev->xselection.property, 0, bytes_left, True, AnyPropertyType, &pastebuf_format, &format, &len, &dummy, (unsigned char **)&pastebuf);
 						if (x11.utf8 && pastebuf_format == x11.utf8) {
 							char *opb = pastebuf;
-							pastebuf = (char *)utf8_to_cp(CIOLIB_ISO_8859_1, (uint8_t *)pastebuf, '?', strlen(pastebuf), NULL);
+							pastebuf = (char *)utf8_to_cp(CIOLIB_CP437, (uint8_t *)pastebuf, '?', strlen(pastebuf), NULL);
 							if (pastebuf == NULL)
 								pastebuf = opb;
 							else
@@ -713,7 +702,7 @@ static int x11_event(XEvent *ev)
 				respond.xselection.property=None;
 				if(copybuf!=NULL) {
 					if(req->target==XA_STRING) {
-						char *cpstr = utf8_to_cp(CIOLIB_ISO_8859_1, (uint8_t *)copybuf, '?', strlen(copybuf), NULL);
+						char *cpstr = utf8_to_cp(CIOLIB_CP437, (uint8_t *)copybuf, '?', strlen(copybuf), NULL);
 						if (cpstr != NULL) {
 							x11.XChangeProperty(dpy, req->requestor, req->property, XA_STRING, 8, PropModeReplace, (uint8_t *)cpstr, strlen((char *)cpstr));
 							respond.xselection.property=req->property;
@@ -824,210 +813,182 @@ static int x11_event(XEvent *ev)
 		case KeyPress:
 			{
 				static char buf[128];
-				static wchar_t wbuf[128];
 				KeySym ks;
 				int nlock = 0;
 				WORD scan = 0xffff;
-				Status lus = 0;
-				int cnt;
-				int i;
-				uint8_t ch;
 
-				if (ic)
-					cnt = x11.XwcLookupString(ic, (XKeyPressedEvent *)ev, wbuf, sizeof(wbuf)/sizeof(wbuf[0]), &ks, &lus);
-				else {
-					cnt = x11.XLookupString((XKeyEvent *)ev, buf, sizeof(buf), &ks, NULL);
-					lus = XLookupKeySym;
-				}
+				x11.XLookupString((XKeyEvent *)ev, buf, sizeof(buf), &ks, 0);
 
-				switch(lus) {
-					case XLookupNone:
-						ks = 0xffff;
-						break;
-					case XLookupBoth:
-					case XLookupChars:
-						if (lus == XLookupChars || ((ev->xkey.state & (Mod1Mask | ControlMask)) == 0)) {
-							for (i = 0; i < cnt; i++) {
-								ch = cp_from_unicode_cp(getcodepage(), wbuf[i], 0);
-								if (ch) {
-									write(key_pipe[1], &ch, 1);
-								}
-							}
+				switch (ks) {
+				
+					case XK_Escape:
+						scan = 1;
+						goto docode;
+
+					case XK_Tab:
+					case XK_ISO_Left_Tab:
+						scan = 15;
+						goto docode;
+			
+					case XK_Return:
+					case XK_KP_Enter:
+						scan = 28;
+						goto docode;
+
+					case XK_Print:
+						scan = 55;
+						goto docode;
+
+					case XK_F1:
+					case XK_F2:
+					case XK_F3:
+					case XK_F4:
+					case XK_F5:
+					case XK_F6:
+					case XK_F7:
+					case XK_F8:
+					case XK_F9:
+					case XK_F10:
+						scan = ks - XK_F1 + 59;
+						goto docode;
+
+					case XK_KP_7:
+						nlock = 1;
+					case XK_Home:
+					case XK_KP_Home:
+						scan = 71;
+						goto docode;
+
+					case XK_KP_8:
+						nlock = 1;
+					case XK_Up:
+					case XK_KP_Up:
+						scan = 72;
+						goto docode;
+
+					case XK_KP_9:
+						nlock = 1;
+					case XK_Prior:
+					case XK_KP_Prior:
+						scan = 73;
+						goto docode;
+
+					case XK_KP_Subtract:
+						scan = 74;
+						goto docode;
+
+					case XK_KP_4:
+						nlock = 1;
+					case XK_Left:
+					case XK_KP_Left:
+						scan = 75;
+						goto docode;
+
+					case XK_KP_5:
+						nlock = 1;
+					case XK_Begin:
+					case XK_KP_Begin:
+						scan = 76;
+						goto docode;
+
+					case XK_KP_6:
+						nlock = 1;
+					case XK_Right:
+					case XK_KP_Right:
+						scan = 77;
+						goto docode;
+
+					case XK_KP_Add:
+						scan = 78;
+						goto docode;
+
+					case XK_KP_1:
+						nlock = 1;
+					case XK_End:
+					case XK_KP_End:
+						scan = 79;
+						goto docode;
+
+					case XK_KP_2:
+						nlock = 1;
+					case XK_Down:
+					case XK_KP_Down:
+						scan = 80;
+						goto docode;
+
+					case XK_KP_3:
+						nlock = 1;
+					case XK_Next:
+					case XK_KP_Next:
+						scan = 81;
+						goto docode;
+
+					case XK_KP_0:
+						nlock = 1;
+					case XK_Insert:
+					case XK_KP_Insert:
+						scan = 82;
+						goto docode;
+
+					case XK_KP_Decimal:
+						nlock = 1;
+						scan = 83;
+						goto docode;
+
+					case XK_Delete:
+					case XK_KP_Delete:
+						/* scan = flipdelete ? 14 : 83; */
+						scan = 83;
+						goto docode;
+
+					case XK_BackSpace:
+						/* scan = flipdelete ? 83 : 14; */
+						scan = 14;
+						goto docode;
+
+					case XK_F11:
+						scan = 87;
+						goto docode;
+					case XK_F12:
+						scan = 88;
+						goto docode;
+
+
+					case XK_KP_Divide:
+						scan = Ascii2Scan['/'];
+						goto docode;
+
+					case XK_KP_Multiply:
+						scan = Ascii2Scan['*'];
+						goto docode;
+
+					default:
+						if (ks < ' ' || ks > '~')
+							break;
+						scan = Ascii2Scan[ks]; 
+						docode:
+						if (nlock)
+							scan |= 0x100;
+
+						if ((scan & ~0x100) > 88) {
+							scan = 0xffff;
 							break;
 						}
-						// Fallthrough
-					case XLookupKeySym:
-						switch (ks) {
-							case XK_Escape:
-								scan = 1;
-								goto docode;
 
-							case XK_Tab:
-							case XK_ISO_Left_Tab:
-								scan = 15;
-								goto docode;
-					
-							case XK_Return:
-							case XK_KP_Enter:
-								scan = 28;
-								goto docode;
+						if (ev->xkey.state & Mod1Mask) {
+							scan = ScanCodes[scan & 0xff].alt;
+						} else if ((ev->xkey.state & ShiftMask) || (scan & 0x100)) {
+							scan = ScanCodes[scan & 0xff].shift;
+						} else if (ev->xkey.state & ControlMask) {
+							scan = ScanCodes[scan & 0xff].ctrl;
+						}  else
+							scan = ScanCodes[scan & 0xff].base;
 
-							case XK_Print:
-								scan = 55;
-								goto docode;
-
-							case XK_F1:
-							case XK_F2:
-							case XK_F3:
-							case XK_F4:
-							case XK_F5:
-							case XK_F6:
-							case XK_F7:
-							case XK_F8:
-							case XK_F9:
-							case XK_F10:
-								scan = ks - XK_F1 + 59;
-								goto docode;
-
-							case XK_KP_7:
-								nlock = 1;
-							case XK_Home:
-							case XK_KP_Home:
-								scan = 71;
-								goto docode;
-
-							case XK_KP_8:
-								nlock = 1;
-							case XK_Up:
-							case XK_KP_Up:
-								scan = 72;
-								goto docode;
-
-							case XK_KP_9:
-								nlock = 1;
-							case XK_Prior:
-							case XK_KP_Prior:
-								scan = 73;
-								goto docode;
-
-							case XK_KP_Subtract:
-								scan = 74;
-								goto docode;
-
-							case XK_KP_4:
-								nlock = 1;
-							case XK_Left:
-							case XK_KP_Left:
-								scan = 75;
-								goto docode;
-
-							case XK_KP_5:
-								nlock = 1;
-							case XK_Begin:
-							case XK_KP_Begin:
-								scan = 76;
-								goto docode;
-
-							case XK_KP_6:
-								nlock = 1;
-							case XK_Right:
-							case XK_KP_Right:
-								scan = 77;
-								goto docode;
-
-							case XK_KP_Add:
-								scan = 78;
-								goto docode;
-
-							case XK_KP_1:
-								nlock = 1;
-							case XK_End:
-							case XK_KP_End:
-								scan = 79;
-								goto docode;
-
-							case XK_KP_2:
-								nlock = 1;
-							case XK_Down:
-							case XK_KP_Down:
-								scan = 80;
-								goto docode;
-
-							case XK_KP_3:
-								nlock = 1;
-							case XK_Next:
-							case XK_KP_Next:
-								scan = 81;
-								goto docode;
-
-							case XK_KP_0:
-								nlock = 1;
-							case XK_Insert:
-							case XK_KP_Insert:
-								scan = 82;
-								goto docode;
-
-							case XK_KP_Decimal:
-								nlock = 1;
-								scan = 83;
-								goto docode;
-
-							case XK_Delete:
-							case XK_KP_Delete:
-								/* scan = flipdelete ? 14 : 83; */
-								scan = 83;
-								goto docode;
-
-							case XK_BackSpace:
-								/* scan = flipdelete ? 83 : 14; */
-								scan = 14;
-								goto docode;
-
-							case XK_F11:
-								scan = 87;
-								goto docode;
-							case XK_F12:
-								scan = 88;
-								goto docode;
-
-
-							case XK_KP_Divide:
-								scan = Ascii2Scan['/'];
-								goto docode;
-
-							case XK_KP_Multiply:
-								scan = Ascii2Scan['*'];
-								goto docode;
-
-							default:
-								if (ks < ' ' || ks > '~')
-									break;
-								scan = Ascii2Scan[ks]; 
-								docode:
-								if (nlock)
-									scan |= 0x100;
-
-								if ((scan & ~0x100) > 88) {
-									scan = 0xffff;
-									break;
-								}
-
-								if (ev->xkey.state & Mod1Mask) {
-									scan = ScanCodes[scan & 0xff].alt;
-								} else if ((ev->xkey.state & ShiftMask) || (scan & 0x100)) {
-									scan = ScanCodes[scan & 0xff].shift;
-								} else if (ev->xkey.state & ControlMask) {
-									scan = ScanCodes[scan & 0xff].ctrl;
-								}  else
-									scan = ScanCodes[scan & 0xff].base;
-
-								break;
-						}
-						if (scan != 0xffff) {
-							uint16_t key=scan;
-							write(key_pipe[1], &key, (scan&0xff)?1:2);
-						}
 						break;
+				}
+				if (scan != 0xffff) {
+					uint16_t key=scan;
+					write(key_pipe[1], &key, (scan&0xff)?1:2);
 				}
 				return(1);
 			}

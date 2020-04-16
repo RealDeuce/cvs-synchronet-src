@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.281 2020/04/17 16:54:15 deuce Exp $ */
+/* $Id: cterm.c,v 1.279 2020/04/16 23:39:17 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3920,21 +3920,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 }
 
 static void
-c64_set_reverse(struct cterminal *cterm, int on)
-{
-	if (on != cterm->c64reversemode)
-		cterm->c64reversemode = on;
-}
-
-static uint8_t
-c64_get_attr(struct cterminal *cterm)
-{
-	if (cterm->c64reversemode)
-		return (cterm->attr >> 4 | cterm->attr << 4);
-	return cterm->attr;
-}
-
-static void
 cterm_reset(struct cterminal *cterm)
 {
 	int  i;
@@ -3974,16 +3959,7 @@ cterm_reset(struct cterminal *cterm)
 	cterm->saved_mode_mask = 0;
 	cterm->c64reversemode = 0;
 	gettextinfo(&ti);
-	switch (ti.currmode) {
-		case C64_40X25:
-		case C128_40X25:
-		case C128_80X25:
-			cterm->attr = 15;
-			break;
-		default:
-			cterm->attr = ti.normattr;
-			break;
-	}
+	cterm->attr = ti.normattr;
 	attr2palette(cterm->attr, &cterm->fg_color, &cterm->bg_color);
 	cterm->doorway_mode = 0;
 	cterm->doorway_char = 0;
@@ -4036,7 +4012,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.281 $";
+	char	*revision="$Revision: 1.279 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4117,16 +4093,7 @@ void CIOLIBCALL cterm_start(struct cterminal *cterm)
 
 	if (!cterm->started) {
 		GETTEXTINFO(&ti);
-		switch (ti.currmode) {
-			case C64_40X25:
-			case C128_40X25:
-			case C128_80X25:
-				cterm->attr = 15;
-				break;
-			default:
-				cterm->attr = ti.normattr;
-				break;
-		}
+		cterm->attr = ti.normattr;
 		attr2palette(cterm->attr, &cterm->fg_color, &cterm->bg_color);
 		FREE_AND_NULL(cterm->fg_tc_str);
 		FREE_AND_NULL(cterm->bg_tc_str);
@@ -5000,20 +4967,17 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 
 							/* Movement */
 							case 13:	/* "\r\n" and disabled reverse. */
-								c64_set_reverse(cterm, 0);
+								cterm->c64reversemode = 0;
 								/* Fall-through */
 							case 141:
 								TERM_XY(&x, &y);
-								x = TERM_MINX;
+								GOTOXY(TERM_MINX, y);
 								/* Fall-through */
 							case 17:
-								if(y == TERM_MAXY) {
+								if(y == TERM_MAXY)
 									scrollup(cterm);
-									y = TERM_MAXY;
-								}
 								else
-									y++;
-								GOTOXY(x, y);
+									GOTOXY(x, y + 1);
 								break;
 							case 147:
 								cterm_clearscreen(cterm, cterm->attr);
@@ -5100,10 +5064,10 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 									SETFONT(34,FALSE,1);
 								break;
 							case 18:	/* Reverse mode on */
-								c64_set_reverse(cterm, 1);
+								cterm->c64reversemode = 1;
 								break;
 							case 146:	/* Reverse mode off */
-								c64_set_reverse(cterm, 0);
+								cterm->c64reversemode = 0;
 								break;
 
 							/* Extras */
@@ -5117,13 +5081,39 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 								}
 								break;
 
+							/* Translate to screen codes */
 							default:
 								k=buf[j];
-								if(k<32 || (k > 127 && k < 160)) {
+								if(k<32) {
 									break;
 								}
+								else if(k<64) {
+									/* No translation */
+								}
+								else if(k<96) {
+									k -= 64;
+								}
+								else if(k<128) {
+									k -= 32;
+								}
+								else if(k<160) {
+									break;
+								}
+								else if(k<192) {
+									k -= 64;
+								}
+								else if(k<224) {
+									k -= 128;
+								}
+								else {
+									if(k==255)
+										k = 94;
+									else
+										k -= 128;
+								}
+								if(cterm->c64reversemode)
 								ch[0] = k;
-								ch[1] = c64_get_attr(cterm);
+								ch[1] = cterm->attr;
 								SCR_XY(&sx, &sy);
 								PUTTEXT(sx, sy, sx, sy, ch);
 								ch[1]=0;
