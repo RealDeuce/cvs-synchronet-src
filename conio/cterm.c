@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.280 2020/04/17 00:45:06 deuce Exp $ */
+/* $Id: cterm.c,v 1.278 2020/04/15 18:35:31 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1162,7 +1162,10 @@ clear2bol(struct cterminal * cterm)
 	TERM_XY(&x, &y);
 	buf = malloc(x * sizeof(*buf));
 	for(i = 0; i < x; i++) {
-		buf[i].ch = ' ';
+		if(cterm->emulation == CTERM_EMULATION_ATASCII)
+			buf[i].ch = 0;
+		else
+			buf[i].ch = ' ';
 		buf[i].legacy_attr = cterm->attr;
 		buf[i].fg = cterm->fg_color;
 		buf[i].bg = cterm->bg_color;
@@ -4012,7 +4015,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.280 $";
+	char	*revision="$Revision: 1.278 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4764,7 +4767,27 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 									GOTOXY(x, y);
 									break;
 								default:
-									ch[0] = buf[j];
+									/* Translate to screen codes */
+									k=buf[j];
+									if(k < 32) {
+										k +=64;
+									}
+									else if(k < 96) {
+										k -= 32;
+									}
+									else if(k < 128) {
+										/* No translation */
+									}
+									else if(k < 160) {
+										k +=64;
+									}
+									else if(k < 224) {
+										k -= 32;
+									}
+									else if(k < 256) {
+										/* No translation */
+									}
+									ch[0] = k;
 									ch[1] = cterm->attr;
 									SCR_XY(&sx, &sy);
 									PUTTEXT(sx, sy, sx, sy, ch);
@@ -5112,7 +5135,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 										k -= 128;
 								}
 								if(cterm->c64reversemode)
-									k += 128;
 								ch[0] = k;
 								ch[1] = cterm->attr;
 								SCR_XY(&sx, &sy);
