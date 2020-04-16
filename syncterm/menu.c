@@ -1,10 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.61 2018/04/18 06:51:24 deuce Exp $ */
+/* $Id: menu.c,v 1.64 2020/04/15 21:51:30 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
+#include <vidmodes.h>
 
 #include "cterm.h"
 #include "term.h"
@@ -29,7 +30,7 @@ void viewscroll(void)
 	x=wherex();
 	y=wherey();
 	uifcbail();
-    gettextinfo(&txtinfo);
+	gettextinfo(&txtinfo);
 	/* too large for alloca() */
 	scrollback=malloc((scrollback_buf==NULL?0:(term.width*sizeof(*scrollback)*settings.backlines))+(txtinfo.screenheight*txtinfo.screenwidth*sizeof(*scrollback)));
 	if(scrollback==NULL)
@@ -43,6 +44,7 @@ void viewscroll(void)
 	setfont(0, FALSE, 4);
 	drawwin();
 	top=cterm->backpos;
+	set_modepalette(palettes[COLOUR_PALETTE]);
 	gotoxy(1,1);
 	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
 	for(i=0;(!i) && (!quitting);) {
@@ -135,7 +137,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Send Login ("ALT_KEY_NAMEP"-L)"
 						,"Upload ("ALT_KEY_NAMEP"-U)"
 						,"Download ("ALT_KEY_NAMEP"-D)"
-						,"Change Output Rate ("ALT_KEY_NAMEP"-Up/"ALT_KEY_NAMEP"-Down)"
+						,"Change Output Rate (Ctrl-Up/Ctrl-Down)"
 						,"Change Log Level"
 						,"Capture Control ("ALT_KEY_NAMEP"-C)"
 						,"ANSI Music Control ("ALT_KEY_NAMEP"-M)"
