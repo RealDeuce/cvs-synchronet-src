@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.206 2020/04/04 22:11:36 rswindell Exp $ */
+/* $Id: smblib.c,v 1.208 2020/04/14 08:50:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1211,15 +1211,11 @@ int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* da
 	msg->total_hfields++;
 	msg->hfield[i].type=type;
 	msg->hfield[i].length=(uint16_t)length;
-	if(length) {
-		if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
-			return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
-		memset(msg->hfield_dat[i],0,length+1);
-		memcpy(msg->hfield_dat[i],data,length); 
-		set_convenience_ptr(msg,type,msg->hfield_dat[i]);
-	}
-	else
-		msg->hfield_dat[i]=NULL;
+	if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
+		return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
+	memset(msg->hfield_dat[i],0,length+1);
+	memcpy(msg->hfield_dat[i],data,length); 
+	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return(SMB_SUCCESS);
 }
@@ -2000,6 +1996,7 @@ int SMBCALL smb_tzutc(int16_t zone)
 }
 
 /****************************************************************************/
+/* The caller needs to call smb_unlockmsghdr(smb,remsg)						*/
 /****************************************************************************/
 int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 {
@@ -2011,16 +2008,15 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 		if((remsg->offset==0 || remsg->idx.offset==0)		/* index not read? */
 			&& (retval=smb_getmsgidx(smb,remsg))!=SMB_SUCCESS)
 			return(retval);
-		if((retval=smb_lockmsghdr(smb,remsg))!=SMB_SUCCESS)
-			return(retval);
-		if(!remsg->hdr.length		/* header not read? */
-			&& (retval=smb_getmsghdr(smb,remsg))!=SMB_SUCCESS)
-			return(retval);
-
+		if(!remsg->hdr.length) {	/* header not read? */
+			if((retval=smb_lockmsghdr(smb,remsg))!=SMB_SUCCESS)
+				return(retval);
+			if((retval=smb_getmsghdr(smb,remsg))!=SMB_SUCCESS)
+				return(retval);
+		}
 		remsg->hdr.thread_first=newmsgnum;
 		remsg->idx.attr = (remsg->hdr.attr |= MSG_REPLIED);
 		retval=smb_putmsg(smb,remsg);
-		smb_unlockmsghdr(smb,remsg);
 		return(retval);
 	}
 
