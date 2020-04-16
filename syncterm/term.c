@@ -1,13 +1,12 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.366 2020/04/17 16:54:23 deuce Exp $ */
+/* $Id: term.c,v 1.363 2020/04/16 16:55:40 deuce Exp $ */
 
 #include <stdbool.h>
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
-#include <vidmodes.h>
 
 #include "gen_defs.h"
 #include "threadwrap.h"
@@ -135,6 +134,7 @@ void mousedrag(struct vmem_cell *scrollback)
 	char *copybuf=NULL;
 	char *newcopybuf;
 	int lastchar;
+	int old_xlat = ciolib_xlat;
 	struct ciolib_screen *savscrn;
 
 	sbufsize=term.width*sizeof(*screen)*term.height;
@@ -142,9 +142,10 @@ void mousedrag(struct vmem_cell *scrollback)
 	sbuffer=malloc(sbufsize);
 	tscreen=malloc(term.width*2*term.height);
 	vmem_gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
+	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
 	savscrn = savescreen();
-	set_modepalette(palettes[COLOUR_PALETTE]);
+	ciolib_xlat = old_xlat;
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xe0)
@@ -243,6 +244,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	static int oldspeed=0;
 	int	timeon;
 	char sep;
+	int old_xlat = ciolib_xlat;
 	int oldfont_norm;
 	int oldfont_bright;
 
@@ -272,6 +274,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 		setfont(oldfont_bright,0,2);
 		return;
 	}
+	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	lastupd=now;
 	oldspeed=speed;
 	timeon=now - bbs->connected;
@@ -329,6 +332,7 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
+	ciolib_xlat = old_xlat;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -1852,6 +1856,7 @@ void font_control(struct bbslist *bbs)
 	struct ciolib_screen *savscrn;
 	struct	text_info txtinfo;
 	int i,j,k;
+	int enable_xlat = CIOLIB_XLAT_NONE;
 
 	if(safe_mode)
 		return;
@@ -1893,6 +1898,10 @@ void font_control(struct bbslist *bbs)
 				}
 				else {
 					setfont(i,FALSE,1);
+					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
+						enable_xlat = CIOLIB_XLAT_CHARS;
+					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
+						enable_xlat = CIOLIB_XLAT_CHARS;
 				}
 			}
 			else
@@ -1900,6 +1909,7 @@ void font_control(struct bbslist *bbs)
 		break;
 	}
 	uifcbail();
+	ciolib_xlat = enable_xlat;
 	restorescreen(savscrn);
 	freescreen(savscrn);
 }
