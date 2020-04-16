@@ -1,7 +1,7 @@
 /* Synchronet message creation routines */
 // vi: tabstop=4
 
-/* $Id: writemsg.cpp,v 1.172 2019/08/24 19:35:07 rswindell Exp $ */
+/* $Id: writemsg.cpp,v 1.173 2020/04/16 08:20:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -522,7 +522,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	if(console&CON_RAW_IN) {
 
 		if(editor != NULL)
-			*editor = "Synchronet writemsg $Revision: 1.172 $";
+			*editor = "Synchronet writemsg $Revision: 1.173 $";
 
 		bprintf(text[EnterMsgNowRaw]
 			,(ulong)cfg.level_linespermsg[useron_level]*MAX_LINE_LEN);
@@ -659,7 +659,7 @@ bool sbbs_t::writemsg(const char *fname, const char *top, char *subj, long mode,
 	else {
 
 		if(editor != NULL)
-			*editor = "Synchronet msgeditor $Revision: 1.172 $";
+			*editor = "Synchronet msgeditor $Revision: 1.173 $";
 
 		buf[0]=0;
 		if(linesquoted || draft_restored) {
@@ -1449,60 +1449,10 @@ void sbbs_t::forwardmail(smbmsg_t *msg, int usernumber)
 /****************************************************************************/
 void sbbs_t::automsg()
 {
-    char	str[256],buf[300],anon=0;
-	char 	tmp[512];
-	char	automsg[MAX_PATH+1];
-    int		file;
-	time_t	now=time(NULL);
-
-	SAFEPRINTF(automsg,"%smsgs/auto.msg",cfg.data_dir);
-	while(online) {
-		SYNC;
-		mnemonics(text[AutoMsg]);
-		switch(getkeys("RWQ",0)) {
-			case 'R':
-				printfile(automsg,P_NOABORT|P_NOATCODES|P_WORDWRAP);
-				break;
-			case 'W':
-				if(useron.rest&FLAG('W')) {
-					bputs(text[R_AutoMsg]);
-					break; 
-				}
-				action=NODE_AMSG;
-				SYNC;
-				bputs("\r\nMaximum of 3 lines:\r\n");
-				if(!getstr(str, 76, K_WRAP|K_MSG))
-					break;
-				sprintf(buf, quote_fmt, 79, str);
-				if(getstr(str, 76, K_WRAP|K_MSG)) {
-					sprintf(buf + strlen(buf), quote_fmt, 79, str);
-					if(getstr(str, 76, K_MSG)) {
-						sprintf(buf + strlen(buf), quote_fmt, 79, str);
-					}
-				}
-				if(yesno(text[OK])) {
-					if(useron.exempt&FLAG('A')) {
-						if(!noyes(text[AnonymousQ]))
-							anon=1; 
-					}
-					if((file=nopen(automsg,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
-						errormsg(WHERE,ERR_OPEN,automsg,O_WRONLY|O_CREAT|O_TRUNC);
-						return; 
-					}
-					if(anon)
-						SAFEPRINTF(tmp,"%.80s",text[Anonymous]);
-					else
-						SAFEPRINTF2(tmp,"%s #%d",useron.alias,useron.number);
-					SAFEPRINTF2(str,text[AutoMsgBy],tmp,timestr(now));
-					write(file,str,strlen(str));
-					write(file,buf,strlen(buf));
-					close(file); 
-				}
-				break;
-			case 'Q':
-				return; 
-		} 
-	}
+	if(cfg.automsg_mod[0])
+		exec_bin(cfg.automsg_mod, &main_csi);
+	else
+		bputs(text[R_AutoMsg]);
 }
 
 /****************************************************************************/
