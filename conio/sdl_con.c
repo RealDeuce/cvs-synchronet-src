@@ -275,17 +275,14 @@ void exit_sdl_con(void)
 
 void sdl_copytext(const char *text, size_t buflen)
 {
-	size_t outlen;
-	uint8_t *u8 = cp437_to_utf8(text, buflen, &outlen);
-	sdl.SetClipboardText((char *)u8);
-	free(u8);
+	sdl.SetClipboardText(text);
 }
 
 char *sdl_getcliptext(void)
 {
 	uint8_t *u8 = (uint8_t *)sdl.GetClipboardText();
 	char *ret;
-	ret = utf8_to_cp437(u8, '?');
+	ret = utf8_to_cp(CIOLIB_CP437, u8, '?', strlen((char *)u8), NULL);
 	sdl.free(u8);
 	return ret;
 }
@@ -709,7 +706,7 @@ sdl_add_keys(uint8_t *utf8s)
 	char *chars;
 	char *p;
 
-	chars = utf8_to_cp437(utf8s, '\x0d');
+	chars = utf8_to_cp(CIOLIB_CP437, utf8s, '\x0d', strlen((char *)utf8s), NULL);
 	if (chars) {
 		for (p = chars; *p; p++) {
 			if (*p == '\x0d')
@@ -833,7 +830,7 @@ static void sdl_video_event_thread(void *data)
 							break;
 						}
 					}
-					if (block_text || !isprint(ev.key.keysym.sym))
+					if (block_text || ev.key.keysym.sym < 0 || ev.key.keysym.sym > 128 || !isprint(ev.key.keysym.sym))
 						sdl_add_key(sdl_get_char_code(ev.key.keysym.sym, ev.key.keysym.mod));
 					break;
 				case SDL_TEXTINPUT:
