@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.110 2020/04/17 17:01:39 deuce Exp $ */
+/* $Id: win32cio.c,v 1.109 2020/04/16 16:55:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -831,21 +831,17 @@ char *win32_getcliptext(void)
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
 	char *ret = NULL;
-	size_t u8sz;
 
-	if(!IsClipboardFormatAvailable(CF_UNICODETEXT))
+	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
 		return(NULL);
 	if(!OpenClipboard(NULL))
 		return(NULL);
-	clipbuf=GetClipboardData(CF_UNICODETEXT);
+	clipbuf=GetClipboardData(CF_OEMTEXT);
 	if(clipbuf!=NULL) {
 		clip=GlobalLock(clipbuf);
-		u8sz = WideCharToMultiByte(CP_UTF8, 0, clip, -1, NULL, 0, NULL, NULL);
-		ret=(char *)malloc(u8sz);
-		if(ret != NULL) {
-			if (WideCharToMultiByte(CP_UTF8, 0, clip, -1, ret, u8sz, NULL, NULL) != u8sz)
-				FREE_AND_NULL(ret);
-		}
+		ret=(char *)malloc(strlen(clip)+1);
+		if(ret != NULL)
+			strcpy(ret, clip);
 		GlobalUnlock(clipbuf);
 	}
 	CloseClipboard();
