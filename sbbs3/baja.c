@@ -2,13 +2,13 @@
 
 /* Synchronet command shell/module compiler */
 
-/* $Id$ */
+/* $Id: baja.c,v 1.51 2020/04/16 07:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2005 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -3222,6 +3222,9 @@ void compile(char *src)
 		if(!stricmp(p,"MSG_YOUR_SCAN_ALL")) {
 			fprintf(out,"%c",CS_MSG_YOUR_SCAN_ALL);
 			continue; }
+		if(!stricmp(p,"MSG_LIST")) {
+			fprintf(out,"%c",CS_MSG_LIST);
+			continue; }
 		if(!stricmp(p,"CHAT_SECTION")) {
 			fprintf(out,"%c",CS_CHAT_SECTION);
 			continue; }
@@ -3401,7 +3404,7 @@ char *usage=	"\n"
 				"       -o set output directory (e.g. -o/sbbs/exec)\n"
 				"       -i set include directory (e.g. -i/sbbs/exec)\n"
 				"       -q quiet mode (no banner)\n"
-				"       -p pause on error\n"
+				"       -p pause on error"
 				;
 
 int main(int argc, char **argv)
@@ -3412,7 +3415,13 @@ int main(int argc, char **argv)
 	int		show_banner=TRUE;
 	char	revision[16];
 
-	sscanf("$Revision$", "%*s %s", revision);
+	sscanf("$Revision: 1.51 $", "%*s %s", revision);
+
+	p = getenv("BAJAINCLUDE");
+	if(p != NULL) {
+		SAFECOPY(include_dir, p);
+		backslash(include_dir);
+	}
 
 	for(i=1;i<argc;i++)
 		if(argv[i][0]=='-'
@@ -3443,16 +3452,16 @@ int main(int argc, char **argv)
 					break;
 				default:
 					printf(banner,PLATFORM_DESC,revision);
-					printf(usage);
+					puts(usage);
 					bail(1); }
 		else
-			sprintf(src,"%.*s",sizeof(src)-5,argv[i]);	/* leave room for '.src' to be appended */
+			sprintf(src,"%.*s",(int)(sizeof(src)-5),argv[i]);	/* leave room for '.src' to be appended */
 
 	if(show_banner)
 		printf(banner,PLATFORM_DESC,revision);
 
 	if(!src[0]) {
-		printf(usage);
+		puts(usage);
 		bail(1); 
 	}
 

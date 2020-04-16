@@ -2,13 +2,13 @@
 
 /* Synchronet message-related command shell/module routines */
 
-/* $Id$ */
+/* $Id: execmsg.cpp,v 1.12 2020/04/16 07:39:46 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2009 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -51,10 +51,7 @@ int sbbs_t::exec_msg(csi_t *csi)
 			while(online) {
 				j=0;
 				if(usrgrps>1) {
-					sprintf(str,"%smenu/grps.*", cfg.text_dir);
-					if(fexist(str))
-						menu("grps");
-					else {
+					if(!menu("grps", P_NOERROR)) {
 						bputs(text[CfgGrpLstHdr]);
 						for(i=0;i<usrgrps && !msgabort();i++) {
 							if(i==curgrp)
@@ -75,12 +72,8 @@ int sbbs_t::exec_msg(csi_t *csi)
 					else
 						j--; 
 				}
-				sprintf(str,"%smenu/subs%u.*", cfg.text_dir, usrgrp[j]+1);
-				if(fexist(str)) {
-					sprintf(str,"subs%u",usrgrp[j]+1);
-					menu(str); 
-				}
-				else {
+				sprintf(str,"subs%u",usrgrp[j]+1);
+				if(!menu(str, P_NOERROR)) {
 					CLS;
 					bprintf(text[SubLstHdr], cfg.grp[usrgrp[j]]->lname);
 					for(i=0;i<usrsubs[j] && !msgabort();i++) {
@@ -209,9 +202,7 @@ int sbbs_t::exec_msg(csi_t *csi)
 
 		case CS_MSG_SHOW_GROUPS:
 			if(!usrgrps) return(0);
-			sprintf(str,"%smenu/grps.*", cfg.text_dir);
-			if(fexist(str)) {
-				menu("grps");
+			if(menu("grps", P_NOERROR)) {
 				return(0); 
 			}
 			bputs(text[GrpLstHdr]);
@@ -227,10 +218,8 @@ int sbbs_t::exec_msg(csi_t *csi)
 
 		case CS_MSG_SHOW_SUBBOARDS:
 			if(!usrgrps) return(0);
-			sprintf(str,"%smenu/subs%u.*", cfg.text_dir, usrgrp[curgrp]+1);
-			if(fexist(str)) {
-				sprintf(str,"subs%u",usrgrp[curgrp]+1);
-				menu(str);
+			sprintf(str,"subs%u",usrgrp[curgrp]+1);
+			if(menu(str, P_NOERROR)) {
 				return(0); 
 			}
 			CRLF;
@@ -339,7 +328,10 @@ int sbbs_t::exec_msg(csi_t *csi)
 			return(0);
 		case CS_MSG_YOUR_SCAN_ALL:
 			scanallsubs(SCAN_TOYOU);
-			return(0); 
+			return(0);
+		case CS_MSG_LIST:
+			listsub(usrsub[curgrp][cursub[curgrp]], SCAN_INDEX, /* start: */0, /* search: */NULL);
+			return(0);
 	}
 	errormsg(WHERE,ERR_CHK,"shell function",*(csi->ip-1));
 	return(0);
