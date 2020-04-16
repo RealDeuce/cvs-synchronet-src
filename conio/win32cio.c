@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.108 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: win32cio.c,v 1.109 2020/04/16 16:55:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -806,20 +806,23 @@ void win32_copytext(const char *text, size_t buflen)
 {
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
+	int new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
 
+	new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
+	clipbuf=GlobalAlloc(GMEM_MOVEABLE, new_buflen * sizeof(WCHAR));
+	if (clipbuf == NULL)
+		return;
+	if (MultiByteToWideChar(CP_UTF8, 0, text, buflen, clipbuf, new_buflen) != new_buflen) {
+		GlobalFree(clipbuf);
+		return;
+	}
 	if(!OpenClipboard(NULL))
 		return;
 	EmptyClipboard();
-	clipbuf=GlobalAlloc(GMEM_MOVEABLE, buflen+1);
-	if(clipbuf==NULL) {
-		CloseClipboard();
-		return;
-	}
 	clip=GlobalLock(clipbuf);
-	memcpy(clip, text, buflen);
-	clip[buflen]=0;
+	memcpy(clip, clipbuf, (new_buflen)*sizeof(WCHAR));
 	GlobalUnlock(clipbuf);
-	SetClipboardData(CF_OEMTEXT, clipbuf);
+	SetClipboardData(CF_UNICODETEXT, clipbuf);
 	CloseClipboard();
 }
 
