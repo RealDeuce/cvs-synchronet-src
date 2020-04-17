@@ -2,7 +2,7 @@
 
 /* Synchronet miscellaneous command shell/module routines */
 
-/* $Id: execmisc.cpp,v 1.57 2018/11/04 23:55:08 rswindell Exp $ */
+/* $Id: execmisc.cpp,v 1.58 2020/04/11 04:01:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -99,10 +99,7 @@ int sbbs_t::exec_misc(csi_t* csi, char *path)
 					if(op==VAR_PRINTF)
 						putmsg(cmdstr(p,path,csi->str,buf),P_SAVEATR|P_NOABORT|P_NOATCODES);
 					else {
-						if(online==ON_LOCAL)
-							eprintf(LOG_INFO,"%s",cmdstr(p,path,csi->str,buf));
-						else
-							lputs(LOG_INFO,cmdstr(p,path,csi->str,buf));
+						lputs(LOG_INFO,cmdstr(p,path,csi->str,buf));
 					}
 					free(p);
 					return(0);
