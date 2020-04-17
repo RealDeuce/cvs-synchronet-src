@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.35 2020/04/17 14:16:14 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.36 2020/04/17 21:45:54 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -450,9 +450,11 @@ int pty_connect(struct bbslist *bbs)
 				dot = strchr(slang, '.');
 				if (dot)
 					*dot = 0;
-				lang = xp_asprintf("%s.IBM437", slang);
-				setenv("LANG", lang, 1);
-				xp_asprintf_free(lang);
+				lang = xp_asprintf("%s.%s", slang, ciolib_cp[getcodepage()].name);
+				if (lang) {
+					setenv("LANG", lang, 1);
+					xp_asprintf_free(lang);
+				}
 				free(slang);
 			}
 		}
