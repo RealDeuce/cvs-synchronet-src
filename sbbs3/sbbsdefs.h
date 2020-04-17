@@ -1,6 +1,6 @@
 /* Synchronet constants, macros, and structure definitions */
 
-/* $Id: sbbsdefs.h,v 1.255 2020/03/31 08:28:20 rswindell Exp $ */
+/* $Id: sbbsdefs.h,v 1.258 2020/04/09 09:33:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -49,16 +49,16 @@
 /* Constants */
 /*************/
 
-#define VERSION 	"3.17"  /* Version: Major.minor  */
-#define REVISION	'c'     /* Revision: lowercase letter */
-#define VERSION_NUM	(31700	 + (tolower(REVISION)-'a'))
-#define VERSION_HEX	(0x31700 + (tolower(REVISION)-'a'))
+#define VERSION 	"3.18"  /* Version: Major.minor  */
+#define REVISION	'a'     /* Revision: lowercase letter */
+#define VERSION_NUM	(31800	 + (tolower(REVISION)-'a'))
+#define VERSION_HEX	(0x31800 + (tolower(REVISION)-'a'))
 
 #define VERSION_NOTICE		"Synchronet BBS for " PLATFORM_DESC\
 								"  Version " VERSION
 #define SYNCHRONET_CRC		0x9BCDD162
-#define COPYRIGHT_NOTICE	"Copyright 2019 Rob Swindell"
-#define COPYRIGHT_CRC		0x0E0503DF
+#define COPYRIGHT_NOTICE	"Copyright 2020 Rob Swindell"
+#define COPYRIGHT_CRC		0xB12E96E6
 
 #define SBBSCTRL_DEFAULT	"/sbbs/ctrl"
 
@@ -528,6 +528,7 @@ typedef enum {						/* Values for xtrn_t.event				*/
 #define LEN_MAIN_CMD	34	/* Storage in user.dat for custom commands		*/
 #define LEN_PASS		40
 #define MIN_PASS_LEN	 4
+#define RAND_PASS_LEN	 8
 #define LEN_SCAN_CMD	35
 #define LEN_IPADDR		45
 #define LEN_CID 		45	/* Caller ID (phone number) 					*/
@@ -893,6 +894,7 @@ enum XFER_TYPE {				/* Values for type in xfer_prot_select()	*/
 #define SCAN_MSGSONLY	(1<<6)	/* Do not do a new file scan even if the
 								 * user enabled Automatic New File Scan		*/
 #define SCAN_POLLS		(1<<7)	/* Scan for polls (only)					*/
+#define SCAN_INDEX		(1<<8)	// List the msg index or exec listmsgs_mod
 
 								/* Bits in misc of chan_t					*/
 #define CHAN_PW 	(1<<0)		/* Can be password protected				*/
