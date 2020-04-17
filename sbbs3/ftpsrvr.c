@@ -1,6 +1,6 @@
 /* Synchronet FTP server */
 
-/* $Id: ftpsrvr.c,v 1.498 2020/04/17 18:44:32 rswindell Exp $ */
+/* $Id: ftpsrvr.c,v 1.497 2020/04/11 04:01:35 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1334,7 +1334,7 @@ static void send_thread(void* arg)
 {
 	char		buf[8192];
 	char		fname[MAX_PATH+1];
-	char		str[256];
+	char		str[128];
 	char		tmp[128];
 	char		username[128];
 	char		host_ip[INET6_ADDRSTRLEN];
@@ -5947,7 +5947,7 @@ const char* DLLCALL ftp_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.498 $", "%*s %s", revision);
+	sscanf("$Revision: 1.497 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
