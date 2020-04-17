@@ -382,10 +382,6 @@ static void init_mode_internal(int mode)
 
 	pthread_mutex_lock(&blinker_lock);
 	pthread_mutex_lock(&vstatlock);
-	if (last) {
-		bitmap_drv_free_rect(last);
-		last = NULL;
-	}
 	bitmap_drv_init_mode(mode, &bitmap_width, &bitmap_height);
 
 	/* Deal with 40 col doubling */
@@ -848,20 +844,18 @@ static int x11_event(XEvent *ev)
 					case XLookupNone:
 						ks = 0xffff;
 						break;
-					case XLookupBoth:
 					case XLookupChars:
-						if (lus == XLookupChars || ((ev->xkey.state & (Mod1Mask | ControlMask)) == 0)) {
-							for (i = 0; i < cnt; i++) {
-								ch = cpchar_from_unicode_cpoint(getcodepage(), wbuf[i], ch);
-								if (ch) {
-									write(key_pipe[1], &ch, 1);
-								}
+					case XLookupBoth:
+						for (i = 0; i < cnt; i++) {
+							ch = cp_from_unicode_cp(getcodepage(), wbuf[i], 0);
+							if (ch) {
+								write(key_pipe[1], &ch, 1);
 							}
-							break;
 						}
-						// Fallthrough
+						break;
 					case XLookupKeySym:
 						switch (ks) {
+						
 							case XK_Escape:
 								scan = 1;
 								goto docode;
