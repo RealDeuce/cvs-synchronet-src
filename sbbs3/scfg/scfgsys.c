@@ -1,4 +1,4 @@
-/* $Id: scfgsys.c,v 1.59 2020/04/16 08:21:13 rswindell Exp $ */
+/* $Id: scfgsys.c,v 1.60 2020/04/17 19:23:41 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -502,7 +502,7 @@ void sys_cfg(void)
 				done=0;
 				while(!done) {
 					i=0;
-					sprintf(opt[i++],"%-33.33s%s","Allow Aliases"
+					sprintf(opt[i++],"%-33.33s%s","Allow User Aliases"
 						,cfg.uq&UQ_ALIASES ? "Yes" : "No");
 					sprintf(opt[i++],"%-33.33s%s","Allow Time Banking"
 						,cfg.sys_misc&SM_TIMEBANK ? "Yes" : "No");
