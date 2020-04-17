@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.34 2020/04/17 14:06:31 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.35 2020/04/17 14:16:14 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -446,7 +446,7 @@ int pty_connect(struct bbslist *bbs)
 		lang = getenv("LANG");
 		if (lang) {
 			slang = strdup(lang);
-			if (slang)
+			if (slang) {
 				dot = strchr(slang, '.');
 				if (dot)
 					*dot = 0;
