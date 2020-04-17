@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines */
 
-/* $Id: smblib.c,v 1.204 2019/07/25 10:48:27 rswindell Exp $ */
+/* $Id: smblib.c,v 1.208 2020/04/14 08:50:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -767,7 +767,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case REPLYTO:
 			msg->replyto=(char*)hfield_dat;
 			break;
-		case RFC822REPLYTO:
+		case REPLYTOLIST:
 			msg->replyto_list = (char*)hfield_dat;
 			break;
 		case REPLYTOEXT:
@@ -785,7 +785,7 @@ static void set_convenience_ptr(smbmsg_t* msg, uint16_t hfield_type, void* hfiel
 		case RECIPIENT:
 			msg->to=(char*)hfield_dat;
 			break;
-		case RFC822TO:
+		case RECIPIENTLIST:
 			msg->to_list = (char*)hfield_dat;
 			break;
 		case RECIPIENTEXT:
@@ -1211,15 +1211,11 @@ int SMBCALL smb_hfield_add(smbmsg_t* msg, uint16_t type, size_t length, void* da
 	msg->total_hfields++;
 	msg->hfield[i].type=type;
 	msg->hfield[i].length=(uint16_t)length;
-	if(length) {
-		if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
-			return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
-		memset(msg->hfield_dat[i],0,length+1);
-		memcpy(msg->hfield_dat[i],data,length); 
-		set_convenience_ptr(msg,type,msg->hfield_dat[i]);
-	}
-	else
-		msg->hfield_dat[i]=NULL;
+	if((msg->hfield_dat[i]=(void* )malloc(length+1))==NULL) 
+		return(SMB_ERR_MEM);	/* Allocate 1 extra for ASCIIZ terminator */
+	memset(msg->hfield_dat[i],0,length+1);
+	memcpy(msg->hfield_dat[i],data,length); 
+	set_convenience_ptr(msg,type,msg->hfield_dat[i]);
 
 	return(SMB_SUCCESS);
 }
@@ -1382,14 +1378,14 @@ int SMBCALL smb_hfield_replace_str(smbmsg_t* msg, uint16_t type, const char* str
 /****************************************************************************/
 /* Searches for a specific header field (by type) and returns it			*/
 /****************************************************************************/
-void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t* hfield)
+void* SMBCALL smb_get_hfield(smbmsg_t* msg, uint16_t type, hfield_t** hfield)
 {
 	int i;
 
 	for(i=0;i<msg->total_hfields;i++)
 		if(msg->hfield[i].type == type) {
 			if(hfield != NULL)
-				*hfield = msg->hfield[i];
+				*hfield = &msg->hfield[i];
 			return(msg->hfield_dat[i]);
 		}
 
@@ -1827,8 +1823,8 @@ int SMBCALL smb_putmsghdr(smb_t* smb, smbmsg_t* msg)
 	}
 	if(smb_hdrblocks(hdrlen) > smb_hdrblocks(msg->hdr.length)) {
 		safe_snprintf(smb->last_error,sizeof(smb->last_error)
-			,"%s illegal header length increase: %lu (%lu blocks) vs %hu (%lu blocks)", __FUNCTION__
-			,hdrlen, smb_hdrblocks(hdrlen)
+			,"%s illegal header length increase: %lu (%lu blocks, %hu hfields, %hu dfields) vs %hu (%lu blocks)", __FUNCTION__
+			,hdrlen, smb_hdrblocks(hdrlen), msg->total_hfields, msg->hdr.total_dfields
 			,msg->hdr.length, smb_hdrblocks(msg->hdr.length));
 		return(SMB_ERR_HDR_LEN);
 	}
@@ -2000,6 +1996,7 @@ int SMBCALL smb_tzutc(int16_t zone)
 }
 
 /****************************************************************************/
+/* The caller needs to call smb_unlockmsghdr(smb,remsg)						*/
 /****************************************************************************/
 int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 {
@@ -2011,16 +2008,15 @@ int SMBCALL smb_updatethread(smb_t* smb, smbmsg_t* remsg, ulong newmsgnum)
 		if((remsg->offset==0 || remsg->idx.offset==0)		/* index not read? */
 			&& (retval=smb_getmsgidx(smb,remsg))!=SMB_SUCCESS)
 			return(retval);
-		if((retval=smb_lockmsghdr(smb,remsg))!=SMB_SUCCESS)
-			return(retval);
-		if(!remsg->hdr.length		/* header not read? */
-			&& (retval=smb_getmsghdr(smb,remsg))!=SMB_SUCCESS)
-			return(retval);
-
+		if(!remsg->hdr.length) {	/* header not read? */
+			if((retval=smb_lockmsghdr(smb,remsg))!=SMB_SUCCESS)
+				return(retval);
+			if((retval=smb_getmsghdr(smb,remsg))!=SMB_SUCCESS)
+				return(retval);
+		}
 		remsg->hdr.thread_first=newmsgnum;
 		remsg->idx.attr = (remsg->hdr.attr |= MSG_REPLIED);
 		retval=smb_putmsg(smb,remsg);
-		smb_unlockmsghdr(smb,remsg);
 		return(retval);
 	}
 
