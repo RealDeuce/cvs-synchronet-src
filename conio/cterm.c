@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.279 2020/04/16 23:39:17 deuce Exp $ */
+/* $Id: cterm.c,v 1.280 2020/04/17 00:45:06 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4012,7 +4012,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.279 $";
+	char	*revision="$Revision: 1.280 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -5112,6 +5112,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 										k -= 128;
 								}
 								if(cterm->c64reversemode)
+									k += 128;
 								ch[0] = k;
 								ch[1] = cterm->attr;
 								SCR_XY(&sx, &sy);
