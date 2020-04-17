@@ -11,14 +11,14 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.247 2020/01/03 20:59:58 rswindell Exp $
+# $Id: GNUmakefile,v 1.248 2020/04/03 19:54:31 rswindell Exp $
 
 PWD	:=	$(shell pwd)
 SRC_ROOT	?=	${PWD}/..
 include $(SRC_ROOT)/build/Common.gmake
 
 UTIL_LDFLAGS	:=	$(LDFLAGS)
-UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS)
+UTIL_LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV_LDFLAGS) $(ENCODE_LDFLAGS)
 CONSOLE_LDFLAGS	+=	$(LDFLAGS) $(SMBLIB_LDFLAGS) $(XPDEV_LDFLAGS)
 UTIL_LIBS	+=	$(HASH_LIBS)
 
@@ -188,9 +188,9 @@ $(SBBSECHO): $(SBBSECHO_OBJS)
 	$(QUIET)$(CC) $(CONSOLE_LDFLAGS) -o $@ $(SBBSECHO_OBJS) $(SMBLIB_LIBS) $(XPDEV_LIBS) $(ENCODE_LIBS) $(HASH_LIBS)
 
 # SBBSecho Configuration Program
-$(ECHOCFG): $(ECHOCFG_OBJS)
+$(ECHOCFG): $(ECHOCFG_OBJS) $(ENCODE_LIB)
 	@echo Linking $@
-	$(QUIET)$(CC) $(UTIL_LDFLAGS) $(MT_LDFLAGS) -o $@ $(ECHOCFG_OBJS) $(UIFC-MT_LDFLAGS) $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS)
+	$(QUIET)$(CC) $(UTIL_LDFLAGS) $(MT_LDFLAGS) -o $@ $(ECHOCFG_OBJS) $(UIFC-MT_LDFLAGS) $(SMBLIB_LIBS) $(UIFC-MT_LIBS) $(CIOLIB-MT_LIBS) $(XPDEV-MT_LIBS) $(ENCODE_LIBS)
 
 # ADDFILES
 $(ADDFILES): $(ADDFILES_OBJS)
