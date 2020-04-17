@@ -1,4 +1,4 @@
-/* $Id: curs_cio.c,v 1.49 2020/04/16 14:46:47 deuce Exp $ */
+/* $Id: curs_cio.c,v 1.50 2020/04/17 18:02:05 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -312,7 +312,7 @@ static int _putch(unsigned char ch, BOOL refresh_now)
 			wch[0]=ch;
 			break;
 		case CIOLIB_MODE_CURSES:
-			wch[0] = cp_from_unicode_cp_ext(CIOLIB_CP437, ch, ch);
+			wch[0] = cp_from_unicode_cp_ext(getcodepage(), ch, ch);
 			break;
 	}
 
