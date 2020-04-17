@@ -7,6 +7,19 @@ struct ciolib_cpmap {
 	uint8_t		cpchar;
 };
 
+struct codepage_def {
+	char name[32];
+	enum ciolib_codepage cp;
+	uint8_t *(*to_utf8)(const char *cp437str, size_t buflen, size_t *outlen, struct codepage_def *cpdef);
+	char *(*utf8_to)(const uint8_t *utf8str, char unmapped, size_t buflen, size_t *outlen, struct codepage_def *cpdef);
+	uint8_t (*from_unicode_cpoint)(uint32_t cpoint, char unmapped, struct codepage_def *cpdef);
+	uint8_t (*from_unicode_cpoint_ext)(uint32_t cpoint, char unmapped, struct codepage_def *cpdef);
+	struct ciolib_cpmap *cp_table;
+	size_t cp_table_sz;
+	uint32_t *cp_unicode_table;
+	uint32_t *cp_ext_unicode_table;
+};
+
 // Sorted by unicode codepoint...
 static struct ciolib_cpmap cp437_table[162] = {
 	{0x0000, 0},   {0x00A0, 255}, {0x00A1, 173}, {0x00A2, 155},
@@ -1851,8 +1864,8 @@ utf8_to_cpstr(const uint8_t *utf8str, char unmapped, size_t inlen, size_t *outle
 	rp = ret;
 
 	// Fill the string...
-	for (idx = 0; idx < inlen;) {
-		idx += read_cp(&utf8str[idx], &codepoint);
+	for (idx = 0; idx < inlen; idx++) {
+		utf8str += read_cp(&utf8str[idx], &codepoint);
 		if (codepoint == 0xffff || codepoint == 0xfffe)
 			goto error;
 		*(rp++) = cptable_from_unicode_cpoint(codepoint, unmapped, cpdef);

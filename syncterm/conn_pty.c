@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.37 2020/04/17 21:57:47 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.35 2020/04/17 14:16:14 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -389,7 +389,7 @@ int pty_connect(struct bbslist *bbs)
 {
 	struct winsize ws;
 	struct termios ts;
-	char	*termcap;
+	char	*termcap, *lang, *slang, *dot;
 	int	cols, rows;
 
 	ts.c_iflag = TTYDEF_IFLAG;
@@ -442,7 +442,20 @@ int pty_connect(struct bbslist *bbs)
 		termcap=xp_asprintf("%d",ws.ws_row);
 		setenv("LINES",termcap,1);
 		xp_asprintf_free(termcap);
-		setenv("MM_CHARSET", ciolib_cp[getcodepage()].name, 1);
+		setenv("MM_CHARSET", "IBM437", 1);
+		lang = getenv("LANG");
+		if (lang) {
+			slang = strdup(lang);
+			if (slang) {
+				dot = strchr(slang, '.');
+				if (dot)
+					*dot = 0;
+				lang = xp_asprintf("%s.IBM437", slang);
+				setenv("LANG", lang, 1);
+				xp_asprintf_free(lang);
+				free(slang);
+			}
+		}
 		if(bbs->addr[0])
 			execl("/bin/sh", "/bin/sh", "-c", bbs->addr, (char *)0);
 		else {
