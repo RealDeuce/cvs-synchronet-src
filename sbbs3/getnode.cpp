@@ -2,7 +2,7 @@
 
 /* Synchronet node information retrieval functions */
 
-/* $Id: getnode.cpp,v 1.55 2020/04/21 20:04:19 rswindell Exp $ */
+/* $Id: getnode.cpp,v 1.54 2019/08/31 20:34:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -377,10 +377,6 @@ int sbbs_t::whos_online(bool listself)
     int		i,j;
     node_t	node;
 
-	if(cfg.whosonline_mod[0] != '\0') {
-		return exec_bin(cfg.whosonline_mod, &main_csi);
-	}
-
 	CRLF;
 	bputs(text[NodeLstHdr]);
 	for(j=0,i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
@@ -405,11 +401,6 @@ int sbbs_t::whos_online(bool listself)
 void sbbs_t::nodelist(void)
 {
 	node_t	node;
-
-	if(cfg.nodelist_mod[0] != '\0') {
-		exec_bin(cfg.nodelist_mod, &main_csi);
-		return;
-	}
 
 	CRLF;
 	bputs(text[NodeLstHdr]);
