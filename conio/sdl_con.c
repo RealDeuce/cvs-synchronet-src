@@ -281,8 +281,7 @@ void sdl_copytext(const char *text, size_t buflen)
 char *sdl_getcliptext(void)
 {
 	uint8_t *u8 = (uint8_t *)sdl.GetClipboardText();
-	char *ret;
-	ret = utf8_to_cp(CIOLIB_CP437, u8, '?', strlen((char *)u8), NULL);
+	char *ret = strdup((char *)u8);
 	sdl.free(u8);
 	return ret;
 }
@@ -706,11 +705,9 @@ sdl_add_keys(uint8_t *utf8s)
 	char *chars;
 	char *p;
 
-	chars = utf8_to_cp(CIOLIB_CP437, utf8s, '\x0d', strlen((char *)utf8s), NULL);
+	chars = utf8_to_cp(getcodepage(), utf8s, '\x00', strlen((char *)utf8s), NULL);
 	if (chars) {
 		for (p = chars; *p; p++) {
-			if (*p == '\x0d')
-				continue;
 			sdl_add_key(*((uint8_t *)p));
 		}
 		free(chars);
