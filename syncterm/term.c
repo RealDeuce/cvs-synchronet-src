@@ -1,12 +1,13 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.364 2020/04/16 23:39:20 deuce Exp $ */
+/* $Id: term.c,v 1.365 2020/04/17 14:17:44 deuce Exp $ */
 
 #include <stdbool.h>
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
+#include <vidmodes.h>
 
 #include "gen_defs.h"
 #include "threadwrap.h"
@@ -146,6 +147,7 @@ void mousedrag(struct vmem_cell *scrollback)
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
 	savscrn = savescreen();
 	ciolib_xlat = old_xlat;
+	set_modepalette(palettes[COLOUR_PALETTE]);
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xe0)
