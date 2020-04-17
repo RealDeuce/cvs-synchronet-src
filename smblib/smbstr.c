@@ -1,6 +1,6 @@
 /* Synchronet message base (SMB) library routines returning strings */
 
-/* $Id: smbstr.c,v 1.35 2019/07/25 10:48:27 rswindell Exp $ */
+/* $Id: smbstr.c,v 1.36 2019/07/30 10:20:21 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -63,12 +63,14 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case REPLYTONETTYPE:	return("Reply-ToNetType");
 		case REPLYTONETADDR:	return("Reply-ToNetAddr");
 		case REPLYTOEXT:		return("Reply-ToExt");
+		case REPLYTOLIST:		return("Reply-ToList");
 								
 		case RECIPIENT:			return("To");					/* RFC-compliant */
 		case RECIPIENTAGENT:	return("ToAgent");
 		case RECIPIENTNETTYPE:	return("ToNetType");
 		case RECIPIENTNETADDR:	return("ToNetAddr");
 		case RECIPIENTEXT:		return("ToExt");
+		case RECIPIENTLIST:		return("ToList");
 
 		case SUBJECT:			return("Subject");				/* RFC-compliant */
 		case SMB_SUMMARY:		return("Summary");
@@ -101,6 +103,9 @@ char* SMBCALL smb_hfieldtype(uint16_t type)
 		case RFC822TO:			return("RFC822To");
 		case RFC822FROM:		return("RFC822From");
 		case RFC822REPLYTO:		return("RFC822ReplyTo");
+		case RFC822CC:			return("RFC822Cc");	
+		case RFC822ORG:			return("RFC822Org");
+		case RFC822SUBJECT:		return("RFC822Subject");
 
 		case USENETPATH:		return("Path");					/* RFC-compliant */
 		case USENETNEWSGROUPS:	return("Newsgroups");			/* RFC-compliant */
