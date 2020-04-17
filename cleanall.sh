@@ -8,4 +8,3 @@ make -C smblib clean $@
 make -C uifc clean $@
 make -C xpdev clean $@
 make -C encode clean $@
-make -C hash clean $@
