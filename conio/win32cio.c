@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.108 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: win32cio.c,v 1.110 2020/04/17 17:01:39 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -806,20 +806,23 @@ void win32_copytext(const char *text, size_t buflen)
 {
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
+	int new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
 
+	new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
+	clipbuf=GlobalAlloc(GMEM_MOVEABLE, new_buflen * sizeof(WCHAR));
+	if (clipbuf == NULL)
+		return;
+	if (MultiByteToWideChar(CP_UTF8, 0, text, buflen, clipbuf, new_buflen) != new_buflen) {
+		GlobalFree(clipbuf);
+		return;
+	}
 	if(!OpenClipboard(NULL))
 		return;
 	EmptyClipboard();
-	clipbuf=GlobalAlloc(GMEM_MOVEABLE, buflen+1);
-	if(clipbuf==NULL) {
-		CloseClipboard();
-		return;
-	}
 	clip=GlobalLock(clipbuf);
-	memcpy(clip, text, buflen);
-	clip[buflen]=0;
+	memcpy(clip, clipbuf, (new_buflen)*sizeof(WCHAR));
 	GlobalUnlock(clipbuf);
-	SetClipboardData(CF_OEMTEXT, clipbuf);
+	SetClipboardData(CF_UNICODETEXT, clipbuf);
 	CloseClipboard();
 }
 
@@ -828,17 +831,21 @@ char *win32_getcliptext(void)
 	HGLOBAL	clipbuf;
 	LPTSTR	clip;
 	char *ret = NULL;
+	size_t u8sz;
 
-	if(!IsClipboardFormatAvailable(CF_OEMTEXT))
+	if(!IsClipboardFormatAvailable(CF_UNICODETEXT))
 		return(NULL);
 	if(!OpenClipboard(NULL))
 		return(NULL);
-	clipbuf=GetClipboardData(CF_OEMTEXT);
+	clipbuf=GetClipboardData(CF_UNICODETEXT);
 	if(clipbuf!=NULL) {
 		clip=GlobalLock(clipbuf);
-		ret=(char *)malloc(strlen(clip)+1);
-		if(ret != NULL)
-			strcpy(ret, clip);
+		u8sz = WideCharToMultiByte(CP_UTF8, 0, clip, -1, NULL, 0, NULL, NULL);
+		ret=(char *)malloc(u8sz);
+		if(ret != NULL) {
+			if (WideCharToMultiByte(CP_UTF8, 0, clip, -1, ret, u8sz, NULL, NULL) != u8sz)
+				FREE_AND_NULL(ret);
+		}
 		GlobalUnlock(clipbuf);
 	}
 	CloseClipboard();
