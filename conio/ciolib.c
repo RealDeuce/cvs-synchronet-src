@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.189 2020/04/17 16:54:14 deuce Exp $ */
+/* $Id: ciolib.c,v 1.190 2020/04/17 18:00:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,6 +139,7 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch,
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
+CIOLIBEXPORT enum ciolib_codepage CIOLIBCALL ciolib_getcodepage(void);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -1867,4 +1868,15 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y)
 
 	if(cio_api.setwinposition)
 		cio_api.setwinposition(x, y);
+}
+
+CIOLIBEXPORT enum ciolib_codepage CIOLIBCALL ciolib_getcodepage(void)
+{
+	int font = ciolib_getfont(0);
+
+	if (font < 0)
+		return CIOLIB_CP437;
+	if (font >= sizeof(conio_fontdata) / sizeof(conio_fontdata[0]))
+		return CIOLIB_CP437;
+	return conio_fontdata[font].cp;
 }
