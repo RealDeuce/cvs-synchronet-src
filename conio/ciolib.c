@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.192 2020/04/17 23:59:33 deuce Exp $ */
+/* $Id: ciolib.c,v 1.189 2020/04/17 16:54:14 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -139,7 +139,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch,
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
-CIOLIBEXPORT enum ciolib_codepage CIOLIBCALL ciolib_getcodepage(void);
 
 #if defined(WITH_SDL) || defined(WITH_SDL_AUDIO)
 int sdl_video_initialized = 0;
@@ -176,8 +175,13 @@ static int try_sdl_init(int mode)
 		cio_api.setname=sdl_setname;
 		cio_api.seticon=sdl_seticon;
 		cio_api.settitle=sdl_settitle;
+#ifdef _WIN32
+		cio_api.copytext=win32_copytext;
+		cio_api.getcliptext=win32_getcliptext;
+#else
 		cio_api.copytext=sdl_copytext;
 		cio_api.getcliptext=sdl_getcliptext;
+#endif
 		cio_api.get_window_info=sdl_get_window_info;
 		cio_api.setwinsize=sdl_setwinsize;
 		cio_api.setwinposition=sdl_setwinposition;
@@ -1863,15 +1867,4 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y)
 
 	if(cio_api.setwinposition)
 		cio_api.setwinposition(x, y);
-}
-
-CIOLIBEXPORT enum ciolib_codepage CIOLIBCALL ciolib_getcodepage(void)
-{
-	int font = ciolib_getfont(1);
-
-	if (font < 0)
-		return CIOLIB_CP437;
-	if (font >= sizeof(conio_fontdata) / sizeof(conio_fontdata[0]))
-		return CIOLIB_CP437;
-	return conio_fontdata[font].cp;
 }

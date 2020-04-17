@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.236 2020/04/17 21:44:32 deuce Exp $ */
+/* $Id: syncterm.c,v 1.235 2020/04/13 07:20:00 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1627,9 +1627,6 @@ int main(int argc, char **argv)
 	while((!quitting) && (bbs!=NULL || (bbs=show_bbslist(last_bbs, FALSE))!=NULL)) {
     		gettextinfo(&txtinfo);	/* Current mode may have changed while in show_bbslist() */
 		FREE_AND_NULL(last_bbs);
-		textmode(screen_to_ciolib(bbs->screen_mode));
-		load_font_files();
-		setfont(find_font_id(bbs->font),TRUE,1);
 		if(conn_connect(bbs)) {
 			load_font_files();
 			textmode(txtinfo.currmode);
@@ -1657,6 +1654,9 @@ int main(int argc, char **argv)
 				}
 			}
 			uifcbail();
+			textmode(screen_to_ciolib(bbs->screen_mode));
+			load_font_files();
+			setfont(find_font_id(bbs->font),TRUE,1);
 			sprintf(str,"SyncTERM - %s",bbs->name);
 			settitle(str);
 			term.nostatus=bbs->nostatus;
