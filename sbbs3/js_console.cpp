@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Console" Object */
 
-/* $Id: js_console.cpp,v 1.144 2020/03/19 08:15:16 rswindell Exp $ */
+/* $Id: js_console.cpp,v 1.145 2020/04/06 20:10:12 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -859,7 +859,7 @@ js_yesno(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
-	if(JSVAL_IS_NUMBER(argv[1])) {
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[1])) {
 		if(!JS_ValueToInt32(cx, argv[1], &mode))
 			return JS_FALSE;
 	}
@@ -891,7 +891,7 @@ js_noyes(JSContext *cx, uintN argc, jsval *arglist)
 	JSSTRING_TO_MSTRING(cx, js_str, cstr, NULL);
 	if(cstr==NULL)
 		return JS_FALSE;
-	if(JSVAL_IS_NUMBER(argv[1])) {
+	if(argc > 1 && JSVAL_IS_NUMBER(argv[1])) {
 		if(!JS_ValueToInt32(cx, argv[1], &mode))
 			return JS_FALSE;
 	}
@@ -1985,11 +1985,11 @@ static jsSyncMethodSpec js_console_functions[] = {
 	,JSDOCSTR("put one or more characters in the keyboard input buffer")
 	,310
 	},
-	{"yesno",			js_yesno,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	{"yesno",			js_yesno,			2, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
 	,JSDOCSTR("YES/no question - returns <i>true</i> if 'yes' is selected")
 	,310
 	},
-	{"noyes",			js_noyes,			1, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
+	{"noyes",			js_noyes,			2, JSTYPE_BOOLEAN,	JSDOCSTR("question [,mode = P_NONE]")
 	,JSDOCSTR("NO/yes question - returns <i>true</i> if 'no' is selected")
 	,310
 	},
