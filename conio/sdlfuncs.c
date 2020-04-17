@@ -16,6 +16,8 @@ struct sdlfuncs sdl;
 #endif
 #include <xp_dl.h>
 
+#include "ciolib.h"
+
 static int sdl_funcs_loaded=0;
 static int sdl_initialized=0;
 static int sdl_audio_initialized=0;
@@ -39,12 +41,11 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	// SDL2: Rename from mutexP/mutexV to LockMutex/UnlockMutex
-	if((sdlf->mutexP=xp_dlsym(sdl_dll, SDL_LockMutex))==NULL) {
+	if((sdlf->LockMutex=xp_dlsym(sdl_dll, SDL_LockMutex))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
-	if((sdlf->mutexV=xp_dlsym(sdl_dll, SDL_UnlockMutex))==NULL) {
+	if((sdlf->UnlockMutex=xp_dlsym(sdl_dll, SDL_UnlockMutex))==NULL) {
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
@@ -184,6 +185,68 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+	if((sdlf->GetHint=xp_dlsym(sdl_dll, SDL_GetHint))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetModState=xp_dlsym(sdl_dll, SDL_GetModState))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowSize=xp_dlsym(sdl_dll, SDL_SetWindowSize))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->DestroyTexture=xp_dlsym(sdl_dll, SDL_DestroyTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowFullscreen=xp_dlsym(sdl_dll, SDL_SetWindowFullscreen))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->LockTexture=xp_dlsym(sdl_dll, SDL_LockTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->UnlockTexture=xp_dlsym(sdl_dll, SDL_UnlockTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->QueryTexture=xp_dlsym(sdl_dll, SDL_QueryTexture))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetWindowPosition=xp_dlsym(sdl_dll, SDL_GetWindowPosition))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowPosition=xp_dlsym(sdl_dll, SDL_SetWindowPosition))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetWindowMinimumSize=xp_dlsym(sdl_dll, SDL_SetWindowMinimumSize))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->SetClipboardText=xp_dlsym(sdl_dll, SDL_SetClipboardText))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->GetClipboardText=xp_dlsym(sdl_dll, SDL_GetClipboardText))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	if((sdlf->free=xp_dlsym(sdl_dll, SDL_free))==NULL) {
+		xp_dlclose(sdl_dll);
+		return(-1);
+	}
+	{
+		int (HACK_HACK_HACK *ra)(char *name, Uint32 style, void *hInst);
+		if ((ra = xp_dlsym(sdl_dll, SDL_RegisterApp)) != NULL) {
+			ra(ciolib_appname, 0, NULL);
+		}
+	}
 
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
@@ -208,19 +271,11 @@ int init_sdl_video(void)
 
 	use_sdl_video=TRUE;
 
-	sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1" );
+	sdl.SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2" );
 	sdl.SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1" );
 #ifdef _WIN32
 	/* Fail to windib (ie: No mouse attached) */
 	if(sdl.Init(SDL_INIT_VIDEO)) {
-		// SDL2: We can likely do better now...
-		driver_env=getenv("SDL_VIDEODRIVER");
-		if(driver_env==NULL || strcmp(driver_env,"windib")) {
-			putenv("SDL_VIDEODRIVER=windib");
-			WinExec(GetCommandLine(), SW_SHOWDEFAULT);
-			return(0);
-		}
-		/* Sure ,we can't use video, but audio is still valid! */
 		if(sdl.Init(0)==0)
 			sdl_initialized=TRUE;
 	}
@@ -266,7 +321,6 @@ int init_sdl_video(void)
 	}
 
 	if(sdl_video_initialized) {
-		SetThreadName("SDL Main");
 		atexit(QuitWrap);
 		return 0;
 	}
