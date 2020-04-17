@@ -1,6 +1,6 @@
 /* General(ly useful) constant, macro, and type definitions */
 
-/* $Id: gen_defs.h,v 1.82 2020/04/17 20:30:06 rswindell Exp $ */
+/* $Id: gen_defs.h,v 1.81 2020/03/31 22:51:33 deuce Exp $ */
 // vi: tabstop=4
 																			
 /****************************************************************************
@@ -171,7 +171,6 @@ typedef ulong   uint32_t;
 
 #endif
 
-#if !defined(__MSDOS__)
 #if defined(_MSC_VER) || defined(__WATCOMC__) || defined(__BORLANDC__)
 typedef signed __int64 int64_t;
 typedef unsigned __int64 uint64_t;
@@ -191,7 +190,6 @@ typedef int64_t		intmax_t;
 typedef uintmax_t	uintptr_t;
 typedef intmax_t	intptr_t;
 #endif
-#endif // !MSDOS
 
 /* printf integer formatters: */
 

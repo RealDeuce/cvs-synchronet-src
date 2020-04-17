@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.367 2020/04/19 06:45:39 deuce Exp $ */
+/* $Id: term.c,v 1.366 2020/04/17 16:54:23 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -2680,7 +2680,6 @@ BOOL doterm(struct bbslist *bbs)
 					break;
 				case 0x1200:	/* ALT-E */
 					{
-						char title[LIST_NAME_MAX + 12];
 						struct ciolib_screen *savscrn;
 						savscrn = savescreen();
 						setfont(0, FALSE, 1);
@@ -2688,8 +2687,6 @@ BOOL doterm(struct bbslist *bbs)
 						setfont(0, FALSE, 3);
 						setfont(0, FALSE, 4);
 						show_bbslist(bbs->name, TRUE);
-						sprintf(title, "SyncTERM - %s\n", bbs->name);
-						settitle(title);
 						uifcbail();
 						setup_mouse_events(&ms);
 						restorescreen(savscrn);
@@ -2848,7 +2845,6 @@ BOOL doterm(struct bbslist *bbs)
 #endif
 							{
 								struct ciolib_screen *savscrn;
-								char title[LIST_NAME_MAX + 12];
 
 								savscrn = savescreen();
 								setfont(0, FALSE, 1);
@@ -2856,8 +2852,6 @@ BOOL doterm(struct bbslist *bbs)
 								setfont(0, FALSE, 3);
 								setfont(0, FALSE, 4);
 								show_bbslist(bbs->name, TRUE);
-								sprintf(title, "SyncTERM - %s\n", bbs->name);
-								settitle(title);
 								restorescreen(savscrn);
 								freescreen(savscrn);
 							}
