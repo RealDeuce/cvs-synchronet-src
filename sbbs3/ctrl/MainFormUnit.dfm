@@ -14407,7 +14407,6 @@ object MainForm: TMainForm
       object HelpFAQMenuItem: TMenuItem
         Caption = 'Frequently Asked Questions'
         Hint = 'http://wiki.synchro.net/faq:'
-        ImageIndex = 61
         OnClick = WebPageMenuItemClick
       end
       object HelpTechnicalSupportMenuItem: TMenuItem

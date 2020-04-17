@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.117 2020/04/17 18:00:59 deuce Exp $ */
+/* $Id: ciolib.h,v 1.115 2020/04/16 16:55:35 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -249,6 +249,7 @@ struct conio_font_data_struct {
         char 	*eight_by_sixteen;
         char 	*eight_by_fourteen;
         char 	*eight_by_eight;
+        char	*put_xlat;
         char 	*desc;
         enum ciolib_codepage cp;
 };
@@ -374,6 +375,12 @@ CIOLIBEXPORTVAR int _wscroll;
 CIOLIBEXPORTVAR int directvideo;
 CIOLIBEXPORTVAR int hold_update;
 CIOLIBEXPORTVAR int puttext_can_move;
+CIOLIBEXPORTVAR int ciolib_xlat;
+#define CIOLIB_XLAT_NONE	0
+#define CIOLIB_XLAT_CHARS	1
+#define CIOLIB_XLAT_ATTR	2
+#define CIOLIB_XLAT_ALL		(CIOLIB_XLAT_CHARS | CIOLIB_XLAT_ATTR)
+
 CIOLIBEXPORTVAR int ciolib_reaper;
 CIOLIBEXPORTVAR char *ciolib_appname;
 
@@ -457,7 +464,6 @@ CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem(struct vmem_cell *cell, uint8_t ch,
 CIOLIBEXPORT void CIOLIBCALL ciolib_set_vmem_attr(struct vmem_cell *cell, uint8_t attr);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setwinsize(int width, int height);
 CIOLIBEXPORT void CIOLIBCALL ciolib_setwinposition(int x, int y);
-CIOLIBEXPORT enum ciolib_codepage CIOLIBCALL ciolib_getcodepage(void);
 
 /* DoorWay specific stuff that's only applicable to ANSI mode. */
 CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
@@ -541,7 +547,6 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#define set_vmem_attr(a, b)		ciolib_set_vmem_attr(a, b)
 	#define setwinsize(a,b)			ciolib_setwinsize(a,b)
 	#define setwinposition(a,b)		ciolib_setwinposition(a,b)
-	#define getcodepage()			ciolib_getcodepage()
 #endif
 
 #ifdef WITH_SDL
