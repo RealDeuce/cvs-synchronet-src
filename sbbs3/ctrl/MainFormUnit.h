@@ -1,12 +1,12 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id$ */
+/* $Id: MainFormUnit.h,v 1.94 2020/04/17 20:38:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -214,7 +214,6 @@ __published:	// IDE-managed Components
     TPopupMenu *TrayPopupMenu;
     TMenuItem *RestoreTrayMenuItem;
     TMenuItem *CloseTrayMenuItem;
-    TMenuItem *HelpSysopMenuItem;
     TAction *ViewEvents;
     TMenuItem *ViewEventsMenuItem;
     TMenuItem *ConfigureTrayMenuItem;
@@ -228,6 +227,7 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditEmailFilterMenuItem;
     TMenuItem *BBSEditBadEmailMessageMenuItem;
     TMenuItem *ViewHackAttemptLogMenuItem;
+	TMenuItem *ViewGuruChatLogMenuItem;
     TMenuItem *ConfigureBBSTrayMenuItem;
     TMenuItem *ConfigureTelnetTrayMenuItem;
     TMenuItem *ConfigureFtpTrayMenuItem;
@@ -326,6 +326,31 @@ __published:	// IDE-managed Components
     TMenuItem *BBSEditPasswordFilterMenuItem;
     TMenuItem *BBSEditBadPasswordMessageMenuItem;
     TMenuItem *ViewLoginAttemptsMenuItem;
+    TMenuItem *HelpDonateMenuItem;
+        TPopupMenu *LogPopupMenu;
+    TMenuItem *LogPopupCopyAll;
+    TMenuItem *LogPopupCopy;
+    TMenuItem *ViewFailedLoginsPopupMenuItem;
+    TMenuItem *ClearFailedLoginsPopupMenuItem;
+    TMenuItem *LogRefresh;
+    TMenuItem *FidonetMenuItem;
+    TMenuItem *FidonetConfigureMenuItem;
+    TMenuItem *N13;
+    TMenuItem *FidonetViewMenuItem;
+    TMenuItem *FidonetEditMenuItem;
+    TMenuItem *sbbsechoLogViewMenuItem;
+    TMenuItem *binkstasViewMenuItem;
+    TMenuItem *echostatsViewMenuItem;
+    TMenuItem *badareasViewMenuItem;
+    TMenuItem *sbbsechoEditMenuItem;
+    TMenuItem *areafileEditMenuItem;
+    TMenuItem *FidonetPollMenuItem;
+    TMenuItem *FileRunMenuItem;
+    TMenuItem *FileRunUpdateMenuItem;
+    TMenuItem *FileRunChkSetupMenuItem;
+    TMenuItem *FileRunInitFidonetMenuItem;
+    TMenuItem *FileRunJSMenuItem;
+    TMenuItem *FileRunInstallXtrnMenuItem;
 	void __fastcall FileExitMenuItemClick(TObject *Sender);
 	void __fastcall ViewToolbarMenuItemClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
@@ -369,6 +394,7 @@ __published:	// IDE-managed Components
     void __fastcall ChatToggleExecute(TObject *Sender);
     void __fastcall ViewClientsExecute(TObject *Sender);
     void __fastcall UserEditExecute(TObject *Sender);
+	void __fastcall SetControls(void);
     void __fastcall SaveSettings(TObject *Sender);
     bool __fastcall SaveIniSettings(TObject* Sender);    
     void __fastcall SaveRegistrySettings(TObject* Sender);    
@@ -380,6 +406,7 @@ __published:	// IDE-managed Components
     void __fastcall ExportSettings(TObject *Sender);
     void __fastcall BBSLoginMenuItemClick(TObject *Sender);
     void __fastcall ViewLogClick(TObject *Sender);
+    void __fastcall RunJSClick(TObject *Sender);
     void __fastcall UserListExecute(TObject *Sender);
     void __fastcall WebPageMenuItemClick(TObject *Sender);
     void __fastcall TrayIconRestore(TObject *Sender);
@@ -417,6 +444,14 @@ __published:	// IDE-managed Components
     void __fastcall ClearErrorsExecute(TObject *Sender);
     void __fastcall ViewErrorLogExecute(TObject *Sender);
     void __fastcall ViewLoginAttemptsMenuItemClick(TObject *Sender);
+        void __fastcall LogPopupPauseClick(TObject *Sender);
+    void __fastcall LogPopupCopyAllClick(TObject *Sender);
+    void __fastcall LogPopupCopyClick(TObject *Sender);
+    void __fastcall ClearFailedLoginsPopupMenuItemClick(TObject *Sender);
+    void __fastcall RefreshLogClick(TObject *Sender);
+    void __fastcall FidonetConfigureMenuItemClick(TObject *Sender);
+    void __fastcall FidonetPollMenuItemClick(TObject *Sender);
+    void __fastcall FileRunJSMenuItemClick(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
     __fastcall TMainForm(TComponent* Owner);
