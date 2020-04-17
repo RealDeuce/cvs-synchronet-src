@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.55 2018/06/04 22:02:55 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.57 2019/09/10 19:57:37 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -60,6 +60,9 @@
 	#define SOCK_MAXADDRLEN sizeof(SOCKADDR_STORAGE)
 	/* Let's agree on a standard WinSock symbol here, people */
 	#define _WINSOCKAPI_
+#endif
+#ifndef MSG_WAITALL
+#define MSG_WAITALL 0x08
 #endif
 
 #elif defined __unix__		/* Unix-variant */
@@ -179,6 +182,7 @@ union xp_sockaddr {
 
 #define s_addr			S_un.S_addr
 #define sa_family_t		ushort
+typedef uint32_t                in_addr_t;
 
 static  int wsa_error;
 #define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
