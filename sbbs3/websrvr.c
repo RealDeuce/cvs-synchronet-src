@@ -1,6 +1,6 @@
 /* Synchronet Web Server */
 
-/* $Id: websrvr.c,v 1.711 2020/04/05 20:29:09 deuce Exp $ */
+/* $Id: websrvr.c,v 1.715 2020/04/13 23:21:38 deuce Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -95,6 +95,7 @@ static const char*	error_416="416 Requested Range Not Satisfiable";
 static const char*	error_500="500 Internal Server Error";
 static const char*	error_503="503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
 static const char*	unknown=STR_UNKNOWN_USER;
+static char*		text[TOTAL_TEXT];
 static int len_503 = 0;
 
 #define TIMEOUT_THREAD_WAIT		60		/* Seconds */
@@ -1293,8 +1294,6 @@ static BOOL send_headers(http_session_t *session, const char *status, int chunke
 		}
 		if (session->req.send_location) {
 			ret=-1;
-			session->req.send_content = FALSE;
-			send_entity = FALSE;
 			switch (session->req.send_location) {
 				case MOVED_PERM:
 					status_line=error_301;
@@ -4082,7 +4081,7 @@ static int fastcgi_read_wait_timeout(void *arg)
 					break;
 				case FCGI_END_REQUEST:
 					ret |= CGI_PROCESS_TERMINATED;
-					cd.request_ended = 1;
+					cd->request_ended = 1;
 					// Fall-through
 				case FCGI_BEGIN_REQUEST:
 				case FCGI_ABORT_REQUEST:
@@ -6287,7 +6286,27 @@ void http_output_thread(void *arg)
 		if(!getsockopt(session->socket, IPPROTO_TCP, TCP_MAXSEG, (char*)&i, &sl)) {
 			/* Check for sanity... */
 			if(i>100) {
-				obuf->highwater_mark=i-12;
+#ifdef _WIN32
+#ifdef TCP_TIMESTAMPS
+				DWORD ts;
+				sl = sizeof(ts);
+				if (!getsockopt(session->socket, IPPROTO_TCP, TCP_TIMESTAMPS, (char *)&ts, &sl)) {
+					if (ts)
+						i -= 12;
+				}
+#endif
+#else
+#if (defined(TCP_INFO) && defined(TCPI_OPT_TIMESTAMPS))
+				struct tcp_info tcpi;
+
+				sl = sizeof(tcpi);
+				if (!getsockopt(session->socket, IPPROTO_TCP, TCP_INFO,&tcpi, &sl)) {
+					if (tcpi.tcpi_options & TCPI_OPT_TIMESTAMPS)
+						i -= 12;
+				}
+#endif
+#endif
+				obuf->highwater_mark=i;
 				lprintf(LOG_DEBUG,"%04d Autotuning outbuf highwater mark to %d based on MSS"
 					,session->socket,i);
 				mss=obuf->highwater_mark;
@@ -6745,7 +6764,7 @@ const char* DLLCALL web_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.711 $", "%*s %s", revision);
+	sscanf("$Revision: 1.715 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  "
 		"Compiled %s %s with %s"
@@ -6992,7 +7011,7 @@ void DLLCALL web_server(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(logstr,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, NULL, TRUE, logstr)) {
+		if(!load_cfg(&scfg, text, TRUE, logstr)) {
 			lprintf(LOG_CRIT,"!ERROR %s",logstr);
 			lprintf(LOG_CRIT,"!FAILED to load configuration files");
 			cleanup(1);
