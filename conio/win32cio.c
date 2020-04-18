@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.112 2020/04/18 03:51:12 deuce Exp $ */
+/* $Id: win32cio.c,v 1.111 2020/04/18 00:53:30 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -805,7 +805,7 @@ void win32_settitle(const char *title)
 void win32_copytext(const char *text, size_t buflen)
 {
 	HGLOBAL	clipbuf;
-	LPWSTR	clip;
+	LPTSTR	clip;
 	int new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
 
 	new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
@@ -837,9 +837,9 @@ void win32_copytext(const char *text, size_t buflen)
 char *win32_getcliptext(void)
 {
 	HGLOBAL	clipbuf;
-	LPWSTR	clip;
+	LPTSTR	clip;
 	char *ret = NULL;
-	int u8sz;
+	size_t u8sz;
 
 	if (!IsClipboardFormatAvailable(CF_UNICODETEXT))
 		return(NULL);
