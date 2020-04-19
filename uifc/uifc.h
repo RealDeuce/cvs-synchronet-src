@@ -1,6 +1,6 @@
 /* Text-mode User Interface Library (inspired by Novell SYSCON look & feel) */
 
-/* $Id: uifc.h,v 1.95 2020/04/03 21:10:33 rswindell Exp $ */
+/* $Id: uifc.h,v 1.96 2020/04/10 09:09:00 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -205,6 +205,7 @@
 								/* Input area (NOT outside of window!)		*/
 								/* And ungets the mouse event.				*/
 #define K_PASSWORD	(1L<<16)	/* Does not display text while editing		*/
+#define K_FIND		(1L<<17)	/* Don't set the "changes" flag				*/
 
 
 						/* Extra exit flags */
