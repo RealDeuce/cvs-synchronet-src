@@ -2,13 +2,13 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id$ */
+/* $Id: sockwrap.c,v 1.66 2020/04/19 20:13:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2011 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This library is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU Lesser General Public License		*
@@ -144,7 +144,7 @@ static socket_option_t socket_options[] = {
 	{ NULL }
 };
 
-int DLLCALL getSocketOptionByName(const char* name, int* level)
+int getSocketOptionByName(const char* name, int* level)
 {
 	int i;
 
@@ -162,12 +162,12 @@ int DLLCALL getSocketOptionByName(const char* name, int* level)
 	return(strtol(name,NULL,0));
 }
 
-socket_option_t* DLLCALL getSocketOptionList(void)
+socket_option_t* getSocketOptionList(void)
 {
 	return(socket_options);
 }
 
-int DLLCALL sendfilesocket(int sock, int file, off_t *offset, off_t count)
+int sendfilesocket(int sock, int file, off_t *offset, off_t count)
 {
 	char		buf[1024*16];
 	off_t		len;
@@ -229,7 +229,7 @@ int DLLCALL sendfilesocket(int sock, int file, off_t *offset, off_t count)
 	return(total);
 }
 
-int DLLCALL recvfilesocket(int sock, int file, off_t *offset, off_t count)
+int recvfilesocket(int sock, int file, off_t *offset, off_t count)
 {
 	/* Writes a file from a socket -
 	 *
@@ -284,7 +284,7 @@ int DLLCALL recvfilesocket(int sock, int file, off_t *offset, off_t count)
 
 
 /* Return true if connected, optionally sets *rd_p to true if read data available */
-BOOL DLLCALL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
+BOOL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 {
 	char	ch;
 	int		i,rd;
@@ -343,7 +343,7 @@ BOOL DLLCALL socket_check(SOCKET sock, BOOL* rd_p, BOOL* wr_p, DWORD timeout)
 	return(FALSE);
 }
 
-int DLLCALL retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
+int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 			   ,uint retries, uint wait_secs
 			   ,const char* prot
 			   ,int (*lprintf)(int level, const char *fmt, ...))
@@ -372,7 +372,7 @@ int DLLCALL retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 	return(result);
 }
 
-int DLLCALL nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigned timeout)
+int nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size, unsigned timeout)
 {
 	int result;
 
@@ -408,7 +408,7 @@ int DLLCALL nonblocking_connect(SOCKET sock, struct sockaddr* addr, size_t size,
 }
 
 
-union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size)
+union xp_sockaddr* inet_ptoaddr(char *addr_str, union xp_sockaddr *addr, size_t size)
 {
     struct addrinfo hints = {0};
     struct addrinfo *res, *cur;
@@ -425,16 +425,21 @@ union xp_sockaddr* DLLCALL inet_ptoaddr(char *addr_str, union xp_sockaddr *addr,
         freeaddrinfo(res);
         return NULL;
     }
-    memcpy(&addr, &((struct sockaddr_in6 *)(cur->ai_addr))->sin6_addr, size);
+    if (size < sizeof(struct sockaddr_in6)) {
+        freeaddrinfo(res);
+        return NULL;
+	}
+	size = sizeof(struct sockaddr_in6);
+    memcpy(addr, ((struct sockaddr_in6 *)(cur->ai_addr)), size);
     freeaddrinfo(res);
     return addr;
 }
 
-const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
+const char* inet_addrtop(union xp_sockaddr *addr, char *dest, size_t size)
 {
 #ifdef _WIN32
-	if(getnameinfo(addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
-		strncpy(dest, "<Unable to convert address>", size);
+	if(getnameinfo(&addr->addr, xp_sockaddr_len(addr), dest, size, NULL, 0, NI_NUMERICHOST))
+		safe_snprintf(dest, size, "<Error %u converting address, family=%u>", WSAGetLastError(), addr->addr.sa_family);
 	return dest;
 #else
 	switch(addr->addr.sa_family) {
@@ -447,13 +452,13 @@ const char* DLLCALL inet_addrtop(union xp_sockaddr *addr, char *dest, size_t siz
 			dest[size-1]=0;
 			return dest;
 		default:
-			safe_snprintf(dest, size, "<unknown address>");
+			safe_snprintf(dest, size, "<unknown address family: %u>", addr->addr.sa_family);
 			return NULL;
 	}
 #endif
 }
 
-uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr)
+uint16_t inet_addrport(union xp_sockaddr *addr)
 {
 	switch(addr->addr.sa_family) {
 		case AF_INET:
@@ -465,7 +470,7 @@ uint16_t DLLCALL inet_addrport(union xp_sockaddr *addr)
 	}
 }
 
-void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port)
+void inet_setaddrport(union xp_sockaddr *addr, uint16_t port)
 {
 	switch(addr->addr.sa_family) {
 		case AF_INET:
@@ -475,4 +480,19 @@ void DLLCALL inet_setaddrport(union xp_sockaddr *addr, uint16_t port)
 			addr->in6.sin6_port = htons(port);
 			break;
 	}
+}
+
+/* Return TRUE if the 2 addresses are the same host (type and address) */
+BOOL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockaddr* addr2)
+{
+	if(addr1->addr.sa_family != addr2->addr.sa_family)
+		return FALSE;
+
+	switch(addr1->addr.sa_family) {
+		case AF_INET:
+			return memcmp(&addr1->in.sin_addr, &addr2->in.sin_addr, sizeof(addr1->in.sin_addr)) == 0;
+		case AF_INET6:
+			return memcmp(&addr1->in6.sin6_addr, &addr2->in6.sin6_addr, sizeof(addr1->in6.sin6_addr)) == 0;
+	}
+	return FALSE;
 }
