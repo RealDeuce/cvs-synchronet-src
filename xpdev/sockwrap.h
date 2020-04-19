@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.h,v 1.59 2020/04/19 20:52:23 rswindell Exp $ */
+/* $Id: sockwrap.h,v 1.58 2020/04/19 20:13:22 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -185,8 +185,7 @@ union xp_sockaddr {
 typedef uint32_t                in_addr_t;
 
 static  int wsa_error;
-#define ERROR_VALUE			((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
-#define socket_errno			WSAGetLastError()
+#define ERROR_VALUE		((wsa_error=WSAGetLastError())>0 ? wsa_error-WSABASEERR : wsa_error)
 #define sendsocket(s,b,l)	send(s,b,l,0)
 
 /* For getaddrinfo() */
@@ -211,8 +210,6 @@ static  int wsa_error;
 #define closesocket		close
 #define ioctlsocket		ioctl
 #define ERROR_VALUE		errno
-#define socket_errno	errno
-#define socket_strerror	strerror
 #define sendsocket		write		/* FreeBSD send() is broken */
 
 #ifdef __WATCOMC__
@@ -240,10 +237,6 @@ DLLEXPORT const char* inet_addrtop(union xp_sockaddr *addr, char *dest, size_t s
 DLLEXPORT uint16_t inet_addrport(union xp_sockaddr *addr);
 DLLEXPORT void inet_setaddrport(union xp_sockaddr *addr, uint16_t port);
 DLLEXPORT BOOL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockaddr* addr2);
-
-#if defined(_WINSOCKAPI_)
-DLLEXPORT const char* socket_strerror(int);
-#endif
 
 #ifdef __cplusplus
 }
