@@ -11,7 +11,7 @@
 # Optional build targets: dlls, utils, mono, all (default)				#
 #########################################################################
 
-# $Id: GNUmakefile,v 1.16 2019/06/29 01:30:31 rswindell Exp $
+# $Id: GNUmakefile,v 1.17 2019/08/24 19:52:01 rswindell Exp $
 
 SRC_ROOT	=	../..
 include $(SRC_ROOT)/build/Common.gmake
@@ -22,7 +22,7 @@ endif
 
 vpath %.c ..
 
-CFLAGS	+=	-DHAS_CURSES -I.. -I../../comio $(SMBLIB_CFLAGS) $(HASH_CFLAGS) $(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS)
+CFLAGS	+=	-DHAS_CURSES -I.. -I../../comio $(SMBLIB_CFLAGS) $(HASH_CFLAGS) $(ENCODE_CFLAGS) $(UIFC-MT_CFLAGS) $(CIOLIB-MT_CFLAGS) $(XPDEV-MT_CFLAGS)
 LDFLAGS	+=	$(SMBLIB_LDFLAGS) $(ENCODE_LDFLAGS) $(HASH_LDFLAGS) $(UIFC-MT_LDFLAGS) $(CIOLIB-MT_LDFLAGS) $(XPDEV-MT_LDFLAGS) $(MT_LDFLAGS)
 
 $(UEDIT): $(OBJS)
