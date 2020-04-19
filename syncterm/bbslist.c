@@ -262,11 +262,9 @@ void viewofflinescroll(void)
 				,(sbtxtinfo.screenwidth-scrollback_cols)/2+scrollback_cols
 				,sbtxtinfo.screenheight
 				,scrollback_buf+(scrollback_cols*top));
-		ciolib_xlat=CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(scrollback_cols-9,1);
 		cputs("Scrollback");
-		ciolib_xlat=CIOLIB_XLAT_NONE;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -1248,19 +1246,23 @@ custom_mode_adjusted(int *cur, char **opt)
 	gettextinfo(&ti);
 	if (ti.currmode != CIOLIB_MODE_CUSTOM) {
 		cvmode = find_vmode(ti.currmode);
-		vparams[cvmode].cols = settings.custom_cols;
-		vparams[cvmode].rows = settings.custom_rows;
-		vparams[cvmode].charheight = settings.custom_fontheight;
+		if (cvmode >= 0) {
+			vparams[cvmode].cols = settings.custom_cols;
+			vparams[cvmode].rows = settings.custom_rows;
+			vparams[cvmode].charheight = settings.custom_fontheight;
+		}
 		return;
 	}
 
 	uifcbail();
 	textmode(0);
 	cvmode = find_vmode(ti.currmode);
-	vparams[cvmode].cols = settings.custom_cols;
-	vparams[cvmode].rows = settings.custom_rows;
-	vparams[cvmode].charheight = settings.custom_fontheight;
-	textmode(ti.currmode);
+	if (cvmode >= 0) {
+		vparams[cvmode].cols = settings.custom_cols;
+		vparams[cvmode].rows = settings.custom_rows;
+		vparams[cvmode].charheight = settings.custom_fontheight;
+		textmode(ti.currmode);
+	}
 	init_uifc(TRUE, TRUE);
 
 	// Draw BBS List
