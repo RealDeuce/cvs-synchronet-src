@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.560 2020/04/23 02:39:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.559 2020/04/11 04:01:36 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -599,7 +599,7 @@ public:
 	void	xfer_prot_menu(enum XFER_TYPE);
 	void	node_stats(uint node_num);
 	void	sys_stats(void);
-	void	logonlist(const char* args = "");
+	void	logonlist(void);
 	bool	spy(uint node_num);
 
 	void	reset_logon_vars(void);
@@ -972,7 +972,7 @@ public:
 	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
-	int		xtrn_sec(const char* section = "");	/* The external program section  */
+	int		xtrn_sec(void);					/* The external program section  */
 	void	xtrndat(const char* name, const char* dropdir, uchar type, ulong tleft
 				,ulong misc);
 	bool	exec_xtrn(uint xtrnnum);			/* Executes online external program */
