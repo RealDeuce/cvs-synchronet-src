@@ -2,7 +2,7 @@
 
 /* Synchronet External X/Y/ZMODEM Transfer Protocols */
 
-/* $Id: sexyz.c,v 2.9 2019/08/25 02:07:45 rswindell Exp $ */
+/* $Id: sexyz.c,v 2.10 2020/03/31 07:14:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1541,13 +1541,13 @@ int main(int argc, char **argv)
 	statfp=stdout;
 #endif
 
-	sscanf("$Revision: 2.9 $", "%*s %s", revision);
+	sscanf("$Revision: 2.10 $", "%*s %s", revision);
 
 	fprintf(statfp,"\nSynchronet External X/Y/ZMODEM  v%s-%s"
 		"  Copyright %s Rob Swindell\n\n"
 		,revision
 		,PLATFORM_DESC
-		,__DATE__+7
+		,&__DATE__[7]
 		);
 
 	xmodem_init(&xm,NULL,&mode,lputs,xmodem_progress,send_byte,recv_byte,is_connected,NULL,flush);
