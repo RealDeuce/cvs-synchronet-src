@@ -2,7 +2,7 @@
 
 /* Convert ANSI messages to Synchronet .asc (Ctrl-A code) format */
 
-/* $Id: ans2asc.c,v 1.15 2020/04/20 05:41:12 rswindell Exp $ */
+/* $Id: ans2asc.c,v 1.14 2019/08/05 08:32:02 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -48,12 +48,11 @@ static void print_usage(const char* prog)
 {
 	char revision[16];
 
-	sscanf("$Revision: 1.15 $", "%*s %s", revision);
+	sscanf("$Revision: 1.14 $", "%*s %s", revision);
 
 	fprintf(stderr,"\nSynchronet ANSI-Terminal-Sequence to Ctrl-A-Code Conversion Utility v%s\n",revision);
 	fprintf(stderr,"\nusage: %s infile.ans [outfile.asc | outfile.msg] [[option] [...]]\n",prog);
 	fprintf(stderr,"\noptions:\n\n");
-	fprintf(stderr,"-ice              treat blink as bright-background (iCE colors)\n");
 	fprintf(stderr,"-<columns>        insert conditional-newlines to force wrap (e.g. -80)\n");
 	fprintf(stderr,"-newline          append a newline (CRLF) sequence to output file\n");
 	fprintf(stderr,"-clear            insert a clear screen code at beginning of output file\n");
@@ -69,7 +68,6 @@ int main(int argc, char **argv)
 	int i,ch,ni;
 	FILE *in=stdin;
 	FILE *out=stdout;
-	int ice=0;
 	int cols=0;
 	int column=0;
 	int delay=0;
@@ -95,8 +93,6 @@ int main(int argc, char **argv)
 					return -1;
 				}
 			}
-			else if(strcmp(argv[i], "-ice") == 0)
-				ice = 1;
 			else if(strcmp(argv[i], "-clear") == 0)
 				clear = 1;
 			else if(strcmp(argv[i], "-pause") == 0)
@@ -194,7 +190,10 @@ int main(int argc, char **argv)
 								case 5: 				/* blink */
 								case 6:
 								case 7:
-									fputc(ice ? 'E': 'I',out);
+									fputc('I',out);
+									break;
+								case 8: 				/* concealed */
+									fputc('E',out);		/* Elite-text, long unsupported (but should be resurrected?) */
 									break;
 								case 30:
 									fputc('K',out);
