@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Sephen Hurd */
 
-/* $Id: uifcinit.c,v 1.43 2020/04/20 21:28:17 deuce Exp $ */
+/* $Id: uifcinit.c,v 1.42 2020/04/17 16:54:23 deuce Exp $ */
 
 #include <gen_defs.h>
 #include <stdio.h>
@@ -106,10 +106,6 @@ void uifcmsg(char *msg, char *helpbuf)
 	i=uifc_initialized;
 	if(!i)
 		savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -133,10 +129,6 @@ void uifcinput(char *title, int len, char *msg, int mode, char *helpbuf)
 	i=uifc_initialized;
 	if(!i)
 		savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
@@ -166,10 +158,6 @@ int confirm(char *msg, char *helpbuf)
 	i=uifc_initialized;
 	if(!i)
 		savscrn = savescreen();
-	setfont(0, FALSE, 1);
-	setfont(0, FALSE, 2);
-	setfont(0, FALSE, 3);
-	setfont(0, FALSE, 4);
 	init_uifc(FALSE, FALSE);
 	if(uifc_initialized) {
 		uifc.helpbuf=helpbuf;
