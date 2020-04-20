@@ -2,7 +2,7 @@
 
 /* Synchronet user logon routines */
 
-/* $Id: logon.cpp,v 1.79 2020/04/22 19:45:31 rswindell Exp $ */
+/* $Id: logon.cpp,v 1.78 2020/04/05 03:16:45 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -427,11 +427,11 @@ bool sbbs_t::logon()
 			errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_CREAT|O_APPEND);
 			return(false); 
 		}
-		getuserrec(&cfg,useron.number,U_NOTE,LEN_NOTE,useron.note);
+		getuserrec(&cfg,useron.number,U_IPADDR,LEN_IPADDR,useron.ipaddr);
 		getuserrec(&cfg,useron.number,U_LOCATION,LEN_LOCATION,useron.location);
 		safe_snprintf(str, sizeof(str), text[LastFewCallersFmt],cfg.node_num
 			,totallogons,useron.alias
-			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.note
+			,cfg.sys_misc&SM_LISTLOC ? useron.location : useron.ipaddr
 			,tm.tm_hour,tm.tm_min
 			,connection,useron.ltoday > 999 ? 999 : useron.ltoday);
 		write(file,str,strlen(str));

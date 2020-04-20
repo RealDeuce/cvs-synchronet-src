@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.283 2020/04/22 23:24:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.281 2020/04/17 16:54:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -837,10 +837,10 @@ static void playnote_thread(void *args)
 		}
 		else
 			listSemWait(&cterm->notes);
+		device_open=xptone_open();
 		note=listShiftNode(&cterm->notes);
 		if(note==NULL)
 			break;
-		device_open=xptone_open();
 		if(note->dotted)
 			duration=360000/note->tempo;
 		else
@@ -869,8 +869,6 @@ static void playnote_thread(void *args)
 			sem_post(&cterm->note_completed_sem);
 		free(note);
 	}
-	if (device_open)
-		xptone_close();
 	cterm->playnote_thread_running=FALSE;
 	sem_post(&cterm->playnote_thread_terminated);
 }
@@ -1145,8 +1143,8 @@ dellines(struct cterminal * cterm, int lines)
 	coord_conv_xy(cterm, CTERM_COORD_TERM, CTERM_COORD_SCREEN, &maxx, &maxy);
 	TERM_XY(&x, &y);
 	SCR_XY(&sx, &sy);
-	MOVETEXT(minx, sy + lines, maxx, maxy, minx, sy);
-	for(i = TERM_MAXY - lines; i <= TERM_MAXY; i++) {
+	MOVETEXT(minx, sy + lines, minx, maxy, minx, sy);
+	for(i = TERM_MAXY - lines; i <= maxy; i++) {
 		GOTOXY(TERM_MINX, i);
 		CLREOL();
 	}
@@ -4038,7 +4036,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.283 $";
+	char	*revision="$Revision: 1.281 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -5262,7 +5260,6 @@ void CIOLIBCALL cterm_closelog(struct cterminal *cterm)
 	cterm->log=CTERM_LOG_NONE;
 }
 
-FILE *dbg;
 void CIOLIBCALL cterm_end(struct cterminal *cterm)
 {
 	int i;
