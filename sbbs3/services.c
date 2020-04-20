@@ -1,6 +1,6 @@
 /* Synchronet Services */
 
-/* $Id: services.c,v 1.330 2019/06/20 20:48:53 rswindell Exp $ */
+/* $Id: services.c,v 1.334 2020/04/20 04:43:29 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -71,6 +71,7 @@
 
 static services_startup_t* startup=NULL;
 static scfg_t	scfg;
+static char*	text[TOTAL_TEXT];
 static volatile BOOL	terminated=FALSE;
 static time_t	uptime=0;
 static ulong	served=0;
@@ -263,7 +264,7 @@ static int close_socket(SOCKET sock)
 	if(startup!=NULL && startup->socket_open!=NULL) 
 		startup->socket_open(startup->cbdata,FALSE);
 	if(result!=0)
-		lprintf(LOG_WARNING,"%04d !ERROR %d closing socket",sock, ERROR_VALUE);
+		lprintf(LOG_WARNING,"%04d !ERROR %d (%s) closing socket",sock, ERROR_VALUE, socket_strerror(socket_errno));
 
 	return(result);
 }
@@ -348,7 +349,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	JSObject *obj=JS_THIS_OBJECT(cx, arglist);
 	jsval *argv=JS_ARGV(cx, arglist);
 	char*		user;
-	char*		pass;
+	char*		pass = NULL;
 	JSBool		inc_logons=JS_FALSE;
 	jsval		val;
 	service_client_t* client;
@@ -365,10 +366,11 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	/* Password */
-	JSVALUE_TO_ASTRING(cx, argv[1], pass, LEN_PASS+2, NULL);
-	if(pass==NULL) 
-		return(JS_FALSE);
-
+	if(argc > 1) {
+		JSVALUE_TO_ASTRING(cx, argv[1], pass, LEN_PASS+2, NULL);
+		if(pass==NULL) 
+			return(JS_FALSE);
+	}
 	rc=JS_SUSPENDREQUEST(cx);
 	memset(&client->user,0,sizeof(user_t));
 
@@ -399,7 +401,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 	}
 
 	/* Password */
-	if(client->user.pass[0] && stricmp(client->user.pass,pass)) { /* Wrong password */
+	if(client->user.pass[0] && (pass == NULL || stricmp(client->user.pass,pass))) { /* Wrong password */
 		lprintf(LOG_WARNING,"%04d %s !INVALID PASSWORD ATTEMPT FOR USER: %s"
 			,client->socket,client->service->protocol,client->user.alias);
 		badlogin(client->socket, client->service->protocol, user, pass, client->client->host, &client->addr);
@@ -441,6 +443,7 @@ js_login(JSContext *cx, uintN argc, jsval *arglist)
 
 	if(client->client!=NULL) {
 		client->client->user=client->user.alias;
+		client->client->usernum = client->user.number;
 		client_on(client->socket,client->client,TRUE /* update */);
 	}
 
@@ -620,6 +623,7 @@ js_client_add(JSContext *cx, uintN argc, jsval *arglist)
 	client.protocol=service_client->service->protocol;
 	client.time=time32(NULL);
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	SAFECOPY(client.host,client.user);
 
 	sock=js_socket(cx,argv[0]);
@@ -1084,6 +1088,7 @@ static void js_service_thread(void* arg)
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 	service_client.client=&client;
 
 	/* Initialize client display */
@@ -1434,6 +1439,7 @@ static void native_service_thread(void* arg)
 	client.port=inet_addrport(&service_client.addr);
 	client.protocol=service->protocol;
 	client.user=STR_UNKNOWN_USER;
+	client.usernum = 0;
 
 #ifdef _WIN32
 	if(!DuplicateHandle(GetCurrentProcess(),
@@ -1644,7 +1650,7 @@ static void cleanup(int code)
 #ifdef _WINSOCKAPI_	
 	if(WSAInitialized) {
 		if(WSACleanup()!=0) 
-			lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d",ERROR_VALUE);
+			lprintf(LOG_ERR,"0000 !WSACleanup ERROR %d (%s)",ERROR_VALUE, socket_strerror(socket_errno));
 		WSAInitialized = FALSE;
 	}
 #endif
@@ -1664,7 +1670,7 @@ const char* DLLCALL services_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.330 $", "%*s %s", revision);
+	sscanf("$Revision: 1.334 $", "%*s %s", revision);
 
 	sprintf(ver,"Synchronet Services %s%s  "
 		"Compiled %s %s with %s"
@@ -1690,14 +1696,15 @@ void service_udp_sock_cb(SOCKET sock, void *cbdata)
 	/* We need to set the REUSE ADDRESS socket option */
 	optval=TRUE;
 	if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&optval,sizeof(optval))!=0) {
-		lprintf(LOG_ERR,"%04d !ERROR %d setting %s socket option"
-			,sock, ERROR_VALUE, serv->protocol);
+		lprintf(LOG_ERR,"%04d !ERROR %d (%s) setting %s socket option"
+			,sock, ERROR_VALUE, socket_strerror(socket_errno), serv->protocol);
 		close_socket(sock);
 		return;
 	}
    #ifdef BSD
 	if(setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, (char*)&optval,sizeof(optval))!=0) {
-		lprintf(LOG_ERR,"%04d !ERROR %d setting %s socket option",sock, ERROR_VALUE, serv->protocol);
+		lprintf(LOG_ERR,"%04d !ERROR %d (%s) setting %s socket option"
+			,sock, ERROR_VALUE, socket_strerror(socket_errno), serv->protocol);
 		close_socket(sock);
 		return;
 	}
@@ -1810,7 +1817,7 @@ void DLLCALL services_thread(void* arg)
 		lprintf(LOG_INFO,"Loading configuration files from %s", scfg.ctrl_dir);
 		scfg.size=sizeof(scfg);
 		SAFECOPY(error,UNKNOWN_LOAD_ERROR);
-		if(!load_cfg(&scfg, NULL, TRUE, error)) {
+		if(!load_cfg(&scfg, text, TRUE, error)) {
 			lprintf(LOG_CRIT,"!ERROR %s",error);
 			lprintf(LOG_CRIT,"!Failed to load configuration files");
 			cleanup(1);
@@ -1999,7 +2006,7 @@ void DLLCALL services_thread(void* arg)
 				else if(ERROR_VALUE == ENOTSOCK)
             		lprintf(LOG_NOTICE,"0000 Services sockets closed");
 				else
-					lprintf(LOG_WARNING,"0000 !ERROR %d selecting sockets",ERROR_VALUE);
+					lprintf(LOG_WARNING,"0000 !ERROR %d (%s) selecting sockets",ERROR_VALUE, socket_strerror(socket_errno));
 				continue;
 			}
 
@@ -2030,16 +2037,16 @@ void DLLCALL services_thread(void* arg)
 							,&client_addr.addr, &client_addr_len);
 						if(udp_len<1) {
 							FREE_AND_NULL(udp_buf);
-							lprintf(LOG_ERR,"%04d %s !ERROR %d recvfrom failed"
-								,service[i].set->socks[j].sock, service[i].protocol, ERROR_VALUE);
+							lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) recvfrom failed"
+								,service[i].set->socks[j].sock, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno));
 							continue;
 						}
 
 						if((client_socket = open_socket(service[i].set->socks[j].domain, SOCK_DGRAM, &service[i]))
 							==INVALID_SOCKET) {
 							FREE_AND_NULL(udp_buf);
-							lprintf(LOG_ERR,"%04d %s !ERROR %d opening socket"
-								,service[i].set->socks[j].sock, service[i].protocol, ERROR_VALUE);
+							lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) opening socket"
+								,service[i].set->socks[j].sock, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno));
 							continue;
 						}
 
@@ -2051,8 +2058,8 @@ void DLLCALL services_thread(void* arg)
 						if(setsockopt(client_socket,SOL_SOCKET,SO_REUSEADDR
 							,(char*)&optval,sizeof(optval))!=0) {
 							FREE_AND_NULL(udp_buf);
-							lprintf(LOG_ERR,"%04d %s !ERROR %d setting socket option"
-								,client_socket, service[i].protocol, ERROR_VALUE);
+							lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) setting socket option"
+								,client_socket, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno));
 							close_socket(client_socket);
 							continue;
 						}
@@ -2060,8 +2067,8 @@ void DLLCALL services_thread(void* arg)
 						if(setsockopt(client_socket,SOL_SOCKET,SO_REUSEPORT
 							,(char*)&optval,sizeof(optval))!=0) {
 							FREE_AND_NULL(udp_buf);
-							lprintf(LOG_ERR,"%04d %s !ERROR %d setting socket option"
-								,client_socket, service[i].protocol, ERROR_VALUE);
+							lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) setting socket option"
+								,client_socket, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno));
 							close_socket(client_socket);
 							continue;
 						}
@@ -2072,16 +2079,16 @@ void DLLCALL services_thread(void* arg)
 						result=bind(client_socket, &addr.addr, addr_len);
 						if(result==SOCKET_ERROR) {
 							/* Failed to re-bind to same port number, use user port */
-							lprintf(LOG_NOTICE,"%04d %s ERROR %d re-binding socket to port %u failed, "
+							lprintf(LOG_NOTICE,"%04d %s ERROR %d (%s) re-binding socket to port %u failed, "
 								"using user port"
-								,client_socket, service[i].protocol, ERROR_VALUE, service[i].port);
+								,client_socket, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno), service[i].port);
 							inet_setaddrport(&addr, 0);
 							result=bind(client_socket, (struct sockaddr *) &addr, addr_len);
 						}
 						if(result!=0) {
 							FREE_AND_NULL(udp_buf);
-							lprintf(LOG_ERR,"%04d %s !ERROR %d re-binding socket to port %u"
-								,client_socket, service[i].protocol, ERROR_VALUE, service[i].port);
+							lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) re-binding socket to port %u"
+								,client_socket, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno), service[i].port);
 							close_socket(client_socket);
 							continue;
 						}
@@ -2090,8 +2097,8 @@ void DLLCALL services_thread(void* arg)
 						if(connect(client_socket
 							,(struct sockaddr *)&client_addr, client_addr_len)!=0) {
 							FREE_AND_NULL(udp_buf);
-							lprintf(LOG_ERR,"%04d %s !ERROR %d connect failed"
-								,client_socket, service[i].protocol, ERROR_VALUE);
+							lprintf(LOG_ERR,"%04d %s !ERROR %d (%s) connect failed"
+								,client_socket, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno));
 							close_socket(client_socket);
 							continue;
 						}
@@ -2104,8 +2111,8 @@ void DLLCALL services_thread(void* arg)
 								lprintf(LOG_NOTICE,"%04d %s socket closed while listening"
 									,service[i].set->socks[j].sock, service[i].protocol);
 							else
-								lprintf(LOG_WARNING,"%04d %s !ERROR %d accepting connection" 
-									,service[i].set->socks[j].sock, service[i].protocol, ERROR_VALUE);
+								lprintf(LOG_WARNING,"%04d %s !ERROR %d (%s) accepting connection" 
+									,service[i].set->socks[j].sock, service[i].protocol, ERROR_VALUE, socket_strerror(socket_errno));
 	#ifdef _WIN32
 							if(WSAGetLastError()==WSAENOBUFS)	/* recycle (re-init WinSock) on this error */
 								break;
