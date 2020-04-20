@@ -24,15 +24,16 @@ struct xpms_set* DLLCALL xpms_create(unsigned int retries, unsigned int wait_sec
 
 void DLLCALL xpms_destroy(struct xpms_set *xpms_set, void (*sock_destroy)(SOCKET, void *), void *cbdata)
 {
-	int		i;
+	size_t		i;
 
 	if(!xpms_set)
 		return;
 	for(i=0; i<xpms_set->sock_count; i++) {
 		if(xpms_set->socks[i].sock != INVALID_SOCKET) {
 			if(xpms_set->lprintf!=NULL)
-				xpms_set->lprintf(LOG_INFO, "%04d closing %s socket on port %d"
+				xpms_set->lprintf(LOG_INFO, "%04d %s closing socket %s port %d"
 						, xpms_set->socks[i].sock, xpms_set->socks[i].prot?xpms_set->socks[i].prot:"unknown"
+						, xpms_set->socks[i].address
 						, xpms_set->socks[i].port);
 			closesocket(xpms_set->socks[i].sock);
 			if(sock_destroy)
@@ -72,10 +73,15 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 
 		if(strlen(addr) >= sizeof(un_addr.sun_path)) {
 			if(xpms_set->lprintf)
-				xpms_set->lprintf(LOG_ERR, "!ERROR %s is too long for a portable AF_UNIX socket", addr);
+				xpms_set->lprintf(LOG_ERR, "!%s ERROR %s is too long for a portable AF_UNIX socket", prot, addr);
 			return FALSE;
 		}
 		strcpy(un_addr.sun_path,addr);
+#ifdef SUN_LEN
+		dummy.ai_addrlen = SUN_LEN(&un_addr);
+#else
+		dummy.ai_addrlen = offsetof(struct sockaddr_un, un_addr.sun_path) + strlen(addr) + 1;
+#endif
 		if(fexist(addr))
 			unlink(addr);
 		res = &dummy;
@@ -94,7 +100,7 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 		sprintf(port_str, "%hu", port);
 		if((ret=getaddrinfo(addr, port_str, &hints, &res))!=0) {
 			if(xpms_set->lprintf)
-				xpms_set->lprintf(LOG_CRIT, "!ERROR %d calling getaddrinfo() on %s", ret, addr);
+				xpms_set->lprintf(LOG_CRIT, "!%s ERROR %d calling getaddrinfo() on %s", prot, ret, addr);
 			return FALSE;
 		}
 	}
@@ -104,7 +110,7 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 		if(new_socks==NULL) {
 			/* This may be a partial failure */
 			if(xpms_set->lprintf)
-				xpms_set->lprintf(LOG_CRIT, "!ERROR out of memory adding to multisocket");
+				xpms_set->lprintf(LOG_CRIT, "!%s ERROR out of memory adding to multisocket", prot);
 			break;
 		}
 		xpms_set->socks=new_socks;
@@ -146,8 +152,9 @@ BOOL DLLCALL xpms_add(struct xpms_set *xpms_set, int domain, int type,
 		if(type != SOCK_DGRAM) {
 			if(listen(xpms_set->socks[xpms_set->sock_count].sock, SOMAXCONN)==-1) {
 				if(xpms_set->lprintf)
-					xpms_set->lprintf(LOG_WARNING, "%04d !ERROR %d listen()ing on port %d"
-							, xpms_set->socks[xpms_set->sock_count].sock, ERROR_VALUE, port);
+					xpms_set->lprintf(LOG_WARNING, "%04d !%s ERROR %d (%s) listening on port %d"
+						,xpms_set->socks[xpms_set->sock_count].sock, prot, ERROR_VALUE
+						,socket_strerror(socket_errno), port);
 				closesocket(xpms_set->socks[xpms_set->sock_count].sock);
 				FREE_AND_NULL(xpms_set->socks[xpms_set->sock_count].address);
 				FREE_AND_NULL(xpms_set->socks[xpms_set->sock_count].prot);
@@ -184,8 +191,6 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 		host=strdup(*iface);
 
 		host_str=host;
-		if(xpms_set->lprintf)
-			xpms_set->lprintf(LOG_INFO, "Adding %s listening socket on %s", prot, host);
 		p = strrchr(host, ':');
 		/*
 		 * If there isn't a [, and the first and last colons aren't the same
@@ -205,6 +210,8 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 			*(p++)=0;
 			sscanf(p, "%hu", &port);
 		}
+		if(xpms_set->lprintf)
+			xpms_set->lprintf(LOG_INFO, "%s listening on socket %s port %hu", prot, host_str, port);
 		if(xpms_add(xpms_set, domain, type, protocol, host_str, port, prot, sock_init, bind_init, cbdata))
 			one_good=TRUE;
 		free(host);
@@ -212,11 +219,27 @@ BOOL DLLCALL xpms_add_list(struct xpms_set *xpms_set, int domain, int type,
 	return one_good;
 }
 
+BOOL DLLCALL xpms_add_chararray_list(struct xpms_set *xpms_set, int domain, int type,
+	int protocol, const char *list, uint16_t default_port, const char *prot,
+	void (*sock_init)(SOCKET, void *), int(*bind_init)(BOOL), void *cbdata)
+{
+	str_list_t slist;
+	BOOL ret;
+
+	slist = strListSplitCopy(NULL, list, ", \t\r\n");
+	if (slist == NULL)
+		return FALSE;
+	ret = xpms_add_list(xpms_set, domain, type, protocol, slist, default_port, prot,
+			sock_init, bind_init, cbdata);
+	strListFree(&slist);
+	return ret;
+}
+
 SOCKET DLLCALL xpms_accept(struct xpms_set *xpms_set, union xp_sockaddr * addr, 
 	socklen_t * addrlen, unsigned int timeout, void **cb_data)
 {
 	fd_set			read_fs;
-	int				i;
+	size_t			i;
 	struct timeval	tv;
 	struct timeval	*tvp;
 	SOCKET			max_sock=0;
