@@ -2,7 +2,7 @@
 
 /* Synchronet ANSI terminal functions */
 
-/* $Id: ansiterm.cpp,v 1.24 2020/04/22 04:35:14 rswindell Exp $ */
+/* $Id: ansiterm.cpp,v 1.23 2019/08/20 03:09:28 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,8 +41,8 @@
 
 /****************************************************************************/
 /* Returns the ANSI code to obtain the value of atr. Mixed attributes		*/
-/* high intensity colors, or background/foreground combinations don't work. */
-/* A call to attr() is more appropriate, being it is intelligent			*/
+/* high intensity colors, or background/forground cobinations don't work.   */
+/* A call to attr is more appropriate, being it is intelligent				*/
 /****************************************************************************/
 const char *sbbs_t::ansi(int atr)
 {
