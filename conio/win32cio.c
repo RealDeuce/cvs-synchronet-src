@@ -1,4 +1,4 @@
-/* $Id: win32cio.c,v 1.110 2020/04/17 17:01:39 deuce Exp $ */
+/* $Id: win32cio.c,v 1.112 2020/04/18 03:51:12 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -805,51 +805,63 @@ void win32_settitle(const char *title)
 void win32_copytext(const char *text, size_t buflen)
 {
 	HGLOBAL	clipbuf;
-	LPTSTR	clip;
+	LPWSTR	clip;
 	int new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
 
 	new_buflen = MultiByteToWideChar(CP_UTF8, 0, text, buflen, NULL, 0);
-	clipbuf=GlobalAlloc(GMEM_MOVEABLE, new_buflen * sizeof(WCHAR));
-	if (clipbuf == NULL)
+	if (new_buflen == 0) {
 		return;
-	if (MultiByteToWideChar(CP_UTF8, 0, text, buflen, clipbuf, new_buflen) != new_buflen) {
+	}
+	clipbuf=GlobalAlloc(GMEM_MOVEABLE, new_buflen * sizeof(WCHAR));
+	if (clipbuf == NULL) {
+		return;
+	}
+	clip=GlobalLock(clipbuf);
+	if (MultiByteToWideChar(CP_UTF8, 0, text, buflen, clip, new_buflen) != new_buflen) {
+		GlobalUnlock(clipbuf);
 		GlobalFree(clipbuf);
 		return;
 	}
-	if(!OpenClipboard(NULL))
-		return;
-	EmptyClipboard();
-	clip=GlobalLock(clipbuf);
-	memcpy(clip, clipbuf, (new_buflen)*sizeof(WCHAR));
 	GlobalUnlock(clipbuf);
-	SetClipboardData(CF_UNICODETEXT, clipbuf);
+	if(!OpenClipboard(NULL)) {
+		GlobalFree(clipbuf);
+		return;
+	}
+	EmptyClipboard();
+	if (SetClipboardData(CF_UNICODETEXT, clipbuf) == NULL) {
+		GlobalFree(clipbuf);
+	}
 	CloseClipboard();
 }
 
 char *win32_getcliptext(void)
 {
 	HGLOBAL	clipbuf;
-	LPTSTR	clip;
+	LPWSTR	clip;
 	char *ret = NULL;
-	size_t u8sz;
+	int u8sz;
 
-	if(!IsClipboardFormatAvailable(CF_UNICODETEXT))
+	if (!IsClipboardFormatAvailable(CF_UNICODETEXT))
 		return(NULL);
-	if(!OpenClipboard(NULL))
+	if (!OpenClipboard(NULL))
 		return(NULL);
-	clipbuf=GetClipboardData(CF_UNICODETEXT);
-	if(clipbuf!=NULL) {
-		clip=GlobalLock(clipbuf);
-		u8sz = WideCharToMultiByte(CP_UTF8, 0, clip, -1, NULL, 0, NULL, NULL);
-		ret=(char *)malloc(u8sz);
-		if(ret != NULL) {
-			if (WideCharToMultiByte(CP_UTF8, 0, clip, -1, ret, u8sz, NULL, NULL) != u8sz)
-				FREE_AND_NULL(ret);
+	clipbuf = GetClipboardData(CF_UNICODETEXT);
+	if (clipbuf != NULL) {
+		clip = GlobalLock(clipbuf);
+		if (clip != NULL) {
+			u8sz = WideCharToMultiByte(CP_UTF8, 0, clip, -1, NULL, 0, NULL, NULL);
+			if (u8sz > 0) {
+				ret = (char *)malloc(u8sz);
+				if(ret != NULL) {
+					if (WideCharToMultiByte(CP_UTF8, 0, clip, -1, ret, u8sz, NULL, NULL) == 0)
+						FREE_AND_NULL(ret);
+				}
+			}
+			GlobalUnlock(clipbuf);
 		}
-		GlobalUnlock(clipbuf);
 	}
 	CloseClipboard();
-	
+
 	return(ret);
 }
 
