@@ -1,14 +1,13 @@
-/* chat.cpp */
-
 /* Synchronet real-time chat functions */
+// vi: tabstop=4
 
-/* $Id$ */
+/* $Id: chat.cpp,v 1.82 2020/04/21 20:04:18 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2013 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -60,7 +59,7 @@ void sbbs_t::multinodechat(int channel)
 
 	if(useron.rest&FLAG('C')) {
 		bputs(text[R_Chat]);
-		return; 
+		return;
 	}
 
 	if(channel<1 || channel>cfg.total_chans)
@@ -72,29 +71,25 @@ void sbbs_t::multinodechat(int channel)
 		menu("multchat");
 	bputs(text[WelcomeToMultiChat]);
 	if(getnodedat(cfg.node_num,&thisnode,true)==0) {
-		thisnode.aux=channel;		
+		thisnode.aux=channel;
 		putnodedat(cfg.node_num,&thisnode);
 	}
 	bprintf(text[WelcomeToChannelN],channel,cfg.chan[channel-1]->name);
-	if(gurubuf) {
-		free(gurubuf);
-		gurubuf=NULL; 
-	}
 	if(cfg.chan[channel-1]->misc&CHAN_GURU && cfg.chan[channel-1]->guru<cfg.total_gurus
 		&& chk_ar(cfg.guru[cfg.chan[channel-1]->guru]->ar,&useron,&client)) {
 		sprintf(str,"%s%s.dat",cfg.ctrl_dir,cfg.guru[cfg.chan[channel-1]->guru]->code);
 		if((file=nopen(str,O_RDONLY))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
-			return; 
+			return;
 		}
 		if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
 			close(file);
 			errormsg(WHERE,ERR_ALLOC,str,(size_t)filelength(file)+1);
-			return; 
+			return;
 		}
 		read(file,gurubuf,(size_t)filelength(file));
 		gurubuf[filelength(file)]=0;
-		close(file); 
+		close(file);
 	}
 	usrs=0;
 	for(i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
@@ -107,7 +102,7 @@ void sbbs_t::multinodechat(int channel)
 			continue;
 		printnodedat(i,&node);
 		preusr[usrs]=(char)i;
-		usr[usrs++]=(char)i; 
+		usr[usrs++]=(char)i;
 	}
 	preusrs=usrs;
 	if(gurubuf)
@@ -130,7 +125,7 @@ void sbbs_t::multinodechat(int channel)
 			if(node.status==NODE_QUIET)
 				qusr[qusrs++]=(char)i;
 			else if(node.status==NODE_INUSE)
-				usr[usrs++]=(char)i; 
+				usr[usrs++]=(char)i;
 		}
 		if(preusrs>usrs) {
 			if(!usrs && channel && cfg.chan[channel-1]->misc&CHAN_GURU
@@ -150,9 +145,9 @@ void sbbs_t::multinodechat(int channel)
 					else
 						username(&cfg,node.useron,str);
 					bprintf(text[NodeLeftMultiChat]
-						,preusr[i],str,channel); 
-				} 
-			} 
+						,preusr[i],str,channel);
+				}
+			}
 		}
 		else if(preusrs<usrs) {
 			if(!preusrs && channel && cfg.chan[channel-1]->misc&CHAN_GURU
@@ -172,9 +167,9 @@ void sbbs_t::multinodechat(int channel)
 					else
 						username(&cfg,node.useron,str);
 					bprintf(text[NodeJoinedMultiChat]
-						,usr[i],str,channel); 
-				} 
-			} 
+						,usr[i],str,channel);
+				}
+			}
 		}
 		preusrs=usrs;
 		for(i=0;i<usrs;i++)
@@ -187,7 +182,7 @@ void sbbs_t::multinodechat(int channel)
 				bputs(text[MultiChatCommandPrompt]);
 				strcpy(str,"ACELWQ?*");
 				if(SYSOP)
-					strcat(str,"0");
+					SAFECAT(str,"0");
 				i=getkeys(str,cfg.total_chans);
 				if(i&0x80000000L) {  /* change channel */
 					savch=(char)(i&~0x80000000L);
@@ -218,17 +213,18 @@ void sbbs_t::multinodechat(int channel)
 								break;
 							if(strcmp(str,unpackchatpass(tmp,&node)))
 								break;
-								bputs(text[CorrectPassword]);  }
+							bputs(text[CorrectPassword]);
+						}
 						preusr[usrs]=(char)i;
-						usr[usrs++]=(char)i; 
+						usr[usrs++]=(char)i;
 					}
 					if(i<=cfg.sys_nodes) {	/* failed password */
 						bputs(text[WrongPassword]);
-						continue; 
+						continue;
 					}
 					if(gurubuf) {
 						free(gurubuf);
-						gurubuf=NULL; 
+						gurubuf=NULL;
 					}
 					if(cfg.chan[savch-1]->misc&CHAN_GURU
 						&& cfg.chan[savch-1]->guru<cfg.total_gurus
@@ -238,17 +234,17 @@ void sbbs_t::multinodechat(int channel)
 							,cfg.guru[cfg.chan[savch-1]->guru]->code);
 						if((file=nopen(str,O_RDONLY))==-1) {
 							errormsg(WHERE,ERR_OPEN,str,O_RDONLY);
-							break; 
+							break;
 						}
 						if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
 							close(file);
 							errormsg(WHERE,ERR_ALLOC,str
 								,(size_t)filelength(file)+1);
-							break; 
+							break;
 						}
 						read(file,gurubuf,(size_t)filelength(file));
 						gurubuf[filelength(file)]=0;
-						close(file); 
+						close(file);
 					}
 					preusrs=usrs;
 					if(gurubuf)
@@ -263,22 +259,22 @@ void sbbs_t::multinodechat(int channel)
 						if(getstr(str,8,K_UPPER|K_ALPHA|K_LINE)) {
 							getnodedat(cfg.node_num,&thisnode,true);
 							thisnode.aux=channel;
-							packchatpass(str,&thisnode); 
+							packchatpass(str,&thisnode);
 						}
 						else {
 							getnodedat(cfg.node_num,&thisnode,true);
-							thisnode.aux=channel; 
-						} 
+							thisnode.aux=channel;
+						}
 					}
 					else {
 						getnodedat(cfg.node_num,&thisnode,true);
-						thisnode.aux=channel; 
+						thisnode.aux=channel;
 					}
 					putnodedat(cfg.node_num,&thisnode);
 					bputs(text[YoureOnTheAir]);
 					if(cfg.chan[channel-1]->cost
 						&& !(useron.exempt&FLAG('J')))
-						subtract_cdt(&cfg,&useron,cfg.chan[channel-1]->cost); 
+						subtract_cdt(&cfg,&useron,cfg.chan[channel-1]->cost);
 				}
 				else switch(i) {	/* other command */
 					case '0':	/* Global channel */
@@ -294,7 +290,7 @@ void sbbs_t::multinodechat(int channel)
 								continue;
 							printnodedat(i,&node);
 							preusr[usrs]=(char)i;
-							usr[usrs++]=(char)i; 
+							usr[usrs++]=(char)i;
 						}
 						preusrs=usrs;
 						if(getnodedat(cfg.node_num,&thisnode,true)==0) {
@@ -319,10 +315,10 @@ void sbbs_t::multinodechat(int channel)
 							bprintf("%-*.*s",LEN_CHATACTCMD
 								,LEN_CHATACTCMD,cfg.chatact[i]->cmd);
 							if(!((i+1)%8)) {
-								CRLF; 
+								CRLF;
 							}
 							else
-								bputs(" "); 
+								bputs(" ");
 						}
 						CRLF;
 						break;
@@ -338,7 +334,7 @@ void sbbs_t::multinodechat(int channel)
 						CRLF;
 						for(i=1;i<=cfg.sys_nodes && i<=cfg.sys_lastnode;i++) {
 							getnodedat(i,&node,0);
-							printnodedat(i,&node); 
+							printnodedat(i,&node);
 						}
 						CRLF;
 						break;
@@ -363,7 +359,7 @@ void sbbs_t::multinodechat(int channel)
 							? text[AnonUserChatHandle]
 							: useron.handle
 							,cfg.node_num,'*',line);
-						strcat(buf,crlf);
+						SAFECAT(buf,crlf);
 						if(useron.chat&CHAT_ECHO)
 							bputs(buf);
 						putnmsg(&cfg,j,buf);
@@ -372,21 +368,18 @@ void sbbs_t::multinodechat(int channel)
 						done=1;
 						break;
 					case '*':
-						sprintf(str,"%smenu/chan.*",cfg.text_dir);
-						if(fexist(str))
-							menu("chan");
-						else {
+						if(!menu("chan", P_NOERROR)) {
 							bputs(text[ChatChanLstHdr]);
 							bputs(text[ChatChanLstTitles]);
 							if(cfg.total_chans>=10) {
 								bputs("     ");
-								bputs(text[ChatChanLstTitles]); 
+								bputs(text[ChatChanLstTitles]);
 							}
 							CRLF;
 							bputs(text[ChatChanLstUnderline]);
 							if(cfg.total_chans>=10) {
 								bputs("     ");
-								bputs(text[ChatChanLstUnderline]); 
+								bputs(text[ChatChanLstUnderline]);
 							}
 							CRLF;
 							if(cfg.total_chans>=10)
@@ -405,18 +398,18 @@ void sbbs_t::multinodechat(int channel)
 										bprintf(text[ChatChanLstFmt]
 											,k+1
 											,cfg.chan[k]->name
-											,cfg.chan[k]->cost); 
-									} 
+											,cfg.chan[k]->cost);
+									}
 								}
-								CRLF; 
+								CRLF;
 							}
-							CRLF; 
+							CRLF;
 						}
 						break;
 					case '?':	/* menu */
 						menu("multchat");
-						break;	
-				} 
+						break;
+				}
 			} else {
 				ungetkey(ch);
 				j=0;
@@ -430,14 +423,14 @@ void sbbs_t::multinodechat(int channel)
 							? text[AnonUserChatHandle]
 							: useron.handle
 							,cfg.node_num,':',nulstr);
-						sprintf(tmp,"%*s",bstrlen(str),nulstr);
-						strcat(pgraph,tmp); 
+						sprintf(tmp,"%*s",(int)bstrlen(str),nulstr);
+						SAFECAT(pgraph,tmp);
 					}
-					strcat(pgraph,line);
-					strcat(pgraph,crlf);
+					SAFECAT(pgraph,line);
+					SAFECAT(pgraph,crlf);
 					if(!wordwrap[0])
 						break;
-					j++; 
+					j++;
 				}
 				if(pgraph[0]) {
 					if(channel && useron.chat&CHAT_ACTION) {
@@ -452,7 +445,7 @@ void sbbs_t::multinodechat(int channel)
 								,LEN_CHATACTCMD+2,pgraph);
 							str[strlen(str)-2]=0;
 							if(!stricmp(cfg.chatact[i]->cmd,str))
-								break; 
+								break;
 						}
 
 						if(i<cfg.total_chatacts) {
@@ -465,7 +458,7 @@ void sbbs_t::multinodechat(int channel)
 								if(n) {
 									if(usr[j]==n)
 										break;
-									continue; 
+									continue;
 								}
 								username(&cfg,node.useron,str);
 								if(!strnicmp(str,p,strlen(str)))
@@ -473,7 +466,7 @@ void sbbs_t::multinodechat(int channel)
 								getuserrec(&cfg,node.useron,U_HANDLE
 									,LEN_HANDLE,str);
 								if(!strnicmp(str,p,strlen(str)))
-									break; 
+									break;
 							}
 							if(!usrs
 								&& cfg.chan[channel-1]->guru<cfg.total_gurus)
@@ -499,8 +492,8 @@ void sbbs_t::multinodechat(int channel)
 									,thisnode.misc&NODE_ANON
 									? text[UNKNOWN_USER] : useron.alias
 									,"you");
-								strcat(buf,crlf);
-								putnmsg(&cfg,usr[j],buf); 
+								SAFECAT(buf,crlf);
+								putnmsg(&cfg,usr[j],buf);
 							}
 
 
@@ -509,20 +502,20 @@ void sbbs_t::multinodechat(int channel)
 								,thisnode.misc&NODE_ANON
 								? text[UNKNOWN_USER] : useron.alias
 								,str);
-							strcat(buf,crlf);
+							SAFECAT(buf,crlf);
 
 							for(i=0;i<usrs;i++) {
 								if(i==j)
 									continue;
 								getnodedat(usr[i],&node,0);
-								putnmsg(&cfg,usr[i],buf); 
+								putnmsg(&cfg,usr[i],buf);
 							}
 							for(i=0;i<qusrs;i++) {
 								getnodedat(qusr[i],&node,0);
-								putnmsg(&cfg,qusr[i],buf); 
+								putnmsg(&cfg,qusr[i],buf);
 							}
-							continue; 
-						} 
+							continue;
+						}
 					}
 
 					sprintf(buf,text[ChatLineFmt]
@@ -534,22 +527,24 @@ void sbbs_t::multinodechat(int channel)
 						bputs(buf);
 					for(i=0;i<usrs;i++) {
 						getnodedat(usr[i],&node,0);
-						putnmsg(&cfg,usr[i],buf); 
+						putnmsg(&cfg,usr[i],buf);
 					}
 					for(i=0;i<qusrs;i++) {
 						getnodedat(qusr[i],&node,0);
-						putnmsg(&cfg,qusr[i],buf); 
+						putnmsg(&cfg,qusr[i],buf);
 					}
 					if(!usrs && channel && gurubuf
 						&& cfg.chan[channel-1]->misc&CHAN_GURU)
 						guruchat(pgraph,gurubuf,cfg.chan[channel-1]->guru,guru_lastanswer);
-				} 
-			} 
+				}
+			}
 		}
 		if(sys_status&SS_ABORT)
-			break; 
+			break;
 	}
 	lncntr=0;
+	if(gurubuf != NULL)
+		free(gurubuf);
 }
 
 /****************************************************************************/
@@ -563,12 +558,12 @@ bool sbbs_t::guru_page(void)
 
 	if(useron.rest&FLAG('C')) {
 		bputs(text[R_Chat]);
-		return(false); 
+		return(false);
 	}
 
 	if(!cfg.total_gurus) {
 		bprintf(text[SysopIsNotAvailable],"The Guru");
-		return(false); 
+		return(false);
 	}
 	if(cfg.total_gurus==1 && chk_ar(cfg.guru[0]->ar,&useron,&client))
 		i=0;
@@ -577,17 +572,17 @@ bool sbbs_t::guru_page(void)
 			uselect(1,i,nulstr,cfg.guru[i]->name,cfg.guru[i]->ar);
 		i=uselect(0,0,0,0,0);
 		if(i<0)
-			return(false); 
+			return(false);
 	}
 	sprintf(path,"%s%s.dat",cfg.ctrl_dir,cfg.guru[i]->code);
 	if((file=nopen(path,O_RDONLY))==-1) {
 		errormsg(WHERE,ERR_OPEN,path,O_RDONLY);
-		return(false); 
+		return(false);
 	}
 	if((gurubuf=(char *)malloc((size_t)filelength(file)+1))==NULL) {
-		close(file);
 		errormsg(WHERE,ERR_ALLOC,path,(size_t)filelength(file)+1);
-		return(false); 
+		close(file);
+		return(false);
 	}
 	read(file,gurubuf,(size_t)filelength(file));
 	gurubuf[filelength(file)]=0;
@@ -606,7 +601,7 @@ void sbbs_t::chatsection()
 
 	if(useron.rest&FLAG('C')) {
 		bputs(text[R_Chat]);
-		return; 
+		return;
 	}
 
 	action=NODE_CHAT;
@@ -707,20 +702,27 @@ bool sbbs_t::sysop_page(void)
 		return(false); 
 	}
 
-	if(startup->options&BBS_OPT_SYSOP_AVAILABLE 
+	if(sysop_available(&cfg)
 		|| (cfg.sys_chat_ar[0] && chk_ar(cfg.sys_chat_ar,&useron,&client))
 		|| useron.exempt&FLAG('C')) {
 
-		sprintf(str,"%s paged sysop for chat",useron.alias);
+		sprintf(str,"paged sysop for chat");
 		logline("C",str);
 
+		ftouch(syspage_semfile);
 		for(i=0;i<cfg.total_pages;i++)
 			if(chk_ar(cfg.page[i]->ar,&useron,&client))
 				break;
 		if(i<cfg.total_pages) {
 			bprintf(text[PagingGuru],cfg.sys_op);
-			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL)
-				,cfg.page[i]->misc&XTRN_STDIO ? EX_STDIO : 0); 
+			long mode = 0;
+			if(cfg.page[i]->misc&XTRN_STDIO)
+				mode |= EX_STDIO;
+			if(cfg.page[i]->misc&XTRN_NATIVE)
+				mode|= EX_NATIVE;
+			if(cfg.page[i]->misc&XTRN_SH)
+				mode |= EX_SH;
+			external(cmdstr(cfg.page[i]->cmd,nulstr,nulstr,NULL), mode); 
 		}
 		else if(cfg.sys_misc&SM_SHRTPAGE) {
 			bprintf(text[PagingGuru],cfg.sys_op);
@@ -737,6 +739,8 @@ bool sbbs_t::sysop_page(void)
 				,sys_status&SS_SYSPAGE ? text[ON] : text[OFF]);
 			nosound();	
 		}
+		if(!(sys_status&SS_SYSPAGE))
+			remove(syspage_semfile);
 
 		return(true);
 	}
@@ -817,8 +821,8 @@ void sbbs_t::privchat(bool local)
 				,cfg.node_num,thisnode.misc&NODE_ANON
 					? text[UNKNOWN_USER] : useron.alias);
 			putnmsg(&cfg,n,str);
-			sprintf(str,"%s paged %s on node %d to private chat"
-				,useron.alias,username(&cfg,node.useron,tmp),n);
+			sprintf(str,"paged %s on node %d to private chat"
+				,username(&cfg,node.useron,tmp),n);
 			logline("C",str); 
 		}
 
@@ -897,14 +901,14 @@ void sbbs_t::privchat(bool local)
 		mswait(2000);
 	if((in=sopen(inpath,O_RDWR|O_CREAT|O_BINARY,SH_DENYNO,DEFFILEMODE))==-1) {
 		close(out);
-		errormsg(WHERE,ERR_OPEN,str,O_RDWR|O_DENYNONE|O_CREAT);
+		errormsg(WHERE,ERR_OPEN,inpath,O_RDWR|O_DENYNONE|O_CREAT);
 		return; 
 	}
 
 	if((p=(char *)malloc(PCHAT_LEN))==NULL) {
 		close(in);
 		close(out);
-		errormsg(WHERE,ERR_ALLOC,str,PCHAT_LEN);
+		errormsg(WHERE,ERR_ALLOC,nulstr,PCHAT_LEN);
 		return; 
 	}
 	memset(p,0,PCHAT_LEN);
@@ -1038,7 +1042,7 @@ void sbbs_t::privchat(bool local)
 							,thisnode.misc&NODE_NMSG ? 'M':' ');
 						attr(cfg.color[clr_chatlocal]);
 						for(x=13,y=0;x<rows;x++,y++) {
-							rprintf("\x1b[%d;1H\x1b[K",x+1);
+							comprintf("\x1b[%d;1H\x1b[K",x+1);
 							if(y<=localline)
 								bprintf("%s\r\n",localbuf[y]); 
 						}
@@ -1265,8 +1269,10 @@ int sbbs_t::getnodetopage(int all, int telegram)
 
 	strcpy(str,lastnodemsguser);
 	getstr(str,LEN_ALIAS,K_UPRLWR|K_LINE|K_EDIT|K_AUTODEL);
-	if(sys_status&SS_ABORT)
+	if(sys_status&SS_ABORT) {
+		sys_status&= ~SS_ABORT;
 		return(0);
+	}
 	if(!str[0])
 		return(0);
 
@@ -1328,7 +1334,7 @@ int sbbs_t::getnodetopage(int all, int telegram)
 		} 
 	}
 	if(telegram) {
-		strcpy(lastnodemsguser,str);
+		SAFECOPY(lastnodemsguser,str);
 		return(j); 
 	}
 	bputs(text[UserNotFound]);
@@ -1348,9 +1354,14 @@ void sbbs_t::nodemsg()
 
 	if(nodemsg_inside>1)	/* nested once only */
 		return;
+	nodemsg_inside++;
+	if(cfg.privatemsg_mod[0] != '\0') {
+		exec_bin(cfg.privatemsg_mod, &main_csi);
+		nodemsg_inside--;
+		return;
+	}
 	sys_status|=SS_IN_CTRLP;
 	getnodedat(cfg.node_num,&savenode,0);
-	nodemsg_inside++;
 	wordwrap[0]=0;
 	while(online && !done) {
 		if(useron.rest&FLAG('C')) {
@@ -1418,11 +1429,11 @@ void sbbs_t::nodemsg()
 					if(!getstr(line,70,K_WRAP|K_MSG))
 						break;
 					sprintf(str,"%4s%s\r\n",nulstr,line);
-					strcat(buf,str);
+					SAFECAT(buf,str);
 					if(line[0]) {
 						if(i)
-							strcat(logbuf,"   ");
-						strcat(logbuf,line);
+							SAFECAT(logbuf,"   ");
+						SAFECAT(logbuf,line);
 					}
 					i++; 
 				}
@@ -1433,8 +1444,8 @@ void sbbs_t::nodemsg()
 					break; 
 				}
 				putsmsg(&cfg,usernumber,buf);
-				sprintf(str,"%s sent telegram to %s #%u"
-					,useron.alias,username(&cfg,usernumber,tmp),usernumber);
+				sprintf(str,"sent telegram to %s #%u"
+					,username(&cfg,usernumber,tmp),usernumber);
 				logline("C",str);
 				logline(nulstr,logbuf);
 				bprintf(text[MsgSentToUser],"Telegram"
@@ -1466,8 +1477,8 @@ void sbbs_t::nodemsg()
 						if(!(node.misc&NODE_ANON))
 							bprintf(text[MsgSentToUser],"Message"
 								,username(&cfg,usernumber,tmp),usernumber);
-						sprintf(str,"%s sent message to %s on node %d:"
-							,useron.alias,username(&cfg,usernumber,tmp),i);
+						sprintf(str,"sent message to %s on node %d:"
+							,username(&cfg,usernumber,tmp),i);
 						logline("C",str);
 						logline(nulstr,line); 
 					} 
@@ -1488,7 +1499,7 @@ void sbbs_t::nodemsg()
 							&& (SYSOP || !(node.misc&NODE_POFF)))
 							putnmsg(&cfg,i,buf); 
 					}
-					sprintf(str,"%s sent message to all nodes",useron.alias);
+					SAFECOPY(str,"sent message to all nodes");
 					logline("C",str);
 					logline(nulstr,line); 
 				}
@@ -1552,7 +1563,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	j=strlen(line);
 	k=0;
 	for(i=0;i<j;i++) {
-		if(line[i]<0 || !isalnum(line[i])) {
+		if(line[i]<0 || !isalnum((uchar)line[i])) {
 			if(!k)	/* beginning non-alphanumeric */
 				continue;
 			if(line[i]==line[i+1])	/* redundant non-alnum */
@@ -1565,7 +1576,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 	cstr[k]=0;
 	while(k) {
 		k--;
-		if(!isalnum(cstr[k]))
+		if(!isalnum((uchar)cstr[k]))
 			continue;
 		break; 
 	}
@@ -1616,6 +1627,7 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if(answers==100)
 				while(*ptr && *ptr!='(' && ptr<gurubuf+len)
 					ptr++;
+			i=0;
 			/* Try to not repeat yourself */
 			for(j=0;j<answers;j++) {
 				i=sbbs_random(answers);
@@ -1629,113 +1641,125 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 					theanswer[k]=0;
 					switch(toupper(answer[i][j])) {
 						case 'A':
-							if(sys_status&SS_USERON)
-								strcat(theanswer,useron.alias);
-							else
-								strcat(theanswer,text[UNKNOWN_USER]);
+							if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.alias);
+							} else {
+								SAFECAT(theanswer,text[UNKNOWN_USER]);
+							}
 							break;
 						case 'B':
-							if(sys_status&SS_USERON)
-								strcat(theanswer,useron.birth);
-							else
-								strcat(theanswer,"00/00/00");
+							if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.birth);
+							} else {
+								SAFECAT(theanswer,"00/00/00");
+							}
 							break;
 						case 'C':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,useron.comp);
-							else
-								strcat(theanswer,"PC Jr.");
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.comp);
+							} else {
+								SAFECAT(theanswer,"PC Jr.");
+							}
 							break;
 						case 'D':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,ultoac(useron.dlb,tmp));
-							else
-								strcat(theanswer,"0");
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,ultoac(useron.dlb,tmp));
+							} else {
+								SAFECAT(theanswer,"0");
+							}
 							break;
 						case 'G':
-							strcat(theanswer,cfg.guru[gurunum]->name);
+							SAFECAT(theanswer,cfg.guru[gurunum]->name);
 							break;
 						case 'H':
 							hu=1;
 							break;
 						case 'I':
-							strcat(theanswer,cfg.sys_id);
+							SAFECAT(theanswer,cfg.sys_id);
 							break;
 						case 'J':
 							sprintf(tmp,"%u",tm.tm_mday);
 							break;
 						case 'L':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,ultoa(useron.level,tmp,10));
-							else
-								strcat(theanswer,"0");
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,ultoa(useron.level,tmp,10));
+							} else {
+								SAFECAT(theanswer,"0");
+							}
 							break;
 						case 'M':
-							strcat(theanswer,month[tm.tm_mon]);
+							SAFECAT(theanswer,month[tm.tm_mon]);
 							break;
 						case 'N':   /* Note */
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,useron.note);
-							else
-								strcat(theanswer,text[UNKNOWN_USER]);
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.note);
+							} else {
+								SAFECAT(theanswer,text[UNKNOWN_USER]);
+							}
 							break;
 						case 'O':
-							strcat(theanswer,cfg.sys_op);
+							SAFECAT(theanswer,cfg.sys_op);
 							break;
 						case 'P':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,useron.phone);
-							else
-								strcat(theanswer,"000-000-0000");
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.phone);
+							} else {
+								SAFECAT(theanswer,"000-000-0000");
+							}
 							break;
 						case 'Q':
 								sys_status&=~SS_GURUCHAT;
 							break;
 						case 'R':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,useron.name);
-							else
-								strcat(theanswer,text[UNKNOWN_USER]);
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.name);
+							} else {
+								SAFECAT(theanswer,text[UNKNOWN_USER]);
+							}
 							break;
 						case 'S':
-							strcat(theanswer,cfg.sys_name);
+							SAFECAT(theanswer,cfg.sys_name);
 							break;
 						case 'T':
 							sprintf(tmp,"%u:%02u",tm.tm_hour>12 ? tm.tm_hour-12
 								: tm.tm_hour,tm.tm_min);
-							strcat(theanswer,tmp);
+							SAFECAT(theanswer,tmp);
 							break;
 						case 'U':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,ultoac(useron.ulb,tmp));
-							else
-								strcat(theanswer,"0");
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,ultoac(useron.ulb,tmp));
+							} else {
+								SAFECAT(theanswer,"0");
+							}
 							break;
 						case 'W':
-							strcat(theanswer,weekday[tm.tm_wday]);
+							SAFECAT(theanswer,weekday[tm.tm_wday]);
 							break;
 						case 'Y':   /* Current year */
 							sprintf(tmp,"%u",1900+tm.tm_year);
-							strcat(theanswer,tmp);
+							SAFECAT(theanswer,tmp);
 							break;
 						case 'Z':
-							if(sys_status&SS_USERON)
-								strcat(theanswer,useron.zipcode);
-							else
-								strcat(theanswer,"90210");
+							if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,useron.zipcode);
+							} else {
+								SAFECAT(theanswer,"90210");
+							}
 							break;
 						case '$':   /* Credits */
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,ultoac(useron.cdt,tmp));
-							else
-								strcat(theanswer,"0");
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,ultoac(useron.cdt,tmp));
+							} else {
+								SAFECAT(theanswer,"0");
+							}
 							break;
 						case '#':
-                    		if(sys_status&SS_USERON)
-								strcat(theanswer,ultoa(getage(&cfg,useron.birth)
+                    		if(sys_status&SS_USERON) {
+								SAFECAT(theanswer,ultoa(getage(&cfg,useron.birth)
 									,tmp,10));
-							else
-								strcat(theanswer,"0");
+							} else {
+								SAFECAT(theanswer,"0");
+							}
 							break;
 						case '!':
 							mistakes=!mistakes;
@@ -1754,8 +1778,8 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if(action!=NODE_MCHT) {
 				for(i=0;i<k;i++) {
 					if(i && mistakes && theanswer[i]!=theanswer[i-1] &&
-						((!isalnum(theanswer[i]) && !sbbs_random(100))
-						|| (isalnum(theanswer[i]) && !sbbs_random(30)))) {
+						((!isalnum((uchar)theanswer[i]) && !sbbs_random(100))
+						|| (isalnum((uchar)theanswer[i]) && !sbbs_random(30)))) {
 						c=j=((uint)sbbs_random(3)+1);	/* 1 to 3 chars */
 						if(c<strcspn(theanswer+(i+1),"\0., "))
 							c=j=1;
@@ -1792,6 +1816,9 @@ void sbbs_t::guruchat(char* line, char* gurubuf, int gurunum, char* last_answer)
 			if((file=nopen(str,O_WRONLY|O_CREAT|O_APPEND))==-1)
 				errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_APPEND);
 			else {
+				xpDateTime_to_isoDateTimeStr(xpDateTime_now(), "-", " ", ":", 0, str, sizeof(str)-3);
+				SAFECAT(str,"\r\n");
+				write(file,str,strlen(str));
 				if(action==NODE_MCHT) {
 					sprintf(str,"[Multi] ");
 					write(file,str,strlen(str)); 
@@ -1914,13 +1941,13 @@ bool sbbs_t::guruexp(char **ptrptr, char *line)
 		else {
 			cp=strstr(line,str);
 			if(cp && c) {
-				if(cp!=line || isalnum(*(cp+strlen(str))))
+				if(cp!=line || isalnum((uchar)*(cp+strlen(str))))
 					cp=0; 
 			}
 			else {	/* must be isolated word */
 				while(cp)
-					if((cp!=line && isalnum(*(cp-1)))
-						|| isalnum(*(cp+strlen(str))))
+					if((cp!=line && isalnum((uchar)*(cp-1)))
+						|| isalnum((uchar)*(cp+strlen(str))))
 						cp=strstr(cp+strlen(str),str);
 					else
 						break; 
