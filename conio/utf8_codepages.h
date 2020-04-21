@@ -28,9 +28,26 @@ enum ciolib_codepage {
 	CIOLIB_CP_COUNT
 };
 
+struct codepage_def {
+	const char name[32];
+	const enum ciolib_codepage cp;
+	uint8_t *(*to_utf8)(const char *cp437str, size_t buflen, size_t *outlen, const struct codepage_def *cpdef);
+	char *(*utf8_to)(const uint8_t *utf8str, char unmapped, size_t buflen, size_t *outlen, const struct codepage_def *cpdef);
+	uint8_t (*from_unicode_cpoint)(uint32_t cpoint, char unmapped, const struct codepage_def *cpdef);
+	uint32_t (*from_cpchar)(uint8_t cpoint, const struct codepage_def *cpdef);
+	uint32_t (*from_cpchar_ext)(uint8_t cpoint, const struct codepage_def *cpdef);
+	const struct ciolib_cpmap *cp_table;
+	const size_t cp_table_sz;
+	const uint32_t *cp_unicode_table;
+	const uint32_t *cp_ext_unicode_table;
+};
+
+const struct codepage_def ciolib_cp[CIOLIB_CP_COUNT];
+
 uint8_t *cp_to_utf8(enum ciolib_codepage cp, const char *cpstr, size_t buflen, size_t *outlen);
 char *utf8_to_cp(enum ciolib_codepage cp, const uint8_t *utf8str, char unmapped, size_t buflen, size_t *outlen);
-uint8_t cp_from_unicode_cp(enum ciolib_codepage cp, uint32_t cpoint, char unmapped);
-uint8_t cp_from_unicode_cp_ext(enum ciolib_codepage cp, uint32_t cpoint, char unmapped);
+uint8_t cpchar_from_unicode_cpoint(enum ciolib_codepage cp, uint32_t cpoint, char unmapped);
+uint32_t cpoint_from_cpchar(enum ciolib_codepage cp, uint8_t ch);
+uint32_t cpoint_from_cpchar_ext(enum ciolib_codepage cp, uint8_t ch);
 
 #endif
