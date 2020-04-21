@@ -1,4 +1,4 @@
-/* $Id: scfgmsg.c,v 1.71 2020/04/10 08:31:12 rswindell Exp $ */
+/* $Id: scfgmsg.c,v 1.72 2020/04/20 20:39:17 rswindell Exp $ */
 
 /* Configuring Message Options and Message Groups (but not sub-boards) */
 
@@ -774,6 +774,8 @@ void msgs_cfg()
 									cfg.sub[j]->maxmsgs = template->maxmsgs;
 									cfg.sub[j]->maxcrcs = template->maxcrcs;
 									cfg.sub[j]->maxage	= template->maxage;
+									cfg.sub[j]->pmode	= template->pmode;
+									cfg.sub[j]->n_pmode	= template->n_pmode;
 									cfg.sub[j]->faddr	= template->faddr; 
 								} 
 							} 
