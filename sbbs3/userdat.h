@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.73 2019/08/31 20:38:35 rswindell Exp $ */
+/* $Id: userdat.h,v 1.76 2020/04/12 08:02:53 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -82,9 +82,11 @@ DLLEXPORT BOOL	del_lastuser(scfg_t*);
 DLLEXPORT uint	getage(scfg_t*, char *birthdate);
 DLLEXPORT char*	username(scfg_t*, int usernumber, char * str);
 DLLEXPORT char* usermailaddr(scfg_t*, char* addr, const char* name);
-DLLEXPORT int	getnodedat(scfg_t*, uint number, node_t *node, int* file);
-DLLEXPORT int	putnodedat(scfg_t*, uint number, node_t *node, int file);
-DLLEXPORT char* nodestatus(scfg_t*, node_t* node, char* buf, size_t buflen);
+DLLEXPORT int	opennodedat(scfg_t*);
+DLLEXPORT int	opennodeext(scfg_t*);
+DLLEXPORT int	getnodedat(scfg_t*, uint number, node_t *node, BOOL lockit, int* file);
+DLLEXPORT int	putnodedat(scfg_t*, uint number, node_t *node, BOOL closeit, int file);
+DLLEXPORT char* nodestatus(scfg_t*, node_t* node, char* buf, size_t buflen, int num);
 DLLEXPORT void	printnodedat(scfg_t*, uint number, node_t* node);
 DLLEXPORT int	is_user_online(scfg_t*, uint usernumber);
 DLLEXPORT void	packchatpass(char *pass, node_t* node);
@@ -132,6 +134,8 @@ DLLEXPORT BOOL	initmsgptrs(scfg_t*, subscan_t*, unsigned days, void (*progress)(
 DLLEXPORT BOOL	user_posted_msg(scfg_t*, user_t*, int count);
 DLLEXPORT BOOL	user_sent_email(scfg_t*, user_t*, int count, BOOL feedback);
 DLLEXPORT BOOL	user_downloaded(scfg_t*, user_t*, int files, long bytes);
+DLLEXPORT BOOL	user_downloaded_file(scfg_t*, user_t*, client_t*, uint dirnum, const char* filename, ulong bytes);
+
 DLLEXPORT BOOL	user_uploaded(scfg_t*, user_t*, int files, long bytes);
 DLLEXPORT BOOL	user_adjust_credits(scfg_t*, user_t*, long amount);
 DLLEXPORT BOOL	user_adjust_minutes(scfg_t*, user_t*, long amount);
