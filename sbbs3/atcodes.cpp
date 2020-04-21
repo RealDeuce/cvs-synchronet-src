@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.122 2020/04/24 03:01:46 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.120 2020/04/20 08:21:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -804,66 +804,6 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 				: tm.tm_hour>12 ? tm.tm_hour-12
 				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 		return(str);
-	}
-
-	if(!strcmp(sp,"FIRSTON"))
-		return(timestr(useron.firston));
-
-	if(!strcmp(sp,"FIRSTDATEON"))
-		return(unixtodstr(&cfg,useron.firston,str));
-
-	if(!strcmp(sp,"FIRSTTIMEON")) {
-		memset(&tm,0,sizeof(tm));
-		localtime32(&useron.firston,&tm);
-		if(cfg.sys_misc&SM_MILITARY)
-			safe_snprintf(str,maxlen,"%02d:%02d:%02d"
-				,tm.tm_hour, tm.tm_min, tm.tm_sec);
-		else
-			safe_snprintf(str,maxlen,"%02d:%02d %s"
-				,tm.tm_hour==0 ? 12
-				: tm.tm_hour>12 ? tm.tm_hour-12
-				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
-		return(str);
-	}
-
-	if(strcmp(sp, "EMAILS") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.emails);
-		return str;
-	}
-
-	if(strcmp(sp, "FBACKS") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.fbacks);
-		return str;
-	}
-
-	if(strcmp(sp, "ETODAY") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.etoday);
-		return str;
-	}
-
-	if(strcmp(sp, "PTODAY") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.ptoday);
-		return str;
-	}
-
-	if(strcmp(sp, "LTODAY") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.ltoday);
-		return str;
-	}
-
-	if(strcmp(sp, "TTODAY") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.ttoday);
-		return str;
-	}
-
-	if(strcmp(sp, "TLAST") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.tlast);
-		return str;
-	}
-
-	if(strcmp(sp, "TEXTRA") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.textra);
-		return str;
 	}
 
 	if(!strcmp(sp,"MSGLEFT") || !strcmp(sp,"MSGSLEFT")) {
