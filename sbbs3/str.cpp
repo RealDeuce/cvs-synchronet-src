@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.84 2019/07/17 00:34:43 rswindell Exp $ */
+/* $Id: str.cpp,v 1.87 2020/04/22 19:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,14 +98,14 @@ void sbbs_t::userlist(long mode)
 			}
 			sprintf(name,"%s #%d",user.alias,i);
 			sprintf(line[j],text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		else {
 			sprintf(name,"%s #%u",user.alias,i);
 			bprintf(text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
@@ -702,7 +702,7 @@ bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 	SAFECOPY(pass,passwd);
 	strupr(pass);
 
-	if(strlen(pass)<4) {
+	if(strlen(pass) < MIN_PASS_LEN) {
 		bputs(text[PasswordTooShort]);
 		return(false); 
 	}
@@ -1207,7 +1207,7 @@ void sbbs_t::change_user(void)
 	if(online==ON_REMOTE) {
 		getuserrec(&cfg,i,U_LEVEL,2,str);
 		if(atoi(str)>logon_ml) {
-			getuserrec(&cfg,i,U_PASS,8,tmp);
+			getuserrec(&cfg,i,U_PASS,LEN_PASS,tmp);
 			bputs(text[ChUserPwPrompt]);
 			console|=CON_R_ECHOX;
 			getstr(str,8,K_UPPER);
