@@ -1,6 +1,6 @@
 /* Synchronet high-level string i/o routines */
 
-/* $Id: str.cpp,v 1.86 2020/03/31 01:41:51 rswindell Exp $ */
+/* $Id: str.cpp,v 1.87 2020/04/22 19:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -98,14 +98,14 @@ void sbbs_t::userlist(long mode)
 			}
 			sprintf(name,"%s #%d",user.alias,i);
 			sprintf(line[j],text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
 		else {
 			sprintf(name,"%s #%u",user.alias,i);
 			bprintf(text[UserListFmt],name
-				,cfg.sys_misc&SM_LISTLOC ? user.location : user.ipaddr
+				,cfg.sys_misc&SM_LISTLOC ? user.location : user.note
 				,unixtodstr(&cfg,user.laston,tmp)
 				,user.modem); 
 		}
