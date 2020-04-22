@@ -1,6 +1,6 @@
 /* Synchronet configuration library routines */
 
-/* $Id: scfglib1.c,v 1.80 2020/03/25 04:45:21 rswindell Exp $ */
+/* $Id: scfglib1.c,v 1.82 2020/04/21 20:04:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -307,10 +307,22 @@ BOOL read_main_cfg(scfg_t* cfg, char* error)
 	get_str(cfg->listmsgs_mod, instream);
 	get_str(cfg->textsec_mod,instream);
 	if(!cfg->textsec_mod[0]) SAFECOPY(cfg->textsec_mod,"text_sec");
+	get_str(cfg->automsg_mod,instream);
+	if(!cfg->automsg_mod[0]) SAFECOPY(cfg->automsg_mod,"automsg");
 
-	for(i=0;i<26;i++)					/* unused - initialized to NULL */
+	get_int(c, instream);
+	for(i=0;i<21;i++)					/* unused - initialized to NULL */
 		get_int(n,instream);
-	for(i=0;i<254;i++)					/* unused - initialized to 0xff */
+	get_str(cfg->nodelist_mod,instream);
+	if(cfg->nodelist_mod[0] == '\xff')
+		SAFECOPY(cfg->nodelist_mod, "nodelist");
+	get_str(cfg->whosonline_mod,instream);
+	if(cfg->whosonline_mod[0] == '\xff')
+		SAFECOPY(cfg->whosonline_mod, "nodelist -active");
+	get_str(cfg->privatemsg_mod,instream);
+	if(cfg->privatemsg_mod[0] == '\xff')
+		SAFECOPY(cfg->privatemsg_mod, "privatemsg");
+	for(i=0;i<158;i++)					/* unused - initialized to 0xff */
 		get_int(n,instream);
 
 	get_int(cfg->user_backup_level,instream);
