@@ -1,14 +1,12 @@
-/* str.cpp */
-
 /* Synchronet high-level string i/o routines */
 
-/* $Id$ */
+/* $Id: str.cpp,v 1.87 2020/04/22 19:48:27 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
  * @format.use-tabs true	(see http://www.synchro.net/ptsc_hdr.html)		*
  *																			*
- * Copyright 2014 Rob Swindell - http://www.synchro.net/copyright.html		*
+ * Copyright Rob Swindell - http://www.synchro.net/copyright.html			*
  *																			*
  * This program is free software; you can redistribute it and/or			*
  * modify it under the terms of the GNU General Public License				*
@@ -58,11 +56,15 @@ void sbbs_t::userlist(long mode)
 	}
 	j=0;
 	k=lastuser(&cfg);
+	int userfile = openuserdat(&cfg, /* for_modify: */FALSE);
 	for(i=1;i<=k && !msgabort();i++) {
 		if(sort && (online==ON_LOCAL || !rioctl(TXBC)))
 			bprintf("%-4d\b\b\b\b",i);
 		user.number=i;
-		getuserdat(&cfg,&user);
+		if(fgetuserdat(&cfg, &user, userfile) != 0)
+			continue;
+		if(user.alias[0] <= ' ')
+			continue;
 		if(user.misc&(DELETED|INACTIVE))
 			continue;
 		users++;
@@ -72,8 +74,9 @@ void sbbs_t::userlist(long mode)
 			if(!chk_ar(cfg.grp[usrgrp[curgrp]]->ar,&user,/* client: */NULL))
 				continue;
 			if(!chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->ar,&user,/* client: */NULL)
-				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
-				&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
+				|| (cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar!=NULL 
+					&& cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar[0]
+					&& !chk_ar(cfg.sub[usrsub[curgrp][cursub[curgrp]]]->read_ar,&user,/* client: */NULL)))
 				continue; 
 		}
 		else if(mode==UL_DIR) {
@@ -108,6 +111,7 @@ void sbbs_t::userlist(long mode)
 		}
 		j++; 
 	}
+	close(userfile);
 	if(i<=k) {	/* aborted */
 		if(sort)
 			for(i=0;i<j;i++)
@@ -158,6 +162,7 @@ void sbbs_t::sif(char *fname, char *answers, long len)
 	}
 	if(lread(file,buf,length)!=length) {
 		close(file);
+		free(buf);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
 		return; 
@@ -327,6 +332,7 @@ void sbbs_t::sof(char *fname, char *answers, long len)
 		close(file);
 		errormsg(WHERE,ERR_READ,str,length);
 		answers[0]=0;
+		free(buf);
 		return; 
 	}
 	close(file);
@@ -688,14 +694,15 @@ bool sbbs_t::inputnstime(time_t *dt)
 /*****************************************************************************/
 bool sbbs_t::chkpass(char *passwd, user_t* user, bool unique)
 {
-	char c,d,first[128],last[128],sysop[41],sysname[41],*p;
+	char first[128],last[128],sysop[41],sysname[41],*p;
+	int  c, d;
 	char alias[LEN_ALIAS+1], name[LEN_NAME+1], handle[LEN_HANDLE+1];
 	char pass[LEN_PASS+1];
 
 	SAFECOPY(pass,passwd);
 	strupr(pass);
 
-	if(strlen(pass)<4) {
+	if(strlen(pass) < MIN_PASS_LEN) {
 		bputs(text[PasswordTooShort]);
 		return(false); 
 	}
@@ -817,7 +824,7 @@ void sbbs_t::dirinfo(uint dirnum)
 /****************************************************************************/
 /* Searches the file <name>.can in the TEXT directory for matches			*/
 /* Returns TRUE if found in list, FALSE if not.								*/
-/* Displays bad<name>.can in text directory if found.						*/
+/* Displays bad<name>.msg in text directory if found.						*/
 /****************************************************************************/
 bool sbbs_t::trashcan(const char *insearchof, const char *name)
 {
@@ -841,6 +848,11 @@ char* sbbs_t::timestr(time_t intime)
 	return(::timestr(&cfg,(time32_t)intime,timestr_output));
 }
 
+char* sbbs_t::datestr(time_t t)
+{
+	return unixtodstr(&cfg, (time32_t)t, datestr_output);
+}
+
 void sbbs_t::sys_info()
 {
 	char	tmp[128];
@@ -857,6 +869,7 @@ void sbbs_t::sys_info()
 		bprintf(text[SiSysPsite],cfg.sys_psname,cfg.sys_psnum);
 	if(cfg.sys_location[0])
 		bprintf(text[SiSysLocation],cfg.sys_location);
+	bprintf(text[TiNow],timestr(now),smb_zonestr(sys_timezone(&cfg),NULL));
 	if(cfg.sys_op[0])
 		bprintf(text[SiSysop],cfg.sys_op);
 	bprintf(text[SiSysNodes],cfg.sys_nodes);
@@ -868,14 +881,15 @@ void sbbs_t::sys_info()
 	bprintf(text[SiTotalTime],ultoac(stats.timeon,tmp));
 	bprintf(text[SiTimeToday],ultoac(stats.ttoday,tmp));
 	ver();
-	if(text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
+	const char* fname = "../system";
+	if(menu_exists(fname) && text[ViewSysInfoFileQ][0] && yesno(text[ViewSysInfoFileQ])) {
 		CLS;
-		sprintf(tmp,"%ssystem.msg", cfg.text_dir);
-		printfile(tmp,0); 
+		menu(fname);
 	}
-	if(text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
+	fname = "logon";
+	if(menu_exists(fname) && text[ViewLogonMsgQ][0] && yesno(text[ViewLogonMsgQ])) {
 		CLS;
-		menu("logon"); 
+		menu(fname);
 	}
 }
 
@@ -913,7 +927,7 @@ void sbbs_t::user_info()
 		,useron.ptoday);
 	bprintf(text[UserEmails]
 		,useron.emails,useron.fbacks
-		,getmail(&cfg,useron.number,0),useron.etoday);
+		,getmail(&cfg,useron.number,/* Sent: */FALSE, /* SPAM: */FALSE),useron.etoday);
 	CRLF;
 	bprintf(text[UserUploads]
 		,ultoac(useron.ulb,tmp),useron.uls);
@@ -927,19 +941,14 @@ void sbbs_t::user_info()
 
 void sbbs_t::xfer_policy()
 {
-	char	str[MAX_PATH+1];
-
 	if(!usrlibs) return;
-	sprintf(str,"%smenu/tpolicy.*", cfg.text_dir);
-	if(fexist(str))
-		menu("tpolicy");
-	else {
+	if(!menu("tpolicy", P_NOERROR)) {
 		bprintf(text[TransferPolicyHdr],cfg.sys_name);
 		bprintf(text[TpUpload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->up_pct);
 		bprintf(text[TpDownload]
 			,cfg.dir[usrdir[curlib][curdir[curlib]]]->dn_pct);
-		}
+	}
 }
 
 const char* prot_menu_file[] = {
@@ -952,11 +961,7 @@ const char* prot_menu_file[] = {
 
 void sbbs_t::xfer_prot_menu(enum XFER_TYPE type)
 {
-	char path[MAX_PATH+1];
-
-	sprintf(path,"%smenu/%s.*",cfg.text_dir,prot_menu_file[type]);
-	if(fexistcase(path)) {
-		menu(prot_menu_file[type]);
+	if(menu(prot_menu_file[type], P_NOERROR)) {
 		return;
 	}
 
@@ -1038,7 +1043,7 @@ void sbbs_t::logonlist(void)
 		bputs(text[NoOneHasLoggedOnToday]); 
 	} else {
 		bputs(text[CallersToday]);
-		printfile(str,P_NOATCODES|P_OPENCLOSE);
+		printfile(str,P_NOATCODES|P_OPENCLOSE|P_TRUNCATE);
 		CRLF; 
 	}
 }
@@ -1062,7 +1067,7 @@ bool sbbs_t::spy(uint i /* node_num */)
 		return(false);
 	}
 	if(spy_socket[i-1]!=INVALID_SOCKET) {
-		bprintf("Node %d already being spied (%lx)\r\n",i,spy_socket[i-1]);
+		bprintf("Node %d already being spied (%x)\r\n",i,spy_socket[i-1]);
 		return(false);
 	}
 	bprintf("*** Synchronet Remote Spy on Node %d: Ctrl-C to Abort ***"
@@ -1202,7 +1207,7 @@ void sbbs_t::change_user(void)
 	if(online==ON_REMOTE) {
 		getuserrec(&cfg,i,U_LEVEL,2,str);
 		if(atoi(str)>logon_ml) {
-			getuserrec(&cfg,i,U_PASS,8,tmp);
+			getuserrec(&cfg,i,U_PASS,LEN_PASS,tmp);
 			bputs(text[ChUserPwPrompt]);
 			console|=CON_R_ECHOX;
 			getstr(str,8,K_UPPER);
@@ -1226,4 +1231,39 @@ void sbbs_t::change_user(void)
 	else sys_status|=SS_TMPSYSOP;
 	sprintf(str,"Changed into %s #%u",useron.alias,useron.number);
 	logline("S+",str);
+}
+
+/* 't' value must be adjusted for timezone offset */
+char* sbbs_t::age_of_posted_item(char* buf, size_t max, time_t t)
+{
+	time_t	now = time(NULL) - (xpTimeZone_local()*60);
+	char*	past = text[InThePast];
+	char*	units = text[Years];
+	char	value[128];
+
+	double diff = difftime(now, t);
+	if(diff < 0) {
+		past = text[InTheFuture];
+		diff = -diff;
+	}
+
+	if(diff < 60) {
+		sprintf(value, "%.0f", diff);
+		units = text[Seconds];
+	} else if(diff < 60*60) {
+		sprintf(value, "%.0f", diff / 60.0);
+		units = text[Minutes];
+	} else if(diff < 60*60*24) {
+		sprintf(value, "%.1f", diff / (60.0 * 60.0));
+		units = text[Hours];
+	} else if(diff < 60*60*24*30) {
+		sprintf(value, "%.1f", diff / (60.0 * 60.0 * 24.0));
+		units = text[Days];
+	} else if(diff < 60*60*24*365) {
+		sprintf(value, "%.1f", diff / (60.0 * 60.0 * 24.0 * 30.0));
+		units = text[Months];
+	} else
+		sprintf(value, "%.1f", diff / (60.0 * 60.0 * 24.0 * 365.25));
+	safe_snprintf(buf, max, text[AgeOfPostedItem], value, units, past);
+	return buf;
 }
