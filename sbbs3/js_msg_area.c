@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "Message Area" Object */
 
-/* $Id: js_msg_area.c,v 1.72 2019/07/26 23:03:11 rswindell Exp $ */
+/* $Id: js_msg_area.c,v 1.74 2019/12/01 19:36:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -84,6 +84,7 @@ static char* msg_sub_prop_desc[] = {
 	,"configured maximum number of messages before purging"
 	,"configured maximum age (in days) of messages before expiration"
 	,"additional print mode flags to use when printing messages - see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for details"
+	,"print mode flags to <i>negate</i> when printing messages - see <tt>P_*</tt> in <tt>sbbsdefs.js</tt> for details"
 	/* Insert here */
 	,"user has sufficient access to read messages"
 	,"user has sufficient access to post messages"
@@ -106,7 +107,6 @@ struct js_msg_area_priv {
 BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* subobj, uint subnum)
 {
 	char		str[128];
-	int			c;
 	JSString*	js_str;
 	jsval		val;
 	sub_t*		sub;
@@ -153,36 +153,7 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 	if(!JS_DefineProperty(cx, subobj, "qwk_name", STRING_TO_JSVAL(js_str)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
-
-	if(sub->newsgroup[0])
-		SAFECOPY(str,sub->newsgroup);
-	else {
-		sprintf(str,"%s.%s",cfg->grp[sub->grp]->sname,sub->sname);
-		/*
-		 * From RFC5536:
-		 * newsgroup-name  =  component *( "." component )
-		 * component       =  1*component-char
-		 * component-char  =  ALPHA / DIGIT / "+" / "-" / "_"
-		 */
-		if (str[0] == '.')
-			str[0] = '_';
-		for(c=0;str[c];c++) {
-			/* Legal characters */
-			if ((str[c] >= 'A' && str[c] <= 'Z')
-					|| (str[c] >= 'a' && str[c] <= 'z')
-					|| (str[c] >= '0' && str[c] <= '9')
-					|| str[c] == '+'
-					|| str[c] == '-'
-					|| str[c] == '_'
-					|| str[c] == '.')
-				continue;
-			str[c] = '_';
-		}
-		c--;
-		if (str[c] == '.')
-			str[c] = '_';
-	}
-	if((js_str=JS_NewStringCopyZ(cx, str))==NULL)
+	if((js_str=JS_NewStringCopyZ(cx, subnewsgroupname(cfg, sub, str, sizeof(str))))==NULL)
 		return(FALSE);
 	if(!JS_DefineProperty(cx, subobj, "newsgroup", STRING_TO_JSVAL(js_str)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
@@ -264,6 +235,11 @@ BOOL DLLCALL js_CreateMsgAreaProperties(JSContext* cx, scfg_t* cfg, JSObject* su
 	if(!JS_DefineProperty(cx, subobj, "print_mode", INT_TO_JSVAL(sub->pmode)
 		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
 		return(FALSE);
+
+	if(!JS_DefineProperty(cx, subobj, "print_mode_neg", INT_TO_JSVAL(sub->n_pmode)
+		,NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY))
+		return(FALSE);
+
 
 #ifdef BUILD_JSDOCS
 	js_CreateArrayOfStrings(cx, subobj, "_property_desc_list", msg_sub_prop_desc, JSPROP_READONLY);
