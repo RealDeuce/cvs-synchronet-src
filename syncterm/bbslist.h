@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: bbslist.h,v 1.53 2019/07/25 18:28:59 deuce Exp $ */
+/* $Id: bbslist.h,v 1.54 2020/04/23 23:12:14 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -92,6 +92,9 @@ struct bbslist {
 	int				address_family;
 	char			font[80];
 };
+
+extern char *music_names[];
+extern char music_helpbuf[];
 
 struct bbslist *show_bbslist(char *current, int connected);
 extern char *log_levels[];
