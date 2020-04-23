@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.119 2020/03/01 07:57:29 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.120 2020/04/20 08:21:50 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -937,6 +937,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strncmp(sp,"SETSTR:",7)) {
 		strcpy(main_csi.str,sp+7);
 		return(nulstr);
+	}
+
+	if(strcmp(sp,"STR") == 0) {
+		return main_csi.str;
 	}
 
 	if(!strncmp(sp,"EXEC:",5)) {
