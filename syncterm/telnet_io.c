@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: telnet_io.c,v 1.39 2019/08/24 08:06:10 rswindell Exp $ */
+/* $Id: telnet_io.c,v 1.40 2020/03/05 02:21:19 deuce Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -51,8 +51,19 @@ void putcom(char* buf, size_t len)
 	FD_ZERO(&wds);
 	FD_SET(telnet_sock, &wds);
 	struct timeval tv;
-	tv.tv_sec=0;
-	tv.tv_usec=1000;
+	tv.tv_sec=10;
+	tv.tv_usec=0;
+	/*
+	 * Note, this select() call was added when debugging file transfer
+	 * issues presumably because something made it appear to "hang forever".
+	 * Since blocking sockets are used, this is very much not a complete
+	 * fix as the buffer size will usually be greater than the one byte
+	 * select() guarantees you will be able to send().
+	 *
+	 * The original fix waited 1ms in select(), which is unlikely to actually
+	 * allow the ACK to come back fast enough to clear a full output buffer.
+	 * I've increased it to 10s and left the select() in place.
+	 */
 	if(select(telnet_sock+1, NULL, &wds, NULL, &tv) == 1) {
 		char	str[128];
 		char*	p=str;
