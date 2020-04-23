@@ -2,7 +2,7 @@
 
 /* Berkley/WinSock socket API wrappers */
 
-/* $Id: sockwrap.c,v 1.66 2020/04/19 20:13:22 rswindell Exp $ */
+/* $Id: sockwrap.c,v 1.68 2020/04/20 04:35:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -71,6 +71,9 @@ static socket_option_t socket_options[] = {
 	{ "REUSEADDR",			0,				SOL_SOCKET,		SO_REUSEADDR		},	
 #ifdef SO_REUSEPORT	/* BSD */
 	{ "REUSEPORT",			0,				SOL_SOCKET,		SO_REUSEPORT		},	
+#endif
+#ifdef SO_EXCLUSIVEADDRUSE /* WinSock */
+	{ "EXCLUSIVEADDRUSE",	0,				SOL_SOCKET,		SO_EXCLUSIVEADDRUSE },
 #endif
 	{ "KEEPALIVE",			SOCK_STREAM,	SOL_SOCKET,		SO_KEEPALIVE		},
 	{ "DONTROUTE",			0,				SOL_SOCKET,		SO_DONTROUTE		},
@@ -361,7 +364,7 @@ int retry_bind(SOCKET s, const struct sockaddr *addr, socklen_t addrlen
 			break;
 		if(lprintf!=NULL)
 			lprintf(i<retries ? LOG_WARNING:LOG_CRIT
-				,"%04d !ERROR %d binding %s socket%s", s, ERROR_VALUE, prot, port_str);
+				,"%04d !ERROR %d (%s) binding %s socket%s", s, ERROR_VALUE, socket_strerror(socket_errno), prot, port_str);
 		if(i<retries) {
 			if(lprintf!=NULL)
 				lprintf(LOG_WARNING,"%04d Will retry in %u seconds (%u of %u)"
@@ -496,3 +499,20 @@ BOOL inet_addrmatch(union xp_sockaddr* addr1, union xp_sockaddr* addr2)
 	}
 	return FALSE;
 }
+
+#if defined(_WINSOCKAPI_)
+/* Return the current socket error description (for Windows), like strerror() does for errno */
+DLLEXPORT const char* socket_strerror(int error_number)
+{
+	static char msg[256];
+
+	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,	// dwFlags
+		NULL,			// lpSource
+		error_number,	// dwMessageId
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),    // dwLanguageId
+		msg,
+		sizeof(msg),
+		NULL);
+	return msg;
+}
+#endif
