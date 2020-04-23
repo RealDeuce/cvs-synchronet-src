@@ -1,6 +1,6 @@
 /* Synchronet FidoNet-related routines */
 
-/* $Id: fido.cpp,v 1.79 2020/04/23 10:17:39 rswindell Exp $ */
+/* $Id: fido.cpp,v 1.78 2020/04/23 05:19:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -66,7 +66,7 @@ bool sbbs_t::lookup_netuser(char *into)
 	int i;
 	FILE *stream;
 
-	if(into == NULL || into[0] == 0 || strchr(into,'@'))
+	if(strchr(into,'@'))
 		return(false);
 	SAFECOPY(to,into);
 	strupr(to);
