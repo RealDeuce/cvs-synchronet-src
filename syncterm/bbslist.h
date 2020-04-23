@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id$ */
+/* $Id: bbslist.h,v 1.54 2020/04/23 23:12:14 deuce Exp $ */
 
 #ifndef _BBSLIST_H_
 #define _BBSLIST_H_
@@ -14,6 +14,8 @@
 #if defined(_WIN32)
 	#include <malloc.h>	/* alloca() on Win32 */
 #endif
+
+#include <cterm.h>
 
 #define LIST_NAME_MAX	30
 #define LIST_ADDR_MAX	64
@@ -35,9 +37,12 @@ enum {
 	 SCREEN_MODE_CURRENT
 	,SCREEN_MODE_80X25
 	,SCREEN_MODE_80X28
+	,SCREEN_MODE_80X30
 	,SCREEN_MODE_80X43
 	,SCREEN_MODE_80X50
 	,SCREEN_MODE_80X60
+	,SCREEN_MODE_132X37
+	,SCREEN_MODE_132x52
 	,SCREEN_MODE_132X25
 	,SCREEN_MODE_132X28
 	,SCREEN_MODE_132X30
@@ -50,6 +55,7 @@ enum {
 	,SCREEN_MODE_C128_80
 	,SCREEN_MODE_ATARI
 	,SCREEN_MODE_ATARI_XEP80
+	,SCREEN_MODE_CUSTOM
 	,SCREEN_MODE_TERMINATOR
 };
 
@@ -87,6 +93,9 @@ struct bbslist {
 	char			font[80];
 };
 
+extern char *music_names[];
+extern char music_helpbuf[];
+
 struct bbslist *show_bbslist(char *current, int connected);
 extern char *log_levels[];
 extern char *rate_names[];
@@ -100,5 +109,8 @@ void free_list(struct bbslist **list, int listcount);
 void add_bbs(char *listpath, struct bbslist *bbs);
 int edit_list(struct bbslist **list, struct bbslist *item,char *listpath,int isdefault);
 int  get_rate_num(int rate);
+cterm_emulation_t get_emulation(struct bbslist *bbs);
+const char *get_emulation_str(cterm_emulation_t emu);
+void get_term_size(struct bbslist *bbs, int *cols, int *rows);
 
 #endif
