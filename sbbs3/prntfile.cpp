@@ -3,7 +3,7 @@
 
 /* Synchronet file print/display routines */
 
-/* $Id: prntfile.cpp,v 1.39 2019/08/16 06:47:09 rswindell Exp $ */
+/* $Id: prntfile.cpp,v 1.41 2020/04/24 05:33:38 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -96,10 +96,13 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 	}
 
 	length=(long)filelength(file);
-	if(length<0) {
+	if(length < 1) {
 		fclose(stream);
-		errormsg(WHERE,ERR_CHK,fpath,length);
-		return false;
+		if(length < 0) {
+			errormsg(WHERE,ERR_CHK,fpath,length);
+			return false;
+		}
+		return true;
 	}
 
 	if(mode&P_OPENCLOSE) {
@@ -135,7 +138,8 @@ bool sbbs_t::printfile(const char* fname, long mode, long org_cols)
 				break;
 			if((mode&P_UTF8) && !term_supports(UTF8))
 				utf8_normalize_str(buf);
-			putmsg(buf, mode|P_SAVEATR, org_cols);
+			if(putmsg(buf, mode|P_SAVEATR, org_cols) != '\0') // early-EOF?
+				break;
 		}
 		free(buf);
 		fclose(stream);
