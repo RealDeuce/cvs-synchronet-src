@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.194 2020/04/24 08:33:58 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.193 2020/04/24 08:01:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2050,7 +2050,7 @@ static JSBool
 js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		section = (char*)"";
+	char*		section = "";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2501,7 +2501,7 @@ static JSBool
 js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 {
 	jsval *argv=JS_ARGV(cx, arglist);
-	char*		args=(char*)"";
+	char*		args="";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
