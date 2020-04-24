@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.560 2020/04/23 02:39:47 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.561 2020/04/24 08:01:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1032,11 +1032,11 @@ public:
 				,uint touser, smbmsg_t* msg, bool* dupe);
 
 	/* fido.cpp */
-	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL, str_list_t cc = NULL);
 	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub = 0);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL, str_list_t cc = NULL);
 	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 
 	/* useredit.cpp */
