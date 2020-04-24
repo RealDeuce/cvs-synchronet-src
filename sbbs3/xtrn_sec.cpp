@@ -2,7 +2,7 @@
 
 /* Synchronet external program/door section and drop file routines */
 
-/* $Id: xtrn_sec.cpp,v 1.86 2018/07/25 03:39:29 rswindell Exp $ */
+/* $Id: xtrn_sec.cpp,v 1.89 2020/04/23 02:40:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -41,12 +41,17 @@
 /* This is the external programs (doors) section of the bbs                 */
 /* Return 1 if no externals available, 0 otherwise. 						*/
 /****************************************************************************/
-int sbbs_t::xtrn_sec()
+int sbbs_t::xtrn_sec(const char* section)
 {
 	char	str[MAX_PATH+1];
 	int		xsec;
 	uint	i,j,k,*usrxtrn,usrxtrns,*usrxsec,usrxsecs;
 	long	l;
+
+	if(cfg.xtrnsec_mod[0] != '\0') {
+		SAFEPRINTF2(str, "%s %s", cfg.xtrnsec_mod, section);
+		return exec_bin(str, &main_csi);
+	}
 
 	if(useron.rest&FLAG('X')) {
 		bputs(text[R_ExternalPrograms]);
@@ -343,6 +348,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -456,6 +462,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -516,6 +523,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -655,6 +663,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -701,6 +710,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
@@ -837,6 +847,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -948,6 +959,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
@@ -1048,6 +1060,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC);
 			return; 
@@ -1154,6 +1167,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -1228,6 +1242,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -1252,6 +1267,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -1276,6 +1292,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -1317,6 +1334,7 @@ void sbbs_t::xtrndat(const char *name, const char *dropdir, uchar type, ulong tl
 		if(misc&XTRN_LWRCASE)
 			strlwr(tmp);
 		sprintf(str,"%s%s",dropdir,tmp);
+		removecase(str);
 		if((file=nopen(str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT))==-1) {
 			errormsg(WHERE,ERR_OPEN,str,O_WRONLY|O_CREAT|O_TRUNC|O_TEXT);
 			return; 
@@ -1710,9 +1728,6 @@ bool sbbs_t::exec_xtrn(uint xtrnnum)
 		logfile_fp=NULL;
 	}
 
-	sprintf(str,"%sINTRSBBS.DAT"
-			,cfg.xtrn[xtrnnum]->path[0] ? cfg.xtrn[xtrnnum]->path : cfg.node_dir);
-	removecase(str);
 	sprintf(str,"%shangup.now",cfg.node_dir);
 	removecase(str);
 	sprintf(str,"%sfile/%04u.dwn",cfg.data_dir,useron.number);
