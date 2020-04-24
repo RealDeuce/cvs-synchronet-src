@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.65 2020/04/24 08:01:33 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.66 2020/04/24 08:31:03 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1104,7 +1104,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 		errormsg(WHERE, ERR_ALLOC, msgpath, length);
 		return(false); 
 	}
-	if(fread(msgbuf, sizeof(char), length, instream) != length) {
+	if(fread(msgbuf, sizeof(char), length, instream) != (size_t)length) {
 		strListFree(&rcpt_list);
 		fclose(instream);
 		free(msgbuf);
