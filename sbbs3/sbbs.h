@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.558 2020/03/19 05:58:08 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.561 2020/04/24 08:01:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -599,7 +599,7 @@ public:
 	void	xfer_prot_menu(enum XFER_TYPE);
 	void	node_stats(uint node_num);
 	void	sys_stats(void);
-	void	logonlist(void);
+	void	logonlist(const char* args = "");
 	bool	spy(uint node_num);
 
 	void	reset_logon_vars(void);
@@ -972,7 +972,7 @@ public:
 	long	xtrn_mode;
 
 	/* xtrn_sec.cpp */
-	int		xtrn_sec(void);					/* The external program section  */
+	int		xtrn_sec(const char* section = "");	/* The external program section  */
 	void	xtrndat(const char* name, const char* dropdir, uchar type, ulong tleft
 				,ulong misc);
 	bool	exec_xtrn(uint xtrnnum);			/* Executes online external program */
@@ -1032,11 +1032,11 @@ public:
 				,uint touser, smbmsg_t* msg, bool* dupe);
 
 	/* fido.cpp */
-	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	netmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL, str_list_t cc = NULL);
 	void	qwktonetmail(FILE *rep, char *block, char *into, uchar fromhub = 0);
 	bool	lookup_netuser(char *into);
 
-	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
+	bool	inetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL, str_list_t cc = NULL);
 	bool	qnetmail(const char *into, const char *subj = NULL, long mode = WM_NONE, smb_t* resmb = NULL, smbmsg_t* remsg = NULL);
 
 	/* useredit.cpp */
@@ -1113,6 +1113,8 @@ extern "C" {
 	DLLEXPORT BOOL		DLLCALL getstats(scfg_t* cfg, char node, stats_t* stats);
 	DLLEXPORT ulong		DLLCALL	getposts(scfg_t* cfg, uint subnum);
 	DLLEXPORT long		DLLCALL getfiles(scfg_t* cfg, uint dirnum);
+	DLLEXPORT BOOL		DLLCALL inc_sys_upload_stats(scfg_t*, ulong files, ulong bytes);
+	DLLEXPORT BOOL		DLLCALL inc_sys_download_stats(scfg_t*, ulong files, ulong bytes);
 
 	/* getmail.c */
 	DLLEXPORT int		DLLCALL getmail(scfg_t* cfg, int usernumber, BOOL sent, uint16_t attr);
@@ -1455,11 +1457,6 @@ char*	prep_code(char *str, const char* prefix);
 	/* main.c */
 	int 	lputs(int level, const char *);			/* log output */
 	int 	lprintf(int level, const char *fmt, ...)	/* log output */
-#if defined(__GNUC__)   // Catch printf-format errors
-    __attribute__ ((format (printf, 2, 3)));
-#endif
-	;
-	int 	eprintf(int level, const char *fmt, ...)	/* event log */
 #if defined(__GNUC__)   // Catch printf-format errors
     __attribute__ ((format (printf, 2, 3)));
 #endif
