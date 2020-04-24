@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.122 2020/04/24 03:01:46 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.123 2020/04/24 07:17:42 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -914,6 +914,13 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strcmp(sp,"DOWNS") || !strcmp(sp,"DLFILES")) {
 		safe_snprintf(str,maxlen,"%u",useron.dls);
 		return(str);
+	}
+
+	if(strcmp(sp, "PCR") == 0) {
+		float f = 0;
+		if(useron.posts)
+			f = (float)useron.logons / useron.posts;
+		safe_snprintf(str, maxlen, "%u", f ? (uint)(100 / f) : useron.posts > useron.logons ? 100 : 0);
 	}
 
 	if(!strcmp(sp,"LASTNEW"))
