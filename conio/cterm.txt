@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.75 2020/04/25 08:21:40 deuce Exp $
+$Id: cterm.txt,v 1.68 2020/04/24 20:34:06 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -40,7 +40,11 @@ Control characters:
 0x09 - HT:
 	Moves to the next horizontal tab stop.  Does not overwrite
 	any characters in between.  If the starting position is
-	last column, cursor does not move.
+	last column, advances to next line.  If starting
+	position is the last column of the last line, performs
+	a scroll, filling the new line at bottom with the
+	current attribute and moves to the first character in
+	the new line.
 
 0x0A - LF:
 	Move cursor position to same column of the next row.
@@ -400,7 +404,7 @@ CSI Ps1 ; Ps2 sp D (FNT)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn E (CNL)
+CSI Pn E
 	Cursor Next Line
 	Defaults: Pn = 1
 	Moves the cursor to the first column of the line Pn down from the
@@ -410,38 +414,30 @@ CSI Pn E (CNL)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn F (CPL)
+CSI Pn F
 	Cursor Preceding Line
 	Defaults: Pn = 1
-	Moves the cursor to the first column of the row Pn up from the
+	Moves the cursor to the first column if the row Pn up from the
 	current position.  Attempting to move past the screen boundaries
 	stops the cursor at the screen boundary.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn G (CHA)
+CSI Pn G
 	Cursor Character Absolute
 	Defaults: Pn = 1
 	Movies the cursor to column Pn of the current row.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn1 ; Pn2 H (CUP)
+CSI Pn1 ; Pn2 H
 	Cursor Position
 	Defaults: Pn1 = 1  Pn2 = 1
 	Moves the cursor to the Pn2th column of the Pn1th line.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn I (CHT)
-	Cursor Forward Tabulation
-	Defaults: Pn = 1
-	Move the cursor to the Pn-th next tab stop.
-	Basically the same as sending TAB Pn times.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Ps J (ED)
+CSI Ps J
 	Erase in Page
 	Defaults: Ps = 0
 	Erases from the current screen according to the value of Ps
@@ -455,7 +451,7 @@ CSI Ps J (ED)
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE BANSI.TXT
 
-CSI Ps K (EL)
+CSI Ps K
 	Erase in Line
 	Defaults: Ps = 0
 	Erases from the current line according to the value pf Ps
@@ -466,7 +462,7 @@ CSI Ps K (EL)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn L (IL)
+CSI Pn L
 	Insert Line(s)
 	Defaults: Pn = 1
 	Inserts Pn lines at the current line position.  The current line and
@@ -475,7 +471,7 @@ CSI Pn L (IL)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn M (DL)
+CSI Pn M
 	Delete Line(s) / "ANSI" Music
 	Defaults: Pn = 1
 	Deletes the current line and the Pn - 1 lines after it scrolling the
@@ -488,8 +484,7 @@ CSI Pn M (DL)
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE: BANSI.TXT
 
-CSI = Ps M (CTSAM)
-	CTerm Set ANSI Music
+CSI = Ps M
 	NON-STANDARD EXTENSION.
 	Defaults:  Ps = 0
 	Sets the current state of ANSI music parsing.
@@ -500,8 +495,7 @@ CSI = Ps M (CTSAM)
 
 	SOURCE: CTerm only.
 
-CSI N (BCAM)
-	BananaCom ANSI Music
+CSI N
 	"ANSI" Music / Not implemented.
 	If "ANSI" Music is set to BananaCom (CSI = 1 M) or fully enabled
 	(CSI = 2 M) performs "ANSI" music.  See "ANSI" MUSIC section for more
@@ -509,7 +503,7 @@ CSI N (BCAM)
 
 	SOURCE: BANSI.TXT
 
-CSI Pn P (DCH)
+CSI Pn P
 	Delete Character
 	Defaults: Pn = 1
 	Deletes the character at the current position by shifting all
@@ -519,7 +513,7 @@ CSI Pn P (DCH)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn S (SU)
+CSI Pn S
 	Scroll Up
 	Defaults: Pn = 1
 	Scrolls all text on the screen up Pn lines.  New lines emptied at the
@@ -527,15 +521,15 @@ CSI Pn S (SU)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI ? Ps1 ; Ps2 S (XTSRGA)
-	XTerm Set or Request Graphics Attribute
+CSI ? Ps1 ; Ps2 S
+	Query Graphics Information
 	If Ps1 is 2, and Ps2 is 1, replies with the graphics screen information
 	in the following format: CSI ? 2 ; 0 ; Px ; Py S
 	Where Px is the width of the screen in pixels and Py is the height.
 
 	SOURCE: XTerm
 
-CSI Pn T (SD)
+CSI Pn T
 	Scroll Down
 	Defaults: Pn = 1
 	Scrolls all text on the screen down Pn lines.  New lines emptied at the
@@ -551,7 +545,7 @@ CSI U
 
 	SOURCE: BANSI.TXT
 
-CSI Pn X (ECH)
+CSI Pn X
 	Erase Character
 	Defaults: Pn = 1
 	Erase p1 characters starting at the current character.  Will not erase
@@ -560,7 +554,7 @@ CSI Pn X (ECH)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn Y (CVT)
+CSI Pn Y
 	Cursor Line Tabulation
 	Defaults: Pn = 1
 	Move the cursor to the Pn-th next tab stop.
@@ -568,7 +562,7 @@ CSI Pn Y (CVT)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn Z (CBT)
+CSI Pn Z
 	Cursor Backward Tabulation
 	Defaults: Pn = 1
 	Move the cursor to the p1th preceding tab stop.  Will not go past the
@@ -576,7 +570,7 @@ CSI Pn Z (CBT)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn ` (HPA)
+CSI Pn `
 	Character Position Absolute
 	Defaults: Pn = 1
 	Move the cursor to the specified position on the current row.
@@ -584,7 +578,7 @@ CSI Pn ` (HPA)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn a (HPR)
+CSI Pn a
 	Cursor Position Forward
 	Defaults: Pn = 1
 	Moves the cursor position forward Pn columns from the current position.
@@ -593,7 +587,7 @@ CSI Pn a (HPR)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn b (REP)
+CSI Pn b
 	Repeat
 	Defaults: Pn = 1
 	Repeats the previous graphic character Pn times.  Will not repeat
@@ -601,7 +595,7 @@ CSI Pn b (REP)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Ps c (DA)
+CSI Ps c
 	Device Attributes
 	Defaults: Ps = 0
 	If Ps is 0, CTerm will reply with the sequence:
@@ -615,7 +609,14 @@ CSI Ps c (DA)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI < Ps c (CTDA)
+CSI Pn SP c
+	Tab Stop Remove
+	Defaults: None
+	Removes a tab stop at postion Pn.
+
+	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
+
+CSI < Ps c
 	CTerm Device Attributes
 
 	Defaults: Ps = 0
@@ -633,51 +634,44 @@ CSI < Ps c (CTDA)
 	6 - Extended palette is available
 	7 - Mouse is available
 
-CSI Ps d (VPA)
+CSI Ps d
 	Line Position Absolute
 	Defaults: Ps = 1
 	Moves to row specified by Ps.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn SP d (TSR)
-	Tab Stop Remove
-	Defaults: None
-	Removes a tab stop at postion Pn.
-
-	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
-
-CSI Pn e (VPR)
-	Line Position Forward
+CSI Ps e
+	Line Position Relative
 	Defaults: Ps = 1
 	Moves forward Ps rows.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn1 ; Pn2 (HVP)
-	Character and Line Position
+CSI Pn1 ; Pn2 f
+	Cursor Position
 	Defaults: Pn1 = 1  Pn2 = 1
 	Moves the cursor to the Pn2th column of the Pn1th line.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Ps g (TBC)
-	Tabulation Clear
+CSI Pn g
+	Clear Tab(s)
 	Defaults: Pn = 0
-	Deletes tab stops according to the values of P1:
+	Deletes tab stpos according to the values of P1:
 	0 - Deletes tab stop at current position.
 	3 - Deletes all tab stops.
 	5 - Deletes all tab stops.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI = 255 h (BCSET)
+CSI = 255 h
 	NON-STANDARD EXTENSION
 	Enable DoorWay Mode
 
 	SOURCE: BANSI.TXT
 
-CSI ? Ps... h (DECSET)
+CSI ? Ps... h
 	NON-STANDARD EXTENSION
 	Set Mode
 	Sets one or more mode.  The following modes are supported:
@@ -776,7 +770,7 @@ CSI ? Ps... h (DECSET)
 	     (Not supported by SyncTERM)
 	     SOURCE: xterm
 
-CSI Pn j (HPB)
+CSI Pn j
 	Character Position Backward
 	Defaults: Pn = 1
 	Moves the cursor position left Pn columns from the current position.
@@ -785,7 +779,7 @@ CSI Pn j (HPB)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn k (VPB)
+CSI Pn k
 	Line Position Backward
 	Defaults: Pn = 1
 	Moves the cursor position up Pn lines from the current position.
@@ -794,13 +788,13 @@ CSI Pn k (VPB)
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI = 255 l (BCRST)
+CSI = 255 l
 	NON-STANDARD EXTENSION
 	Disable DoorWay Mode
 
 	SOURCE: BANSI.TXT
 
-CSI ? Ps... l (DECRST)
+CSI ? Ps... l
 	NON-STANDARD EXTENSION
 	Reset Mode
 	Resets one or more mode.  The following modes are supported:
@@ -871,7 +865,7 @@ CSI ? Ps... l (DECRST)
 	     (Not supported by SyncTERM)
 	     SOURCE: xterm
 
-CSI Ps... m (SGR)
+CSI Ps... m
 	Select Graphic Rendition
 	Defaults: Ps1 = 0
 	Sets or clears one or more text attributes.  Unlimited parameters are
@@ -950,7 +944,7 @@ CSI Ps... m (SGR)
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE: XTerm
 
-CSI Ps n (DSR)
+CSI Ps n
 	Device Status Report
 	Defaults: Ps = 0
 	A request for a status report.  CTerm handles the following three
@@ -962,7 +956,7 @@ CSI Ps n (DSR)
 		  CTerm will reply with CSI y ; x R where y is the current line
 		  and x is
 		  the current row.
-	255	- NON-STANDARD EXTENSION (BCDSR)
+	255	- NON-STANDARD EXTENSION
 		  Replies as though a CSI 6 n was received with the cursor in
 		  the bottom right corner.  i.e.: Returns the terminal size as
 		  a position report.
@@ -971,7 +965,7 @@ CSI Ps n (DSR)
 		(parameters 5 and 6 only)
 	SOURCE: BANSI.TXT (parameter 255)
 
-CSI = Ps n (CTSMRR)
+CSI = Ps n
 	NON-STANDARD EXTENSION
 	State/Mode Request/Report
 	Defaults: Ps = 1
@@ -1004,21 +998,16 @@ CSI = Ps n (CTSMRR)
 	Where pH is the height of a character cell in pixels, and pW is
 	the width of a character cell in pixels.
 
-	SOURCE: CTerm only.
-
-CSI ? Ps n (DECDSR)
-
-	When Ps is 62 (DECMSR), CTerm will respond with a Mode Report of
-	the form
+	When Ps is 62, CTerm will respond with a Mode Report of the form
 	CSI 32767 * {
 	This indicates that 524,272 bytes are available for macro storage.
 	This is not actually true, SyncTERM will use all available memory
 	for macro storage, but some software checks this value, and some
 	parsers don't allow more than INT16_MAX parameter values.
 
-	SOURCE: VT420
+	SOURCE: CTerm only.
 
-CSI Pn1 ; Pn2 r (DECSTBM)
+CSI Pn1 ; Pn2 r
 	NON-STANDARD EXTENSION.
 	Set Top and Bottom Margins
 	Defaults: Pn1 = 1
@@ -1029,9 +1018,9 @@ CSI Pn1 ; Pn2 r (DECSTBM)
 	
 	SOURCE: xterm
 
-CSI Ps1 ; Ps2 * r (DECSCS)
+CSI Ps1 ; Ps2 * r
 	NON-STANDARD EXTENSION.
-	Set the output emulation speed (Select Communication Speed).
+	Set the output emulation speed.
 	If Ps1 or Ps2 are omitted, causes output speed emulation to stop
 	Ps1 may be empty.
 	Sequence is ignored if Ps1 is not empty, 0, or 1.
@@ -1054,7 +1043,7 @@ CSI Ps1 ; Ps2 * r (DECSCS)
 
 	SOURCE: VT4xx Specification from http://www.vt100.net/
 
-CSI ? Ps... s (CTSMS)
+CSI ? Ps... s
 	NON-STANDARD EXTENSION
 	Save Mode Setting
 	Saves the current mode states as specified by CSI ? l and CSI ? h.  If
@@ -1063,7 +1052,7 @@ CSI ? Ps... s (CTSMS)
 
 	SOURCE: SyncTERM only
 
-CSI Pn1 ; Pn2 s (DECSLRM)
+CSI Pn1 ; Pn2 s
         (Only when DEC Left Right Margin Mode  - 69 - is enabled)
 	NON-STANDARD EXTENSION.
 	Set Left and Right Margins
@@ -1076,7 +1065,7 @@ CSI Pn1 ; Pn2 s (DECSLRM)
 
 	SOURCE: xterm
 
-CSI s (SCOSC)
+CSI s
         (Only when DEC Left Right Margin Mode  - 69 - is disabled)
 	NON-STANDARD EXTENSION
 	Save Current Position
@@ -1086,7 +1075,7 @@ CSI s (SCOSC)
 
 	SOURCE: ANSI.SYS
 
-CSI Ps ; Pn1 ; Pn2 ; Pn3 t (CT24BC)
+CSI Ps ; Pn1 ; Pn2 ; Pn3 t
 	NON-STANDARD EXTENSION
 	Select a 24-bit colour
 	If Ps is 0, sets the background colour.
@@ -1098,7 +1087,7 @@ CSI Ps ; Pn1 ; Pn2 ; Pn3 t (CT24BC)
 	and background colours though, so the current screen should always
 	be as expected.
 
-CSI ? Ps...  u (CTRMS)
+CSI ? Ps...  u
 	NON-STANDARD EXTENSION
 	Restore Mode Setting
 	Saves the current mode states as specified by CSI ? l and CSI ? h.  If
@@ -1107,7 +1096,7 @@ CSI ? Ps...  u (CTRMS)
 
 	SOURCE: SyncTERM only
 
-CSI u (SCORC)
+CSI u
 	NON-STANDARD EXTENSION
 	Restore Cursor Position
 	Move the cursor to the last position saved by CSI s.  If no position
@@ -1115,7 +1104,7 @@ CSI u (SCORC)
 
 	SOURCE: ANSI.SYS
 
-CSI 2 $ w (DECTABSR)
+CSI 2 $ w
 	Request Tab Stop Report
 	Requests a list of tab stops.
 	The list is in the form:
@@ -1132,7 +1121,7 @@ CSI Pn * z
 	Pn specifies the macro number.  If Pn is not 0..63, no action is
 	taken.
 
-CSI = Ps1 ; Ps2 { (CTOSF)
+CSI = Ps1 ; Ps2 {
 	NON-STANDARD EXTENSION (Deprecated)
 	Defaults:  Ps1 = 255  Ps2 = 0
 	Indicates that a font block is following.

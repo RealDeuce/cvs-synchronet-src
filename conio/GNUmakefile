@@ -21,13 +21,18 @@ endif
 
 ifdef WITH_SDL_AUDIO
  OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
- OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+ ifeq ($(os),darwin)
+  OBJS 	+=      $(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE)
+ endif
  NEED_BITMAP := 1
 else
  ifdef WITH_SDL
   NEED_BITMAP := 1
   OBJS	+=	$(MTOBJODIR)$(DIRSEP)sdl_con$(OFILE)
   OBJS	+=      $(MTOBJODIR)$(DIRSEP)sdlfuncs$(OFILE)
+  ifeq ($(os),darwin)
+   OBJS 	+=      $(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE)
+  endif
  endif
 endif
 
@@ -54,6 +59,12 @@ $(CIOLIB-MT_BUILD): $(MTOBJODIR) $(OBJS)
 $(CIOLIB-MT_SHLIB_BUILD): $(MTOBJODIR) $(OBJS)
 	@echo Creating $@
 	$(QUIET)$(MKSHLIB) $(LDFLAGS) $(OBJS) $(SHLIBOPTS) -o $@
+
+ifeq ($(os),darwin)
+$(MTOBJODIR)$(DIRSEP)pasteboard$(OFILE): pasteboard.m
+	@echo $(COMPILE_MSG) $<
+	$(QUIET)$(CC) $(CFLAGS) $(CCFLAGS) -o $@ -c $<
+endif
 
 ifeq ($(os),win32)
 mtlib: $(MTOBJODIR)$(DIRSEP)ciolib_res${OFILE}
