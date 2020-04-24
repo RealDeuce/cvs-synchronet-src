@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.190 2020/03/20 08:14:51 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.192 2020/04/23 02:39:47 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2049,6 +2049,8 @@ js_qwk_sec(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		section = "";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2056,9 +2058,11 @@ js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc > 0) {
+		JSVALUE_TO_ASTRING(cx, argv[0], section, LEN_CODE + 1, NULL);
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->xtrn_sec();
+	sbbs->xtrn_sec(section);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2496,6 +2500,8 @@ js_change_user(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		args="";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2504,8 +2510,11 @@ js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
+	if(argc > 0) {
+		JSVALUE_TO_ASTRING(cx, argv[0], args, LEN_CMD, NULL);
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->logonlist();
+	sbbs->logonlist(args);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -3929,7 +3938,7 @@ js_listmsgs(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	const char	*def="";
 	char*		find=(char *)def;
-	uint32		mode=0;
+	uint32		mode=SCAN_INDEX;
 	uint32		start=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
@@ -4192,8 +4201,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("enter the text files section")
 	,310
 	},
-	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("enter the external programs section")
+	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("[section]")
+	,JSDOCSTR("enter the external programs section (or go directly to the specified <i>section</i>)")
 	,310
 	},
 	{"xfer_policy",		js_xfer_policy,		0,	JSTYPE_VOID,	JSDOCSTR("")
@@ -4280,8 +4289,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("change to a different user")
 	,310
 	},
-	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("display the logon list")
+	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("[arguments]")
+	,JSDOCSTR("display the logon list (optionally passing arguments to the logon list module)")
 	,310
 	},
 	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>] [,loadmail_mode=<tt>0</tt>]")
@@ -4377,7 +4386,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 		"optionally search for 'find' string (AKA scan_posts)")
 	,310
 	},
-	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_READ</tt>] [,message_number=<tt>0</tt>] [,find]")
+	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_INDEX</tt>] [,message_number=<tt>0</tt>] [,find]")
 	,JSDOCSTR("list messages in the specified message sub-board (number or internal code), "
 		"optionally search for 'find' string, returns number of messages listed")
 	,314
