@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.123 2020/04/24 07:17:42 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.124 2020/04/24 07:47:24 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -954,6 +954,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strcmp(sp,"BYTESLEFT")) {
 		safe_snprintf(str,maxlen,"%lu",useron.cdt+useron.freecdt);
 		return(str);
+	}
+
+	if(strcmp(sp, "FREECDT") == 0) {
+		safe_snprintf(str, maxlen, "%lu", useron.freecdt);
+		return str;
 	}
 
 	if(!strcmp(sp,"CONF")) {
