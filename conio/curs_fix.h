@@ -1,4 +1,4 @@
-/* $Id: curs_fix.h,v 1.6 2020/04/25 03:12:53 deuce Exp $ */
+/* $Id: curs_fix.h,v 1.5 2020/04/12 20:15:32 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,22 +31,17 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
-#ifdef __DARWIN__
- #define _XOPEN_SOURCE_EXTENDED 1
- #include <ncurses.h>
+#define NCURSES_WIDECHAR 1
+#ifdef XCURSES
+ #include <xcurses.h>
 #else
- #define NCURSES_WIDECHAR 1
- #ifdef XCURSES
-  #include <xcurses.h>
+ #ifdef N_CURSES_LIB
+  #include <ncurses.h>
  #else
-  #ifdef N_CURSES_LIB
-   #include <ncurses.h>
+  #ifdef DEBIAN_HATES_YOU
+   #include <ncursesw/ncurses.h>
   #else
-   #ifdef DEBIAN_HATES_YOU
-    #include <ncursesw/ncurses.h>
-   #else
-    #include <curses.h>
-   #endif
+   #include <curses.h>
   #endif
  #endif
 #endif
