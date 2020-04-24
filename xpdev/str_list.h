@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.h,v 1.32 2020/04/24 07:02:17 rswindell Exp $ */
+/* $Id: str_list.h,v 1.31 2020/04/24 06:39:16 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -166,8 +166,6 @@ DLLEXPORT int			strListTruncateTrailingLineEndings(str_list_t);
 DLLEXPORT int			strListTruncateStrings(str_list_t, const char* set);
 /* Remove all occurrences of chars in set from string in list */
 DLLEXPORT int			strListStripStrings(str_list_t, const char* set);
-/* Remove duplicate strings from list, return the new list length */
-DLLEXPORT int			strListDedupe(str_list_t*, BOOL case_sensitive);
 
 /************/
 /* File I/O */
