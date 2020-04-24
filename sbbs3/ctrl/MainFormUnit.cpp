@@ -1,6 +1,6 @@
 /* Synchronet Control Panel (GUI Borland C++ Builder Project for Win32) */
 
-/* $Id: MainFormUnit.cpp,v 1.212 2020/03/17 05:47:29 rswindell Exp $ */
+/* $Id: MainFormUnit.cpp,v 1.213 2020/04/17 20:38:56 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4014,7 +4014,7 @@ void __fastcall TMainForm::FidonetPollMenuItemClick(TObject *Sender)
 //---------------------------------------------------------------------------
 
 
-void __fastcall TMainForm::FileMenuRunJSMenuItemClick(TObject *Sender)
+void __fastcall TMainForm::FileRunJSMenuItemClick(TObject *Sender)
 {
 	TOpenDialog* dlg=new TOpenDialog((TComponent*)Sender);
 
