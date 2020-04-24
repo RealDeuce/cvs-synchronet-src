@@ -2,7 +2,7 @@
 
 /* Functions to deal with NULL-terminated string lists */
 
-/* $Id: str_list.c,v 1.57 2020/04/07 19:59:28 rswindell Exp $ */
+/* $Id: str_list.c,v 1.60 2020/04/24 07:02:17 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,7 +81,7 @@ int strListIndexOf(const str_list_t list, const char* str)
 	return -1;
 }
 
-int strListFind(const str_list_t list, const char* str, BOOL case_sensistive)
+int strListFind(const str_list_t list, const char* str, BOOL case_sensitive)
 {
 	size_t		i;
 
@@ -89,7 +89,7 @@ int strListFind(const str_list_t list, const char* str, BOOL case_sensistive)
 		return -1;
 
 	for(i=0; list[i]!=NULL; i++) {
-		if(case_sensistive) {
+		if(case_sensitive) {
 			if(strcmp(list[i],str) == 0)
 				return i;
 		} else {
@@ -207,6 +207,8 @@ char* strListReplace(const str_list_t list, size_t index, const char* str)
 size_t strListModifyEach(const str_list_t list, char*(modify(size_t, char*, void*)), void* cbdata)
 {
 	size_t	i;
+	if(list == NULL)
+		return 0;
 	for(i = 0; list[i] != NULL; i++) {
 		char* str = modify(i, list[i], cbdata);
 		if(str == NULL || str == list[i])	// Same old pointer (or NULL), no modification
@@ -269,7 +271,7 @@ size_t strListAppendList(str_list_t* list, const str_list_t add_list)
 	size_t	count;
 
 	count=strListCount(*list);
-	for(i=0; add_list[i]!=NULL; i++)
+	for(i=0; add_list != NULL && add_list[i] != NULL; i++)
 		strListAppend(list,add_list[i],count++);
 
 	return(count);
@@ -317,6 +319,9 @@ char* strListInsert(str_list_t* list, const char* str, size_t index)
 size_t strListInsertList(str_list_t* list, const str_list_t add_list, size_t index)
 {
 	size_t	i;
+
+	if(add_list == NULL)
+		return 0;
 
 	for(i=0; add_list[i]!=NULL; i++)
 		if(strListInsert(list,add_list[i],index++)==NULL)
@@ -397,6 +402,9 @@ size_t strListMerge(str_list_t* list, str_list_t add_list)
 {
 	size_t	i;
 	size_t	count;
+
+	if(add_list == NULL)
+		return 0;
 
 	count=strListCount(*list);
 	for(i=0; add_list[i]!=NULL; i++)
@@ -690,7 +698,7 @@ char* strListAppendBlock(char* block, str_list_t list)
 	if((block_len=strListBlockLength(block))!=0)
 		block_len--;	/* Over-write existing NULL terminator */
 
-	for(i=0; list[i]!=NULL; i++) {
+	for(i=0; list != NULL && list[i] != NULL; i++) {
 		str_len=strlen(list[i]);
 		if(str_len==0)
 			continue;	/* can't include empty strings in block */
@@ -767,6 +775,44 @@ int strListTruncateStrings(str_list_t list, const char* set)
 		p=strpbrk(list[i], set);
 		if(p!=NULL && *p!=0)
 			*p=0;
+	}
+	return i;
+}
+
+/* Strip chars in 'set' from strings in list */
+int strListStripStrings(str_list_t list, const char* set)
+{
+	size_t		i;
+	char*		o;
+	char*		p;
+
+	if(list == NULL)
+		return 0;
+
+	for(i = 0; list[i] != NULL; i++) {
+		for(o = p = list[i]; (*p != '\0'); p++) {
+			if(strchr(set, *p) == NULL)
+				*(o++) = *p;
+		}
+		*o = '\0';
+	}
+	return i;
+}
+
+/* Remove duplicate strings from list, return the new list length */
+int strListDedupe(str_list_t* list, BOOL case_sensitive)
+{
+	size_t		i,j;
+
+	if(list == NULL || *list == NULL)
+		return 0;
+
+	for(i = 0; (*list)[i] != NULL; i++) {
+		for(j = i + 1; (*list)[j] != NULL; j++) {
+			if((case_sensitive && strcmp((*list)[i], (*list)[j]) == 0)
+				|| (!case_sensitive && stricmp((*list)[i], (*list)[j]) == 0))
+				strListDelete(list, j);
+		}
 	}
 	return i;
 }
