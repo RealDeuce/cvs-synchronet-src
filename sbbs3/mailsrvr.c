@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.722 2020/04/12 06:06:47 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.723 2020/04/24 05:04:44 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -724,7 +724,8 @@ static ulong sockmimetext(SOCKET socket, const char* prot, CRYPT_SESSION sess, s
 		if(!sockprintf(socket,prot,sess,"Cc: %s", p == NULL ? msg->cc_list : p))
 			return(0);
 	np=NULL;
-	if((p = smb_get_hfield(msg, RFC822REPLYTO, NULL)) == NULL) {
+	p = smb_get_hfield(msg, RFC822REPLYTO, NULL);
+	if(p == NULL && (p = msg->replyto_list) == NULL) {
 		np=msg->replyto;
 		if(msg->replyto_net.type==NET_INTERNET)
 			p=msg->replyto_net.addr;
@@ -3634,6 +3635,16 @@ static void smtp_thread(void* arg)
 						free(np);
 					}
 				}
+				if((p = smb_get_hfield(&msg, RFC822REPLYTO, &hfield)) != NULL) {
+					char* np = strdup(p);
+					if(np != NULL) {
+						if(mimehdr_value_decode(np, &msg))
+							smb_hfield_str(&msg, REPLYTOLIST, np);
+						else
+							hfield->type = REPLYTOLIST;
+						free(np);
+					}
+				}
 				if((p = smb_get_hfield(&msg, RFC822SUBJECT, &hfield)) != NULL) {
 					char* np = strdup(p);
 					if(np != NULL) {
@@ -5901,7 +5912,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.722 $", "%*s %s", revision);
+	sscanf("$Revision: 1.723 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
