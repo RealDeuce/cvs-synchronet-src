@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.289 2020/04/25 08:21:30 deuce Exp $ */
+/* $Id: cterm.c,v 1.283 2020/04/22 23:24:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -798,7 +798,7 @@ delete_tabstop(struct cterminal *cterm, int pos)
 {
 	int i;
 
-	for (i = 0; i < cterm->tab_count && cterm->tabs[i] <= pos; i++) {
+	for (i = 0; i < cterm->tab_count && cterm->tabs[i] < pos; i++) {
 		if (cterm->tabs[i] == pos) {
 			memcpy(&cterm->tabs[i], &cterm->tabs[i+1], (cterm->tab_count - i - 1) * sizeof(cterm->tabs[0]));
 			cterm->tab_count--;
@@ -2146,7 +2146,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 												strcat(tmp, ";6");
 											if (cio_api.mouse)
 												strcat(tmp, ";7");
-											strcat(tmp, "c");
+											strcat(tmp, "n");
 									}
 								}
 								if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
@@ -2383,18 +2383,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 											sprintf(tmp, "\x1b[=3;%u;%un", vparams[vmode].charheight, vparams[vmode].charwidth);
 										break;
 									}
-								}
-								if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
-									strcat(retbuf, tmp);
-							}
-							else if (seq->param_str[0] == '?' && parse_parameters(seq)) {
-								if(retbuf == NULL)
-									break;
-								tmp[0] = 0;
-								if (seq->param_count > 1)
-									break;
-								seq_default(seq, 0, 1);
-								switch(seq->param_int[0]) {
 									case 62: /* Query macro space available */
 									{
 										// Just fake it as int16_max
@@ -2880,7 +2868,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								break;
 						}
 					}
-					else if (strcmp(seq->ctrl_func, " d") == 0) {
+					// Font Select
+					else if (strcmp(seq->ctrl_func, " c") == 0) {
 						if (seq->param_count > 0) {
 							delete_tabstop(cterm, seq->param_int[0]);
 						}
@@ -3004,6 +2993,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							GOTOXY(i,j);
 							break;
 						case 'A':	/* Cursor Up */
+						case 'F':	/* Cursor preceding line */
 						case 'k':	/* Line Position Backward */
 							seq_default(seq, 0, 1);
 							TERM_XY(&col, &row);
@@ -3013,6 +3003,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							GOTOXY(col, row);
 							break;
 						case 'B':	/* Cursor Down */
+						case 'E':	/* Cursor next line */
 						case 'e':	/* Line Position Forward */
 							seq_default(seq, 0, 1);
 							TERM_XY(&col, &row);
@@ -3039,26 +3030,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								col = TERM_MINX;
 							GOTOXY(col, row);
 							break;
-						case 'E':	/* Cursor next line */
-							seq_default(seq, 0, 1);
-							TERM_XY(&col, &row);
-							row += seq->param_int[0];
-							while(row > TERM_MAXY) {
-								scrollup(cterm);
-								row--;
-							}
-							col = TERM_MINX;
-							GOTOXY(col, row);
-							break;
-						case 'F':	/* Cursor preceding line */
-							seq_default(seq, 0, 1);
-							TERM_XY(&col, &row);
-							row -= seq->param_int[0];
-							if (row < TERM_MINY)
-								row = TERM_MINY;
-							col = TERM_MINX;
-							GOTOXY(col, row);
-							break;
+						// for case 'E' see case 'B'
+						// for case 'F' see case 'A'
 						case '`':
 						case 'G':	/* Cursor Position Absolute */
 							seq_default(seq, 0, 1);
@@ -3087,24 +3060,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							GOTOXY(col,row);
 							break;
 						case 'I':	/* TODO? Cursor Forward Tabulation */
-						case 'Y':	/* Cursor Line Tabulation */
-							seq_default(seq, 0, 1);
-							if (seq->param_int[0] < 1)
-								break;
-							TERM_XY(&col, &row);
-							for(i = 0; i < cterm->tab_count; i++) {
-								if(cterm->tabs[i] > col)
-									break;
-							}
-							if (i == cterm->tab_count)
-								break;
-							for (k = 0; k < seq->param_int[0] && i + k < cterm->tab_count; k++) {
-								if (cterm->tabs[i + k] <= TERM_MAXX)
-									col = cterm->tabs[i + k];
-								else
-									break;
-							}
-							GOTOXY(col,row);
 							break;
 						case 'J':	/* Erase In Page */
 							seq_default(seq, 0, 0);
@@ -3251,7 +3206,25 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							vmem_puttext(col2, row2, col2 + i - 1, row2, vc);
 							free(vc);
 							break;
-						// for case 'Y': see case 'I':
+						case 'Y':	/* Cursor Line Tabulation */
+							seq_default(seq, 0, 1);
+							if (seq->param_int[0] < 1)
+								break;
+							TERM_XY(&col, &row);
+							for(i = 0; i < cterm->tab_count; i++) {
+								if(cterm->tabs[i] > col)
+									break;
+							}
+							if (i == cterm->tab_count)
+								break;
+							for (k = 1; k < seq->param_int[0]; k++) {
+								if (cterm->tabs[k] <= TERM_MAXX)
+									col = cterm->tabs[k];
+								else
+									break;
+							}
+							GOTOXY(col,row);
+							break;
 						case 'Z':	/* Cursor Backward Tabulation */
 							seq_default(seq, 0, 1);
 							i=strtoul(cterm->escbuf+1,NULL,10);
@@ -3537,10 +3510,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 									break;
 								case 255:
 									if (retbuf != NULL) {
-										sprintf(tmp, "\x1b[%d;%dR", CURR_MAXY, CURR_MAXX);
-										if (strlen(retbuf) + strlen(tmp) < retsize) {
+										sprintf(tmp, "\x1b[%d;%dR", CURR_MAXY,CURR_MAXX);
+										if (strlen(retbuf) + strlen(tmp) < retsize)
 											strcat(retbuf, tmp);
-										}
 									}
 									break;
 							}
@@ -3638,11 +3610,8 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 			case 'E':	// Next Line
 				TERM_XY(&col, &row);
 				row++;
-				if(row > TERM_MAXY) {
-					scrollup(cterm);
+				if(row > TERM_MAXY)
 					row = TERM_MAXY;
-				}
-				col = TERM_MINX;
 				GOTOXY(col, row);
 				break;
 			case 'H':
@@ -4069,7 +4038,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.289 $";
+	char	*revision="$Revision: 1.283 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4233,8 +4202,13 @@ ctputs(struct cterminal *cterm, char *buf)
 						break;
 					}
 				}
-				if(cx > TERM_MAXX)
-					cx = TERM_MAXX;
+				if(cx > TERM_MAXX) {
+					cx = 1;
+					if(cy == TERM_MAXY)
+						scrollup(cterm);
+					else if(cy < TERM_MAXY)
+						cy++;
+				}
 				GOTOXY(cx,cy);
 				break;
 			default:
