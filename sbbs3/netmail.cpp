@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.67 2020/04/24 08:42:51 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.65 2020/04/24 08:01:33 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -949,7 +949,23 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 		bputs(text[TooManyEmailsToday]);
 		return false; 
 	}
-
+/*
+	if(into != NULL) {
+		SAFECOPY(name,into);
+		if((p = strrchr((char*)into, '<')) != NULL) {
+			SAFECOPY(addr, p + 1);
+			p = strrchr(addr, '>');
+			if(p == NULL) {
+				strListFree(&rcpt_list);
+				bputs(text[InvalidNetMailAddr]);
+				return false;
+			}
+			*p = 0;
+		} else {
+			SAFECOPY(addr, into);
+		}
+	}
+*/
 	if(subj != NULL)
 		SAFECOPY(title,subj);
 	if(remsg != NULL) {
@@ -957,6 +973,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 			SAFECOPY(title, remsg->subj);
 		if(remsg->from_net.addr != NULL && rcpt_count < 1) {
 			strListPush(&rcpt_list, smb_netaddrstr(&remsg->from_net, addr));
+			// What about from (name) ?
 			rcpt_count = 1;
 		}
 	}
@@ -973,7 +990,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 		}
 	}
 
-	if(rcpt_count < 1) {
+	if(rcpt_count < 1 /* strchr(addr, ' ') != NULL || strchr(addr, '@') <= addr */) {
 		bprintf(text[InvalidNetMailAddr], into);
 		strListFree(&rcpt_list);
 		return false;
@@ -1087,7 +1104,7 @@ bool sbbs_t::inetmail(const char *into, const char *subj, long mode, smb_t* resm
 		errormsg(WHERE, ERR_ALLOC, msgpath, length);
 		return(false); 
 	}
-	if(fread(msgbuf, sizeof(char), length, instream) != (size_t)length) {
+	if(fread(msgbuf, sizeof(char), length, instream) != length) {
 		strListFree(&rcpt_list);
 		fclose(instream);
 		free(msgbuf);
