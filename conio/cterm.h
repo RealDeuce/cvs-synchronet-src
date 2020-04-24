@@ -1,4 +1,4 @@
-/* $Id: cterm.h,v 1.61 2020/04/08 09:56:26 deuce Exp $ */
+/* $Id: cterm.h,v 1.63 2020/04/14 16:31:22 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -81,6 +81,8 @@ struct cterminal {
 	int					width;			// Width of the terminal buffer
 	int					top_margin;
 	int					bottom_margin;
+	int					left_margin;
+	int					right_margin;
 	int					quiet;			// No sounds are made
 	struct vmem_cell	*scrollback;
 	int					backlines;		// Number of lines in scrollback
@@ -104,6 +106,7 @@ struct cterminal {
 #define CTERM_SAVEMODE_MOUSE_SGR		0x10000
 #define CTERM_SAVEMODE_MOUSE_ALTSCROLL		0x20000
 #define CTERM_SAVEMODE_MOUSE_URXVT		0x40000
+#define CTERM_SAVEMODE_DECLRMM			0x80000
 	int32_t				saved_mode;
 	int32_t				saved_mode_mask;
 
@@ -117,6 +120,7 @@ struct cterminal {
 #define CTERM_EXTATTR_AUTOWRAP		0x0001
 #define CTERM_EXTATTR_ORIGINMODE	0x0002
 #define CTERM_EXTATTR_SXSCROLL		0x0004
+#define CTERM_EXTATTR_DECLRMM		0x0008
 	int					save_xpos;		// Saved position (for later restore)
 	int					save_ypos;
 	int					sequence;		// An escape sequence is being parsed
@@ -193,6 +197,22 @@ struct cterminal {
 	void *mouse_state_change_cbdata;
 	int (*mouse_state_query)(int parameter, void *cbdata);
 	void *mouse_state_query_cbdata;
+
+	/* Macros */
+	char *macros[64];
+	size_t macro_lens[64];
+	uint64_t in_macro;
+	int macro;
+#define MACRO_INACTIVE	0
+#define MACRO_POSSIBLE	1
+#define MACRO_STARTED	2
+	int macro_num;
+	int macro_del;
+#define MACRO_DELETE_OLD	0
+#define MACRO_DELETE_ALL	1
+	int macro_encoding;
+#define MACRO_ENCODING_ASCII	0
+#define MACRO_ENCODING_HEX	1
 
 	/* conio function pointers */
 #ifdef CTERM_WITHOUT_CONIO
