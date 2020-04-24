@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.124 2020/04/24 07:47:24 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.125 2020/04/24 17:56:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -921,6 +921,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		if(useron.posts)
 			f = (float)useron.logons / useron.posts;
 		safe_snprintf(str, maxlen, "%u", f ? (uint)(100 / f) : useron.posts > useron.logons ? 100 : 0);
+		return str;
 	}
 
 	if(!strcmp(sp,"LASTNEW"))
