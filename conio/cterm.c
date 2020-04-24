@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.282 2020/04/21 16:16:00 deuce Exp $ */
+/* $Id: cterm.c,v 1.283 2020/04/22 23:24:03 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1145,8 +1145,8 @@ dellines(struct cterminal * cterm, int lines)
 	coord_conv_xy(cterm, CTERM_COORD_TERM, CTERM_COORD_SCREEN, &maxx, &maxy);
 	TERM_XY(&x, &y);
 	SCR_XY(&sx, &sy);
-	MOVETEXT(minx, sy + lines, minx, maxy, minx, sy);
-	for(i = TERM_MAXY - lines; i <= maxy; i++) {
+	MOVETEXT(minx, sy + lines, maxx, maxy, minx, sy);
+	for(i = TERM_MAXY - lines; i <= TERM_MAXY; i++) {
 		GOTOXY(TERM_MINX, i);
 		CLREOL();
 	}
@@ -4038,7 +4038,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.282 $";
+	char	*revision="$Revision: 1.283 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
