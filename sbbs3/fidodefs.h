@@ -1,6 +1,6 @@
 /* FidoNet constants, macros, and structure definitions */
 
-/* $Id: fidodefs.h,v 1.23 2019/07/25 10:50:16 rswindell Exp $ */
+/* $Id: fidodefs.h,v 1.24 2020/03/24 00:50:48 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -55,6 +55,7 @@
 #define FIDO_DOMAIN_LEN			8	/* May NOT include '\0' terminator		*/
 #define FIDO_PRODDATA_LEN		4	/* Product-specific Data */
 #define FIDO_AREATAG_LEN		35	/* Echo "areatag" (NOT including '\0')	*/
+#define FIDO_ECHO_TITLE_LEN		55	// Brief echo description, per echobase.hlp
 #define FIDO_ORIGIN_PREFIX_LEN	12	/* Includes new-line character			*/
 
 									/* Attribute bits for fmsghdr_t.attr	*/
