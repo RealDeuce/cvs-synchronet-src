@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.67 2020/04/14 16:31:22 deuce Exp $
+$Id: cterm.txt,v 1.72 2020/04/25 02:00:13 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -23,36 +23,32 @@ here: https://github.com/mattiase/wraptest
 
 Control characters:
 
-NUL:
+0x00 - NUL:
 	In doorway mode, indicates that the next character is
 	a literal character.  The IBM CP437 character will
 	be displayed.  This allows ESC and other control
 	characters to be placed on the screen.
 
-CR:
-	Move cursor position to column 1 of the current line
+0x07 - BEL:
+	Beep
 
-LF:
-	Move cursor position to same column of the next row.
-	If current row is the last row, scrolls the screen up
-	and fills the new row with the current attribute.
-
-BS:
+0x08 - BS:
 	Non-destructive backspace.  Moves cursor position to
 	the previous column unless the current column is the
 	first, in which case no operation is performed.
 
-0x07:
-	Beep
+0x09 - HT:
+	Moves to the next horizontal tab stop.  Does not overwrite
+	any characters in between.  If the starting position is
+	last column, cursor does not move.
 
-TAB:
-	Moves to the next tab stop.  Does not overwrite any
-	characters in between.  If the starting position is
-	last column, advances to next line.  If starting
-	position is the last column of the last line, performs
-	a scroll, filling the new line at bottom with the
-	current attribute and moves to the first character in
-	the new line.
+0x0A - LF:
+	Move cursor position to same column of the next row.
+	If current row is the last row, scrolls the screen up
+	and fills the new row with the current attribute.
+
+0x0D - CR:
+	Move cursor position to column 1 of the current line
 
 Control Codes:
 --------------
@@ -61,22 +57,21 @@ Control codes are in the following format:
 ESC {'0' (ZERO) to '~'}
 	Legal combinations which are not handled are silently dropped.
 
-ESC H	Set Tab
+ESC E	Next Line (NEL)
+	Moves to the line home position of the next line.
+	(Same as CR LF)
+
+ESC H	Set Tab (HTS)
 	Sets a tab stop at the current column
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-ESC M	Reverse Line Feed
+ESC M	Reverse Line Feed (RI)
 	Move up one line
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-ESC _	Application Program String
-	Begins a string consisting of the characters 0x08 - 0x0d and
-	0x20-0x7e, terminated by a String Terminator (ST)
-	The string is currently ignored.
-
-ESC P	Device Control String
+ESC P	Device Control String (DCS)
 	Begins a string consisting of the characters 0x08 - 0x0d and
 	0x20-0x7e, terminated by a String Terminator (ST)
 	Supported OSC values:
@@ -203,12 +198,14 @@ ESC P	Device Control String
 		terminating ; may be left out if the sequence to be
 		repeated ends at the end of the string.
 
-ESC ^	Privacy Message
-	Begins a string consisting of the characters 0x08 - 0x0d and
-	0x20-0x7e, terminated by a String Terminator (ST)
+ESC X	Start Of String (SOS)
+	As the above strings, but may contain any characters except
+	a Start Of String sequence or a String Terminator sequence.
 	The string is currently ignored.
 
-ESC ]	Operating System Command
+ESC \	String Terminator (ST)
+
+ESC ]	Operating System Command (OSC)
 	Begins a string consisting of the characters 0x08 - 0x0d and
 	0x20-0x7e, terminated by a String Terminator (ST)
 	Supported OSC values:
@@ -230,14 +227,17 @@ ESC ]	Operating System Command
 
 		SOURCE: xterm
 
-ESC X	Start Of String
-	As the above strings, but may contain any characters except
-	a Start Of String sequence or a String Terminator sequence.
+ESC ^	Privacy Message (PM)
+	Begins a string consisting of the characters 0x08 - 0x0d and
+	0x20-0x7e, terminated by a String Terminator (ST)
 	The string is currently ignored.
 
-ESC \	String Terminator
+ESC _	Application Program String (APS)
+	Begins a string consisting of the characters 0x08 - 0x0d and
+	0x20-0x7e, terminated by a String Terminator (ST)
+	The string is currently ignored.
 
-ESC c	Reset Terminal
+ESC c	Reset to Initial State (RIS)
 	Resets all the terminal settings, clears the screen, and homes
 	the cursor.
 
@@ -271,7 +271,7 @@ Sequence Parameters:
 
 	If a default is defined, the parameter is optional
 
-CSI Pn @
+CSI Pn @ (ICH)
 	Insert Character(s)
 	Defaults: Pn = 1
 	Moves text from the current position to the right edge Pn characters
@@ -280,8 +280,8 @@ CSI Pn @
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn SP @
-	Shift Left
+CSI Pn SP @ (SL)
+	Scroll Left
 	Defaults: Pn = 1
 	Shifts the contents of the screen left Pn columns(s) with
 	leftmost columns going off-screen and the resulting hole being
@@ -289,7 +289,7 @@ CSI Pn SP @
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn A
+CSI Pn A (CUU)
 	Cursor Up
 	Defaults: Pn = 1
 	Moves the cursor position up Pn lines from the current position.
@@ -298,8 +298,8 @@ CSI Pn A
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn SP A
-	Shift Right
+CSI Pn SP A (SR)
+	Scroll Right
 	Defaults: Pn = 1
 	Shifts the contents of the screen right Pn columns(s) with
 	rightmost columns going off-screen and the resulting hole being
@@ -307,7 +307,7 @@ CSI Pn SP A
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn B
+CSI Pn B (CUD)
 	Cursor Down
 	Defaults: Pn = 1
 	Moves the cursor position down Pn lines from the current position.
@@ -316,7 +316,7 @@ CSI Pn B
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn C
+CSI Pn C (CUF)
 	Cursor Right
 	Defaults: Pn = 1
 	Moves the cursor position right Pn columns from the current position.
@@ -325,7 +325,7 @@ CSI Pn C
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn D
+CSI Pn D (CUB)
 	Cursor Left
 	Defaults: Pn = 1
 	Moves the cursor position left Pn columns from the current position.
@@ -334,7 +334,7 @@ CSI Pn D
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Ps1 ; Ps2 sp D
+CSI Ps1 ; Ps2 sp D (FNT)
 	Font Selection
 	Defaults: Ps1 = 0  Ps2 = 0
 	"sp" indicates a single space character.
@@ -400,7 +400,7 @@ CSI Ps1 ; Ps2 sp D
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn E
+CSI Pn E (CNL)
 	Cursor Next Line
 	Defaults: Pn = 1
 	Moves the cursor to the first column of the line Pn down from the
@@ -410,30 +410,30 @@ CSI Pn E
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn F
+CSI Pn F (CPL)
 	Cursor Preceding Line
 	Defaults: Pn = 1
-	Moves the cursor to the first column if the row Pn up from the
+	Moves the cursor to the first column of the row Pn up from the
 	current position.  Attempting to move past the screen boundaries
 	stops the cursor at the screen boundary.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn G
+CSI Pn G (CHA)
 	Cursor Character Absolute
 	Defaults: Pn = 1
 	Movies the cursor to column Pn of the current row.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn1 ; Pn2 H
+CSI Pn1 ; Pn2 H (CUP)
 	Cursor Position
 	Defaults: Pn1 = 1  Pn2 = 1
 	Moves the cursor to the Pn2th column of the Pn1th line.
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Ps J
+CSI Ps J (ED)
 	Erase in Page
 	Defaults: Ps = 0
 	Erases from the current screen according to the value of Ps
@@ -447,7 +447,7 @@ CSI Ps J
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE BANSI.TXT
 
-CSI Ps K
+CSI Ps K (EL)
 	Erase in Line
 	Defaults: Ps = 0
 	Erases from the current line according to the value pf Ps
@@ -458,7 +458,7 @@ CSI Ps K
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn L
+CSI Pn L (IL)
 	Insert Line(s)
 	Defaults: Pn = 1
 	Inserts Pn lines at the current line position.  The current line and
@@ -467,7 +467,7 @@ CSI Pn L
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn M
+CSI Pn M (DL)
 	Delete Line(s) / "ANSI" Music
 	Defaults: Pn = 1
 	Deletes the current line and the Pn - 1 lines after it scrolling the
@@ -480,7 +480,8 @@ CSI Pn M
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 	SOURCE: BANSI.TXT
 
-CSI = Ps M
+CSI = Ps M (STERMSAM)
+	SyncTERM Set ANSI Music
 	NON-STANDARD EXTENSION.
 	Defaults:  Ps = 0
 	Sets the current state of ANSI music parsing.
@@ -491,7 +492,8 @@ CSI = Ps M
 
 	SOURCE: CTerm only.
 
-CSI N
+CSI N (BCAM)
+	BananaCom ANSI Music
 	"ANSI" Music / Not implemented.
 	If "ANSI" Music is set to BananaCom (CSI = 1 M) or fully enabled
 	(CSI = 2 M) performs "ANSI" music.  See "ANSI" MUSIC section for more
@@ -499,7 +501,7 @@ CSI N
 
 	SOURCE: BANSI.TXT
 
-CSI Pn P
+CSI Pn P (DCH)
 	Delete Character
 	Defaults: Pn = 1
 	Deletes the character at the current position by shifting all
@@ -509,7 +511,7 @@ CSI Pn P
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn S
+CSI Pn S (SU)
 	Scroll Up
 	Defaults: Pn = 1
 	Scrolls all text on the screen up Pn lines.  New lines emptied at the
@@ -517,15 +519,15 @@ CSI Pn S
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI ? Ps1 ; Ps2 S
-	Query Graphics Information
+CSI ? Ps1 ; Ps2 S (XTSRGA)
+	XTerm Set or Request Graphics Attribute
 	If Ps1 is 2, and Ps2 is 1, replies with the graphics screen information
 	in the following format: CSI ? 2 ; 0 ; Px ; Py S
 	Where Px is the width of the screen in pixels and Py is the height.
 
 	SOURCE: XTerm
 
-CSI Pn T
+CSI Pn T (SD)
 	Scroll Down
 	Defaults: Pn = 1
 	Scrolls all text on the screen down Pn lines.  New lines emptied at the
@@ -541,7 +543,7 @@ CSI U
 
 	SOURCE: BANSI.TXT
 
-CSI Pn X
+CSI Pn X (ECH)
 	Erase Character
 	Defaults: Pn = 1
 	Erase p1 characters starting at the current character.  Will not erase
@@ -550,7 +552,7 @@ CSI Pn X
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn Y
+CSI Pn Y (CVT)
 	Cursor Line Tabulation
 	Defaults: Pn = 1
 	Move the cursor to the Pn-th next tab stop.
@@ -558,7 +560,7 @@ CSI Pn Y
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn Z
+CSI Pn Z (CBT)
 	Cursor Backward Tabulation
 	Defaults: Pn = 1
 	Move the cursor to the p1th preceding tab stop.  Will not go past the
@@ -566,7 +568,7 @@ CSI Pn Z
 
 	SOURCE: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-048.pdf
 
-CSI Pn `
+CSI Pn ` (HPA)
 	Character Position Absolute
 	Defaults: Pn = 1
 	Move the cursor to the specified position on the current row.
