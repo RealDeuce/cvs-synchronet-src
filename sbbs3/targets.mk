@@ -2,7 +2,7 @@
 
 # Make 'include file' defining targets for Synchronet project
 
-# $Id: targets.mk,v 1.50 2019/08/20 23:30:34 deuce Exp $
+# $Id: targets.mk,v 1.52 2020/04/13 02:16:56 rswindell Exp $
 
 # LIBODIR, EXEODIR, DIRSEP, LIBFILE, EXEFILE, and DELETE must be pre-defined
 
@@ -62,6 +62,8 @@ utils:	smblib xpdev-mt xpdev ciolib-mt uifc-mt \
 		$(LIBODIR) $(OBJODIR) $(MTOBJODIR) $(EXEODIR) \
 		$(UTILS)
 
+gtkutils: gtkmonitor gtkchat gtkuseredit gtkuserlist
+
 dlls:	$(JS_DEPS) smblib xpdev-mt \
 		$(MTOBJODIR) $(LIBODIR) \
 		$(SBBS) $(FTPSRVR) $(MAILSRVR) $(SERVICES)
@@ -82,6 +84,21 @@ uedit:
 umonitor:
 	$(MAKE) -C umonitor $(MAKEFLAGS)
 
+.PHONY: gtkmonitor
+gtkmonitor:
+	$(MAKE) -C gtkmonitor $(MAKEFLAGS)
+
+.PHONY: gtkchat
+gtkchat:
+	$(MAKE) -C gtkchat $(MAKEFLAGS)
+
+.PHONY: gtkuseredit
+gtkuseredit:
+	$(MAKE) -C gtkuseredit $(MAKEFLAGS)
+
+.PHONY: gtkuserlist
+gtkuserlist:
+	$(MAKE) -C gtkuserlist $(MAKEFLAGS)
 
 ifdef SBBSEXEC
 .PHONY: install
@@ -99,6 +116,12 @@ symlinks: all
 	ln -sfr scfg/$(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr uedit/$(EXEODIR)/* $(SBBSEXEC)
 	ln -sfr umonitor/$(EXEODIR)/* $(SBBSEXEC)
+endif
+
+ifeq ($(os),linux)
+.PHONY: setcap
+setcap: all
+	sudo setcap 'cap_net_bind_service=+ep' $(EXEODIR)/sbbs
 endif
 
 .PHONY: sexyz
