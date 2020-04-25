@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.127 2020/04/24 19:45:30 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.129 2020/04/24 20:22:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -785,6 +785,26 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return str;
 	}
 
+	if(strcmp(sp, "MAXCALLS") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_callsperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXPOSTS") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_postsperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXMAILS") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_emailperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXLINES") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_linespermsg[useron.level]);
+		return str;
+	}
+
 	if(!strcmp(sp,"MINLEFT") || !strcmp(sp,"LEFT") || !strcmp(sp,"TIMELEFT")) {
 		gettimeleft();
 		safe_snprintf(str,maxlen,"%lu",timeleft/60);
@@ -982,6 +1002,11 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strcmp(sp,"BYTESLEFT")) {
 		safe_snprintf(str,maxlen,"%lu",useron.cdt+useron.freecdt);
 		return(str);
+	}
+
+	if(strcmp(sp, "CREDITS") == 0) {
+		safe_snprintf(str, maxlen, "%lu", useron.cdt);
+		return str;
 	}
 
 	if(strcmp(sp, "FREECDT") == 0) {
