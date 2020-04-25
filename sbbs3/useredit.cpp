@@ -1,6 +1,6 @@
 /* Synchronet online sysop user editor */
 
-/* $Id: useredit.cpp,v 1.67 2019/08/15 01:18:07 rswindell Exp $ */
+/* $Id: useredit.cpp,v 1.69 2020/03/31 08:23:49 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -59,16 +59,8 @@ void sbbs_t::useredit(int usernumber)
 	user_t	user;
 	struct	tm tm;
 
-	if(online==ON_REMOTE && console&(CON_R_ECHO|CON_R_INPUT) && !chksyspass())
+	if(!chksyspass())
 		return;
-#if 0	/* no local logins in v3 */
-	if(online==ON_LOCAL) {
-		if(!(cfg.sys_misc&SM_L_SYSOP))
-			return;
-		if(cfg.node_misc&NM_SYSPW && !chksyspass())
-			return; 
-	}
-#endif
 	if(usernumber)
 		user.number=usernumber;
 	else
@@ -1081,7 +1073,7 @@ void sbbs_t::maindflts(user_t* user)
 						pause();
 						break; 
 					}
-					bputs(text[NewPassword]);
+					bprintf(text[NewPasswordPromptFmt], MIN_PASS_LEN, LEN_PASS);
 					if(!getstr(str,LEN_PASS,K_UPPER|K_LINE))
 						break;
 					truncsp(str);

@@ -1,7 +1,7 @@
 /* Synchronet user data-related routines (exported) */
 // vi: tabstop=4
 
-/* $Id: userdat.c,v 1.220 2019/09/02 01:29:21 rswindell Exp $ */
+/* $Id: userdat.c,v 1.227 2020/04/24 23:00:04 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -296,6 +296,8 @@ int parseuserdat(scfg_t* cfg, char *userdat, user_t *user)
 	getrec(userdat,U_LOCATION,LEN_LOCATION,user->location);
 	getrec(userdat,U_ZIPCODE,LEN_ZIPCODE,user->zipcode);
 	getrec(userdat,U_PASS,LEN_PASS,user->pass);
+	if(user->pass[0] == 0)	// Backwards compatibility hack
+		getrec(userdat, U_OLDPASS, LEN_OLDPASS, user->pass);
 	getrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	getrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	getrec(userdat,U_MODEM,LEN_MODEM,user->modem);
@@ -530,6 +532,7 @@ int putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_ZIPCODE+LEN_ZIPCODE,2,crlf);
 
 	putrec(userdat,U_PASS,LEN_PASS,user->pass);
+	putrec(userdat,U_OLDPASS,LEN_OLDPASS,user->pass);	// So a sysop can downgrade to a previous build/version
 	putrec(userdat,U_PHONE,LEN_PHONE,user->phone);
 	putrec(userdat,U_BIRTH,LEN_BIRTH,user->birth);
 	putrec(userdat,U_MODEM,LEN_MODEM,user->modem);
@@ -580,7 +583,7 @@ int putuserdat(scfg_t* cfg, user_t* user)
 	putrec(userdat,U_CURXTRN,8,user->curxtrn);
 	putrec(userdat,U_CURXTRN+8,2,crlf);
 
-	putrec(userdat,U_XFER_CMD+LEN_XFER_CMD,2,crlf);
+	putrec(userdat,U_PASS+LEN_PASS, 2, crlf);
 
 	putrec(userdat,U_IPADDR+LEN_IPADDR,2,crlf);
 
@@ -783,6 +786,19 @@ int opennodedat(scfg_t* cfg)
 }
 
 /****************************************************************************/
+/****************************************************************************/
+int opennodeext(scfg_t* cfg)
+{
+	char	fname[MAX_PATH+1];
+
+	if(!VALID_CFG(cfg))
+		return -1;
+
+	SAFEPRINTF(fname, "%snode.exb", cfg->ctrl_dir);
+	return nopen(fname, O_RDWR|O_DENYNONE);
+}
+
+/****************************************************************************/
 /* Reads the data for node number 'number' into the structure 'node'        */
 /* from node.dab															*/
 /****************************************************************************/
@@ -944,7 +960,22 @@ static char* node_connection_desc(ushort conn, char* str)
 	return str;
 }
 
-char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
+char* getnodeext(scfg_t* cfg, int num, char* buf)
+{
+	int f;
+
+	if(!VALID_CFG(cfg) || num < 1)
+		return "";
+	if((f = opennodeext(cfg)) < 1)
+		return "";
+	lseek(f, (num-1) * 128, SEEK_SET);
+	read(f, buf, 128);
+	close(f);
+	buf[127] = 0;
+	return buf;
+}
+
+char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen, int num)
 {
 	char	str[256];
 	char	tmp[128];
@@ -990,6 +1021,10 @@ char* nodestatus(scfg_t* cfg, node_t* node, char* buf, size_t buflen)
             break;
         case NODE_QUIET:
         case NODE_INUSE:
+			if(node->misc & NODE_EXT) {
+				getnodeext(cfg, num, str);
+				break;
+			}
             username(cfg,node->useron,str);
             strcat(str," ");
             switch(node->action) {
@@ -1165,7 +1200,7 @@ void printnodedat(scfg_t* cfg, uint number, node_t* node)
 {
 	char	status[128];
 
-	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status)));
+	printf("Node %2d: %s\n",number,nodestatus(cfg,node,status,sizeof(status),number));
 }
 
 /****************************************************************************/
@@ -1500,6 +1535,9 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 		switch(artype) {
 			case AR_ANSI:				/* No arguments */
 			case AR_PETSCII:
+			case AR_ASCII:
+			case AR_UTF8:
+			case AR_CP437:
 			case AR_RIP:
 			case AR_WIP:
 			case AR_LOCAL:
@@ -1554,7 +1592,22 @@ static BOOL ar_exp(scfg_t* cfg, uchar **ptrptr, user_t* user, client_t* client)
 				else result=!not;
 				break;
 			case AR_PETSCII:
-				if(user==NULL || !(user->misc&PETSCII))
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_PETSCII)
+					result=not;
+				else result=!not;
+				break;
+			case AR_ASCII:
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_ASCII)
+					result=not;
+				else result=!not;
+				break;
+			case AR_UTF8:
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_UTF8)
+					result=not;
+				else result=!not;
+				break;
+			case AR_CP437:
+				if(user==NULL || (user->misc&CHARSET_FLAGS) != CHARSET_CP437)
 					result=not;
 				else result=!not;
 				break;
@@ -2054,6 +2107,9 @@ int getuserrec(scfg_t* cfg, int usernumber,int start, int length, char *str)
 		if(str[c]==ETX || str[c]==CR) break;
 	str[c]=0;
 
+	if(c == 0 && start == LEN_PASS) // Backwards compatibility hack
+		return getuserrec(cfg, usernumber, U_OLDPASS, LEN_OLDPASS, str);
+
 	return(0);
 }
 
@@ -2166,13 +2222,24 @@ ulong adjustuserrec(scfg_t* cfg, int usernumber, int start, int length, long adj
 	for(c=0;c<length;c++)
 		if(str[c]==ETX || str[c]==CR) break;
 	str[c]=0;
-	val = strtoul(str, NULL, 10);
-	if(adj<0L && val<(ulong)-adj)		/* don't go negative */
-		val=0;
-	else if(adj > 0 && val + adj < val)
-		val = ULONG_MAX;
-	else
-		val += (ulong)adj;
+	if(length > 5) {
+		val = strtoul(str, NULL, 10);
+		if(adj<0L && val<(ulong)-adj)		/* don't go negative */
+			val=0;
+		else if(adj > 0 && val + adj < val)
+			val = ULONG_MAX;
+		else
+			val += (ulong)adj;
+	} else {
+		ushort sval = (ushort)strtoul(str, NULL, 10);
+		if(adj < 0L && sval < (ushort)-adj)		/* don't go negative */
+			sval = 0;
+		else if(adj > 0 && sval + adj < sval)
+			sval = USHRT_MAX;
+		else
+			sval += (ushort)adj;
+		val = sval;
+	}
 	lseek(file,(long)((long)(usernumber-1)*U_LEN)+start,SEEK_SET);
 	putrec(str,0,length,ultoa(val,tmp,10));
 	if(write(file,str,length)!=length) {
@@ -2248,6 +2315,80 @@ BOOL user_downloaded(scfg_t* cfg, user_t* user, int files, long bytes)
 
 	return(TRUE);
 }
+
+#ifdef SBBS
+BOOL user_downloaded_file(scfg_t* cfg, user_t* user, client_t* client,
+	uint dirnum, const char* filename, ulong bytes)
+{
+	file_t f = {{0}};
+
+	f.dir = dirnum;
+	padfname(getfname(filename), f.name);
+	if(!getfileixb(cfg, &f) || !getfiledat(cfg, &f))
+		return FALSE;
+
+	if(!bytes)
+		bytes = f.size;
+
+	f.timesdled++;
+	f.datedled=time32(NULL);
+	if(!putfiledat(cfg, &f) || !putfileixb(cfg, &f))
+		return FALSE;
+
+	/**************************/
+	/* Update Uploader's Info */
+	/**************************/
+	user_t uploader = {0};
+	uploader.number=matchuser(cfg, f.uler, TRUE /*sysop_alias*/);
+	if(uploader.number
+		&& uploader.number != user->number 
+		&& getuserdat(cfg, &uploader) == 0
+		&& uploader.firston < f.dateuled) {
+		ulong l = f.cdt;
+		if(!(cfg->dir[f.dir]->misc&DIR_CDTDL))	/* Don't give credits on d/l */
+			l=0;
+		ulong mod=(ulong)(l*(cfg->dir[f.dir]->dn_pct/100.0));
+		adjustuserrec(cfg, uploader.number, U_CDT, 10, mod);
+		if(cfg->text != NULL) {
+			char str[256];
+			char tmp[128];
+			char prefix[128]="";
+			ultoac(mod,tmp);
+			char username[64];
+			if(client != NULL && uploader.level >= SYSOP_LEVEL) {
+				if(client->host != NULL && strcmp(client->host, STR_NO_HOSTNAME) != 0)
+					SAFEPRINTF2(username,"%s [%s]", user->alias, client->host);
+				else
+					SAFEPRINTF2(username,"%s [%s]", user->alias, client->addr);
+			} else
+				SAFECOPY(username, user->alias);
+			if(strcmp(cfg->dir[f.dir]->code, "TEMP") == 0 || bytes < (ulong)f.size)
+				SAFECOPY(prefix, cfg->text[Partially]);
+			if(client != NULL) {
+				SAFECAT(prefix, client->protocol);
+				SAFECAT(prefix, "-");
+			}
+			/* Inform uploader of downloaded file */
+			SAFEPRINTF4(str, cfg->text[DownloadUserMsg]
+				,getfname(filename)
+				,prefix
+				,username, tmp);
+			putsmsg(cfg, uploader.number, str);
+		}
+	}
+	/****************************/
+	/* Update Downloader's Info */
+	/****************************/
+	user_downloaded(cfg, user, /* files: */1, bytes);
+	if(!is_download_free(cfg, f.dir, user, client))
+		subtract_cdt(cfg, user, f.cdt);
+
+	if(!(cfg->dir[f.dir]->misc&DIR_NOSTAT))
+		inc_sys_download_stats(cfg, /* files: */1, bytes);
+
+	return TRUE;
+}
+#endif
 
 BOOL user_uploaded(scfg_t* cfg, user_t* user, int files, long bytes)
 {
