@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.159 2020/04/07 20:28:48 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.160 2020/04/22 03:25:34 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4319,6 +4319,11 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, const char* info, const char* inbo
 			SAFECOPY(fname, getfname(hdr->subj));
 			SAFEPRINTF2(hdr->subj, "%s%s", inbound, fname);	/* Fix the file path in the subject */
 		}
+		const uint16_t remove_attrs = FIDO_CRASH | FIDO_LOCAL | FIDO_HOLD;
+		if(hdr->attr&remove_attrs) {
+			lprintf(LOG_DEBUG, "%s Removing attributes: %04hX", info, hdr->attr&remove_attrs);
+			hdr->attr &= ~remove_attrs;
+		}
 		(void)write(file,hdr,sizeof(fmsghdr_t));
 		(void)write(file,fmsgbuf,l+1); /* Write the '\0' terminator too */
 		close(file);
@@ -6087,7 +6092,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.159 $", "%*s %s", revision);
+	sscanf("$Revision: 3.160 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
