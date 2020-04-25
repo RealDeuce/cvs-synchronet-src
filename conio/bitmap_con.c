@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.143 2020/04/16 23:39:16 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.144 2020/04/25 17:26:45 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -33,7 +33,7 @@ static struct palette_entry palette[65536];
 
 #if 0
 
-int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
+static int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
 {
 	int ret = pthread_mutex_lock(lptr);
 
@@ -42,7 +42,7 @@ int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
 	return ret;
 }
 
-int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
+static int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
 {
 	int ret = pthread_mutex_unlock(lptr);
 
@@ -51,7 +51,7 @@ int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
 	return ret;
 }
 
-int dbg_pthread_mutex_trylock(pthread_mutex_t *lptr, unsigned line)
+static int dbg_pthread_mutex_trylock(pthread_mutex_t *lptr, unsigned line)
 {
 	int ret = pthread_mutex_trylock(lptr);
 
