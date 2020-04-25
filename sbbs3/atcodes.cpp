@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.115 2019/09/20 08:35:41 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.129 2020/04/24 20:22:23 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -47,6 +47,27 @@
 	#define	SOCKLIB_DESC NULL
 #endif
 
+static char* separate_thousands(const char* src, char *dest, size_t maxlen, char sep)
+{
+	if(strlen(src) * 1.3 > maxlen)
+		return (char*)src;
+	const char* tail = src;
+	while(*tail && isdigit(*tail))
+		tail++;
+	if(tail == src)
+		return (char*)src;
+	size_t digits = tail - src;
+	char* d = dest;
+	for(size_t i = 0; i < digits; d++, i++) {
+		*d = src[i];
+		if(i && i + 3 < digits && (digits - (i + 1)) % 3 == 0)
+			*(++d) = sep;
+	}
+	*d = 0;
+	strcpy(d, tail);
+	return dest;
+}
+
 /****************************************************************************/
 /* Returns 0 if invalid @ code. Returns length of @ code if valid.          */
 /****************************************************************************/
@@ -61,6 +82,7 @@ int sbbs_t::show_atcode(const char *instr)
 	bool	zero_padded=false;
 	bool	truncated = true;
 	bool	doubled = false;
+	bool	thousep = false;	// thousands-separated
 	long	pmode = 0;
 	const char *cp;
 
@@ -76,7 +98,23 @@ int sbbs_t::show_atcode(const char *instr)
 	sp=(str+1);
 
 	disp_len=len;
-	if(strchr(sp, ':') != NULL)
+	if((p = strchr(sp, '|')) != NULL) {
+		if(strchr(p, 'T') != NULL)
+			thousep = true;
+		if(strchr(p, 'L') != NULL)
+			padded_left = true;
+		else if(strchr(p, 'R') != NULL)
+			padded_right = true;
+		else if(strchr(p, 'C') != NULL)
+			centered = true;
+		else if(strchr(p, 'W') != NULL)
+			doubled = true;
+		else if(strchr(p, 'Z') != NULL)
+			zero_padded = true;
+		else if(strchr(p, '>') != NULL)
+			truncated = false;
+	}
+	else if(strchr(sp, ':') != NULL)
 		p = NULL;
 	else if((p=strstr(sp,"-L"))!=NULL)
 		padded_left=true;
@@ -88,11 +126,15 @@ int sbbs_t::show_atcode(const char *instr)
 		doubled=true;
 	else if((p=strstr(sp,"-Z"))!=NULL)
 		zero_padded=true;
+	else if((p=strstr(sp,"-T"))!=NULL)
+		thousep=true;
 	else if((p=strstr(sp,"->"))!=NULL)	/* wrap */
 		truncated = false;
 	if(p!=NULL) {
-		char* lp = p + 2;
-		if(*lp && isdigit(*lp))
+		char* lp = p;
+		while(*lp && !isdigit((uchar)*lp))
+			lp++;
+		if(*lp && isdigit((uchar)*lp))
 			disp_len=atoi(lp);
 		*p=0;
 	}
@@ -100,6 +142,10 @@ int sbbs_t::show_atcode(const char *instr)
 	cp = atcode(sp, str2, sizeof(str2), &pmode);
 	if(cp==NULL)
 		return(0);
+
+	char separated[128];
+	if(thousep)
+		cp = separate_thousands(cp, separated, sizeof(separated), ',');
 
 	if(p==NULL || truncated == false)
 		disp_len = strlen(cp);
@@ -449,7 +495,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 
 	if(strncmp(sp, "FILES:", 6) == 0) {	// Number of files in specified directory
 		const char* path = getpath(&cfg, sp + 6);
-		safe_snprintf(str, maxlen, "%lu", getfilecount(path, ALLFILES));
+		safe_snprintf(str, maxlen, "%lu", getfilecount(path));
 		return str;
 	}
 
@@ -724,14 +770,39 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	}
 
 	if(!strcmp(sp,"TPERD"))                /* Synchronet only */
-		return(sectostr(cfg.level_timeperday[useron.level],str)+1);
+		return(sectostr(cfg.level_timeperday[useron.level],str)+4);
 
 	if(!strcmp(sp,"TPERC"))                /* Synchronet only */
-		return(sectostr(cfg.level_timepercall[useron.level],str)+1);
+		return(sectostr(cfg.level_timepercall[useron.level],str)+4);
 
-	if(!strcmp(sp,"TIMELIMIT")) {
+	if(strcmp(sp, "MPERC") == 0 || strcmp(sp, "TIMELIMIT") == 0) {
 		safe_snprintf(str,maxlen,"%u",cfg.level_timepercall[useron.level]);
 		return(str);
+	}
+
+	if(strcmp(sp, "MPERD") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_timeperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXCALLS") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_callsperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXPOSTS") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_postsperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXMAILS") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_emailperday[useron.level]);
+		return str;
+	}
+
+	if(strcmp(sp, "MAXLINES") == 0) {
+		safe_snprintf(str,maxlen,"%u",cfg.level_linespermsg[useron.level]);
+		return str;
 	}
 
 	if(!strcmp(sp,"MINLEFT") || !strcmp(sp,"LEFT") || !strcmp(sp,"TIMELEFT")) {
@@ -759,6 +830,88 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
 		return(str);
 	}
+
+	if(!strcmp(sp,"FIRSTON"))
+		return(timestr(useron.firston));
+
+	if(!strcmp(sp,"FIRSTDATEON"))
+		return(unixtodstr(&cfg,useron.firston,str));
+
+	if(!strcmp(sp,"FIRSTTIMEON")) {
+		memset(&tm,0,sizeof(tm));
+		localtime32(&useron.firston,&tm);
+		if(cfg.sys_misc&SM_MILITARY)
+			safe_snprintf(str,maxlen,"%02d:%02d:%02d"
+				,tm.tm_hour, tm.tm_min, tm.tm_sec);
+		else
+			safe_snprintf(str,maxlen,"%02d:%02d %s"
+				,tm.tm_hour==0 ? 12
+				: tm.tm_hour>12 ? tm.tm_hour-12
+				: tm.tm_hour, tm.tm_min, tm.tm_hour>11 ? "pm":"am");
+		return(str);
+	}
+
+	if(strcmp(sp, "EMAILS") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.emails);
+		return str;
+	}
+
+	if(strcmp(sp, "FBACKS") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.fbacks);
+		return str;
+	}
+
+	if(strcmp(sp, "ETODAY") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.etoday);
+		return str;
+	}
+
+	if(strcmp(sp, "PTODAY") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.ptoday);
+		return str;
+	}
+
+	if(strcmp(sp, "LTODAY") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.ltoday);
+		return str;
+	}
+
+	if(strcmp(sp, "MTODAY") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.ttoday);
+		return str;
+	}
+
+	if(strcmp(sp, "MTOTAL") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.timeon);
+		return str;
+	}
+
+	if(strcmp(sp, "TTODAY") == 0)
+		return sectostr(useron.ttoday, str) + 3;
+
+	if(strcmp(sp, "TTOTAL") == 0)
+		return sectostr(useron.timeon, str) + 3;
+
+	if(strcmp(sp, "TLAST") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.tlast);
+		return str;
+	}
+
+	if(strcmp(sp, "MEXTRA") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.textra);
+		return str;
+	}
+
+	if(strcmp(sp, "TEXTRA") == 0)
+		return sectostr(useron.textra, str) + 3;
+
+	if(strcmp(sp, "MBANKED") == 0) {
+		safe_snprintf(str, maxlen, "%u", useron.min);
+		return str;
+	}
+
+	if(strcmp(sp, "TBANKED") == 0)
+		return sectostr(useron.min, str) + 3;
 
 	if(!strcmp(sp,"MSGLEFT") || !strcmp(sp,"MSGSLEFT")) {
 		safe_snprintf(str,maxlen,"%u",useron.posts);
@@ -810,6 +963,14 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return(str);
 	}
 
+	if(strcmp(sp, "PCR") == 0) {
+		float f = 0;
+		if(useron.posts)
+			f = (float)useron.logons / useron.posts;
+		safe_snprintf(str, maxlen, "%u", f ? (uint)(100 / f) : useron.posts > useron.logons ? 100 : 0);
+		return str;
+	}
+
 	if(!strcmp(sp,"LASTNEW"))
 		return(unixtodstr(&cfg,(time32_t)ns_time,str));
 
@@ -841,6 +1002,16 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strcmp(sp,"BYTESLEFT")) {
 		safe_snprintf(str,maxlen,"%lu",useron.cdt+useron.freecdt);
 		return(str);
+	}
+
+	if(strcmp(sp, "CREDITS") == 0) {
+		safe_snprintf(str, maxlen, "%lu", useron.cdt);
+		return str;
+	}
+
+	if(strcmp(sp, "FREECDT") == 0) {
+		safe_snprintf(str, maxlen, "%lu", useron.freecdt);
+		return str;
 	}
 
 	if(!strcmp(sp,"CONF")) {
@@ -891,6 +1062,10 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 	if(!strncmp(sp,"SETSTR:",7)) {
 		strcpy(main_csi.str,sp+7);
 		return(nulstr);
+	}
+
+	if(strcmp(sp,"STR") == 0) {
+		return main_csi.str;
 	}
 
 	if(!strncmp(sp,"EXEC:",5)) {
@@ -996,7 +1171,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		tp=strchr(sp,',');
 		if(tp!=NULL) {
 			tp++;
-			ansi_gotoxy(atoi(sp+7),atoi(tp));
+			cursor_xy(atoi(sp+7),atoi(tp));
 		}
 		return(nulstr);
 	}
