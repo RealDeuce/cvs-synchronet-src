@@ -1,6 +1,6 @@
 /* Synchronet file transfer-related functions */
 
-/* $Id: file.cpp,v 1.35 2018/07/23 23:05:50 rswindell Exp $ */
+/* $Id: file.cpp,v 1.36 2019/08/12 06:24:08 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -300,4 +300,12 @@ bool sbbs_t::checkfname(char *fname)
 		c++; 
 	}
 	return(true);
+}
+
+long sbbs_t::delfiles(const char *inpath, const char *spec, size_t keep)
+{
+	long result = ::delfiles(inpath, spec, keep);
+	if(result < 0)
+		errormsg(WHERE, ERR_REMOVE, inpath, result, spec);
+	return result;
 }
