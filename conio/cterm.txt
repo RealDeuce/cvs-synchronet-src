@@ -1,4 +1,4 @@
-$Id: cterm.txt,v 1.71 2020/04/24 22:58:31 deuce Exp $
+$Id: cterm.txt,v 1.72 2020/04/25 02:00:13 deuce Exp $
 
 CTerm terminal characteristics:
 ------------------------------
@@ -40,11 +40,7 @@ Control characters:
 0x09 - HT:
 	Moves to the next horizontal tab stop.  Does not overwrite
 	any characters in between.  If the starting position is
-	last column, advances to next line.  If starting
-	position is the last column of the last line, performs
-	a scroll, filling the new line at bottom with the
-	current attribute and moves to the first character in
-	the new line.
+	last column, cursor does not move.
 
 0x0A - LF:
 	Move cursor position to same column of the next row.
