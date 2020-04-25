@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.283 2020/04/22 23:24:03 deuce Exp $ */
+/* $Id: cterm.c,v 1.287 2020/04/25 01:59:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2993,7 +2993,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							GOTOXY(i,j);
 							break;
 						case 'A':	/* Cursor Up */
-						case 'F':	/* Cursor preceding line */
 						case 'k':	/* Line Position Backward */
 							seq_default(seq, 0, 1);
 							TERM_XY(&col, &row);
@@ -3003,7 +3002,6 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							GOTOXY(col, row);
 							break;
 						case 'B':	/* Cursor Down */
-						case 'E':	/* Cursor next line */
 						case 'e':	/* Line Position Forward */
 							seq_default(seq, 0, 1);
 							TERM_XY(&col, &row);
@@ -3030,8 +3028,26 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								col = TERM_MINX;
 							GOTOXY(col, row);
 							break;
-						// for case 'E' see case 'B'
-						// for case 'F' see case 'A'
+						case 'E':	/* Cursor next line */
+							seq_default(seq, 0, 1);
+							TERM_XY(&col, &row);
+							row += seq->param_int[0];
+							while(row > TERM_MAXY) {
+								scrollup(cterm);
+								row--;
+							}
+							col = TERM_MINX;
+							GOTOXY(col, row);
+							break;
+						case 'F':	/* Cursor preceding line */
+							seq_default(seq, 0, 1);
+							TERM_XY(&col, &row);
+							row -= seq->param_int[0];
+							if (row < TERM_MINY)
+								row = TERM_MINY;
+							col = TERM_MINX;
+							GOTOXY(col, row);
+							break;
 						case '`':
 						case 'G':	/* Cursor Position Absolute */
 							seq_default(seq, 0, 1);
@@ -3217,9 +3233,9 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 							}
 							if (i == cterm->tab_count)
 								break;
-							for (k = 1; k < seq->param_int[0]; k++) {
-								if (cterm->tabs[k] <= TERM_MAXX)
-									col = cterm->tabs[k];
+							for (k = 0; k < seq->param_int[0] && i + k < cterm->tab_count; k++) {
+								if (cterm->tabs[i + k] <= TERM_MAXX)
+									col = cterm->tabs[i + k];
 								else
 									break;
 							}
@@ -3610,8 +3626,11 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 			case 'E':	// Next Line
 				TERM_XY(&col, &row);
 				row++;
-				if(row > TERM_MAXY)
+				if(row > TERM_MAXY) {
+					scrollup(cterm);
 					row = TERM_MAXY;
+				}
+				col = TERM_MINX;
 				GOTOXY(col, row);
 				break;
 			case 'H':
@@ -4038,7 +4057,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.283 $";
+	char	*revision="$Revision: 1.287 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4202,13 +4221,8 @@ ctputs(struct cterminal *cterm, char *buf)
 						break;
 					}
 				}
-				if(cx > TERM_MAXX) {
-					cx = 1;
-					if(cy == TERM_MAXY)
-						scrollup(cterm);
-					else if(cy < TERM_MAXY)
-						cy++;
-				}
+				if(cx > TERM_MAXX)
+					cx = TERM_MAXX;
 				GOTOXY(cx,cy);
 				break;
 			default:
