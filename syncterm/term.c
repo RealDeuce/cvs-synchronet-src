@@ -1,12 +1,13 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.358 2020/04/09 05:20:40 deuce Exp $ */
+/* $Id: term.c,v 1.368 2020/04/23 23:12:14 deuce Exp $ */
 
 #include <stdbool.h>
 
 #include <genwrap.h>
 #include <ciolib.h>
 #include <cterm.h>
+#include <vidmodes.h>
 
 #include "gen_defs.h"
 #include "threadwrap.h"
@@ -134,7 +135,6 @@ void mousedrag(struct vmem_cell *scrollback)
 	char *copybuf=NULL;
 	char *newcopybuf;
 	int lastchar;
-	int old_xlat = ciolib_xlat;
 	struct ciolib_screen *savscrn;
 
 	sbufsize=term.width*sizeof(*screen)*term.height;
@@ -142,10 +142,9 @@ void mousedrag(struct vmem_cell *scrollback)
 	sbuffer=malloc(sbufsize);
 	tscreen=malloc(term.width*2*term.height);
 	vmem_gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,screen);
-	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	gettext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,tscreen);
 	savscrn = savescreen();
-	ciolib_xlat = old_xlat;
+	set_modepalette(palettes[COLOUR_PALETTE]);
 	while(1) {
 		key=getch();
 		if(key==0 || key==0xe0)
@@ -181,7 +180,7 @@ void mousedrag(struct vmem_cell *scrollback)
 						break;
 					default:
 						lines=abs(mevent.endy-mevent.starty)+1;
-						newcopybuf=realloc(copybuf, endpos-startpos+4+lines*2);
+						newcopybuf=realloc(copybuf, (endpos-startpos+4+lines*2)*4);
 						if (newcopybuf)
 							copybuf = newcopybuf;
 						else
@@ -189,8 +188,15 @@ void mousedrag(struct vmem_cell *scrollback)
 						outpos=0;
 						lastchar=0;
 						for(pos=startpos;pos<=endpos;pos++) {
-							copybuf[outpos++]=tscreen[pos*2];
-							if(tscreen[pos*2]!=' ' && tscreen[pos*2])
+							size_t outlen;
+							uint8_t *utf8str;
+
+							utf8str = cp_to_utf8(conio_fontdata[screen[pos].font].cp, (char *)&screen[pos].ch, 1, &outlen);
+							if (utf8str == NULL)
+								continue;
+							memcpy(copybuf + outpos, utf8str, outlen);
+							outpos += outlen;
+							if(screen[pos].ch != ' ' && screen[pos].ch)
 								lastchar=outpos;
 							if((pos+1)%term.width==0) {
 								outpos=lastchar;
@@ -237,7 +243,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	static int oldspeed=0;
 	int	timeon;
 	char sep;
-	int old_xlat = ciolib_xlat;
 	int oldfont_norm;
 	int oldfont_bright;
 
@@ -267,7 +272,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 		setfont(oldfont_bright,0,2);
 		return;
 	}
-	ciolib_xlat = CIOLIB_XLAT_CHARS;
 	lastupd=now;
 	oldspeed=speed;
 	timeon=now - bbs->connected;
@@ -325,7 +329,6 @@ void update_status(struct bbslist *bbs, int speed, int ooii_mode)
 	window(txtinfo.winleft,txtinfo.wintop,txtinfo.winright,txtinfo.winbottom);
 	gotoxy(txtinfo.curx,txtinfo.cury);
 	hold_update=olddmc;
-	ciolib_xlat = old_xlat;
 }
 
 #if defined(_WIN32) && defined(_DEBUG) && defined(DUMP)
@@ -1800,11 +1803,6 @@ void music_control(struct bbslist *bbs)
 	struct	text_info txtinfo;
 	struct ciolib_screen *savscrn;
 	int i;
-	char *opts[4]={
-			 "ESC[| ANSI Music only"
-			,"ESC[N (BANSI-Style) and ESC[| ANSI Music"
-			,"ANSI Music Enabled"
-	};
 
    	gettextinfo(&txtinfo);
    	savscrn = savescreen();
@@ -1815,27 +1813,8 @@ void music_control(struct bbslist *bbs)
 	init_uifc(FALSE, FALSE);
 
 	i=cterm->music_enable;
-	uifc.helpbuf="`ANSI Music Setup`\n\n"
-				"~ ANSI Music Disabled ~ Completely disables ANSI music\n"
-				"                      Enables Delete Line\n"
-				"~ ESC[N ~               Enables BANSI-Style ANSI music\n"
-				"                      Enables Delete Line\n"
-				"~ ANSI Music Enabled ~  Enables both ESC[M and ESC[N ANSI music.\n"
-				"                      Delete Line is disabled.\n"
-				"\n"
-				"So-Called ANSI Music has a long and troubled history.  Although the\n"
-				"original ANSI standard has well defined ways to provide private\n"
-				"extensions to the spec, none of these methods were used.  Instead,\n"
-				"so-called ANSI music replaced the Delete Line ANSI sequence.  Many\n"
-				"full-screen editors use DL, and to this day, some programs (Such as\n"
-				"BitchX) require it to run.\n\n"
-				"To deal with this, BananaCom decided to use what *they* thought was an\n"
-				"unspecified escape code, ESC[N, for ANSI music.  Unfortunately, this is\n"
-				"broken also.  Although rarely implemented in BBS clients, ESC[N is\n"
-				"the erase field sequence.\n\n"
-				"SyncTERM has now defined a third ANSI music sequence which *IS* legal\n"
-				"according to the ANSI spec.  Specifically ESC[|.";
-	if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",opts)!=-1)
+	uifc.helpbuf=music_helpbuf;
+	if(uifc.list(WIN_MID|WIN_SAV,0,0,0,&i,NULL,"ANSI Music Setup",music_names)!=-1)
 		cterm->music_enable=i;
 	else
 		check_exit(FALSE);
@@ -1849,7 +1828,6 @@ void font_control(struct bbslist *bbs)
 	struct ciolib_screen *savscrn;
 	struct	text_info txtinfo;
 	int i,j,k;
-	int enable_xlat = CIOLIB_XLAT_NONE;
 
 	if(safe_mode)
 		return;
@@ -1891,10 +1869,6 @@ void font_control(struct bbslist *bbs)
 				}
 				else {
 					setfont(i,FALSE,1);
-					if (i >=32 && i<= 35 && cterm->emulation != CTERM_EMULATION_PETASCII)
-						enable_xlat = CIOLIB_XLAT_CHARS;
-					if (i==36 && cterm->emulation != CTERM_EMULATION_ATASCII)
-						enable_xlat = CIOLIB_XLAT_CHARS;
 				}
 			}
 			else
@@ -1902,7 +1876,6 @@ void font_control(struct bbslist *bbs)
 		break;
 	}
 	uifcbail();
-	ciolib_xlat = enable_xlat;
 	restorescreen(savscrn);
 	freescreen(savscrn);
 }
@@ -2347,7 +2320,7 @@ static int fill_mevent(char *buf, size_t bufsz, struct mouse_event *me, struct m
 	}
 	if (button < 0)
 		return 0;
-	if ((button > 11)
+	if (button > 11)
 		return 0;
 	if (button > 7)
 		button += 128;
@@ -2683,6 +2656,7 @@ BOOL doterm(struct bbslist *bbs)
 					break;
 				case 0x1200:	/* ALT-E */
 					{
+						char title[LIST_NAME_MAX + 12];
 						struct ciolib_screen *savscrn;
 						savscrn = savescreen();
 						setfont(0, FALSE, 1);
@@ -2690,6 +2664,8 @@ BOOL doterm(struct bbslist *bbs)
 						setfont(0, FALSE, 3);
 						setfont(0, FALSE, 4);
 						show_bbslist(bbs->name, TRUE);
+						sprintf(title, "SyncTERM - %s\n", bbs->name);
+						settitle(title);
 						uifcbail();
 						setup_mouse_events(&ms);
 						restorescreen(savscrn);
@@ -2848,6 +2824,7 @@ BOOL doterm(struct bbslist *bbs)
 #endif
 							{
 								struct ciolib_screen *savscrn;
+								char title[LIST_NAME_MAX + 12];
 
 								savscrn = savescreen();
 								setfont(0, FALSE, 1);
@@ -2855,6 +2832,8 @@ BOOL doterm(struct bbslist *bbs)
 								setfont(0, FALSE, 3);
 								setfont(0, FALSE, 4);
 								show_bbslist(bbs->name, TRUE);
+								sprintf(title, "SyncTERM - %s\n", bbs->name);
+								settitle(title);
 								restorescreen(savscrn);
 								freescreen(savscrn);
 							}
@@ -2865,7 +2844,7 @@ BOOL doterm(struct bbslist *bbs)
 					gotoxy(i,j);
 					key = 0;
 					break;
-				case 0x9800:	/* ALT-Up */
+				case 0x8d00:	/* CTRL-Up */
 					if(bbs->conn_type != CONN_TYPE_SERIAL) {
 						if(speed)
 							speed=rates[get_rate_num(speed)+1];
@@ -2874,7 +2853,7 @@ BOOL doterm(struct bbslist *bbs)
 						key = 0;
 					}
 					break;
-				case 0xa000:	/* ALT-Down */
+				case 0x9100:	/* CTRL-Down */
 					if(bbs->conn_type != CONN_TYPE_SERIAL) {
 						i=get_rate_num(speed);
 						if(i==0)
@@ -2923,10 +2902,7 @@ BOOL doterm(struct bbslist *bbs)
 					default:
 						if(key<256) {
 							/* ASCII Translation */
-							if(key<32) {
-								break;
-							}
-							else if(key<123) {
+							if(key<123) {
 								ch[0]=key;
 								conn_send(ch,1,0);
 							}
@@ -3066,19 +3042,19 @@ BOOL doterm(struct bbslist *bbs)
 						conn_send("\033[V",3,0);
 						break;
 					case CIO_KEY_F(1):
-						conn_send("\033OP",3,0);
+						conn_send("\033[11~",3,0);
 						break;
 					case CIO_KEY_F(2):
-						conn_send("\033OQ",3,0);
+						conn_send("\033[12~",3,0);
 						break;
 					case CIO_KEY_F(3):
-						conn_send("\033OR",3,0);
+						conn_send("\033[13~",3,0);
 						break;
 					case CIO_KEY_F(4):
-						conn_send("\033OS",3,0);
+						conn_send("\033[14~",3,0);
 						break;
 					case CIO_KEY_F(5):
-						conn_send("\033Ot",3,0);
+						conn_send("\033[15~",3,0);
 						break;
 					case CIO_KEY_F(6):
 						conn_send("\033[17~",5,0);
@@ -3101,6 +3077,114 @@ BOOL doterm(struct bbslist *bbs)
 					case CIO_KEY_F(12):
 						conn_send("\033[24~",5,0);
 						break;
+					case CIO_KEY_SHIFT_F(1):
+						conn_send("\033[11;2~",3,0);
+						break;
+					case CIO_KEY_SHIFT_F(2):
+						conn_send("\033[12;2~",3,0);
+						break;
+					case CIO_KEY_SHIFT_F(3):
+						conn_send("\033[13;2~",3,0);
+						break;
+					case CIO_KEY_SHIFT_F(4):
+						conn_send("\033[14;2~",3,0);
+						break;
+					case CIO_KEY_SHIFT_F(5):
+						conn_send("\033[15;2~",3,0);
+						break;
+					case CIO_KEY_SHIFT_F(6):
+						conn_send("\033[17;2~",5,0);
+						break;
+					case CIO_KEY_SHIFT_F(7):
+						conn_send("\033[18;2~",5,0);
+						break;
+					case CIO_KEY_SHIFT_F(8):
+						conn_send("\033[19;2~",5,0);
+						break;
+					case CIO_KEY_SHIFT_F(9):
+						conn_send("\033[20;2~",5,0);
+						break;
+					case CIO_KEY_SHIFT_F(10):
+						conn_send("\033[21;2~",5,0);
+						break;
+					case CIO_KEY_SHIFT_F(11):
+						conn_send("\033[23;2~",5,0);
+						break;
+					case CIO_KEY_SHIFT_F(12):
+						conn_send("\033[24;2~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(1):
+						conn_send("\033[11;5~",3,0);
+						break;
+					case CIO_KEY_CTRL_F(2):
+						conn_send("\033[12;5~",3,0);
+						break;
+					case CIO_KEY_CTRL_F(3):
+						conn_send("\033[13;5~",3,0);
+						break;
+					case CIO_KEY_CTRL_F(4):
+						conn_send("\033[14;5~",3,0);
+						break;
+					case CIO_KEY_CTRL_F(5):
+						conn_send("\033[15;5~",3,0);
+						break;
+					case CIO_KEY_CTRL_F(6):
+						conn_send("\033[17;5~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(7):
+						conn_send("\033[18;5~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(8):
+						conn_send("\033[19;5~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(9):
+						conn_send("\033[20;5~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(10):
+						conn_send("\033[21;5~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(11):
+						conn_send("\033[23;5~",5,0);
+						break;
+					case CIO_KEY_CTRL_F(12):
+						conn_send("\033[24;5~",5,0);
+						break;
+					case CIO_KEY_ALT_F(1):
+						conn_send("\033[11;3~",3,0);
+						break;
+					case CIO_KEY_ALT_F(2):
+						conn_send("\033[12;3~",3,0);
+						break;
+					case CIO_KEY_ALT_F(3):
+						conn_send("\033[13;3~",3,0);
+						break;
+					case CIO_KEY_ALT_F(4):
+						conn_send("\033[14;3~",3,0);
+						break;
+					case CIO_KEY_ALT_F(5):
+						conn_send("\033[15;3~",3,0);
+						break;
+					case CIO_KEY_ALT_F(6):
+						conn_send("\033[17;3~",5,0);
+						break;
+					case CIO_KEY_ALT_F(7):
+						conn_send("\033[18;3~",5,0);
+						break;
+					case CIO_KEY_ALT_F(8):
+						conn_send("\033[19;3~",5,0);
+						break;
+					case CIO_KEY_ALT_F(9):
+						conn_send("\033[20;3~",5,0);
+						break;
+					case CIO_KEY_ALT_F(10):
+						conn_send("\033[21;3~",5,0);
+						break;
+					case CIO_KEY_ALT_F(11):
+						conn_send("\033[23;3~",5,0);
+						break;
+					case CIO_KEY_ALT_F(12):
+						conn_send("\033[24;3~",5,0);
+						break;
 					case CIO_KEY_IC:
 						conn_send("\033[@",3,0);
 						break;
@@ -3111,6 +3195,9 @@ BOOL doterm(struct bbslist *bbs)
 					case 19:	/* CTRL-S */
 						ch[0]=key;
 						conn_send(ch,1,0);
+						break;
+					case CIO_KEY_BACKTAB:
+						conn_send("\033[Z", 3, 0);
 						break;
 					case '\b':
 						key='\b';
