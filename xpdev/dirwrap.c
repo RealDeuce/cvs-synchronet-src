@@ -1,7 +1,7 @@
 /* Directory-related system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.c,v 1.110 2019/09/20 08:59:34 rswindell Exp $ */
+/* $Id: dirwrap.c,v 1.112 2020/04/14 11:56:07 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -152,16 +152,16 @@ void DLLCALL _splitpath(const char *path, char *drive, char *dir, char *fname, c
 	ext[0]=0;
 	drive[0]=0;			/* no drive letters on Unix */
 
-	strcpy(dir,path);	/* Optional directory path, including trailing slash. */
+	snprintf(dir, MAX_PATH+1, "%s", path);	/* Optional directory path, including trailing slash. */
 	p=getfname(dir);
-	strcpy(fname,p);	/* Base filename (no extension) */
+	snprintf(fname, MAX_PATH+1, "%s", p);	/* Base filename (no extension) */
 	if(p==dir)
 		dir[0]=0;		/* no directory specified in path */
 	else
 		*p=0;			/* truncate dir at filename */
 	p=getfext(fname);
 	if(p!=NULL) {
-		strcpy(ext,p);	/* Optional filename extension, including leading period (.) */
+		snprintf(ext, MAX_PATH+1, "%s", p);	/* Optional filename extension, including leading period (.) */
 		*p=0;
 	}
 }
@@ -826,6 +826,7 @@ uint64_t DLLCALL getfilesizetotal(const char *inpath)
 	char path[MAX_PATH+1];
 	glob_t	g;
 	uint	gi;
+	off_t	size;
 	uint64_t total = 0;
 
 	SAFECOPY(path, inpath);
@@ -838,7 +839,7 @@ uint64_t DLLCALL getfilesizetotal(const char *inpath)
 	for(gi = 0; gi < g.gl_pathc; ++gi) {
 		if(*lastchar(g.gl_pathv[gi]) == '/')
 			continue;
-		off_t size = flength(g.gl_pathv[gi]);
+		size = flength(g.gl_pathv[gi]);
 		if(size >= 1)
 			total += size;
 	}
