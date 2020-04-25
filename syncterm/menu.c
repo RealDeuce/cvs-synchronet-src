@@ -1,10 +1,11 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: menu.c,v 1.62 2020/04/08 02:16:03 deuce Exp $ */
+/* $Id: menu.c,v 1.65 2020/04/17 16:54:23 deuce Exp $ */
 
 #include <genwrap.h>
 #include <uifc.h>
 #include <ciolib.h>
+#include <vidmodes.h>
 
 #include "cterm.h"
 #include "term.h"
@@ -23,7 +24,6 @@ void viewscroll(void)
 	struct	text_info txtinfo;
 	int	x,y;
 	struct mouse_event mevent;
-	int old_xlat=ciolib_xlat;
 	struct ciolib_screen *savscrn;
 
 	x=wherex();
@@ -43,6 +43,7 @@ void viewscroll(void)
 	setfont(0, FALSE, 4);
 	drawwin();
 	top=cterm->backpos;
+	set_modepalette(palettes[COLOUR_PALETTE]);
 	gotoxy(1,1);
 	textattr(uifc.hclr|(uifc.bclr<<4)|BLINK);
 	for(i=0;(!i) && (!quitting);) {
@@ -51,11 +52,9 @@ void viewscroll(void)
 		if(top>cterm->backpos)
 			top=cterm->backpos;
 		vmem_puttext(term.x-1,term.y-1,term.x+term.width-2,term.y+term.height-2,scrollback+(term.width*top));
-		ciolib_xlat = CIOLIB_XLAT_CHARS;
 		cputs("Scrollback");
 		gotoxy(cterm->width-9,1);
 		cputs("Scrollback");
-		ciolib_xlat = old_xlat;
 		gotoxy(1,1);
 		key=getch();
 		switch(key) {
@@ -135,7 +134,7 @@ int syncmenu(struct bbslist *bbs, int *speed)
 						,"Send Login ("ALT_KEY_NAMEP"-L)"
 						,"Upload ("ALT_KEY_NAMEP"-U)"
 						,"Download ("ALT_KEY_NAMEP"-D)"
-						,"Change Output Rate ("ALT_KEY_NAMEP"-Up/"ALT_KEY_NAMEP"-Down)"
+						,"Change Output Rate (Ctrl-Up/Ctrl-Down)"
 						,"Change Log Level"
 						,"Capture Control ("ALT_KEY_NAMEP"-C)"
 						,"ANSI Music Control ("ALT_KEY_NAMEP"-M)"
