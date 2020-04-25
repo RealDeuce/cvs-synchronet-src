@@ -1,4 +1,4 @@
-/* $Id: ciolib.h,v 1.119 2020/04/25 18:45:01 deuce Exp $ */
+/* $Id: ciolib.h,v 1.117 2020/04/17 18:00:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -35,9 +35,6 @@
 #define _CIOLIB_H_
 
 #include <string.h>	/* size_t */
-#if defined(__DARWIN__)
-#include <semwrap.h>
-#endif
 #include "gen_defs.h"
 #include "utf8_codepages.h"
 
@@ -551,19 +548,11 @@ CIOLIBEXPORT void CIOLIBCALL ansi_ciolib_setdoorway(int enable);
 	#include <gen_defs.h>
 	#include <SDL.h>
 
-#if defined(_WIN32) || defined(__DARWIN__)
+#ifdef _WIN32
 	#ifdef main
 		#undef main
 	#endif
 	#define main	CIOLIB_main
-#endif
-
-#if defined(__DARWIN__)
-	extern sem_t initsdl_sem;
-	extern sem_t main_sem;
-	extern sem_t startsdl_sem;
-	extern sem_t initsdldone_sem;
-	extern int initsdl_ret;
 #endif
 #endif
 
