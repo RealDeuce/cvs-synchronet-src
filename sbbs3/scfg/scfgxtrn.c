@@ -1,4 +1,4 @@
-/* $Id: scfgxtrn.c,v 1.69 2019/08/04 23:05:24 rswindell Exp $ */
+/* $Id: scfgxtrn.c,v 1.70 2020/03/25 05:41:55 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -909,7 +909,7 @@ void xtrn_cfg(uint section)
 				"\n"
 				"This is the name or description of the online program (door).\n"
 			;
-			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Online Program Name",str,25
+			if(uifc.input(WIN_MID|WIN_SAV,0,0,"Online Program Name",str,40
 				,0)<1)
 				continue;
 			SAFECOPY(code,str);
