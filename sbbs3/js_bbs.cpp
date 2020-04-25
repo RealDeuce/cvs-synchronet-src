@@ -2,7 +2,7 @@
 
 /* Synchronet JavaScript "bbs" Object */
 
-/* $Id: js_bbs.cpp,v 1.187 2019/08/02 10:36:45 rswindell Exp $ */
+/* $Id: js_bbs.cpp,v 1.194 2020/04/24 08:33:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2049,6 +2049,8 @@ js_qwk_sec(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		section = (char*)"";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2056,9 +2058,11 @@ js_xtrn_sec(JSContext *cx, uintN argc, jsval *arglist)
 		return(JS_FALSE);
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
-
+	if(argc > 0) {
+		JSVALUE_TO_ASTRING(cx, argv[0], section, LEN_CODE + 1, NULL);
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->xtrn_sec();
+	sbbs->xtrn_sec(section);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2496,6 +2500,8 @@ js_change_user(JSContext *cx, uintN argc, jsval *arglist)
 static JSBool
 js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 {
+	jsval *argv=JS_ARGV(cx, arglist);
+	char*		args=(char*)"";
 	sbbs_t*		sbbs;
 	jsrefcount	rc;
 
@@ -2504,8 +2510,11 @@ js_logonlist(JSContext *cx, uintN argc, jsval *arglist)
 
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
+	if(argc > 0) {
+		JSVALUE_TO_ASTRING(cx, argv[0], args, LEN_CMD, NULL);
+	}
 	rc=JS_SUSPENDREQUEST(cx);
-	sbbs->logonlist();
+	sbbs->logonlist(args);
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
@@ -2650,12 +2659,14 @@ js_email(JSContext *cx, uintN argc, jsval *arglist)
 			js_top=JS_ValueToString(cx,argv[i]);
 		else if(JSVAL_IS_STRING(argv[i]))
 			js_subj=JS_ValueToString(cx,argv[i]);
-		else if(JSVAL_IS_OBJECT(argv[i])) {
+		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
 			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -2696,45 +2707,80 @@ js_netmail(JSContext *cx, uintN argc, jsval *arglist)
 	sbbs_t*		sbbs;
 	smb_t*		resmb = NULL;
 	smbmsg_t*	remsg = NULL;
+	str_list_t	to_list = NULL;
 	smbmsg_t	msg;
 	jsrefcount	rc;
+	bool		error = false;
 
 	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
 		return(JS_FALSE);
 
 	ZERO_VAR(msg);
-	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+	JS_SET_RVAL(cx, arglist, JSVAL_FALSE);
 
  	if(!js_argc(cx, argc, 1))
 		return(JS_FALSE);
 
-	for(uintN i=0; i<argc; i++) {
+	for(uintN i=0; i<argc && !error; i++) {
 		if(JSVAL_IS_NUMBER(argv[i])) {
 			if(!JS_ValueToECMAUint32(cx,argv[i],&mode))
-				return JS_FALSE;
+				error = true;
 		}
 		else if(JSVAL_IS_STRING(argv[i])) {
-			js_str = JS_ValueToString(cx, argv[i]);
-			if(to == NULL) {
+			if((js_str = JS_ValueToString(cx, argv[i])) == NULL) {
+				error = true;
+				break;
+			}
+			if(to == NULL && to_list == NULL) {
 				JSSTRING_TO_MSTRING(cx, js_str, to, NULL);
 			} else if(subj == NULL) {
 				JSSTRING_TO_MSTRING(cx, js_str, subj, NULL);
 			}
 		}
-		else if(JSVAL_IS_OBJECT(argv[i])) {
-			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL)
-				return JS_FALSE;
+		else if(JSVAL_IS_OBJECT(argv[i]) && !JSVAL_IS_NULL(argv[i])) {
+			if((hdrobj = JSVAL_TO_OBJECT(argv[i])) == NULL) {
+				error = true;
+				break;
+			}
+			jsuint len=0;
+			if(JS_GetArrayLength(cx, hdrobj, &len) && len > 0) { // to_list[]
+				to_list = strListInit();
+				for(jsuint j=0; j < len; j++) {
+					jsval		val;
+					if(!JS_GetElement(cx, hdrobj, j, &val)) {
+						error = true;
+						break;
+					}
+					if((js_str = JS_ValueToString(cx, val)) == NULL) {
+						error = true;
+						break;
+					}
+					char* cstr = NULL;
+					JSSTRING_TO_ASTRING(cx, js_str, cstr, 64, NULL);
+					if(cstr == NULL) {
+						error = true;
+						break;
+					}
+					strListPush(&to_list, cstr);
+				}
+				continue;
+			}
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
-					return JS_FALSE;
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
+					error = true;
+					break;
+				}
 				remsg = &msg;
 			}
 		}
 	}
 
 	rc=JS_SUSPENDREQUEST(cx);
-	JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->netmail(to, subj, mode, resmb, remsg)));
+	if(!error)
+		JS_SET_RVAL(cx, arglist, BOOLEAN_TO_JSVAL(sbbs->netmail(to, subj, mode, resmb, remsg, to_list)));
 	smb_freemsgmem(&msg);
+	strListFree(&to_list);
 	FREE_AND_NULL(subj);
 	FREE_AND_NULL(to);
 	JS_RESUMEREQUEST(cx, rc);
@@ -3549,12 +3595,14 @@ js_post_msg(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToECMAUint32(cx,argv[n],&mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_OBJECT(argv[n])) {
+		else if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &resmb, &remsg, /* post: */NULL)) {
-				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg))
+				if(!js_ParseMsgHeaderObject(cx, hdrobj, &msg)) {
+					JS_ReportError(cx, "msg hdr object cannot be parsed");
 					return JS_FALSE;
+				}
 				remsg = &msg;
 			}
 		}
@@ -3591,10 +3639,11 @@ js_show_msg(JSContext *cx, uintN argc, jsval *arglist)
 			if(!JS_ValueToECMAUint32(cx, argv[n], &p_mode))
 				return JS_FALSE;
 		}
-		else if(JSVAL_IS_OBJECT(argv[n])) {
+		else if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, &post)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		}
@@ -3629,10 +3678,13 @@ js_show_msg_header(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	for(n=0; n<argc; n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
-			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
+			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL) {
+				JS_ReportError(cx, "invalid object argument");
 				return JS_FALSE;
+			}
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_STRING(argv[n])) {
@@ -3677,10 +3729,11 @@ js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
 	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
 
 	for(n=0; n<argc; n++) {
-		if(JSVAL_IS_OBJECT(argv[n])) {
+		if(JSVAL_IS_OBJECT(argv[n]) && !JSVAL_IS_NULL(argv[n])) {
 			if((hdrobj=JSVAL_TO_OBJECT(argv[n]))==NULL)
 				return JS_FALSE;
 			if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, &smb, &msg, NULL)) {
+				JS_ReportError(cx, "msg hdr object lacks privates");
 				return JS_FALSE;
 			}
 		} else if(JSVAL_IS_BOOLEAN(argv[n])) {
@@ -3695,6 +3748,40 @@ js_download_msg_attachments(JSContext *cx, uintN argc, jsval *arglist)
 	JS_RESUMEREQUEST(cx, rc);
 
 	return(JS_TRUE);
+}
+
+static JSBool
+js_change_msg_attr(JSContext *cx, uintN argc, jsval *arglist)
+{
+	jsval *argv=JS_ARGV(cx, arglist);
+	JSObject*	hdrobj;
+	sbbs_t*		sbbs;
+	smbmsg_t*	msg = NULL;
+	jsrefcount	rc;
+
+	if((sbbs=js_GetPrivate(cx, JS_THIS_OBJECT(cx, arglist)))==NULL)
+		return(JS_FALSE);
+
+	JS_SET_RVAL(cx, arglist, JSVAL_VOID);
+
+	if(argc < 1 || !JSVAL_IS_OBJECT(argv[0]) || JSVAL_IS_NULL(argv[0]))
+		return JS_TRUE;
+
+	if((hdrobj=JSVAL_TO_OBJECT(argv[0]))==NULL)
+		return JS_FALSE;
+	if(!js_GetMsgHeaderObjectPrivates(cx, hdrobj, NULL, &msg, NULL)) {
+		JS_ReportError(cx, "msg hdr object lacks privates");
+		return JS_FALSE;
+	}
+	if(msg == NULL)
+		return JS_TRUE;
+
+	rc=JS_SUSPENDREQUEST(cx);
+	int32 attr = sbbs->chmsgattr(*msg);
+	JS_RESUMEREQUEST(cx, rc);
+
+	JS_SET_RVAL(cx, arglist, INT_TO_JSVAL(attr));
+	return JS_TRUE;
 }
 
 static JSBool
@@ -3884,7 +3971,7 @@ js_listmsgs(JSContext *cx, uintN argc, jsval *arglist)
 	jsval *argv=JS_ARGV(cx, arglist);
 	const char	*def="";
 	char*		find=(char *)def;
-	uint32		mode=0;
+	uint32		mode=SCAN_INDEX;
 	uint32		start=0;
 	uint		subnum;
 	sbbs_t*		sbbs;
@@ -4147,8 +4234,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("enter the text files section")
 	,310
 	},
-	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("enter the external programs section")
+	{"xtrn_sec",		js_xtrn_sec,		0,	JSTYPE_VOID,	JSDOCSTR("[section]")
+	,JSDOCSTR("enter the external programs section (or go directly to the specified <i>section</i>)")
 	,310
 	},
 	{"xfer_policy",		js_xfer_policy,		0,	JSTYPE_VOID,	JSDOCSTR("")
@@ -4235,8 +4322,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("change to a different user")
 	,310
 	},
-	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("")
-	,JSDOCSTR("display the logon list")
+	{"list_logons",		js_logonlist,		0,	JSTYPE_VOID,	JSDOCSTR("[arguments]")
+	,JSDOCSTR("display the logon list (optionally passing arguments to the logon list module)")
 	,310
 	},
 	{"read_mail",		js_readmail,		0,	JSTYPE_VOID,	JSDOCSTR("[which=<tt>MAIL_YOUR</tt>] [,user_number=<i>current</i>] [,loadmail_mode=<tt>0</tt>]")
@@ -4248,8 +4335,8 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,JSDOCSTR("send private e-mail to a local user (<i>reply_header</i> added in v3.17c)")
 	,310
 	},
-	{"netmail",			js_netmail,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("address [,mode=<tt>WM_NONE</tt>] [,subject=<i>none</i>] [,object reply_header]")
-	,JSDOCSTR("send private netmail (<i>reply_header</i> added in v3.17c)")
+	{"netmail",			js_netmail,			1,	JSTYPE_BOOLEAN,	JSDOCSTR("[string address or array of addresses] [,mode=<tt>WM_NONE</tt>] [,subject=<i>none</i>] [,object reply_header]")
+	,JSDOCSTR("send private netmail (<i>reply_header</i> added in v3.17c, <i>array of addresses</i> added in v3.18a)")
 	,310
 	},
 	{"bulk_mail",		js_bulkmail,		0,	JSTYPE_VOID,	JSDOCSTR("[ars]")
@@ -4286,19 +4373,23 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 		"will be used for the in-reply-to header fields.")
 	,313
 	},
-	{"show_msg",		js_show_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("[object header] [,mode=<tt>P_NONE</tt>] ")
+	{"show_msg",		js_show_msg,		1,	JSTYPE_BOOLEAN,	JSDOCSTR("object header [,mode=<tt>P_NONE</tt>] ")
 	,JSDOCSTR("show a message's header and body (text) with optional print <i>mode</i> (bitfield)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
 	,31702
 	},
-	{"show_msg_header",	js_show_msg_header,	1,	JSTYPE_VOID,	JSDOCSTR("[object header] [,subject] [,from] [,to]")
+	{"show_msg_header",	js_show_msg_header,	1,	JSTYPE_VOID,	JSDOCSTR("object header [,subject] [,from] [,to]")
 	,JSDOCSTR("show a message's header (only)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
 	,31702
 	},
-	{"download_msg_attachments", js_download_msg_attachments, 1, JSTYPE_VOID, JSDOCSTR("[object header]")
+	{"download_msg_attachments", js_download_msg_attachments, 1, JSTYPE_VOID, JSDOCSTR("object header")
 	,JSDOCSTR("prompt the user to download each of the message's file attachments (if there are any)<br>"
 		"<i>header</i> must be a header object returned from <i>MsgBase.get_msg_header()</i>)")
+	,31702
+	},
+	{"change_msg_attr", js_change_msg_attr, 1, JSTYPE_NUMBER, JSDOCSTR("object header")
+	,JSDOCSTR("prompt the user to modify the specified message header attributes")
 	,31702
 	},
 	{"cfg_msg_scan",	js_msgscan_cfg,		0,	JSTYPE_VOID,	JSDOCSTR("[type=<tt>SCAN_CFG_NEW</tt>]")
@@ -4328,7 +4419,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 		"optionally search for 'find' string (AKA scan_posts)")
 	,310
 	},
-	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_READ</tt>] [,message_number=<tt>0</tt>] [,find]")
+	{"list_msgs",		js_listmsgs,		1,	JSTYPE_NUMBER,	JSDOCSTR("[sub-board=<i>current</i>] [,mode=<tt>SCAN_INDEX</tt>] [,message_number=<tt>0</tt>] [,find]")
 	,JSDOCSTR("list messages in the specified message sub-board (number or internal code), "
 		"optionally search for 'find' string, returns number of messages listed")
 	,314
@@ -4356,7 +4447,7 @@ static jsSyncMethodSpec js_bbs_functions[] = {
 	,310
 	},
 	{"trashcan",		js_trashcan,		2,	JSTYPE_BOOLEAN,	JSDOCSTR("base_filename, search_string")
-	,JSDOCSTR("search file for psuedo-regexp (search string) in trashcan file (text/base_filename.can)")
+	,JSDOCSTR("search file for pseudo-regexp (search string) in trashcan file (text/base_filename.can)")
 	,310
 	},
 	/* xtrn programs/modules */
