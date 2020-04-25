@@ -181,7 +181,7 @@ const struct sdl_keyvals sdl_keyval[] =
 	{0, 0, 0, 0, 0}	/** END **/
 };
 
-static void sdl_video_event_thread(void *data);
+void sdl_video_event_thread(void *data);
 
 static void sdl_user_func(int func, ...)
 {
@@ -311,7 +311,6 @@ void sdl_flush(void)
 static int sdl_init_mode(int mode)
 {
 	int oldcols;
-	int cmw, cmh, nmw, nmh;
 
 	if (mode != CIOLIB_MODE_CUSTOM) {
 		pthread_mutex_lock(&vstatlock);
@@ -329,7 +328,7 @@ static int sdl_init_mode(int mode)
 	oldcols = cvstat.cols;
 	bitmap_drv_init_mode(mode, &bitmap_width, &bitmap_height);
 	vstat.winwidth = ((double)cvstat.winwidth / (cvstat.cols * cvstat.charwidth)) * (vstat.cols * vstat.charwidth);
-	vstat.winheight = ((double)cvstat.winheight / (cvstat.rows * cvstat.charheight * cvstat.vmultiplier)) * (vstat.rows * vstat.charwidth * vstat.vmultiplier);
+	vstat.winheight = ((double)cvstat.winheight / (cvstat.rows * cvstat.charheight * cvstat.vmultiplier)) * (vstat.rows * vstat.charheight * vstat.vmultiplier);
 	if (oldcols != vstat.cols) {
 		if (oldcols == 40) {
 			vstat.winwidth /= 2;
@@ -346,13 +345,6 @@ static int sdl_init_mode(int mode)
 		vstat.winheight = vstat.charheight * vstat.rows;
 	if(vstat.vmultiplier < 1)
 		vstat.vmultiplier = 1;
-	if (win) {
-		cmw = cvstat.charwidth * cvstat.cols;
-		nmw = vstat.charwidth * vstat.cols;
-		cmh = cvstat.charheight * cvstat.rows;
-		nmh = vstat.charheight * vstat.rows;
-		sdl.SetWindowMinimumSize(win, cmw < nmw ? cmw : nmw, cmh < nmh ? cmh : nmh);
-	}
 
 	cvstat = vstat;
 	pthread_mutex_unlock(&vstatlock);
@@ -371,7 +363,11 @@ int sdl_init(int mode)
 	if(mode==CIOLIB_MODE_SDL_FULLSCREEN)
 		fullscreen=1;
 	// Needs to be *after* bitmap_drv_init()
+#if defined(__DARWIN__)
+	sem_post(&startsdl_sem);
+#else
 	_beginthread(sdl_video_event_thread, 0, NULL);
+#endif
 	sdl_user_func_ret(SDL_USEREVENT_INIT);
 	sdl_init_mode(3);
 
@@ -401,6 +397,14 @@ void sdl_setwinsize_locked(int w, int h)
 		h = cvstat.charheight * cvstat.rows;
 	cvstat.winwidth = vstat.winwidth = w;
 	cvstat.winheight = vstat.winheight = h;
+	if (win) {
+		int cmw, nmw, cmh, nmh;
+		cmw = cvstat.charwidth * cvstat.cols;
+		nmw = vstat.charwidth * vstat.cols;
+		cmh = cvstat.charheight * cvstat.rows;
+		nmh = vstat.charheight * vstat.rows;
+		sdl.SetWindowMinimumSize(win, cmw < nmw ? cmw : nmw, cmh < nmh ? cmh : nmh);
+	}
 }
 
 void sdl_setwinsize(int w, int h)
@@ -752,7 +756,7 @@ static int win_to_text_ypos(int winpos)
 	return ret;
 }
 
-static void sdl_video_event_thread(void *data)
+void sdl_video_event_thread(void *data)
 {
 	SDL_Event	ev;
 	int		old_w, old_h;
@@ -1054,7 +1058,13 @@ static void sdl_video_event_thread(void *data)
 
 int sdl_initciolib(int mode)
 {
+#if defined(__DARWIN__)
+	sem_post(&initsdl_sem);
+	sem_wait(&initsdldone_sem);
+	if (initsdl_ret) {
+#else
 	if(init_sdl_video()) {
+#endif
 		fprintf(stderr,"SDL Video Initialization Failed\n");
 		return(-1);
 	}
