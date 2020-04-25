@@ -1,4 +1,4 @@
-/* $Id: x_cio.c,v 1.50 2018/07/24 01:10:58 rswindell Exp $ */
+/* $Id: x_cio.c,v 1.54 2020/04/17 19:49:28 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -31,6 +31,7 @@
  * Note: If this box doesn't appear square, then you need to fix your tabs.	*
  ****************************************************************************/
 
+#include <locale.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,6 +129,23 @@ void x_settitle(const char *title)
 	write_event(&ev);
 }
 
+void x_seticon(const void *icon, unsigned long size)
+{
+	const uint32_t *icon32 = icon;
+	struct x11_local_event ev;
+	int i;
+
+	ev.data.icon_data = malloc((size*size + 2)*sizeof(ev.data.icon_data[0]));
+	if (ev.data.icon_data != NULL) {
+		ev.type=X11_LOCAL_SETICON;
+		for (i = 0; i < size*size; i++)
+			ev.data.icon_data[i + 2] = ((icon32[i] & 0xff000000))|((icon32[i] & 0x00ff0000) >> 16)|((icon32[i] & 0x0000ff00))|((icon32[i] & 0x000000ff)<<16);
+		ev.data.icon_data[0] = size;
+		ev.data.icon_data[1] = size;
+		write_event(&ev);
+	}
+}
+
 void x_copytext(const char *text, size_t buflen)
 {
 	struct x11_local_event ev;
@@ -139,6 +157,7 @@ void x_copytext(const char *text, size_t buflen)
 	if(copybuf) {
 		ev.type=X11_LOCAL_COPY;
 		write_event(&ev);
+		copybuf_format = XA_STRING;
 	}
 	pthread_mutex_unlock(&copybuf_mutex);
 	return;
@@ -396,6 +415,40 @@ int x_init(void)
 		xp_dlclose(dl);
 		return(-1);
 	}
+	if((x11.XAllocClassHint=xp_dlsym(dl,XAllocClassHint))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetForeground=xp_dlsym(dl,XSetForeground))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetLocaleModifiers=xp_dlsym(dl,XSetLocaleModifiers))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XOpenIM=xp_dlsym(dl,XOpenIM))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XCreateIC=xp_dlsym(dl,XCreateIC))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XwcLookupString=xp_dlsym(dl,XwcLookupString))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XSetICFocus=xp_dlsym(dl,XSetICFocus))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	if((x11.XFilterEvent=xp_dlsym(dl,XFilterEvent))==NULL) {
+		xp_dlclose(dl);
+		return(-1);
+	}
+	setlocale(LC_ALL, "");
+	x11.XSetLocaleModifiers("@im=none");
 
 	if(sem_init(&pastebuf_set, 0, 0)) {
 		xp_dlclose(dl);
