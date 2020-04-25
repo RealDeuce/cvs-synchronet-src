@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.139 2019/07/16 15:09:47 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.144 2020/04/25 17:26:45 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -33,7 +33,7 @@ static struct palette_entry palette[65536];
 
 #if 0
 
-int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
+static int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
 {
 	int ret = pthread_mutex_lock(lptr);
 
@@ -42,7 +42,7 @@ int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
 	return ret;
 }
 
-int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
+static int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
 {
 	int ret = pthread_mutex_unlock(lptr);
 
@@ -51,7 +51,7 @@ int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
 	return ret;
 }
 
-int dbg_pthread_mutex_trylock(pthread_mutex_t *lptr, unsigned line)
+static int dbg_pthread_mutex_trylock(pthread_mutex_t *lptr, unsigned line)
 {
 	int ret = pthread_mutex_trylock(lptr);
 
@@ -91,7 +91,6 @@ static struct bitmap_screen screen;
 struct video_stats vstat;
 static struct bitmap_callbacks callbacks;
 static unsigned char *font[4];
-static unsigned char space=' ';
 static int force_redraws=0;
 static int update_pixels = 0;
 struct rectlist *free_rects;
@@ -434,8 +433,9 @@ static struct rectlist *alloc_full_rect(void)
 	while (free_rects) {
 		if (free_rects->rect.width == screen.screenwidth && free_rects->rect.height == screen.screenheight) {
 			ret = free_rects;
-			ret->rect.x = ret->rect.y = 0;
 			free_rects = free_rects->next;
+			ret->next = NULL;
+			ret->rect.x = ret->rect.y = 0;
 			return ret;
 		}
 		else {
@@ -447,6 +447,7 @@ static struct rectlist *alloc_full_rect(void)
 	}
 
 	ret = malloc(sizeof(struct rectlist));
+	ret->next = NULL;
 	ret->rect.x = 0;
 	ret->rect.y = 0;
 	ret->rect.width = screen.screenwidth;
@@ -535,19 +536,23 @@ static int bitmap_draw_one_char(unsigned int xpos, unsigned int ypos)
 	fg = vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].fg;
 	bg = vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].bg;
 
-	switch (vstat.charheight) {
-		case 8:
-			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_eight;
-			break;
-		case 14:
-			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_fourteen;
-			break;
-		case 16:
-			this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_sixteen;
-			break;
-		default:
-			pthread_mutex_unlock(&screen.screenlock);
-			return(-1);
+	if (current_font[0] == -1)
+		this_font = font[0];
+	else {
+		switch (vstat.charheight) {
+			case 8:
+				this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_eight;
+				break;
+			case 14:
+				this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_fourteen;
+				break;
+			case 16:
+				this_font = (unsigned char *)conio_fontdata[vmem_ptr->vmem[(ypos-1)*cio_textinfo.screenwidth+(xpos-1)].font].eight_by_sixteen;
+				break;
+			default:
+				pthread_mutex_unlock(&screen.screenlock);
+				return(-1);
+		}
 	}
 	if (this_font == NULL)
 		this_font = font[0];
@@ -963,10 +968,6 @@ int bitmap_setfont(int font, int force, int font_num)
 			/* Fall-through */
 		case 1:
 			current_font[0]=font;
-			if(font==36 /* ATARI */)
-				space=0;
-			else
-				space=' ';
 			break;
 		case 2:
 		case 3:
@@ -1005,7 +1006,7 @@ int bitmap_setfont(int font, int force, int font_num)
 							old++;
 						}
 						else {
-							new->ch=space;
+							new->ch=' ';
 							new->legacy_attr=attr;
 							new->font = font;
 							new->fg = ciolib_fg;
@@ -1014,7 +1015,7 @@ int bitmap_setfont(int font, int force, int font_num)
 						}
 					}
 					else {
-							new->ch=space;
+							new->ch=' ';
 							new->legacy_attr=attr;
 							new->font = font;
 							new->fg = ciolib_fg;
@@ -1158,7 +1159,7 @@ int bitmap_movetext(int x, int y, int ex, int ey, int tox, int toy)
 void bitmap_clreol(void)
 {
 	int pos,x;
-	WORD fill=(cio_textinfo.attribute<<8)|space;
+	WORD fill=(cio_textinfo.attribute<<8)|' ';
 	struct vstat_vmem *vmem_ptr;
 	int row;
 
@@ -1179,7 +1180,7 @@ void bitmap_clreol(void)
 void bitmap_clrscr(void)
 {
 	int x,y;
-	WORD fill=(cio_textinfo.attribute<<8)|space;
+	WORD fill=(cio_textinfo.attribute<<8)|' ';
 	struct vstat_vmem *vmem_ptr;
 
 	pthread_mutex_lock(&blinker_lock);
@@ -1542,8 +1543,8 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 	/* Initialize video memory with black background, white foreground */
 	for (i = 0; i < vstat.cols*vstat.rows; ++i) {
 		vstat.vmem->vmem[i].ch = 0;
-		vstat.vmem->vmem[i].legacy_attr = 7;
-		bitmap_attr2palette_locked(7, &vstat.vmem->vmem[i].fg, &vstat.vmem->vmem[i].bg);
+		vstat.vmem->vmem[i].legacy_attr = vstat.currattr;
+		bitmap_attr2palette_locked(vstat.currattr, &vstat.vmem->vmem[i].fg, &vstat.vmem->vmem[i].bg);
 	}
 
 	pthread_mutex_lock(&screen.screenlock);
@@ -1567,8 +1568,8 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 		current_font[i]=default_font;
 	bitmap_loadfont_locked(NULL);
 
-	cio_textinfo.attribute=7;
-	cio_textinfo.normattr=7;
+	cio_textinfo.attribute=vstat.currattr;
+	cio_textinfo.normattr=vstat.currattr;
 	cio_textinfo.currmode=mode;
 
 	if (vstat.rows > 0xff)
