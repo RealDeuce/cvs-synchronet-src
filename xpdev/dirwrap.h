@@ -1,7 +1,7 @@
 /* Directory system-call wrappers */
 // vi: tabstop=4
 
-/* $Id: dirwrap.h,v 1.54 2019/09/20 08:24:36 rswindell Exp $ */
+/* $Id: dirwrap.h,v 1.55 2019/09/20 08:59:34 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -228,7 +228,7 @@ DLLEXPORT char*		DLLCALL getfname(const char* path);
 DLLEXPORT char*		DLLCALL getfext(const char* path);
 DLLEXPORT int		DLLCALL getfattr(const char* filename);
 DLLEXPORT int		DLLCALL getfmode(const char* filename);
-DLLEXPORT ulong		DLLCALL getfilecount(const char *inpath, const char* spec);
+DLLEXPORT ulong		DLLCALL getfilecount(const char *path);
 DLLEXPORT char*		DLLCALL getdirname(const char* path);
 DLLEXPORT long		DLLCALL	getdirsize(const char* path, BOOL include_subdirs, BOOL subdir_only);
 DLLEXPORT ulong		DLLCALL getdisksize(const char* path, ulong unit);
