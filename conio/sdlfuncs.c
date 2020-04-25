@@ -241,12 +241,14 @@ int load_sdl_funcs(struct sdlfuncs *sdlf)
 		xp_dlclose(sdl_dll);
 		return(-1);
 	}
+#ifndef STATIC_SDL
 	{
 		int (HACK_HACK_HACK *ra)(char *name, Uint32 style, void *hInst);
 		if ((ra = xp_dlsym(sdl_dll, SDL_RegisterApp)) != NULL) {
 			ra(ciolib_appname, 0, NULL);
 		}
 	}
+#endif
 
 	sdlf->gotfuncs=1;
 	sdl_funcs_loaded=1;
@@ -344,7 +346,9 @@ int init_sdl_audio(void)
 static void QuitWrap(void)
 {
 	if (sdl_initialized) {
+#if !defined(__DARWIN__)
 		exit_sdl_con();
+#endif
 		if(sdl.Quit)
 			sdl.Quit();
 	}
