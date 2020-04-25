@@ -3,7 +3,7 @@
 #
 # Global build system setup file (for GNU Make and gcc)
 #
-# $Id: Common.gmake,v 1.110 2020/04/25 03:51:34 deuce Exp $
+# $Id: Common.gmake,v 1.111 2020/04/25 05:42:23 deuce Exp $
 #
 #############################################################################
 # @format.tab-size 4		(Plain Text/Source Code File Header)			#
@@ -407,9 +407,7 @@ HASH_SRC 	:=	$(SRC_ROOT)$(DIRSEP)hash
 
 # SDL ciolib enabled by default for the moment.
 ifndef WITHOUT_SDL
- ifndef USE_SDL_AUDIO
-  USE_SDL	:=	1
- endif
+ USE_SDL	:=	1
 endif
 
 # Pull in lib-specific flags
