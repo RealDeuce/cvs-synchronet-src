@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.130 2020/04/26 09:00:30 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.131 2020/04/26 23:06:19 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -918,7 +918,7 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 		return sectostr(useron.textra, str) + 3;
 
 	if(strcmp(sp, "MBANKED") == 0) {
-		safe_snprintf(str, maxlen, "%u", useron.min);
+		safe_snprintf(str, maxlen, "%lu", useron.min);
 		return str;
 	}
 
