@@ -1,4 +1,4 @@
-/* $Id: fmsgdump.c,v 3.5 2020/03/29 22:45:28 rswindell Exp $ */
+/* $Id: fmsgdump.c,v 3.6 2020/04/26 21:01:55 rswindell Exp $ */
 // vi: tabstop=4
 
 #include "gen_defs.h"
@@ -136,7 +136,7 @@ int msgdump(FILE* fp, const char* fname)
 	return(0);
 }
 
-char* usage = "usage: fmsgdump [-body] [-ctrl] <file1.msg> [file2.msg] [...]\n";
+char* usage = "usage: fmsgdump [-body | -ctrl] <file1.msg> [file2.msg] [...]\n";
 
 int main(int argc, char** argv)
 {
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 3.5 $", "%*s %s", revision);
+	sscanf("$Revision: 3.6 $", "%*s %s", revision);
 
 	fprintf(stderr,"fmsgdump rev %s - Dump FidoNet Stored Messages\n\n"
 		,revision
