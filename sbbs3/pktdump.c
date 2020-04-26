@@ -1,6 +1,6 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.15 2020/04/09 20:36:10 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.16 2020/04/26 21:01:22 rswindell Exp $ */
 
 #include "fidodefs.h"
 #include "xpendian.h"	/* swap */
@@ -11,6 +11,7 @@
 
 FILE* nulfp;
 FILE* bodyfp;
+FILE* ctrlfp;
 
 /****************************************************************************/
 /* Returns an ASCII string for FidoNet address 'addr'                       */
@@ -214,7 +215,18 @@ int pktdump(FILE* fp, const char* fname, FILE* good, FILE* bad)
 
 		fprintf(bodyfp,"\n-start of message text-\n");
 
+		size_t count = 0;
 		while((ch=fgetc(fp))!=EOF && ch!=0) {
+			count++;
+			if((count == 1 || lastch == '\r') && ch == 1) {
+				fputc('@', ctrlfp);
+				while((ch = fgetc(fp)) != EOF && ch != 0 && ch != '\r')
+					fputc(ch, ctrlfp);
+				fputc('\n', ctrlfp);
+				if(ch == 0)
+					break;
+				continue;
+			}
 			if(lastch=='\r' && ch!='\n')
 				fputc('\n',bodyfp);
 			fputc(lastch=ch,bodyfp);
@@ -238,7 +250,7 @@ int pktdump(FILE* fp, const char* fname, FILE* good, FILE* bad)
 	return(0);
 }
 
-char* usage = "usage: pktdump [-body] [-recover | -split] <file1.pkt> [file2.pkt] [...]\n";
+char* usage = "usage: pktdump [-body | -ctrl] [-recover | -split] <file1.pkt> [file2.pkt] [...]\n";
 
 int main(int argc, char** argv)
 {
@@ -248,7 +260,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.15 $", "%*s %s", revision);
+	sscanf("$Revision: 1.16 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
@@ -264,6 +276,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 	bodyfp=nulfp;
+	ctrlfp=nulfp;
 
 	if(sizeof(fpkthdr_t)!=FIDO_PACKET_HDR_LEN) {
 		printf("sizeof(fpkthdr_t)=%" XP_PRIsize_t "u, expected: %d\n",sizeof(fpkthdr_t),FIDO_PACKET_HDR_LEN);
@@ -283,6 +296,9 @@ int main(int argc, char** argv)
 			switch(tolower(argv[i][1])) {
 				case 'b':
 					bodyfp=stdout;
+					/* fall-through */
+				case 'c':
+					ctrlfp = stdout;
 					break;
 				case 'r':
 					recover=true;
