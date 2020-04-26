@@ -1,4 +1,4 @@
-/* $Id: ciolib.c,v 1.194 2020/04/25 18:45:01 deuce Exp $ */
+/* $Id: ciolib.c,v 1.195 2020/04/26 06:46:59 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1909,7 +1909,6 @@ void main_stub(void *argptr)
 int main(int argc, char **argv)
 {
 	struct main_args ma = {argc, argv, -1, 0};
-
 	sem_init(&initsdl_sem, 0, 0);
 	sem_init(&initsdldone_sem, 0, 0);
 	sem_init(&startsdl_sem, 0, 0);
