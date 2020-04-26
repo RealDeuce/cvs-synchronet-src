@@ -1,6 +1,6 @@
 /* Synchronet user login routine */
 
-/* $Id: login.cpp,v 1.30 2020/03/31 08:28:20 rswindell Exp $ */
+/* $Id: login.cpp,v 1.31 2020/04/26 06:32:05 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -70,7 +70,7 @@ int sbbs_t::login(char *username, char *pw_prompt, const char* user_pw, const ch
 
 	if(!useron.number) {
 		useron.number=matchuser(&cfg,username,FALSE);
-		if(!useron.number && (uchar)username[0]<0x7f && str[1]
+		if(!useron.number && (uchar)username[0]<0x7f && username[1]
 			&& isalpha(username[0]) && strchr(username,' ') && cfg.node_misc&NM_LOGON_R)
 			useron.number=userdatdupe(0,U_NAME,LEN_NAME,username);
 		if(useron.number) {
