@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail tosser/scanner/areafix program */
 
-/* $Id: sbbsecho.h,v 3.40 2020/04/26 22:59:59 rswindell Exp $ */
+/* $Id: sbbsecho.h,v 3.41 2020/04/27 05:42:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -162,6 +162,7 @@ struct fido_domain {
 struct robot {
 	char		name[FIDO_NAME_LEN];
 	char		semfile[MAX_PATH + 1];
+	uint16_t	attr;
 	unsigned	recv_count;
 };
 

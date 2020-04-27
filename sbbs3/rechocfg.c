@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: rechocfg.c,v 3.46 2020/04/26 22:59:59 rswindell Exp $ */
+/* $Id: rechocfg.c,v 3.47 2020/04/27 05:42:51 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -484,6 +484,7 @@ bool sbbsecho_read_ini(sbbsecho_cfg_t* cfg)
 		memset(bot, 0, sizeof(*bot));
 		SAFECOPY(bot->name, robot + 6);
 		SAFECOPY(bot->semfile, iniGetString(ini, robot, "SemFile", "", value));
+		bot->attr = iniGetShortInt(ini, robot, "attr", 0);
 	}
 	strListFree(&robots);
 
