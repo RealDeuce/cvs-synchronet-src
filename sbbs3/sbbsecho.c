@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.165 2020/04/27 07:01:38 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.166 2020/04/27 21:52:27 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -1141,7 +1141,7 @@ int create_netmail(const char *to, const smbmsg_t* msg, const char *subject, con
 			nodecfg=findnodecfg(&cfg, dest, /* skip exact match: */2);
 	}
 
-	if(!isdir(scfg.netmail_dir) && MKDIR(scfg.netmail_dir) != 0) {
+	if(!isdir(scfg.netmail_dir) && mkpath(scfg.netmail_dir) != 0) {
 		lprintf(LOG_ERR, "Error %u (%s) line %d creating directory: %s", errno, strerror(errno), __LINE__, scfg.netmail_dir);
 		return -2;
 	}
@@ -4296,7 +4296,7 @@ int pkt_to_msg(FILE* fidomsg, fmsghdr_t* hdr, const char* info, const char* inbo
 		printf("Empty NetMail");
 	else {
 		printf("Exporting: ");
-		if(!isdir(scfg.netmail_dir) && MKDIR(scfg.netmail_dir) != 0) {
+		if(!isdir(scfg.netmail_dir) && mkpath(scfg.netmail_dir) != 0) {
 			lprintf(LOG_ERR, "Error %u (%s) line %d creating directory: %s"
 				,errno, strerror(errno), __LINE__, scfg.netmail_dir);
 			free(fmsgbuf);
@@ -4610,7 +4610,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 				SAFEPRINTF2(str,"%s%s", inbound, tp);
 			}
 			SAFEPRINTF2(tmp,"%sfile/%04u.in",scfg.data_dir,usernumber);
-			MKDIR(tmp);
+			mkpath(tmp);
 			backslash(tmp);
 			strcat(tmp,tp);
 			mv(str,tmp,0);
@@ -5275,7 +5275,7 @@ int export_netmail(void)
 				lprintf(LOG_DEBUG, "MIME attachment decoded: %s (%lu bytes)", filename, (ulong)filelen);
 				char outdir[MAX_PATH+1];
 				SAFEPRINTF2(outdir, "%sfile/%04u.out", scfg.data_dir, msg.idx.from);
-				MKDIR(outdir);
+				mkpath(outdir);
 				char fpath[MAX_PATH+1];
 				SAFEPRINTF2(fpath, "%s/%s", outdir, filename);
 				FILE* fp = fopen(fpath, "wb");
@@ -6118,7 +6118,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.165 $", "%*s %s", revision);
+	sscanf("$Revision: 3.166 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
