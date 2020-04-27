@@ -1,6 +1,6 @@
 /* Synchronet terminal server thread and related functions */
 
-/* $Id: main.cpp,v 1.783 2020/04/17 05:38:31 rswindell Exp $ */
+/* $Id: main.cpp,v 1.784 2020/04/27 21:00:32 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -5685,7 +5685,7 @@ NO_SSH:
 			if(fexist(str))
 				sbbs->printfile(str,P_NOABORT);
 			else {
-				sbbs->putcom("\r\nSorry, all telnet nodes are in use or otherwise unavailable.\r\n");
+				sbbs->putcom("\r\nSorry, all terminal nodes are in use or otherwise unavailable.\r\n");
 				sbbs->putcom("Please try again later.\r\n");
 			}
 			mswait(3000);
