@@ -2,7 +2,7 @@
 
 /* Synchronet message base (SMB) message header dumper */
 
-/* $Id: smbdump.c,v 1.17 2020/04/04 22:11:14 rswindell Exp $ */
+/* $Id: smbdump.c,v 1.18 2020/04/27 22:51:35 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,6 +87,21 @@ str_list_t SMBCALL smb_msghdr_str_list(smbmsg_t* msg)
 				strListAppendFormat(&list, HFIELD_NAME_FMT "%s"
 					,smb_hfieldtype(msg->hfield[i].type)
 					,smb_nettype((enum smb_net_type)*(uint16_t*)msg->hfield_dat[i]));
+				break;
+			case SENDERNETADDR:
+				strListAppendFormat(&list, HFIELD_NAME_FMT "%s"
+					,smb_hfieldtype(msg->hfield[i].type)
+					,smb_netaddr(&msg->from_net));
+				break;
+			case RECIPIENTNETADDR:
+				strListAppendFormat(&list, HFIELD_NAME_FMT "%s"
+					,smb_hfieldtype(msg->hfield[i].type)
+					,smb_netaddr(&msg->to_net));
+				break;
+			case REPLYTONETADDR:
+				strListAppendFormat(&list, HFIELD_NAME_FMT "%s"
+					,smb_hfieldtype(msg->hfield[i].type)
+					,smb_netaddr(&msg->replyto_net));
 				break;
 			default:
 				strListAppendFormat(&list, HFIELD_NAME_FMT "%s"
