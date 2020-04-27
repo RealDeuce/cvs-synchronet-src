@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.162 2020/04/26 22:59:59 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.163 2020/04/27 01:43:52 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -4348,7 +4348,7 @@ int import_netmail(const char* path, fmsghdr_t hdr, FILE* fp, const char* inboun
 {
 	char info[512],str[256],tmp[256],subj[256]
 		,*fmsgbuf=NULL,*p,*tp,*sp;
-	int i,match,usernumber;
+	int i,match,usernumber = 0;
 	ulong length;
 	fidoaddr_t addr;
 
@@ -6109,7 +6109,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.162 $", "%*s %s", revision);
+	sscanf("$Revision: 3.163 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
