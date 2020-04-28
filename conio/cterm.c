@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.297 2020/04/28 20:45:07 deuce Exp $ */
+/* $Id: cterm.c,v 1.298 2020/04/28 21:29:47 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -2584,7 +2584,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 												crc = ucrc16(0, crc);
 										}
 										*tmp = 0;
-										snprintf(tmp, sizeof(tmp), "\x1bP%u!~%04x\x1b\\", (unsigned)seq->param_int[1], crc);
+										snprintf(tmp, sizeof(tmp), "\x1bP%u!~%04X\x1b\\", (unsigned)seq->param_int[1], crc);
 										break;
 									}
 								}
@@ -3202,7 +3202,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								}
 								if (good) {
 									*tmp = 0;
-									snprintf(tmp, sizeof(tmp), "\x1bP%u!~%04x\x1b\\", (unsigned)seq->param_int[0], crc);
+									snprintf(tmp, sizeof(tmp), "\x1bP%u!~%04X\x1b\\", (unsigned)seq->param_int[0], crc);
 									if(*tmp && strlen(retbuf) + strlen(tmp) < retsize)
 										strcat(retbuf, tmp);
 								}
@@ -4244,7 +4244,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.297 $";
+	char	*revision="$Revision: 1.298 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
