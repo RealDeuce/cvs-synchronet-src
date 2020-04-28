@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.131 2020/04/26 23:06:19 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.132 2020/04/28 06:27:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -144,7 +144,7 @@ int sbbs_t::show_atcode(const char *instr)
 		*p=0;
 	}
 
-	cp = atcode(sp, str2, sizeof(str2), &pmode);
+	cp = atcode(sp, str2, sizeof(str2), &pmode, centered);
 	if(cp==NULL)
 		return(0);
 
@@ -210,7 +210,7 @@ static const char* getpath(scfg_t* cfg, const char* path)
 	return path;
 }
 
-const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
+const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode, bool centered)
 {
 	char*	tp = NULL;
 	uint	i;
@@ -613,7 +613,9 @@ const char* sbbs_t::atcode(char* sp, char* str, size_t maxlen, long* pmode)
 
 	if(strncmp(sp, "FILL:", 5) == 0) {
 		sp += 5;
-		while(*sp && online && column < cols - 1)
+		long margin = centered ? column : 1;
+		if(margin < 1) margin = 1;
+		while(*sp && online && column < cols - margin)
 			bputs(sp, P_TRUNCATE);
 		return nulstr;
 	}

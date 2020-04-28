@@ -1,6 +1,6 @@
 /* Synchronet class (sbbs_t) definition and exported function prototypes */
 // vi: tabstop=4
-/* $Id: sbbs.h,v 1.561 2020/04/24 08:01:33 rswindell Exp $ */
+/* $Id: sbbs.h,v 1.562 2020/04/28 06:27:52 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -815,7 +815,7 @@ public:
 
 	/* atcodes.cpp */
 	int		show_atcode(const char *code);
-	const char*	atcode(char* sp, char* str, size_t maxlen, long* pmode = NULL);
+	const char*	atcode(char* sp, char* str, size_t maxlen, long* pmode = NULL, bool centered = false);
 
 	/* getnode.cpp */
 	int		getsmsg(int usernumber, bool clearline = false);
