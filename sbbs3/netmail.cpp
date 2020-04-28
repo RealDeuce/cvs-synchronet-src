@@ -2,7 +2,7 @@
 
 /* Synchronet network mail-related functions */
 
-/* $Id: netmail.cpp,v 1.67 2020/04/24 08:42:51 rswindell Exp $ */
+/* $Id: netmail.cpp,v 1.68 2020/04/28 01:33:15 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -243,6 +243,7 @@ bool sbbs_t::netmail(const char *into, const char *title, long mode, smb_t* resm
 		} 
 	}
 
+	msg.hdr.netattr |= MSG_LOCAL; 
 	lprintf(LOG_DEBUG, "NetMail subject: %s", subj);
 	p=subj;
 	if((SYSOP || useron.exempt&FLAG('F'))

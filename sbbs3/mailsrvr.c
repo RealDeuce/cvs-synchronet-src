@@ -1,6 +1,6 @@
 /* Synchronet Mail (SMTP/POP3) server and sendmail threads */
 
-/* $Id: mailsrvr.c,v 1.723 2020/04/24 05:04:44 rswindell Exp $ */
+/* $Id: mailsrvr.c,v 1.724 2020/04/28 01:38:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3877,6 +3877,7 @@ static void smtp_thread(void* arg)
 					smb_hfield_add_str(&newmsg, SMTPRECEIVED, hdrfield, /* insert: */TRUE);
 
 					if(nettype == NET_FIDO) {
+						newmsg.hdr.netattr |= MSG_LOCAL;
 						char* tp = strchr(rcpt_name, '@');
 						if(tp != NULL)
 							*tp = 0;
@@ -5912,7 +5913,7 @@ const char* DLLCALL mail_ver(void)
 
 	DESCRIBE_COMPILER(compiler);
 
-	sscanf("$Revision: 1.723 $", "%*s %s", revision);
+	sscanf("$Revision: 1.724 $", "%*s %s", revision);
 
 	sprintf(ver,"%s %s%s  SMBLIB %s  "
 		"Compiled %s %s with %s"
