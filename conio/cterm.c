@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.293 2020/04/28 09:51:40 deuce Exp $ */
+/* $Id: cterm.c,v 1.294 2020/04/28 17:12:41 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3185,10 +3185,10 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								    (seq->param_int[2] <= seq->param_int[4]) &&
 								    (seq->param_int[3] <= seq->param_int[5]) &&
 								    (pix = getpixels(
-								      (seq->param_int[3] - 1 + cterm->x)*vparams[vmode].charwidth, 
-								      (seq->param_int[2] - 1 + cterm->y)*vparams[vmode].charheight, 
-								      (seq->param_int[5] + cterm->x)*vparams[vmode].charwidth - 1, 
-								      (seq->param_int[4] + cterm->y)*vparams[vmode].charheight - 1)) != NULL) {
+								      (seq->param_int[3] - 1 + cterm->x - 1)*vparams[vmode].charwidth, 
+								      (seq->param_int[2] - 1 + cterm->y - 1)*vparams[vmode].charheight, 
+								      (seq->param_int[5] + cterm->x - 1)*vparams[vmode].charwidth - 1, 
+								      (seq->param_int[4] + cterm->y - 1)*vparams[vmode].charheight - 1)) != NULL) {
 									crc = crc16((void *)pix->pixels, sizeof(pix->pixels[0])*pix->width*pix->height);
 									good = 1;
 									freepixles(pix);
@@ -4246,7 +4246,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.293 $";
+	char	*revision="$Revision: 1.294 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
