@@ -1,6 +1,6 @@
 /* Synchronet FidoNet EchoMail Scanning/Tossing and NetMail Tossing Utility */
 
-/* $Id: sbbsecho.c,v 3.167 2020/04/28 01:24:21 rswindell Exp $ */
+/* $Id: sbbsecho.c,v 3.168 2020/04/28 04:07:02 rswindell Exp $ */
 // vi: tabstop=4
 
 /****************************************************************************
@@ -3616,7 +3616,7 @@ int fmsgtosmsg(char* fbuf, fmsghdr_t* hdr, uint user, uint subnum)
 		get_msgid(&scfg,subnum,&msg,msg_id,sizeof(msg_id));
 		smb_hfield_str(&msg,RFC822MSGID,msg_id);
 	}
-	if(smbfile->status.max_crcs==0)
+	if(smbfile->status.max_crcs==0 || (subnum == INVALID_SUB && user == 0))
 		dupechk_hashes&=~(1<<SMB_HASH_SOURCE_BODY);
 	/* Bad echo area collects a *lot* of messages, and thus, hashes - so no dupe checking */
 	if(cfg.badecho>=0 && subnum==cfg.area[cfg.badecho].sub)
@@ -6118,7 +6118,7 @@ int main(int argc, char **argv)
 		memset(&smb[i],0,sizeof(smb_t));
 	memset(&cfg,0,sizeof(cfg));
 
-	sscanf("$Revision: 3.167 $", "%*s %s", revision);
+	sscanf("$Revision: 3.168 $", "%*s %s", revision);
 
 	DESCRIBE_COMPILER(compiler);
 
