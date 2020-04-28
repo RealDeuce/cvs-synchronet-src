@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: conn_pty.c,v 1.37 2020/04/17 21:57:47 deuce Exp $ */
+/* $Id: conn_pty.c,v 1.38 2020/04/28 05:34:50 deuce Exp $ */
 
 #ifdef __unix__
 
@@ -503,6 +503,7 @@ int pty_close(void)
 	destroy_conn_buf(&conn_outbuf);
 	FREE_AND_NULL(conn_api.rd_buf);
 	FREE_AND_NULL(conn_api.wr_buf);
+	close(master);
 	return(0);
 }
 
