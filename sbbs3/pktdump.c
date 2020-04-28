@@ -1,6 +1,6 @@
 /* pktdump.c */
 
-/* $Id: pktdump.c,v 1.16 2020/04/26 21:01:22 rswindell Exp $ */
+/* $Id: pktdump.c,v 1.17 2020/04/28 05:41:30 rswindell Exp $ */
 
 #include "fidodefs.h"
 #include "xpendian.h"	/* swap */
@@ -46,6 +46,29 @@ bool freadstr(FILE* fp, char* str, size_t maxlen)
 	}
 
 	return str[maxlen-1] == 0;
+}
+
+const char* fmsgattr_str(uint16_t attr)
+{
+	static char str[64] = "";
+
+#define FIDO_ATTR_CHECK(a, f) if(a&FIDO_##f)	sprintf(str + strlen(str), "%s%s", str[0] == 0 ? "" : ", ", #f);
+	FIDO_ATTR_CHECK(attr, PRIVATE);
+	FIDO_ATTR_CHECK(attr, CRASH);
+	FIDO_ATTR_CHECK(attr, RECV);
+	FIDO_ATTR_CHECK(attr, SENT);
+	FIDO_ATTR_CHECK(attr, FILE);
+	FIDO_ATTR_CHECK(attr, INTRANS);
+	FIDO_ATTR_CHECK(attr, ORPHAN);
+	FIDO_ATTR_CHECK(attr, KILLSENT);
+	FIDO_ATTR_CHECK(attr, LOCAL);
+	FIDO_ATTR_CHECK(attr, HOLD);
+	FIDO_ATTR_CHECK(attr, FREQ);
+	FIDO_ATTR_CHECK(attr, RRREQ);
+	FIDO_ATTR_CHECK(attr, RR);
+	FIDO_ATTR_CHECK(attr, AUDIT);
+	FIDO_ATTR_CHECK(attr, FUPREQ);
+	return str;
 }
 
 int pktdump(FILE* fp, const char* fname, FILE* good, FILE* bad)
@@ -198,7 +221,7 @@ int pktdump(FILE* fp, const char* fname, FILE* good, FILE* bad)
 			,pkdmsg.type
 			,pkdmsg.orignet, pkdmsg.orignode
 			,pkdmsg.destnet, pkdmsg.destnode);
-		printf("Attribute: %04X\n",pkdmsg.attr);
+		printf("Attribute: 0x%04X (%s)\n",pkdmsg.attr, fmsgattr_str(pkdmsg.attr));
 		printf("Date/Time: %s\n",pkdmsg.time);
 	
 		/* Display variable-length fields */
@@ -260,7 +283,7 @@ int main(int argc, char** argv)
 	int		i;
 	char	revision[16];
 
-	sscanf("$Revision: 1.16 $", "%*s %s", revision);
+	sscanf("$Revision: 1.17 $", "%*s %s", revision);
 
 	fprintf(stderr,"pktdump rev %s - Dump FidoNet Packets\n\n"
 		,revision
