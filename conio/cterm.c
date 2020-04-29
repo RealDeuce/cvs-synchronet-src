@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.303 2020/04/29 21:29:00 deuce Exp $ */
+/* $Id: cterm.c,v 1.304 2020/04/29 23:16:15 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -3838,6 +3838,7 @@ static void do_ansi(struct cterminal *cterm, char *retbuf, size_t retsize, int *
 								nc = map_rgb(seq->param_int[1]<<8, seq->param_int[2]<<8, seq->param_int[3]<<8);
 								if (nc != UINT32_MAX)
 									*c = nc;
+								setcolour(cterm->fg_color, cterm->bg_color);
 							}
 							break;
 						case 'u':
@@ -4294,7 +4295,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.303 $";
+	char	*revision="$Revision: 1.304 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
