@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.239 2020/04/29 08:56:10 deuce Exp $ */
+/* $Id: syncterm.c,v 1.240 2020/04/29 08:57:34 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -901,7 +901,6 @@ void parse_url(char *url, struct bbslist *bbs, int dflt_conn_type, int force_def
 static char *get_new_OSX_filename(char *fn, int fnlen, int type, int shared)
 {
 	FSRef		ref;
-	long		size;
 
 	/* First, get the path */
 	switch(type) {

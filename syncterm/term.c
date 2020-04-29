@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: term.c,v 1.368 2020/04/23 23:12:14 deuce Exp $ */
+/* $Id: term.c,v 1.369 2020/04/29 08:57:34 deuce Exp $ */
 
 #include <stdbool.h>
 
@@ -67,6 +67,41 @@ struct mouse_state {
 #define MS_SGR_SET	(1006)
 	enum mouse_modes mode;
 };
+
+#ifndef NDEBUG
+
+static int dbg_pthread_mutex_lock(pthread_mutex_t *lptr, unsigned line)
+{
+	int ret = pthread_mutex_lock(lptr);
+
+	if (ret)
+		fprintf(stderr, "pthread_mutex_lock() returned %d at %u\n", ret, line);
+	return ret;
+}
+
+static int dbg_pthread_mutex_unlock(pthread_mutex_t *lptr, unsigned line)
+{
+	int ret = pthread_mutex_unlock(lptr);
+
+	if (ret)
+		fprintf(stderr, "pthread_mutex_lock() returned %d at %u\n", ret, line);
+	return ret;
+}
+
+static int dbg_pthread_mutex_trylock(pthread_mutex_t *lptr, unsigned line)
+{
+	int ret = pthread_mutex_trylock(lptr);
+
+	if (ret)
+		fprintf(stderr, "pthread_mutex_lock() returned %d at %u\n", ret, line);
+	return ret;
+}
+
+#define pthread_mutex_lock(a)		dbg_pthread_mutex_lock(a, __LINE__)
+#define pthread_mutex_unlock(a)		dbg_pthread_mutex_unlock(a, __LINE__)
+#define pthread_mutex_trylock(a)	dbg_pthread_trymutex_lock(a, __LINE__)
+
+#endif
 
 void setup_mouse_events(struct mouse_state *ms)
 {
