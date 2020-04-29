@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.238 2020/04/19 06:38:04 deuce Exp $ */
+/* $Id: syncterm.c,v 1.239 2020/04/29 08:56:10 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1543,6 +1543,12 @@ int main(int argc, char **argv)
                 			break;
 					}
                     break;
+#ifdef __DARWIN__
+				case 'P':
+					if (strncmp("-psn_", argv[i], 5) == 0)
+						break;
+					goto USAGE;
+#endif
 				case 'R':
 					conn_type=CONN_TYPE_RLOGIN;
 					override_conn=TRUE;
