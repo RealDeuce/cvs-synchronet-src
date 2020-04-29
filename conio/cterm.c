@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.302 2020/04/29 20:54:29 deuce Exp $ */
+/* $Id: cterm.c,v 1.303 2020/04/29 21:29:00 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4294,7 +4294,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.302 $";
+	char	*revision="$Revision: 1.303 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4402,6 +4402,7 @@ advance_char(struct cterminal *cterm, int *x, int *y, int move)
 	int bm = cterm->bottom_margin;
 
 	if((*x == rm || *x == CURR_MAXX) && (!(cterm->extattr & CTERM_EXTATTR_AUTOWRAP))) {
+		GOTOXY(*x, *y);
 		return;
 	}
 	else {
