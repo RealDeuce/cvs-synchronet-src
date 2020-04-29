@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.299 2020/04/29 09:20:56 deuce Exp $ */
+/* $Id: cterm.c,v 1.300 2020/04/29 10:47:08 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -822,7 +822,7 @@ delete_tabstop(struct cterminal *cterm, int pos)
 
 	for (i = 0; i < cterm->tab_count && cterm->tabs[i] <= pos; i++) {
 		if (cterm->tabs[i] == pos) {
-			memcpy(&cterm->tabs[i], &cterm->tabs[i+1], (cterm->tab_count - i - 1) * sizeof(cterm->tabs[0]));
+			memmove(&cterm->tabs[i], &cterm->tabs[i+1], (cterm->tab_count - i - 1) * sizeof(cterm->tabs[0]));
 			cterm->tab_count--;
 			return;
 		}
@@ -4250,7 +4250,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.299 $";
+	char	*revision="$Revision: 1.300 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
