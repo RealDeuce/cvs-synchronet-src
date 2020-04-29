@@ -1,4 +1,4 @@
-/* $Id: bitmap_con.c,v 1.146 2020/04/28 18:46:31 deuce Exp $ */
+/* $Id: bitmap_con.c,v 1.147 2020/04/29 11:24:49 deuce Exp $ */
 
 #include <stdarg.h>
 #include <stdio.h>		/* NULL */
@@ -1551,6 +1551,7 @@ int bitmap_drv_init_mode(int mode, int *width, int *height)
 	for (i = 0; i < vstat.cols*vstat.rows; ++i) {
 		vstat.vmem->vmem[i].ch = 0;
 		vstat.vmem->vmem[i].legacy_attr = vstat.currattr;
+		vstat.vmem->vmem[i].font = default_font;
 		bitmap_attr2palette_locked(vstat.currattr, &vstat.vmem->vmem[i].fg, &vstat.vmem->vmem[i].bg);
 	}
 
