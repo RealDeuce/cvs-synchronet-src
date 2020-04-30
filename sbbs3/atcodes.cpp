@@ -1,7 +1,7 @@
 /* Synchronet "@code" functions */
 // vi: tabstop=4
 
-/* $Id: atcodes.cpp,v 1.134 2020/04/30 03:34:48 rswindell Exp $ */
+/* $Id: atcodes.cpp,v 1.135 2020/04/30 20:28:09 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -87,6 +87,8 @@ int sbbs_t::show_atcode(const char *instr, JSObject* obj)
 	long	pmode = 0;
 	const char *cp;
 
+	if(*instr != '@')
+		return 0;
 	SAFECOPY(str,instr);
 	tp=strchr(str+1,'@');
 	if(!tp)                 /* no terminating @ */
