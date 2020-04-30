@@ -1,4 +1,4 @@
-/* $Id: cterm.c,v 1.304 2020/04/29 23:16:15 deuce Exp $ */
+/* $Id: cterm.c,v 1.305 2020/04/30 18:18:21 deuce Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -4295,7 +4295,7 @@ cterm_reset(struct cterminal *cterm)
 
 struct cterminal* CIOLIBCALL cterm_init(int height, int width, int xpos, int ypos, int backlines, struct vmem_cell *scrollback, int emulation)
 {
-	char	*revision="$Revision: 1.304 $";
+	char	*revision="$Revision: 1.305 $";
 	char *in;
 	char	*out;
 	struct cterminal *cterm;
@@ -4752,22 +4752,6 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 							else {
 								if (cterm->strbuf) {
 									cterm->strbuf[cterm->strbuflen++] = ch[0];
-									switch(cterm->sixel) {
-										case SIXEL_STARTED:
-											parse_sixel_string(cterm, false);
-											break;
-										case SIXEL_POSSIBLE:
-											parse_sixel_intro(cterm);
-											break;
-									}
-									switch(cterm->macro) {
-										case MACRO_STARTED:
-											parse_macro_string(cterm, false);
-											break;
-										case MACRO_POSSIBLE:
-											parse_macro_intro(cterm);
-											break;
-									}
 									if (cterm->strbuflen == cterm->strbufsize) {
 										char *p;
 
@@ -4785,6 +4769,23 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 											else
 												cterm->strbuf = p;
 										}
+									}
+									cterm->strbuf[cterm->strbuflen] = 0;
+									switch(cterm->sixel) {
+										case SIXEL_STARTED:
+											parse_sixel_string(cterm, false);
+											break;
+										case SIXEL_POSSIBLE:
+											parse_sixel_intro(cterm);
+											break;
+									}
+									switch(cterm->macro) {
+										case MACRO_STARTED:
+											parse_macro_string(cterm, false);
+											break;
+										case MACRO_POSSIBLE:
+											parse_macro_intro(cterm);
+											break;
 									}
 								}
 							}
@@ -4830,6 +4831,7 @@ CIOLIBEXPORT char* CIOLIBCALL cterm_write(struct cterminal * cterm, const void *
 												cterm->strbuf = p;
 										}
 									}
+									cterm->strbuf[cterm->strbuflen] = 0;
 								}
 							}
 							break;
