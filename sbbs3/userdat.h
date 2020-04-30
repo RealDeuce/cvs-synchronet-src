@@ -1,6 +1,6 @@
 /* Synchronet user data access routines (exported) */
 
-/* $Id: userdat.h,v 1.76 2020/04/12 08:02:53 rswindell Exp $ */
+/* $Id: userdat.h,v 1.77 2020/04/30 18:25:58 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -39,6 +39,7 @@
 #include "scfgdefs.h"   /* scfg_t */
 #include "dat_rec.h"	/* getrec/putrec prototypes */
 #include "client.h"		/* client_t */
+#include "link_list.h"
 
 #ifdef DLLEXPORT
 #undef DLLEXPORT
