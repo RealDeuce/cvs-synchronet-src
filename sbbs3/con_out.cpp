@@ -1,7 +1,7 @@
 /* Synchronet console output routines */
 // vi: tabstop=4
 
-/* $Id: con_out.cpp,v 1.130 2020/04/30 04:39:20 rswindell Exp $ */
+/* $Id: con_out.cpp,v 1.131 2020/04/30 04:43:10 rswindell Exp $ */
 
 /****************************************************************************
  * @format.tab-size 4		(Plain Text/Source Code File Header)			*
@@ -1390,7 +1390,7 @@ bool sbbs_t::restoreline(void)
 	if(line == NULL)
 		return false;
 #ifdef _DEBUG
-	lprintf(LOG_DEBUG, "Restoring %d chars, cursor at col %ld: '%s'", strlen(line->buf), line->column, line->buf);
+	lprintf(LOG_DEBUG, "Restoring %d chars, cursor at col %ld: '%s'", (int)strlen(line->buf), line->column, line->buf);
 #endif
 	lbuflen=0;
 	attr(line->beg_attr);
