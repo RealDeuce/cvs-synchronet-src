@@ -1,6 +1,6 @@
 /* Copyright (C), 2007 by Stephen Hurd */
 
-/* $Id: syncterm.c,v 1.242 2020/04/30 05:53:36 deuce Exp $ */
+/* $Id: syncterm.c,v 1.243 2020/04/30 18:19:27 deuce Exp $ */
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <CoreServices/CoreServices.h>	// FSFindFolder() and friends
@@ -1574,8 +1574,10 @@ int main(int argc, char **argv)
 		return(1);
 	ciolib_reaper=FALSE;
 	seticon(syncterm_icon.pixel_data,syncterm_icon.width);
-	setscaling(settings.scaling_factor);
-	setwinsize(settings.window_width, settings.window_height);
+	if (settings.scaling_factor)
+		setscaling(settings.scaling_factor);
+	if (settings.window_width && settings.window_height)
+		setwinsize(settings.window_width, settings.window_height);
 	textmode(text_mode);
 
     gettextinfo(&txtinfo);
