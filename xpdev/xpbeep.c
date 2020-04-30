@@ -1,4 +1,4 @@
-/* $Id: xpbeep.c,v 1.102 2020/04/30 01:57:20 deuce Exp $ */
+/* $Id: xpbeep.c,v 1.103 2020/04/30 04:03:17 deuce Exp $ */
 
 /* TODO: USE PORTAUDIO! */
 
@@ -747,6 +747,10 @@ do_xp_play_sample(const unsigned char *sampo, size_t sz, int *freed)
 #endif
 #ifdef _WIN32
 	if(handle_type==SOUND_DEVICE_WIN32)
+		need_copy = 1;
+#endif
+#ifdef WITH_SDL_AUDIO
+	if(handle_type==SOUND_DEVICE_SDL)
 		need_copy = 1;
 #endif
 
